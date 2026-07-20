@@ -27,6 +27,8 @@ interface LibraryState {
     formats: MetadataCount[];
   };
   collections: Collection[];
+  hasMoreCollections: boolean;
+  collectionsCursor: string | null;
   recentHistory: ReadingHistory[];
   showNewCollectionModal: boolean;
   newCollectionName: string;
@@ -52,6 +54,10 @@ interface LibraryState {
   setStats: (stats: LibraryStats) => void;
   setMetadataFacets: (facets: Partial<LibraryState["metadataFacets"]>) => void;
   setCollections: (collections: Collection[]) => void;
+  appendCollections: (collections: Collection[], cursor: string | null, hasMore: boolean) => void;
+  addCollection: (collection: Collection) => void;
+  updateCollection: (id: string, name: string) => void;
+  deleteCollection: (id: string) => void;
   setRecentHistory: (history: ReadingHistory[]) => void;
   setShowNewCollectionModal: (show: boolean) => void;
   setNewCollectionName: (name: string) => void;
@@ -84,6 +90,8 @@ export const useLibraryStore = create<LibraryState>((set) => ({
     formats: [],
   },
   collections: [],
+  hasMoreCollections: true,
+  collectionsCursor: null,
   recentHistory: [],
   showNewCollectionModal: false,
   newCollectionName: "",
@@ -97,6 +105,27 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   topBooks: [],
 
   setBooks: (books) => set({ books }),
+  setCollections: (collections) => set({ collections }),
+  appendCollections: (collections, cursor, hasMore) =>
+    set((state) => ({
+      collections: [...state.collections, ...collections],
+      collectionsCursor: cursor,
+      hasMoreCollections: hasMore,
+    })),
+  addCollection: (collection) =>
+    set((state) => ({
+      collections: [collection, ...state.collections],
+    })),
+  updateCollection: (id, name) =>
+    set((state) => ({
+      collections: state.collections.map((c) =>
+        c.id === id ? { ...c, name } : c,
+      ),
+    })),
+  deleteCollection: (id) =>
+    set((state) => ({
+      collections: state.collections.filter((c) => c.id !== id),
+    })),
   setLoading: (loading) => set({ loading }),
   setSearch: (search) => set({ search }),
   setSelectedBook: (selectedBook) => set({ selectedBook }),
@@ -109,7 +138,6 @@ export const useLibraryStore = create<LibraryState>((set) => ({
     set((state) => ({
       metadataFacets: { ...state.metadataFacets, ...facets },
     })),
-  setCollections: (collections) => set({ collections }),
   setRecentHistory: (recentHistory) => set({ recentHistory }),
   setShowNewCollectionModal: (showNewCollectionModal) =>
     set({ showNewCollectionModal }),

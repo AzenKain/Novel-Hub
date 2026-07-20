@@ -49,7 +49,11 @@
     "assign_roles": "分配角色",
     "save_changes": "保存更改",
     "books_libraries": "书籍与书库",
-    "panel": "管理面板"
+    "panel": "管理面板",
+    "reviews": "评论",
+    "email": "电子邮件地址",
+    "password": "密码",
+    "account_status": "帐户状态"
   },
   "auth": {
     "login_to_account": "登录到您的账户",
@@ -83,7 +87,14 @@
     "close": "关闭",
     "copy": "复制",
     "copied": "已复制",
-    "unknown": "未知"
+    "unknown": "未知",
+    "submit": "提交",
+    "user": "用户",
+    "crop_image": "裁剪和调整照片",
+    "apply": "应用",
+    "share": "分享",
+    "download": "下载",
+    "load_more": "加载更多"
   },
   "library": {
     "ready_to_read": "准备阅读",
@@ -185,7 +196,12 @@
     "recently_read": "最近阅读",
     "jump_back": "返回最近阅读的书",
     "no_recent_books": "暂无最近阅读",
-    "no_recent_books_hint": "您在阅读器中打开的书会显示在这里。"
+    "no_recent_books_hint": "您在阅读器中打开的书会显示在这里。",
+    "all_books": "所有书籍",
+    "random_books": "随机书籍",
+    "shuffle_books": "洗牌",
+    "top_books": "热门书籍",
+    "top_books_hint": "库中阅读量最高的书籍。"
   },
   "user": {
     "profile": "资料",
@@ -195,7 +211,11 @@
     "full_name_placeholder": "您的全名",
     "avatar_url": "头像链接",
     "save_changes": "保存更改",
-    "zoom": "缩放"
+    "zoom": "缩放",
+    "crop_instructions": "拖动图像以重新定位",
+    "upload_avatar": "上传照片",
+    "load_url": "从URL加载",
+    "remove_avatar": "移除"
   },
   "reader": {
     "book_not_found": "未找到书籍",
@@ -218,6 +238,38 @@
     "mode_double": "双页",
     "prev_page": "上一页",
     "next_page": "下一页",
-    "single_entry": "当前文件"
+    "single_entry": "当前文件",
+    "read": "阅读"
+  },
+  "review": {
+    "submitted": "评论提交成功",
+    "deleted": "评论删除成功",
+    "select_rating": "请选择星级评分",
+    "title": "评论和评分",
+    "edit_yours": "编辑您的评论",
+    "write_yours": "写评论",
+    "placeholder": "您觉得这本书怎么样？",
+    "login_required": "请登录以撰写评论。",
+    "confirm_delete": "您确定要删除此评论吗？",
+    "no_reviews": "暂无评论。来写第一条评论吧！"
+  },
+  "error": {
+    "unknown": "发生未知错误",
+    "book_not_found": "未找到书籍",
+    "book_not_found_desc": "此书可能已被删除或不可用。"
+  },
+  "book": {
+    "bookmark_updated": "书签更新成功",
+    "remove_bookmark": "删除书签",
+    "add_bookmark": "添加书签",
+    "reads": "阅读量",
+    "downloads": "下载量",
+    "rating": "评分",
+    "author": "作者",
+    "publisher": "出版社",
+    "date": "出版日期",
+    "language": "语言",
+    "description": "内容简介",
+    "no_description": "暂无内容简介。"
   }
 }

@@ -22,6 +22,8 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	collectionGroup.Use(middlewares.RequirePermission(permissionCache, "book.collection"))
 	collectionGroup.Get("/", featureController.GetCollections)
 	collectionGroup.Post("/", featureController.CreateCollection)
+	collectionGroup.Put("/:id", featureController.UpdateCollection)
+	collectionGroup.Delete("/:id", featureController.DeleteCollection)
 	collectionGroup.Post("/:id/books", featureController.AddBookToCollection)
 	collectionGroup.Delete("/:id/books/:bookId", featureController.RemoveBookFromCollection)
 

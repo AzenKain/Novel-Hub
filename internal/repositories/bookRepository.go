@@ -13,17 +13,17 @@ import (
 type BookCatalogRepository interface {
 	CreateBook(ctx context.Context, book *models.BookEntity) error
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, limit, offset int64) ([]*models.BookEntity, error)
-	SearchBooksCursor(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor time.Time, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
 	UpdateBook(ctx context.Context, book *models.BookEntity) error
 	DeleteBook(ctx context.Context, id string) error
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
-	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *BookFileRecordParams) error
+	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *sqlc.CreateBookFileParams) error
+	ListBookIDs(ctx context.Context, cursor *time.Time, limit int64) ([]string, error)
 }
 
 type BookFileRecordRepository interface {
-	CreateBookFile(ctx context.Context, params BookFileRecordParams) error
-	UpsertBookFile(ctx context.Context, params BookFileRecordParams) error
+	CreateBookFile(ctx context.Context, params sqlc.CreateBookFileParams) error
+	UpsertBookFile(ctx context.Context, params sqlc.UpsertBookFileParams) error
 	GetFilesByBookId(ctx context.Context, bookID string) ([]*models.BookFileEntity, error)
 	GetFilesByBookIDs(ctx context.Context, bookIDs []string) ([]*models.BookFileEntity, error)
 	GetBookFileByPath(ctx context.Context, path string) (*models.BookFileEntity, error)

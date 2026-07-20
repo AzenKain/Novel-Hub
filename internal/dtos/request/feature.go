@@ -4,6 +4,10 @@ type CreateCollectionDto struct {
 	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
+type UpdateCollectionDto struct {
+	Name string `json:"name" validate:"required,min=1,max=100"`
+}
+
 type RecordReadingActivityDto struct {
 	BookID          string   `json:"bookId" validate:"required"`
 	FileID          string   `json:"fileId"`

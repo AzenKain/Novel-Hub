@@ -14,10 +14,12 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 )
 
@@ -181,11 +183,11 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 		fullName = &dto.FullName
 	}
 
-	user, err := userRepoTx.UpsertUser(ctx, repositories.UpsertUserParams{
+	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
 		Email:        dto.Email,
-		PasswordHash: &passwordHash,
+		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
-		FullName:     fullName,
+		FullName:     convert.StrPtrToNullString(fullName),
 	})
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user")
@@ -256,11 +258,11 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 		fullName = &dto.Username
 	}
 
-	user, err := userRepoTx.UpsertUser(ctx, repositories.UpsertUserParams{
+	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
 		Email:        dto.Email,
-		PasswordHash: &passwordHash,
+		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
-		FullName:     fullName,
+		FullName:     convert.StrPtrToNullString(fullName),
 	})
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create root user")

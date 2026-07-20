@@ -174,7 +174,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     set({ loading: true, error: "" });
     try {
       const res = await bookService.getBooks({
-        page,
+        cursor: undefined,
         limit: 24,
         search: search || undefined,
         library_id: selectedLibraryId || undefined

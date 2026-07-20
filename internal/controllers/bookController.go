@@ -50,26 +50,32 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 		searchStr = &dto.Search
 	}
 
+	var cursorTime *time.Time
 	if dto.Cursor != "" {
-		books, err = h.bookService.SearchBooksCursor(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, dto.Cursor, int64(dto.Limit))
-	} else {
-		// fallback to calculating offset if page is provided
-		offset := dto.Offset
-		if offset == 0 && dto.Page > 1 {
-			offset = (dto.Page - 1) * dto.Limit
+		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+			cursorTime = &t
 		}
-		books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, int64(dto.Limit), int64(offset))
 	}
+	books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, cursorTime, int64(dto.Limit))
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to list books"})
 	}
 
-	filtered, allowed := h.filterReadableBooks(c, books)
+	filtered, allowed := h.bookService.FilterReadableBooks(ctx, books, h.claims(c))
 	if !allowed {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Login required"})
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: filtered})
+	var nextCursor *string
+	if len(filtered) > 0 {
+		c := filtered[len(filtered)-1].CreatedAt.Format(time.RFC3339Nano)
+		nextCursor = &c
+	}
+	return c.JSON(fiber.Map{
+		"status": true,
+		"data": filtered,
+		"next_cursor": nextCursor,
+	})
 }
 
 func (h *BookController) GetBook(c fiber.Ctx) error {
@@ -81,7 +87,7 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.canReadBook(c, book) {
+	if !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: book})
@@ -96,7 +102,7 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.canDownloadBook(c, book) {
+	if !h.bookService.CanDownloadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Downloads are not allowed"})
 	}
 
@@ -110,7 +116,7 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 	if ext == "" {
 		ext = ".epub"
 	}
-	return c.Download(file.Path, safeDownloadFilename(book.Title, ext))
+	return c.Download(file.Path, h.bookService.SafeDownloadFilename(book.Title, ext))
 }
 
 func (h *BookController) ListBookFiles(c fiber.Ctx) error {
@@ -121,7 +127,7 @@ func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.canReadBook(c, book) {
+	if !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	files, err := h.bookService.ListBookFiles(ctx, c.Params("id"))
@@ -159,7 +165,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.canReadBook(c, book) {
+	if !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	chapters, err := h.bookService.ListChapters(ctx, id)
@@ -169,84 +175,10 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: chapters})
 }
 
-func (h *BookController) filterReadableBooks(c fiber.Ctx, books []*models.BookEntity) ([]*models.BookEntity, bool) {
-	if len(books) == 0 {
-		return books, true
-	}
-	if h.claims(c) == nil {
-		settings, err := h.settings.Public(c.Context())
-		if err == nil && settings.GuestAccess.Mode == "login_required" {
-			return nil, false
-		}
-		out := make([]*models.BookEntity, 0, len(books))
-		for _, book := range books {
-			if book != nil && h.settings.GuestAllows(book.LibraryID) {
-				out = append(out, book)
-			}
-		}
-		return out, true
-	}
-	out := make([]*models.BookEntity, 0, len(books))
-	for _, book := range books {
-		if book != nil && h.canReadBook(c, book) {
-			out = append(out, book)
-		}
-	}
-	return out, true
-}
-
-func (h *BookController) canReadBook(c fiber.Ctx, book *models.BookEntity) bool {
-	if book == nil {
-		return false
-	}
-	claims := h.claims(c)
-	if claims == nil {
-		return h.settings.GuestAllows(book.LibraryID)
-	}
-	return h.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.read", map[string]any{"library_id": book.LibraryID})
-}
-
-func (h *BookController) canDownloadBook(c fiber.Ctx, book *models.BookEntity) bool {
-	if book == nil {
-		return false
-	}
-	claims := h.claims(c)
-	if claims == nil {
-		return false
-	}
-	admin := h.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if !h.settings.PolicyAllows("download", book.LibraryID, admin) {
-		return false
-	}
-	return h.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.download", map[string]any{"library_id": book.LibraryID})
-}
 
 func (h *BookController) claims(c fiber.Ctx) *response.JWTClaims {
 	claims, _ := c.Locals("user_claims").(*response.JWTClaims)
 	return claims
-}
-
-func safeDownloadFilename(title string, ext string) string {
-	name := strings.TrimSpace(title)
-	if name == "" {
-		name = "book"
-	}
-	name = strings.Map(func(r rune) rune {
-		switch r {
-		case '/', '\\', ':', '*', '?', '"', '<', '>', '|':
-			return '-'
-		default:
-			return r
-		}
-	}, name)
-	name = strings.Trim(name, " .-")
-	if name == "" {
-		name = "book"
-	}
-	if !strings.HasPrefix(ext, ".") {
-		ext = "." + ext
-	}
-	return name + ext
 }
 
 func (h *BookController) SearchDeep(c fiber.Ctx) error {

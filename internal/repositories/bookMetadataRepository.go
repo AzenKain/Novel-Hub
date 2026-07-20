@@ -2,12 +2,13 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/jsonx"
+	"novelhub/pkg/cache"
 )
 
 func (r *bookDBRepository) CreateAuthor(ctx context.Context, author *models.AuthorEntity) error {
@@ -23,18 +24,19 @@ func (r *bookDBRepository) CreateAuthor(ctx context.Context, author *models.Auth
 	author.CreatedAt = res.CreatedAt.Time
 	author.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, fmt.Sprintf("author:name:%s", author.Name), author, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("author", "name", author.Name), author, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetAuthorByName(ctx context.Context, name string) (*models.AuthorEntity, error) {
-	key := fmt.Sprintf("author:name:%s", name)
+	key := cache.BuildKey("author", "name", name)
 	if r.c != nil && !r.inTx {
 		var author models.AuthorEntity
 		if err := r.c.Get(ctx, key, &author); err == nil {
@@ -53,7 +55,7 @@ func (r *bookDBRepository) GetAuthorByName(ctx context.Context, name string) (*m
 }
 
 func (r *bookDBRepository) GetAuthorByID(ctx context.Context, id string) (*models.AuthorEntity, error) {
-	key := fmt.Sprintf("author:id:%s", id)
+	key := cache.BuildKey("author", "id", id)
 	if r.c != nil && !r.inTx {
 		var author models.AuthorEntity
 		if err := r.c.Get(ctx, key, &author); err == nil {
@@ -67,7 +69,7 @@ func (r *bookDBRepository) GetAuthorByID(ctx context.Context, id string) (*model
 	author := (&models.AuthorEntity{}).FromSqlc(res)
 	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, key, author, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, fmt.Sprintf("author:name:%s", author.Name), author, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("author", "name", author.Name), author, constants.NormalCacheDuration)
 	}
 	return author, nil
 }
@@ -76,15 +78,70 @@ func (r *bookDBRepository) GetAuthorsByIDs(ctx context.Context, ids []string) ([
 	if len(ids) == 0 {
 		return []*models.AuthorEntity{}, nil
 	}
-	rows, err := r.queries.GetAuthorsByIDs(ctx, ids)
-	if err != nil {
-		return nil, err
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = cache.BuildKey("author", "id", id)
 	}
-	authors := make([]*models.AuthorEntity, len(rows))
-	for i, row := range rows {
-		authors[i] = (&models.AuthorEntity{}).FromSqlc(row)
+
+	authors := make([]*models.AuthorEntity, 0, len(ids))
+	missingIds := []string{}
+	missingKeys := []string{}
+
+	if r.c != nil && !r.inTx {
+		cachedBytes := r.c.MGet(ctx, keys...)
+		for i, bytes := range cachedBytes {
+			if len(bytes) > 0 {
+				var author models.AuthorEntity
+				if err := jsonx.Unmarshal(bytes, &author); err == nil {
+					authors = append(authors, &author)
+					continue
+				}
+			}
+			missingIds = append(missingIds, ids[i])
+			missingKeys = append(missingKeys, keys[i])
+		}
+	} else {
+		missingIds = ids
+		missingKeys = keys
 	}
-	return authors, nil
+
+	if len(missingIds) > 0 {
+		rows, err := r.queries.GetAuthorsByIDs(ctx, missingIds)
+		if err != nil {
+			return nil, err
+		}
+		missingMap := make(map[string]*models.AuthorEntity)
+		for _, row := range rows {
+			author := (&models.AuthorEntity{}).FromSqlc(row)
+			missingMap[author.ID] = author
+			authors = append(authors, author)
+		}
+
+		if r.c != nil && !r.inTx {
+			missingToCache := make(map[string]any)
+			for i, missingId := range missingIds {
+				if a, ok := missingMap[missingId]; ok {
+					missingToCache[missingKeys[i]] = a
+				}
+			}
+			if len(missingToCache) > 0 {
+				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
+			}
+		}
+	}
+
+	authorMap := make(map[string]*models.AuthorEntity)
+	for _, a := range authors {
+		authorMap[a.ID] = a
+	}
+	ordered := make([]*models.AuthorEntity, 0, len(ids))
+	for _, id := range ids {
+		if a, ok := authorMap[id]; ok {
+			ordered = append(ordered, a)
+		}
+	}
+
+	return ordered, nil
 }
 
 func (r *bookDBRepository) CreateTag(ctx context.Context, tag *models.TagEntity) error {
@@ -98,18 +155,19 @@ func (r *bookDBRepository) CreateTag(ctx context.Context, tag *models.TagEntity)
 	}
 	tag.CreatedAt = res.CreatedAt.Time
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, fmt.Sprintf("tag:name:%s", tag.Name), tag, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("tag", "name", tag.Name), tag, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetTagByName(ctx context.Context, name string) (*models.TagEntity, error) {
-	key := fmt.Sprintf("tag:name:%s", name)
+	key := cache.BuildKey("tag", "name", name)
 	if r.c != nil && !r.inTx {
 		var tag models.TagEntity
 		if err := r.c.Get(ctx, key, &tag); err == nil {
@@ -132,15 +190,16 @@ func (r *bookDBRepository) AddBookTag(ctx context.Context, bookID, tagID string)
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetSeriesByName(ctx context.Context, name string) (*models.SeriesEntity, error) {
-	key := fmt.Sprintf("series:name:%s", name)
+	key := cache.BuildKey("series", "name", name)
 	if r.c != nil && !r.inTx {
 		var series models.SeriesEntity
 		if err := r.c.Get(ctx, key, &series); err == nil {
@@ -168,11 +227,12 @@ func (r *bookDBRepository) CreateSeries(ctx context.Context, series *models.Seri
 	}
 	series.CreatedAt = res.CreatedAt.Time
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, fmt.Sprintf("series:name:%s", series.Name), series, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("series", "name", series.Name), series, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -187,8 +247,9 @@ func (r *bookDBRepository) LinkBookSeries(ctx context.Context, bookID, seriesID 
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -199,15 +260,16 @@ func (r *bookDBRepository) ClearBookSeries(ctx context.Context, bookID string) e
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetPublisherByName(ctx context.Context, name string) (*models.PublisherEntity, error) {
-	key := fmt.Sprintf("publisher:name:%s", name)
+	key := cache.BuildKey("publisher", "name", name)
 	if r.c != nil && !r.inTx {
 		var publisher models.PublisherEntity
 		if err := r.c.Get(ctx, key, &publisher); err == nil {
@@ -235,11 +297,12 @@ func (r *bookDBRepository) CreatePublisher(ctx context.Context, publisher *model
 	}
 	publisher.CreatedAt = res.CreatedAt.Time
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, fmt.Sprintf("publisher:name:%s", publisher.Name), publisher, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("publisher", "name", publisher.Name), publisher, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -253,8 +316,9 @@ func (r *bookDBRepository) LinkBookPublisher(ctx context.Context, bookID, publis
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -265,15 +329,16 @@ func (r *bookDBRepository) ClearBookPublishers(ctx context.Context, bookID strin
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetLanguageByName(ctx context.Context, name string) (*models.LanguageEntity, error) {
-	key := fmt.Sprintf("language:name:%s", name)
+	key := cache.BuildKey("language", "name", name)
 	if r.c != nil && !r.inTx {
 		var language models.LanguageEntity
 		if err := r.c.Get(ctx, key, &language); err == nil {
@@ -301,11 +366,12 @@ func (r *bookDBRepository) CreateLanguage(ctx context.Context, language *models.
 	}
 	language.CreatedAt = res.CreatedAt.Time
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, fmt.Sprintf("language:name:%s", language.Name), language, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("language", "name", language.Name), language, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -319,8 +385,9 @@ func (r *bookDBRepository) LinkBookLanguage(ctx context.Context, bookID, languag
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -331,8 +398,9 @@ func (r *bookDBRepository) ClearBookLanguages(ctx context.Context, bookID string
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -343,8 +411,9 @@ func (r *bookDBRepository) ClearBookTags(ctx context.Context, bookID string) err
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("book:id:%s", bookID), "feature:library_stats")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
@@ -353,21 +422,26 @@ func (r *bookDBRepository) ClearBookTags(ctx context.Context, bookID string) err
 func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:authors"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "author", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListAuthorsWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "author", result)
 	}
 	return result, nil
 }
@@ -375,21 +449,26 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context) ([]*models.
 func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:series"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "series", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListSeriesWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount, CoverURL: row.CoverUrl.String}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "series", result)
 	}
 	return result, nil
 }
@@ -397,21 +476,26 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context) ([]*models.M
 func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:publishers"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "publisher", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListPublishersWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "publisher", result)
 	}
 	return result, nil
 }
@@ -419,21 +503,26 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context) ([]*mode
 func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:languages"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "language", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListLanguagesWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "language", result)
 	}
 	return result, nil
 }
@@ -441,21 +530,26 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context) ([]*model
 func (r *bookDBRepository) ListTagsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:tags"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "tag", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListTagsWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "tag", result)
 	}
 	return result, nil
 }
@@ -463,21 +557,67 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context) ([]*models.Met
 func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error) {
 	key := "metadata:formats"
 	if r.c != nil && !r.inTx {
-		var rows []*models.MetadataCountEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "format", ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.ListFormatsWithCount(ctx)
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, len(rows))
 	result := make([]*models.MetadataCountEntity, len(rows))
 	for i, row := range rows {
 		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+		ids[i] = row.ID
 	}
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheMetadataCountEntities(ctx, "format", result)
 	}
 	return result, nil
+}
+
+func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType string, ids []string) ([]*models.MetadataCountEntity, bool) {
+	if len(ids) == 0 {
+		return []*models.MetadataCountEntity{}, true
+	}
+	if r.c == nil || r.inTx {
+		return nil, false
+	}
+
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = cache.BuildKey("metadata_count", entityType, "id", id)
+	}
+
+	cachedBytes := r.c.MGet(ctx, keys...)
+	ordered := make([]*models.MetadataCountEntity, 0, len(ids))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.MetadataCountEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
+}
+
+func (r *bookDBRepository) cacheMetadataCountEntities(ctx context.Context, entityType string, entities []*models.MetadataCountEntity) {
+	if r.c == nil || len(entities) == 0 {
+		return
+	}
+	toCache := make(map[string]any, len(entities))
+	for _, entity := range entities {
+		toCache[cache.BuildKey("metadata_count", entityType, "id", entity.ID)] = entity
+	}
+	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }

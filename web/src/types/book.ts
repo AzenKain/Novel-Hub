@@ -55,7 +55,7 @@ export interface Chapter {
 }
 
 export interface SearchBookParams {
-  page?: number;
+  cursor?: string;
   limit?: number;
   search?: string;
   library_id?: string;

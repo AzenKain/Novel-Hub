@@ -4,7 +4,7 @@ import { settingsService } from "@/services";
 import { BookOpen, Loader2, Image as ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImageCropperModal } from "@/components/common/ImageCropperModal";
+import { ImageCropperModal, PasswordStrength } from "@/components/common";
 
 export function SetupWizard() {
   const navigate = useNavigate();
@@ -19,7 +19,8 @@ export function SetupWizard() {
     password: "",
     site_title: "NovelHub",
     site_description: "Local novel library manager",
-    logo: "/pwa-192x192.png",
+    logo: "/logo.svg",
+    favicon: "/favicon.ico",
     registration: true,
     guest_mode: "all" as string,
     download_mode: "all" as string,
@@ -29,31 +30,10 @@ export function SetupWizard() {
     sidebar_visible_items: Object.keys(SIDEBAR_LABELS),
   });
 
-  const passwordReqs = [
-    { label: "At least 8 characters", valid: form.password.length >= 8 },
-    { label: "Contains uppercase letter", valid: /[A-Z]/.test(form.password) },
-    { label: "Contains lowercase letter", valid: /[a-z]/.test(form.password) },
-    { label: "Contains number", valid: /\d/.test(form.password) },
-    { label: "Contains special character", valid: /[^A-Za-z0-9]/.test(form.password) },
-  ];
-
-  const validReqCount = passwordReqs.filter((r) => r.valid).length;
-
-  const getStrengthColor = () => {
-    if (validReqCount <= 2) return "progress-error";
-    if (validReqCount <= 4) return "progress-warning";
-    return "progress-success";
-  };
-
-  const getStrengthLabel = () => {
-    if (form.password.length === 0) return "";
-    if (validReqCount <= 2) return "Weak";
-    if (validReqCount <= 4) return "Fair";
-    return "Strong";
-  };
-
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<"logo" | "favicon" | null>(null);
 
   useEffect(() => {
     settingsService.getSetupStatus().then((res) => {
@@ -80,6 +60,7 @@ export function SetupWizard() {
         site_title: form.site_title,
         site_description: form.site_description,
         logo: form.logo,
+        favicon: form.favicon,
         registration: form.registration,
         guest_mode: form.guest_mode,
         download_mode: form.download_mode,
@@ -103,26 +84,32 @@ export function SetupWizard() {
     }
   };
 
-  const handleUploadLink = async () => {
-    if (!form.logo || !form.logo.startsWith("http")) return;
-    setUploadingLogo(true);
+  const handleUploadLink = async (type: "logo" | "favicon") => {
+    const url = form[type];
+    if (!url || !url.startsWith("http")) return;
+    
+    if (type === "logo") setUploadingLogo(true);
+    else setUploadingFavicon(true);
+    
     const fd = new FormData();
-    fd.append("url", form.logo);
+    fd.append("url", url);
+    fd.append("target", type);
     try {
       const res = await settingsService.uploadSetupLogo(fd);
       if (res.status && res.data?.url) {
-        setForm({ ...form, logo: res.data.url });
+        setForm({ ...form, [type]: res.data.url });
       } else {
-        setError(res.message || "Failed to fetch logo");
+        setError(res.message || `Failed to fetch ${type}`);
       }
     } catch {
-      setError("Failed to fetch logo");
+      setError(`Failed to fetch ${type}`);
     } finally {
-      setUploadingLogo(false);
+      if (type === "logo") setUploadingLogo(false);
+      else setUploadingFavicon(false);
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "favicon") => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -130,6 +117,7 @@ export function SetupWizard() {
     reader.onload = (event) => {
       if (event.target?.result) {
         setSelectedCropImage(event.target.result as string);
+        setCropTarget(type);
       }
     };
     reader.readAsDataURL(file);
@@ -137,26 +125,33 @@ export function SetupWizard() {
   };
 
   const handleCropApply = async (base64: string) => {
+    const target = cropTarget;
     setSelectedCropImage(null);
-    setUploadingLogo(true);
+    setCropTarget(null);
+    if (!target) return;
+
+    if (target === "logo") setUploadingLogo(true);
+    else setUploadingFavicon(true);
     
     try {
       const resBlob = await fetch(base64);
       const blob = await resBlob.blob();
       
       const fd = new FormData();
-      fd.append("file", blob, "logo.png");
+      fd.append("file", blob, `${target}.png`);
+      fd.append("target", target);
       
       const res = await settingsService.uploadSetupLogo(fd);
       if (res.status && res.data?.url) {
-        setForm({ ...form, logo: res.data.url });
+        setForm({ ...form, [target]: res.data.url });
       } else {
-        setError(res.message || "Failed to upload logo");
+        setError(res.message || `Failed to upload ${target}`);
       }
     } catch {
-      setError("Failed to upload logo");
+      setError(`Failed to upload ${target}`);
     } finally {
-      setUploadingLogo(false);
+      if (target === "logo") setUploadingLogo(false);
+      else setUploadingFavicon(false);
     }
   };
 
@@ -214,37 +209,7 @@ export function SetupWizard() {
                   required
                   minLength={8}
                 />
-                
-                {form.password.length > 0 && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="flex justify-between items-center text-xs font-semibold">
-                      <span>Password Strength:</span>
-                      <span className={
-                        validReqCount <= 2 ? "text-error" : 
-                        validReqCount <= 4 ? "text-warning" : "text-success"
-                      }>{getStrengthLabel()}</span>
-                    </div>
-                    <progress 
-                      className={`progress w-full ${getStrengthColor()}`} 
-                      value={validReqCount} 
-                      max="5"
-                    ></progress>
-                    <div className="flex flex-col gap-1 mt-1">
-                      {passwordReqs.map((req, i) => (
-                        <div key={i} className={`text-xs flex items-center gap-2 ${req.valid ? "text-success" : "text-base-content/50"}`}>
-                          <div className={`w-3 h-3 rounded-full flex items-center justify-center border ${req.valid ? "bg-success border-success text-success-content" : "border-base-content/30"}`}>
-                            {req.valid && (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2 h-2">
-                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                          {req.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {form.password.length > 0 && <PasswordStrength password={form.password} />}
               </div>
             </fieldset>
 
@@ -264,51 +229,109 @@ export function SetupWizard() {
                 value={form.site_description}
                 onChange={(e) => setForm({ ...form, site_description: e.target.value })}
               />
-              <div className="flex gap-2 items-start">
-                <div className="flex flex-col gap-2 flex-1">
-                  <div className="join w-full">
-                    <input
-                      type="text"
-                      placeholder="Logo URL (e.g. /pwa-192x192.png or https://...)"
-                      className="input input-bordered join-item w-full h-12"
-                      value={form.logo}
-                      onChange={(e) => setForm({ ...form, logo: e.target.value })}
-                    />
-                    <button 
-                      type="button" 
-                      className="btn btn-primary join-item h-12"
-                      onClick={handleUploadLink}
-                      disabled={!form.logo.startsWith('http') || uploadingLogo}
-                    >
-                      {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
-                    </button>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2 items-start">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="join w-full">
+                      <input
+                        type="text"
+                        placeholder="Logo URL (e.g. /pwa-192x192.png or https://...)"
+                        className="input input-bordered join-item w-full h-12"
+                        value={form.logo}
+                        onChange={(e) => setForm({ ...form, logo: e.target.value })}
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-primary join-item h-12"
+                        onClick={() => handleUploadLink("logo")}
+                        disabled={!form.logo.startsWith('http') || uploadingLogo}
+                      >
+                        {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="btn btn-sm btn-outline cursor-pointer font-normal">
+                        Upload Logo
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, "logo")} 
+                        />
+                      </label>
+                      <button 
+                        type="button"
+                        className="btn btn-sm btn-ghost font-normal"
+                        onClick={() => setForm({ ...form, logo: '/logo.svg' })}
+                      >
+                        Use Default
+                      </button>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <label className="btn btn-sm btn-outline cursor-pointer font-normal">
-                      Upload File
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleFileUpload} 
-                      />
-                    </label>
-                    <button 
-                      type="button"
-                      className="btn btn-sm btn-ghost font-normal"
-                      onClick={() => setForm({ ...form, logo: '/pwa-192x192.png' })}
-                    >
-                      Use Default
-                    </button>
+                  <div className="w-auto h-12 px-3 rounded-lg bg-base-100 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
+                    {form.logo ? (
+                      <div className="flex items-center gap-2">
+                        <img src={form.logo} alt="Logo preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                        <ImageIcon className={`w-5 h-5 opacity-40 hidden`} />
+                        <span className="font-bold whitespace-nowrap">{form.site_title || "NovelHub"}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 opacity-40" />
+                        <span className="font-bold whitespace-nowrap">{form.site_title || "NovelHub"}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                <div className="w-12 h-12 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
-                  {form.logo ? (
-                    <img src={form.logo} alt="Logo preview" className="max-w-full max-h-full object-contain p-1" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
-                  ) : null}
-                  <ImageIcon className={`w-5 h-5 opacity-40 ${form.logo ? 'hidden' : ''}`} />
+
+                <div className="flex gap-2 items-start">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="join w-full">
+                      <input
+                        type="text"
+                        placeholder="Favicon URL (e.g. /favicon.ico or https://...)"
+                        className="input input-bordered join-item w-full h-12"
+                        value={form.favicon}
+                        onChange={(e) => setForm({ ...form, favicon: e.target.value })}
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-primary join-item h-12"
+                        onClick={() => handleUploadLink("favicon")}
+                        disabled={!form.favicon.startsWith('http') || uploadingFavicon}
+                      >
+                        {uploadingFavicon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="btn btn-sm btn-outline cursor-pointer font-normal">
+                        Upload Favicon
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, "favicon")} 
+                        />
+                      </label>
+                      <button 
+                        type="button"
+                        className="btn btn-sm btn-ghost font-normal"
+                        onClick={() => setForm({ ...form, favicon: '/favicon.ico' })}
+                      >
+                        Use Default
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="w-12 h-12 rounded-lg bg-base-100 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
+                    {form.favicon ? (
+                      <img src={form.favicon} alt="Favicon preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                    ) : null}
+                    <ImageIcon className={`w-5 h-5 opacity-40 ${form.favicon ? 'hidden' : ''}`} />
+                  </div>
                 </div>
               </div>
             </fieldset>

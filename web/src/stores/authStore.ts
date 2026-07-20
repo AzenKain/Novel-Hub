@@ -34,8 +34,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email, password) => {
     set({ loading: true, error: "" });
     try {
-      await authService.signin(email, password);
+      const res = await authService.signin(email, password);
+      if (!res.status) throw new Error(res.message || "Invalid credentials");
       const me = await authService.me();
+      if (!me.status) throw new Error(me.message || "Failed to load user profile");
       set({ user: me.data || null, loading: false, booted: true });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : String(error), loading: false });

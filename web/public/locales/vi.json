@@ -49,7 +49,11 @@
     "assign_roles": "Gán Vai trò",
     "save_changes": "Lưu Thay đổi",
     "books_libraries": "Sách & Thư viện",
-    "panel": "Trang quản trị"
+    "panel": "Trang quản trị",
+    "reviews": "Đánh giá",
+    "email": "Địa chỉ Email",
+    "password": "Mật khẩu",
+    "account_status": "Trạng thái tài khoản"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",
@@ -83,7 +87,14 @@
     "close": "Đóng",
     "copy": "Sao chép",
     "copied": "Đã sao chép",
-    "unknown": "Không rõ"
+    "unknown": "Không rõ",
+    "submit": "Gửi",
+    "user": "Người dùng",
+    "crop_image": "Cắt & Chỉnh sửa ảnh",
+    "apply": "Áp dụng",
+    "share": "Chia sẻ",
+    "download": "Tải xuống",
+    "load_more": "Tải thêm"
   },
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
@@ -185,7 +196,12 @@
     "recently_read": "Đọc gần đây",
     "jump_back": "Mở nhanh các sách vừa đọc",
     "no_recent_books": "Chưa có sách đọc gần đây",
-    "no_recent_books_hint": "Sách bạn mở trong trình đọc sẽ hiện ở đây."
+    "no_recent_books_hint": "Sách bạn mở trong trình đọc sẽ hiện ở đây.",
+    "all_books": "Tất cả sách",
+    "random_books": "Sách ngẫu nhiên",
+    "shuffle_books": "Xáo trộn",
+    "top_books": "Sách nổi bật",
+    "top_books_hint": "Những sách được đọc nhiều nhất trong thư viện của bạn."
   },
   "user": {
     "profile": "Hồ sơ",
@@ -195,7 +211,11 @@
     "full_name_placeholder": "Họ và tên của bạn",
     "avatar_url": "URL Ảnh Đại diện",
     "save_changes": "Lưu Thay đổi",
-    "zoom": "Thu phóng"
+    "zoom": "Thu phóng",
+    "crop_instructions": "Kéo ảnh để định vị lại",
+    "upload_avatar": "Tải ảnh lên",
+    "load_url": "Từ URL",
+    "remove_avatar": "Xóa"
   },
   "reader": {
     "book_not_found": "Không tìm thấy sách",
@@ -221,6 +241,38 @@
     "close_toc": "Đóng mục lục",
     "back_to_previous": "Quay lại",
     "reset_settings": "Đặt lại cài đặt",
-    "single_entry": "File hiện tại"
+    "single_entry": "File hiện tại",
+    "read": "Đọc"
+  },
+  "review": {
+    "submitted": "Gửi đánh giá thành công",
+    "deleted": "Xóa đánh giá thành công",
+    "select_rating": "Vui lòng chọn số sao đánh giá",
+    "title": "Đánh giá & Xếp hạng",
+    "edit_yours": "Chỉnh sửa đánh giá của bạn",
+    "write_yours": "Viết đánh giá",
+    "placeholder": "Bạn nghĩ gì về cuốn sách này?",
+    "login_required": "Vui lòng đăng nhập để viết đánh giá.",
+    "confirm_delete": "Bạn có chắc chắn muốn xóa đánh giá này không?",
+    "no_reviews": "Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!"
+  },
+  "error": {
+    "unknown": "Đã xảy ra lỗi không xác định",
+    "book_not_found": "Không tìm thấy sách",
+    "book_not_found_desc": "Sách này có thể đã bị xóa hoặc không còn tồn tại."
+  },
+  "book": {
+    "bookmark_updated": "Cập nhật dấu trang thành công",
+    "remove_bookmark": "Xóa dấu trang",
+    "add_bookmark": "Thêm dấu trang",
+    "reads": "Lượt đọc",
+    "downloads": "Lượt tải",
+    "rating": "Đánh giá",
+    "author": "Tác giả",
+    "publisher": "Nhà xuất bản",
+    "date": "Ngày xuất bản",
+    "language": "Ngôn ngữ",
+    "description": "Tóm tắt",
+    "no_description": "Không có tóm tắt cho sách này."
   }
 }

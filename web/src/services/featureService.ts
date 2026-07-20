@@ -11,6 +11,7 @@ import type {
   BookUserState,
   Collection,
   CommonResponse,
+  CursorPaginatedResponse,
   LibraryStats,
   ReadingActivityResult,
   ReadingHistory,
@@ -43,9 +44,16 @@ export const featureService = {
     }
   },
 
-  getCollections: async (): Promise<CommonResponse<Collection[]>> => {
+  getCollections: async (
+    cursor?: string,
+    limit?: number,
+  ): Promise<CommonResponse<Collection[]>> => {
     try {
-      const res = await api.get("/collections");
+      const params = new URLSearchParams();
+      if (cursor) params.append("cursor", cursor);
+      if (limit) params.append("limit", limit.toString());
+      const query = params.toString();
+      const res = await api.get(`/collections${query ? "?" + query : ""}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -67,15 +75,20 @@ export const featureService = {
     }
   },
 
-  getRecentReadingHistory: async (): Promise<
-    CommonResponse<ReadingHistory[]>
-  > => {
+  getRecentReadingHistory: async (
+    cursor?: string,
+    limit?: number,
+  ): Promise<CursorPaginatedResponse<ReadingHistory>> => {
     try {
-      const res = await api.get("/reader/history");
+      const params = new URLSearchParams();
+      if (cursor) params.append("cursor", cursor);
+      if (limit) params.append("limit", limit.toString());
+      const query = params.toString();
+      const res = await api.get(`/reader/history${query ? "?" + query : ""}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<ReadingHistory[]>;
+        return error.response.data as CursorPaginatedResponse<ReadingHistory>;
       throw error;
     }
   },
@@ -166,17 +179,19 @@ export const featureService = {
 
   listBookReviews: async (
     bookId: string,
+    cursor?: string,
     limit = 20,
-    offset = 0,
-  ): Promise<CommonResponse<BookReview[]>> => {
+  ): Promise<CursorPaginatedResponse<BookReview>> => {
     try {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (cursor) params.append("cursor", cursor);
       const res = await api.get(
-        `/books/${encodeURIComponent(bookId)}/reviews?limit=${limit}&offset=${offset}`,
+        `/books/${encodeURIComponent(bookId)}/reviews?${params.toString()}`,
       );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<BookReview[]>;
+        return error.response.data as CursorPaginatedResponse<BookReview>;
       throw error;
     }
   },
@@ -213,17 +228,19 @@ export const featureService = {
   },
 
   getBookmarkedBooks: async (
+    cursor?: string,
     limit = 100,
-    offset = 0,
-  ): Promise<CommonResponse<Book[]>> => {
+  ): Promise<CursorPaginatedResponse<Book>> => {
     try {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (cursor) params.append("cursor", cursor);
       const res = await api.get(
-        `/bookmarks/books?limit=${limit}&offset=${offset}`,
+        `/bookmarks/books?${params.toString()}`,
       );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<Book[]>;
+        return error.response.data as CursorPaginatedResponse<Book>;
       throw error;
     }
   },
@@ -255,6 +272,47 @@ export const featureService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<void>;
+      throw error;
+    }
+  },
+
+  adminDeleteBookReview: async (
+    bookId: string,
+    userId: number,
+  ): Promise<CommonResponse<void>> => {
+    try {
+      const res = await api.delete(
+        `/admin/reviews/${encodeURIComponent(bookId)}/${userId}`,
+      );
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<void>;
+      throw error;
+    }
+  },
+
+  updateCollection: async (
+    id: string,
+    name: string,
+  ): Promise<CommonResponse<Collection>> => {
+    try {
+      const res = await api.put(`/collections/${id}`, { name });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<Collection>;
+      throw error;
+    }
+  },
+
+  deleteCollection: async (id: string): Promise<CommonResponse<null>> => {
+    try {
+      const res = await api.delete(`/collections/${id}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<null>;
       throw error;
     }
   },

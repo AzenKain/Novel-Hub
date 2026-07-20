@@ -13,9 +13,11 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 )
 
 type UserService interface {
@@ -124,12 +126,12 @@ func (u *userService) CreateUser(ctx context.Context, dto *request.CreateUserDto
 		avatarURL = &dto.AvatarUrl
 	}
 
-	user, err := userRepoTx.UpsertUser(ctx, repositories.UpsertUserParams{
+	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
 		Email:        dto.Email,
-		PasswordHash: &passwordHash,
+		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
-		FullName:     fullName,
-		AvatarURL:    avatarURL,
+		FullName:     convert.StrPtrToNullString(fullName),
+		AvatarUrl:    convert.StrPtrToNullString(avatarURL),
 	})
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user")
@@ -159,10 +161,10 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, dto *req
 	if ferr != nil {
 		return nil, ferr
 	}
-	user, err := u.userRepo.UpdateProfile(ctx, repositories.UpdateProfileParams{
+	user, err := u.userRepo.UpdateProfile(ctx, sqlc.UpdateProfileParams{
 		ID:        id,
-		FullName:  dto.FullName,
-		AvatarURL: dto.AvatarUrl,
+		FullName:  convert.StrPtrToNullString(dto.FullName),
+		AvatarUrl: convert.StrPtrToNullString(dto.AvatarUrl),
 	})
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to update profile")
@@ -363,31 +365,55 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 	return user.ToResponse(), nil
 }
 
-func (u *userService) fillSearchArgs(arg *repositories.UserSearchParams, dto *request.SearchUserDto) {
-	if dto.AuthProvider != "" {
-		arg.AuthProvider = &dto.AuthProvider
-	}
-	if dto.CreatedFrom != nil {
-		createdFrom := dto.CreatedFrom.Format("2006-01-02 15:04:05")
-		arg.CreatedFrom = &createdFrom
-	}
-	if dto.CreatedTo != nil {
-		createdTo := dto.CreatedTo.Format("2006-01-02 15:04:05")
-		arg.CreatedTo = &createdTo
-	}
+func (u *userService) fillSearchArgs(dto *request.SearchUserDto) (sqlc.SearchUserIDsParams, sqlc.CountUsersParams) {
+	var isDeleted interface{}
 	if dto.IsDeleted != nil {
-		arg.IsDeleted = dto.IsDeleted
+		if *dto.IsDeleted {
+			isDeleted = int64(1)
+		} else {
+			isDeleted = int64(0)
+		}
 	}
+	var roleID interface{}
 	if len(dto.RoleIDs) > 0 {
-		arg.RoleID = &dto.RoleIDs[0]
+		roleID = dto.RoleIDs[0]
 	}
+	var authProvider interface{}
+	if dto.AuthProvider != "" {
+		authProvider = dto.AuthProvider
+	}
+	var createdFrom interface{}
+	if dto.CreatedFrom != nil {
+		createdFrom = dto.CreatedFrom.Format("2006-01-02 15:04:05")
+	}
+	var createdTo interface{}
+	if dto.CreatedTo != nil {
+		createdTo = dto.CreatedTo.Format("2006-01-02 15:04:05")
+	}
+	var searchText interface{}
 	if dto.Search != "" {
-		arg.SearchText = &dto.Search
+		searchText = dto.Search
 	}
-}
 
-func (s *userService) SearchUsers(ctx context.Context, params repositories.UserSearchParams) ([]*models.UserEntity, error) {
-	return s.userRepo.Search(ctx, params)
+	countParams := sqlc.CountUsersParams{
+		IsDeleted:    isDeleted,
+		RoleID:       roleID,
+		AuthProvider: authProvider,
+		CreatedFrom:  createdFrom,
+		CreatedTo:    createdTo,
+		SearchText:   searchText,
+	}
+
+	searchParams := sqlc.SearchUserIDsParams{
+		IsDeleted:    isDeleted,
+		RoleID:       roleID,
+		AuthProvider: authProvider,
+		CreatedFrom:  createdFrom,
+		CreatedTo:    createdTo,
+		SearchText:   searchText,
+	}
+
+	return searchParams, countParams
 }
 
 func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, *fiber.Error) {
@@ -398,8 +424,9 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 		dto.Limit = 20
 	}
 	offset := (dto.Page - 1) * dto.Limit
-	arg := repositories.UserSearchParams{Limit: int64(dto.Limit), Offset: int64(offset)}
-	u.fillSearchArgs(&arg, dto)
+	searchParams, countParams := u.fillSearchArgs(dto)
+	searchParams.Offset = int64(offset)
+	searchParams.Limit = int64(dto.Limit)
 
 	var users []*models.UserEntity
 	var total int64
@@ -407,12 +434,12 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		var err error
-		users, err = u.userRepo.Search(gCtx, arg)
+		users, err = u.userRepo.Search(gCtx, searchParams)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		total, err = u.userRepo.Count(gCtx, arg.UserSearchFilter)
+		total, err = u.userRepo.Count(gCtx, countParams)
 		return err
 	})
 	if err := g.Wait(); err != nil {

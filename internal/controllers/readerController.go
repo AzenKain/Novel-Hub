@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/response"
-	"novelhub/internal/models"
 	"novelhub/internal/services"
 )
 
@@ -30,7 +29,11 @@ func NewReaderController(bookService services.BookService, settings services.Set
 	}
 }
 
-// GetBootstrap returns the basic info needed to start the reader (TOC, Book info)
+func (h *ReaderController) claims(c fiber.Ctx) *response.JWTClaims {
+	claims, _ := c.Locals("user_claims").(*response.JWTClaims)
+	return claims
+}
+
 func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -40,21 +43,21 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.canRead(c, bootstrap.Book) {
+	if !h.bookService.CanReadBook(ctx, bootstrap.Book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: bootstrap})
 }
 
-// GetChapter returns the HTML content for a specific chapter, with rewritten asset links
 func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	bookID := c.Params("id")
 	chapterID := decodeRouteParam(c.Params("chapterId"))
-	if !h.canReadBookID(ctx, c, bookID) {
+	book, err := h.bookService.GetBook(ctx, bookID)
+	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -67,13 +70,13 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	return c.SendString(content)
 }
 
-// GetFile streams the selected source file inline for browser-native readers such as PDF.
 func (h *ReaderController) GetFile(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	bookID := c.Params("id")
-	if !h.canReadBookID(ctx, c, bookID) {
+	book, err := h.bookService.GetBook(ctx, bookID)
+	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	file, err := h.bookService.GetBookFile(ctx, bookID, c.Query("file_id"))
@@ -87,14 +90,14 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 	return c.SendFile(file.Path, fiber.SendFile{ByteRange: true})
 }
 
-// GetAsset returns a raw asset (image, css) from the EPUB
 func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	bookID := c.Params("id")
-	assetPath := decodeRouteParam(c.Params("*")) // Fiber wildcard for the rest of the path
-	if !h.canReadBookID(ctx, c, bookID) {
+	assetPath := decodeRouteParam(c.Params("*"))
+	book, err := h.bookService.GetBook(ctx, bookID)
+	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -115,13 +118,13 @@ func decodeRouteParam(value string) string {
 	return decoded
 }
 
-// ListImages returns a list of image paths inside the EPUB
 func (h *ReaderController) ListImages(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	bookID := c.Params("id")
-	if !h.canReadBookID(ctx, c, bookID) {
+	book, err := h.bookService.GetBook(ctx, bookID)
+	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -133,26 +136,7 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: images})
 }
 
-func (h *ReaderController) canReadBookID(ctx context.Context, c fiber.Ctx, bookID string) bool {
-	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil {
-		return false
-	}
-	return h.canRead(c, book)
-}
 
-func (h *ReaderController) canRead(c fiber.Ctx, book *models.BookEntity) bool {
-	if book == nil {
-		return false
-	}
-	claims, _ := c.Locals("user_claims").(*response.JWTClaims)
-	if claims == nil {
-		return h.settings.GuestAllows(book.LibraryID)
-	}
-	return h.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.read", map[string]any{"library_id": book.LibraryID})
-}
-
-// UpdateCover accepts a cover image upload or URL and saves it
 func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

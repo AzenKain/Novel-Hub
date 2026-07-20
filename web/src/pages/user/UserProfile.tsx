@@ -112,7 +112,7 @@ export const UserProfile = () => {
                 <div className="font-bold text-lg leading-tight">{user.email}</div>
                 <div className="flex flex-col gap-2 mt-2">
                   <div className="flex gap-2">
-                    <label className="btn btn-xs btn-outline btn-primary cursor-pointer">
+                    <label className="btn btn-xs btn-neutral cursor-pointer">
                       {t('user.upload_avatar', 'Upload Photo')}
                       <input
                         type="file"

@@ -12,14 +12,9 @@ WHERE id = ? LIMIT 1;
 
 -- name: ListBookIDs :many
 SELECT id FROM books
+WHERE (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
 ORDER BY created_at DESC
-LIMIT ? OFFSET ?;
-
--- name: ListBookIDsCursor :many
-SELECT id FROM books
-WHERE created_at < ?
-ORDER BY created_at DESC
-LIMIT ?;
+LIMIT sqlc.arg('limit');
 
 -- name: UpdateBook :one
 UPDATE books
@@ -96,6 +91,7 @@ INSERT INTO book_tags (
 -- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
+    (sqlc.narg('cursor_created_at') IS NULL OR b.created_at < sqlc.narg('cursor_created_at')) AND
     (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
     (
         sqlc.narg('search') IS NULL OR
@@ -125,48 +121,6 @@ WHERE
     (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
 ORDER BY
-    b.download_count DESC,
-    b.average_rating DESC,
-    b.read_count DESC,
-    b.created_at DESC
-LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
-
--- name: SearchBookIDsCursor :many
-SELECT b.id FROM books b
-WHERE
-    b.created_at < ? AND
-    (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
-    (
-        sqlc.narg('search') IS NULL OR
-        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH sqlc.narg('search') ORDER BY rank)
-    ) AND
-    (sqlc.narg('filter_missing_metadata') IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
-    (sqlc.narg('filter_no_cover') IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
-    (sqlc.narg('filter_has_files') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (sqlc.narg('filter_has_author') IS NULL OR b.author_id IS NOT NULL) AND
-    (sqlc.narg('filter_has_series') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
-    (sqlc.narg('filter_has_tags') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
-    (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
-    (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
-    (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
-    (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
-    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
-    (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
-    (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
-    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
-    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
-    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
-    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
-    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
-    (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
-ORDER BY
-    b.download_count DESC,
-    b.average_rating DESC,
-    b.read_count DESC,
     b.created_at DESC
 LIMIT sqlc.arg('limit');
 

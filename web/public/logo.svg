@@ -1,0 +1,10 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <defs>
+    <linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#8cf1d4'/>
+      <stop offset='100%' stop-color='#f5d0fe'/>
+    </linearGradient>
+  </defs>
+  <rect width='100' height='100' rx='24' fill='url(#g)'/>
+  <text x='50' y='54' font-family='system-ui, sans-serif' font-weight='900' font-size='44' fill='#064e3b' text-anchor='middle' dominant-baseline='middle'>NH</text>
+</svg>

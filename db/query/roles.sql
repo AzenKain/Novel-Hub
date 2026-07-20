@@ -97,3 +97,18 @@ VALUES (?, ?, ?, ?)
 ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = excluded.effect,
     conditions_json = excluded.conditions_json;
+
+-- name: ListPermissionKeys :many
+SELECT key FROM permissions ORDER BY key ASC;
+
+-- name: GetPermissionsByKeys :many
+SELECT * FROM permissions WHERE key IN (sqlc.slice('keys'));
+
+-- name: ListRolePermissionIDs :many
+SELECT id FROM role_permissions ORDER BY role_id ASC, permission_key ASC;
+
+-- name: GetRolePermissionsByIDs :many
+SELECT * FROM role_permissions WHERE id IN (sqlc.slice('ids'));
+
+-- name: GetRolePermissionIDs :many
+SELECT id FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC;

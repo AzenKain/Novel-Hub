@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"strings"
 )
 
 const countAdminUsers = `-- name: CountAdminUsers :one
@@ -37,6 +38,43 @@ func (q *Queries) GetAppSetting(ctx context.Context, key string) (AppSetting, er
 	return i, err
 }
 
+const getAppSettingsByKeys = `-- name: GetAppSettingsByKeys :many
+SELECT "key", value_json, updated_at FROM app_settings WHERE key IN (/*SLICE:keys*/?)
+`
+
+func (q *Queries) GetAppSettingsByKeys(ctx context.Context, keys []string) ([]AppSetting, error) {
+	query := getAppSettingsByKeys
+	var queryParams []interface{}
+	if len(keys) > 0 {
+		for _, v := range keys {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:keys*/?", strings.Repeat(",?", len(keys))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:keys*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AppSetting{}
+	for rows.Next() {
+		var i AppSetting
+		if err := rows.Scan(&i.Key, &i.ValueJson, &i.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSetupState = `-- name: GetSetupState :one
 SELECT "key", value, updated_at
 FROM setup_state
@@ -48,6 +86,33 @@ func (q *Queries) GetSetupState(ctx context.Context, key string) (SetupState, er
 	var i SetupState
 	err := row.Scan(&i.Key, &i.Value, &i.UpdatedAt)
 	return i, err
+}
+
+const listAppSettingKeys = `-- name: ListAppSettingKeys :many
+SELECT key FROM app_settings ORDER BY key ASC
+`
+
+func (q *Queries) ListAppSettingKeys(ctx context.Context) ([]string, error) {
+	rows, err := q.query(ctx, q.listAppSettingKeysStmt, listAppSettingKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		items = append(items, key)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAppSettings = `-- name: ListAppSettings :many

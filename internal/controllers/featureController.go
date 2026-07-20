@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"strconv"
 	"strings"
 	"time"
@@ -62,6 +60,11 @@ func getUserIdFromLocals(ctx fiber.Ctx) (int64, bool) {
 	return userID, true
 }
 
+func (c *FeatureController) claims(ctx fiber.Ctx) *response.JWTClaims {
+	claims, _ := ctx.Locals("user_claims").(*response.JWTClaims)
+	return claims
+}
+
 func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -74,7 +77,19 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 		})
 	}
 
-	collections, err := c.service.GetUserCollections(reqCtx, userID)
+	limit := int64(50)
+	if l, err := strconv.ParseInt(ctx.Query("limit"), 10, 64); err == nil && l > 0 {
+		limit = l
+	}
+	var cursorCreatedAt *time.Time
+	cursorStr := ctx.Query("cursor")
+	if cursorStr != "" {
+		if t, err := time.Parse(time.RFC3339, cursorStr); err == nil {
+			cursorCreatedAt = &t
+		}
+	}
+
+	collections, err := c.service.GetUserCollections(reqCtx, userID, cursorCreatedAt, limit)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
 			Status:  false,
@@ -105,7 +120,7 @@ func (c *FeatureController) CreateCollection(ctx fiber.Ctx) error {
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if !c.policyAllowsNoBook(ctx, "collection") {
+	if !c.service.PolicyAllowsNoBook(reqCtx, "collection", c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Collections are not allowed"})
 	}
 
@@ -124,6 +139,72 @@ func (c *FeatureController) CreateCollection(ctx fiber.Ctx) error {
 	})
 }
 
+func (c *FeatureController) UpdateCollection(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	id := ctx.Params("id")
+	if id == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "missing id"})
+	}
+
+	dto := &request.UpdateCollectionDto{}
+	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	col, err := c.service.UpdateCollection(reqCtx, id, dto.Name, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "failed to update collection",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		Status: true,
+		Data:   col,
+	})
+}
+
+func (c *FeatureController) DeleteCollection(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	id := ctx.Params("id")
+	if id == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "missing id"})
+	}
+
+	err := c.service.DeleteCollection(reqCtx, id, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "failed to delete collection",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		Status: true,
+	})
+}
+
 func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -136,12 +217,19 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 		})
 	}
 
-	dto := &request.LimitDto{Limit: 10}
+	dto := &request.PaginationDto{Limit: 10}
 	if err := validator.ValidateQueryDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	history, err := c.service.GetRecentReadingHistory(reqCtx, userID, int64(dto.Limit))
+	var cursorTime *time.Time
+	if dto.Cursor != "" {
+		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+			cursorTime = &t
+		}
+	}
+
+	history, err := c.service.GetRecentReadingHistory(reqCtx, userID, cursorTime, int64(dto.Limit))
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
 			Status:  false,
@@ -150,9 +238,15 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(response.CommonResponse{
-		Status: true,
-		Data:   history,
+	var nextCursor *string
+	if len(history) > 0 {
+		c := history[len(history)-1].UpdatedAt.Format(time.RFC3339Nano)
+		nextCursor = &c
+	}
+	return ctx.JSON(fiber.Map{
+		"status": true,
+		"data": history,
+		"next_cursor": nextCursor,
 	})
 }
 
@@ -264,10 +358,12 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 	defer cancel()
 
 	dto := &request.RecordShareDto{}
-	_ = ctx.Bind().Body(dto)
+	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
 	stats, err := c.service.RecordShare(reqCtx, models.ShareInput{
 		BookID:     ctx.Params("id"),
-		ActorKey:   shareActorKey(dto.ClientID, ctx.IP(), ctx.Get("User-Agent")),
+		ActorKey:   c.service.ShareActorKey(dto.ClientID, ctx.IP(), ctx.Get("User-Agent")),
 		OccurredAt: time.Now().UTC(),
 	})
 	if err != nil {
@@ -284,14 +380,7 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 	})
 }
 
-func shareActorKey(clientID string, ip string, userAgent string) string {
-	clientID = strings.TrimSpace(clientID)
-	if clientID == "" {
-		clientID = "anonymous"
-	}
-	sum := sha256.Sum256([]byte(clientID + "|" + strings.TrimSpace(ip) + "|" + strings.TrimSpace(userAgent)))
-	return hex.EncodeToString(sum[:])
-}
+
 
 func (c *FeatureController) SetBookmark(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -309,7 +398,7 @@ func (c *FeatureController) SetBookmark(ctx fiber.Ctx) error {
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if !c.policyAllowsBook(reqCtx, ctx, "bookmark", ctx.Params("id")) {
+	if !c.service.PolicyAllowsBook(reqCtx, "bookmark", ctx.Params("id"), c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Bookmarking is not allowed"})
 	}
 
@@ -345,18 +434,26 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	books, err := c.service.GetBookmarkedBooks(reqCtx, userID, int64(dto.Limit), int64(dto.Offset))
+	var cursorTime *time.Time
+	if dto.Cursor != "" {
+		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+			cursorTime = &t
+		}
+	}
+	books, err := c.service.GetBookmarkedBooks(reqCtx, userID, cursorTime, int64(dto.Limit))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch bookmarked books",
-			
-		})
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "failed to fetch bookmarked books"})
 	}
 
-	return ctx.JSON(response.CommonResponse{
-		Status: true,
-		Data:   books,
+	var nextCursor *string
+	if len(books) > 0 {
+		c := books[len(books)-1].CreatedAt.Format(time.RFC3339Nano)
+		nextCursor = &c
+	}
+	return ctx.JSON(fiber.Map{
+		"status": true,
+		"data": books,
+		"next_cursor": nextCursor,
 	})
 }
 
@@ -403,7 +500,7 @@ func (c *FeatureController) UpsertBookReview(ctx fiber.Ctx) error {
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if !c.policyAllowsBook(reqCtx, ctx, "review", ctx.Params("id")) {
+	if !c.service.PolicyAllowsBook(reqCtx, "review", ctx.Params("id"), c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Reviews are not allowed"})
 	}
 
@@ -433,7 +530,7 @@ func (c *FeatureController) DeleteBookReview(ctx fiber.Ctx) error {
 			Message: "unauthorized",
 		})
 	}
-	if !c.policyAllowsBook(reqCtx, ctx, "review", ctx.Params("id")) {
+	if !c.service.PolicyAllowsBook(reqCtx, "review", ctx.Params("id"), c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Reviews are not allowed"})
 	}
 
@@ -511,7 +608,14 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), int64(dto.Limit), int64(dto.Offset))
+	var cursorTime *time.Time
+	if dto.Cursor != "" {
+		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+			cursorTime = &t
+		}
+	}
+
+	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), cursorTime, int64(dto.Limit))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
@@ -520,9 +624,15 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(response.CommonResponse{
-		Status: true,
-		Data:   reviews,
+	var nextCursor *string
+	if len(reviews) > 0 {
+		c := reviews[len(reviews)-1].UpdatedAt.Format(time.RFC3339Nano)
+		nextCursor = &c
+	}
+	return ctx.JSON(fiber.Map{
+		"status": true,
+		"data": reviews,
+		"next_cursor": nextCursor,
 	})
 }
 
@@ -561,7 +671,7 @@ func (c *FeatureController) AddBookToCollection(ctx fiber.Ctx) error {
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if !c.policyAllowsBook(reqCtx, ctx, "collection", dto.BookID) {
+	if !c.service.PolicyAllowsBook(reqCtx, "collection", dto.BookID, c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Collections are not allowed for this book"})
 	}
 
@@ -594,7 +704,7 @@ func (c *FeatureController) RemoveBookFromCollection(ctx fiber.Ctx) error {
 
 	collectionID := ctx.Params("id")
 	bookID := ctx.Params("bookId")
-	if !c.policyAllowsBook(reqCtx, ctx, "collection", bookID) {
+	if !c.service.PolicyAllowsBook(reqCtx, "collection", bookID, c.claims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Collections are not allowed for this book"})
 	}
 	err := c.service.RemoveBookFromCollection(reqCtx, userID, collectionID, bookID)
@@ -611,30 +721,4 @@ func (c *FeatureController) RemoveBookFromCollection(ctx fiber.Ctx) error {
 	})
 }
 
-func (c *FeatureController) policyAllowsBook(reqCtx context.Context, ctx fiber.Ctx, policy string, bookID string) bool {
-	book, err := c.books.GetBook(reqCtx, bookID)
-	if err != nil || book == nil {
-		return false
-	}
-	claims, _ := ctx.Locals("user_claims").(*response.JWTClaims)
-	admin := claims != nil && c.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	return c.settings.PolicyAllows(policy, book.LibraryID, admin)
-}
 
-func (c *FeatureController) policyAllowsNoBook(ctx fiber.Ctx, policy string) bool {
-	claims, _ := ctx.Locals("user_claims").(*response.JWTClaims)
-	admin := claims != nil && c.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if admin {
-		return true
-	}
-	settings, err := c.settings.Public(ctx.Context())
-	if err != nil {
-		return false
-	}
-	switch policy {
-	case "collection":
-		return settings.Collection.Mode != "disabled"
-	default:
-		return false
-	}
-}

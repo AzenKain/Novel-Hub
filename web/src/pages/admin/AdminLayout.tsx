@@ -3,12 +3,14 @@ import { useAuthStore } from "@/stores";
 import { BookOpen, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { usePublicSettings } from "@/hooks/useSettings";
 
 export function AdminLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const settings = usePublicSettings();
 
   const handleLogout = () => {
     logout();
@@ -48,9 +50,13 @@ export function AdminLayout() {
         <aside className="bg-base-100 w-64 min-h-full flex flex-col">
           <div className="h-20 flex flex-col justify-center px-6 border-b border-base-200">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3">NH</div>
+              {settings?.site?.logo ? (
+                <img src={settings.site.logo} alt="Logo" className="w-8 h-8 rounded bg-base-100 object-contain mr-3" />
+              ) : (
+                <div className="w-8 h-8 rounded bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3">NH</div>
+              )}
               <div className="flex flex-col">
-                <span className="text-xl font-bold leading-tight">NovelHub</span>
+                <span className="text-xl font-bold leading-tight">{settings?.site?.title || "NovelHub"}</span>
                 <span className="text-xs text-base-content/60 font-medium uppercase tracking-wider">{t('admin.panel', 'Admin Panel')}</span>
               </div>
             </Link>

@@ -19,9 +19,6 @@ type LibraryUploadResult struct {
 }
 
 func (e *LibraryEntity) FromSqlc(res sqlc.Library) *LibraryEntity {
-	if e == nil {
-		e = &LibraryEntity{}
-	}
 	e.ID = res.ID
 	e.Name = res.Name
 	e.CreatedAt = res.CreatedAt.Time
@@ -32,9 +29,10 @@ func (e *LibraryEntity) FromSqlc(res sqlc.Library) *LibraryEntity {
 type LibraryEntities []*LibraryEntity
 
 func (e *LibraryEntities) FromSqlc(rows []sqlc.Library) []*LibraryEntity {
-	libraries := make([]*LibraryEntity, len(rows))
+	slice := make([]*LibraryEntity, len(rows))
+	flat := make([]LibraryEntity, len(rows))
 	for i, res := range rows {
-		libraries[i] = (&LibraryEntity{}).FromSqlc(res)
+		slice[i] = flat[i].FromSqlc(res)
 	}
-	return libraries
+	return slice
 }

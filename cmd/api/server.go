@@ -111,7 +111,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	bookRepo := repositories.NewBookDBRepository(db, ramCache)
 	libraryRepo := repositories.NewLibraryRepository(db, ramCache)
 	jobRepo := repositories.NewJobRepository(db, ramCache)
-	settingsRepo := repositories.NewSettingsRepository(db)
+	settingsRepo := repositories.NewSettingsRepository(db, ramCache)
 	permissionCache := services.NewPermissionCache(roleRepo)
 	if err := permissionCache.Reload(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("failed to load permission cache")
@@ -144,7 +144,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	authService := services.NewAuthService(userRepo, roleRepo, db, settingsRepo, settingsService)
 	userService := services.NewUserService(userRepo, roleRepo, db)
 	roleService := services.NewRoleService(roleRepo, permissionCache)
-	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, db)
+	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, db, settingsService, permissionCache)
 	jobWorkers := config.GetIntConfigWithDefault("JOB_WORKERS", 1)
 	if jobWorkers < 1 {
 		jobWorkers = 1
@@ -152,7 +152,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, jobQueue)
-	featureService := services.NewFeatureService(featureRepo, bookRepo)
+	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache)
 	metadataService := services.NewMetadataService(bookRepo)
 	jobService := services.NewJobService(jobRepo)
 	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry)
@@ -196,8 +196,6 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	s.App.Use("/storage/books", static.New(booksDir))
 	s.App.Use("/public", static.New(publicDir))
-
-	// Backward compat: redirect old /books/<id>/<file> cover URLs to /storage/books/...
 	s.App.Get("/books/:bookID/:filename", func(c fiber.Ctx) error {
 		return c.Redirect().Status(fiber.StatusMovedPermanently).To(
 			"/storage/books/" + c.Params("bookID") + "/" + c.Params("filename"),

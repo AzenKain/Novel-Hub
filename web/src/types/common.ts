@@ -16,3 +16,10 @@ export type PaginatedResponse<T> = {
     total_pages: number;
   };
 };
+
+export type CursorPaginatedResponse<T> = {
+  status: boolean;
+  message?: string;
+  data?: T[];
+  next_cursor?: string | null;
+};

@@ -2,7 +2,9 @@ package models
 
 import (
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/jsonx"
 )
 
 type RoleSimple struct {
@@ -46,15 +48,15 @@ func (r *RoleEntity) ToResponse() *response.RoleResponse {
 		return nil
 	}
 	return &response.RoleResponse{
-		ID:        r.ID,
-		Name:      r.Name,
+		ID:          r.ID,
+		Name:        r.Name,
 		Description: r.Description,
-		IsSystem: r.IsSystem,
-		IsAdmin: r.IsAdmin,
-		AutoAssign: r.AutoAssign,
-		IsDeleted: r.IsDeleted,
-		CreatedAt: r.CreatedAt,
-		UpdatedAt: r.UpdatedAt,
+		IsSystem:    r.IsSystem,
+		IsAdmin:     r.IsAdmin,
+		AutoAssign:  r.AutoAssign,
+		IsDeleted:   r.IsDeleted,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
 		Permissions: RolePermissionsToResponse(r.Permissions),
 	}
 }
@@ -168,4 +170,79 @@ func RolePermissionsToResponse(items []*RolePermissionEntity) []*response.RolePe
 		out = append(out, item.ToResponse())
 	}
 	return out
+}
+
+func (r *RoleEntity) FromSqlc(row sqlc.Role) *RoleEntity {
+	r.ID = row.ID
+	r.Name = row.Name
+	r.Description = row.Description
+	r.IsSystem = row.IsSystem != 0
+	r.IsAdmin = row.IsAdmin != 0
+	r.AutoAssign = row.AutoAssign != 0
+	r.IsDeleted = row.IsDeleted != 0
+	r.CreatedAt = row.CreatedAt
+	r.UpdatedAt = row.UpdatedAt
+	return r
+}
+
+type RoleEntities []*RoleEntity
+
+func (e *RoleEntities) FromSqlc(rows []sqlc.Role) []*RoleEntity {
+	slice := make([]*RoleEntity, len(rows))
+	flat := make([]RoleEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
+}
+
+func (p *PermissionEntity) FromSqlc(row sqlc.Permission) *PermissionEntity {
+	p.Key = row.Key
+	p.Description = row.Description
+	p.CreatedAt = row.CreatedAt
+	p.UpdatedAt = row.UpdatedAt
+	return p
+}
+
+type PermissionEntities []*PermissionEntity
+
+func (e *PermissionEntities) FromSqlc(rows []sqlc.Permission) []*PermissionEntity {
+	slice := make([]*PermissionEntity, len(rows))
+	flat := make([]PermissionEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
+}
+
+func (p *RolePermissionEntity) FromSqlc(row sqlc.RolePermission) *RolePermissionEntity {
+	p.ID = row.ID
+	p.RoleID = row.RoleID
+	p.PermissionKey = row.PermissionKey
+	p.Effect = row.Effect
+	p.ConditionsJSON = row.ConditionsJson
+	p.CreatedAt = row.CreatedAt
+	p.UpdatedAt = row.UpdatedAt
+	
+	var conditions map[string]any
+	if row.ConditionsJson != "" {
+		_ = jsonx.Unmarshal([]byte(row.ConditionsJson), &conditions)
+	}
+	if conditions == nil {
+		conditions = map[string]any{}
+	}
+	p.Conditions = conditions
+	
+	return p
+}
+
+type RolePermissionEntities []*RolePermissionEntity
+
+func (e *RolePermissionEntities) FromSqlc(rows []sqlc.RolePermission) []*RolePermissionEntity {
+	slice := make([]*RolePermissionEntity, len(rows))
+	flat := make([]RolePermissionEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
 }

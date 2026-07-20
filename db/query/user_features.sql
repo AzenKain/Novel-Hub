@@ -15,8 +15,9 @@ RETURNING *;
 
 -- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = ?
-ORDER BY created_at DESC;
+WHERE user_id = ? AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+ORDER BY created_at DESC
+LIMIT ?;
 
 -- name: GetCollectionsByIDs :many
 SELECT * FROM collections WHERE id IN (sqlc.slice('ids'));
@@ -24,6 +25,12 @@ SELECT * FROM collections WHERE id IN (sqlc.slice('ids'));
 -- name: DeleteCollection :exec
 DELETE FROM collections
 WHERE id = ? AND user_id = ?;
+
+-- name: UpdateCollection :one
+UPDATE collections
+SET name = ?
+WHERE id = ? AND user_id = ?
+RETURNING *;
 
 -- name: AddBookToCollection :exec
 INSERT INTO collection_books (
@@ -127,9 +134,9 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = ?
+WHERE rp.user_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < sqlc.narg('cursor_updated_at'))
 ORDER BY rp.updated_at DESC
-LIMIT ?;
+LIMIT sqlc.arg('limit');
 
 -- name: UpsertBookDownloadStats :exec
 INSERT INTO book_download_stats (
@@ -192,9 +199,9 @@ ON CONFLICT(book_id) DO UPDATE SET
 
 -- name: GetBookmarkedBookIDs :many
 SELECT book_id FROM bookmarks
-WHERE user_id = ?
+WHERE user_id = ? AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
 ORDER BY created_at DESC
-LIMIT ? OFFSET ?;
+LIMIT sqlc.arg('limit');
 
 -- name: UpsertBookReview :one
 INSERT INTO book_reviews (
@@ -241,9 +248,9 @@ LIMIT 1;
 
 -- name: ListBookReviews :many
 SELECT * FROM book_reviews
-WHERE book_id = ?
+WHERE book_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < sqlc.narg('cursor_updated_at'))
 ORDER BY updated_at DESC
-LIMIT ? OFFSET ?;
+LIMIT sqlc.arg('limit');
 
 -- name: GetBookRatingSummary :one
 SELECT
@@ -298,3 +305,25 @@ FROM collection_books cb
 JOIN collections c ON c.id = cb.collection_id
 WHERE c.user_id = ? AND cb.book_id = ?;
 
+
+-- name: ListAllReviews :many
+SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,
+       u.full_name as user_name, u.email as user_email,
+       b.title as book_title
+FROM book_reviews br
+JOIN users u ON u.id = br.user_id
+JOIN books b ON b.id = br.book_id
+ORDER BY br.updated_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: GetRecentReadingHistoryBookIDs :many
+SELECT rp.book_id FROM reading_progress rp
+WHERE rp.user_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < sqlc.narg('cursor_updated_at'))
+ORDER BY rp.updated_at DESC
+LIMIT sqlc.arg('limit');
+
+-- name: ListBookReviewCompositeKeys :many
+SELECT CAST(user_id AS TEXT) || ':' || book_id as composite_key FROM book_reviews
+WHERE book_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < sqlc.narg('cursor_updated_at'))
+ORDER BY updated_at DESC
+LIMIT sqlc.arg('limit');

@@ -14,11 +14,12 @@ export function LoginView() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     clearError();
-    await login(email, password)
-      .then(() => {
-        setLoginModalOpen(false);
-      })
-      .catch(() => undefined);
+    try {
+      await login(email, password);
+      setLoginModalOpen(false);
+    } catch (err) {
+      // Error is handled and displayed by authStore
+    }
   }
 
   return (

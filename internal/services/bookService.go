@@ -21,9 +21,12 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/convert"
 )
 
 var readerLinkAttrRegex = regexp.MustCompile(`(src|href)=["']([^"']+)["']`)
@@ -31,8 +34,8 @@ var styleBlockRegex = regexp.MustCompile(`(?i)(<style[^>]*>)([\s\S]*?)(</style>)
 
 type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, limit, offset int64) ([]*models.BookEntity, error)
-	SearchBooksCursor(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor string, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
+
 	ListChapters(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetBookFilePath(ctx context.Context, bookID string) (string, error)
 	GetBookFile(ctx context.Context, bookID string, fileID string) (*models.BookFileEntity, error)
@@ -49,6 +52,11 @@ type BookService interface {
 	UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
+
+	CanReadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
+	CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
+	FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool)
+	SafeDownloadFilename(title string, ext string) string
 }
 
 type UpdateCoverInput struct {
@@ -59,18 +67,22 @@ type UpdateCoverInput struct {
 }
 
 type bookService struct {
-	bookRepo repositories.BookDBRepository
-	fileRepo repositories.BookFileRepository
-	parsers  *bookparser.Registry
-	db       *sql.DB
+	bookRepo    repositories.BookDBRepository
+	fileRepo    repositories.BookFileRepository
+	parsers     *bookparser.Registry
+	db          *sql.DB
+	settings    SettingsService
+	permissions PermissionCache
 }
 
-func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, db *sql.DB) BookService {
+func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, db *sql.DB, settings SettingsService, permissions PermissionCache) BookService {
 	return &bookService{
-		bookRepo: repo,
-		fileRepo: fileRepo,
-		parsers:  parsers,
-		db:       db,
+		bookRepo:    repo,
+		fileRepo:    fileRepo,
+		parsers:     parsers,
+		db:          db,
+		settings:    settings,
+		permissions: permissions,
 	}
 }
 
@@ -83,29 +95,13 @@ func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntit
 	return book, nil
 }
 
-func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, limit, offset int64) ([]*models.BookEntity, error) {
-	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, limit, offset)
+func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
+	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, cursor, limit)
 	if err != nil {
 		return nil, err
 	}
 	s.enrichBooks(ctx, books)
 	return books, nil
-}
-
-func (s *bookService) SearchBooksCursor(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor string, limit int64) ([]*models.BookEntity, error) {
-	// Default to current time if cursor is empty
-	cursorTime := time.Now()
-	if cursor != "" {
-		if t, err := time.Parse(time.RFC3339Nano, cursor); err == nil {
-			cursorTime = t
-		}
-	}
-	list, err := s.bookRepo.SearchBooksCursor(ctx, libraryID, search, nav, collection, chip, facet, facetID, cursorTime, limit)
-	if err != nil {
-		return nil, err
-	}
-	s.enrichBooks(ctx, list)
-	return list, nil
 }
 
 func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntity) {
@@ -292,15 +288,15 @@ func (s *bookService) UploadBookFiles(ctx context.Context, bookID string, files 
 		if hash == "" {
 			hashPtr = nil
 		}
-		if err := s.bookRepo.CreateBookFile(ctx, repositories.BookFileRecordParams{
+		if err := s.bookRepo.CreateBookFile(ctx, sqlc.CreateBookFileParams{
 			ID:        fileID,
 			BookID:    bookID,
 			Path:      saved.Path,
 			Format:    saved.Format,
 			SizeBytes: saved.SizeBytes,
 			ModTime:   saved.ModTime,
-			Hash:      hashPtr,
-			State:     &state,
+			Hash:      convert.StrPtrToNullString(hashPtr),
+			State:     convert.StrPtrToNullString(&state),
 		}); err != nil {
 			continue
 		}
@@ -1069,6 +1065,79 @@ func (s *bookService) UpdateCover(ctx context.Context, bookID string, input Upda
 	return coverURLPath, nil
 }
 
+func (s *bookService) FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool) {
+	if len(books) == 0 {
+		return books, true
+	}
+	if claims == nil {
+		settings, err := s.settings.Public(ctx)
+		if err == nil && settings.GuestAccess.Mode == "login_required" {
+			return nil, false
+		}
+		out := make([]*models.BookEntity, 0, len(books))
+		for _, book := range books {
+			if book != nil && s.settings.GuestAllows(book.LibraryID) {
+				out = append(out, book)
+			}
+		}
+		return out, true
+	}
+	out := make([]*models.BookEntity, 0, len(books))
+	for _, book := range books {
+		if book != nil && s.CanReadBook(ctx, book, claims) {
+			out = append(out, book)
+		}
+	}
+	return out, true
+}
+
+func (s *bookService) CanReadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
+	if book == nil {
+		return false
+	}
+	if claims == nil {
+		return s.settings.GuestAllows(book.LibraryID)
+	}
+	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.read", map[string]any{"library_id": book.LibraryID})
+}
+
+func (s *bookService) CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
+	if book == nil {
+		return false
+	}
+	if claims == nil {
+		return false
+	}
+	admin := s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
+	if !s.settings.PolicyAllows("download", book.LibraryID, admin) {
+		return false
+	}
+	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.download", map[string]any{"library_id": book.LibraryID})
+}
+
+func (s *bookService) SafeDownloadFilename(title string, ext string) string {
+	name := strings.TrimSpace(title)
+	if name == "" {
+		name = "book"
+	}
+	name = strings.Map(func(r rune) rune {
+		switch r {
+		case '/', '\\', ':', '*', '?', '"', '<', '>', '|':
+			return '-'
+		default:
+			return r
+		}
+	}, name)
+	name = strings.Trim(name, " .-")
+	if name == "" {
+		name = "book"
+	}
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+	return name + ext
+}
+
 func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input UpdateCoverInput) ([]byte, string, error) {
 	if len(input.UploadedData) > 0 {
 		ext := strings.ToLower(filepath.Ext(input.UploadedFileName))
@@ -1258,11 +1327,9 @@ func (s *bookService) ArchiveBook(ctx context.Context, id string, archived bool)
 }
 
 func (s *bookService) DeleteBook(ctx context.Context, id string) error {
-	// 1. Remove book directory containing files/covers from filesystem
 	if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
 		log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book files")
 	}
-	// 2. Remove book from database
 	return s.bookRepo.DeleteBook(ctx, id)
 }
 
@@ -1276,7 +1343,6 @@ func isPrivateHost(host string) bool {
 	}
 	ips, err := net.LookupHost(host)
 	if err != nil {
-		// If we can't resolve, allow it — the HTTP client will fail anyway.
 		return false
 	}
 	for _, ipStr := range ips {
@@ -1287,7 +1353,6 @@ func isPrivateHost(host string) bool {
 		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 			return true
 		}
-		// Block metadata endpoint IPs (e.g., AWS 169.254.169.254)
 		if ip.Equal(net.IPv4(169, 254, 169, 254)) {
 			return true
 		}

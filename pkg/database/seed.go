@@ -17,15 +17,15 @@ func SeedSuperAdmin(db *sql.DB) error {
 
 	displayName, err := config.GetConfig("ADMIN_DISPLAY_NAME")
 	if err != nil {
-		return err
+		return nil
 	}
 	email, err := config.GetConfig("ADMIN_EMAIL")
 	if err != nil {
-		return err
+		return nil
 	}
 	password, err := config.GetConfig("ADMIN_PASSWORD")
 	if err != nil {
-		return err
+		return nil
 	}
 
 	q := sqlc.New(db)

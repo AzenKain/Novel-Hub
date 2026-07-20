@@ -7,8 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"crypto/sha256"
+	"encoding/hex"
+
 	"github.com/google/uuid"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 )
@@ -16,8 +20,10 @@ import (
 type FeatureService interface {
 	GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error)
 	CreateCollection(ctx context.Context, name string, userID int64) (*models.CollectionEntity, error)
-	GetUserCollections(ctx context.Context, userID int64) ([]*models.CollectionEntity, error)
-	GetRecentReadingHistory(ctx context.Context, userID int64, limit int64) ([]*models.ReadingHistoryEntity, error)
+	UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error)
+	DeleteCollection(ctx context.Context, id string, userID int64) error
+	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error)
+	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error)
 	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*models.ReadingActivityEntity, error)
 	GetBookReadStats(ctx context.Context, bookID string) (*models.BookReadStatsEntity, error)
 	RecordDownload(ctx context.Context, bookID string) error
@@ -26,22 +32,28 @@ type FeatureService interface {
 	GetBookEngagementStats(ctx context.Context, bookID string) (*models.BookEngagementStatsEntity, error)
 	RecordShare(ctx context.Context, input models.ShareInput) (*models.BookSocialStatsEntity, error)
 	SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*models.BookmarkEntity, error)
-	GetBookmarkedBooks(ctx context.Context, userID int64, limit, offset int64) ([]*models.BookEntity, error)
+	GetBookmarkedBooks(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
 	GetBookUserState(ctx context.Context, userID int64, bookID string) (*models.BookUserStateEntity, error)
 	UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review string) (*models.BookReviewEntity, error)
 	DeleteBookReview(ctx context.Context, userID int64, bookID string) error
 	DeleteReviewByAdmin(ctx context.Context, targetUserID int64, bookID string) error
-	ListBookReviews(ctx context.Context, bookID string, limit, offset int64) ([]*models.BookReviewEntity, error)
+	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error)
 	ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error)
 	AddBookToCollection(ctx context.Context, userID int64, collectionID string, bookID string) error
 	RemoveBookFromCollection(ctx context.Context, userID int64, collectionID string, bookID string) error
+
+	PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool
+	PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool
+	ShareActorKey(clientID string, ip string, userAgent string) string
 }
 
 type featureService struct {
-	repo       repositories.FeatureRepository
-	bookRepo   repositories.BookDBRepository
-	activityMu sync.Mutex
+	repo        repositories.FeatureRepository
+	bookRepo    repositories.BookDBRepository
+	settings    SettingsService
+	permissions PermissionCache
+	activityMu  sync.Mutex
 }
 
 const (
@@ -49,8 +61,8 @@ const (
 	shareCountWindow  = time.Hour
 )
 
-func NewFeatureService(repo repositories.FeatureRepository, bookRepo repositories.BookDBRepository) FeatureService {
-	return &featureService{repo: repo, bookRepo: bookRepo}
+func NewFeatureService(repo repositories.FeatureRepository, bookRepo repositories.BookDBRepository, settings SettingsService, permissions PermissionCache) FeatureService {
+	return &featureService{repo: repo, bookRepo: bookRepo, settings: settings, permissions: permissions}
 }
 
 func (s *featureService) GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error) {
@@ -62,12 +74,23 @@ func (s *featureService) CreateCollection(ctx context.Context, name string, user
 	return s.repo.CreateCollection(ctx, id, name, userID)
 }
 
-func (s *featureService) GetUserCollections(ctx context.Context, userID int64) ([]*models.CollectionEntity, error) {
-	return s.repo.GetUserCollections(ctx, userID)
+func (s *featureService) UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error) {
+	return s.repo.UpdateCollection(ctx, id, name, userID)
 }
 
-func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int64, limit int64) ([]*models.ReadingHistoryEntity, error) {
-	return s.repo.GetRecentReadingHistory(ctx, userID, limit)
+func (s *featureService) DeleteCollection(ctx context.Context, id string, userID int64) error {
+	return s.repo.DeleteCollection(ctx, id, userID)
+}
+
+func (s *featureService) GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	return s.repo.GetUserCollections(ctx, userID, cursorCreatedAt, limit)
+}
+
+func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error) {
+	return s.repo.GetRecentReadingHistory(ctx, userID, cursor, limit)
 }
 
 func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*models.ReadingActivityEntity, error) {
@@ -230,14 +253,14 @@ func (s *featureService) SetBookmark(ctx context.Context, userID int64, bookID s
 	return s.repo.SetBookmark(ctx, userID, bookID, bookmarked)
 }
 
-func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, limit, offset int64) ([]*models.BookEntity, error) {
+func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
 	if userID <= 0 {
 		return nil, fmt.Errorf("userId is required")
 	}
 	if limit <= 0 {
 		limit = 20
 	}
-	ids, err := s.repo.GetBookmarkedBookIDs(ctx, userID, limit, offset)
+	ids, err := s.repo.GetBookmarkedBookIDs(ctx, userID, cursor, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -344,14 +367,14 @@ func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64
 	return s.repo.ListAllReviews(ctx, limit, offset)
 }
 
-func (s *featureService) ListBookReviews(ctx context.Context, bookID string, limit, offset int64) ([]*models.BookReviewEntity, error) {
+func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
 	if limit <= 0 {
 		limit = 20
 	}
-	return s.repo.ListBookReviews(ctx, bookID, limit, offset)
+	return s.repo.ListBookReviews(ctx, bookID, cursor, limit)
 }
 
 func (s *featureService) GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error) {
@@ -395,7 +418,7 @@ func cleanStringPtr(value *string) *string {
 }
 
 func (s *featureService) AddBookToCollection(ctx context.Context, userID int64, collectionID string, bookID string) error {
-	cols, err := s.repo.GetUserCollections(ctx, userID)
+	cols, err := s.repo.GetUserCollections(ctx, userID, nil, 1000)
 	if err != nil {
 		return err
 	}
@@ -413,7 +436,7 @@ func (s *featureService) AddBookToCollection(ctx context.Context, userID int64, 
 }
 
 func (s *featureService) RemoveBookFromCollection(ctx context.Context, userID int64, collectionID string, bookID string) error {
-	cols, err := s.repo.GetUserCollections(ctx, userID)
+	cols, err := s.repo.GetUserCollections(ctx, userID, nil, 1000)
 	if err != nil {
 		return err
 	}
@@ -428,5 +451,40 @@ func (s *featureService) RemoveBookFromCollection(ctx context.Context, userID in
 		return fmt.Errorf("collection not found or does not belong to user")
 	}
 	return s.repo.RemoveBookFromCollection(ctx, collectionID, bookID)
+}
+
+func (s *featureService) PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool {
+	book, err := s.bookRepo.GetBook(ctx, bookID)
+	if err != nil || book == nil {
+		return false
+	}
+	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
+	return s.settings.PolicyAllows(policy, book.LibraryID, admin)
+}
+
+func (s *featureService) PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool {
+	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
+	if admin {
+		return true
+	}
+	settings, err := s.settings.Public(ctx)
+	if err != nil {
+		return false
+	}
+	switch policy {
+	case "collection":
+		return settings.Collection.Mode != "disabled"
+	default:
+		return false
+	}
+}
+
+func (s *featureService) ShareActorKey(clientID string, ip string, userAgent string) string {
+	clientID = strings.TrimSpace(clientID)
+	if clientID == "" {
+		clientID = "anonymous"
+	}
+	sum := sha256.Sum256([]byte(clientID + "|" + strings.TrimSpace(ip) + "|" + strings.TrimSpace(userAgent)))
+	return hex.EncodeToString(sum[:])
 }
 

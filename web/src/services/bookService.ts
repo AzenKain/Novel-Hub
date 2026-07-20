@@ -3,6 +3,7 @@ import type {
   Book,
   BookFile,
   Chapter,
+  CursorPaginatedResponse,
   CommonResponse,
   DuplicateFileResult,
   OnlineMetadataResult,
@@ -14,9 +15,9 @@ import axios from "axios";
 export const bookService = {
   async getBooks(
     params: SearchBookParams = {},
-  ): Promise<CommonResponse<Book[]>> {
+  ): Promise<CursorPaginatedResponse<Book>> {
     const query = new URLSearchParams();
-    if (params.page) query.append("page", params.page.toString());
+    if (params.cursor) query.append("cursor", params.cursor);
     if (params.limit) query.append("limit", params.limit.toString());
     if (params.search) query.append("search", params.search);
     if (params.library_id) query.append("library_id", params.library_id);
@@ -32,7 +33,7 @@ export const bookService = {
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<Book[]>;
+        return error.response.data as CursorPaginatedResponse<Book>;
       throw error;
     }
   },

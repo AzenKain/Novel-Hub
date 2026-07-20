@@ -29,3 +29,9 @@ FROM users u
 JOIN user_roles ur ON ur.user_id = u.id
 JOIN roles r ON r.id = ur.role_id
 WHERE u.is_deleted = 0 AND r.is_deleted = 0 AND r.is_admin = 1;
+
+-- name: ListAppSettingKeys :many
+SELECT key FROM app_settings ORDER BY key ASC;
+
+-- name: GetAppSettingsByKeys :many
+SELECT * FROM app_settings WHERE key IN (sqlc.slice('keys'));

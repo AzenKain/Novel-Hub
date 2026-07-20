@@ -73,7 +73,9 @@ export function Settings() {
   })));
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<"logo" | "favicon" | null>(null);
 
   useEffect(() => {
     if (adminSettings) {
@@ -125,7 +127,32 @@ export function Settings() {
     }
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadLink = async (type: "logo" | "favicon") => {
+    const url = site[type];
+    if (!url || !url.startsWith("http")) return;
+    
+    if (type === "logo") setUploadingLogo(true);
+    else setUploadingFavicon(true);
+    
+    const fd = new FormData();
+    fd.append("url", url);
+    fd.append("target", type);
+    try {
+      const res = await adminService.uploadAdminLogo(fd);
+      if (res.status && res.data?.url) {
+        setSite({ ...site, [type]: res.data.url });
+      } else {
+        toast.error(res.message || `Failed to fetch ${type}`);
+      }
+    } catch {
+      toast.error(`Failed to fetch ${type}`);
+    } finally {
+      if (type === "logo") setUploadingLogo(false);
+      else setUploadingFavicon(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "favicon") => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -133,6 +160,7 @@ export function Settings() {
     reader.onload = (event) => {
       if (event.target?.result) {
         setSelectedCropImage(event.target.result as string);
+        setCropTarget(type);
       }
     };
     reader.readAsDataURL(file);
@@ -140,26 +168,33 @@ export function Settings() {
   };
 
   const handleCropApply = async (base64: string) => {
+    const target = cropTarget;
     setSelectedCropImage(null);
-    setUploadingLogo(true);
+    setCropTarget(null);
+    if (!target) return;
+
+    if (target === "logo") setUploadingLogo(true);
+    else setUploadingFavicon(true);
     
     try {
       const resBlob = await fetch(base64);
       const blob = await resBlob.blob();
       
       const fd = new FormData();
-      fd.append("file", blob, "logo.png");
+      fd.append("file", blob, `${target}.png`);
+      fd.append("target", target);
       
       const res = await adminService.uploadAdminLogo(fd);
       if (res.status && res.data?.url) {
-        setSite({ ...site, logo: res.data.url });
+        setSite({ ...site, [target]: res.data.url });
       } else {
-        toast.error(res.message || "Failed to upload logo");
+        toast.error(res.message || `Failed to upload ${target}`);
       }
     } catch {
-      toast.error("Failed to upload logo");
+      toast.error(`Failed to upload ${target}`);
     } finally {
-      setUploadingLogo(false);
+      if (target === "logo") setUploadingLogo(false);
+      else setUploadingFavicon(false);
     }
   };
 
@@ -272,30 +307,99 @@ export function Settings() {
                       onChange={(e) => setSite({ ...site, meta_description: e.target.value })}
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Favicon URL</label>
-                    <input
-                      type="url"
-                      className="input input-bordered w-full"
-                      value={site.favicon}
-                      onChange={(e) => setSite({ ...site, favicon: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
                     <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Logo URL</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="url"
-                        className="input input-bordered w-full"
-                        value={site.logo}
-                        onChange={(e) => setSite({ ...site, logo: e.target.value })}
-                        placeholder="https://..."
-                      />
-                      <label className="btn btn-outline border-base-300">
-                        Upload
-                        <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                      </label>
+                    <div className="flex gap-2 items-start">
+                      <div className="flex flex-col gap-2 flex-1">
+                        <div className="join w-full">
+                          <input
+                            type="text"
+                            className="input input-bordered join-item w-full h-12"
+                            value={site.logo}
+                            onChange={(e) => setSite({ ...site, logo: e.target.value })}
+                            placeholder="https://..."
+                          />
+                          <button 
+                            type="button" 
+                            className="btn btn-primary join-item h-12"
+                            onClick={() => handleUploadLink("logo")}
+                            disabled={!site.logo.startsWith('http') || uploadingLogo}
+                          >
+                            {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
+                            Upload Logo
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, "logo")} />
+                          </label>
+                          <button 
+                            type="button"
+                            className="btn btn-sm btn-ghost font-normal"
+                            onClick={() => setSite({ ...site, logo: '/logo.svg' })}
+                          >
+                            Use Default
+                          </button>
+                        </div>
+                      </div>
+                      <div className="w-auto h-12 px-3 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
+                        {site.logo ? (
+                          <div className="flex items-center gap-2">
+                            <img src={site.logo} alt="Logo preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                            <div className={`w-5 h-5 opacity-40 hidden`} />
+                            <span className="font-bold whitespace-nowrap">{site.title || "NovelHub"}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 bg-base-300 rounded opacity-40" />
+                            <span className="font-bold whitespace-nowrap">{site.title || "NovelHub"}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Favicon URL</label>
+                    <div className="flex gap-2 items-start">
+                      <div className="flex flex-col gap-2 flex-1">
+                        <div className="join w-full">
+                          <input
+                            type="text"
+                            className="input input-bordered join-item w-full h-12"
+                            value={site.favicon}
+                            onChange={(e) => setSite({ ...site, favicon: e.target.value })}
+                            placeholder="https://..."
+                          />
+                          <button 
+                            type="button" 
+                            className="btn btn-primary join-item h-12"
+                            onClick={() => handleUploadLink("favicon")}
+                            disabled={!site.favicon.startsWith('http') || uploadingFavicon}
+                          >
+                            {uploadingFavicon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
+                            Upload Favicon
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, "favicon")} />
+                          </label>
+                          <button 
+                            type="button"
+                            className="btn btn-sm btn-ghost font-normal"
+                            onClick={() => setSite({ ...site, favicon: '/favicon.ico' })}
+                          >
+                            Use Default
+                          </button>
+                        </div>
+                      </div>
+                      <div className="w-12 h-12 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
+                        {site.favicon ? (
+                          <img src={site.favicon} alt="Favicon preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                        ) : null}
+                        <div className={`w-5 h-5 bg-base-300 rounded opacity-40 ${site.favicon ? 'hidden' : ''}`} />
+                      </div>
                     </div>
                   </div>
                 </div>

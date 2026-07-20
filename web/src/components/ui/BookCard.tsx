@@ -1,6 +1,8 @@
 import type { Book } from "@/types";
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { parseMetadata } from '@/lib/bookDetail';
 
 interface BookCardProps {
   book: Book;
@@ -18,9 +20,14 @@ const GRADIENTS = [
 
 export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
   const gradientClass = GRADIENTS[charCode % 6];
   const format = (book.files?.[0]?.format || "BOOK").toUpperCase();
+  
+  const meta = book.metadataJson ? parseMetadata(book.metadataJson) : {};
+  const series = meta.series;
+  const authorName = book.authorName || book.authorId || t('library.unknown_author', 'Unknown');
 
   return (
     <article 
@@ -49,12 +56,30 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
           </>
         )}
       </figure>
-      <div className="card-body p-3 gap-1">
-        <strong className="text-sm line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary" title={book.title}>{book.title}</strong>
-        <p className="text-xs text-base-content/60 line-clamp-1">{book.authorName || book.authorId || t('library.unknown_author', 'Unknown')}</p>
-        <div className="card-actions justify-start mt-1">
-          <div className="badge badge-primary badge-sm badge-outline font-bold text-[10px] px-2">{t('library.unread', 'Unread')}</div>
-        </div>
+      <div className="card-body p-2 gap-1.5">
+        <strong className="text-base line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary" title={book.title}>{book.title}</strong>
+        <p 
+          className="text-sm text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer"
+          title={authorName}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(authorName)}`);
+          }}
+        >
+          {authorName}
+        </p>
+        {series && (
+          <p 
+            className="text-sm text-secondary/80 font-medium line-clamp-1 hover:text-secondary hover:underline cursor-pointer"
+            title={series}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/?nav=series&facet=series&name=${encodeURIComponent(series)}`);
+            }}
+          >
+            {series}
+          </p>
+        )}
       </div>
     </article>
   );

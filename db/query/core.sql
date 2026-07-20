@@ -93,3 +93,21 @@ LIMIT ? OFFSET ?;
 SELECT * FROM jobs
 WHERE status IN ('pending', 'running')
 ORDER BY created_at ASC;
+
+-- name: ListUnfinishedJobIDs :many
+SELECT id FROM jobs
+WHERE status IN ('pending', 'running')
+ORDER BY created_at ASC;
+
+-- name: GetJobsByIDs :many
+SELECT * FROM jobs WHERE id IN (sqlc.slice('ids'));
+
+-- name: ListFileIDsByBookId :many
+SELECT id FROM book_files
+WHERE book_id = ?
+ORDER BY
+    CASE WHEN LOWER(format) = 'epub' THEN 0 ELSE 1 END,
+    created_at ASC;
+
+-- name: GetBookFilesByIDs :many
+SELECT * FROM book_files WHERE id IN (sqlc.slice('ids'));

@@ -11,8 +11,10 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 )
 
@@ -77,10 +79,12 @@ func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto
 	if name == "" {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "Role name is required")
 	}
-	role, err := r.roleRepo.Create(ctx, repositories.RoleCreateParams{
+	role, err := r.roleRepo.Create(ctx, sqlc.CreateRoleParams{
 		Name:        name,
 		Description: strings.TrimSpace(dto.Description),
-		AutoAssign:  dto.AutoAssign,
+		IsSystem:    0,
+		IsAdmin:     0,
+		AutoAssign:  convert.BoolToInt64(dto.AutoAssign),
 	})
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to create role")
@@ -110,18 +114,20 @@ func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.Up
 		return nil, fiber.NewError(fiber.StatusForbidden, "Admin role cannot be modified")
 	}
 
-	params := repositories.RoleUpdateParams{
-		ID:          roleID,
-		Name:        normalizeRoleName(dto.Name),
-		Description: strings.TrimSpace(dto.Description),
-		AutoAssign:  dto.AutoAssign,
-		SystemOnly:  existing.IsSystem,
-	}
+	var role *models.RoleEntity
 	if existing.IsSystem {
-		params.Name = existing.Name
-		params.AutoAssign = existing.AutoAssign
+		role, err = r.roleRepo.UpdateSystemRoleDescription(ctx, sqlc.UpdateSystemRoleDescriptionParams{
+			ID:          roleID,
+			Description: strings.TrimSpace(dto.Description),
+		})
+	} else {
+		role, err = r.roleRepo.Update(ctx, sqlc.UpdateRoleParams{
+			ID:          roleID,
+			Name:        normalizeRoleName(dto.Name),
+			Description: strings.TrimSpace(dto.Description),
+			AutoAssign:  convert.BoolToInt64(dto.AutoAssign),
+		})
 	}
-	role, err := r.roleRepo.Update(ctx, params)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to update role")
 	}

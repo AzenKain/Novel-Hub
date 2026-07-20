@@ -12,8 +12,10 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/worker"
 )
 
@@ -131,14 +133,14 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 
 		fileID := uuid.Must(uuid.NewV7()).String()
 		state := "managed"
-		err = s.bookRepo.CreateBookWithFile(ctx, book, &repositories.BookFileRecordParams{
+		err = s.bookRepo.CreateBookWithFile(ctx, book, &sqlc.CreateBookFileParams{
 			ID:        fileID,
 			BookID:    bookID,
 			Path:      saved.Path,
 			Format:    saved.Format,
 			SizeBytes: saved.SizeBytes,
 			ModTime:   saved.ModTime,
-			State:     &state,
+			State:     convert.StrPtrToNullString(&state),
 		})
 		if err != nil {
 			_ = s.fileRepo.RemoveBookDir(ctx, bookID)

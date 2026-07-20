@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
@@ -26,13 +26,13 @@ func (r *bookDBRepository) CreateChapter(ctx context.Context, chapter *models.Ch
 	chapter.CreatedAt = res.CreatedAt.Time
 	chapter.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("chapter:id:%s", chapter.ID), fmt.Sprintf("chapter:book:%s", chapter.BookID))
+		_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", chapter.ID), cache.BuildKey("chapter", "book", chapter.BookID))
 	}
 	return nil
 }
 
 func (r *bookDBRepository) GetChapter(ctx context.Context, id string) (*models.ChapterEntity, error) {
-	key := fmt.Sprintf("chapter:id:%s", id)
+	key := cache.BuildKey("chapter", "id", id)
 	if r.c != nil && !r.inTx {
 		var chapter models.ChapterEntity
 		if err := r.c.Get(ctx, key, &chapter); err == nil {
@@ -51,7 +51,7 @@ func (r *bookDBRepository) GetChapter(ctx context.Context, id string) (*models.C
 }
 
 func (r *bookDBRepository) ListChaptersByBook(ctx context.Context, bookID string) ([]*models.ChapterEntity, error) {
-	key := fmt.Sprintf("chapter:book:%s", bookID)
+	key := cache.BuildKey("chapter", "book", bookID)
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -72,29 +72,32 @@ func (r *bookDBRepository) GetChaptersByIDs(ctx context.Context, ids []string) (
 	if len(ids) == 0 {
 		return []*models.ChapterEntity{}, nil
 	}
-	if r.c == nil || r.inTx {
-		return r.fetchChaptersByIDs(ctx, ids)
-	}
 
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = fmt.Sprintf("chapter:id:%s", id)
+		keys[i] = cache.BuildKey("chapter", "id", id)
 	}
 
 	chaptersByID := make(map[string]*models.ChapterEntity, len(ids))
 	missingIDs := make([]string, 0, len(ids))
 	missingKeys := make([]string, 0, len(ids))
-	cachedBytes := r.c.MGet(ctx, keys...)
-	for i, bytes := range cachedBytes {
-		if len(bytes) > 0 {
-			var chapter models.ChapterEntity
-			if err := jsonx.Unmarshal(bytes, &chapter); err == nil {
-				chaptersByID[chapter.ID] = &chapter
-				continue
+
+	if r.c != nil && !r.inTx {
+		cachedBytes := r.c.MGet(ctx, keys...)
+		for i, bytes := range cachedBytes {
+			if len(bytes) > 0 {
+				var chapter models.ChapterEntity
+				if err := jsonx.Unmarshal(bytes, &chapter); err == nil {
+					chaptersByID[chapter.ID] = &chapter
+					continue
+				}
 			}
+			missingIDs = append(missingIDs, ids[i])
+			missingKeys = append(missingKeys, keys[i])
 		}
-		missingIDs = append(missingIDs, ids[i])
-		missingKeys = append(missingKeys, keys[i])
+	} else {
+		missingIDs = ids
+		missingKeys = keys
 	}
 
 	if len(missingIDs) > 0 {
@@ -108,41 +111,27 @@ func (r *bookDBRepository) GetChaptersByIDs(ctx context.Context, ids []string) (
 			chaptersByID[chapter.ID] = chapter
 			missingMap[chapter.ID] = chapter
 		}
-		missingToCache := make(map[string]any, len(missingMap))
-		for i, missingID := range missingIDs {
-			if chapter, ok := missingMap[missingID]; ok {
-				missingToCache[missingKeys[i]] = chapter
+
+		if r.c != nil && !r.inTx {
+			missingToCache := make(map[string]any, len(missingMap))
+			for i, missingID := range missingIDs {
+				if chapter, ok := missingMap[missingID]; ok {
+					missingToCache[missingKeys[i]] = chapter
+				}
+			}
+			if len(missingToCache) > 0 {
+				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
 			}
 		}
-		if len(missingToCache) > 0 {
-			_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
-		}
 	}
 
-	return orderChapters(ids, chaptersByID), nil
-}
-
-func (r *bookDBRepository) fetchChaptersByIDs(ctx context.Context, ids []string) ([]*models.ChapterEntity, error) {
-	rows, err := r.queries.GetChaptersByIDs(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	chaptersByID := make(map[string]*models.ChapterEntity, len(rows))
-	for _, row := range rows {
-		chapter := (&models.ChapterEntity{}).FromSqlc(row)
-		chaptersByID[chapter.ID] = chapter
-	}
-	return orderChapters(ids, chaptersByID), nil
-}
-
-func orderChapters(ids []string, chaptersByID map[string]*models.ChapterEntity) []*models.ChapterEntity {
 	ordered := make([]*models.ChapterEntity, 0, len(ids))
 	for _, id := range ids {
 		if chapter, ok := chaptersByID[id]; ok {
 			ordered = append(ordered, chapter)
 		}
 	}
-	return ordered
+	return ordered, nil
 }
 
 func (r *bookDBRepository) DeleteChapter(ctx context.Context, id string) error {
@@ -151,9 +140,9 @@ func (r *bookDBRepository) DeleteChapter(ctx context.Context, id string) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("chapter:id:%s", id))
+		_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", id))
 		if chapter != nil {
-			_ = r.c.Del(ctx, fmt.Sprintf("chapter:book:%s", chapter.BookID))
+			_ = r.c.Del(ctx, cache.BuildKey("chapter", "book", chapter.BookID))
 		} else {
 			_ = r.c.DelByPattern(context.Background(), "chapter:book:*")
 		}

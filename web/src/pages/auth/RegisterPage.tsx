@@ -2,6 +2,7 @@ import { settingsService } from "@/services";
 import { BookOpen, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { PasswordStrength } from "@/components/common";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -106,6 +107,7 @@ export function RegisterPage() {
                 minLength={8}
                 autoComplete="new-password"
               />
+              {form.password.length > 0 && <PasswordStrength password={form.password} />}
             </div>
 
             {error && (

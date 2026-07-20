@@ -1,5 +1,6 @@
-import { RecentlyReadPanel, BookDetailModal } from "@/components/book-detail";
-import { LoginView } from "@/components/common";
+import { RecentlyReadPanel } from "@/components/book-detail";
+import { BookDetailPage } from "./BookDetailPage";
+import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
 import { BookCard, BookGrid, LanguageSwitcher, ThemeController } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
@@ -167,6 +168,7 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
+    if (bookId) navigate("/");
   };
 
   const handleCollectionClick = (collection: string) => {
@@ -176,6 +178,7 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
+    if (bookId) navigate("/");
   };
 
   const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {
@@ -183,6 +186,7 @@ export const LibraryWorkspace = () => {
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
+    if (bookId) navigate("/");
   };
 
   const queryClient = useQueryClient();
@@ -197,18 +201,21 @@ export const LibraryWorkspace = () => {
     facet_id: activeFacet?.id,
   }), [debouncedSearch, activeNav, activeCollection, activeChip, activeFacet]);
 
-  const { data: booksData, isLoading: normalLoading } = useBooksQuery(
+  const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
     searchParams,
     !isMetadataNav && activeNav !== "bookmarks"
   );
+  const booksData = useMemo(() => (booksDataRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").Book[], [booksDataRaw]);
 
-  const { data: bookmarkedBooksData, isLoading: bookmarksLoading } = useBookmarkedBooksQuery(
+  const { data: bookmarkedBooksRaw, isLoading: bookmarksLoading, fetchNextPage: fetchNextBookmarks, hasNextPage: hasMoreBookmarks, isFetchingNextPage: isFetchingMoreBookmarks } = useBookmarkedBooksQuery(
     activeNav === "bookmarks" && !!user
   );
+  const bookmarkedBooksData = useMemo(() => (bookmarkedBooksRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").Book[], [bookmarkedBooksRaw]);
 
   const { data: statsData } = useLibraryStatsQuery();
-  const { data: collectionsData } = useCollectionsQuery(!!user);
-  const { data: historyData } = useReadingHistoryQuery(!!user);
+  const { data: collectionsData, fetchNextPage: fetchNextCollections, hasNextPage: hasMoreCollections, isFetchingNextPage: isFetchingMoreCollections } = useCollectionsQuery(!!user);
+  const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
+  const historyData = useMemo(() => (historyRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").ReadingHistory[], [historyRaw]);
 
   const { data: authorsFacet } = useMetadataFacetQuery("authors");
   const { data: seriesFacet } = useMetadataFacetQuery("series");
@@ -250,7 +257,10 @@ export const LibraryWorkspace = () => {
   }, [statsData, setStats]);
 
   useEffect(() => {
-    if (collectionsData) setCollections(collectionsData);
+    if (collectionsData) {
+      const allCollections = collectionsData.pages.flatMap((page) => page.data);
+      setCollections(allCollections);
+    }
   }, [collectionsData, setCollections]);
 
   useEffect(() => {
@@ -329,7 +339,7 @@ export const LibraryWorkspace = () => {
     },
   ];
   return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
-}, [visibleItems]);
+}, [visibleItems, t]);
 
   const facetSections: MetadataFacetSection[] = useMemo(() => {
     const all: MetadataFacetSection[] = [
@@ -377,7 +387,7 @@ export const LibraryWorkspace = () => {
     },
   ];
   return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.nav)) : all;
-}, [visibleItems, metadataFacets]);
+}, [visibleItems, metadataFacets, t]);
 
   const secondaryNavItems: LibraryNavItem[] = useMemo(() => {
     const all: LibraryNavItem[] = [
@@ -393,7 +403,7 @@ export const LibraryWorkspace = () => {
     },
   ];
   return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
-}, [visibleItems]);
+}, [visibleItems, t]);
 
   const currentFacetSection = facetSections.find(
     (section) => section.nav === activeNav,
@@ -713,12 +723,29 @@ export const LibraryWorkspace = () => {
           </div>
         )}
 
-        {loading ? (
+        {loading && books.length === 0 ? (
           <div className="flex justify-center items-center py-20">
             <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
         ) : books.length > 0 ? (
-          <BookGrid books={books} onBookClick={openBookDetail} />
+          <>
+            <BookGrid books={books} onBookClick={openBookDetail} />
+            {((activeNav === "bookmarks" && hasMoreBookmarks) || (activeNav !== "bookmarks" && hasMoreBooks)) && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  className="btn btn-primary btn-outline"
+                  onClick={() => activeNav === "bookmarks" ? fetchNextBookmarks() : fetchNextBooks()}
+                  disabled={isFetchingMoreBookmarks || isFetchingMoreBooks}
+                >
+                  {(isFetchingMoreBookmarks || isFetchingMoreBooks) ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    "Load More"
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="rounded-xl border border-dashed border-base-300 bg-base-200/30 p-12 text-center">
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-base-content/25" />
@@ -743,130 +770,22 @@ export const LibraryWorkspace = () => {
 
       {/* Main Content */}
       <div className="drawer-content flex flex-col h-screen overflow-hidden">
-        {/* Navbar */}
-        <div className="navbar flex-wrap gap-2 bg-base-100 shadow-sm border-b border-base-200 z-10 px-3 sm:px-4">
-          <div className="flex-none lg:hidden">
-            <label
-              htmlFor="main-drawer"
-              aria-label="open sidebar"
-              className="btn btn-square btn-ghost"
-            >
-              <Menu className="w-5 h-5" />
-            </label>
-          </div>
-
-          <div className="min-w-0 flex-1 basis-56 px-1 sm:px-2">
-            <div className="form-control relative w-full max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-base-content/50" />
-              </div>
-              <input
-                type="text"
-                placeholder={t(
-                  "library.search_placeholder",
-                  "Search title, author, series, tag...",
-                )}
-                className="input input-bordered input-sm sm:input-md w-full pl-10 bg-base-200/50 focus:bg-base-100 transition-colors"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <ThemeController />
-            <LanguageSwitcher />
-
-            {user ? (
-              <>
-                {user.roles?.some(
-                  (r) => r.name === "ADMIN" || r.name === "MOD",
-                ) && (
-                  <Link
-                    to="/admin"
-                    className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    {t("admin.dashboard", "Admin")}
-                  </Link>
-                )}
-                <div className="dropdown dropdown-end">
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="btn btn-ghost btn-circle avatar border border-base-300"
-                  >
-                    <div className="w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {user.avatar_url ? (
-                        <img
-                          src={user.avatar_url}
-                          alt="Avatar"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="text-lg">
-                          {user.full_name
-                            ? user.full_name.charAt(0).toUpperCase()
-                            : user.email.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <ul
-                    tabIndex={0}
-                    className="mt-3 z-1 p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 border border-base-200"
-                  >
-                    <li>
-                      <span className="font-semibold opacity-60 px-4 py-2 truncate block">
-                        {user.email}
-                      </span>
-                    </li>
-                    <li>
-                      <button onClick={() => setProfileModalOpen(true)}>
-                        {t("user.profile", "Profile")}
-                      </button>
-                    </li>
-                    <li className="sm:hidden">
-                      {user.roles?.some(
-                        (r) => r.name === "ADMIN" || r.name === "MOD",
-                      ) && (
-                        <Link to="/admin">{t("admin.dashboard", "Admin")}</Link>
-                      )}
-                    </li>
-                    <li>
-                      <button className="text-error" onClick={() => logout()}>
-                        {t("auth.logout", "Logout")}
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              </>
-            ) : (
-              <>
-                <Link to="/register" className="btn btn-ghost btn-sm sm:btn-md">
-                  {t("auth.register", "Register")}
-                </Link>
-                <button
-                  onClick={() => setLoginModalOpen(true)}
-                  className="btn btn-primary btn-sm sm:btn-md"
-                >
-                  {t("auth.login", "Login")}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <TopNav showSidebarToggle={true} />
 
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           <div
-            className={`mx-auto grid w-full max-w-375 grid-cols-1 gap-5 ${isCatalogPage ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
+            className={`mx-auto grid w-full max-w-375 grid-cols-1 gap-5 ${isCatalogPage || bookId ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
           >
             <main className="min-w-0 flex flex-col gap-5">
-              {isMetadataIndex ? renderMetadataIndex() : renderBookList()}
+              {bookId ? (
+                <BookDetailPage />
+              ) : (
+                isMetadataIndex ? renderMetadataIndex() : renderBookList()
+              )}
             </main>
 
-            {!isCatalogPage && (
+            {!isCatalogPage && !bookId && (
               <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start">
                 <RecentlyReadPanel
                   className="mt-0"
@@ -901,6 +820,9 @@ export const LibraryWorkspace = () => {
           setShowNewCollectionModal(true);
           setCollectionError("");
         }}
+        hasMoreCollections={hasMoreCollections}
+        onLoadMoreCollections={() => fetchNextCollections()}
+        isFetchingMoreCollections={isFetchingMoreCollections}
       />
 
       <LoginView />
@@ -962,7 +884,6 @@ export const LibraryWorkspace = () => {
           </button>
         </form>
       </dialog>
-      {bookId && <BookDetailModal bookId={bookId} onClose={() => navigate("/")} />}
     </div>
   );
 };

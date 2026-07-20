@@ -1,51 +1,61 @@
 import { settingsService } from "@/services";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { PublicSettings } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-let cached: PublicSettings | null = null;
 let fetching = false;
-let listeners: Array<(s: PublicSettings | null) => void> = [];
 
-function notify() {
-  listeners.forEach((fn) => fn(cached));
+function applySiteSettingsToDOM(settings: PublicSettings | null) {
+  if (!settings?.site) return;
+  const site = settings.site;
+  
+  if (site.title) {
+    document.title = site.title;
+  }
+  
+  if (site.favicon) {
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = site.favicon;
+  }
 }
 
 export function usePublicSettings(): PublicSettings | null {
-  const [settings, setSettings] = useState<PublicSettings | null>(cached);
+  const publicSettings = useSettingsStore(state => state.publicSettings);
+  const setPublicSettings = useSettingsStore(state => state.setPublicSettings);
 
   useEffect(() => {
-    if (cached) {
-      setSettings(cached);
-      return;
-    }
-    listeners.push(setSettings);
+    applySiteSettingsToDOM(publicSettings);
+
     if (!fetching) {
       fetching = true;
       settingsService.getPublic().then((res) => {
-        cached = res.data || null;
+        setPublicSettings(res.data || null);
         fetching = false;
-        notify();
+      }).catch(() => {
+        fetching = false;
       });
     }
-    return () => {
-      listeners = listeners.filter((fn) => fn !== setSettings);
-    };
   }, []);
 
-  return settings;
+  useEffect(() => {
+    applySiteSettingsToDOM(publicSettings);
+  }, [publicSettings]);
+
+  return publicSettings;
 }
 
-// Forces a re-fetch of the public settings on the next render. Call this after
-// an action that changes setup state (e.g. completing the setup wizard) so the
-// SetupGuard sees the fresh `setup_completed` value instead of the stale cache.
 export async function invalidatePublicSettings(): Promise<void> {
-  cached = null;
   fetching = false;
   try {
     const res = await settingsService.getPublic();
-    cached = res.data || null;
+    useSettingsStore.getState().setPublicSettings(res.data || null);
+    applySiteSettingsToDOM(res.data || null);
   } catch {
-    cached = null;
+    useSettingsStore.getState().setPublicSettings(null);
   }
-  notify();
 }

@@ -1,6 +1,6 @@
 import { bookService, featureService, libraryService } from "@/services";
 import type { Collection, DuplicateFileResult, Library, LibraryStats, ReadingHistory } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
 export function useLibrariesQuery() {
   return useQuery<Library[]>({
@@ -25,25 +25,34 @@ export function useLibraryStatsQuery() {
 }
 
 export function useCollectionsQuery(enabled = true) {
-  return useQuery<Collection[]>({
+  return useInfiniteQuery<{ data: Collection[], nextCursor: string | null }>({
     queryKey: ["collections"],
-    queryFn: async () => {
-      const res = await featureService.getCollections();
+    initialPageParam: undefined,
+    queryFn: async ({ pageParam }) => {
+      const cursor = pageParam as string | undefined;
+      const res = await featureService.getCollections(cursor, 50);
       if (!res.status) throw new Error(res.message || "Failed to fetch collections");
-      return res.data || [];
+      
+      const collections = res.data || [];
+      const nextCursor = collections.length === 50 ? collections[collections.length - 1].createdAt : null;
+      
+      return { data: collections, nextCursor };
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
   });
 }
 
 export function useReadingHistoryQuery(enabled = true) {
-  return useQuery<ReadingHistory[]>({
+  return useInfiniteQuery({
     queryKey: ["reading", "history"],
-    queryFn: async () => {
-      const res = await featureService.getRecentReadingHistory();
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const res = await featureService.getRecentReadingHistory(pageParam, 20);
       if (!res.status) throw new Error(res.message || "Failed to fetch reading history");
-      return res.data || [];
+      return res;
     },
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
   });
 }

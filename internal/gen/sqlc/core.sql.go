@@ -158,6 +158,54 @@ func (q *Queries) GetBookFileByPath(ctx context.Context, path string) (BookFile,
 	return i, err
 }
 
+const getBookFilesByIDs = `-- name: GetBookFilesByIDs :many
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetBookFilesByIDs(ctx context.Context, ids []string) ([]BookFile, error) {
+	query := getBookFilesByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BookFile{}
+	for rows.Next() {
+		var i BookFile
+		if err := rows.Scan(
+			&i.ID,
+			&i.BookID,
+			&i.Path,
+			&i.Format,
+			&i.SizeBytes,
+			&i.ModTime,
+			&i.Hash,
+			&i.State,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFilesByBookId = `-- name: GetFilesByBookId :many
 SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
 WHERE book_id = ?
@@ -222,6 +270,53 @@ func (q *Queries) GetJob(ctx context.Context, id string) (Job, error) {
 	return i, err
 }
 
+const getJobsByIDs = `-- name: GetJobsByIDs :many
+SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetJobsByIDs(ctx context.Context, ids []string) ([]Job, error) {
+	query := getJobsByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Job{}
+	for rows.Next() {
+		var i Job
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Status,
+			&i.Progress,
+			&i.Total,
+			&i.ErrorMsg,
+			&i.PayloadJson,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLibrariesByIDs = `-- name: GetLibrariesByIDs :many
 SELECT id, name, created_at, updated_at FROM libraries WHERE id IN (/*SLICE:ids*/?)
 `
@@ -281,6 +376,37 @@ func (q *Queries) GetLibrary(ctx context.Context, id string) (Library, error) {
 	return i, err
 }
 
+const listFileIDsByBookId = `-- name: ListFileIDsByBookId :many
+SELECT id FROM book_files
+WHERE book_id = ?
+ORDER BY
+    CASE WHEN LOWER(format) = 'epub' THEN 0 ELSE 1 END,
+    created_at ASC
+`
+
+func (q *Queries) ListFileIDsByBookId(ctx context.Context, bookID string) ([]string, error) {
+	rows, err := q.query(ctx, q.listFileIDsByBookIdStmt, listFileIDsByBookId, bookID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJobs = `-- name: ListJobs :many
 SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs
 ORDER BY created_at DESC
@@ -332,6 +458,35 @@ ORDER BY created_at DESC
 
 func (q *Queries) ListLibraryIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.query(ctx, q.listLibraryIDsStmt, listLibraryIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUnfinishedJobIDs = `-- name: ListUnfinishedJobIDs :many
+SELECT id FROM jobs
+WHERE status IN ('pending', 'running')
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListUnfinishedJobIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.query(ctx, q.listUnfinishedJobIDsStmt, listUnfinishedJobIDs)
 	if err != nil {
 		return nil, err
 	}

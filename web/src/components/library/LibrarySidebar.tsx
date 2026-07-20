@@ -1,5 +1,7 @@
-import { Plus } from "lucide-react";
-import React from "react";
+import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { featureService } from "@/services";
 
 import { usePublicSettings } from "@/hooks/useSettings";
 import type { Collection, User } from "@/types";
@@ -24,6 +26,9 @@ type LibrarySidebarProps = {
   onNavClick: (nav: string) => void;
   onCollectionClick: (collection: string) => void;
   onNewCollection: () => void;
+  hasMoreCollections?: boolean;
+  onLoadMoreCollections?: () => void;
+  isFetchingMoreCollections?: boolean;
 };
 
 export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
@@ -39,7 +44,11 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   onNavClick,
   onCollectionClick,
   onNewCollection,
+  hasMoreCollections,
+  onLoadMoreCollections,
+  isFetchingMoreCollections,
 }) => {
+  const queryClient = useQueryClient();
   const settings = usePublicSettings();
   const siteTitle = settings?.site?.title || "NovelHub";
   const siteDesc = settings?.site?.description || "Local library manager";
@@ -55,6 +64,45 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       </button>
     </li>
   );
+
+  const [editingCollection, setEditingCollection] = useState<{id: string, name: string} | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
+  const handleEditCollection = async () => {
+    if (!editingCollection || !editingName.trim()) return;
+    try {
+      const res = await featureService.updateCollection(editingCollection.id, editingName);
+      if (res.status) {
+        await queryClient.invalidateQueries({ queryKey: ["collections"] });
+        if (activeCollection === editingCollection.name) {
+          onCollectionClick(res.data!.name);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEditingCollection(null);
+    }
+  };
+
+  const handleDeleteCollection = async (id: string, name: string) => {
+    if (!window.confirm(t("library.confirm_delete_collection", "Are you sure you want to delete this collection?"))) return;
+    setIsDeleting(id);
+    try {
+      const res = await featureService.deleteCollection(id);
+      if (res.status) {
+        await queryClient.invalidateQueries({ queryKey: ["collections"] });
+        if (activeCollection === name) {
+          onCollectionClick("");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
   return (
     <div className="drawer-side z-20 border-r border-base-200 shadow-xl">
@@ -122,15 +170,49 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             {collections.length > 0 ? (
               collections.map((collection) => (
                 <li key={collection.id}>
-                  <button
-                    className={`${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold" : ""}`}
-                    onClick={() => onCollectionClick(collection.name)}
-                  >
-                    <span className="flex h-4 w-4 items-center justify-center rounded bg-base-200 text-[10px] font-bold uppercase">
-                      {collection.name.charAt(0)}
-                    </span>
-                    {collection.name}
-                  </button>
+                  {editingCollection?.id === collection.id ? (
+                    <div className="flex items-center gap-1 p-1">
+                      <input 
+                        type="text" 
+                        className="input input-bordered input-sm w-full" 
+                        value={editingName} 
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleEditCollection()}
+                        autoFocus
+                      />
+                      <button className="btn btn-primary btn-sm px-2" onClick={handleEditCollection}>{t("common.save", "Save")}</button>
+                      <button className="btn btn-ghost btn-sm px-2" onClick={() => setEditingCollection(null)}>{t("common.cancel", "Cancel")}</button>
+                    </div>
+                  ) : (
+                    <div className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}>
+                      <button
+                        className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
+                        onClick={() => onCollectionClick(collection.name)}
+                      >
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-base-200 text-[10px] font-bold uppercase">
+                          {collection.name.charAt(0)}
+                        </span>
+                        <span className="truncate">{collection.name}</span>
+                      </button>
+                      <div className="dropdown dropdown-end">
+                        <button tabIndex={0} className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity mr-1">
+                          {isDeleting === collection.id ? <span className="loading loading-spinner loading-xs"></span> : <MoreVertical className="w-4 h-4" />}
+                        </button>
+                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32 border border-base-200">
+                          <li>
+                            <button onClick={() => { setEditingCollection(collection); setEditingName(collection.name); }}>
+                              <Edit2 className="w-4 h-4" /> {t("common.edit", "Edit")}
+                            </button>
+                          </li>
+                          <li>
+                            <button className="text-error" onClick={() => handleDeleteCollection(collection.id, collection.name)}>
+                              <Trash2 className="w-4 h-4" /> {t("common.delete", "Delete")}
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))
             ) : (
@@ -141,6 +223,18 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               </div>
             )}
           </ul>
+          
+          {hasMoreCollections && (
+            <div className="px-2 mt-2">
+              <button 
+                className="btn btn-ghost btn-sm w-full text-xs" 
+                onClick={onLoadMoreCollections}
+                disabled={isFetchingMoreCollections}
+              >
+                {isFetchingMoreCollections ? <span className="loading loading-spinner loading-xs"></span> : t("common.load_more", "Load more")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

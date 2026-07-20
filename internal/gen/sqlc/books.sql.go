@@ -462,52 +462,18 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 
 const listBookIDs = `-- name: ListBookIDs :many
 SELECT id FROM books
+WHERE (?1 IS NULL OR created_at < ?1)
 ORDER BY created_at DESC
-LIMIT ? OFFSET ?
+LIMIT ?2
 `
 
 type ListBookIDsParams struct {
-	Limit  int64 `json:"limit"`
-	Offset int64 `json:"offset"`
+	CursorCreatedAt interface{} `json:"cursor_created_at"`
+	Limit           int64       `json:"limit"`
 }
 
 func (q *Queries) ListBookIDs(ctx context.Context, arg ListBookIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.listBookIDsStmt, listBookIDs, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listBookIDsCursor = `-- name: ListBookIDsCursor :many
-SELECT id FROM books
-WHERE created_at < ?
-ORDER BY created_at DESC
-LIMIT ?
-`
-
-type ListBookIDsCursorParams struct {
-	CreatedAt sql.NullTime `json:"created_at"`
-	Limit     int64        `json:"limit"`
-}
-
-func (q *Queries) ListBookIDsCursor(ctx context.Context, arg ListBookIDsCursorParams) ([]string, error) {
-	rows, err := q.query(ctx, q.listBookIDsCursorStmt, listBookIDsCursor, arg.CreatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.listBookIDsStmt, listBookIDs, arg.CursorCreatedAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -561,129 +527,7 @@ func (q *Queries) ListChapterIDsByBook(ctx context.Context, bookID string) ([]st
 const searchBookIDs = `-- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (?1 IS NULL OR b.library_id = ?1) AND
-    (
-        ?2 IS NULL OR
-        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH ?2 ORDER BY rank)
-    ) AND
-    (?3 IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
-    (?4 IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
-    (?5 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?6 IS NULL OR b.author_id IS NOT NULL) AND
-    (?7 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
-    (?8 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
-    (?9 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
-    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
-    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?12 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?13 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?14 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?15 IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
-    (?16 IS NULL OR b.download_count > 0) AND
-    (?17 IS NULL OR b.rating_count > 0) AND
-    (?18 IS NULL OR b.status = 'archived') AND
-    (?19 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?20)) AND
-    (?21 IS NULL OR b.author_id = ?21) AND
-    (?22 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?22)) AND
-    (?23 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?23)) AND
-    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?24)) AND
-    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?25)) AND
-    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?26)))
-ORDER BY
-    b.download_count DESC,
-    b.average_rating DESC,
-    b.read_count DESC,
-    b.created_at DESC
-LIMIT ?28 OFFSET ?27
-`
-
-type SearchBookIDsParams struct {
-	LibraryID             interface{}   `json:"library_id"`
-	Search                interface{}   `json:"search"`
-	FilterMissingMetadata interface{}   `json:"filter_missing_metadata"`
-	FilterNoCover         interface{}   `json:"filter_no_cover"`
-	FilterHasFiles        interface{}   `json:"filter_has_files"`
-	FilterHasAuthor       interface{}   `json:"filter_has_author"`
-	FilterHasSeries       interface{}   `json:"filter_has_series"`
-	FilterHasTags         interface{}   `json:"filter_has_tags"`
-	FilterHasPublishers   interface{}   `json:"filter_has_publishers"`
-	FilterHasLanguages    interface{}   `json:"filter_has_languages"`
-	FilterHasFormats      interface{}   `json:"filter_has_formats"`
-	FilterReading         interface{}   `json:"filter_reading"`
-	FilterRead            interface{}   `json:"filter_read"`
-	FilterUnread          interface{}   `json:"filter_unread"`
-	FilterHot             interface{}   `json:"filter_hot"`
-	FilterTopDownloaded   interface{}   `json:"filter_top_downloaded"`
-	FilterTopRated        interface{}   `json:"filter_top_rated"`
-	FilterArchived        interface{}   `json:"filter_archived"`
-	FilterBookmarked      interface{}   `json:"filter_bookmarked"`
-	UserID                sql.NullInt64 `json:"user_id"`
-	AuthorID              interface{}   `json:"author_id"`
-	SeriesID              interface{}   `json:"series_id"`
-	TagID                 interface{}   `json:"tag_id"`
-	PublisherID           interface{}   `json:"publisher_id"`
-	LanguageID            interface{}   `json:"language_id"`
-	FileFormat            interface{}   `json:"file_format"`
-	Offset                int64         `json:"offset"`
-	Limit                 int64         `json:"limit"`
-}
-
-func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.searchBookIDsStmt, searchBookIDs,
-		arg.LibraryID,
-		arg.Search,
-		arg.FilterMissingMetadata,
-		arg.FilterNoCover,
-		arg.FilterHasFiles,
-		arg.FilterHasAuthor,
-		arg.FilterHasSeries,
-		arg.FilterHasTags,
-		arg.FilterHasPublishers,
-		arg.FilterHasLanguages,
-		arg.FilterHasFormats,
-		arg.FilterReading,
-		arg.FilterRead,
-		arg.FilterUnread,
-		arg.FilterHot,
-		arg.FilterTopDownloaded,
-		arg.FilterTopRated,
-		arg.FilterArchived,
-		arg.FilterBookmarked,
-		arg.UserID,
-		arg.AuthorID,
-		arg.SeriesID,
-		arg.TagID,
-		arg.PublisherID,
-		arg.LanguageID,
-		arg.FileFormat,
-		arg.Offset,
-		arg.Limit,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchBookIDsCursor = `-- name: SearchBookIDsCursor :many
-SELECT b.id FROM books b
-WHERE
-    b.created_at < ? AND
+    (?1 IS NULL OR b.created_at < ?1) AND
     (?2 IS NULL OR b.library_id = ?2) AND
     (
         ?3 IS NULL OR
@@ -713,15 +557,12 @@ WHERE
     (?26 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?26)) AND
     (?27 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?27)))
 ORDER BY
-    b.download_count DESC,
-    b.average_rating DESC,
-    b.read_count DESC,
     b.created_at DESC
 LIMIT ?28
 `
 
-type SearchBookIDsCursorParams struct {
-	CreatedAt             sql.NullTime  `json:"created_at"`
+type SearchBookIDsParams struct {
+	CursorCreatedAt       interface{}   `json:"cursor_created_at"`
 	LibraryID             interface{}   `json:"library_id"`
 	Search                interface{}   `json:"search"`
 	FilterMissingMetadata interface{}   `json:"filter_missing_metadata"`
@@ -751,9 +592,9 @@ type SearchBookIDsCursorParams struct {
 	Limit                 int64         `json:"limit"`
 }
 
-func (q *Queries) SearchBookIDsCursor(ctx context.Context, arg SearchBookIDsCursorParams) ([]string, error) {
-	rows, err := q.query(ctx, q.searchBookIDsCursorStmt, searchBookIDsCursor,
-		arg.CreatedAt,
+func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.searchBookIDsStmt, searchBookIDs,
+		arg.CursorCreatedAt,
 		arg.LibraryID,
 		arg.Search,
 		arg.FilterMissingMetadata,

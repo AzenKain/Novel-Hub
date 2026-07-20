@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
@@ -53,7 +52,7 @@ func (r *libraryRepository) CreateLibrary(ctx context.Context, library *models.L
 }
 
 func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error) {
-	key := fmt.Sprintf("library:id:%s", id)
+	key := cache.BuildKey("library", "id", id)
 	if r.c != nil {
 		var library models.LibraryEntity
 		if err := r.c.Get(ctx, key, &library); err == nil {
@@ -98,7 +97,7 @@ func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string)
 	}
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = fmt.Sprintf("library:id:%s", id)
+		keys[i] = cache.BuildKey("library", "id", id)
 	}
 
 	libraries := make([]*models.LibraryEntity, 0, len(ids))
@@ -175,7 +174,7 @@ func (r *libraryRepository) UpdateLibrary(ctx context.Context, library *models.L
 	library.UpdatedAt = res.UpdatedAt.Time
 
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("library:id:%s", library.ID))
+		_ = r.c.Del(ctx, cache.BuildKey("library", "id", library.ID))
 		_ = r.c.Del(ctx, "library:list")
 		_ = r.c.Del(ctx, "feature:library_stats")
 	}
@@ -185,7 +184,7 @@ func (r *libraryRepository) UpdateLibrary(ctx context.Context, library *models.L
 func (r *libraryRepository) DeleteLibrary(ctx context.Context, id string) error {
 	err := r.queries.DeleteLibrary(ctx, id)
 	if err == nil && r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("library:id:%s", id))
+		_ = r.c.Del(ctx, cache.BuildKey("library", "id", id))
 		_ = r.c.Del(ctx, "library:list")
 		_ = r.c.Del(ctx, "feature:library_stats")
 	}

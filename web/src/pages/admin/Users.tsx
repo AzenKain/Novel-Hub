@@ -9,6 +9,7 @@ import {
   UserPlus
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo } from "react";
+import { PasswordStrength } from "@/components/common";
 import { useTranslation } from "react-i18next";
 import { toast } from 'react-toastify';
 import { useShallow } from "zustand/react/shallow";
@@ -371,6 +372,7 @@ export function Users() {
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       className="input input-bordered focus:input-primary"
                     />
+                    {form.password.length > 0 && <PasswordStrength password={form.password} />}
                   </div>
                 )}
                   <div className="flex flex-col gap-1.5">
@@ -421,6 +423,7 @@ export function Users() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="input input-bordered focus:input-primary"
                 />
+                {newPassword.length > 0 && <PasswordStrength password={newPassword} />}
               </div>
             )}
 

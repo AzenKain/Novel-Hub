@@ -20,9 +20,6 @@ type JobEntity struct {
 }
 
 func (e *JobEntity) FromSqlc(res sqlc.Job) *JobEntity {
-	if e == nil {
-		e = &JobEntity{}
-	}
 	e.ID = res.ID
 	e.Type = res.Type
 	e.Status = convert.NullStringToStrPtr(res.Status)
@@ -37,4 +34,15 @@ func (e *JobEntity) FromSqlc(res sqlc.Job) *JobEntity {
 	e.CreatedAt = res.CreatedAt.Time
 	e.UpdatedAt = res.UpdatedAt.Time
 	return e
+}
+
+type JobEntities []*JobEntity
+
+func (e *JobEntities) FromSqlc(rows []sqlc.Job) []*JobEntity {
+	slice := make([]*JobEntity, len(rows))
+	flat := make([]JobEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
 }

@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"strconv"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
@@ -20,30 +19,15 @@ type RoleRepository interface {
 	ListPermissions(ctx context.Context) ([]*models.PermissionEntity, error)
 	ListRolePermissions(ctx context.Context) ([]*models.RolePermissionEntity, error)
 	GetRolePermissions(ctx context.Context, roleID int64) ([]*models.RolePermissionEntity, error)
-	Create(ctx context.Context, params RoleCreateParams) (*models.RoleEntity, error)
-	Update(ctx context.Context, params RoleUpdateParams) (*models.RoleEntity, error)
+	Create(ctx context.Context, params sqlc.CreateRoleParams) (*models.RoleEntity, error)
+	Update(ctx context.Context, params sqlc.UpdateRoleParams) (*models.RoleEntity, error)
+	UpdateSystemRoleDescription(ctx context.Context, params sqlc.UpdateSystemRoleDescriptionParams) (*models.RoleEntity, error)
 	Delete(ctx context.Context, id int64) error
 	ReplaceRolePermissions(ctx context.Context, roleID int64, permissions []*models.RolePermissionEntity) error
 	CreateUserRole(ctx context.Context, userID, roleID int64) error
 	BulkDeleteRolesFromUser(ctx context.Context, userID int64) error
 	GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error)
 	WithTx(tx *sql.Tx) RoleRepository
-}
-
-type RoleCreateParams struct {
-	Name        string
-	Description string
-	IsSystem    bool
-	IsAdmin     bool
-	AutoAssign  bool
-}
-
-type RoleUpdateParams struct {
-	ID          int64
-	Name        string
-	Description string
-	AutoAssign  bool
-	SystemOnly  bool
 }
 
 type roleRepository struct {
@@ -59,63 +43,13 @@ func (r *roleRepository) WithTx(tx *sql.Tx) RoleRepository {
 	return &roleRepository{q: r.q.WithTx(tx), c: r.c}
 }
 
-func mapRole(row sqlc.Role) *models.RoleEntity {
-	return &models.RoleEntity{
-		ID:          row.ID,
-		Name:        row.Name,
-		Description: row.Description,
-		IsSystem:    row.IsSystem != 0,
-		IsAdmin:     row.IsAdmin != 0,
-		AutoAssign:  row.AutoAssign != 0,
-		IsDeleted:   row.IsDeleted != 0,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
-	}
-}
-
-func mapPermission(row sqlc.Permission) *models.PermissionEntity {
-	return &models.PermissionEntity{
-		Key:         row.Key,
-		Description: row.Description,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
-	}
-}
-
-func mapRolePermission(row sqlc.RolePermission) *models.RolePermissionEntity {
-	var conditions map[string]any
-	if row.ConditionsJson != "" {
-		_ = jsonx.Unmarshal([]byte(row.ConditionsJson), &conditions)
-	}
-	if conditions == nil {
-		conditions = map[string]any{}
-	}
-	return &models.RolePermissionEntity{
-		ID:             row.ID,
-		RoleID:         row.RoleID,
-		PermissionKey:  row.PermissionKey,
-		Effect:         row.Effect,
-		ConditionsJSON: row.ConditionsJson,
-		Conditions:     conditions,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-	}
-}
-
-func boolToInt64(v bool) int64 {
-	if v {
-		return 1
-	}
-	return 0
-}
-
 func (r *roleRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.RoleEntity, error) {
 	if len(ids) == 0 {
 		return []*models.RoleEntity{}, nil
 	}
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = "role:id:" + strconv.FormatInt(id, 10)
+		keys[i] = cache.BuildKey("role", "id", id)
 	}
 
 	roles := make([]*models.RoleEntity, 0, len(ids))
@@ -147,9 +81,9 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.R
 		}
 		missingMap := make(map[int64]*models.RoleEntity)
 		for _, row := range rows {
-			role := mapRole(row)
-			missingMap[role.ID] = role
-			roles = append(roles, role)
+			result := (&models.RoleEntity{}).FromSqlc(row)
+			missingMap[result.ID] = result
+			roles = append(roles, result)
 		}
 
 		if r.c != nil {
@@ -180,7 +114,7 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.R
 }
 
 func (r *roleRepository) GetByID(ctx context.Context, id int64) (*models.RoleEntity, error) {
-	key := "role:id:" + strconv.FormatInt(id, 10)
+	key := cache.BuildKey("role", "id", id)
 	if r.c != nil {
 		var role models.RoleEntity
 		if err := r.c.Get(ctx, key, &role); err == nil {
@@ -192,7 +126,7 @@ func (r *roleRepository) GetByID(ctx context.Context, id int64) (*models.RoleEnt
 	if err != nil {
 		return nil, err
 	}
-	rolePtr := mapRole(row)
+	rolePtr := (&models.RoleEntity{}).FromSqlc(row)
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 	}
@@ -200,81 +134,244 @@ func (r *roleRepository) GetByID(ctx context.Context, id int64) (*models.RoleEnt
 }
 
 func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.PermissionEntity, error) {
-	rows, err := r.q.ListPermissions(ctx)
+	key := "permission:all"
+	if r.c != nil {
+		var keys []string
+		if err := r.c.Get(ctx, key, &keys); err == nil {
+			if result, ok := r.getPermissionsByKeys(ctx, keys); ok {
+				return result, nil
+			}
+		}
+	}
+
+	keyRows, err := r.q.ListPermissionKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]*models.PermissionEntity, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, mapPermission(row))
+
+	if len(keyRows) == 0 {
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+		}
+		return []*models.PermissionEntity{}, nil
+	}
+
+	rows, err := r.q.GetPermissionsByKeys(ctx, keyRows)
+	if err != nil {
+		return nil, err
+	}
+
+	out := (&models.PermissionEntities{}).FromSqlc(rows)
+
+	keys := make([]string, len(out))
+	for i, entity := range out {
+		keys[i] = entity.Key
+	}
+
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, keys, constants.ListCacheDuration)
+		r.cachePermissionEntities(ctx, out)
 	}
 	return out, nil
 }
 
 func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.RolePermissionEntity, error) {
-	rows, err := r.q.ListRolePermissions(ctx)
+	key := "role_permission:all"
+	if r.c != nil {
+		var ids []int64
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getRolePermissionsByIDs(ctx, ids); ok {
+				return result, nil
+			}
+		}
+	}
+
+	idRows, err := r.q.ListRolePermissionIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]*models.RolePermissionEntity, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, mapRolePermission(row))
+
+	if len(idRows) == 0 {
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+		}
+		return []*models.RolePermissionEntity{}, nil
+	}
+
+	rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+	if err != nil {
+		return nil, err
+	}
+
+	out := (&models.RolePermissionEntities{}).FromSqlc(rows)
+
+	ids := make([]int64, len(out))
+	for i, entity := range out {
+		ids[i] = entity.ID
+	}
+
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheRolePermissionEntities(ctx, out)
 	}
 	return out, nil
 }
 
 func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID int64) ([]*models.RolePermissionEntity, error) {
-	rows, err := r.q.GetRolePermissions(ctx, roleID)
+	key := cache.BuildKey("role", "permissions", roleID)
+	if r.c != nil {
+		var ids []int64
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getRolePermissionsByIDs(ctx, ids); ok {
+				return result, nil
+			}
+		}
+	}
+
+	idRows, err := r.q.GetRolePermissionIDs(ctx, roleID)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]*models.RolePermissionEntity, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, mapRolePermission(row))
+
+	if len(idRows) == 0 {
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+		}
+		return []*models.RolePermissionEntity{}, nil
+	}
+
+	rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+	if err != nil {
+		return nil, err
+	}
+
+	out := (&models.RolePermissionEntities{}).FromSqlc(rows)
+
+	ids := make([]int64, len(out))
+	for i, entity := range out {
+		ids[i] = entity.ID
+	}
+
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		r.cacheRolePermissionEntities(ctx, out)
 	}
 	return out, nil
 }
 
-func (r *roleRepository) Create(ctx context.Context, params RoleCreateParams) (*models.RoleEntity, error) {
-	row, err := r.q.CreateRole(ctx, sqlc.CreateRoleParams{
-		Name:        params.Name,
-		Description: params.Description,
-		IsSystem:    boolToInt64(params.IsSystem),
-		IsAdmin:     boolToInt64(params.IsAdmin),
-		AutoAssign:  boolToInt64(params.AutoAssign),
-	})
+func (r *roleRepository) getPermissionsByKeys(ctx context.Context, keys []string) ([]*models.PermissionEntity, bool) {
+	if len(keys) == 0 {
+		return []*models.PermissionEntity{}, true
+	}
+	if r.c == nil {
+		return nil, false
+	}
+
+	cacheKeys := make([]string, len(keys))
+	for i, key := range keys {
+		cacheKeys[i] = cache.BuildKey("permission", "key", key)
+	}
+
+	cachedBytes := r.c.MGet(ctx, cacheKeys...)
+	ordered := make([]*models.PermissionEntity, 0, len(keys))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.PermissionEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
+}
+
+func (r *roleRepository) cachePermissionEntities(ctx context.Context, entities []*models.PermissionEntity) {
+	if r.c == nil || len(entities) == 0 {
+		return
+	}
+	toCache := make(map[string]any, len(entities))
+	for _, entity := range entities {
+		toCache[cache.BuildKey("permission", "key", entity.Key)] = entity
+	}
+	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+}
+
+func (r *roleRepository) getRolePermissionsByIDs(ctx context.Context, ids []int64) ([]*models.RolePermissionEntity, bool) {
+	if len(ids) == 0 {
+		return []*models.RolePermissionEntity{}, true
+	}
+	if r.c == nil {
+		return nil, false
+	}
+
+	cacheKeys := make([]string, len(ids))
+	for i, id := range ids {
+		cacheKeys[i] = cache.BuildKey("role_permission", "id", id)
+	}
+
+	cachedBytes := r.c.MGet(ctx, cacheKeys...)
+	ordered := make([]*models.RolePermissionEntity, 0, len(ids))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.RolePermissionEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
+}
+
+func (r *roleRepository) cacheRolePermissionEntities(ctx context.Context, entities []*models.RolePermissionEntity) {
+	if r.c == nil || len(entities) == 0 {
+		return
+	}
+	toCache := make(map[string]any, len(entities))
+	for _, entity := range entities {
+		toCache[cache.BuildKey("role_permission", "id", entity.ID)] = entity
+	}
+	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+}
+
+func (r *roleRepository) Create(ctx context.Context, params sqlc.CreateRoleParams) (*models.RoleEntity, error) {
+	row, err := r.q.CreateRole(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, "role:all")
 	}
-	return mapRole(row), nil
+	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
 
-func (r *roleRepository) Update(ctx context.Context, params RoleUpdateParams) (*models.RoleEntity, error) {
-	var row sqlc.Role
-	var err error
-	if params.SystemOnly {
-		row, err = r.q.UpdateSystemRoleDescription(ctx, sqlc.UpdateSystemRoleDescriptionParams{
-			ID:          params.ID,
-			Description: params.Description,
-		})
-	} else {
-		row, err = r.q.UpdateRole(ctx, sqlc.UpdateRoleParams{
-			ID:          params.ID,
-			Name:        params.Name,
-			Description: params.Description,
-			AutoAssign:  boolToInt64(params.AutoAssign),
-		})
-	}
+func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParams) (*models.RoleEntity, error) {
+	row, err := r.q.UpdateRole(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all", "role:id:"+strconv.FormatInt(params.ID, 10), "role:name:"+row.Name)
+		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
 	}
-	return mapRole(row), nil
+	return (&models.RoleEntity{}).FromSqlc(row), nil
+}
+
+func (r *roleRepository) UpdateSystemRoleDescription(ctx context.Context, params sqlc.UpdateSystemRoleDescriptionParams) (*models.RoleEntity, error) {
+	row, err := r.q.UpdateSystemRoleDescription(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
+	}
+	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
 
 func (r *roleRepository) Delete(ctx context.Context, id int64) error {
@@ -282,7 +379,7 @@ func (r *roleRepository) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all", "role:id:"+strconv.FormatInt(id, 10))
+		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", id))
 		_ = r.c.DelByPattern(context.Background(), "user:*")
 	}
 	return nil
@@ -321,7 +418,7 @@ func (r *roleRepository) ReplaceRolePermissions(ctx context.Context, roleID int6
 }
 
 func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.RoleEntity, error) {
-	key := "role:name:" + name
+	key := cache.BuildKey("role", "name", name)
 	if r.c != nil {
 		var role models.RoleEntity
 		if err := r.c.Get(ctx, key, &role); err == nil {
@@ -333,7 +430,7 @@ func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.Ro
 	if err != nil {
 		return nil, err
 	}
-	rolePtr := mapRole(row)
+	rolePtr := (&models.RoleEntity{}).FromSqlc(row)
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 	}
@@ -365,7 +462,7 @@ func (r *roleRepository) CreateUserRole(ctx context.Context, userID, roleID int6
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:id:"+strconv.FormatInt(userID, 10), "user:token:"+strconv.FormatInt(userID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -377,7 +474,7 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID int
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:id:"+strconv.FormatInt(userID, 10), "user:token:"+strconv.FormatInt(userID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}

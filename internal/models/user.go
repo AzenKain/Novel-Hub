@@ -5,6 +5,8 @@ import (
 
 	"novelhub/internal/dtos/response"
 	"novelhub/pkg/jsonx"
+	"novelhub/internal/gen/sqlc"
+	"novelhub/pkg/convert"
 )
 
 var jsonNull = []byte("null")
@@ -59,4 +61,32 @@ func UsersEntityToResponse(users []*UserEntity) []*response.UserResponse {
 		out = append(out, user.ToResponse())
 	}
 	return out
+}
+
+
+func (u *UserEntity) FromSqlc(row sqlc.User) *UserEntity {
+	u.ID = row.ID
+	u.Email = row.Email
+	u.PasswordHash = convert.NullStringToString(row.PasswordHash)
+	u.FullName = convert.NullStringToString(row.FullName)
+	u.AvatarUrl = convert.NullStringToString(row.AvatarUrl)
+	u.AuthProvider = row.AuthProvider
+	u.TokenVersion = int32(row.TokenVersion) // #nosec G115
+	u.RefreshToken = convert.NullStringToString(row.RefreshToken)
+	u.IsDeleted = row.IsDeleted != 0
+	u.CreatedAt = row.CreatedAt
+	u.UpdatedAt = row.UpdatedAt
+	u.Roles = []*RoleSimple{}
+	return u
+}
+
+type UserEntities []*UserEntity
+
+func (e *UserEntities) FromSqlc(rows []sqlc.User) []*UserEntity {
+	slice := make([]*UserEntity, len(rows))
+	flat := make([]UserEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
 }

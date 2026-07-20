@@ -3,12 +3,12 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"strconv"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 )
 
@@ -16,12 +16,12 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*models.UserEntity, error)
 	GetByIDWithoutDeleted(ctx context.Context, id int64) (*models.UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (*models.UserEntity, error)
-	Search(ctx context.Context, params UserSearchParams) ([]*models.UserEntity, error)
+	Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error)
 	GetByIDs(ctx context.Context, ids []int64) ([]*models.UserEntity, error)
-	Count(ctx context.Context, params UserSearchFilter) (int64, error)
-	UpsertUser(ctx context.Context, params UpsertUserParams) (*models.UserEntity, error)
+	Count(ctx context.Context, params sqlc.CountUsersParams) (int64, error)
+	UpsertUser(ctx context.Context, params sqlc.UpsertUserParams) (*models.UserEntity, error)
 	UpdatePassword(ctx context.Context, id int64, passwordHash string) error
-	UpdateProfile(ctx context.Context, params UpdateProfileParams) (*models.UserEntity, error)
+	UpdateProfile(ctx context.Context, params sqlc.UpdateProfileParams) (*models.UserEntity, error)
 	UpdateRefreshToken(ctx context.Context, id int64, refreshToken *string) error
 	GetTokenVersion(ctx context.Context, id int64) (int32, error)
 	UpdateTokenVersion(ctx context.Context, id int64, tokenVersion int64) error
@@ -43,91 +43,16 @@ func (r *userRepository) WithTx(tx *sql.Tx) UserRepository {
 	return &userRepository{q: r.q.WithTx(tx), c: r.c}
 }
 
-func nullString(v sql.NullString) string {
-	if !v.Valid {
-		return ""
-	}
-	return v.String
-}
-
-func strPtrToNullString(value *string) sql.NullString {
-	if value == nil {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: *value, Valid: true}
-}
-
-func userFilterValue(params UserSearchFilter) sqlc.CountUsersParams {
-	var isDeleted interface{}
-	if params.IsDeleted != nil {
-		if *params.IsDeleted {
-			isDeleted = int64(1)
-		} else {
-			isDeleted = int64(0)
-		}
-	}
-	var roleID interface{}
-	if params.RoleID != nil {
-		roleID = *params.RoleID
-	}
-	var authProvider interface{}
-	if params.AuthProvider != nil && *params.AuthProvider != "" {
-		authProvider = *params.AuthProvider
-	}
-	var createdFrom interface{}
-	if params.CreatedFrom != nil && *params.CreatedFrom != "" {
-		createdFrom = *params.CreatedFrom
-	}
-	var createdTo interface{}
-	if params.CreatedTo != nil && *params.CreatedTo != "" {
-		createdTo = *params.CreatedTo
-	}
-	var searchText interface{}
-	if params.SearchText != nil && *params.SearchText != "" {
-		searchText = *params.SearchText
-	}
-	return sqlc.CountUsersParams{
-		IsDeleted:    isDeleted,
-		RoleID:       roleID,
-		AuthProvider: authProvider,
-		CreatedFrom:  createdFrom,
-		CreatedTo:    createdTo,
-		SearchText:   searchText,
-	}
-}
-
-func userSearchValue(params UserSearchParams) sqlc.SearchUserIDsParams {
-	filter := userFilterValue(params.UserSearchFilter)
-	return sqlc.SearchUserIDsParams{
-		IsDeleted:    filter.IsDeleted,
-		RoleID:       filter.RoleID,
-		AuthProvider: filter.AuthProvider,
-		CreatedFrom:  filter.CreatedFrom,
-		CreatedTo:    filter.CreatedTo,
-		SearchText:   filter.SearchText,
-		Offset:       params.Offset,
-		Limit:        params.Limit,
-	}
-}
-
-func mapUser(row sqlc.User) *models.UserEntity {
-	return &models.UserEntity{
-		ID:           row.ID,
-		Email:        row.Email,
-		PasswordHash: nullString(row.PasswordHash),
-		FullName:     nullString(row.FullName),
-		AvatarUrl:    nullString(row.AvatarUrl),
-		AuthProvider: row.AuthProvider,
-		TokenVersion: int32(row.TokenVersion), // #nosec G115
-		RefreshToken: nullString(row.RefreshToken),
-		IsDeleted:    row.IsDeleted != 0,
-		CreatedAt:    row.CreatedAt,
-		UpdatedAt:    row.UpdatedAt,
-		Roles:        []*models.RoleSimple{},
-	}
-}
 
 func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEntity) error {
+	key := cache.BuildKey("user", "roles", user.ID)
+	if r.c != nil {
+		var roles []*models.RoleSimple
+		if err := r.c.Get(ctx, key, &roles); err == nil {
+			user.Roles = roles
+			return nil
+		}
+	}
 	rows, err := r.q.GetUserRoles(ctx, user.ID)
 	if err != nil {
 		return err
@@ -136,11 +61,14 @@ func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEnti
 	for _, row := range rows {
 		user.Roles = append(user.Roles, &models.RoleSimple{ID: row.ID, Name: row.Name})
 	}
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, user.Roles, constants.NormalCacheDuration)
+	}
 	return nil
 }
 
 func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.UserEntity, error) {
-	key := "user:id:" + strconv.FormatInt(id, 10)
+	key := cache.BuildKey("user", "id", id)
 	if r.c != nil {
 		var user models.UserEntity
 		if err := r.c.Get(ctx, key, &user); err == nil {
@@ -152,7 +80,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.UserEnt
 	if err != nil {
 		return nil, err
 	}
-	userPtr := mapUser(row)
+	userPtr := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, userPtr); err != nil {
 		return nil, err
 	}
@@ -167,7 +95,7 @@ func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id int64) (*
 	if err != nil {
 		return nil, err
 	}
-	user := mapUser(row)
+	user := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, user); err != nil {
 		return nil, err
 	}
@@ -175,7 +103,7 @@ func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id int64) (*
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.UserEntity, error) {
-	key := "user:email:" + email
+	key := cache.BuildKey("user", "email", email)
 	if r.c != nil {
 		var user models.UserEntity
 		if err := r.c.Get(ctx, key, &user); err == nil {
@@ -187,29 +115,23 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	if err != nil {
 		return nil, err
 	}
-	userPtr := mapUser(row)
+	userPtr := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, userPtr); err != nil {
 		return nil, err
 	}
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, "user:id:"+strconv.FormatInt(userPtr.ID, 10), userPtr, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("user", "id", userPtr.ID), userPtr, constants.NormalCacheDuration)
 	}
 	return userPtr, nil
 }
 
-func (r *userRepository) UpsertUser(ctx context.Context, params UpsertUserParams) (*models.UserEntity, error) {
-	row, err := r.q.UpsertUser(ctx, sqlc.UpsertUserParams{
-		Email:        params.Email,
-		PasswordHash: strPtrToNullString(params.PasswordHash),
-		AuthProvider: params.AuthProvider,
-		FullName:     strPtrToNullString(params.FullName),
-		AvatarUrl:    strPtrToNullString(params.AvatarURL),
-	})
+func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserParams) (*models.UserEntity, error) {
+	row, err := r.q.UpsertUser(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	user := mapUser(row)
+	user := (&models.UserEntity{}).FromSqlc(row)
 	if r.c != nil {
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
@@ -217,28 +139,23 @@ func (r *userRepository) UpsertUser(ctx context.Context, params UpsertUserParams
 	return user, nil
 }
 
-func (r *userRepository) UpdateProfile(ctx context.Context, params UpdateProfileParams) (*models.UserEntity, error) {
-	row, err := r.q.UpdateProfile(ctx, sqlc.UpdateProfileParams{
-		ID:        params.ID,
-		FullName:  strPtrToNullString(params.FullName),
-		AvatarUrl: strPtrToNullString(params.AvatarURL),
-	})
+func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdateProfileParams) (*models.UserEntity, error) {
+	row, err := r.q.UpdateProfile(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	user := mapUser(row)
+	user := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, user); err != nil {
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:email:"+user.Email, "user:id:"+strconv.FormatInt(user.ID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID))
 	}
 	return user, nil
 }
 
-func (r *userRepository) Search(ctx context.Context, params UserSearchParams) ([]*models.UserEntity, error) {
-	sqlcParams := userSearchValue(params)
-	key := cache.QueryKey("user:search", sqlcParams)
+func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error) {
+	key := cache.QueryKey("user:search", params)
 	if r.c != nil {
 		var ids []int64
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -246,7 +163,7 @@ func (r *userRepository) Search(ctx context.Context, params UserSearchParams) ([
 		}
 	}
 
-	dbIds, err := r.q.SearchUserIDs(ctx, sqlcParams)
+	dbIds, err := r.q.SearchUserIDs(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +180,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 	}
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = "user:id:" + strconv.FormatInt(id, 10)
+		keys[i] = cache.BuildKey("user", "id", id)
 	}
 
 	users := make([]*models.UserEntity, 0, len(ids))
@@ -295,7 +212,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 		}
 		missingMap := make(map[int64]*models.UserEntity)
 		for _, row := range rows {
-			u := mapUser(row)
+			u := (&models.UserEntity{}).FromSqlc(row)
 			_ = r.hydrateRoles(ctx, u)
 			missingMap[u.ID] = u
 			users = append(users, u)
@@ -328,16 +245,15 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 	return ordered, nil
 }
 
-func (r *userRepository) Count(ctx context.Context, params UserSearchFilter) (int64, error) {
-	sqlcParams := userFilterValue(params)
-	key := cache.QueryKey("user:count", sqlcParams)
+func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams) (int64, error) {
+	key := cache.QueryKey("user:count", params)
 	if r.c != nil {
 		var count int64
 		if err := r.c.Get(ctx, key, &count); err == nil {
 			return count, nil
 		}
 	}
-	count, err := r.q.CountUsers(ctx, sqlcParams)
+	count, err := r.q.CountUsers(ctx, params)
 	if err != nil {
 		return 0, err
 	}
@@ -356,7 +272,7 @@ func (r *userRepository) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:id:"+strconv.FormatInt(user.ID, 10), "user:email:"+user.Email, "user:token:"+strconv.FormatInt(user.ID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "token", user.ID))
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -368,7 +284,7 @@ func (r *userRepository) Restore(ctx context.Context, id int64) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:id:"+strconv.FormatInt(id, 10), "user:token:"+strconv.FormatInt(id, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id))
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -376,7 +292,7 @@ func (r *userRepository) Restore(ctx context.Context, id int64) error {
 }
 
 func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, error) {
-	key := "user:token:" + strconv.FormatInt(id, 10)
+	key := cache.BuildKey("user", "token", id)
 	if r.c != nil {
 		var version int32
 		if err := r.c.Get(ctx, key, &version); err == nil {
@@ -387,7 +303,7 @@ func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, 
 	if err != nil {
 		return 0, err
 	}
-	version := int32(raw) // #nosec G115
+	version := int32(raw)
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, version, constants.NormalCacheDuration)
 	}
@@ -400,9 +316,9 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id int64, token
 		return err
 	}
 	if r.c != nil {
-		keys := []string{"user:token:" + strconv.FormatInt(id, 10), "user:id:" + strconv.FormatInt(id, 10)}
+		keys := []string{cache.BuildKey("user", "token", id), cache.BuildKey("user", "id", id)}
 		if user != nil && user.Email != "" {
-			keys = append(keys, "user:email:"+user.Email)
+			keys = append(keys, cache.BuildKey("user", "email", user.Email))
 		}
 		_ = r.c.Del(ctx, keys...)
 	}
@@ -421,7 +337,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id int64, passwordH
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:email:"+user.Email, "user:id:"+strconv.FormatInt(user.ID, 10), "user:token:"+strconv.FormatInt(user.ID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "token", user.ID))
 	}
 	return nil
 }
@@ -433,12 +349,12 @@ func (r *userRepository) UpdateRefreshToken(ctx context.Context, id int64, refre
 	}
 	if err := r.q.UpdateUserRefreshToken(ctx, sqlc.UpdateUserRefreshTokenParams{
 		ID:           id,
-		RefreshToken: strPtrToNullString(refreshToken),
+		RefreshToken: convert.StrPtrToNullString(refreshToken),
 	}); err != nil {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "user:email:"+user.Email, "user:id:"+strconv.FormatInt(user.ID, 10), "user:token:"+strconv.FormatInt(user.ID, 10))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "token", user.ID))
 	}
 	return nil
 }

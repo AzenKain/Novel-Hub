@@ -148,6 +148,48 @@ func (q *Queries) GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error) {
 	return items, nil
 }
 
+const getPermissionsByKeys = `-- name: GetPermissionsByKeys :many
+SELECT "key", description, created_at, updated_at FROM permissions WHERE key IN (/*SLICE:keys*/?)
+`
+
+func (q *Queries) GetPermissionsByKeys(ctx context.Context, keys []string) ([]Permission, error) {
+	query := getPermissionsByKeys
+	var queryParams []interface{}
+	if len(keys) > 0 {
+		for _, v := range keys {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:keys*/?", strings.Repeat(",?", len(keys))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:keys*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Permission{}
+	for rows.Next() {
+		var i Permission
+		if err := rows.Scan(
+			&i.Key,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRoleByID = `-- name: GetRoleByID :one
 SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
 FROM roles
@@ -224,6 +266,33 @@ func (q *Queries) GetRoleIDs(ctx context.Context) ([]int64, error) {
 	return items, nil
 }
 
+const getRolePermissionIDs = `-- name: GetRolePermissionIDs :many
+SELECT id FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC
+`
+
+func (q *Queries) GetRolePermissionIDs(ctx context.Context, roleID int64) ([]int64, error) {
+	rows, err := q.query(ctx, q.getRolePermissionIDsStmt, getRolePermissionIDs, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRolePermissions = `-- name: GetRolePermissions :many
 SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at
 FROM role_permissions
@@ -233,6 +302,51 @@ ORDER BY permission_key ASC
 
 func (q *Queries) GetRolePermissions(ctx context.Context, roleID int64) ([]RolePermission, error) {
 	rows, err := q.query(ctx, q.getRolePermissionsStmt, getRolePermissions, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RolePermission{}
+	for rows.Next() {
+		var i RolePermission
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoleID,
+			&i.PermissionKey,
+			&i.Effect,
+			&i.ConditionsJson,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRolePermissionsByIDs = `-- name: GetRolePermissionsByIDs :many
+SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at FROM role_permissions WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetRolePermissionsByIDs(ctx context.Context, ids []int64) ([]RolePermission, error) {
+	query := getRolePermissionsByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +424,33 @@ func (q *Queries) GetRolesByIDs(ctx context.Context, ids []int64) ([]Role, error
 	return items, nil
 }
 
+const listPermissionKeys = `-- name: ListPermissionKeys :many
+SELECT key FROM permissions ORDER BY key ASC
+`
+
+func (q *Queries) ListPermissionKeys(ctx context.Context) ([]string, error) {
+	rows, err := q.query(ctx, q.listPermissionKeysStmt, listPermissionKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		items = append(items, key)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPermissions = `-- name: ListPermissions :many
 SELECT "key", description, created_at, updated_at FROM permissions
 ORDER BY key ASC
@@ -333,6 +474,33 @@ func (q *Queries) ListPermissions(ctx context.Context) ([]Permission, error) {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRolePermissionIDs = `-- name: ListRolePermissionIDs :many
+SELECT id FROM role_permissions ORDER BY role_id ASC, permission_key ASC
+`
+
+func (q *Queries) ListRolePermissionIDs(ctx context.Context) ([]int64, error) {
+	rows, err := q.query(ctx, q.listRolePermissionIDsStmt, listRolePermissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

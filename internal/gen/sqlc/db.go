@@ -138,6 +138,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getAppSettingStmt, err = db.PrepareContext(ctx, getAppSetting); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAppSetting: %w", err)
 	}
+	if q.getAppSettingsByKeysStmt, err = db.PrepareContext(ctx, getAppSettingsByKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAppSettingsByKeys: %w", err)
+	}
 	if q.getAuthorByIdStmt, err = db.PrepareContext(ctx, getAuthorById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAuthorById: %w", err)
 	}
@@ -164,6 +167,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getBookFileByPathStmt, err = db.PrepareContext(ctx, getBookFileByPath); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBookFileByPath: %w", err)
+	}
+	if q.getBookFilesByIDsStmt, err = db.PrepareContext(ctx, getBookFilesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBookFilesByIDs: %w", err)
 	}
 	if q.getBookIDsInCollectionStmt, err = db.PrepareContext(ctx, getBookIDsInCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBookIDsInCollection: %w", err)
@@ -210,6 +216,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getJobStmt, err = db.PrepareContext(ctx, getJob); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJob: %w", err)
 	}
+	if q.getJobsByIDsStmt, err = db.PrepareContext(ctx, getJobsByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobsByIDs: %w", err)
+	}
 	if q.getLanguageByNameStmt, err = db.PrepareContext(ctx, getLanguageByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLanguageByName: %w", err)
 	}
@@ -221,6 +230,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getLibraryStatsStmt, err = db.PrepareContext(ctx, getLibraryStats); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLibraryStats: %w", err)
+	}
+	if q.getPermissionsByKeysStmt, err = db.PrepareContext(ctx, getPermissionsByKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPermissionsByKeys: %w", err)
 	}
 	if q.getPublisherByNameStmt, err = db.PrepareContext(ctx, getPublisherByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPublisherByName: %w", err)
@@ -234,6 +246,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getRecentReadingHistoryStmt, err = db.PrepareContext(ctx, getRecentReadingHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRecentReadingHistory: %w", err)
 	}
+	if q.getRecentReadingHistoryBookIDsStmt, err = db.PrepareContext(ctx, getRecentReadingHistoryBookIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRecentReadingHistoryBookIDs: %w", err)
+	}
 	if q.getRoleByIDStmt, err = db.PrepareContext(ctx, getRoleByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRoleByID: %w", err)
 	}
@@ -243,8 +258,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getRoleIDsStmt, err = db.PrepareContext(ctx, getRoleIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRoleIDs: %w", err)
 	}
+	if q.getRolePermissionIDsStmt, err = db.PrepareContext(ctx, getRolePermissionIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRolePermissionIDs: %w", err)
+	}
 	if q.getRolePermissionsStmt, err = db.PrepareContext(ctx, getRolePermissions); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRolePermissions: %w", err)
+	}
+	if q.getRolePermissionsByIDsStmt, err = db.PrepareContext(ctx, getRolePermissionsByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRolePermissionsByIDs: %w", err)
 	}
 	if q.getRolesByIDsStmt, err = db.PrepareContext(ctx, getRolesByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRolesByIDs: %w", err)
@@ -297,6 +318,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listAllFilesStmt, err = db.PrepareContext(ctx, listAllFiles); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAllFiles: %w", err)
 	}
+	if q.listAllReviewsStmt, err = db.PrepareContext(ctx, listAllReviews); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAllReviews: %w", err)
+	}
+	if q.listAppSettingKeysStmt, err = db.PrepareContext(ctx, listAppSettingKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAppSettingKeys: %w", err)
+	}
 	if q.listAppSettingsStmt, err = db.PrepareContext(ctx, listAppSettings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAppSettings: %w", err)
 	}
@@ -306,14 +333,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listBookIDsStmt, err = db.PrepareContext(ctx, listBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBookIDs: %w", err)
 	}
-	if q.listBookIDsCursorStmt, err = db.PrepareContext(ctx, listBookIDsCursor); err != nil {
-		return nil, fmt.Errorf("error preparing query ListBookIDsCursor: %w", err)
+	if q.listBookReviewCompositeKeysStmt, err = db.PrepareContext(ctx, listBookReviewCompositeKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query ListBookReviewCompositeKeys: %w", err)
 	}
 	if q.listBookReviewsStmt, err = db.PrepareContext(ctx, listBookReviews); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBookReviews: %w", err)
 	}
 	if q.listChapterIDsByBookStmt, err = db.PrepareContext(ctx, listChapterIDsByBook); err != nil {
 		return nil, fmt.Errorf("error preparing query ListChapterIDsByBook: %w", err)
+	}
+	if q.listFileIDsByBookIdStmt, err = db.PrepareContext(ctx, listFileIDsByBookId); err != nil {
+		return nil, fmt.Errorf("error preparing query ListFileIDsByBookId: %w", err)
 	}
 	if q.listFormatsWithCountStmt, err = db.PrepareContext(ctx, listFormatsWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFormatsWithCount: %w", err)
@@ -327,11 +357,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listLibraryIDsStmt, err = db.PrepareContext(ctx, listLibraryIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListLibraryIDs: %w", err)
 	}
+	if q.listPermissionKeysStmt, err = db.PrepareContext(ctx, listPermissionKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query ListPermissionKeys: %w", err)
+	}
 	if q.listPermissionsStmt, err = db.PrepareContext(ctx, listPermissions); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPermissions: %w", err)
 	}
 	if q.listPublishersWithCountStmt, err = db.PrepareContext(ctx, listPublishersWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPublishersWithCount: %w", err)
+	}
+	if q.listRolePermissionIDsStmt, err = db.PrepareContext(ctx, listRolePermissionIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRolePermissionIDs: %w", err)
 	}
 	if q.listRolePermissionsStmt, err = db.PrepareContext(ctx, listRolePermissions); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRolePermissions: %w", err)
@@ -341,6 +377,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listTagsWithCountStmt, err = db.PrepareContext(ctx, listTagsWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListTagsWithCount: %w", err)
+	}
+	if q.listUnfinishedJobIDsStmt, err = db.PrepareContext(ctx, listUnfinishedJobIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListUnfinishedJobIDs: %w", err)
 	}
 	if q.listUnfinishedJobsStmt, err = db.PrepareContext(ctx, listUnfinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUnfinishedJobs: %w", err)
@@ -363,9 +402,6 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.searchBookIDsStmt, err = db.PrepareContext(ctx, searchBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchBookIDs: %w", err)
 	}
-	if q.searchBookIDsCursorStmt, err = db.PrepareContext(ctx, searchBookIDsCursor); err != nil {
-		return nil, fmt.Errorf("error preparing query SearchBookIDsCursor: %w", err)
-	}
 	if q.searchFTSStmt, err = db.PrepareContext(ctx, searchFTS); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchFTS: %w", err)
 	}
@@ -374,6 +410,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateBookStmt, err = db.PrepareContext(ctx, updateBook); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateBook: %w", err)
+	}
+	if q.updateCollectionStmt, err = db.PrepareContext(ctx, updateCollection); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateCollection: %w", err)
 	}
 	if q.updateFileHashStmt, err = db.PrepareContext(ctx, updateFileHash); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateFileHash: %w", err)
@@ -639,6 +678,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getAppSettingStmt: %w", cerr)
 		}
 	}
+	if q.getAppSettingsByKeysStmt != nil {
+		if cerr := q.getAppSettingsByKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAppSettingsByKeysStmt: %w", cerr)
+		}
+	}
 	if q.getAuthorByIdStmt != nil {
 		if cerr := q.getAuthorByIdStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getAuthorByIdStmt: %w", cerr)
@@ -682,6 +726,11 @@ func (q *Queries) Close() error {
 	if q.getBookFileByPathStmt != nil {
 		if cerr := q.getBookFileByPathStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getBookFileByPathStmt: %w", cerr)
+		}
+	}
+	if q.getBookFilesByIDsStmt != nil {
+		if cerr := q.getBookFilesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBookFilesByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getBookIDsInCollectionStmt != nil {
@@ -759,6 +808,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getJobStmt: %w", cerr)
 		}
 	}
+	if q.getJobsByIDsStmt != nil {
+		if cerr := q.getJobsByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobsByIDsStmt: %w", cerr)
+		}
+	}
 	if q.getLanguageByNameStmt != nil {
 		if cerr := q.getLanguageByNameStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getLanguageByNameStmt: %w", cerr)
@@ -777,6 +831,11 @@ func (q *Queries) Close() error {
 	if q.getLibraryStatsStmt != nil {
 		if cerr := q.getLibraryStatsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getLibraryStatsStmt: %w", cerr)
+		}
+	}
+	if q.getPermissionsByKeysStmt != nil {
+		if cerr := q.getPermissionsByKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPermissionsByKeysStmt: %w", cerr)
 		}
 	}
 	if q.getPublisherByNameStmt != nil {
@@ -799,6 +858,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getRecentReadingHistoryStmt: %w", cerr)
 		}
 	}
+	if q.getRecentReadingHistoryBookIDsStmt != nil {
+		if cerr := q.getRecentReadingHistoryBookIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRecentReadingHistoryBookIDsStmt: %w", cerr)
+		}
+	}
 	if q.getRoleByIDStmt != nil {
 		if cerr := q.getRoleByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRoleByIDStmt: %w", cerr)
@@ -814,9 +878,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getRoleIDsStmt: %w", cerr)
 		}
 	}
+	if q.getRolePermissionIDsStmt != nil {
+		if cerr := q.getRolePermissionIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRolePermissionIDsStmt: %w", cerr)
+		}
+	}
 	if q.getRolePermissionsStmt != nil {
 		if cerr := q.getRolePermissionsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRolePermissionsStmt: %w", cerr)
+		}
+	}
+	if q.getRolePermissionsByIDsStmt != nil {
+		if cerr := q.getRolePermissionsByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRolePermissionsByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getRolesByIDsStmt != nil {
@@ -904,6 +978,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listAllFilesStmt: %w", cerr)
 		}
 	}
+	if q.listAllReviewsStmt != nil {
+		if cerr := q.listAllReviewsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAllReviewsStmt: %w", cerr)
+		}
+	}
+	if q.listAppSettingKeysStmt != nil {
+		if cerr := q.listAppSettingKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAppSettingKeysStmt: %w", cerr)
+		}
+	}
 	if q.listAppSettingsStmt != nil {
 		if cerr := q.listAppSettingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listAppSettingsStmt: %w", cerr)
@@ -919,9 +1003,9 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listBookIDsStmt: %w", cerr)
 		}
 	}
-	if q.listBookIDsCursorStmt != nil {
-		if cerr := q.listBookIDsCursorStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing listBookIDsCursorStmt: %w", cerr)
+	if q.listBookReviewCompositeKeysStmt != nil {
+		if cerr := q.listBookReviewCompositeKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listBookReviewCompositeKeysStmt: %w", cerr)
 		}
 	}
 	if q.listBookReviewsStmt != nil {
@@ -932,6 +1016,11 @@ func (q *Queries) Close() error {
 	if q.listChapterIDsByBookStmt != nil {
 		if cerr := q.listChapterIDsByBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listChapterIDsByBookStmt: %w", cerr)
+		}
+	}
+	if q.listFileIDsByBookIdStmt != nil {
+		if cerr := q.listFileIDsByBookIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listFileIDsByBookIdStmt: %w", cerr)
 		}
 	}
 	if q.listFormatsWithCountStmt != nil {
@@ -954,6 +1043,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listLibraryIDsStmt: %w", cerr)
 		}
 	}
+	if q.listPermissionKeysStmt != nil {
+		if cerr := q.listPermissionKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listPermissionKeysStmt: %w", cerr)
+		}
+	}
 	if q.listPermissionsStmt != nil {
 		if cerr := q.listPermissionsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listPermissionsStmt: %w", cerr)
@@ -962,6 +1056,11 @@ func (q *Queries) Close() error {
 	if q.listPublishersWithCountStmt != nil {
 		if cerr := q.listPublishersWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listPublishersWithCountStmt: %w", cerr)
+		}
+	}
+	if q.listRolePermissionIDsStmt != nil {
+		if cerr := q.listRolePermissionIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRolePermissionIDsStmt: %w", cerr)
 		}
 	}
 	if q.listRolePermissionsStmt != nil {
@@ -977,6 +1076,11 @@ func (q *Queries) Close() error {
 	if q.listTagsWithCountStmt != nil {
 		if cerr := q.listTagsWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listTagsWithCountStmt: %w", cerr)
+		}
+	}
+	if q.listUnfinishedJobIDsStmt != nil {
+		if cerr := q.listUnfinishedJobIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listUnfinishedJobIDsStmt: %w", cerr)
 		}
 	}
 	if q.listUnfinishedJobsStmt != nil {
@@ -1014,11 +1118,6 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing searchBookIDsStmt: %w", cerr)
 		}
 	}
-	if q.searchBookIDsCursorStmt != nil {
-		if cerr := q.searchBookIDsCursorStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing searchBookIDsCursorStmt: %w", cerr)
-		}
-	}
 	if q.searchFTSStmt != nil {
 		if cerr := q.searchFTSStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing searchFTSStmt: %w", cerr)
@@ -1032,6 +1131,11 @@ func (q *Queries) Close() error {
 	if q.updateBookStmt != nil {
 		if cerr := q.updateBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateBookStmt: %w", cerr)
+		}
+	}
+	if q.updateCollectionStmt != nil {
+		if cerr := q.updateCollectionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateCollectionStmt: %w", cerr)
 		}
 	}
 	if q.updateFileHashStmt != nil {
@@ -1186,293 +1290,319 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                              DBTX
-	tx                              *sql.Tx
-	addBookTagStmt                  *sql.Stmt
-	addBookToCollectionStmt         *sql.Stmt
-	bulkDeleteRolesFromUserStmt     *sql.Stmt
-	bulkDeleteUsersFromRoleStmt     *sql.Stmt
-	clearBookLanguagesStmt          *sql.Stmt
-	clearBookPublishersStmt         *sql.Stmt
-	clearBookSeriesStmt             *sql.Stmt
-	clearBookTagsStmt               *sql.Stmt
-	countAdminUsersStmt             *sql.Stmt
-	countFilesForBookStmt           *sql.Stmt
-	countUsersStmt                  *sql.Stmt
-	createAuthorStmt                *sql.Stmt
-	createBookStmt                  *sql.Stmt
-	createBookFileStmt              *sql.Stmt
-	createBookShareEventStmt        *sql.Stmt
-	createChapterStmt               *sql.Stmt
-	createCollectionStmt            *sql.Stmt
-	createJobStmt                   *sql.Stmt
-	createLanguageStmt              *sql.Stmt
-	createLibraryStmt               *sql.Stmt
-	createPublisherStmt             *sql.Stmt
-	createRoleStmt                  *sql.Stmt
-	createSeriesStmt                *sql.Stmt
-	createTagStmt                   *sql.Stmt
-	createUserRoleStmt              *sql.Stmt
-	deleteBookStmt                  *sql.Stmt
-	deleteBookReviewStmt            *sql.Stmt
-	deleteBookmarkStmt              *sql.Stmt
-	deleteChapterStmt               *sql.Stmt
-	deleteCollectionStmt            *sql.Stmt
-	deleteFTSBookStmt               *sql.Stmt
-	deleteFileStmt                  *sql.Stmt
-	deleteLibraryStmt               *sql.Stmt
-	deleteRoleStmt                  *sql.Stmt
-	deleteRolePermissionsStmt       *sql.Stmt
-	deleteUserStmt                  *sql.Stmt
-	deleteUserRoleStmt              *sql.Stmt
-	getAppSettingStmt               *sql.Stmt
-	getAuthorByIdStmt               *sql.Stmt
-	getAuthorByNameStmt             *sql.Stmt
-	getAuthorsByIDsStmt             *sql.Stmt
-	getAutoAssignRoleIDsStmt        *sql.Stmt
-	getBookStmt                     *sql.Stmt
-	getBookCollectionIDsStmt        *sql.Stmt
-	getBookDownloadStatsStmt        *sql.Stmt
-	getBookFileByIdStmt             *sql.Stmt
-	getBookFileByPathStmt           *sql.Stmt
-	getBookIDsInCollectionStmt      *sql.Stmt
-	getBookRatingSummaryStmt        *sql.Stmt
-	getBookReadStatsStmt            *sql.Stmt
-	getBookReviewStmt               *sql.Stmt
-	getBookSocialStatsStmt          *sql.Stmt
-	getBookmarkStmt                 *sql.Stmt
-	getBookmarkedBookIDsStmt        *sql.Stmt
-	getBooksByIDsStmt               *sql.Stmt
-	getChapterStmt                  *sql.Stmt
-	getChaptersByIDsStmt            *sql.Stmt
-	getCollectionsByIDsStmt         *sql.Stmt
-	getDuplicateFilesStmt           *sql.Stmt
-	getFilesByBookIDsStmt           *sql.Stmt
-	getFilesByBookIdStmt            *sql.Stmt
-	getJobStmt                      *sql.Stmt
-	getLanguageByNameStmt           *sql.Stmt
-	getLibrariesByIDsStmt           *sql.Stmt
-	getLibraryStmt                  *sql.Stmt
-	getLibraryStatsStmt             *sql.Stmt
-	getPublisherByNameStmt          *sql.Stmt
-	getRandomBookIDsStmt            *sql.Stmt
-	getReadingProgressStmt          *sql.Stmt
-	getRecentReadingHistoryStmt     *sql.Stmt
-	getRoleByIDStmt                 *sql.Stmt
-	getRoleByNameStmt               *sql.Stmt
-	getRoleIDsStmt                  *sql.Stmt
-	getRolePermissionsStmt          *sql.Stmt
-	getRolesByIDsStmt               *sql.Stmt
-	getSeriesByNameStmt             *sql.Stmt
-	getSetupStateStmt               *sql.Stmt
-	getTagByNameStmt                *sql.Stmt
-	getUserByEmailStmt              *sql.Stmt
-	getUserByIDStmt                 *sql.Stmt
-	getUserByIDWithoutDeletedStmt   *sql.Stmt
-	getUserCollectionIDsStmt        *sql.Stmt
-	getUserRolesStmt                *sql.Stmt
-	getUserTokenVersionStmt         *sql.Stmt
-	getUsersByIDsStmt               *sql.Stmt
-	insertFTSChapterStmt            *sql.Stmt
-	linkBookLanguageStmt            *sql.Stmt
-	linkBookPublisherStmt           *sql.Stmt
-	linkBookSeriesStmt              *sql.Stmt
-	linkBookTagStmt                 *sql.Stmt
-	listAllFilesStmt                *sql.Stmt
-	listAppSettingsStmt             *sql.Stmt
-	listAuthorsWithCountStmt        *sql.Stmt
-	listBookIDsStmt                 *sql.Stmt
-	listBookIDsCursorStmt           *sql.Stmt
-	listBookReviewsStmt             *sql.Stmt
-	listChapterIDsByBookStmt        *sql.Stmt
-	listFormatsWithCountStmt        *sql.Stmt
-	listJobsStmt                    *sql.Stmt
-	listLanguagesWithCountStmt      *sql.Stmt
-	listLibraryIDsStmt              *sql.Stmt
-	listPermissionsStmt             *sql.Stmt
-	listPublishersWithCountStmt     *sql.Stmt
-	listRolePermissionsStmt         *sql.Stmt
-	listSeriesWithCountStmt         *sql.Stmt
-	listTagsWithCountStmt           *sql.Stmt
-	listUnfinishedJobsStmt          *sql.Stmt
-	refreshBookBookmarkStatsStmt    *sql.Stmt
-	refreshBookRatingStatsStmt      *sql.Stmt
-	removeBookFromCollectionStmt    *sql.Stmt
-	restoreRoleStmt                 *sql.Stmt
-	restoreUserStmt                 *sql.Stmt
-	searchBookIDsStmt               *sql.Stmt
-	searchBookIDsCursorStmt         *sql.Stmt
-	searchFTSStmt                   *sql.Stmt
-	searchUserIDsStmt               *sql.Stmt
-	updateBookStmt                  *sql.Stmt
-	updateFileHashStmt              *sql.Stmt
-	updateJobProgressStmt           *sql.Stmt
-	updateJobStatusStmt             *sql.Stmt
-	updateLibraryStmt               *sql.Stmt
-	updateProfileStmt               *sql.Stmt
-	updateRoleStmt                  *sql.Stmt
-	updateSystemRoleDescriptionStmt *sql.Stmt
-	updateUserPasswordStmt          *sql.Stmt
-	updateUserRefreshTokenStmt      *sql.Stmt
-	updateUserTokenVersionStmt      *sql.Stmt
-	upsertAppSettingStmt            *sql.Stmt
-	upsertBookDownloadStatsStmt     *sql.Stmt
-	upsertBookFileStmt              *sql.Stmt
-	upsertBookReadStatsStmt         *sql.Stmt
-	upsertBookReviewStmt            *sql.Stmt
-	upsertBookShareStatsStmt        *sql.Stmt
-	upsertBookmarkStmt              *sql.Stmt
-	upsertPermissionStmt            *sql.Stmt
-	upsertReadingHistoryStmt        *sql.Stmt
-	upsertReadingProgressStmt       *sql.Stmt
-	upsertRolePermissionStmt        *sql.Stmt
-	upsertSetupStateStmt            *sql.Stmt
-	upsertUserStmt                  *sql.Stmt
+	db                                 DBTX
+	tx                                 *sql.Tx
+	addBookTagStmt                     *sql.Stmt
+	addBookToCollectionStmt            *sql.Stmt
+	bulkDeleteRolesFromUserStmt        *sql.Stmt
+	bulkDeleteUsersFromRoleStmt        *sql.Stmt
+	clearBookLanguagesStmt             *sql.Stmt
+	clearBookPublishersStmt            *sql.Stmt
+	clearBookSeriesStmt                *sql.Stmt
+	clearBookTagsStmt                  *sql.Stmt
+	countAdminUsersStmt                *sql.Stmt
+	countFilesForBookStmt              *sql.Stmt
+	countUsersStmt                     *sql.Stmt
+	createAuthorStmt                   *sql.Stmt
+	createBookStmt                     *sql.Stmt
+	createBookFileStmt                 *sql.Stmt
+	createBookShareEventStmt           *sql.Stmt
+	createChapterStmt                  *sql.Stmt
+	createCollectionStmt               *sql.Stmt
+	createJobStmt                      *sql.Stmt
+	createLanguageStmt                 *sql.Stmt
+	createLibraryStmt                  *sql.Stmt
+	createPublisherStmt                *sql.Stmt
+	createRoleStmt                     *sql.Stmt
+	createSeriesStmt                   *sql.Stmt
+	createTagStmt                      *sql.Stmt
+	createUserRoleStmt                 *sql.Stmt
+	deleteBookStmt                     *sql.Stmt
+	deleteBookReviewStmt               *sql.Stmt
+	deleteBookmarkStmt                 *sql.Stmt
+	deleteChapterStmt                  *sql.Stmt
+	deleteCollectionStmt               *sql.Stmt
+	deleteFTSBookStmt                  *sql.Stmt
+	deleteFileStmt                     *sql.Stmt
+	deleteLibraryStmt                  *sql.Stmt
+	deleteRoleStmt                     *sql.Stmt
+	deleteRolePermissionsStmt          *sql.Stmt
+	deleteUserStmt                     *sql.Stmt
+	deleteUserRoleStmt                 *sql.Stmt
+	getAppSettingStmt                  *sql.Stmt
+	getAppSettingsByKeysStmt           *sql.Stmt
+	getAuthorByIdStmt                  *sql.Stmt
+	getAuthorByNameStmt                *sql.Stmt
+	getAuthorsByIDsStmt                *sql.Stmt
+	getAutoAssignRoleIDsStmt           *sql.Stmt
+	getBookStmt                        *sql.Stmt
+	getBookCollectionIDsStmt           *sql.Stmt
+	getBookDownloadStatsStmt           *sql.Stmt
+	getBookFileByIdStmt                *sql.Stmt
+	getBookFileByPathStmt              *sql.Stmt
+	getBookFilesByIDsStmt              *sql.Stmt
+	getBookIDsInCollectionStmt         *sql.Stmt
+	getBookRatingSummaryStmt           *sql.Stmt
+	getBookReadStatsStmt               *sql.Stmt
+	getBookReviewStmt                  *sql.Stmt
+	getBookSocialStatsStmt             *sql.Stmt
+	getBookmarkStmt                    *sql.Stmt
+	getBookmarkedBookIDsStmt           *sql.Stmt
+	getBooksByIDsStmt                  *sql.Stmt
+	getChapterStmt                     *sql.Stmt
+	getChaptersByIDsStmt               *sql.Stmt
+	getCollectionsByIDsStmt            *sql.Stmt
+	getDuplicateFilesStmt              *sql.Stmt
+	getFilesByBookIDsStmt              *sql.Stmt
+	getFilesByBookIdStmt               *sql.Stmt
+	getJobStmt                         *sql.Stmt
+	getJobsByIDsStmt                   *sql.Stmt
+	getLanguageByNameStmt              *sql.Stmt
+	getLibrariesByIDsStmt              *sql.Stmt
+	getLibraryStmt                     *sql.Stmt
+	getLibraryStatsStmt                *sql.Stmt
+	getPermissionsByKeysStmt           *sql.Stmt
+	getPublisherByNameStmt             *sql.Stmt
+	getRandomBookIDsStmt               *sql.Stmt
+	getReadingProgressStmt             *sql.Stmt
+	getRecentReadingHistoryStmt        *sql.Stmt
+	getRecentReadingHistoryBookIDsStmt *sql.Stmt
+	getRoleByIDStmt                    *sql.Stmt
+	getRoleByNameStmt                  *sql.Stmt
+	getRoleIDsStmt                     *sql.Stmt
+	getRolePermissionIDsStmt           *sql.Stmt
+	getRolePermissionsStmt             *sql.Stmt
+	getRolePermissionsByIDsStmt        *sql.Stmt
+	getRolesByIDsStmt                  *sql.Stmt
+	getSeriesByNameStmt                *sql.Stmt
+	getSetupStateStmt                  *sql.Stmt
+	getTagByNameStmt                   *sql.Stmt
+	getUserByEmailStmt                 *sql.Stmt
+	getUserByIDStmt                    *sql.Stmt
+	getUserByIDWithoutDeletedStmt      *sql.Stmt
+	getUserCollectionIDsStmt           *sql.Stmt
+	getUserRolesStmt                   *sql.Stmt
+	getUserTokenVersionStmt            *sql.Stmt
+	getUsersByIDsStmt                  *sql.Stmt
+	insertFTSChapterStmt               *sql.Stmt
+	linkBookLanguageStmt               *sql.Stmt
+	linkBookPublisherStmt              *sql.Stmt
+	linkBookSeriesStmt                 *sql.Stmt
+	linkBookTagStmt                    *sql.Stmt
+	listAllFilesStmt                   *sql.Stmt
+	listAllReviewsStmt                 *sql.Stmt
+	listAppSettingKeysStmt             *sql.Stmt
+	listAppSettingsStmt                *sql.Stmt
+	listAuthorsWithCountStmt           *sql.Stmt
+	listBookIDsStmt                    *sql.Stmt
+	listBookReviewCompositeKeysStmt    *sql.Stmt
+	listBookReviewsStmt                *sql.Stmt
+	listChapterIDsByBookStmt           *sql.Stmt
+	listFileIDsByBookIdStmt            *sql.Stmt
+	listFormatsWithCountStmt           *sql.Stmt
+	listJobsStmt                       *sql.Stmt
+	listLanguagesWithCountStmt         *sql.Stmt
+	listLibraryIDsStmt                 *sql.Stmt
+	listPermissionKeysStmt             *sql.Stmt
+	listPermissionsStmt                *sql.Stmt
+	listPublishersWithCountStmt        *sql.Stmt
+	listRolePermissionIDsStmt          *sql.Stmt
+	listRolePermissionsStmt            *sql.Stmt
+	listSeriesWithCountStmt            *sql.Stmt
+	listTagsWithCountStmt              *sql.Stmt
+	listUnfinishedJobIDsStmt           *sql.Stmt
+	listUnfinishedJobsStmt             *sql.Stmt
+	refreshBookBookmarkStatsStmt       *sql.Stmt
+	refreshBookRatingStatsStmt         *sql.Stmt
+	removeBookFromCollectionStmt       *sql.Stmt
+	restoreRoleStmt                    *sql.Stmt
+	restoreUserStmt                    *sql.Stmt
+	searchBookIDsStmt                  *sql.Stmt
+	searchFTSStmt                      *sql.Stmt
+	searchUserIDsStmt                  *sql.Stmt
+	updateBookStmt                     *sql.Stmt
+	updateCollectionStmt               *sql.Stmt
+	updateFileHashStmt                 *sql.Stmt
+	updateJobProgressStmt              *sql.Stmt
+	updateJobStatusStmt                *sql.Stmt
+	updateLibraryStmt                  *sql.Stmt
+	updateProfileStmt                  *sql.Stmt
+	updateRoleStmt                     *sql.Stmt
+	updateSystemRoleDescriptionStmt    *sql.Stmt
+	updateUserPasswordStmt             *sql.Stmt
+	updateUserRefreshTokenStmt         *sql.Stmt
+	updateUserTokenVersionStmt         *sql.Stmt
+	upsertAppSettingStmt               *sql.Stmt
+	upsertBookDownloadStatsStmt        *sql.Stmt
+	upsertBookFileStmt                 *sql.Stmt
+	upsertBookReadStatsStmt            *sql.Stmt
+	upsertBookReviewStmt               *sql.Stmt
+	upsertBookShareStatsStmt           *sql.Stmt
+	upsertBookmarkStmt                 *sql.Stmt
+	upsertPermissionStmt               *sql.Stmt
+	upsertReadingHistoryStmt           *sql.Stmt
+	upsertReadingProgressStmt          *sql.Stmt
+	upsertRolePermissionStmt           *sql.Stmt
+	upsertSetupStateStmt               *sql.Stmt
+	upsertUserStmt                     *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                              tx,
-		tx:                              tx,
-		addBookTagStmt:                  q.addBookTagStmt,
-		addBookToCollectionStmt:         q.addBookToCollectionStmt,
-		bulkDeleteRolesFromUserStmt:     q.bulkDeleteRolesFromUserStmt,
-		bulkDeleteUsersFromRoleStmt:     q.bulkDeleteUsersFromRoleStmt,
-		clearBookLanguagesStmt:          q.clearBookLanguagesStmt,
-		clearBookPublishersStmt:         q.clearBookPublishersStmt,
-		clearBookSeriesStmt:             q.clearBookSeriesStmt,
-		clearBookTagsStmt:               q.clearBookTagsStmt,
-		countAdminUsersStmt:             q.countAdminUsersStmt,
-		countFilesForBookStmt:           q.countFilesForBookStmt,
-		countUsersStmt:                  q.countUsersStmt,
-		createAuthorStmt:                q.createAuthorStmt,
-		createBookStmt:                  q.createBookStmt,
-		createBookFileStmt:              q.createBookFileStmt,
-		createBookShareEventStmt:        q.createBookShareEventStmt,
-		createChapterStmt:               q.createChapterStmt,
-		createCollectionStmt:            q.createCollectionStmt,
-		createJobStmt:                   q.createJobStmt,
-		createLanguageStmt:              q.createLanguageStmt,
-		createLibraryStmt:               q.createLibraryStmt,
-		createPublisherStmt:             q.createPublisherStmt,
-		createRoleStmt:                  q.createRoleStmt,
-		createSeriesStmt:                q.createSeriesStmt,
-		createTagStmt:                   q.createTagStmt,
-		createUserRoleStmt:              q.createUserRoleStmt,
-		deleteBookStmt:                  q.deleteBookStmt,
-		deleteBookReviewStmt:            q.deleteBookReviewStmt,
-		deleteBookmarkStmt:              q.deleteBookmarkStmt,
-		deleteChapterStmt:               q.deleteChapterStmt,
-		deleteCollectionStmt:            q.deleteCollectionStmt,
-		deleteFTSBookStmt:               q.deleteFTSBookStmt,
-		deleteFileStmt:                  q.deleteFileStmt,
-		deleteLibraryStmt:               q.deleteLibraryStmt,
-		deleteRoleStmt:                  q.deleteRoleStmt,
-		deleteRolePermissionsStmt:       q.deleteRolePermissionsStmt,
-		deleteUserStmt:                  q.deleteUserStmt,
-		deleteUserRoleStmt:              q.deleteUserRoleStmt,
-		getAppSettingStmt:               q.getAppSettingStmt,
-		getAuthorByIdStmt:               q.getAuthorByIdStmt,
-		getAuthorByNameStmt:             q.getAuthorByNameStmt,
-		getAuthorsByIDsStmt:             q.getAuthorsByIDsStmt,
-		getAutoAssignRoleIDsStmt:        q.getAutoAssignRoleIDsStmt,
-		getBookStmt:                     q.getBookStmt,
-		getBookCollectionIDsStmt:        q.getBookCollectionIDsStmt,
-		getBookDownloadStatsStmt:        q.getBookDownloadStatsStmt,
-		getBookFileByIdStmt:             q.getBookFileByIdStmt,
-		getBookFileByPathStmt:           q.getBookFileByPathStmt,
-		getBookIDsInCollectionStmt:      q.getBookIDsInCollectionStmt,
-		getBookRatingSummaryStmt:        q.getBookRatingSummaryStmt,
-		getBookReadStatsStmt:            q.getBookReadStatsStmt,
-		getBookReviewStmt:               q.getBookReviewStmt,
-		getBookSocialStatsStmt:          q.getBookSocialStatsStmt,
-		getBookmarkStmt:                 q.getBookmarkStmt,
-		getBookmarkedBookIDsStmt:        q.getBookmarkedBookIDsStmt,
-		getBooksByIDsStmt:               q.getBooksByIDsStmt,
-		getChapterStmt:                  q.getChapterStmt,
-		getChaptersByIDsStmt:            q.getChaptersByIDsStmt,
-		getCollectionsByIDsStmt:         q.getCollectionsByIDsStmt,
-		getDuplicateFilesStmt:           q.getDuplicateFilesStmt,
-		getFilesByBookIDsStmt:           q.getFilesByBookIDsStmt,
-		getFilesByBookIdStmt:            q.getFilesByBookIdStmt,
-		getJobStmt:                      q.getJobStmt,
-		getLanguageByNameStmt:           q.getLanguageByNameStmt,
-		getLibrariesByIDsStmt:           q.getLibrariesByIDsStmt,
-		getLibraryStmt:                  q.getLibraryStmt,
-		getLibraryStatsStmt:             q.getLibraryStatsStmt,
-		getPublisherByNameStmt:          q.getPublisherByNameStmt,
-		getRandomBookIDsStmt:            q.getRandomBookIDsStmt,
-		getReadingProgressStmt:          q.getReadingProgressStmt,
-		getRecentReadingHistoryStmt:     q.getRecentReadingHistoryStmt,
-		getRoleByIDStmt:                 q.getRoleByIDStmt,
-		getRoleByNameStmt:               q.getRoleByNameStmt,
-		getRoleIDsStmt:                  q.getRoleIDsStmt,
-		getRolePermissionsStmt:          q.getRolePermissionsStmt,
-		getRolesByIDsStmt:               q.getRolesByIDsStmt,
-		getSeriesByNameStmt:             q.getSeriesByNameStmt,
-		getSetupStateStmt:               q.getSetupStateStmt,
-		getTagByNameStmt:                q.getTagByNameStmt,
-		getUserByEmailStmt:              q.getUserByEmailStmt,
-		getUserByIDStmt:                 q.getUserByIDStmt,
-		getUserByIDWithoutDeletedStmt:   q.getUserByIDWithoutDeletedStmt,
-		getUserCollectionIDsStmt:        q.getUserCollectionIDsStmt,
-		getUserRolesStmt:                q.getUserRolesStmt,
-		getUserTokenVersionStmt:         q.getUserTokenVersionStmt,
-		getUsersByIDsStmt:               q.getUsersByIDsStmt,
-		insertFTSChapterStmt:            q.insertFTSChapterStmt,
-		linkBookLanguageStmt:            q.linkBookLanguageStmt,
-		linkBookPublisherStmt:           q.linkBookPublisherStmt,
-		linkBookSeriesStmt:              q.linkBookSeriesStmt,
-		linkBookTagStmt:                 q.linkBookTagStmt,
-		listAllFilesStmt:                q.listAllFilesStmt,
-		listAppSettingsStmt:             q.listAppSettingsStmt,
-		listAuthorsWithCountStmt:        q.listAuthorsWithCountStmt,
-		listBookIDsStmt:                 q.listBookIDsStmt,
-		listBookIDsCursorStmt:           q.listBookIDsCursorStmt,
-		listBookReviewsStmt:             q.listBookReviewsStmt,
-		listChapterIDsByBookStmt:        q.listChapterIDsByBookStmt,
-		listFormatsWithCountStmt:        q.listFormatsWithCountStmt,
-		listJobsStmt:                    q.listJobsStmt,
-		listLanguagesWithCountStmt:      q.listLanguagesWithCountStmt,
-		listLibraryIDsStmt:              q.listLibraryIDsStmt,
-		listPermissionsStmt:             q.listPermissionsStmt,
-		listPublishersWithCountStmt:     q.listPublishersWithCountStmt,
-		listRolePermissionsStmt:         q.listRolePermissionsStmt,
-		listSeriesWithCountStmt:         q.listSeriesWithCountStmt,
-		listTagsWithCountStmt:           q.listTagsWithCountStmt,
-		listUnfinishedJobsStmt:          q.listUnfinishedJobsStmt,
-		refreshBookBookmarkStatsStmt:    q.refreshBookBookmarkStatsStmt,
-		refreshBookRatingStatsStmt:      q.refreshBookRatingStatsStmt,
-		removeBookFromCollectionStmt:    q.removeBookFromCollectionStmt,
-		restoreRoleStmt:                 q.restoreRoleStmt,
-		restoreUserStmt:                 q.restoreUserStmt,
-		searchBookIDsStmt:               q.searchBookIDsStmt,
-		searchBookIDsCursorStmt:         q.searchBookIDsCursorStmt,
-		searchFTSStmt:                   q.searchFTSStmt,
-		searchUserIDsStmt:               q.searchUserIDsStmt,
-		updateBookStmt:                  q.updateBookStmt,
-		updateFileHashStmt:              q.updateFileHashStmt,
-		updateJobProgressStmt:           q.updateJobProgressStmt,
-		updateJobStatusStmt:             q.updateJobStatusStmt,
-		updateLibraryStmt:               q.updateLibraryStmt,
-		updateProfileStmt:               q.updateProfileStmt,
-		updateRoleStmt:                  q.updateRoleStmt,
-		updateSystemRoleDescriptionStmt: q.updateSystemRoleDescriptionStmt,
-		updateUserPasswordStmt:          q.updateUserPasswordStmt,
-		updateUserRefreshTokenStmt:      q.updateUserRefreshTokenStmt,
-		updateUserTokenVersionStmt:      q.updateUserTokenVersionStmt,
-		upsertAppSettingStmt:            q.upsertAppSettingStmt,
-		upsertBookDownloadStatsStmt:     q.upsertBookDownloadStatsStmt,
-		upsertBookFileStmt:              q.upsertBookFileStmt,
-		upsertBookReadStatsStmt:         q.upsertBookReadStatsStmt,
-		upsertBookReviewStmt:            q.upsertBookReviewStmt,
-		upsertBookShareStatsStmt:        q.upsertBookShareStatsStmt,
-		upsertBookmarkStmt:              q.upsertBookmarkStmt,
-		upsertPermissionStmt:            q.upsertPermissionStmt,
-		upsertReadingHistoryStmt:        q.upsertReadingHistoryStmt,
-		upsertReadingProgressStmt:       q.upsertReadingProgressStmt,
-		upsertRolePermissionStmt:        q.upsertRolePermissionStmt,
-		upsertSetupStateStmt:            q.upsertSetupStateStmt,
-		upsertUserStmt:                  q.upsertUserStmt,
+		db:                                 tx,
+		tx:                                 tx,
+		addBookTagStmt:                     q.addBookTagStmt,
+		addBookToCollectionStmt:            q.addBookToCollectionStmt,
+		bulkDeleteRolesFromUserStmt:        q.bulkDeleteRolesFromUserStmt,
+		bulkDeleteUsersFromRoleStmt:        q.bulkDeleteUsersFromRoleStmt,
+		clearBookLanguagesStmt:             q.clearBookLanguagesStmt,
+		clearBookPublishersStmt:            q.clearBookPublishersStmt,
+		clearBookSeriesStmt:                q.clearBookSeriesStmt,
+		clearBookTagsStmt:                  q.clearBookTagsStmt,
+		countAdminUsersStmt:                q.countAdminUsersStmt,
+		countFilesForBookStmt:              q.countFilesForBookStmt,
+		countUsersStmt:                     q.countUsersStmt,
+		createAuthorStmt:                   q.createAuthorStmt,
+		createBookStmt:                     q.createBookStmt,
+		createBookFileStmt:                 q.createBookFileStmt,
+		createBookShareEventStmt:           q.createBookShareEventStmt,
+		createChapterStmt:                  q.createChapterStmt,
+		createCollectionStmt:               q.createCollectionStmt,
+		createJobStmt:                      q.createJobStmt,
+		createLanguageStmt:                 q.createLanguageStmt,
+		createLibraryStmt:                  q.createLibraryStmt,
+		createPublisherStmt:                q.createPublisherStmt,
+		createRoleStmt:                     q.createRoleStmt,
+		createSeriesStmt:                   q.createSeriesStmt,
+		createTagStmt:                      q.createTagStmt,
+		createUserRoleStmt:                 q.createUserRoleStmt,
+		deleteBookStmt:                     q.deleteBookStmt,
+		deleteBookReviewStmt:               q.deleteBookReviewStmt,
+		deleteBookmarkStmt:                 q.deleteBookmarkStmt,
+		deleteChapterStmt:                  q.deleteChapterStmt,
+		deleteCollectionStmt:               q.deleteCollectionStmt,
+		deleteFTSBookStmt:                  q.deleteFTSBookStmt,
+		deleteFileStmt:                     q.deleteFileStmt,
+		deleteLibraryStmt:                  q.deleteLibraryStmt,
+		deleteRoleStmt:                     q.deleteRoleStmt,
+		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
+		deleteUserStmt:                     q.deleteUserStmt,
+		deleteUserRoleStmt:                 q.deleteUserRoleStmt,
+		getAppSettingStmt:                  q.getAppSettingStmt,
+		getAppSettingsByKeysStmt:           q.getAppSettingsByKeysStmt,
+		getAuthorByIdStmt:                  q.getAuthorByIdStmt,
+		getAuthorByNameStmt:                q.getAuthorByNameStmt,
+		getAuthorsByIDsStmt:                q.getAuthorsByIDsStmt,
+		getAutoAssignRoleIDsStmt:           q.getAutoAssignRoleIDsStmt,
+		getBookStmt:                        q.getBookStmt,
+		getBookCollectionIDsStmt:           q.getBookCollectionIDsStmt,
+		getBookDownloadStatsStmt:           q.getBookDownloadStatsStmt,
+		getBookFileByIdStmt:                q.getBookFileByIdStmt,
+		getBookFileByPathStmt:              q.getBookFileByPathStmt,
+		getBookFilesByIDsStmt:              q.getBookFilesByIDsStmt,
+		getBookIDsInCollectionStmt:         q.getBookIDsInCollectionStmt,
+		getBookRatingSummaryStmt:           q.getBookRatingSummaryStmt,
+		getBookReadStatsStmt:               q.getBookReadStatsStmt,
+		getBookReviewStmt:                  q.getBookReviewStmt,
+		getBookSocialStatsStmt:             q.getBookSocialStatsStmt,
+		getBookmarkStmt:                    q.getBookmarkStmt,
+		getBookmarkedBookIDsStmt:           q.getBookmarkedBookIDsStmt,
+		getBooksByIDsStmt:                  q.getBooksByIDsStmt,
+		getChapterStmt:                     q.getChapterStmt,
+		getChaptersByIDsStmt:               q.getChaptersByIDsStmt,
+		getCollectionsByIDsStmt:            q.getCollectionsByIDsStmt,
+		getDuplicateFilesStmt:              q.getDuplicateFilesStmt,
+		getFilesByBookIDsStmt:              q.getFilesByBookIDsStmt,
+		getFilesByBookIdStmt:               q.getFilesByBookIdStmt,
+		getJobStmt:                         q.getJobStmt,
+		getJobsByIDsStmt:                   q.getJobsByIDsStmt,
+		getLanguageByNameStmt:              q.getLanguageByNameStmt,
+		getLibrariesByIDsStmt:              q.getLibrariesByIDsStmt,
+		getLibraryStmt:                     q.getLibraryStmt,
+		getLibraryStatsStmt:                q.getLibraryStatsStmt,
+		getPermissionsByKeysStmt:           q.getPermissionsByKeysStmt,
+		getPublisherByNameStmt:             q.getPublisherByNameStmt,
+		getRandomBookIDsStmt:               q.getRandomBookIDsStmt,
+		getReadingProgressStmt:             q.getReadingProgressStmt,
+		getRecentReadingHistoryStmt:        q.getRecentReadingHistoryStmt,
+		getRecentReadingHistoryBookIDsStmt: q.getRecentReadingHistoryBookIDsStmt,
+		getRoleByIDStmt:                    q.getRoleByIDStmt,
+		getRoleByNameStmt:                  q.getRoleByNameStmt,
+		getRoleIDsStmt:                     q.getRoleIDsStmt,
+		getRolePermissionIDsStmt:           q.getRolePermissionIDsStmt,
+		getRolePermissionsStmt:             q.getRolePermissionsStmt,
+		getRolePermissionsByIDsStmt:        q.getRolePermissionsByIDsStmt,
+		getRolesByIDsStmt:                  q.getRolesByIDsStmt,
+		getSeriesByNameStmt:                q.getSeriesByNameStmt,
+		getSetupStateStmt:                  q.getSetupStateStmt,
+		getTagByNameStmt:                   q.getTagByNameStmt,
+		getUserByEmailStmt:                 q.getUserByEmailStmt,
+		getUserByIDStmt:                    q.getUserByIDStmt,
+		getUserByIDWithoutDeletedStmt:      q.getUserByIDWithoutDeletedStmt,
+		getUserCollectionIDsStmt:           q.getUserCollectionIDsStmt,
+		getUserRolesStmt:                   q.getUserRolesStmt,
+		getUserTokenVersionStmt:            q.getUserTokenVersionStmt,
+		getUsersByIDsStmt:                  q.getUsersByIDsStmt,
+		insertFTSChapterStmt:               q.insertFTSChapterStmt,
+		linkBookLanguageStmt:               q.linkBookLanguageStmt,
+		linkBookPublisherStmt:              q.linkBookPublisherStmt,
+		linkBookSeriesStmt:                 q.linkBookSeriesStmt,
+		linkBookTagStmt:                    q.linkBookTagStmt,
+		listAllFilesStmt:                   q.listAllFilesStmt,
+		listAllReviewsStmt:                 q.listAllReviewsStmt,
+		listAppSettingKeysStmt:             q.listAppSettingKeysStmt,
+		listAppSettingsStmt:                q.listAppSettingsStmt,
+		listAuthorsWithCountStmt:           q.listAuthorsWithCountStmt,
+		listBookIDsStmt:                    q.listBookIDsStmt,
+		listBookReviewCompositeKeysStmt:    q.listBookReviewCompositeKeysStmt,
+		listBookReviewsStmt:                q.listBookReviewsStmt,
+		listChapterIDsByBookStmt:           q.listChapterIDsByBookStmt,
+		listFileIDsByBookIdStmt:            q.listFileIDsByBookIdStmt,
+		listFormatsWithCountStmt:           q.listFormatsWithCountStmt,
+		listJobsStmt:                       q.listJobsStmt,
+		listLanguagesWithCountStmt:         q.listLanguagesWithCountStmt,
+		listLibraryIDsStmt:                 q.listLibraryIDsStmt,
+		listPermissionKeysStmt:             q.listPermissionKeysStmt,
+		listPermissionsStmt:                q.listPermissionsStmt,
+		listPublishersWithCountStmt:        q.listPublishersWithCountStmt,
+		listRolePermissionIDsStmt:          q.listRolePermissionIDsStmt,
+		listRolePermissionsStmt:            q.listRolePermissionsStmt,
+		listSeriesWithCountStmt:            q.listSeriesWithCountStmt,
+		listTagsWithCountStmt:              q.listTagsWithCountStmt,
+		listUnfinishedJobIDsStmt:           q.listUnfinishedJobIDsStmt,
+		listUnfinishedJobsStmt:             q.listUnfinishedJobsStmt,
+		refreshBookBookmarkStatsStmt:       q.refreshBookBookmarkStatsStmt,
+		refreshBookRatingStatsStmt:         q.refreshBookRatingStatsStmt,
+		removeBookFromCollectionStmt:       q.removeBookFromCollectionStmt,
+		restoreRoleStmt:                    q.restoreRoleStmt,
+		restoreUserStmt:                    q.restoreUserStmt,
+		searchBookIDsStmt:                  q.searchBookIDsStmt,
+		searchFTSStmt:                      q.searchFTSStmt,
+		searchUserIDsStmt:                  q.searchUserIDsStmt,
+		updateBookStmt:                     q.updateBookStmt,
+		updateCollectionStmt:               q.updateCollectionStmt,
+		updateFileHashStmt:                 q.updateFileHashStmt,
+		updateJobProgressStmt:              q.updateJobProgressStmt,
+		updateJobStatusStmt:                q.updateJobStatusStmt,
+		updateLibraryStmt:                  q.updateLibraryStmt,
+		updateProfileStmt:                  q.updateProfileStmt,
+		updateRoleStmt:                     q.updateRoleStmt,
+		updateSystemRoleDescriptionStmt:    q.updateSystemRoleDescriptionStmt,
+		updateUserPasswordStmt:             q.updateUserPasswordStmt,
+		updateUserRefreshTokenStmt:         q.updateUserRefreshTokenStmt,
+		updateUserTokenVersionStmt:         q.updateUserTokenVersionStmt,
+		upsertAppSettingStmt:               q.upsertAppSettingStmt,
+		upsertBookDownloadStatsStmt:        q.upsertBookDownloadStatsStmt,
+		upsertBookFileStmt:                 q.upsertBookFileStmt,
+		upsertBookReadStatsStmt:            q.upsertBookReadStatsStmt,
+		upsertBookReviewStmt:               q.upsertBookReviewStmt,
+		upsertBookShareStatsStmt:           q.upsertBookShareStatsStmt,
+		upsertBookmarkStmt:                 q.upsertBookmarkStmt,
+		upsertPermissionStmt:               q.upsertPermissionStmt,
+		upsertReadingHistoryStmt:           q.upsertReadingHistoryStmt,
+		upsertReadingProgressStmt:          q.upsertReadingProgressStmt,
+		upsertRolePermissionStmt:           q.upsertRolePermissionStmt,
+		upsertSetupStateStmt:               q.upsertSetupStateStmt,
+		upsertUserStmt:                     q.upsertUserStmt,
 	}
 }

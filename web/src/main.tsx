@@ -2,7 +2,7 @@ import { ProtectedRoute } from "@/components/common";
 import "@/i18n";
 import { AdminLayout, Books, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { RegisterPage, SetupWizard } from "@/pages/auth";
-import { DuplicatesWorkspace, LibraryWorkspace } from "@/pages/library";
+import { BookDetailPage, DuplicatesWorkspace, LibraryWorkspace } from "@/pages/library";
 import { ReaderWorkspace } from "@/pages/reader";
 import { useSettingsStore } from "@/stores";
 import React, { useEffect } from "react";

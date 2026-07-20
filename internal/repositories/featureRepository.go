@@ -10,14 +10,17 @@ import (
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 )
 
 type FeatureRepository interface {
 	GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error)
 	CreateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error)
-	GetUserCollections(ctx context.Context, userID int64) ([]*models.CollectionEntity, error)
-	GetRecentReadingHistory(ctx context.Context, userID int64, limit int64) ([]*models.ReadingHistoryEntity, error)
+	UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error)
+	DeleteCollection(ctx context.Context, id string, userID int64) error
+	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error)
+	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error)
 	GetReadingProgress(ctx context.Context, userID int64, bookID string) (*models.ReadingProgressEntity, error)
 	UpsertReadingProgress(ctx context.Context, progress *models.ReadingProgressEntity) (*models.ReadingProgressEntity, error)
 	UpsertBookReadStats(ctx context.Context, bookID string, openDelta int64, qualifiedDelta int64, lastCountedAt *time.Time) error
@@ -26,11 +29,11 @@ type FeatureRepository interface {
 	GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error)
 	GetBookmark(ctx context.Context, userID int64, bookID string) (*models.BookmarkEntity, error)
 	SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*models.BookmarkEntity, error)
-	GetBookmarkedBookIDs(ctx context.Context, userID int64, limit, offset int64) ([]string, error)
+	GetBookmarkedBookIDs(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]string, error)
 	UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review *string) (*models.BookReviewEntity, error)
 	DeleteBookReview(ctx context.Context, userID int64, bookID string) error
 	GetBookReview(ctx context.Context, userID int64, bookID string) (*models.BookReviewEntity, error)
-	ListBookReviews(ctx context.Context, bookID string, limit, offset int64) ([]*models.BookReviewEntity, error)
+	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error)
 	ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error)
 	GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error)
@@ -85,44 +88,173 @@ func (r *featureRepository) CreateCollection(ctx context.Context, id, name strin
 	}
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("collection:user:%d", userID))
-		_ = r.c.Set(ctx, fmt.Sprintf("collection:id:%s", result.ID), result, constants.NormalCacheDuration)
+		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
 }
 
-func (r *featureRepository) GetUserCollections(ctx context.Context, userID int64) ([]*models.CollectionEntity, error) {
-	key := fmt.Sprintf("collection:user:%d", userID)
+func (r *featureRepository) UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error) {
+	collection, err := r.queries.UpdateCollection(ctx, sqlc.UpdateCollectionParams{
+		ID:     id,
+		UserID: userID,
+		Name:   name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
+	}
+	return result, nil
+}
+
+func (r *featureRepository) DeleteCollection(ctx context.Context, id string, userID int64) error {
+	err := r.queries.DeleteCollection(ctx, sqlc.DeleteCollectionParams{
+		ID:     id,
+		UserID: userID,
+	})
+	if err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("collection", "id", id))
+	}
+	return nil
+}
+
+func (r *featureRepository) GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error) {
+	var key string
+	if cursorCreatedAt == nil {
+		key = cache.BuildKey("collection", "user", userID, "limit", limit)
+	}
+
+	if key != "" && r.c != nil {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.getCollectionsByIDs(ctx, ids)
 		}
 	}
 
-	ids, err := r.queries.GetUserCollectionIDs(ctx, userID)
+	params := sqlc.GetUserCollectionIDsParams{
+		UserID: userID,
+		Limit:  limit,
+	}
+	if cursorCreatedAt != nil {
+		params.CursorCreatedAt = cursorCreatedAt
+	}
+
+	ids, err := r.queries.GetUserCollectionIDs(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil {
+
+	if key != "" && r.c != nil {
 		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 	}
 	return r.getCollectionsByIDs(ctx, ids)
 }
 
-func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID int64, limit int64) ([]*models.ReadingHistoryEntity, error) {
-	params := sqlc.GetRecentReadingHistoryParams{
+func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error) {
+	params := sqlc.GetRecentReadingHistoryBookIDsParams{
 		UserID: userID,
 		Limit:  limit,
+		CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
 	}
-	rows, err := r.queries.GetRecentReadingHistory(ctx, params)
+	key := cache.QueryKeyParts(params, "feature", "reading_history", "user", userID)
+	
+	if r.c != nil {
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getReadingHistoryByBookIDs(ctx, userID, ids); ok {
+				return result, nil
+			}
+		}
+	}
+	
+	idRows, err := r.queries.GetRecentReadingHistoryBookIDs(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	return (&models.ReadingHistoryEntities{}).FromSqlc(rows), nil
+	
+	if len(idRows) == 0 {
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+		}
+		return []*models.ReadingHistoryEntity{}, nil
+	}
+
+	fullParams := sqlc.GetRecentReadingHistoryParams{
+		UserID: userID,
+		Limit:  limit,
+		CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
+	}
+	rows, err := r.queries.GetRecentReadingHistory(ctx, fullParams)
+	if err != nil {
+		return nil, err
+	}
+	result := (&models.ReadingHistoryEntities{}).FromSqlc(rows)
+	
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, idRows, constants.ListCacheDuration)
+		r.cacheReadingHistoryEntities(ctx, userID, result)
+	}
+	
+	return result, nil
+}
+
+func (r *featureRepository) getReadingHistoryByBookIDs(ctx context.Context, userID int64, bookIDs []string) ([]*models.ReadingHistoryEntity, bool) {
+	if len(bookIDs) == 0 {
+		return []*models.ReadingHistoryEntity{}, true
+	}
+	if r.c == nil {
+		return nil, false
+	}
+
+	cacheKeys := make([]string, len(bookIDs))
+	for i, id := range bookIDs {
+		cacheKeys[i] = cache.BuildKey("reading_history_entity", "user", userID, "book", id)
+	}
+
+	cachedBytes := r.c.MGet(ctx, cacheKeys...)
+	ordered := make([]*models.ReadingHistoryEntity, 0, len(bookIDs))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.ReadingHistoryEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
+}
+
+func (r *featureRepository) cacheReadingHistoryEntities(ctx context.Context, userID int64, entities []*models.ReadingHistoryEntity) {
+	if r.c == nil || len(entities) == 0 {
+		return
+	}
+	toCache := make(map[string]any, len(entities))
+	for _, entity := range entities {
+		toCache[cache.BuildKey("reading_history_entity", "user", userID, "book", entity.BookID)] = entity
+	}
+	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }
 
 func (r *featureRepository) GetReadingProgress(ctx context.Context, userID int64, bookID string) (*models.ReadingProgressEntity, error) {
+	key := cache.BuildKey("feature", "reading_progress", "user", userID, "book", bookID)
+	if r.c != nil {
+		var progress models.ReadingProgressEntity
+		if err := r.c.Get(ctx, key, &progress); err == nil {
+			return &progress, nil
+		}
+	}
 	row, err := r.queries.GetReadingProgress(ctx, sqlc.GetReadingProgressParams{
 		UserID: userID,
 		BookID: bookID,
@@ -133,7 +265,11 @@ func (r *featureRepository) GetReadingProgress(ctx context.Context, userID int64
 		}
 		return nil, err
 	}
-	return (&models.ReadingProgressEntity{}).FromSqlc(row), nil
+	result := (&models.ReadingProgressEntity{}).FromSqlc(row)
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+	}
+	return result, nil
 }
 
 func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress *models.ReadingProgressEntity) (*models.ReadingProgressEntity, error) {
@@ -143,20 +279,25 @@ func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress 
 	params := sqlc.UpsertReadingProgressParams{
 		UserID:             progress.UserID,
 		BookID:             progress.BookID,
-		FileID:             stringPtrToNullString(progress.FileID),
+		FileID:             convert.StrPtrToNullStringNonEmpty(progress.FileID),
 		ChapterRef:         progress.ChapterID,
 		ChapterTitle:       progress.ChapterTitle,
 		ChapterIndex:       progress.ChapterIndex,
-		ProgressPercent:    floatPtrToNullFloat64(progress.ProgressPercent),
+		ProgressPercent:    convert.FloatPtrToNullFloat64(progress.ProgressPercent),
 		OpenedCount:        progress.OpenedCount,
 		QualifiedReadCount: progress.QualifiedReadCount,
-		LastCountedAt:      timePtrToNullTime(progress.LastCountedAt),
+		LastCountedAt:      convert.TimePtrToNullTime(progress.LastCountedAt),
 	}
 	row, err := r.queries.UpsertReadingProgress(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	return (&models.ReadingProgressEntity{}).FromSqlc(row), nil
+	result := (&models.ReadingProgressEntity{}).FromSqlc(row)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("feature", "reading_progress", "user", progress.UserID, "book", progress.BookID))
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "reading_history", "user", progress.UserID)+"*")
+	}
+	return result, nil
 }
 
 func (r *featureRepository) UpsertBookReadStats(ctx context.Context, bookID string, openDelta int64, qualifiedDelta int64, lastCountedAt *time.Time) error {
@@ -164,19 +305,19 @@ func (r *featureRepository) UpsertBookReadStats(ctx context.Context, bookID stri
 		BookID:             bookID,
 		TotalOpenCount:     openDelta,
 		QualifiedReadCount: qualifiedDelta,
-		LastCountedAt:      timePtrToNullTime(lastCountedAt),
+		LastCountedAt:      convert.TimePtrToNullTime(lastCountedAt),
 	}); err != nil {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("feature:read_stats:%s", bookID))
+		_ = r.c.Del(ctx, cache.BuildKey("feature", "read_stats", bookID))
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *featureRepository) GetBookReadStats(ctx context.Context, bookID string) (*models.BookReadStatsEntity, error) {
-	key := fmt.Sprintf("feature:read_stats:%s", bookID)
+	key := cache.BuildKey("feature", "read_stats", bookID)
 	if r.c != nil {
 		var stats models.BookReadStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
@@ -205,14 +346,14 @@ func (r *featureRepository) UpsertBookDownloadStats(ctx context.Context, bookID 
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("feature:download_stats:%s", bookID))
+		_ = r.c.Del(ctx, cache.BuildKey("feature", "download_stats", bookID))
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
 
 func (r *featureRepository) GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error) {
-	key := fmt.Sprintf("feature:download_stats:%s", bookID)
+	key := cache.BuildKey("feature", "download_stats", bookID)
 	if r.c != nil {
 		var stats models.BookDownloadStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
@@ -234,7 +375,7 @@ func (r *featureRepository) GetBookDownloadStats(ctx context.Context, bookID str
 }
 
 func (r *featureRepository) GetBookmark(ctx context.Context, userID int64, bookID string) (*models.BookmarkEntity, error) {
-	key := fmt.Sprintf("bookmark:user:%d:book:%s", userID, bookID)
+	key := cache.BuildKey("bookmark", "user", userID, "book", bookID)
 	if r.c != nil {
 		var bookmark models.BookmarkEntity
 		if err := r.c.Get(ctx, key, &bookmark); err == nil {
@@ -256,14 +397,14 @@ func (r *featureRepository) GetBookmark(ctx context.Context, userID int64, bookI
 }
 
 func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*models.BookmarkEntity, error) {
-	key := fmt.Sprintf("bookmark:user:%d:book:%s", userID, bookID)
+	key := cache.BuildKey("bookmark", "user", userID, "book", bookID)
 	if !bookmarked {
 		if err := r.queries.DeleteBookmark(ctx, sqlc.DeleteBookmarkParams{UserID: userID, BookID: bookID}); err != nil {
 			return nil, err
 		}
 		if r.c != nil {
 			_ = r.c.Del(ctx, key)
-			_ = r.c.DelByPattern(context.Background(), fmt.Sprintf("bookmark:user:%d:ids*", userID))
+			_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids") + "*")
 		}
 		if err := r.refreshBookBookmarkStats(ctx, bookID); err != nil {
 			return nil, err
@@ -277,7 +418,7 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookI
 	result := (&models.BookmarkEntity{}).FromSqlc(row)
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
-		_ = r.c.DelByPattern(context.Background(), fmt.Sprintf("bookmark:user:%d:ids*", userID))
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids") + "*")
 	}
 	if err := r.refreshBookBookmarkStats(ctx, bookID); err != nil {
 		return nil, err
@@ -285,9 +426,9 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookI
 	return result, nil
 }
 
-func (r *featureRepository) GetBookmarkedBookIDs(ctx context.Context, userID int64, limit, offset int64) ([]string, error) {
-	params := sqlc.GetBookmarkedBookIDsParams{UserID: userID, Limit: limit, Offset: offset}
-	key := cache.QueryKey(fmt.Sprintf("bookmark:user:%d:ids", userID), params)
+func (r *featureRepository) GetBookmarkedBookIDs(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]string, error) {
+	params := sqlc.GetBookmarkedBookIDsParams{UserID: userID, Limit: limit, CursorCreatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	key := cache.QueryKeyParts(params, "bookmark", "user", userID, "ids")
 	if r.c != nil {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -309,7 +450,7 @@ func (r *featureRepository) UpsertBookReview(ctx context.Context, userID int64, 
 		UserID: userID,
 		BookID: bookID,
 		Rating: rating,
-		Review: stringPtrToNullString(review),
+		Review: convert.StrPtrToNullStringNonEmpty(review),
 	})
 	if err != nil {
 		return nil, err
@@ -318,11 +459,12 @@ func (r *featureRepository) UpsertBookReview(ctx context.Context, userID int64, 
 	if r.c != nil {
 		_ = r.c.Del(
 			ctx,
-			fmt.Sprintf("review:user:%d:book:%s", userID, bookID),
-			fmt.Sprintf("rating:summary:%s", bookID),
-			fmt.Sprintf("social:stats:%s", bookID),
+			cache.BuildKey("review", "user", userID, "book", bookID),
+			cache.BuildKey("rating", "summary", bookID),
+			cache.BuildKey("social", "stats", bookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), fmt.Sprintf("review:book:%s*", bookID))
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID) + "*")
+		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	if err := r.refreshBookRatingStats(ctx, bookID); err != nil {
@@ -338,11 +480,12 @@ func (r *featureRepository) DeleteBookReview(ctx context.Context, userID int64, 
 	if r.c != nil {
 		_ = r.c.Del(
 			ctx,
-			fmt.Sprintf("review:user:%d:book:%s", userID, bookID),
-			fmt.Sprintf("rating:summary:%s", bookID),
-			fmt.Sprintf("social:stats:%s", bookID),
+			cache.BuildKey("review", "user", userID, "book", bookID),
+			cache.BuildKey("rating", "summary", bookID),
+			cache.BuildKey("social", "stats", bookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), fmt.Sprintf("review:book:%s*", bookID))
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID) + "*")
+		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	if err := r.refreshBookRatingStats(ctx, bookID); err != nil {
@@ -352,7 +495,7 @@ func (r *featureRepository) DeleteBookReview(ctx context.Context, userID int64, 
 }
 
 func (r *featureRepository) GetBookReview(ctx context.Context, userID int64, bookID string) (*models.BookReviewEntity, error) {
-	key := fmt.Sprintf("review:user:%d:book:%s", userID, bookID)
+	key := cache.BuildKey("review", "user", userID, "book", bookID)
 	if r.c != nil {
 		var review models.BookReviewEntity
 		if err := r.c.Get(ctx, key, &review); err == nil {
@@ -374,7 +517,7 @@ func (r *featureRepository) GetBookReview(ctx context.Context, userID int64, boo
 }
 
 func (r *featureRepository) GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error) {
-	key := fmt.Sprintf("social:stats:%s", bookID)
+	key := cache.BuildKey("social", "stats", bookID)
 	if r.c != nil {
 		var stats models.BookSocialStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
@@ -421,7 +564,7 @@ func (r *featureRepository) UpsertBookShareStats(ctx context.Context, bookID str
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("social:stats:%s", bookID))
+		_ = r.c.Del(ctx, cache.BuildKey("social", "stats", bookID))
 	}
 	return nil
 }
@@ -437,7 +580,7 @@ func (r *featureRepository) refreshBookBookmarkStats(ctx context.Context, bookID
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("social:stats:%s", bookID))
+		_ = r.c.Del(ctx, cache.BuildKey("social", "stats", bookID))
 	}
 	return nil
 }
@@ -453,72 +596,117 @@ func (r *featureRepository) refreshBookRatingStats(ctx context.Context, bookID s
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, fmt.Sprintf("rating:summary:%s", bookID), fmt.Sprintf("social:stats:%s", bookID))
+		_ = r.c.Del(ctx, cache.BuildKey("rating", "summary", bookID), cache.BuildKey("social", "stats", bookID))
 	}
 	return nil
 }
 
-func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, limit, offset int64) ([]*models.BookReviewEntity, error) {
-	params := sqlc.ListBookReviewsParams{BookID: bookID, Limit: limit, Offset: offset}
-	key := cache.QueryKey(fmt.Sprintf("review:book:%s", bookID), params)
+func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error) {
+	params := sqlc.ListBookReviewCompositeKeysParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	key := cache.QueryKeyParts(params, "review", "book", bookID)
+	
+	if r.c != nil {
+		var compositeKeys []string
+		if err := r.c.Get(ctx, key, &compositeKeys); err == nil {
+			if result, ok := r.getBookReviewsByCompositeKeys(ctx, compositeKeys); ok {
+				return result, nil
+			}
+		}
+	}
+	
+	keysRows, err := r.queries.ListBookReviewCompositeKeys(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	
+	if len(keysRows) == 0 {
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+		}
+		return []*models.BookReviewEntity{}, nil
+	}
+
+	// Because there is no GetBookReviewsByKeys, fetch the full data using the original query
+	fullParams := sqlc.ListBookReviewsParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	rows, err := r.queries.ListBookReviews(ctx, fullParams)
+	if err != nil {
+		return nil, err
+	}
+	
+	result := (&models.BookReviewEntities{}).FromSqlc(rows)
+	
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, keysRows, constants.ListCacheDuration)
+		for _, entity := range result {
+			_ = r.c.Set(ctx, cache.BuildKey("review", "user", entity.UserID, "book", entity.BookID), entity, constants.NormalCacheDuration)
+		}
+	}
+	return result, nil
+}
+
+func (r *featureRepository) getBookReviewsByCompositeKeys(ctx context.Context, keys []string) ([]*models.BookReviewEntity, bool) {
+	if len(keys) == 0 {
+		return []*models.BookReviewEntity{}, true
+	}
+	if r.c == nil {
+		return nil, false
+	}
+
+	cacheKeys := make([]string, len(keys))
+	for i, k := range keys {
+		// k is "userID:bookID"
+		var userID int64
+		var bookID string
+		_, err := fmt.Sscanf(k, "%d:%s", &userID, &bookID)
+		if err != nil {
+			return nil, false
+		}
+		cacheKeys[i] = cache.BuildKey("review", "user", userID, "book", bookID)
+	}
+
+	cachedBytes := r.c.MGet(ctx, cacheKeys...)
+	ordered := make([]*models.BookReviewEntity, 0, len(keys))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.BookReviewEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
+}
+
+func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error) {
+	key := cache.BuildKey("feature", "all_reviews", "limit", limit, "offset", offset)
 	if r.c != nil {
 		var reviews []*models.BookReviewEntity
 		if err := r.c.Get(ctx, key, &reviews); err == nil {
 			return reviews, nil
 		}
 	}
-	rows, err := r.queries.ListBookReviews(ctx, params)
+	rows, err := r.queries.ListAllReviews(ctx, sqlc.ListAllReviewsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.BookReviewEntities{}).FromSqlc(rows)
+
+	reviews := (&models.BookReviewEntities{}).FromListAllReviewsSqlc(rows)
+	
 	if r.c != nil {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
-	}
-	return result, nil
-}
-
-// ListAllReviews returns all reviews across all books with user and book info, ordered by most recent first.
-func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,
-		       u.full_name as user_name, u.email as user_email,
-		       b.title as book_title
-		FROM book_reviews br
-		JOIN users u ON u.id = br.user_id
-		JOIN books b ON b.id = br.book_id
-		ORDER BY br.updated_at DESC
-		LIMIT ? OFFSET ?
-	`, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var reviews []*models.BookReviewEntity
-	for rows.Next() {
-		var entity models.BookReviewEntity
-		var userName, userEmail, bookTitle string
-		if err := rows.Scan(
-			&entity.UserID, &entity.BookID, &entity.Rating, &entity.Review,
-			&entity.CreatedAt, &entity.UpdatedAt,
-			&userName, &userEmail, &bookTitle,
-		); err != nil {
-			return nil, err
-		}
-		entity.UserName = userName
-		entity.UserEmail = userEmail
-		entity.BookTitle = bookTitle
-		reviews = append(reviews, &entity)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+		_ = r.c.Set(ctx, key, reviews, constants.ListCacheDuration)
 	}
 	return reviews, nil
 }
 
 func (r *featureRepository) GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error) {
-	key := fmt.Sprintf("rating:summary:%s", bookID)
+	key := cache.BuildKey("rating", "summary", bookID)
 	if r.c != nil {
 		var summary models.BookRatingSummaryEntity
 		if err := r.c.Get(ctx, key, &summary); err == nil {
@@ -543,29 +731,32 @@ func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []strin
 	if len(ids) == 0 {
 		return []*models.CollectionEntity{}, nil
 	}
-	if r.c == nil {
-		return r.fetchCollectionsByIDs(ctx, ids)
-	}
 
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = fmt.Sprintf("collection:id:%s", id)
+		keys[i] = cache.BuildKey("collection", "id", id)
 	}
 
 	collectionsByID := make(map[string]*models.CollectionEntity, len(ids))
 	missingIDs := make([]string, 0, len(ids))
 	missingKeys := make([]string, 0, len(ids))
-	raws := r.c.MGet(ctx, keys...)
-	for i, raw := range raws {
-		if len(raw) > 0 {
-			var collection models.CollectionEntity
-			if err := jsonx.Unmarshal(raw, &collection); err == nil {
-				collectionsByID[collection.ID] = &collection
-				continue
+	
+	if r.c != nil {
+		raws := r.c.MGet(ctx, keys...)
+		for i, raw := range raws {
+			if len(raw) > 0 {
+				var collection models.CollectionEntity
+				if err := jsonx.Unmarshal(raw, &collection); err == nil {
+					collectionsByID[collection.ID] = &collection
+					continue
+				}
 			}
+			missingIDs = append(missingIDs, ids[i])
+			missingKeys = append(missingKeys, keys[i])
 		}
-		missingIDs = append(missingIDs, ids[i])
-		missingKeys = append(missingKeys, keys[i])
+	} else {
+		missingIDs = ids
+		missingKeys = keys
 	}
 
 	if len(missingIDs) > 0 {
@@ -579,82 +770,73 @@ func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []strin
 			collectionsByID[collection.ID] = collection
 			missingMap[collection.ID] = collection
 		}
-		toCache := make(map[string]any, len(missingMap))
-		for i, missingID := range missingIDs {
-			if collection, ok := missingMap[missingID]; ok {
-				toCache[missingKeys[i]] = collection
+		
+		if r.c != nil {
+			toCache := make(map[string]any, len(missingMap))
+			for i, missingID := range missingIDs {
+				if collection, ok := missingMap[missingID]; ok {
+					toCache[missingKeys[i]] = collection
+				}
+			}
+			if len(toCache) > 0 {
+				_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 			}
 		}
-		if len(toCache) > 0 {
-			_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
-		}
 	}
-
-	return orderCollections(ids, collectionsByID), nil
-}
-
-func (r *featureRepository) fetchCollectionsByIDs(ctx context.Context, ids []string) ([]*models.CollectionEntity, error) {
-	rows, err := r.queries.GetCollectionsByIDs(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	collectionsByID := make(map[string]*models.CollectionEntity, len(rows))
-	for _, row := range rows {
-		collection := (&models.CollectionEntity{}).FromSqlc(row)
-		collectionsByID[collection.ID] = collection
-	}
-	return orderCollections(ids, collectionsByID), nil
-}
-
-func orderCollections(ids []string, collectionsByID map[string]*models.CollectionEntity) []*models.CollectionEntity {
 	ordered := make([]*models.CollectionEntity, 0, len(ids))
 	for _, id := range ids {
 		if collection, ok := collectionsByID[id]; ok {
 			ordered = append(ordered, collection)
 		}
 	}
-	return ordered
+	return ordered, nil
 }
 
-func stringPtrToNullString(value *string) sql.NullString {
-	if value == nil || *value == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: *value, Valid: true}
-}
-
-func floatPtrToNullFloat64(value *float64) sql.NullFloat64 {
-	if value == nil {
-		return sql.NullFloat64{}
-	}
-	return sql.NullFloat64{Float64: *value, Valid: true}
-}
-
-func timePtrToNullTime(value *time.Time) sql.NullTime {
-	if value == nil {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: *value, Valid: true}
-}
 
 func (r *featureRepository) AddBookToCollection(ctx context.Context, collectionID string, bookID string) error {
-	return r.queries.AddBookToCollection(ctx, sqlc.AddBookToCollectionParams{
+	if err := r.queries.AddBookToCollection(ctx, sqlc.AddBookToCollectionParams{
 		CollectionID: collectionID,
 		BookID:       bookID,
-	})
+	}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "") + "*")
+	}
+	return nil
 }
 
 func (r *featureRepository) RemoveBookFromCollection(ctx context.Context, collectionID string, bookID string) error {
-	return r.queries.RemoveBookFromCollection(ctx, sqlc.RemoveBookFromCollectionParams{
+	if err := r.queries.RemoveBookFromCollection(ctx, sqlc.RemoveBookFromCollectionParams{
 		CollectionID: collectionID,
 		BookID:       bookID,
-	})
+	}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "") + "*")
+	}
+	return nil
 }
 
 func (r *featureRepository) GetBookCollectionIDs(ctx context.Context, userID int64, bookID string) ([]string, error) {
-	return r.queries.GetBookCollectionIDs(ctx, sqlc.GetBookCollectionIDsParams{
+	key := cache.BuildKey("feature", "book_collections", "user", userID, "book", bookID)
+	if r.c != nil {
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			return ids, nil
+		}
+	}
+	ids, err := r.queries.GetBookCollectionIDs(ctx, sqlc.GetBookCollectionIDsParams{
 		UserID: userID,
 		BookID: bookID,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+	}
+	return ids, nil
 }
 

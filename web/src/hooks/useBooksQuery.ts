@@ -1,27 +1,31 @@
 import { bookService, featureService } from "@/services";
 import type { Book, SearchBookParams } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
 export function useBooksQuery(params: SearchBookParams, enabled = true) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["books", params],
-    queryFn: async () => {
-      const res = await bookService.getBooks(params);
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const res = await bookService.getBooks({ ...params, cursor: pageParam });
       if (!res.status) throw new Error(res.message || "Failed to fetch books");
-      return res.data || [];
+      return res;
     },
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
   });
 }
 
 export function useBookmarkedBooksQuery(enabled = true) {
-  return useQuery<Book[]>({
+  return useInfiniteQuery({
     queryKey: ["books", "bookmarked"],
-    queryFn: async () => {
-      const res = await featureService.getBookmarkedBooks(200, 0);
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const res = await featureService.getBookmarkedBooks(pageParam, 20);
       if (!res.status) throw new Error(res.message || "Failed to fetch bookmarked books");
-      return res.data || [];
+      return res;
     },
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
   });
 }

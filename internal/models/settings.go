@@ -1,4 +1,5 @@
 package models
+import "novelhub/internal/gen/sqlc"
 
 type AppSettingEntity struct {
 	Key       string `json:"key"`
@@ -39,4 +40,24 @@ type PublicSettings struct {
 	AvailableHomeSections   []string             `json:"available_home_sections"`
 	AvailablePolicyModes    []string             `json:"available_policy_modes"`
 	AvailableGuestModes     []string             `json:"available_guest_modes"`
+}
+
+
+
+func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {
+	s.Key = row.Key
+	s.ValueJSON = row.ValueJson
+	s.UpdatedAt = row.UpdatedAt
+	return s
+}
+
+type AppSettingEntities []*AppSettingEntity
+
+func (e *AppSettingEntities) FromSqlc(rows []sqlc.AppSetting) []*AppSettingEntity {
+	slice := make([]*AppSettingEntity, len(rows))
+	flat := make([]AppSettingEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
 }

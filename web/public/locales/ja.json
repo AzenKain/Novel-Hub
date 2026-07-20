@@ -49,7 +49,11 @@
     "assign_roles": "役割を割り当てる",
     "save_changes": "変更を保存",
     "books_libraries": "書籍とライブラリ",
-    "panel": "管理パネル"
+    "panel": "管理パネル",
+    "reviews": "レビュー",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "account_status": "アカウントステータス"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -83,7 +87,14 @@
     "close": "閉じる",
     "copy": "コピー",
     "copied": "コピー済み",
-    "unknown": "不明"
+    "unknown": "不明",
+    "submit": "送信",
+    "user": "ユーザー",
+    "crop_image": "写真をトリミングして調整",
+    "apply": "適用",
+    "share": "共有",
+    "download": "ダウンロード",
+    "load_more": "もっと読み込む"
   },
   "library": {
     "ready_to_read": "読む準備ができました",
@@ -185,7 +196,12 @@
     "recently_read": "最近読んだ本",
     "jump_back": "最近の本に戻る",
     "no_recent_books": "最近読んだ本はありません",
-    "no_recent_books_hint": "リーダーで開いた本がここに表示されます。"
+    "no_recent_books_hint": "リーダーで開いた本がここに表示されます。",
+    "all_books": "すべての本",
+    "random_books": "ランダムな本",
+    "shuffle_books": "シャッフル",
+    "top_books": "トップ本",
+    "top_books_hint": "ライブラリで最も読まれている本。"
   },
   "user": {
     "profile": "プロフィール",
@@ -195,7 +211,11 @@
     "full_name_placeholder": "あなたのフルネーム",
     "avatar_url": "アバターのURL",
     "save_changes": "変更を保存",
-    "zoom": "ズーム"
+    "zoom": "ズーム",
+    "crop_instructions": "画像をドラッグして位置を調整",
+    "upload_avatar": "写真をアップロード",
+    "load_url": "URLから",
+    "remove_avatar": "削除"
   },
   "reader": {
     "book_not_found": "本が見つかりません",
@@ -218,6 +238,38 @@
     "mode_double": "見開きページ",
     "prev_page": "前のページ",
     "next_page": "次のページ",
-    "single_entry": "現在のファイル"
+    "single_entry": "現在のファイル",
+    "read": "読む"
+  },
+  "review": {
+    "submitted": "レビューが正常に送信されました",
+    "deleted": "レビューが正常に削除されました",
+    "select_rating": "星の評価を選択してください",
+    "title": "レビューと評価",
+    "edit_yours": "レビューを編集",
+    "write_yours": "レビューを書く",
+    "placeholder": "この本についてどう思いましたか？",
+    "login_required": "レビューを書くにはログインしてください。",
+    "confirm_delete": "このレビューを削除してもよろしいですか？",
+    "no_reviews": "まだレビューはありません。最初のレビューを書いてみましょう！"
+  },
+  "error": {
+    "unknown": "不明なエラーが発生しました",
+    "book_not_found": "本が見つかりません",
+    "book_not_found_desc": "この本は削除されたか、利用できません。"
+  },
+  "book": {
+    "bookmark_updated": "ブックマークが正常に更新されました",
+    "remove_bookmark": "ブックマークを削除",
+    "add_bookmark": "ブックマーク",
+    "reads": "閲覧数",
+    "downloads": "ダウンロード数",
+    "rating": "評価",
+    "author": "著者",
+    "publisher": "出版社",
+    "date": "発行日",
+    "language": "言語",
+    "description": "あらすじ",
+    "no_description": "あらすじはありません。"
   }
 }
