@@ -1,0 +1,17 @@
+services:
+  novelhub:
+    build: .
+    container_name: novelhub
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 3434
+      DATA_DIR: /data
+      SQLITE_DB_PATH: /data/novelhub.db
+    ports:
+      - "3434:3434"
+    volumes:
+      - novelhub_data:/data
+      - ./libraries:/libraries
+
+volumes:
+  novelhub_data:

@@ -1,0 +1,117 @@
+import type { TFunction } from "i18next";
+import { ChevronLeft, Menu, Settings } from "lucide-react";
+import React from "react";
+
+import { LanguageSwitcher } from "@/components/ui";
+import type { ReaderTheme, ReadingMode } from "@/stores";
+import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
+
+type ReaderTopBarProps = {
+  t: TFunction;
+  title: string;
+  headerBg: string;
+  canGoPrev: boolean;
+  canGoNext: boolean;
+  settingsOpen: boolean;
+  theme: ReaderTheme;
+  fontFamily: string;
+  fontSize: number;
+  maxWidth: number;
+  effectiveReadingMode: ReadingMode;
+  canUseDoubleMode: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  setSettingsOpen: (open: boolean) => void;
+  setTheme: (theme: ReaderTheme) => void;
+  setFontFamily: (family: string) => void;
+  setFontSize: (size: number | ((prev: number) => number)) => void;
+  setMaxWidth: (width: number | ((prev: number) => number)) => void;
+  setReadingMode: (mode: ReadingMode) => void;
+  resetSettings: () => void;
+};
+
+export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
+  t,
+  title,
+  headerBg,
+  canGoPrev,
+  canGoNext,
+  settingsOpen,
+  theme,
+  fontFamily,
+  fontSize,
+  maxWidth,
+  effectiveReadingMode,
+  canUseDoubleMode,
+  onPrev,
+  onNext,
+  setSettingsOpen,
+  setTheme,
+  setFontFamily,
+  setFontSize,
+  setMaxWidth,
+  setReadingMode,
+  resetSettings,
+}) => (
+  <header
+    className={`absolute left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
+  >
+    <div className="flex items-center gap-2">
+      <label
+        htmlFor="reader-drawer"
+        className="reader-control-btn btn btn-square btn-sm cursor-pointer"
+      >
+        <Menu className="h-5 w-5" />
+      </label>
+      <span className="line-clamp-1 hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
+        {title || "Reading"}
+      </span>
+    </div>
+
+    <div className="relative flex items-center gap-1">
+      <button
+        onClick={onPrev}
+        disabled={!canGoPrev}
+        className="reader-control-btn btn btn-square btn-sm animate-none"
+        title={t("reader.prev_chapter", "Previous Chapter")}
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button
+        onClick={onNext}
+        disabled={!canGoNext}
+        className="reader-control-btn btn btn-square btn-sm animate-none"
+        title={t("reader.next_chapter", "Next Chapter")}
+      >
+        <ChevronLeft className="h-5 w-5 rotate-180" />
+      </button>
+
+      <LanguageSwitcher className="dropdown-end" />
+
+      <button
+        onClick={() => setSettingsOpen(!settingsOpen)}
+        className={`reader-control-btn btn btn-square btn-sm animate-none ${settingsOpen ? "reader-control-btn-active" : ""}`}
+      >
+        <Settings className="h-5 w-5" />
+      </button>
+
+      {settingsOpen && (
+        <ReaderSettingsPanel
+          t={t}
+          theme={theme}
+          fontFamily={fontFamily}
+          fontSize={fontSize}
+          maxWidth={maxWidth}
+          effectiveReadingMode={effectiveReadingMode}
+          canUseDoubleMode={canUseDoubleMode}
+          setTheme={setTheme}
+          setFontFamily={setFontFamily}
+          setFontSize={setFontSize}
+          setMaxWidth={setMaxWidth}
+          setReadingMode={setReadingMode}
+          resetSettings={resetSettings}
+        />
+      )}
+    </div>
+  </header>
+);

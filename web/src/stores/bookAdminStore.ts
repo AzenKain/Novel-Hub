@@ -1,0 +1,473 @@
+import { getMetaContent, toStringList } from "@/lib/bookDetail";
+import { bookService, libraryService, metadataService } from "@/services";
+import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
+import { toast } from 'react-toastify';
+import { create } from "zustand";
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+interface BookAdminState {
+  // Books list & Pagination
+  books: Book[];
+  loading: boolean;
+  error: string;
+  notice: string;
+  page: number;
+  search: string;
+  selectedLibraryId: string;
+  hasMore: boolean;
+
+  // Libraries
+  libraries: Library[];
+
+  // Editor Modal
+  editingBook: Book | null;
+  formData: { 
+    title: string; 
+    author: string; 
+    description: string;
+    publisher: string;
+    language: string;
+    date: string;
+    subjects: string;
+    series: string;
+    seriesIndex: string;
+  };
+  submitting: boolean;
+  bookFiles: BookFile[];
+  uploadingBookFiles: boolean;
+
+  // Cover preview & tabs
+  coverTab: "book" | "upload" | "link";
+  epubImages: string[];
+  loadingImages: boolean;
+  linkUrl: string;
+  coverPreview: string | null;
+  pendingCover: { type: 'file' | 'url' | 'epub', value: any } | null;
+
+  // Metadata Search
+  searchSource: string;
+  searching: boolean;
+  searchResults: OnlineMetadataResult[];
+
+  // Upload Modal
+  showUploadModal: boolean;
+  uploadLibraryId: string;
+  uploading: boolean;
+
+  // Manage Libraries Modal
+  showLibraryModal: boolean;
+  newLibraryName: string;
+
+  // Deletion modals state
+  bookToDelete: Book | null;
+  libraryToDelete: Library | null;
+
+  // Setters
+  setSearch: (search: string) => void;
+  setSelectedLibraryId: (id: string) => void;
+  setSearchSource: (source: string) => void;
+  setCoverTab: (tab: "book" | "upload" | "link") => void;
+  setLinkUrl: (url: string) => void;
+  setFormData: (data: Partial<{ 
+    title: string; 
+    author: string; 
+    description: string;
+    publisher: string;
+    language: string;
+    date: string;
+    subjects: string;
+    series: string;
+    seriesIndex: string;
+  }>) => void;
+  setShowUploadModal: (show: boolean) => void;
+  setUploadLibraryId: (id: string) => void;
+  setShowLibraryModal: (show: boolean) => void;
+  setNewLibraryName: (name: string) => void;
+  setNotice: (notice: string) => void;
+  setError: (error: string) => void;
+  setCoverPreview: (url: string | null) => void;
+  setPage: (updater: number | ((p: number) => number)) => void;
+  setEditingBook: (book: Book | null) => void;
+  setSearchResults: (results: OnlineMetadataResult[]) => void;
+  setBookToDelete: (book: Book | null) => void;
+  setLibraryToDelete: (library: Library | null) => void;
+  
+  // Actions
+  loadData: () => Promise<void>;
+  loadLibraries: () => Promise<void>;
+  openEditModal: (book: Book) => void;
+  closeEditModal: () => void;
+  handleSearchOnline: () => Promise<void>;
+  handleSelectResult: (result: OnlineMetadataResult) => void;
+  handleSelectEpubImage: (imagePath: string) => Promise<void>;
+  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleLinkUpload: () => Promise<void>;
+  handleEditSubmit: (e?: React.FormEvent) => Promise<void>;
+  handleUploadBookFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleCreateLibrary: (e: React.FormEvent) => Promise<void>;
+  handleDeleteLibrary: (id: string) => Promise<void>;
+  handleUploadFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  deleteBook: (id: string) => Promise<void>;
+}
+
+export const useBookAdminStore = create<BookAdminState>((set, get) => ({
+  books: [],
+  loading: true,
+  error: "",
+  notice: "",
+  page: 1,
+  search: "",
+  selectedLibraryId: "",
+  hasMore: true,
+
+  libraries: [],
+
+  editingBook: null,
+  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: "", series: "", seriesIndex: "" },
+  submitting: false,
+  bookFiles: [],
+  uploadingBookFiles: false,
+
+  coverTab: "book",
+  epubImages: [],
+  loadingImages: false,
+  linkUrl: "",
+  coverPreview: null,
+  pendingCover: null,
+
+  searchSource: "google",
+  searching: false,
+  searchResults: [],
+
+  showUploadModal: false,
+  uploadLibraryId: "",
+  uploading: false,
+
+  showLibraryModal: false,
+  newLibraryName: "",
+
+  bookToDelete: null,
+  libraryToDelete: null,
+
+  setSearch: (search) => set({ search, page: 1 }),
+  setSelectedLibraryId: (selectedLibraryId) => set({ selectedLibraryId, page: 1 }),
+  setSearchSource: (searchSource) => set({ searchSource }),
+  setCoverTab: (coverTab) => set({ coverTab }),
+  setLinkUrl: (linkUrl) => set({ linkUrl }),
+  setFormData: (data) => set((state) => ({ formData: { ...state.formData, ...data } })),
+  setShowUploadModal: (showUploadModal) => set({ showUploadModal }),
+  setUploadLibraryId: (uploadLibraryId) => set({ uploadLibraryId }),
+  setShowLibraryModal: (showLibraryModal) => set({ showLibraryModal }),
+  setNewLibraryName: (newLibraryName) => set({ newLibraryName }),
+  setNotice: (notice) => set({ notice }),
+  setError: (error) => set({ error }),
+  setCoverPreview: (coverPreview) => set({ coverPreview }),
+  setPage: (updater) => set((state) => ({ page: typeof updater === "function" ? updater(state.page) : updater })),
+  setEditingBook: (editingBook) => set({ editingBook }),
+  setSearchResults: (searchResults) => set({ searchResults }),
+  setBookToDelete: (bookToDelete) => set({ bookToDelete }),
+  setLibraryToDelete: (libraryToDelete) => set({ libraryToDelete }),
+
+  loadData: async () => {
+    const { page, search, selectedLibraryId } = get();
+    set({ loading: true, error: "" });
+    try {
+      const res = await bookService.getBooks({
+        page,
+        limit: 24,
+        search: search || undefined,
+        library_id: selectedLibraryId || undefined
+      });
+
+      if (res.status && res.data) {
+        set({
+          books: res.data,
+          hasMore: res.data.length === 24
+        });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  loadLibraries: async () => {
+    try {
+      const res = await libraryService.getLibraries();
+      if (res.status && res.data) {
+        set({ libraries: res.data });
+      }
+    } catch (err) {
+      console.error("Failed to load libraries:", err);
+    }
+  },
+
+  openEditModal: (book) => {
+    let publisher = "";
+    let language = "";
+    let date = "";
+    let subjects = "";
+    let series = "";
+    let seriesIndex = "";
+
+    if (book.metadataJson) {
+      try {
+        const meta = JSON.parse(book.metadataJson) as MetadataJSON;
+        publisher = meta.publisher || meta.publishers?.join(", ") || "";
+        language = meta.language || meta.languages?.join(", ") || "";
+        date = meta.date || meta.dates?.[0] || "";
+        subjects = toStringList(meta.subject).join(", ");
+        series = meta.series || getMetaContent(meta, "calibre:series");
+        seriesIndex = meta.seriesIndex || getMetaContent(meta, "calibre:series_index");
+      } catch (e) {
+        console.error("Failed to parse metadataJson", e);
+      }
+    }
+
+    set({
+      editingBook: book,
+      formData: {
+        title: book.title || "",
+        author: book.authorName || book.authorId || "",
+        description: book.description || "",
+        publisher,
+        language,
+        date,
+        subjects,
+        series,
+        seriesIndex
+      },
+      coverTab: "book",
+      epubImages: [],
+      bookFiles: book.files || [],
+      linkUrl: "",
+      coverPreview: book.coverUrl || null,
+      pendingCover: null,
+      loadingImages: true
+    });
+
+    void Promise.all([
+      bookService.listImages(book.id).then(res => {
+        if (res.status && res.data) set({ epubImages: res.data });
+      }).catch(() => undefined),
+      bookService.listFiles(book.id).then(res => {
+        if (res.status && res.data) set({ bookFiles: res.data });
+      }).catch(() => undefined)
+    ]).finally(() => {
+      set({ loadingImages: false });
+    });
+  },
+
+  closeEditModal: () => {
+    set({ editingBook: null });
+  },
+
+  handleSearchOnline: async () => {
+    const { editingBook, searchSource } = get();
+    if (!editingBook) return;
+    set({ searching: true, searchResults: [] });
+    try {
+      const results = await metadataService.searchOnline(editingBook.title, searchSource);
+      set({ searchResults: results });
+    } catch (err) {
+      toast.error("Error connecting to server or fetching metadata");
+    } finally {
+      set({ searching: false });
+    }
+  },
+
+  handleSelectResult: (result) => {
+    const { formData, editingBook } = get();
+    set({
+      formData: {
+        ...formData,
+        title: result.title || formData.title,
+        author: result.creator || formData.author,
+        description: result.description || formData.description,
+        publisher: result.publisher || formData.publisher,
+        language: result.language || formData.language,
+        subjects: result.subject || formData.subjects,
+        series: result.series || formData.series,
+        seriesIndex: result.seriesIndex || formData.seriesIndex
+      },
+      searchResults: []
+    });
+    
+    if (result.coverImage && editingBook) {
+      set({ 
+        coverPreview: result.coverImage, 
+        pendingCover: { type: 'url', value: result.coverImage } 
+      });
+    }
+  },
+
+  handleSelectEpubImage: async (imagePath) => {
+    const { editingBook } = get();
+    if (!editingBook) return;
+    set({ 
+      coverPreview: `/api/v1/reader/${editingBook.id}/asset/${imagePath}`, 
+      pendingCover: { type: 'epub', value: imagePath } 
+    });
+  },
+
+  handleImageUpload: async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    set({ 
+      coverPreview: previewUrl, 
+      pendingCover: { type: 'file', value: file } 
+    });
+  },
+
+  handleLinkUpload: async () => {
+    const { linkUrl } = get();
+    if (!linkUrl) return;
+    set({ 
+      coverPreview: linkUrl, 
+      pendingCover: { type: 'url', value: linkUrl } 
+    });
+  },
+
+  handleEditSubmit: async (e) => {
+    if (e) e.preventDefault();
+    const { editingBook, formData, pendingCover } = get();
+    if (!editingBook) return;
+
+    set({ submitting: true });
+    try {
+      const submitData = {
+        ...formData,
+        subjects: formData.subjects.split(',').map(s => s.trim()).filter(Boolean)
+      };
+      
+      await bookService.updateMetadata(editingBook.id, submitData);
+
+      if (pendingCover) {
+        if (pendingCover.type === 'file') {
+          await bookService.updateCover(editingBook.id, { cover: pendingCover.value });
+        } else if (pendingCover.type === 'url') {
+          await bookService.updateCover(editingBook.id, { cover_url: pendingCover.value });
+        } else if (pendingCover.type === 'epub') {
+          await bookService.updateCover(editingBook.id, { epub_image_path: pendingCover.value });
+        }
+      }
+
+      toast.success("Success!");
+      set({ editingBook: null });
+      await get().loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating book");
+    } finally {
+      set({ submitting: false });
+    }
+  },
+
+  handleUploadBookFiles: async (e) => {
+    const files = e.target.files;
+    const { editingBook } = get();
+    if (!files || files.length === 0 || !editingBook) return;
+
+    set({ uploadingBookFiles: true });
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => formData.append("files", file));
+      const res = await bookService.uploadFiles(editingBook.id, formData);
+      if (!res.status) throw new Error(res.message || "Upload failed");
+      const nextFiles = res.data?.files || [];
+      set((state) => ({
+        bookFiles: nextFiles,
+        editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
+      }));
+      toast.success(`Uploaded ${res.data?.uploaded || 0}/${res.data?.total || files.length} files.`);
+      await get().loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error uploading files");
+    } finally {
+      e.target.value = "";
+      set({ uploadingBookFiles: false });
+    }
+  },
+
+  handleCreateLibrary: async (e) => {
+    e.preventDefault();
+    const { newLibraryName } = get();
+    if (!newLibraryName.trim()) return;
+    try {
+      await libraryService.createLibrary({ name: newLibraryName });
+      toast.success("Library created successfully!");
+      set({ newLibraryName: "" });
+      const libRes = await libraryService.getLibraries();
+      set({ libraries: libRes.data || [] });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  handleDeleteLibrary: async (id) => {
+    const { selectedLibraryId, uploadLibraryId } = get();
+    try {
+      await libraryService.deleteLibrary(id);
+      toast.success("Library deleted successfully!");
+      const libRes = await libraryService.getLibraries();
+      set({
+        libraries: libRes.data || [],
+        selectedLibraryId: selectedLibraryId === id ? "" : selectedLibraryId,
+        uploadLibraryId: uploadLibraryId === id ? "" : uploadLibraryId
+      });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  handleUploadFiles: async (e) => {
+    const files = e.target.files;
+    const { uploadLibraryId, loadData } = get();
+    if (!files || files.length === 0 || !uploadLibraryId) return;
+
+    set({ uploading: true });
+    
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append("files", file);
+      });
+      const res = await libraryService.uploadFiles(uploadLibraryId, formData);
+      if (!res.status) throw new Error(res.message || "Upload failed");
+      
+      set({ 
+        showUploadModal: false,
+        page: 1
+      });
+      toast.info(`Uploaded ${res.data?.uploaded || 0} books. Processing metadata...`);
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await get().loadData();
+        if (!get().books.some(book => book.status === "processing")) {
+          toast.success(`Successfully processed ${res.data?.uploaded || 0} books.`);
+          break;
+        }
+        await sleep(1000);
+      }
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      set({ uploading: false });
+    }
+  },
+
+  deleteBook: async (id) => {
+    set({ loading: true, error: "" });
+    try {
+      await bookService.deleteBook(id);
+      toast.success("Book deleted successfully!");
+      await get().loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete book");
+    } finally {
+      set({ loading: false });
+    }
+  }
+}));

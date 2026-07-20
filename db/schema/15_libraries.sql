@@ -1,0 +1,7 @@
+-- Table for libraries
+CREATE TABLE IF NOT EXISTS libraries (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

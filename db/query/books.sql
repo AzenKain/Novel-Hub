@@ -1,0 +1,181 @@
+-- name: CreateBook :one
+INSERT INTO books (
+    id, library_id, title, author_id, description, cover_url, status, metadata_json
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?
+)
+RETURNING *;
+
+-- name: GetBook :one
+SELECT * FROM books
+WHERE id = ? LIMIT 1;
+
+-- name: ListBookIDs :many
+SELECT id FROM books
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: ListBookIDsCursor :many
+SELECT id FROM books
+WHERE created_at < ?
+ORDER BY created_at DESC
+LIMIT ?;
+
+-- name: UpdateBook :one
+UPDATE books
+SET title = ?, author_id = ?, description = ?, cover_url = ?, status = ?, metadata_json = ?, updated_at = CURRENT_TIMESTAMP
+WHERE id = ?
+RETURNING *;
+
+-- name: DeleteBook :exec
+DELETE FROM books
+WHERE id = ?;
+
+-- name: CreateChapter :one
+INSERT INTO chapters (
+    id, book_id, title, content_path, chapter_index
+) VALUES (
+    ?, ?, ?, ?, ?
+)
+RETURNING *;
+
+-- name: GetChapter :one
+SELECT * FROM chapters
+WHERE id = ? LIMIT 1;
+
+-- name: ListChapterIDsByBook :many
+SELECT id FROM chapters
+WHERE book_id = ?
+ORDER BY chapter_index ASC;
+
+-- name: GetChaptersByIDs :many
+SELECT * FROM chapters WHERE id IN (sqlc.slice('ids'));
+
+-- name: DeleteChapter :exec
+DELETE FROM chapters
+WHERE id = ?;
+
+-- name: CreateAuthor :one
+INSERT INTO authors (
+    id, name, bio
+) VALUES (
+    ?, ?, ?
+)
+RETURNING *;
+
+-- name: GetAuthorByName :one
+SELECT * FROM authors
+WHERE name = ? LIMIT 1;
+
+-- name: GetAuthorById :one
+SELECT * FROM authors
+WHERE id = ? LIMIT 1;
+
+-- name: GetAuthorsByIDs :many
+SELECT * FROM authors WHERE id IN (sqlc.slice('ids'));
+
+-- name: CreateTag :one
+INSERT INTO tags (
+    id, name
+) VALUES (
+    ?, ?
+)
+RETURNING *;
+
+-- name: GetTagByName :one
+SELECT * FROM tags
+WHERE name = ? LIMIT 1;
+
+-- name: AddBookTag :exec
+INSERT INTO book_tags (
+    book_id, tag_id
+) VALUES (
+    ?, ?
+) ON CONFLICT DO NOTHING;
+
+-- name: SearchBookIDs :many
+SELECT b.id FROM books b
+WHERE
+    (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
+    (
+        sqlc.narg('search') IS NULL OR
+        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH sqlc.narg('search') ORDER BY rank)
+    ) AND
+    (sqlc.narg('filter_missing_metadata') IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
+    (sqlc.narg('filter_no_cover') IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
+    (sqlc.narg('filter_has_files') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (sqlc.narg('filter_has_author') IS NULL OR b.author_id IS NOT NULL) AND
+    (sqlc.narg('filter_has_series') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
+    (sqlc.narg('filter_has_tags') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
+    (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
+    (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
+    (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
+    (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
+    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
+    (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
+    (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
+    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
+    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
+    (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
+ORDER BY
+    b.download_count DESC,
+    b.average_rating DESC,
+    b.read_count DESC,
+    b.created_at DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: SearchBookIDsCursor :many
+SELECT b.id FROM books b
+WHERE
+    b.created_at < ? AND
+    (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
+    (
+        sqlc.narg('search') IS NULL OR
+        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH sqlc.narg('search') ORDER BY rank)
+    ) AND
+    (sqlc.narg('filter_missing_metadata') IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
+    (sqlc.narg('filter_no_cover') IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
+    (sqlc.narg('filter_has_files') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (sqlc.narg('filter_has_author') IS NULL OR b.author_id IS NOT NULL) AND
+    (sqlc.narg('filter_has_series') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
+    (sqlc.narg('filter_has_tags') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
+    (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
+    (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
+    (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
+    (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
+    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
+    (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
+    (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
+    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
+    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
+    (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
+ORDER BY
+    b.download_count DESC,
+    b.average_rating DESC,
+    b.read_count DESC,
+    b.created_at DESC
+LIMIT sqlc.arg('limit');
+
+-- name: GetBooksByIDs :many
+SELECT * FROM books WHERE id IN (sqlc.slice('ids'));
+
+-- name: GetRandomBookIDs :many
+SELECT b.id FROM books b
+WHERE (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id'))
+ORDER BY RANDOM()
+LIMIT sqlc.arg('limit');
+

@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+/api
+/cmd/api/dist/
+/web/dist/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+.claude/
+
+# Data & database
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary
+*.tmp
+*.log
+cookie.txt
+
+# Go
+*.exe
+*.test
+*.out
+*.epub
+*.pdf
