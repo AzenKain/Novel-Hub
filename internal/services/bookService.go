@@ -2,21 +2,18 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"html"
 	"io"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/url"
+	"novelhub/pkg/database"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
@@ -27,6 +24,8 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/jsonx"
+	"novelhub/pkg/netx"
 )
 
 var readerLinkAttrRegex = regexp.MustCompile(`(src|href)=["']([^"']+)["']`)
@@ -70,17 +69,17 @@ type bookService struct {
 	bookRepo    repositories.BookDBRepository
 	fileRepo    repositories.BookFileRepository
 	parsers     *bookparser.Registry
-	db          *sql.DB
+	txManager   database.TxManager
 	settings    SettingsService
 	permissions PermissionCache
 }
 
-func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, db *sql.DB, settings SettingsService, permissions PermissionCache) BookService {
+func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache) BookService {
 	return &bookService{
 		bookRepo:    repo,
 		fileRepo:    fileRepo,
 		parsers:     parsers,
-		db:          db,
+		txManager:   txManager,
 		settings:    settings,
 		permissions: permissions,
 	}
@@ -96,6 +95,9 @@ func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntit
 }
 
 func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -165,7 +167,7 @@ func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntit
 			Creator  string   `json:"creator"`
 			Creators []string `json:"creators"`
 		}
-		if err := sonic.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
+		if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
 			authorName := strings.TrimSpace(meta.Creator)
 			if authorName == "" && len(meta.Creators) > 0 {
 				authorName = strings.Join(meta.Creators, ", ")
@@ -349,7 +351,7 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 	if meta.MetadataJSON != "" {
 		book.MetadataJSON = &meta.MetadataJSON
 	} else if book.MetadataJSON == nil || *book.MetadataJSON == "" {
-		fallbackJSON, _ := sonic.MarshalString(map[string]string{
+		fallbackJSON, _ := jsonx.MarshalString(map[string]string{
 			"title":  book.Title,
 			"format": file.Format,
 		})
@@ -363,7 +365,7 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		}
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -404,91 +406,6 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 	s.syncParsedMetadata(ctx, txRepo, book.ID, meta)
 
 	return tx.Commit()
-}
-
-func ensureAuthor(ctx context.Context, repo repositories.BookDBRepository, name string) (string, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return "", nil
-	}
-	author, err := repo.GetAuthorByName(ctx, name)
-	if err == nil && author != nil {
-		return author.ID, nil
-	}
-	newAuthorID := uuid.Must(uuid.NewV7()).String()
-	if err := repo.CreateAuthor(ctx, &models.AuthorEntity{
-		ID:   newAuthorID,
-		Name: name,
-	}); err != nil {
-		return "", err
-	}
-	return newAuthorID, nil
-}
-
-func mergeBookMetadataJSON(existing *string, req *request.UpdateBookMetadataDto) (string, error) {
-	metaMap := map[string]interface{}{}
-	if existing != nil && strings.TrimSpace(*existing) != "" {
-		_ = sonic.UnmarshalString(*existing, &metaMap)
-	}
-	setStringMetadata(metaMap, "title", req.Title)
-	setStringMetadata(metaMap, "creator", req.Author)
-	setStringMetadata(metaMap, "description", req.Description)
-	setStringMetadata(metaMap, "publisher", req.Publisher)
-	setStringMetadata(metaMap, "language", req.Language)
-	setStringMetadata(metaMap, "date", req.Date)
-	setStringMetadata(metaMap, "series", req.Series)
-	setStringMetadata(metaMap, "seriesIndex", req.SeriesIndex)
-	if len(req.Subjects) > 0 {
-		metaMap["subject"] = req.Subjects
-	} else {
-		delete(metaMap, "subject")
-	}
-
-	rawMeta, _ := metaMap["meta"].([]interface{})
-	rawMeta = upsertMetaValue(rawMeta, "calibre:series", req.Series)
-	rawMeta = upsertMetaValue(rawMeta, "calibre:series_index", req.SeriesIndex)
-	if len(rawMeta) > 0 {
-		metaMap["meta"] = rawMeta
-	} else {
-		delete(metaMap, "meta")
-	}
-	return sonic.MarshalString(metaMap)
-}
-
-func setStringMetadata(metaMap map[string]interface{}, key string, value string) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		delete(metaMap, key)
-		return
-	}
-	metaMap[key] = value
-}
-
-func upsertMetaValue(rawMeta []interface{}, name string, value string) []interface{} {
-	value = strings.TrimSpace(value)
-	for index, item := range rawMeta {
-		m, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		itemName, _ := m["name"].(string)
-		if itemName == "" {
-			itemName, _ = m["Name"].(string)
-		}
-		if itemName != name {
-			continue
-		}
-		if value == "" {
-			return append(rawMeta[:index], rawMeta[index+1:]...)
-		}
-		m["name"] = name
-		m["content"] = value
-		return rawMeta
-	}
-	if value == "" {
-		return rawMeta
-	}
-	return append(rawMeta, map[string]interface{}{"name": name, "content": value})
 }
 
 func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.BookDBRepository, bookID string, meta *bookparser.BookMetadata) {
@@ -564,11 +481,17 @@ func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.
 }
 
 func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	return s.bookRepo.SearchFTS(ctx, query, limit, offset)
 }
 
 func (s *bookService) GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error) {
-	return s.bookRepo.GetDuplicateFiles(ctx)
+	return s.bookRepo.GetDuplicateFiles(ctx, 1000, 0)
 }
 
 func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *request.UpdateBookMetadataDto) error {
@@ -577,7 +500,7 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		return err
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -757,7 +680,7 @@ func (s *bookService) parseFileChapters(file *models.BookFileEntity) ([]*models.
 	for _, ch := range spine {
 		contentPath := ch.ContentPath
 		chapters = append(chapters, &models.ChapterEntity{
-			ID:           fileChapterID(file.ID, ch.Index),
+			ID:           file.ID + ":" + strconv.Itoa(ch.Index),
 			BookID:       file.BookID,
 			Title:        ch.Title,
 			ContentPath:  &contentPath,
@@ -767,18 +690,7 @@ func (s *bookService) parseFileChapters(file *models.BookFileEntity) ([]*models.
 	return chapters, nil
 }
 
-func fileChapterID(fileID string, index int) string {
-	return fileID + ":" + strconv.Itoa(index)
-}
 
-func fileChapterIndex(fileID string, chapterID string) (int, bool) {
-	prefix := fileID + ":"
-	if !strings.HasPrefix(chapterID, prefix) {
-		return 0, false
-	}
-	index, err := strconv.Atoi(strings.TrimPrefix(chapterID, prefix))
-	return index, err == nil
-}
 
 func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapterID string, fileID string) (string, error) {
 	file, err := s.GetBookFile(ctx, bookID, fileID)
@@ -850,61 +762,7 @@ func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapter
 	return rewriteReaderHTML(content, bookID, contentPath, fileID), nil
 }
 
-func rawFileReaderHTML(bookID string, fileID string, filePath string) string {
-	sourceURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/file?file_id=` + url.QueryEscape(fileID)
-	title := html.EscapeString(bookparser.TitleFromPath(filePath))
-	return `<div class="novelhub-raw-reader" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"><iframe title="` + title + `" src="` + sourceURL + `" style="width: 100%; height: 100%; border: 0; background: #fff;" loading="eager"></iframe></div>`
-}
 
-func rewriteReaderHTML(content string, bookID string, contentPath string, fileID string) string {
-	baseDir := filepath.ToSlash(filepath.Dir(contentPath))
-	if baseDir == "." {
-		baseDir = ""
-	}
-
-	rewritten := readerLinkAttrRegex.ReplaceAllStringFunc(content, func(match string) string {
-		matches := readerLinkAttrRegex.FindStringSubmatch(match)
-		if len(matches) < 3 {
-			return match
-		}
-
-		attr := matches[1]
-		value := matches[2]
-		if strings.HasPrefix(value, "http://") ||
-			strings.HasPrefix(value, "https://") ||
-			strings.HasPrefix(value, "data:") ||
-			strings.HasPrefix(value, "#") {
-			return match
-		}
-
-		resolved := filepath.ToSlash(filepath.Join(baseDir, value))
-		assetURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/asset/` + escapeAssetPath(resolved)
-		if fileID != "" {
-			assetURL += `?file_id=` + url.QueryEscape(fileID)
-		}
-		return attr + `="` + assetURL + `"`
-	})
-
-	// Scope inline CSS inside <style> tags to avoid bleeding layout styles into the global document
-	rewritten = styleBlockRegex.ReplaceAllStringFunc(rewritten, func(match string) string {
-		submatches := styleBlockRegex.FindStringSubmatch(match)
-		if len(submatches) < 4 {
-			return match
-		}
-		rewrittenCSS := scopeReaderCSS(submatches[2])
-		return submatches[1] + rewrittenCSS + submatches[3]
-	})
-
-	return rewritten
-}
-
-func escapeAssetPath(assetPath string) string {
-	parts := strings.Split(filepath.ToSlash(assetPath), "/")
-	for i, part := range parts {
-		parts[i] = url.PathEscape(part)
-	}
-	return strings.Join(parts, "/")
-}
 
 func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error) {
 	file, err := s.GetBookFile(ctx, bookID, fileID)
@@ -941,107 +799,6 @@ func (s *bookService) ListImages(ctx context.Context, bookID string, fileID stri
 		return []string{}, nil
 	}
 	return parser.ListImages(file.Path)
-}
-
-func scopeReaderCSS(css string) string {
-	var out strings.Builder
-	for i := 0; i < len(css); {
-		openRel := strings.IndexByte(css[i:], '{')
-		if openRel < 0 {
-			out.WriteString(css[i:])
-			break
-		}
-		open := i + openRel
-		close := matchingCSSBrace(css, open)
-		if close < 0 {
-			out.WriteString(css[i:])
-			break
-		}
-
-		selector := css[i:open]
-		selectorTrimmed := strings.TrimSpace(selector)
-		out.WriteString(scopeReaderSelectorList(selector))
-		out.WriteByte('{')
-		block := css[open+1 : close]
-		if readerCSSAtRuleScopesChildren(selectorTrimmed) {
-			out.WriteString(scopeReaderCSS(block))
-		} else {
-			out.WriteString(block)
-		}
-		out.WriteByte('}')
-		i = close + 1
-	}
-	return out.String()
-}
-
-func matchingCSSBrace(css string, open int) int {
-	depth := 0
-	for i := open; i < len(css); i++ {
-		switch css[i] {
-		case '{':
-			depth++
-		case '}':
-			depth--
-			if depth == 0 {
-				return i
-			}
-		}
-	}
-	return -1
-}
-
-func scopeReaderSelectorList(selector string) string {
-	trimmed := strings.TrimSpace(selector)
-	if strings.HasPrefix(trimmed, "@") {
-		return selector
-	}
-	parts := strings.Split(selector, ",")
-	for i, part := range parts {
-		parts[i] = scopeReaderSelector(part)
-	}
-	return strings.Join(parts, ",")
-}
-
-func scopeReaderSelector(selector string) string {
-	trimmed := strings.TrimSpace(selector)
-	if trimmed == "" {
-		return selector
-	}
-	lower := strings.ToLower(trimmed)
-	if strings.HasPrefix(lower, ".reader-content") {
-		return trimmed
-	}
-	for _, prefix := range []string{"body", "html"} {
-		if lower == prefix {
-			return ".reader-content"
-		}
-		if strings.HasPrefix(lower, prefix+" ") {
-			return ".reader-content " + strings.TrimSpace(trimmed[len(prefix):])
-		}
-		if strings.HasPrefix(lower, prefix+">") {
-			return ".reader-content " + strings.TrimSpace(trimmed[len(prefix):])
-		}
-		if strings.HasPrefix(lower, prefix+".") || strings.HasPrefix(lower, prefix+"#") || strings.HasPrefix(lower, prefix+":") {
-			restStart := len(prefix)
-			for restStart < len(trimmed) && trimmed[restStart] != ' ' && trimmed[restStart] != '>' && trimmed[restStart] != '+' && trimmed[restStart] != '~' {
-				restStart++
-			}
-			if restStart < len(trimmed) {
-				return ".reader-content " + strings.TrimSpace(trimmed[restStart:])
-			}
-			return ".reader-content"
-		}
-	}
-	return ".reader-content " + trimmed
-}
-
-func readerCSSAtRuleScopesChildren(selector string) bool {
-	lower := strings.ToLower(strings.TrimSpace(selector))
-	return strings.HasPrefix(lower, "@media") ||
-		strings.HasPrefix(lower, "@supports") ||
-		strings.HasPrefix(lower, "@container") ||
-		strings.HasPrefix(lower, "@layer") ||
-		strings.HasPrefix(lower, "@scope")
 }
 
 func (s *bookService) UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error) {
@@ -1171,18 +928,15 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if parsed.Scheme != "http" && parsed.Scheme != "https" {
 			return nil, "", fmt.Errorf("cover URL must use http or https scheme")
 		}
-		if isPrivateHost(parsed.Hostname()) {
-			return nil, "", fmt.Errorf("cover URL must not point to a private address")
-		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, input.CoverURL, nil)
 		if err != nil {
 			return nil, "", err
 		}
-		client := http.Client{Timeout: 15 * time.Second}
+		client := netx.NewSafeHTTPClient(15 * time.Second)
 		resp, err := client.Do(req)
 		if err != nil {
-			return nil, "", err
+			return nil, "", fmt.Errorf("cover download blocked or failed: %w", err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
@@ -1214,105 +968,6 @@ func (s *bookService) updateCoverURL(ctx context.Context, bookID string, coverUR
 	return nil
 }
 
-func normalizeCoverExt(ext string) string {
-	ext = strings.ToLower(ext)
-	if !strings.HasPrefix(ext, ".") {
-		ext = "." + ext
-	}
-	if ext == ".jpeg" {
-		return ".jpg"
-	}
-	switch ext {
-	case ".jpg", ".png", ".webp", ".gif", ".bmp":
-		return ext
-	default:
-		return ".jpg"
-	}
-}
-
-func fallbackCoverFromImages(parser bookparser.Parser, filePath string) ([]byte, string, error) {
-	images, err := parser.ListImages(filePath)
-	if err != nil {
-		return nil, "", err
-	}
-	for _, imagePath := range images {
-		data, err := parser.GetAsset(filePath, imagePath)
-		if err != nil || len(data) == 0 {
-			continue
-		}
-		contentType := readerAssetContentType(imagePath)
-		if !isSupportedCoverContentType(contentType) {
-			contentType = http.DetectContentType(data)
-		}
-		if isSupportedCoverContentType(contentType) {
-			return data, contentType, nil
-		}
-	}
-	return nil, "", fmt.Errorf("no supported image cover found")
-}
-
-func coverExtFromContent(contentType string, data []byte) string {
-	contentType = strings.ToLower(contentType)
-	if !isSupportedCoverContentType(contentType) {
-		contentType = strings.ToLower(http.DetectContentType(data))
-	}
-	switch {
-	case strings.Contains(contentType, "png"):
-		return ".png"
-	case strings.Contains(contentType, "webp"):
-		return ".webp"
-	case strings.Contains(contentType, "gif"):
-		return ".gif"
-	case strings.Contains(contentType, "bmp"):
-		return ".bmp"
-	default:
-		return ".jpg"
-	}
-}
-
-func isSupportedCoverContentType(contentType string) bool {
-	contentType = strings.ToLower(contentType)
-	return strings.Contains(contentType, "jpeg") ||
-		strings.Contains(contentType, "jpg") ||
-		strings.Contains(contentType, "png") ||
-		strings.Contains(contentType, "webp") ||
-		strings.Contains(contentType, "gif") ||
-		strings.Contains(contentType, "bmp")
-}
-
-func readerAssetContentType(assetPath string) string {
-	switch strings.ToLower(filepath.Ext(assetPath)) {
-	case ".css":
-		return "text/css"
-	case ".html", ".xhtml":
-		return "text/html"
-	case ".jpg", ".jpeg":
-		return "image/jpeg"
-	case ".png":
-		return "image/png"
-	case ".gif":
-		return "image/gif"
-	case ".webp":
-		return "image/webp"
-	case ".bmp":
-		return "image/bmp"
-	case ".avif":
-		return "image/avif"
-	case ".svg":
-		return "image/svg+xml"
-	case ".js":
-		return "application/javascript"
-	case ".woff":
-		return "font/woff"
-	case ".woff2":
-		return "font/woff2"
-	case ".ttf":
-		return "font/ttf"
-	default:
-		return "application/octet-stream"
-	}
-}
-
 func (s *bookService) ArchiveBook(ctx context.Context, id string, archived bool) error {
 	book, err := s.bookRepo.GetBook(ctx, id)
 	if err != nil {
@@ -1331,31 +986,4 @@ func (s *bookService) DeleteBook(ctx context.Context, id string) error {
 		log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book files")
 	}
 	return s.bookRepo.DeleteBook(ctx, id)
-}
-
-func isPrivateHost(host string) bool {
-	if host == "" {
-		return true
-	}
-	lower := strings.ToLower(host)
-	if lower == "localhost" {
-		return true
-	}
-	ips, err := net.LookupHost(host)
-	if err != nil {
-		return false
-	}
-	for _, ipStr := range ips {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			continue
-		}
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return true
-		}
-		if ip.Equal(net.IPv4(169, 254, 169, 254)) {
-			return true
-		}
-	}
-	return false
 }

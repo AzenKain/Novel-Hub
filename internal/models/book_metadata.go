@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
 )
@@ -31,6 +32,28 @@ func (e *SeriesEntities) FromSqlc(rows []sqlc.Series) []*SeriesEntity {
 	return slice
 }
 
+func (e *SeriesEntity) ToResponse() *response.SeriesResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.SeriesResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		CreatedAt: e.CreatedAt,
+	}
+}
+
+func SeriesEntitiesToResponse(entities []*SeriesEntity) []*response.SeriesResponse {
+	out := make([]*response.SeriesResponse, 0, len(entities))
+	for _, s := range entities {
+		if s == nil {
+			continue
+		}
+		out = append(out, s.ToResponse())
+	}
+	return out
+}
+
 type PublisherEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -53,6 +76,28 @@ func (e *PublisherEntities) FromSqlc(rows []sqlc.Publisher) []*PublisherEntity {
 		slice[i] = flat[i].FromSqlc(res)
 	}
 	return slice
+}
+
+func (e *PublisherEntity) ToResponse() *response.PublisherResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.PublisherResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		CreatedAt: e.CreatedAt,
+	}
+}
+
+func PublisherEntitiesToResponse(entities []*PublisherEntity) []*response.PublisherResponse {
+	out := make([]*response.PublisherResponse, 0, len(entities))
+	for _, p := range entities {
+		if p == nil {
+			continue
+		}
+		out = append(out, p.ToResponse())
+	}
+	return out
 }
 
 type LanguageEntity struct {
@@ -79,11 +124,56 @@ func (e *LanguageEntities) FromSqlc(rows []sqlc.Language) []*LanguageEntity {
 	return slice
 }
 
+func (e *LanguageEntity) ToResponse() *response.LanguageResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.LanguageResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		CreatedAt: e.CreatedAt,
+	}
+}
+
+func LanguageEntitiesToResponse(entities []*LanguageEntity) []*response.LanguageResponse {
+	out := make([]*response.LanguageResponse, 0, len(entities))
+	for _, l := range entities {
+		if l == nil {
+			continue
+		}
+		out = append(out, l.ToResponse())
+	}
+	return out
+}
+
 type MetadataCountEntity struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	BookCount int64  `json:"bookCount"`
 	CoverURL  string `json:"coverUrl,omitempty"`
+}
+
+func (e *MetadataCountEntity) ToResponse() *response.MetadataCountResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.MetadataCountResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		BookCount: e.BookCount,
+		CoverURL:  e.CoverURL,
+	}
+}
+
+func MetadataCountEntitiesToResponse(entities []*MetadataCountEntity) []*response.MetadataCountResponse {
+	out := make([]*response.MetadataCountResponse, 0, len(entities))
+	for _, m := range entities {
+		if m == nil {
+			continue
+		}
+		out = append(out, m.ToResponse())
+	}
+	return out
 }
 
 type AuthorEntity struct {
@@ -114,6 +204,30 @@ func (e *AuthorEntities) FromSqlc(rows []sqlc.Author) []*AuthorEntity {
 	return slice
 }
 
+func (e *AuthorEntity) ToResponse() *response.AuthorResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.AuthorResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		Bio:       e.Bio,
+		CreatedAt: e.CreatedAt,
+		UpdatedAt: e.UpdatedAt,
+	}
+}
+
+func AuthorEntitiesToResponse(entities []*AuthorEntity) []*response.AuthorResponse {
+	out := make([]*response.AuthorResponse, 0, len(entities))
+	for _, a := range entities {
+		if a == nil {
+			continue
+		}
+		out = append(out, a.ToResponse())
+	}
+	return out
+}
+
 type TagEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -136,4 +250,26 @@ func (e *TagEntities) FromSqlc(rows []sqlc.Tag) []*TagEntity {
 		slice[i] = flat[i].FromSqlc(res)
 	}
 	return slice
+}
+
+func (e *TagEntity) ToResponse() *response.TagResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.TagResponse{
+		ID:        e.ID,
+		Name:      e.Name,
+		CreatedAt: e.CreatedAt,
+	}
+}
+
+func TagEntitiesToResponse(entities []*TagEntity) []*response.TagResponse {
+	out := make([]*response.TagResponse, 0, len(entities))
+	for _, t := range entities {
+		if t == nil {
+			continue
+		}
+		out = append(out, t.ToResponse())
+	}
+	return out
 }

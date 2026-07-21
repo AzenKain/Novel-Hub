@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
 )
@@ -37,4 +38,30 @@ func (e *ChapterEntities) FromSqlc(rows []sqlc.Chapter) []*ChapterEntity {
 		slice[i] = flat[i].FromSqlc(res)
 	}
 	return slice
+}
+
+func (e *ChapterEntity) ToResponse() *response.ChapterResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.ChapterResponse{
+		ID:           e.ID,
+		BookID:       e.BookID,
+		Title:        e.Title,
+		ContentPath:  e.ContentPath,
+		ChapterIndex: e.ChapterIndex,
+		CreatedAt:    e.CreatedAt,
+		UpdatedAt:    e.UpdatedAt,
+	}
+}
+
+func ChapterEntitiesToResponse(entities []*ChapterEntity) []*response.ChapterResponse {
+	out := make([]*response.ChapterResponse, 0, len(entities))
+	for _, c := range entities {
+		if c == nil {
+			continue
+		}
+		out = append(out, c.ToResponse())
+	}
+	return out
 }

@@ -2,50 +2,54 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"crypto/sha256"
-	"encoding/hex"
-
 	"github.com/google/uuid"
 
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/apperrors"
+	"novelhub/pkg/database"
 )
 
 type FeatureService interface {
-	GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error)
-	CreateCollection(ctx context.Context, name string, userID int64) (*models.CollectionEntity, error)
-	UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error)
+	GetLibraryStats(ctx context.Context) (*response.LibraryStatsResponse, error)
+	CreateCollection(ctx context.Context, name string, userID int64) (*response.CollectionResponse, error)
+	UpdateCollection(ctx context.Context, id, name string, userID int64) (*response.CollectionResponse, error)
 	DeleteCollection(ctx context.Context, id string, userID int64) error
-	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error)
-	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error)
-	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*models.ReadingActivityEntity, error)
-	GetBookReadStats(ctx context.Context, bookID string) (*models.BookReadStatsEntity, error)
+	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error)
+	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error)
+	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error)
+	GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error)
 	RecordDownload(ctx context.Context, bookID string) error
-	GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error)
-	GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error)
-	GetBookEngagementStats(ctx context.Context, bookID string) (*models.BookEngagementStatsEntity, error)
-	RecordShare(ctx context.Context, input models.ShareInput) (*models.BookSocialStatsEntity, error)
-	SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*models.BookmarkEntity, error)
+	GetBookDownloadStats(ctx context.Context, bookID string) (*response.BookDownloadStatsResponse, error)
+	GetBookSocialStats(ctx context.Context, bookID string) (*response.BookSocialStatsResponse, error)
+	GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error)
+	RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error)
+	SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*response.BookmarkResponse, error)
 	GetBookmarkedBooks(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
-	GetBookUserState(ctx context.Context, userID int64, bookID string) (*models.BookUserStateEntity, error)
-	UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review string) (*models.BookReviewEntity, error)
+	GetBookUserState(ctx context.Context, userID int64, bookID string) (*response.BookUserStateResponse, error)
+	UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review string) (*response.BookReviewResponse, error)
 	DeleteBookReview(ctx context.Context, userID int64, bookID string) error
 	DeleteReviewByAdmin(ctx context.Context, targetUserID int64, bookID string) error
-	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error)
-	ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error)
-	GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error)
+	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*response.BookReviewResponse, error)
+	ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error)
+	GetBookRatingSummary(ctx context.Context, bookID string) (*response.BookRatingSummaryResponse, error)
 	AddBookToCollection(ctx context.Context, userID int64, collectionID string, bookID string) error
 	RemoveBookFromCollection(ctx context.Context, userID int64, collectionID string, bookID string) error
 
 	PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool
 	PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool
 	ShareActorKey(clientID string, ip string, userAgent string) string
+	RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64) error
+	GetReadingHeatmap(ctx context.Context, userID int64) (map[string]map[string]int64, error)
 }
 
 type featureService struct {
@@ -53,6 +57,7 @@ type featureService struct {
 	bookRepo    repositories.BookDBRepository
 	settings    SettingsService
 	permissions PermissionCache
+	txManager   database.TxManager
 	activityMu  sync.Mutex
 }
 
@@ -61,39 +66,59 @@ const (
 	shareCountWindow  = time.Hour
 )
 
-func NewFeatureService(repo repositories.FeatureRepository, bookRepo repositories.BookDBRepository, settings SettingsService, permissions PermissionCache) FeatureService {
-	return &featureService{repo: repo, bookRepo: bookRepo, settings: settings, permissions: permissions}
+func NewFeatureService(repo repositories.FeatureRepository, bookRepo repositories.BookDBRepository, settings SettingsService, permissions PermissionCache, txManager database.TxManager) FeatureService {
+	return &featureService{repo: repo, bookRepo: bookRepo, settings: settings, permissions: permissions, txManager: txManager}
 }
 
-func (s *featureService) GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error) {
-	return s.repo.GetLibraryStats(ctx)
+func (s *featureService) GetLibraryStats(ctx context.Context) (*response.LibraryStatsResponse, error) {
+	stats, err := s.repo.GetLibraryStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stats.ToResponse(), nil
 }
 
-func (s *featureService) CreateCollection(ctx context.Context, name string, userID int64) (*models.CollectionEntity, error) {
+func (s *featureService) CreateCollection(ctx context.Context, name string, userID int64) (*response.CollectionResponse, error) {
 	id := uuid.Must(uuid.NewV7()).String()
-	return s.repo.CreateCollection(ctx, id, name, userID)
+	col, err := s.repo.CreateCollection(ctx, id, name, userID)
+	if err != nil {
+		return nil, err
+	}
+	return col.ToResponse(), nil
 }
 
-func (s *featureService) UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error) {
-	return s.repo.UpdateCollection(ctx, id, name, userID)
+func (s *featureService) UpdateCollection(ctx context.Context, id, name string, userID int64) (*response.CollectionResponse, error) {
+	col, err := s.repo.UpdateCollection(ctx, id, name, userID)
+	if err != nil {
+		return nil, err
+	}
+	return col.ToResponse(), nil
 }
 
 func (s *featureService) DeleteCollection(ctx context.Context, id string, userID int64) error {
 	return s.repo.DeleteCollection(ctx, id, userID)
 }
 
-func (s *featureService) GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error) {
+func (s *featureService) GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	return s.repo.GetUserCollections(ctx, userID, cursorCreatedAt, limit)
+	cols, err := s.repo.GetUserCollections(ctx, userID, cursorCreatedAt, limit)
+	if err != nil {
+		return nil, err
+	}
+	return models.CollectionEntitiesToResponse(cols), nil
 }
 
-func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error) {
-	return s.repo.GetRecentReadingHistory(ctx, userID, cursor, limit)
+func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error) {
+	history, err := s.repo.GetRecentReadingHistory(ctx, userID, cursor, limit)
+	if err != nil {
+		return nil, err
+	}
+	return models.ReadingHistoryEntitiesToResponse(history), nil
 }
 
-func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*models.ReadingActivityEntity, error) {
+func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error) {
 	if strings.TrimSpace(input.BookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
@@ -104,8 +129,15 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 	s.activityMu.Lock()
 	defer s.activityMu.Unlock()
 
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := s.repo.WithTx(tx)
+
 	now := time.Now().UTC()
-	existing, err := s.repo.GetReadingProgress(ctx, input.UserID, input.BookID)
+	existing, err := txRepo.GetReadingProgress(ctx, input.UserID, input.BookID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,30 +178,38 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 		LastCountedAt:      lastCountedAt,
 	}
 
-	saved, err := s.repo.UpsertReadingProgress(ctx, progress)
+	saved, err := txRepo.UpsertReadingProgress(ctx, progress)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.repo.UpsertBookReadStats(ctx, input.BookID, 1, qualifiedDelta, lastCountedAt); err != nil {
+	if err := txRepo.UpsertBookReadStats(ctx, input.BookID, 1, qualifiedDelta, lastCountedAt); err != nil {
 		return nil, err
 	}
-	stats, err := s.repo.GetBookReadStats(ctx, input.BookID)
+	stats, err := txRepo.GetBookReadStats(ctx, input.BookID)
 	if err != nil {
 		return nil, err
 	}
-	return &models.ReadingActivityEntity{
+	res := &models.ReadingActivityEntity{
 		Progress:        saved,
 		Stats:           stats,
 		Counted:         counted,
 		CooldownSeconds: int64(readCountCooldown.Seconds()),
-	}, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return res.ToResponse(), nil
 }
 
-func (s *featureService) GetBookReadStats(ctx context.Context, bookID string) (*models.BookReadStatsEntity, error) {
+func (s *featureService) GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	return s.repo.GetBookReadStats(ctx, bookID)
+	stats, err := s.repo.GetBookReadStats(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return stats.ToResponse(), nil
 }
 
 func (s *featureService) RecordDownload(ctx context.Context, bookID string) error {
@@ -179,21 +219,29 @@ func (s *featureService) RecordDownload(ctx context.Context, bookID string) erro
 	return s.repo.UpsertBookDownloadStats(ctx, bookID, 1)
 }
 
-func (s *featureService) GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error) {
+func (s *featureService) GetBookDownloadStats(ctx context.Context, bookID string) (*response.BookDownloadStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	return s.repo.GetBookDownloadStats(ctx, bookID)
+	stats, err := s.repo.GetBookDownloadStats(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return stats.ToResponse(), nil
 }
 
-func (s *featureService) GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error) {
+func (s *featureService) GetBookSocialStats(ctx context.Context, bookID string) (*response.BookSocialStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	return s.repo.GetBookSocialStats(ctx, bookID)
+	stats, err := s.repo.GetBookSocialStats(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return stats.ToResponse(), nil
 }
 
-func (s *featureService) GetBookEngagementStats(ctx context.Context, bookID string) (*models.BookEngagementStatsEntity, error) {
+func (s *featureService) GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
@@ -209,15 +257,16 @@ func (s *featureService) GetBookEngagementStats(ctx context.Context, bookID stri
 	if err != nil {
 		return nil, err
 	}
-	return &models.BookEngagementStatsEntity{
+	entity := &models.BookEngagementStatsEntity{
 		BookID:        bookID,
 		SocialStats:   socialStats,
 		DownloadStats: downloadStats,
 		ReadStats:     readStats,
-	}, nil
+	}
+	return entity.ToResponse(), nil
 }
 
-func (s *featureService) RecordShare(ctx context.Context, input models.ShareInput) (*models.BookSocialStatsEntity, error) {
+func (s *featureService) RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error) {
 	bookID := strings.TrimSpace(input.BookID)
 	if bookID == "" {
 		return nil, fmt.Errorf("bookId is required")
@@ -231,26 +280,45 @@ func (s *featureService) RecordShare(ctx context.Context, input models.ShareInpu
 		occurredAt = time.Now().UTC()
 	}
 	windowBucket := occurredAt.Unix() / int64(shareCountWindow.Seconds())
-	created, err := s.repo.CreateBookShareEvent(ctx, bookID, actorKey, windowBucket)
+
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := s.repo.WithTx(tx)
+
+	created, err := txRepo.CreateBookShareEvent(ctx, bookID, actorKey, windowBucket)
 	if err != nil {
 		return nil, err
 	}
 	if created {
-		if err := s.repo.UpsertBookShareStats(ctx, bookID, 1); err != nil {
+		if err := txRepo.UpsertBookShareStats(ctx, bookID, 1); err != nil {
 			return nil, err
 		}
 	}
-	return s.repo.GetBookSocialStats(ctx, bookID)
+	stats, err := txRepo.GetBookSocialStats(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return stats.ToResponse(), nil
 }
 
-func (s *featureService) SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*models.BookmarkEntity, error) {
+func (s *featureService) SetBookmark(ctx context.Context, userID int64, bookID string, bookmarked bool) (*response.BookmarkResponse, error) {
 	if userID <= 0 {
 		return nil, fmt.Errorf("userId is required")
 	}
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	return s.repo.SetBookmark(ctx, userID, bookID, bookmarked)
+	bm, err := s.repo.SetBookmark(ctx, userID, bookID, bookmarked)
+	if err != nil {
+		return nil, err
+	}
+	return bm.ToResponse(), nil
 }
 
 func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
@@ -276,7 +344,7 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, c
 	return books, nil
 }
 
-func (s *featureService) GetBookUserState(ctx context.Context, userID int64, bookID string) (*models.BookUserStateEntity, error) {
+func (s *featureService) GetBookUserState(ctx context.Context, userID int64, bookID string) (*response.BookUserStateResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
@@ -311,7 +379,7 @@ func (s *featureService) GetBookUserState(ctx context.Context, userID int64, boo
 	if collections == nil {
 		collections = []string{}
 	}
-	return &models.BookUserStateEntity{
+	entity := &models.BookUserStateEntity{
 		BookID:        bookID,
 		Bookmarked:    bookmark != nil,
 		MyReview:      myReview,
@@ -320,10 +388,11 @@ func (s *featureService) GetBookUserState(ctx context.Context, userID int64, boo
 		DownloadStats: downloadStats,
 		ReadStats:     readStats,
 		Collections:   collections,
-	}, nil
+	}
+	return entity.ToResponse(), nil
 }
 
-func (s *featureService) UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review string) (*models.BookReviewEntity, error) {
+func (s *featureService) UpsertBookReview(ctx context.Context, userID int64, bookID string, rating int64, review string) (*response.BookReviewResponse, error) {
 	if userID <= 0 {
 		return nil, fmt.Errorf("userId is required")
 	}
@@ -337,7 +406,11 @@ func (s *featureService) UpsertBookReview(ctx context.Context, userID int64, boo
 	if value := strings.TrimSpace(review); value != "" {
 		reviewPtr = &value
 	}
-	return s.repo.UpsertBookReview(ctx, userID, bookID, rating, reviewPtr)
+	res, err := s.repo.UpsertBookReview(ctx, userID, bookID, rating, reviewPtr)
+	if err != nil {
+		return nil, err
+	}
+	return res.ToResponse(), nil
 }
 
 func (s *featureService) DeleteBookReview(ctx context.Context, userID int64, bookID string) error {
@@ -360,28 +433,40 @@ func (s *featureService) DeleteReviewByAdmin(ctx context.Context, targetUserID i
 	return s.repo.DeleteBookReview(ctx, targetUserID, bookID)
 }
 
-func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error) {
+func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	return s.repo.ListAllReviews(ctx, limit, offset)
+	reviews, err := s.repo.ListAllReviews(ctx, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return models.BookReviewEntitiesToResponse(reviews), nil
 }
 
-func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error) {
+func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*response.BookReviewResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
 	if limit <= 0 {
 		limit = 20
 	}
-	return s.repo.ListBookReviews(ctx, bookID, cursor, limit)
+	reviews, err := s.repo.ListBookReviews(ctx, bookID, cursor, limit)
+	if err != nil {
+		return nil, err
+	}
+	return models.BookReviewEntitiesToResponse(reviews), nil
 }
 
-func (s *featureService) GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error) {
+func (s *featureService) GetBookRatingSummary(ctx context.Context, bookID string) (*response.BookRatingSummaryResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	return s.repo.GetBookRatingSummary(ctx, bookID)
+	summary, err := s.repo.GetBookRatingSummary(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return summary.ToResponse(), nil
 }
 
 func shouldCountQualifiedRead(existing *models.ReadingProgressEntity, now time.Time) bool {
@@ -488,3 +573,32 @@ func (s *featureService) ShareActorKey(clientID string, ip string, userAgent str
 	return hex.EncodeToString(sum[:])
 }
 
+func (s *featureService) RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64) error {
+	_, err := s.repo.UpsertReadingSession(ctx, sqlc.UpsertReadingSessionParams{
+		UserID:          userID,
+		BookID:          bookID,
+		DurationSeconds: duration,
+		WordsRead:       words,
+	})
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to record reading session")
+	}
+	return nil
+}
+
+func (s *featureService) GetReadingHeatmap(ctx context.Context, userID int64) (map[string]map[string]int64, error) {
+	rows, err := s.repo.GetReadingHeatmap(ctx, userID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get reading heatmap")
+	}
+
+	result := make(map[string]map[string]int64)
+	for _, r := range rows {
+		dateStr := r.Date.Format("2006-01-02")
+		result[dateStr] = map[string]int64{
+			"duration": r.DurationSeconds,
+			"words":    r.WordsRead,
+		}
+	}
+	return result, nil
+}

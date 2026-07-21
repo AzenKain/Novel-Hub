@@ -14,10 +14,11 @@ import (
 type LibraryRepository interface {
 	CreateLibrary(ctx context.Context, library *models.LibraryEntity) error
 	GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error)
-	ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error)
+	ListLibraries(ctx context.Context, limit, offset int64) ([]*models.LibraryEntity, error)
 	GetLibrariesByIDs(ctx context.Context, ids []string) ([]*models.LibraryEntity, error)
 	UpdateLibrary(ctx context.Context, library *models.LibraryEntity) error
 	DeleteLibrary(ctx context.Context, id string) error
+	WithTx(tx *sql.Tx) LibraryRepository
 }
 
 type libraryRepository struct {
@@ -31,6 +32,17 @@ func NewLibraryRepository(db *sql.DB, c cache.Cache) LibraryRepository {
 		db:      db,
 		queries: sqlc.New(db),
 		c:       c,
+	}
+}
+
+func (r *libraryRepository) WithTx(tx *sql.Tx) LibraryRepository {
+	if tx == nil {
+		return r
+	}
+	return &libraryRepository{
+		db:      r.db,
+		queries: r.queries.WithTx(tx),
+		c:       r.c,
 	}
 }
 
@@ -72,7 +84,7 @@ func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.
 	return library, nil
 }
 
-func (r *libraryRepository) ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error) {
+func (r *libraryRepository) ListLibraries(ctx context.Context, limit, offset int64) ([]*models.LibraryEntity, error) {
 	key := "library:list"
 	if r.c != nil {
 		var ids []string
@@ -81,7 +93,7 @@ func (r *libraryRepository) ListLibraries(ctx context.Context) ([]*models.Librar
 		}
 	}
 
-	ids, err := r.queries.ListLibraryIDs(ctx)
+	ids, err := r.queries.ListLibraryIDs(ctx, sqlc.ListLibraryIDsParams{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

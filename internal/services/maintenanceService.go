@@ -8,6 +8,7 @@ import (
 
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/database"
 )
 
 type MaintenanceService interface {
@@ -17,16 +18,18 @@ type MaintenanceService interface {
 }
 
 type maintenanceService struct {
-	bookRepo repositories.BookDBRepository
-	fileRepo repositories.BookFileRepository
-	parsers  *bookparser.Registry
+	bookRepo  repositories.BookDBRepository
+	fileRepo  repositories.BookFileRepository
+	parsers   *bookparser.Registry
+	txManager database.TxManager
 }
 
-func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry) MaintenanceService {
+func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager) MaintenanceService {
 	return &maintenanceService{
-		bookRepo: bookRepo,
-		fileRepo: fileRepo,
-		parsers:  parsers,
+		bookRepo:  bookRepo,
+		fileRepo:  fileRepo,
+		parsers:   parsers,
+		txManager: txManager,
 	}
 }
 
@@ -128,7 +131,7 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 }
 
 func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
-	files, err := s.bookRepo.ListAllFiles(ctx)
+	files, err := s.bookRepo.ListAllFiles(ctx, 1000, 0)
 	if err != nil {
 		return err
 	}

@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
+	"novelhub/pkg/database"
+	"novelhub/pkg/apperrors"
 	"database/sql"
 	"errors"
 	"slices"
 	"strconv"
 	"time"
-
-	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
@@ -24,33 +24,33 @@ import (
 )
 
 type AuthService interface {
-	Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, *fiber.Error)
-	Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, *fiber.Error)
-	SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, *fiber.Error)
-	RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, *fiber.Error)
-	Logout(ctx context.Context, userID string) *fiber.Error
+	Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error)
+	Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, error)
+	SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error)
+	RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, error)
+	Logout(ctx context.Context, userID string) error
 }
 
 type authService struct {
 	userRepo     repositories.UserRepository
 	roleRepo     repositories.RoleRepository
 	settingsRepo repositories.SettingsRepository
-	db           *sql.DB
+	txManager database.TxManager
 	settings     SettingsService
 }
 
-func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, db *sql.DB, settingsRepo repositories.SettingsRepository, settings SettingsService) AuthService {
-	return &authService{userRepo: userRepo, roleRepo: roleRepo, db: db, settingsRepo: settingsRepo, settings: settings}
+func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, txManager database.TxManager, settingsRepo repositories.SettingsRepository, settings SettingsService) AuthService {
+	return &authService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager, settingsRepo: settingsRepo, settings: settings}
 }
 
-func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse, *fiber.Error) {
+func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse, error) {
 	jwtSecret, err := config.GetConfig("JWT_SECRET")
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Missing JWT_SECRET")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Missing JWT_SECRET")
 	}
 	jwtRefreshSecret, err := config.GetConfig("JWT_REFRESH_SECRET")
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Missing JWT_REFRESH_SECRET")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Missing JWT_REFRESH_SECRET")
 	}
 
 	roles := models.RolesEntityToRoleConstant(user.Roles)
@@ -77,35 +77,35 @@ func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse,
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claimsAccess)
 	access, err := accessToken.SignedString([]byte(jwtSecret))
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to sign access token")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to sign access token")
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claimsRefresh)
 	refresh, err := refreshToken.SignedString([]byte(jwtRefreshSecret))
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to sign refresh token")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to sign refresh token")
 	}
 
 	return &response.AuthResponse{AccessToken: access, RefreshToken: refresh}, nil
 }
 
-func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, *fiber.Error) {
+func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
 	if !constants.EMAIL_REGEX.MatchString(dto.Email) {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid email format")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
 
 	user, err := a.userRepo.GetByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Internal Server Error")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid email or password")
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid email or password")
 	}
 	if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
-		return nil, fiber.NewError(fiber.StatusForbidden, "User account is banned")
+		return nil, apperrors.New(apperrors.ErrForbidden, "User account is banned")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(dto.Password)); err != nil {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid email or password")
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid email or password")
 	}
 
 	tokens, tokenErr := a.genToken(user)
@@ -114,57 +114,57 @@ func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*resp
 	}
 
 	if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &tokens.RefreshToken); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to update refresh token")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
 	}
 
 	return tokens, nil
 }
 
-func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, *fiber.Error) {
+func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, error) {
 	if !constants.EMAIL_REGEX.MatchString(dto.Email) {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid email format")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
 	if err := constants.ValidatePassword(dto.Password); err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
 
 	settings, err := a.settings.Public(ctx)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to load settings")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load settings")
 	}
 	if !settings.RegistrationEnabled {
-		return nil, fiber.NewError(fiber.StatusForbidden, "Public registration is disabled")
+		return nil, apperrors.New(apperrors.ErrForbidden, "Public registration is disabled")
 	}
 
 	existing, err := a.userRepo.GetByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Internal Server Error")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if existing != nil {
-		return nil, fiber.NewError(fiber.StatusConflict, "User already exists")
+		return nil, apperrors.New(apperrors.ErrConflict, "User already exists")
 	}
 
 	autoIDs, err := a.roleRepo.GetAutoAssignRoleIDs(ctx)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get auto roles")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get auto roles")
 	}
 	var roles []*models.RoleEntity
 	if len(autoIDs) > 0 {
 		roles, err = a.roleRepo.GetByIDs(ctx, autoIDs)
 		if err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch roles")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to fetch roles")
 		}
 	} else {
 		role, err := a.roleRepo.GetByName(ctx, constants.RoleTypeUser.String())
 		if err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get default role")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get default role")
 		}
 		roles = []*models.RoleEntity{role}
 	}
 
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := a.txManager.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to start transaction")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -175,7 +175,7 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to hash password")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to hash password")
 	}
 	passwordHash := string(hashed)
 	var fullName *string
@@ -190,55 +190,51 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 		FullName:     convert.StrPtrToNullString(fullName),
 	})
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to create user")
 	}
 
 	user.Roles = make([]*models.RoleSimple, 0, len(roles))
 	for _, role := range roles {
 		if err := roleRepoTx.CreateUserRole(ctx, user.ID, role.ID); err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to assign roles")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to assign roles")
 		}
 		user.Roles = append(user.Roles, role.ToRoleSimple())
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to commit user registration")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit user registration")
 	}
 
 	return user.ToResponse(), nil
 }
 
-func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, *fiber.Error) {
+func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error) {
 	if a.settingsRepo == nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Settings repository not configured")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Settings repository not configured")
 	}
 	if a.settings != nil {
-		// Trust the service's notion of setup completion, which also accounts
-		// for whether an administrator account exists. This lets the wizard
-		// run again on databases left in an inconsistent state (flag set but no
-		// admin) instead of being permanently blocked.
 		if !a.settings.SetupRequired(ctx) {
-			return nil, fiber.NewError(fiber.StatusForbidden, "Setup has already been completed")
+			return nil, apperrors.New(apperrors.ErrForbidden, "Setup has already been completed")
 		}
 	} else {
 		completed, err := a.settingsRepo.GetSetupState(ctx, "completed")
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to check setup state")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to check setup state")
 		}
 		if completed == "true" {
-			return nil, fiber.NewError(fiber.StatusForbidden, "Setup has already been completed")
+			return nil, apperrors.New(apperrors.ErrForbidden, "Setup has already been completed")
 		}
 	}
 	if !constants.EMAIL_REGEX.MatchString(dto.Email) {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid email format")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
 	if err := constants.ValidatePassword(dto.Password); err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
 
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := a.txManager.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to start transaction")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -250,7 +246,7 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to hash password")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to hash password")
 	}
 	passwordHash := string(hashed)
 	var fullName *string
@@ -265,15 +261,15 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 		FullName:     convert.StrPtrToNullString(fullName),
 	})
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create root user")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to create root user")
 	}
 
 	adminRole, err := roleRepoTx.GetByName(ctx, constants.RoleTypeAdmin.String())
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get admin role")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get admin role")
 	}
 	if err := roleRepoTx.CreateUserRole(ctx, user.ID, adminRole.ID); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to assign admin role")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to assign admin role")
 	}
 	user.Roles = []*models.RoleSimple{{ID: adminRole.ID, Name: adminRole.Name}}
 
@@ -281,19 +277,19 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	for key, value := range settings {
 		data, err := jsonx.Marshal(value)
 		if err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to encode setting")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to encode setting")
 		}
 		if err := settingsRepoTx.Upsert(ctx, key, string(data)); err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to save setting")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to save setting")
 		}
 	}
 
 	if err := settingsRepoTx.UpsertSetupState(ctx, "completed", "true"); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to complete setup")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to complete setup")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to commit setup")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit setup")
 	}
 
 	if a.settings != nil {
@@ -348,20 +344,20 @@ func buildSetupSettings(dto *request.SetupDto) map[string]any {
 	return settings
 }
 
-func (a *authService) RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, *fiber.Error) {
-	id, err := strconv.ParseInt(userID, 10, 64)
-	if err != nil || id < 1 {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid user ID")
+func (a *authService) RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, error) {
+	id, err := convert.ParseID(userID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid user ID")
 	}
 	user, err := a.userRepo.GetByID(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Internal Server Error")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil || user.RefreshToken == "" || user.RefreshToken != refreshToken {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid refresh token")
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid refresh token")
 	}
 	if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
-		return nil, fiber.NewError(fiber.StatusForbidden, "User account is banned")
+		return nil, apperrors.New(apperrors.ErrForbidden, "User account is banned")
 	}
 
 	tokens, tokenErr := a.genToken(user)
@@ -369,20 +365,20 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 		return nil, tokenErr
 	}
 	if err := a.userRepo.UpdateRefreshToken(ctx, id, &tokens.RefreshToken); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to update refresh token")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
 	}
 
 	return tokens, nil
 }
 
-func (a *authService) Logout(ctx context.Context, userID string) *fiber.Error {
-	id, parseErr := strconv.ParseInt(userID, 10, 64)
-	if parseErr != nil || id < 1 {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid user ID")
+func (a *authService) Logout(ctx context.Context, userID string) error {
+	id, parseErr := convert.ParseID(userID)
+	if parseErr != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
 	}
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := a.txManager.BeginTx(ctx, nil)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to start transaction")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -391,17 +387,17 @@ func (a *authService) Logout(ctx context.Context, userID string) *fiber.Error {
 	userRepoTx := a.userRepo.WithTx(tx)
 	user, err := a.userRepo.GetByID(ctx, id)
 	if err != nil || user == nil {
-		return fiber.NewError(fiber.StatusNotFound, "User not found")
+		return apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
 
 	if err := userRepoTx.UpdateTokenVersion(ctx, id, int64(user.TokenVersion+1)); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to revoke session")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to revoke session")
 	}
 	if err := userRepoTx.UpdateRefreshToken(ctx, id, nil); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to clear refresh token")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to clear refresh token")
 	}
 	if err := tx.Commit(); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to commit logout")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to commit logout")
 	}
 	return nil
 }

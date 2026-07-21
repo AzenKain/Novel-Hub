@@ -35,3 +35,17 @@ type CollectionBookDto struct {
 	BookID string `json:"bookId" validate:"required"`
 }
 
+type CreateHighlightDto struct {
+	BookID      string  `json:"bookId" validate:"required"`
+	ChapterID   string  `json:"chapterId" validate:"required"`
+	TextContent string  `json:"textContent" validate:"required"`
+	StartIndex  int     `json:"startIndex" validate:"required,min=0"`
+	EndIndex    int     `json:"endIndex" validate:"required,gtfield=StartIndex"`
+	Color       string  `json:"color" validate:"required"`
+	Note        *string `json:"note,omitempty"`
+}
+
+type UpdateHighlightNoteDto struct {
+	Note  *string `json:"note,omitempty"`
+	Color string  `json:"color" validate:"required"`
+}

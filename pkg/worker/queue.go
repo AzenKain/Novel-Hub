@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// JobFunc is the signature for a background job
 type JobFunc func(ctx context.Context, jobID string, payload string) error
 
 type Job struct {
@@ -29,7 +28,7 @@ type Queue struct {
 func NewQueue(workers int) *Queue {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Queue{
-		jobs:    make(chan Job, 1000), // Buffer size 1000
+		jobs:    make(chan Job, 1000),
 		workers: workers,
 		ctx:     ctx,
 		cancel:  cancel,

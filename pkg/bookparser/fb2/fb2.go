@@ -9,10 +9,8 @@ import (
 	"io"
 	"os"
 	"strings"
-
-	"github.com/bytedance/sonic"
-
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/jsonx"
 )
 
 type Parser struct{}
@@ -122,7 +120,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 			meta.CoverType = contentType
 		}
 	}
-	metaJSON, _ := sonic.MarshalString(map[string]any{
+	metaJSON, _ := jsonx.MarshalString(map[string]any{
 		"title":       meta.Title,
 		"creator":     meta.Author,
 		"description": meta.Description,

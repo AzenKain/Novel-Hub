@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
@@ -63,7 +64,7 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 
 	content, err := h.bookService.GetChapterHTML(ctx, bookID, chapterID, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to read chapter content"})
+		return apperrors.HandleError(c, err)
 	}
 
 	c.Set("Content-Type", "text/html; charset=utf-8")
@@ -130,7 +131,7 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 
 	images, err := h.bookService.ListImages(ctx, bookID, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to list images"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: images})
@@ -155,7 +156,7 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 		defer f.Close()
 		input.UploadedData, err = io.ReadAll(f)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to read uploaded file"})
+			return apperrors.HandleError(c, err)
 		}
 		input.UploadedFileName = file.Filename
 	}

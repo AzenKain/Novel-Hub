@@ -9,7 +9,15 @@ import (
 	"novelhub/internal/services"
 )
 
-func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
+func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, highlightController *controllers.HighlightController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
+	// Highlights
+	highlightGroup := app.Group("/highlights", middlewares.JwtAccess(userRepo))
+	highlightGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
+	highlightGroup.Post("/", highlightController.CreateHighlight)
+	highlightGroup.Get("/", highlightController.GetHighlights)
+	highlightGroup.Put("/:id", highlightController.UpdateHighlightNote)
+	highlightGroup.Delete("/:id", highlightController.DeleteHighlight)
+
 	app.Get("/library/stats", featureController.GetLibraryStats)
 	app.Get("/reader/stats/:id", featureController.GetBookReadStats)
 	app.Get("/books/:id/download-stats", featureController.GetBookDownloadStats)
@@ -41,6 +49,12 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	readerHistoryGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
 	readerHistoryGroup.Get("/", featureController.GetRecentReadingHistory)
 	readerHistoryGroup.Post("/", featureController.RecordReadingActivity)
+
+	// Reading Stats & Heatmap
+	statsGroup := app.Group("/reader/stats", middlewares.JwtAccess(userRepo))
+	statsGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
+	statsGroup.Post("/session", featureController.RecordReadingSession)
+	statsGroup.Get("/heatmap", featureController.GetReadingHeatmap)
 
 	adminReviewGroup := app.Group("/admin/reviews", middlewares.JwtAccess(userRepo))
 	adminReviewGroup.Use(middlewares.RequirePermission(permissionCache, "book.review.delete"))

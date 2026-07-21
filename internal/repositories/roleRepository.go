@@ -9,6 +9,8 @@ import (
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
+
+	"golang.org/x/sync/singleflight"
 )
 
 type RoleRepository interface {
@@ -31,16 +33,18 @@ type RoleRepository interface {
 }
 
 type roleRepository struct {
-	q *sqlc.Queries
-	c cache.Cache
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sfg  *singleflight.Group
 }
 
 func NewRoleRepository(db sqlc.DBTX, c cache.Cache) RoleRepository {
-	return &roleRepository{q: sqlc.New(db), c: c}
+	return &roleRepository{q: sqlc.New(db), c: c, sfg: &singleflight.Group{}}
 }
 
 func (r *roleRepository) WithTx(tx *sql.Tx) RoleRepository {
-	return &roleRepository{q: r.q.WithTx(tx), c: r.c}
+	return &roleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: r.sfg}
 }
 
 func (r *roleRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.RoleEntity, error) {
@@ -134,8 +138,8 @@ func (r *roleRepository) GetByID(ctx context.Context, id int64) (*models.RoleEnt
 }
 
 func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.PermissionEntity, error) {
-	key := "permission:all"
-	if r.c != nil {
+	key := constants.CacheKeyPermissionAll
+	if r.c != nil && !r.inTx {
 		var keys []string
 		if err := r.c.Get(ctx, key, &keys); err == nil {
 			if result, ok := r.getPermissionsByKeys(ctx, keys); ok {
@@ -144,31 +148,38 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 		}
 	}
 
-	keyRows, err := r.q.ListPermissionKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(keyRows) == 0 {
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+	v, err, _ := r.sfg.Do(key, func() (interface{}, error) {
+		keyRows, err := r.q.ListPermissionKeys(ctx)
+		if err != nil {
+			return nil, err
 		}
-		return []*models.PermissionEntity{}, nil
-	}
 
-	rows, err := r.q.GetPermissionsByKeys(ctx, keyRows)
+		if len(keyRows) == 0 {
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+			}
+			return []*models.PermissionEntity{}, nil
+		}
+
+		rows, err := r.q.GetPermissionsByKeys(ctx, keyRows)
+		if err != nil {
+			return nil, err
+		}
+
+		out := (&models.PermissionEntities{}).FromSqlc(rows)
+		return out, nil
+	})
+	
 	if err != nil {
 		return nil, err
 	}
+	out := v.([]*models.PermissionEntity)
 
-	out := (&models.PermissionEntities{}).FromSqlc(rows)
-
-	keys := make([]string, len(out))
-	for i, entity := range out {
-		keys[i] = entity.Key
-	}
-
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
+		keys := make([]string, len(out))
+		for i, entity := range out {
+			keys[i] = entity.Key
+		}
 		_ = r.c.Set(ctx, key, keys, constants.ListCacheDuration)
 		r.cachePermissionEntities(ctx, out)
 	}
@@ -263,7 +274,7 @@ func (r *roleRepository) getPermissionsByKeys(ctx context.Context, keys []string
 	if len(keys) == 0 {
 		return []*models.PermissionEntity{}, true
 	}
-	if r.c == nil {
+	if r.c == nil || r.inTx {
 		return nil, false
 	}
 
@@ -438,20 +449,27 @@ func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.Ro
 }
 
 func (r *roleRepository) All(ctx context.Context) ([]*models.RoleEntity, error) {
-	key := "role:all"
-	if r.c != nil {
+	key := constants.CacheKeyRoleAll
+	if r.c != nil && !r.inTx {
 		var ids []int64
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetByIDs(ctx, ids)
 		}
 	}
 
-	dbIds, err := r.q.GetRoleIDs(ctx)
+	v, err, _ := r.sfg.Do(key, func() (interface{}, error) {
+		dbIds, err := r.q.GetRoleIDs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return dbIds, nil
+	})
 	if err != nil {
 		return nil, err
 	}
+	dbIds := v.([]int64)
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
 	}
 	return r.GetByIDs(ctx, dbIds)
@@ -463,8 +481,8 @@ func (r *roleRepository) CreateUserRole(ctx context.Context, userID, roleID int6
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return nil
 }
@@ -475,8 +493,8 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID int
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return nil
 }

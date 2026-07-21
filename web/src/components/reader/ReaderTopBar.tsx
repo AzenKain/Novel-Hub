@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { ChevronLeft, Menu, Settings } from "lucide-react";
+import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown } from "lucide-react";
 import React from "react";
 
 import { LanguageSwitcher } from "@/components/ui";
@@ -28,7 +28,16 @@ type ReaderTopBarProps = {
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
   resetSettings: () => void;
+  ttsSupported?: boolean;
+  ttsPlaying?: boolean;
+  ttsPaused?: boolean;
+  onTtsPlayPause?: () => void;
+  onTtsStop?: () => void;
+
+  autoScrollActive?: boolean;
+  onToggleAutoScroll?: () => void;
 };
+
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   t,
@@ -52,6 +61,13 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setMaxWidth,
   setReadingMode,
   resetSettings,
+  ttsSupported,
+  ttsPlaying,
+  ttsPaused,
+  onTtsPlayPause,
+  onTtsStop,
+  autoScrollActive,
+  onToggleAutoScroll,
 }) => (
   <header
     className={`absolute left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
@@ -84,6 +100,36 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         title={t("reader.next_chapter", "Next Chapter")}
       >
         <ChevronLeft className="h-5 w-5 rotate-180" />
+      </button>
+
+      {ttsSupported && (
+        <div className="flex items-center gap-1 mr-2 border-r border-base-300 pr-2">
+          <button
+            onClick={onTtsPlayPause}
+            className={`reader-control-btn btn btn-square btn-sm animate-none ${(ttsPlaying || ttsPaused) ? 'text-primary' : ''}`}
+            title={ttsPlaying ? t("reader.tts_pause", "Pause Reading") : t("reader.tts_play", "Read Aloud")}
+          >
+            {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          </button>
+          {(ttsPlaying || ttsPaused) && (
+            <button
+              onClick={onTtsStop}
+              className="reader-control-btn btn btn-square btn-sm animate-none text-error"
+              title={t("reader.tts_stop", "Stop Reading")}
+            >
+              <Square className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      
+      <button
+        onClick={onToggleAutoScroll}
+        className={`reader-control-btn btn btn-square btn-sm animate-none ${autoScrollActive ? 'text-primary' : ''}`}
+        title={t("reader.auto_scroll", "Auto Scroll")}
+      >
+        <ArrowDown className="h-5 w-5" />
       </button>
 
       <LanguageSwitcher className="dropdown-end" />

@@ -178,15 +178,19 @@ func (r *RamCache) GetOrFetch(ctx context.Context, key string, dest any, ttl tim
 		if fetchErr != nil {
 			return nil, fetchErr
 		}
-		_ = r.Set(ctx, key, val, ttl)
-		return val, nil
+		data, marshalErr := jsonx.Marshal(val)
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+		_ = r.items.SetWithTTL(key, data, int64(len(data)), ttl)
+		return data, nil
 	})
 	if err != nil {
 		return err
 	}
-	data, err := jsonx.Marshal(res)
-	if err != nil {
-		return err
+	data, ok := res.([]byte)
+	if !ok {
+		return errors.New("invalid cache payload")
 	}
 	return jsonx.Unmarshal(data, dest)
 }

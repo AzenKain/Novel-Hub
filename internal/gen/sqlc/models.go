@@ -164,6 +164,20 @@ type FtsMetadatum struct {
 	Languages   string `json:"languages"`
 }
 
+type Highlight struct {
+	ID          string         `json:"id"`
+	UserID      int64          `json:"user_id"`
+	BookID      string         `json:"book_id"`
+	ChapterID   string         `json:"chapter_id"`
+	TextContent string         `json:"text_content"`
+	StartIndex  int64          `json:"start_index"`
+	EndIndex    int64          `json:"end_index"`
+	Color       string         `json:"color"`
+	Note        sql.NullString `json:"note"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+}
+
 type Job struct {
 	ID          string         `json:"id"`
 	Type        string         `json:"type"`
@@ -223,6 +237,17 @@ type ReadingProgress struct {
 	LastOpenedAt       sql.NullTime    `json:"last_opened_at"`
 	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
 	UpdatedAt          sql.NullTime    `json:"updated_at"`
+}
+
+type ReadingSession struct {
+	ID              string       `json:"id"`
+	UserID          int64        `json:"user_id"`
+	BookID          string       `json:"book_id"`
+	DurationSeconds int64        `json:"duration_seconds"`
+	WordsRead       int64        `json:"words_read"`
+	SessionDate     time.Time    `json:"session_date"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
 }
 
 type Role struct {

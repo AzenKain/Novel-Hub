@@ -1,0 +1,42 @@
+# NovelHub Cursor Rules
+
+## Architecture & Code Structure Guidelines
+
+- **Controller Layer (`internal/controllers`)**:
+  - Handlers must only bind, validate via `pkg/validator` (`ValidateBodyDto`/`ValidateQueryDto`), call services, and return DTO response envelopes.
+  - Absolutely NO business logic or DB calls in controllers.
+
+- **Service Layer (`internal/services`)**:
+  - Input/output arguments must use DTOs defined in `internal/dtos` (`request/` and `response/`).
+  - Split large service files into domain sub-files (e.g. `bookService_reader.go`, `bookService_metadata.go`, `bookService_catalog.go`).
+  - Use `pkg/database/transaction.go` (`TxManager` or `repo.WithTx(tx)`) for multi-mutation atomic operations.
+  - Avoid 1-line wrapper functions around type conversions.
+
+- **Repository Layer (`internal/repositories`)**:
+  - Strictly enforce **Cache-by-IDs** pattern with `theine-go` RAM Cache + `singleflight`.
+  - Accept `sqlc` params, but ALWAYS convert & return domain models defined in `internal/models`.
+
+- **Domain Models (`internal/models`)**:
+  - Include `FromSqlc` and `ToResponse` mapping helpers.
+
+- **Shared Packages (`pkg/`)**:
+  - `pkg/apperrors`: All custom application errors.
+  - `pkg/convert`: `ParseID`, `StrPtrToNullString`, `NullStringToStrPtr`, `EncodeCursor`, `DecodeCursor`.
+  - `pkg/constants`: Cache TTLs and app constants.
+  - `pkg/jsonx`: MUST use `jsonx.Marshal`/`jsonx.Unmarshal` (never directly import std json or sonic).
+  - `pkg/netx`: Use `netx.NewSafeHTTPClient` for external URL requests to prevent SSRF and DNS Rebinding.
+  - `pkg/validator`: Custom DTO validation helpers.
+  - `pkg/worker`: Bounded worker pool queue for background tasks.
+
+- **Frontend (`web/src` & `web/public`)**:
+  - Translation files located in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
+  - NO HARDCODED TEXT in TSX: All UI labels & text MUST be defined in `web/public/locales/` JSON files and rendered via `react-i18next` `t('key')`.
+  - Modularize components under `web/src/components/<domain>/` (~200-400 lines max).
+  - Global state via Zustand stores in `web/src/stores/`.
+  - API calls via `web/src/services/` using `api.ts` Axios instance (auto 401 token refresh queue).
+  - Media URLs via `getMediaUrl(path)`.
+  - Styling with TailwindCSS + DaisyUI utility classes.
+
+- **SQL Queries (`db/query`)**:
+  - Explicit column selection ONLY (no `SELECT *`).
+  - Max pagination limit = 100.

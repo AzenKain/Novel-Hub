@@ -59,7 +59,13 @@ FROM book_files
 WHERE hash IS NOT NULL AND hash != ''
 GROUP BY hash
 HAVING COUNT(*) > 1
+LIMIT ?2 OFFSET ?1
 `
+
+type GetDuplicateFilesParams struct {
+	Offset int64 `json:"offset"`
+	Limit  int64 `json:"limit"`
+}
 
 type GetDuplicateFilesRow struct {
 	Hash           sql.NullString `json:"hash"`
@@ -67,8 +73,8 @@ type GetDuplicateFilesRow struct {
 	FileIds        string         `json:"file_ids"`
 }
 
-func (q *Queries) GetDuplicateFiles(ctx context.Context) ([]GetDuplicateFilesRow, error) {
-	rows, err := q.query(ctx, q.getDuplicateFilesStmt, getDuplicateFiles)
+func (q *Queries) GetDuplicateFiles(ctx context.Context, arg GetDuplicateFilesParams) ([]GetDuplicateFilesRow, error) {
+	rows, err := q.query(ctx, q.getDuplicateFilesStmt, getDuplicateFiles, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +147,13 @@ func (q *Queries) GetFilesByBookIDs(ctx context.Context, bookIds []string) ([]Bo
 const listAllFiles = `-- name: ListAllFiles :many
 SELECT id, path, book_id
 FROM book_files
+LIMIT ?2 OFFSET ?1
 `
+
+type ListAllFilesParams struct {
+	Offset int64 `json:"offset"`
+	Limit  int64 `json:"limit"`
+}
 
 type ListAllFilesRow struct {
 	ID     string `json:"id"`
@@ -149,8 +161,8 @@ type ListAllFilesRow struct {
 	BookID string `json:"book_id"`
 }
 
-func (q *Queries) ListAllFiles(ctx context.Context) ([]ListAllFilesRow, error) {
-	rows, err := q.query(ctx, q.listAllFilesStmt, listAllFiles)
+func (q *Queries) ListAllFiles(ctx context.Context, arg ListAllFilesParams) ([]ListAllFilesRow, error) {
+	rows, err := q.query(ctx, q.listAllFilesStmt, listAllFiles, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

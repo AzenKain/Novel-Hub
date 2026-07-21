@@ -55,17 +55,16 @@ func ApplySchema(db *sql.DB, schemaDir string) error {
 			return err
 		}
 		if count > 0 {
-			continue // Already applied
+			continue
 		}
 
 		path := filepath.Join(schemaDir, file)
-		schema, err := os.ReadFile(path) // #nosec G304
+		schema, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
 
 		if _, err := db.ExecContext(context.Background(), string(schema)); err != nil {
-			// Handle edge case where a legacy DB already has the columns from before schema_migrations existed
 			if strings.Contains(err.Error(), "duplicate column name") {
 				log.Printf("Warning: duplicate column in %s, marking as applied", file)
 			} else if strings.Contains(err.Error(), "already exists") {

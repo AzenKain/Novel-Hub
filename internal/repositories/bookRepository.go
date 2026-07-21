@@ -19,6 +19,7 @@ type BookCatalogRepository interface {
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
 	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *sqlc.CreateBookFileParams) error
 	ListBookIDs(ctx context.Context, cursor *time.Time, limit int64) ([]string, error)
+	WithTx(tx *sql.Tx) BookDBRepository
 }
 
 type BookFileRecordRepository interface {
@@ -29,10 +30,11 @@ type BookFileRecordRepository interface {
 	GetBookFileByPath(ctx context.Context, path string) (*models.BookFileEntity, error)
 	GetBookFileById(ctx context.Context, id string) (*models.BookFileEntity, error)
 	UpdateBookFileHash(ctx context.Context, id string, hash string) error
-	GetDuplicateFiles(ctx context.Context) ([]*models.DuplicateFileEntity, error)
-	ListAllFiles(ctx context.Context) ([]*models.FileRefEntity, error)
+	GetDuplicateFiles(ctx context.Context, limit, offset int64) ([]*models.DuplicateFileEntity, error)
+	ListAllFiles(ctx context.Context, limit, offset int64) ([]*models.FileRefEntity, error)
 	DeleteFile(ctx context.Context, id string) error
 	CountFilesForBook(ctx context.Context, bookID string) (int64, error)
+	WithTx(tx *sql.Tx) BookDBRepository
 }
 
 type ChapterRepository interface {
@@ -41,6 +43,7 @@ type ChapterRepository interface {
 	ListChaptersByBook(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetChaptersByIDs(ctx context.Context, ids []string) ([]*models.ChapterEntity, error)
 	DeleteChapter(ctx context.Context, id string) error
+	WithTx(tx *sql.Tx) BookDBRepository
 }
 
 type BookMetadataRepository interface {
@@ -64,18 +67,20 @@ type BookMetadataRepository interface {
 	LinkBookLanguage(ctx context.Context, bookID, languageID string) error
 	ClearBookLanguages(ctx context.Context, bookID string) error
 	ClearBookTags(ctx context.Context, bookID string) error
-	ListAuthorsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
-	ListSeriesWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
-	ListPublishersWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
-	ListLanguagesWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
-	ListTagsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
-	ListFormatsWithCount(ctx context.Context) ([]*models.MetadataCountEntity, error)
+	ListAuthorsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListSeriesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListPublishersWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListLanguagesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListTagsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListFormatsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	WithTx(tx *sql.Tx) BookDBRepository
 }
 
 type BookFTSRepository interface {
 	SearchFTS(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error)
 	DeleteFTSBook(ctx context.Context, bookID string) error
 	InsertFTSChapter(ctx context.Context, bookID, chapterID, title, content string) error
+	WithTx(tx *sql.Tx) BookDBRepository
 }
 
 type BookDBRepository interface {

@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
 )
@@ -60,4 +61,32 @@ func (e *BookReviewEntities) FromListAllReviewsSqlc(rows []sqlc.ListAllReviewsRo
 		slice[i] = flat[i].FromListAllReviewsSqlc(row)
 	}
 	return slice
+}
+
+func (e *BookReviewEntity) ToResponse() *response.BookReviewResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.BookReviewResponse{
+		UserID:    e.UserID,
+		BookID:    e.BookID,
+		Rating:    e.Rating,
+		Review:    e.Review,
+		CreatedAt: e.CreatedAt,
+		UpdatedAt: e.UpdatedAt,
+		UserName:  e.UserName,
+		UserEmail: e.UserEmail,
+		BookTitle: e.BookTitle,
+	}
+}
+
+func BookReviewEntitiesToResponse(entities []*BookReviewEntity) []*response.BookReviewResponse {
+	out := make([]*response.BookReviewResponse, 0, len(entities))
+	for _, r := range entities {
+		if r == nil {
+			continue
+		}
+		out = append(out, r.ToResponse())
+	}
+	return out
 }

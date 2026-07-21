@@ -1,10 +1,10 @@
 -- name: ListAppSettings :many
-SELECT *
+SELECT key, value_json, updated_at
 FROM app_settings
 ORDER BY key ASC;
 
 -- name: GetAppSetting :one
-SELECT *
+SELECT key, value_json, updated_at
 FROM app_settings
 WHERE key = ?;
 
@@ -14,7 +14,7 @@ VALUES (?, ?)
 ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json;
 
 -- name: GetSetupState :one
-SELECT *
+SELECT key, value, updated_at
 FROM setup_state
 WHERE key = ?;
 
@@ -34,4 +34,4 @@ WHERE u.is_deleted = 0 AND r.is_deleted = 0 AND r.is_admin = 1;
 SELECT key FROM app_settings ORDER BY key ASC;
 
 -- name: GetAppSettingsByKeys :many
-SELECT * FROM app_settings WHERE key IN (sqlc.slice('keys'));
+SELECT key, value_json, updated_at FROM app_settings WHERE key IN (sqlc.slice('keys'));

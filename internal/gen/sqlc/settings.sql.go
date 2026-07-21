@@ -26,7 +26,7 @@ func (q *Queries) CountAdminUsers(ctx context.Context) (int64, error) {
 }
 
 const getAppSetting = `-- name: GetAppSetting :one
-SELECT "key", value_json, updated_at
+SELECT key, value_json, updated_at
 FROM app_settings
 WHERE key = ?
 `
@@ -39,7 +39,7 @@ func (q *Queries) GetAppSetting(ctx context.Context, key string) (AppSetting, er
 }
 
 const getAppSettingsByKeys = `-- name: GetAppSettingsByKeys :many
-SELECT "key", value_json, updated_at FROM app_settings WHERE key IN (/*SLICE:keys*/?)
+SELECT key, value_json, updated_at FROM app_settings WHERE key IN (/*SLICE:keys*/?)
 `
 
 func (q *Queries) GetAppSettingsByKeys(ctx context.Context, keys []string) ([]AppSetting, error) {
@@ -76,7 +76,7 @@ func (q *Queries) GetAppSettingsByKeys(ctx context.Context, keys []string) ([]Ap
 }
 
 const getSetupState = `-- name: GetSetupState :one
-SELECT "key", value, updated_at
+SELECT key, value, updated_at
 FROM setup_state
 WHERE key = ?
 `
@@ -116,7 +116,7 @@ func (q *Queries) ListAppSettingKeys(ctx context.Context) ([]string, error) {
 }
 
 const listAppSettings = `-- name: ListAppSettings :many
-SELECT "key", value_json, updated_at
+SELECT key, value_json, updated_at
 FROM app_settings
 ORDER BY key ASC
 `

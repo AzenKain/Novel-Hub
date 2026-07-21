@@ -1,17 +1,17 @@
 -- name: GetSeriesByName :one
-SELECT * FROM series WHERE name = ? LIMIT 1;
+SELECT id, name, created_at FROM series WHERE name = ? LIMIT 1;
 
 -- name: CreateSeries :one
 INSERT INTO series (id, name) VALUES (?, ?) RETURNING *;
 
 -- name: GetPublisherByName :one
-SELECT * FROM publishers WHERE name = ? LIMIT 1;
+SELECT id, name, created_at FROM publishers WHERE name = ? LIMIT 1;
 
 -- name: CreatePublisher :one
 INSERT INTO publishers (id, name) VALUES (?, ?) RETURNING *;
 
 -- name: GetLanguageByName :one
-SELECT * FROM languages WHERE name = ? LIMIT 1;
+SELECT id, name, created_at FROM languages WHERE name = ? LIMIT 1;
 
 -- name: CreateLanguage :one
 INSERT INTO languages (id, name) VALUES (?, ?) RETURNING *;
@@ -47,8 +47,10 @@ DELETE FROM book_tags WHERE book_id = ?;
 SELECT a.id, a.name, COUNT(b.id) as book_count
 FROM authors a
 JOIN books b ON a.id = b.author_id
+WHERE (sqlc.narg('cursor_name') IS NULL OR a.name > sqlc.narg('cursor_name') OR (a.name = sqlc.narg('cursor_name') AND a.id > sqlc.narg('cursor_id')))
 GROUP BY a.id, a.name
-ORDER BY a.name ASC;
+ORDER BY a.name ASC, a.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: ListSeriesWithCount :many
 SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
@@ -66,32 +68,42 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
 ) as cover_url
 FROM series s
 JOIN book_series bs ON s.id = bs.series_id
+WHERE (sqlc.narg('cursor_name') IS NULL OR s.name > sqlc.narg('cursor_name') OR (s.name = sqlc.narg('cursor_name') AND s.id > sqlc.narg('cursor_id')))
 GROUP BY s.id, s.name
-ORDER BY s.name ASC;
+ORDER BY s.name ASC, s.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: ListPublishersWithCount :many
 SELECT p.id, p.name, COUNT(bp.book_id) as book_count
 FROM publishers p
 JOIN book_publishers bp ON p.id = bp.publisher_id
+WHERE (sqlc.narg('cursor_name') IS NULL OR p.name > sqlc.narg('cursor_name') OR (p.name = sqlc.narg('cursor_name') AND p.id > sqlc.narg('cursor_id')))
 GROUP BY p.id, p.name
-ORDER BY p.name ASC;
+ORDER BY p.name ASC, p.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: ListLanguagesWithCount :many
 SELECT l.id, l.name, COUNT(bl.book_id) as book_count
 FROM languages l
 JOIN book_languages bl ON l.id = bl.language_id
+WHERE (sqlc.narg('cursor_name') IS NULL OR l.name > sqlc.narg('cursor_name') OR (l.name = sqlc.narg('cursor_name') AND l.id > sqlc.narg('cursor_id')))
 GROUP BY l.id, l.name
-ORDER BY l.name ASC;
+ORDER BY l.name ASC, l.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: ListTagsWithCount :many
 SELECT t.id, t.name, COUNT(bt.book_id) as book_count
 FROM tags t
 JOIN book_tags bt ON t.id = bt.tag_id
+WHERE (sqlc.narg('cursor_name') IS NULL OR t.name > sqlc.narg('cursor_name') OR (t.name = sqlc.narg('cursor_name') AND t.id > sqlc.narg('cursor_id')))
 GROUP BY t.id, t.name
-ORDER BY t.name ASC;
+ORDER BY t.name ASC, t.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: ListFormatsWithCount :many
 SELECT LOWER(format) as id, UPPER(format) as name, COUNT(DISTINCT book_id) as book_count
 FROM book_files
+WHERE (sqlc.narg('cursor_name') IS NULL OR UPPER(format) > sqlc.narg('cursor_name') OR (UPPER(format) = sqlc.narg('cursor_name') AND LOWER(format) > sqlc.narg('cursor_id')))
 GROUP BY LOWER(format)
-ORDER BY LOWER(format) ASC;
+ORDER BY LOWER(format) ASC
+LIMIT sqlc.arg('limit');

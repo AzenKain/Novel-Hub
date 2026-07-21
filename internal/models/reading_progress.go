@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
 )
@@ -47,6 +48,35 @@ func (e *ReadingHistoryEntities) FromSqlc(rows []sqlc.GetRecentReadingHistoryRow
 	return slice
 }
 
+func (e *ReadingHistoryEntity) ToResponse() *response.ReadingHistoryResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.ReadingHistoryResponse{
+		UserID:          e.UserID,
+		BookID:          e.BookID,
+		FileID:          e.FileID,
+		ChapterID:       e.ChapterID,
+		ProgressPercent: e.ProgressPercent,
+		UpdatedAt:       e.UpdatedAt,
+		BookTitle:       e.BookTitle,
+		BookCoverURL:    e.BookCoverURL,
+		ChapterTitle:    e.ChapterTitle,
+		ChapterIndex:    e.ChapterIndex,
+	}
+}
+
+func ReadingHistoryEntitiesToResponse(entities []*ReadingHistoryEntity) []*response.ReadingHistoryResponse {
+	out := make([]*response.ReadingHistoryResponse, 0, len(entities))
+	for _, h := range entities {
+		if h == nil {
+			continue
+		}
+		out = append(out, h.ToResponse())
+	}
+	return out
+}
+
 type ReadingProgressEntity struct {
 	UserID             int64      `json:"userId"`
 	BookID             string     `json:"bookId"`
@@ -80,6 +110,26 @@ func (e *ReadingProgressEntity) FromSqlc(res sqlc.ReadingProgress) *ReadingProgr
 	return e
 }
 
+func (e *ReadingProgressEntity) ToResponse() *response.ReadingProgressResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.ReadingProgressResponse{
+		UserID:             e.UserID,
+		BookID:             e.BookID,
+		FileID:             e.FileID,
+		ChapterID:          e.ChapterID,
+		ChapterTitle:       e.ChapterTitle,
+		ChapterIndex:       e.ChapterIndex,
+		ProgressPercent:    e.ProgressPercent,
+		OpenedCount:        e.OpenedCount,
+		QualifiedReadCount: e.QualifiedReadCount,
+		LastOpenedAt:       e.LastOpenedAt,
+		LastCountedAt:      e.LastCountedAt,
+		UpdatedAt:          e.UpdatedAt,
+	}
+}
+
 type ReadingActivityInput struct {
 	UserID          int64
 	BookID          string
@@ -96,4 +146,16 @@ type ReadingActivityEntity struct {
 	Stats           *BookReadStatsEntity   `json:"stats"`
 	Counted         bool                   `json:"counted"`
 	CooldownSeconds int64                  `json:"cooldownSeconds"`
+}
+
+func (e *ReadingActivityEntity) ToResponse() *response.ReadingActivityResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.ReadingActivityResponse{
+		Progress:        e.Progress.ToResponse(),
+		Stats:           e.Stats.ToResponse(),
+		Counted:         e.Counted,
+		CooldownSeconds: e.CooldownSeconds,
+	}
 }

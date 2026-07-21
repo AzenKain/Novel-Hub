@@ -454,10 +454,16 @@ func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, erro
 const listLibraryIDs = `-- name: ListLibraryIDs :many
 SELECT id FROM libraries
 ORDER BY created_at DESC
+LIMIT ?2 OFFSET ?1
 `
 
-func (q *Queries) ListLibraryIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.query(ctx, q.listLibraryIDsStmt, listLibraryIDs)
+type ListLibraryIDsParams struct {
+	Offset int64 `json:"offset"`
+	Limit  int64 `json:"limit"`
+}
+
+func (q *Queries) ListLibraryIDs(ctx context.Context, arg ListLibraryIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listLibraryIDsStmt, listLibraryIDs, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -483,10 +489,16 @@ const listUnfinishedJobIDs = `-- name: ListUnfinishedJobIDs :many
 SELECT id FROM jobs
 WHERE status IN ('pending', 'running')
 ORDER BY created_at ASC
+LIMIT ?2 OFFSET ?1
 `
 
-func (q *Queries) ListUnfinishedJobIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.query(ctx, q.listUnfinishedJobIDsStmt, listUnfinishedJobIDs)
+type ListUnfinishedJobIDsParams struct {
+	Offset int64 `json:"offset"`
+	Limit  int64 `json:"limit"`
+}
+
+func (q *Queries) ListUnfinishedJobIDs(ctx context.Context, arg ListUnfinishedJobIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listUnfinishedJobIDsStmt, listUnfinishedJobIDs, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -512,10 +524,16 @@ const listUnfinishedJobs = `-- name: ListUnfinishedJobs :many
 SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs
 WHERE status IN ('pending', 'running')
 ORDER BY created_at ASC
+LIMIT ?2 OFFSET ?1
 `
 
-func (q *Queries) ListUnfinishedJobs(ctx context.Context) ([]Job, error) {
-	rows, err := q.query(ctx, q.listUnfinishedJobsStmt, listUnfinishedJobs)
+type ListUnfinishedJobsParams struct {
+	Offset int64 `json:"offset"`
+	Limit  int64 `json:"limit"`
+}
+
+func (q *Queries) ListUnfinishedJobs(ctx context.Context, arg ListUnfinishedJobsParams) ([]Job, error) {
+	rows, err := q.query(ctx, q.listUnfinishedJobsStmt, listUnfinishedJobs, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

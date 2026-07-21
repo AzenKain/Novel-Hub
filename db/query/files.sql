@@ -3,7 +3,8 @@ SELECT hash, COUNT(*) as duplicate_count, GROUP_CONCAT(id) as file_ids
 FROM book_files
 WHERE hash IS NOT NULL AND hash != ''
 GROUP BY hash
-HAVING COUNT(*) > 1;
+HAVING COUNT(*) > 1
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: UpdateFileHash :exec
 UPDATE book_files
@@ -12,7 +13,8 @@ WHERE id = ?;
 
 -- name: ListAllFiles :many
 SELECT id, path, book_id
-FROM book_files;
+FROM book_files
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: DeleteFile :exec
 DELETE FROM book_files WHERE id = ?;
@@ -21,8 +23,8 @@ DELETE FROM book_files WHERE id = ?;
 SELECT COUNT(*) FROM book_files WHERE book_id = ?;
 
 -- name: GetBookFileById :one
-SELECT * FROM book_files WHERE id = ? LIMIT 1;
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE id = ? LIMIT 1;
 
 -- name: GetFilesByBookIDs :many
-SELECT * FROM book_files WHERE book_id IN (sqlc.slice('book_ids'));
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE book_id IN (sqlc.slice('book_ids'));
 

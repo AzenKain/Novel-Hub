@@ -274,20 +274,25 @@ WHERE
         lower(u.email) LIKE '%' || lower(?6) || '%' OR
         lower(COALESCE(u.full_name, '')) LIKE '%' || lower(?6) || '%'
     )
+    AND (
+        ?7 IS NULL OR
+        u.created_at < ?7 OR
+        (u.created_at = ?7 AND u.id > ?8)
+    )
 ORDER BY u.created_at DESC, u.id ASC
-LIMIT ?8
-OFFSET ?7
+LIMIT ?9
 `
 
 type SearchUserIDsParams struct {
-	IsDeleted    interface{} `json:"is_deleted"`
-	RoleID       interface{} `json:"role_id"`
-	AuthProvider interface{} `json:"auth_provider"`
-	CreatedFrom  interface{} `json:"created_from"`
-	CreatedTo    interface{} `json:"created_to"`
-	SearchText   interface{} `json:"search_text"`
-	Offset       int64       `json:"offset"`
-	Limit        int64       `json:"limit"`
+	IsDeleted       interface{}   `json:"is_deleted"`
+	RoleID          interface{}   `json:"role_id"`
+	AuthProvider    interface{}   `json:"auth_provider"`
+	CreatedFrom     interface{}   `json:"created_from"`
+	CreatedTo       interface{}   `json:"created_to"`
+	SearchText      interface{}   `json:"search_text"`
+	CursorCreatedAt interface{}   `json:"cursor_created_at"`
+	CursorID        sql.NullInt64 `json:"cursor_id"`
+	Limit           int64         `json:"limit"`
 }
 
 func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([]int64, error) {
@@ -298,7 +303,8 @@ func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([
 		arg.CreatedFrom,
 		arg.CreatedTo,
 		arg.SearchText,
-		arg.Offset,
+		arg.CursorCreatedAt,
+		arg.CursorID,
 		arg.Limit,
 	)
 	if err != nil {

@@ -4,12 +4,12 @@ VALUES (?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetRoleByName :one
-SELECT *
+SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
 FROM roles
 WHERE name = ? AND is_deleted = 0;
 
 -- name: GetRoleByID :one
-SELECT *
+SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
 FROM roles
 WHERE id = ? AND is_deleted = 0;
 
@@ -25,7 +25,7 @@ FROM roles
 WHERE is_deleted = 0 AND auto_assign = 1 AND is_admin = 0;
 
 -- name: GetRolesByIDs :many
-SELECT *
+SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
 FROM roles WHERE id IN (sqlc.slice('ids'));
 
 -- name: UpdateRole :one
@@ -68,7 +68,7 @@ DELETE FROM user_roles
 WHERE role_id = ?;
 
 -- name: ListPermissions :many
-SELECT * FROM permissions
+SELECT key, description, created_at, updated_at FROM permissions
 ORDER BY key ASC;
 
 -- name: UpsertPermission :exec
@@ -77,12 +77,12 @@ VALUES (?, ?)
 ON CONFLICT(key) DO UPDATE SET description = excluded.description;
 
 -- name: ListRolePermissions :many
-SELECT *
+SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at
 FROM role_permissions
 ORDER BY role_id ASC, permission_key ASC;
 
 -- name: GetRolePermissions :many
-SELECT *
+SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at
 FROM role_permissions
 WHERE role_id = ?
 ORDER BY permission_key ASC;
@@ -102,13 +102,13 @@ ON CONFLICT(role_id, permission_key) DO UPDATE SET
 SELECT key FROM permissions ORDER BY key ASC;
 
 -- name: GetPermissionsByKeys :many
-SELECT * FROM permissions WHERE key IN (sqlc.slice('keys'));
+SELECT key, description, created_at, updated_at FROM permissions WHERE key IN (sqlc.slice('keys'));
 
 -- name: ListRolePermissionIDs :many
 SELECT id FROM role_permissions ORDER BY role_id ASC, permission_key ASC;
 
 -- name: GetRolePermissionsByIDs :many
-SELECT * FROM role_permissions WHERE id IN (sqlc.slice('ids'));
+SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at FROM role_permissions WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetRolePermissionIDs :many
 SELECT id FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC;

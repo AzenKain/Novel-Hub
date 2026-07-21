@@ -23,9 +23,9 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 			cache.BuildKey("book_file", "path", file.Path),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
-			"book_file:all",
-			"book_file:duplicates",
 		)
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 	}
 	return nil
 }
@@ -42,9 +42,9 @@ func (r *bookDBRepository) UpsertBookFile(ctx context.Context, params sqlc.Upser
 			cache.BuildKey("book_file", "path", file.Path),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
-			"book_file:all",
-			"book_file:duplicates",
 		)
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 	}
 	return nil
 }
@@ -264,25 +264,25 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 				cache.BuildKey("book_file", "path", file.Path),
 				cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
-				"book_file:all",
-				"book_file:duplicates",
 			)
 		} else {
-			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id), "book_file:all", "book_file:duplicates")
+			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id))
 		}
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 	}
 	return nil
 }
 
-func (r *bookDBRepository) GetDuplicateFiles(ctx context.Context) ([]*models.DuplicateFileEntity, error) {
-	key := "book_file:duplicates"
+func (r *bookDBRepository) GetDuplicateFiles(ctx context.Context, limit, offset int64) ([]*models.DuplicateFileEntity, error) {
+	key := cache.BuildKey("book_file", "duplicates", limit, offset)
 	if r.c != nil && !r.inTx {
 		var rows []*models.DuplicateFileEntity
 		if err := r.c.Get(ctx, key, &rows); err == nil {
 			return rows, nil
 		}
 	}
-	rows, err := r.queries.GetDuplicateFiles(ctx)
+	rows, err := r.queries.GetDuplicateFiles(ctx, sqlc.GetDuplicateFilesParams{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -293,15 +293,15 @@ func (r *bookDBRepository) GetDuplicateFiles(ctx context.Context) ([]*models.Dup
 	return result, nil
 }
 
-func (r *bookDBRepository) ListAllFiles(ctx context.Context) ([]*models.FileRefEntity, error) {
-	key := "book_file:all"
+func (r *bookDBRepository) ListAllFiles(ctx context.Context, limit, offset int64) ([]*models.FileRefEntity, error) {
+	key := cache.BuildKey("book_file", "all", limit, offset)
 	if r.c != nil && !r.inTx {
 		var rows []*models.FileRefEntity
 		if err := r.c.Get(ctx, key, &rows); err == nil {
 			return rows, nil
 		}
 	}
-	rows, err := r.queries.ListAllFiles(ctx)
+	rows, err := r.queries.ListAllFiles(ctx, sqlc.ListAllFilesParams{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -325,12 +325,12 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 				cache.BuildKey("book_file", "path", file.Path),
 				cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
-				"book_file:all",
-				"book_file:duplicates",
 			)
 		} else {
-			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id), "book_file:all", "book_file:duplicates")
+			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id))
 		}
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 	}
 	return nil
 }

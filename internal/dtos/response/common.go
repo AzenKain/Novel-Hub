@@ -22,10 +22,11 @@ type JWTClaims struct {
 }
 
 type PaginationMeta struct {
-	CurrentPage  int   `json:"current_page"`
-	PageSize     int   `json:"page_size"`
-	TotalRecords int64 `json:"total_records"`
-	TotalPages   int   `json:"total_pages"`
+	CurrentPage  int    `json:"current_page"`
+	PageSize     int    `json:"page_size"`
+	TotalRecords int64  `json:"total_records"`
+	TotalPages   int    `json:"total_pages"`
+	NextCursor   string `json:"next_cursor,omitempty"`
 }
 
 type PaginatedResponse struct {
@@ -54,6 +55,28 @@ func BuildPaginatedResponse(data any, totalRecords int64, page int, limit int) *
 			PageSize:     limit,
 			TotalRecords: totalRecords,
 			TotalPages:   totalPages,
+		},
+	}
+}
+
+func BuildCursorPaginatedResponse(data any, totalRecords int64, limit int, nextCursor string) *PaginatedResponse {
+	if limit < 1 {
+		limit = 10
+	}
+	totalPages := 0
+	if totalRecords > 0 {
+		totalPages = int((totalRecords + int64(limit) - 1) / int64(limit))
+	}
+
+	return &PaginatedResponse{
+		Status:  true,
+		Message: "Success",
+		Data:    data,
+		Pagination: &PaginationMeta{
+			PageSize:     limit,
+			TotalRecords: totalRecords,
+			TotalPages:   totalPages,
+			NextCursor:   nextCursor,
 		},
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -59,7 +60,7 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 	books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, cursorTime, int64(dto.Limit))
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to list books"})
+		return apperrors.HandleError(c, err)
 	}
 
 	filtered, allowed := h.bookService.FilterReadableBooks(ctx, books, h.claims(c))
@@ -170,7 +171,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	}
 	chapters, err := h.bookService.ListChapters(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to list chapters"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: chapters})
 }
@@ -194,7 +195,7 @@ func (h *BookController) SearchDeep(c fiber.Ctx) error {
 
 	results, err := h.bookService.SearchDeep(ctx, dto.Query, int64(dto.Limit), int64(dto.Offset))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Search failed"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: results})
@@ -206,7 +207,7 @@ func (h *BookController) GetDuplicates(c fiber.Ctx) error {
 
 	results, err := h.bookService.GetDuplicates(ctx)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch duplicates"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: results})
 }
@@ -223,7 +224,7 @@ func (h *BookController) UpdateMetadata(c fiber.Ctx) error {
 	}
 
 	if err := h.bookService.UpdateMetadata(ctx, id, dto); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to update metadata"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Metadata updated successfully"})
@@ -235,7 +236,7 @@ func (h *BookController) DeleteBook(c fiber.Ctx) error {
 
 	id := c.Params("id")
 	if err := h.bookService.DeleteBook(ctx, id); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to delete book"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Book deleted successfully"})
@@ -251,7 +252,7 @@ func (h *BookController) ArchiveBook(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 	if err := h.bookService.ArchiveBook(ctx, id, dto.Archived); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to update archive state"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Message: "Archive state updated"})
 }

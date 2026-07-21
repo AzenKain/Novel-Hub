@@ -13,7 +13,8 @@ import (
 
 type JobRepository interface {
 	GetJob(ctx context.Context, id string) (*models.JobEntity, error)
-	ListUnfinishedJobs(ctx context.Context) ([]*models.JobEntity, error)
+	ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error)
+	WithTx(tx *sql.Tx) JobRepository
 }
 
 type jobRepository struct {
@@ -23,6 +24,16 @@ type jobRepository struct {
 
 func NewJobRepository(db *sql.DB, c cache.Cache) JobRepository {
 	return &jobRepository{queries: sqlc.New(db), c: c}
+}
+
+func (r *jobRepository) WithTx(tx *sql.Tx) JobRepository {
+	if tx == nil {
+		return r
+	}
+	return &jobRepository{
+		queries: r.queries.WithTx(tx),
+		c:       r.c,
+	}
 }
 
 func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntity, error) {
@@ -44,7 +55,7 @@ func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntit
 	return job, nil
 }
 
-func (r *jobRepository) ListUnfinishedJobs(ctx context.Context) ([]*models.JobEntity, error) {
+func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error) {
 	key := "job:unfinished"
 	if r.c != nil {
 		var ids []string
@@ -55,7 +66,7 @@ func (r *jobRepository) ListUnfinishedJobs(ctx context.Context) ([]*models.JobEn
 		}
 	}
 	
-	idRows, err := r.queries.ListUnfinishedJobIDs(ctx)
+	idRows, err := r.queries.ListUnfinishedJobIDs(ctx, sqlc.ListUnfinishedJobIDsParams{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

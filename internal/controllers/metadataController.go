@@ -3,10 +3,12 @@ package controllers
 import (
 	"context"
 	"time"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
-	"novelhub/internal/dtos/response"
+
 	"novelhub/internal/services"
 )
 
@@ -24,64 +26,88 @@ func (h *MetadataController) ListAuthors(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	authors, err := h.service.ListAuthors(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListAuthors(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: authors})
+	return c.JSON(res)
 }
 
 func (h *MetadataController) ListSeries(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	series, err := h.service.ListSeries(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListSeries(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: series})
+	return c.JSON(res)
 }
 
 func (h *MetadataController) ListPublishers(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	publishers, err := h.service.ListPublishers(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListPublishers(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: publishers})
+	return c.JSON(res)
 }
 
 func (h *MetadataController) ListLanguages(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	languages, err := h.service.ListLanguages(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListLanguages(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: languages})
+	return c.JSON(res)
 }
 
 func (h *MetadataController) ListTags(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	tags, err := h.service.ListTags(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListTags(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: tags})
+	return c.JSON(res)
 }
 
 func (h *MetadataController) ListFormats(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	formats, err := h.service.ListFormats(ctx)
+	cursor := c.Query("cursor", "")
+	limitStr := c.Query("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 { limit = 20 }
+	res, err := h.service.ListFormats(ctx, cursor, int64(limit))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: formats})
+	return c.JSON(res)
 }

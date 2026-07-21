@@ -7,15 +7,16 @@ INSERT INTO libraries (
 RETURNING *;
 
 -- name: GetLibrary :one
-SELECT * FROM libraries
+SELECT id, name, created_at, updated_at FROM libraries
 WHERE id = ? LIMIT 1;
 
 -- name: ListLibraryIDs :many
 SELECT id FROM libraries
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: GetLibrariesByIDs :many
-SELECT * FROM libraries WHERE id IN (sqlc.slice('ids'));
+SELECT id, name, created_at, updated_at FROM libraries WHERE id IN (sqlc.slice('ids'));
 
 -- name: UpdateLibrary :one
 UPDATE libraries
@@ -50,11 +51,11 @@ ON CONFLICT(path) DO UPDATE SET
 RETURNING *;
 
 -- name: GetBookFileByPath :one
-SELECT * FROM book_files
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
 WHERE path = ? LIMIT 1;
 
 -- name: GetFilesByBookId :many
-SELECT * FROM book_files
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
 WHERE book_id = ?
 ORDER BY
     CASE WHEN LOWER(format) = 'epub' THEN 0 ELSE 1 END,
@@ -81,26 +82,28 @@ WHERE id = ?
 RETURNING *;
 
 -- name: GetJob :one
-SELECT * FROM jobs
+SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs
 WHERE id = ? LIMIT 1;
 
 -- name: ListJobs :many
-SELECT * FROM jobs
+SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
 -- name: ListUnfinishedJobs :many
-SELECT * FROM jobs
+SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs
 WHERE status IN ('pending', 'running')
-ORDER BY created_at ASC;
+ORDER BY created_at ASC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: ListUnfinishedJobIDs :many
 SELECT id FROM jobs
 WHERE status IN ('pending', 'running')
-ORDER BY created_at ASC;
+ORDER BY created_at ASC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: GetJobsByIDs :many
-SELECT * FROM jobs WHERE id IN (sqlc.slice('ids'));
+SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs WHERE id IN (sqlc.slice('ids'));
 
 -- name: ListFileIDsByBookId :many
 SELECT id FROM book_files
@@ -110,4 +113,4 @@ ORDER BY
     created_at ASC;
 
 -- name: GetBookFilesByIDs :many
-SELECT * FROM book_files WHERE id IN (sqlc.slice('ids'));
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE id IN (sqlc.slice('ids'));

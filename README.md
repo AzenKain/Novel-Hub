@@ -1,75 +1,30 @@
-# 📚 NovelHub
+# NovelHub
 
-Self-hosted, local-first digital book library manager. Organize, read, and manage your entire digital book collection — EPUB, MOBI, PDF, DOCX, FB2, and more — all from a single, sleek web interface.
-
----
-
-## ✨ Features
-
-### 📖 Multi-Format Book Reader
-- **15+ formats supported**: EPUB, MOBI, AZW/AZW3, PDF, DOCX, DOC, RTF, ODT, FB2, CBZ/CBR/CB7 (comics), plain text (TXT, MD), HTML — all rendered natively in the browser.
-- **Three reading modes**: Scroll, Single Page, and Double Page layouts.
-- **Six reader themes**: Light, Sepia, Warm, Dark, Dim, and Coffee — each carefully tuned for comfortable reading.
-- **Customizable typography**: Font family, font size, line height, and content width controls.
-- **Chapter-based navigation**: Table of contents sidebar, previous/next chapter buttons, and paginated page navigation.
-
-### 🗂️ Library Management
-- **Automatic scanning**: Drop files into your library folder — NovelHub detects and indexes them automatically.
-- **Cover extraction**: Pulls cover images from EPUB, MOBI, FB2, and comic archives.
-- **Metadata editing**: Edit title, author, description, series, tags, and more from the UI.
-- **Smart filtering**: Filter by format, author, and category with chip-based navigation.
-- **Duplicate detection**: SHA-256 fingerprinting identifies identical files to reclaim disk space.
-- **Full-text search (FTS5)**: Search across the actual content of your books, not just titles and metadata.
-- **Reading activity tracking**: Records reading progress and history per book.
-
-### 🔐 Authentication & Admin
-- **JWT-based auth**: Email/password login with access + refresh token rotation.
-- **Role-based access control**: Admin, Moderator, and User roles with configurable permissions.
-- **Admin dashboard**: Manage books, users, and roles from a dedicated admin panel.
-- **User profiles**: Per-user settings, avatar upload, and password management.
-
-### 🌐 Internationalization
-- **Multi-language UI**: Built-in i18n support with language detection and switcher.
-
-### 🏗️ Architecture Highlights
-- **Single binary deployment**: The Go backend embeds the built React frontend — one process serves everything.
-- **SQLite database**: Fully local, zero-config, easy to backup.
-- **Background job queue**: Custom bounded worker pool for async parsing, indexing, and maintenance.
-- **Auto-migration**: Database schema applied on startup, no manual migration steps.
-- **Auto-maintenance**: Periodically purges database records for books deleted from disk.
+Self-hosted, local-first digital book library manager. Organize, read, and manage your entire digital book collection — EPUB, MOBI, PDF, DOCX, FB2, and more — from a single, high-performance web interface.
 
 ---
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
+- **Multi-Format Reader**: Native browser rendering for 15+ formats (EPUB, MOBI, AZW3, PDF, DOCX, FB2, CBZ/CBR, TXT, MD, HTML). Includes 6 reader themes, custom typography, text highlighting, notes, and 3 page layouts.
+- **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern) and `singleflight` for thundering-herd protection.
+- **Library Management**: Automatic file scanning, cover extraction, metadata editing, tag/author filtering, duplicate detection (SHA-256), and SQLite FTS5 full-text search.
+- **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF and DNS Rebinding protection via `pkg/netx`.
+- **Multi-Language Support**: i18n support with translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
+- **Single Binary Deployment**: Embedded React frontend in Go binary. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode, MMAP, and auto-migrations.
 
-- **Go** 1.22+
-- **Node.js** 18+ and **npm**
-- **SQLite** (bundled via modernc.org/sqlite, no CGO needed)
+---
+
+## Quick Start
 
 ### Run Locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/youruser/novelhub.git
-cd novelhub
-
-# Copy environment config
-cp ".env copy.example" .env
-
-# Build frontend + start the server
+cp .env.example .env
 make run
 ```
 
-The API starts at **http://127.0.0.1:3434** with the embedded web UI.
-
-### Default Admin Account
-
-```
-Email:    admin@novelhub.local
-Password: Admin@123456
-```
+Access the UI at `http://127.0.0.1:3434`. Default admin credentials: `admin@novelhub.local` / `Admin@123456`.
 
 ### Docker
 
@@ -77,182 +32,93 @@ Password: Admin@123456
 docker compose up -d
 ```
 
-Mount your book library into `/libraries`:
-
-```yaml
-volumes:
-  - ./your-books:/libraries
-```
-
-### Health Check
-
-```bash
-curl http://127.0.0.1:3434/api/v1/health
-```
-
 ---
 
-## 🛠️ Development
-
-### Frontend (React + Vite + TailwindCSS + DaisyUI)
+## Development
 
 ```bash
-cd web
-npm install
-npm run dev    # Dev server with HMR at localhost:5173
-```
+# Frontend dev (port 5173)
+cd web && npm install && npm run dev
 
-### Backend (Go + Fiber + SQLite)
-
-```bash
+# Backend dev
 go run ./cmd/api
 ```
 
-### Available Make Targets
+### Make Targets
 
-| Command         | Description                             |
-|-----------------|-----------------------------------------|
-| `make run`      | Build frontend + start Go server        |
-| `make web-dev`  | Start frontend dev server with HMR      |
-| `make web-build`| Build frontend for production           |
-| `make test`     | Run all Go tests                        |
-| `make sqlc`     | Regenerate SQLC type-safe query models  |
-| `make build`    | Build the Go binary                     |
-| `make check`    | Run sqlc + tests + web-build + go build |
-| `make docker-up`| Start Docker containers                 |
-| `make docker-down` | Stop Docker containers               |
+| Target | Description |
+|---|---|
+| `make run` | Build frontend and start Go server |
+| `make test` | Run all Go unit tests |
+| `make sqlc` | Regenerate SQLC database models |
+| `make check` | Run full verification (sqlc + tests + web-build + go build) |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 novelhub/
-├── cmd/
-│   ├── api/            # Main application entry point + embedded frontend dist
-│   └── parsecheck/     # CLI tool for testing book parsers
+├── .agents/            # AI agent workspace rules (AGENTS.md)
+├── cmd/api/            # Application entry point & embedded web UI
 ├── internal/
-│   ├── controllers/    # HTTP handlers (auth, book, reader, library, admin, etc.)
-│   ├── dtos/           # Request/response data transfer objects
-│   ├── gen/            # SQLC-generated database code
-│   ├── middlewares/    # JWT auth, RBAC, logging, compression
-│   ├── models/         # Domain models
-│   ├── repositories/   # Database access layer
-│   ├── routes/         # Fiber route definitions
-│   └── services/       # Business logic (book, auth, library, reader, jobs, etc.)
+│   ├── controllers/    # Fiber v3 HTTP handlers & DTO validation
+│   ├── dtos/           # Request / Response payload definitions
+│   ├── gen/sqlc/        # Type-safe generated database code
+│   ├── middlewares/    # JWT auth, RBAC permissions, logger, compression
+│   ├── models/         # Domain entities (FromSqlc / ToResponse helpers)
+│   ├── repositories/   # Persistence layer with RAM Cache-by-IDs pattern
+│   └── services/       # Domain business logic & multi-format parsers
 ├── pkg/
-│   ├── bookparser/     # Multi-format book parsing engine
-│   │   ├── epub/       #   EPUB parser
-│   │   ├── mobi/       #   MOBI/AZW parser (PalmDOC decompression)
-│   │   ├── pdf/        #   PDF renderer (native browser viewer)
-│   │   ├── fb2/        #   FictionBook 2 parser
-│   │   ├── docx/       #   DOCX parser
-│   │   ├── doc/        #   Legacy DOC parser (OLE2/CFBF)
-│   │   ├── rtf/        #   RTF parser
-│   │   ├── odt/        #   OpenDocument Text parser
-│   │   ├── comic/      #   CBZ/CBR/CB7 comic archive parser
-│   │   ├── htmlfile/   #   HTML file parser
-│   │   ├── plain/      #   Plain text / Markdown parser
-│   │   ├── archivebook/#   Generic archive-based book parser
-│   │   └── external/   #   External format utilities
-│   ├── cache/          # In-memory caching
-│   ├── config/         # Environment configuration
-│   ├── convert/        # Data conversion utilities
-│   ├── database/       # SQLite connection management
-│   ├── localfs/        # Local filesystem operations
-│   ├── validator/      # Input validation
-│   └── worker/         # Background job queue (bounded worker pool)
+│   ├── apperrors/      # Application error definitions
+│   ├── bookparser/     # Format parser engines (EPUB, MOBI, PDF, FB2, etc.)
+│   ├── cache/          # In-memory RAM cache (`theine-go`) & key builders
+│   ├── convert/        # ID parsing, null conversion & cursor helpers
+│   ├── database/       # SQLite pragmas & transaction manager (`TxManager`)
+│   ├── jsonx/          # High-performance JSON engine (sonic with std fallback)
+│   ├── netx/           # SSRF-safe HTTP client with IP validation
+│   ├── validator/      # DTO struct validation engine
+│   └── worker/         # Bounded background worker pool
 ├── db/
-│   ├── schema/         # SQLite migration files
-│   ├── queries/        # SQLC query definitions
-│   └── query/          # Additional query files
-├── web/                # React frontend (Vite + TailwindCSS + DaisyUI)
-│   └── src/
-│       ├── components/ # Reusable UI components
-│       ├── pages/      # Page-level components (Library, Reader, Admin, etc.)
-│       ├── services/   # API client services
-│       ├── stores/     # Zustand state management
-│       ├── config/     # Frontend configuration
-│       └── types/      # TypeScript type definitions
-├── Makefile
-├── docker-compose.yml
-├── sqlc.yaml
-└── go.mod
+│   ├── schema/         # SQLite database migrations
+│   └── query/          # Type-safe SQLC query definitions (explicit column projections)
+└── web/                # React 18 + Vite + TailwindCSS + DaisyUI
+    ├── public/locales/ # i18n translation datasets (en, vi, ja, ko, zh)
+    └── src/            # Components, Pages, Services, Stores (Zustand)
 ```
 
 ---
 
-## 📄 Supported Formats
-
-| Format | Extensions | Reader | Metadata | Cover |
-|--------|-----------|--------|----------|-------|
-| EPUB | `.epub`, `.kepub.epub` | ✅ HTML | ✅ | ✅ |
-| MOBI/AZW | `.mobi`, `.azw`, `.azw3` | ✅ HTML | ✅ | ✅ |
-| PDF | `.pdf` | ✅ Native | ⚠️ Basic | ❌ |
-| DOCX | `.docx` | ✅ HTML | ✅ | ❌ |
-| DOC | `.doc` | ✅ HTML | ✅ | ❌ |
-| RTF | `.rtf` | ✅ HTML | ⚠️ Basic | ❌ |
-| ODT | `.odt` | ✅ HTML | ✅ | ❌ |
-| FB2 | `.fb2` | ✅ HTML | ✅ | ✅ |
-| Comics | `.cbz`, `.cbr`, `.cb7` | ✅ Images | ⚠️ Basic | ✅ |
-| HTML | `.html`, `.htm` | ✅ HTML | ⚠️ Basic | ❌ |
-| Plain Text | `.txt` | ✅ HTML | ⚠️ Basic | ❌ |
-| Markdown | `.md` | ✅ HTML | ⚠️ Basic | ❌ |
-
----
-
-## ⚙️ Environment Variables
+## Environment Variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `SERVER_HOST` | `127.0.0.1` | Server bind address |
-| `SERVER_PORT` | `3434` | Server port |
-| `DATA_DIR` | `./data` | Data storage directory |
-| `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database path |
+|---|---|---|
+| `SERVER_HOST` | `127.0.0.1` | Server bind IP |
+| `SERVER_PORT` | `3434` | Server listening port |
+| `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database file path |
 | `JWT_SECRET` | — | Access token signing secret |
 | `JWT_REFRESH_SECRET` | — | Refresh token signing secret |
 | `ADMIN_EMAIL` | `admin@novelhub.local` | Default admin email |
 | `ADMIN_PASSWORD` | `Admin@123456` | Default admin password |
-| `FIBER_BODY_LIMIT` | `1073741824` | Max upload size (1 GB) |
-| `COOKIE_SECURE` | `false` | Secure cookie flag |
-| `DISABLE_REQUEST_LOG` | `false` | Disable request logging |
-| `DISABLE_RESPONSE_COMPRESSION` | `false` | Disable gzip/brotli |
-| `ENABLE_PREFORK` | `false` | Enable Fiber prefork mode |
+| `FIBER_BODY_LIMIT` | `1073741824` | Max request body limit (1 GB) |
+| `GOGC` | `200` | GC percent tuning for high throughput |
 
 ---
 
-## 🧪 Testing
+## Supported Formats
 
-```bash
-# Run all tests
-make test
-
-# Run specific package tests
-go test ./pkg/bookparser/mobi/ -v
-go test ./internal/services/ -v
-
-# Run with coverage
-go test ./... -cover
-```
+| Format | Extensions | Reader | Metadata | Cover |
+|---|---|---|---|---|
+| EPUB / KePub | `.epub`, `.kepub.epub` | ✅ HTML | ✅ | ✅ |
+| MOBI / AZW3 | `.mobi`, `.azw`, `.azw3` | ✅ HTML | ✅ | ✅ |
+| PDF | `.pdf` | ✅ Native | ⚠️ Basic | ❌ |
+| DOCX / DOC | `.docx`, `.doc` | ✅ HTML | ✅ | ❌ |
+| FB2 | `.fb2` | ✅ HTML | ✅ | ✅ |
+| Comics | `.cbz`, `.cbr`, `.cb7` | ✅ Images | ⚠️ Basic | ❌ |
+| Plain Text / MD | `.txt`, `.md`, `.rtf`, `.odt` | ✅ HTML | ⚠️ Basic | ❌ |
 
 ---
 
-## 🔧 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Go, Fiber v3, SQLite (modernc.org) |
-| **Frontend** | React 18, Vite, TypeScript, TailwindCSS, DaisyUI |
-| **State** | Zustand |
-| **Database** | SQLite with FTS5, SQLC for type-safe queries |
-| **Auth** | JWT (access + refresh), bcrypt |
-| **Serialization** | Sonic (bytedance high-perf JSON) |
-| **i18n** | i18next + react-i18next |
-| **Validation** | go-playground/validator |
-| **Logging** | Zerolog |
-
----
-
-## 📜 License
+## License
 
 This project is for personal use. All rights reserved.

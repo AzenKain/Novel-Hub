@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"novelhub/pkg/jsonx"
 )
 
 type SavedBookFile struct {
@@ -191,7 +192,7 @@ func (r *localBookFileRepository) WriteBookMeta(ctx context.Context, bookID stri
 	if err != nil {
 		return err
 	}
-	data, err := json.Marshal(meta)
+	data, err := jsonx.Marshal(meta)
 	if err != nil {
 		return fmt.Errorf("marshal book meta: %w", err)
 	}

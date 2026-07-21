@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -34,7 +35,7 @@ func (h *LibraryController) CreateLibrary(c fiber.Ctx) error {
 
 	lib, err := h.libraryService.CreateLibrary(ctx, dto)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(response.CommonResponse{Status: true, Data: lib})
@@ -59,7 +60,7 @@ func (h *LibraryController) ListLibraries(c fiber.Ctx) error {
 
 	libs, err := h.libraryService.ListLibraries(ctx)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: libs})
@@ -77,7 +78,7 @@ func (h *LibraryController) UpdateLibrary(c fiber.Ctx) error {
 
 	lib, err := h.libraryService.UpdateLibrary(ctx, id, dto)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: lib})
@@ -90,7 +91,7 @@ func (h *LibraryController) DeleteLibrary(c fiber.Ctx) error {
 	id := c.Params("id")
 	err := h.libraryService.DeleteLibrary(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Library deleted successfully"})

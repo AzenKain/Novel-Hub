@@ -7,6 +7,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/jsonx"
 )
 
 func (r *bookDBRepository) SearchFTS(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error) {
@@ -17,9 +18,11 @@ func (r *bookDBRepository) SearchFTS(ctx context.Context, query string, limit, o
 	}
 	key := cache.QueryKey("fts:search", params)
 	if r.c != nil && !r.inTx {
-		var rows []*models.FTSResultEntity
-		if err := r.c.Get(ctx, key, &rows); err == nil {
-			return rows, nil
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getFTSResultsByIDs(ctx, ids); ok {
+				return result, nil
+			}
 		}
 	}
 	rows, err := r.queries.SearchFTS(ctx, params)
@@ -28,9 +31,48 @@ func (r *bookDBRepository) SearchFTS(ctx context.Context, query string, limit, o
 	}
 	result := (&models.FTSResultEntities{}).FromSqlc(rows)
 	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		ids := make([]string, len(result))
+		toCache := make(map[string]any, len(result))
+		for i, res := range result {
+			ids[i] = res.ChapterID
+			toCache[cache.BuildKey("fts", "result", res.ChapterID)] = res
+		}
+		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		if len(toCache) > 0 {
+			_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+		}
 	}
 	return result, nil
+}
+
+func (r *bookDBRepository) getFTSResultsByIDs(ctx context.Context, ids []string) ([]*models.FTSResultEntity, bool) {
+	if len(ids) == 0 {
+		return []*models.FTSResultEntity{}, true
+	}
+	if r.c == nil {
+		return nil, false
+	}
+
+	cacheKeys := make([]string, len(ids))
+	for i, id := range ids {
+		cacheKeys[i] = cache.BuildKey("fts", "result", id)
+	}
+
+	cachedBytes := r.c.MGet(ctx, cacheKeys...)
+	ordered := make([]*models.FTSResultEntity, 0, len(ids))
+
+	for _, bytes := range cachedBytes {
+		if len(bytes) == 0 {
+			return nil, false
+		}
+		var entity models.FTSResultEntity
+		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+			return nil, false
+		}
+		ordered = append(ordered, &entity)
+	}
+
+	return ordered, true
 }
 
 func (r *bookDBRepository) DeleteFTSBook(ctx context.Context, bookID string) error {
@@ -38,7 +80,7 @@ func (r *bookDBRepository) DeleteFTSBook(ctx context.Context, bookID string) err
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.DelByPattern(context.Background(), "fts:search*")
+		_ = r.c.DelByPattern(context.Background(), "fts:*")
 	}
 	return nil
 }
@@ -53,6 +95,7 @@ func (r *bookDBRepository) InsertFTSChapter(ctx context.Context, bookID, chapter
 		return err
 	}
 	if r.c != nil {
+		_ = r.c.Del(context.Background(), cache.BuildKey("fts", "result", chapterID))
 		_ = r.c.DelByPattern(context.Background(), "fts:search*")
 	}
 	return nil

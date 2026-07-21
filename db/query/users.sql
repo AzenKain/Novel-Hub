@@ -53,17 +53,17 @@ SET token_version = ?
 WHERE id = ? AND is_deleted = 0;
 
 -- name: GetUserByID :one
-SELECT *
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ? AND is_deleted = 0;
 
 -- name: GetUserByIDWithoutDeleted :one
-SELECT *
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ?;
 
 -- name: GetUserByEmail :one
-SELECT *
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE email = ? AND is_deleted = 0;
 
@@ -83,9 +83,13 @@ WHERE
         lower(u.email) LIKE '%' || lower(sqlc.narg('search_text')) || '%' OR
         lower(COALESCE(u.full_name, '')) LIKE '%' || lower(sqlc.narg('search_text')) || '%'
     )
+    AND (
+        sqlc.narg('cursor_created_at') IS NULL OR
+        u.created_at < sqlc.narg('cursor_created_at') OR
+        (u.created_at = sqlc.narg('cursor_created_at') AND u.id > sqlc.narg('cursor_id'))
+    )
 ORDER BY u.created_at DESC, u.id ASC
-LIMIT sqlc.arg('limit')
-OFFSET sqlc.arg('offset');
+LIMIT sqlc.arg('limit');
 
 -- name: CountUsers :one
 SELECT count(DISTINCT u.id)
@@ -105,7 +109,7 @@ WHERE
     );
 
 -- name: GetUsersByIDs :many
-SELECT *
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id IN (sqlc.slice('ids'));
 

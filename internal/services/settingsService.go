@@ -2,12 +2,11 @@ package services
 
 import (
 	"context"
+	"novelhub/pkg/apperrors"
 	"database/sql"
 	"errors"
 	"slices"
 	"sync"
-
-	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
@@ -41,7 +40,7 @@ var (
 type SettingsService interface {
 	Reload(ctx context.Context) error
 	Public(ctx context.Context) (*models.PublicSettings, error)
-	UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, *fiber.Error)
+	UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, error)
 	PolicyAllows(policy string, libraryID string, admin bool) bool
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
@@ -133,25 +132,25 @@ func (s *settingsService) Public(ctx context.Context) (*models.PublicSettings, e
 	return &copyValue, nil
 }
 
-func (s *settingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, *fiber.Error) {
+func (s *settingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, error) {
 	for key, value := range settings {
 		if !allowedSettingKey(key) {
-			return nil, fiber.NewError(fiber.StatusBadRequest, "Unsupported setting: "+key)
+			return nil, apperrors.New(apperrors.ErrBadRequest, "Unsupported setting: "+key)
 		}
 		data, err := jsonx.Marshal(value)
 		if err != nil {
-			return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid setting value")
+			return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid setting value")
 		}
 		if err := s.repo.Upsert(ctx, key, string(data)); err != nil {
-			return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to save settings")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to save settings")
 		}
 	}
 	if err := s.Reload(ctx); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to reload settings")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to reload settings")
 	}
 	public, err := s.Public(ctx)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to load settings")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load settings")
 	}
 	return public, nil
 }

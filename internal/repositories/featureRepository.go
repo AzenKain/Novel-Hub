@@ -42,6 +42,9 @@ type FeatureRepository interface {
 	AddBookToCollection(ctx context.Context, collectionID string, bookID string) error
 	RemoveBookFromCollection(ctx context.Context, collectionID string, bookID string) error
 	GetBookCollectionIDs(ctx context.Context, userID int64, bookID string) ([]string, error)
+	UpsertReadingSession(ctx context.Context, arg sqlc.UpsertReadingSessionParams) (*models.ReadingSessionEntity, error)
+	GetReadingHeatmap(ctx context.Context, userID int64) ([]*models.ReadingHeatmapEntity, error)
+	WithTx(tx *sql.Tx) FeatureRepository
 }
 
 type featureRepository struct {
@@ -55,6 +58,17 @@ func NewFeatureRepository(db *sql.DB, c cache.Cache) FeatureRepository {
 		db:      db,
 		queries: sqlc.New(db),
 		c:       c,
+	}
+}
+
+func (r *featureRepository) WithTx(tx *sql.Tx) FeatureRepository {
+	if tx == nil {
+		return r
+	}
+	return &featureRepository{
+		db:      r.db,
+		queries: r.queries.WithTx(tx),
+		c:       r.c,
 	}
 }
 
@@ -162,10 +176,15 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 	params := sqlc.GetRecentReadingHistoryBookIDsParams{
 		UserID: userID,
 		Limit:  limit,
-		CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
+		CursorUpdatedAt: func(t *time.Time) sql.NullTime {
+			if t == nil {
+				return sql.NullTime{}
+			}
+			return sql.NullTime{Time: *t, Valid: true}
+		}(cursor),
 	}
 	key := cache.QueryKeyParts(params, "feature", "reading_history", "user", userID)
-	
+
 	if r.c != nil {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -174,12 +193,12 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 			}
 		}
 	}
-	
+
 	idRows, err := r.queries.GetRecentReadingHistoryBookIDs(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(idRows) == 0 {
 		if r.c != nil {
 			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
@@ -190,19 +209,24 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 	fullParams := sqlc.GetRecentReadingHistoryParams{
 		UserID: userID,
 		Limit:  limit,
-		CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
+		CursorUpdatedAt: func(t *time.Time) sql.NullTime {
+			if t == nil {
+				return sql.NullTime{}
+			}
+			return sql.NullTime{Time: *t, Valid: true}
+		}(cursor),
 	}
 	rows, err := r.queries.GetRecentReadingHistory(ctx, fullParams)
 	if err != nil {
 		return nil, err
 	}
 	result := (&models.ReadingHistoryEntities{}).FromSqlc(rows)
-	
+
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, idRows, constants.ListCacheDuration)
 		r.cacheReadingHistoryEntities(ctx, userID, result)
 	}
-	
+
 	return result, nil
 }
 
@@ -404,7 +428,7 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookI
 		}
 		if r.c != nil {
 			_ = r.c.Del(ctx, key)
-			_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids") + "*")
+			_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids")+"*")
 		}
 		if err := r.refreshBookBookmarkStats(ctx, bookID); err != nil {
 			return nil, err
@@ -418,7 +442,7 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookI
 	result := (&models.BookmarkEntity{}).FromSqlc(row)
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
-		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids") + "*")
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids")+"*")
 	}
 	if err := r.refreshBookBookmarkStats(ctx, bookID); err != nil {
 		return nil, err
@@ -427,7 +451,12 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID int64, bookI
 }
 
 func (r *featureRepository) GetBookmarkedBookIDs(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]string, error) {
-	params := sqlc.GetBookmarkedBookIDsParams{UserID: userID, Limit: limit, CursorCreatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	params := sqlc.GetBookmarkedBookIDsParams{UserID: userID, Limit: limit, CursorCreatedAt: func(t *time.Time) sql.NullTime {
+		if t == nil {
+			return sql.NullTime{}
+		}
+		return sql.NullTime{Time: *t, Valid: true}
+	}(cursor)}
 	key := cache.QueryKeyParts(params, "bookmark", "user", userID, "ids")
 	if r.c != nil {
 		var ids []string
@@ -463,7 +492,7 @@ func (r *featureRepository) UpsertBookReview(ctx context.Context, userID int64, 
 			cache.BuildKey("rating", "summary", bookID),
 			cache.BuildKey("social", "stats", bookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID) + "*")
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID)+"*")
 		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
@@ -484,7 +513,7 @@ func (r *featureRepository) DeleteBookReview(ctx context.Context, userID int64, 
 			cache.BuildKey("rating", "summary", bookID),
 			cache.BuildKey("social", "stats", bookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID) + "*")
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID)+"*")
 		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
@@ -602,9 +631,14 @@ func (r *featureRepository) refreshBookRatingStats(ctx context.Context, bookID s
 }
 
 func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error) {
-	params := sqlc.ListBookReviewCompositeKeysParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	params := sqlc.ListBookReviewCompositeKeysParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime {
+		if t == nil {
+			return sql.NullTime{}
+		}
+		return sql.NullTime{Time: *t, Valid: true}
+	}(cursor)}
 	key := cache.QueryKeyParts(params, "review", "book", bookID)
-	
+
 	if r.c != nil {
 		var compositeKeys []string
 		if err := r.c.Get(ctx, key, &compositeKeys); err == nil {
@@ -613,12 +647,12 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 			}
 		}
 	}
-	
+
 	keysRows, err := r.queries.ListBookReviewCompositeKeys(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(keysRows) == 0 {
 		if r.c != nil {
 			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
@@ -627,14 +661,19 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 	}
 
 	// Because there is no GetBookReviewsByKeys, fetch the full data using the original query
-	fullParams := sqlc.ListBookReviewsParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor)}
+	fullParams := sqlc.ListBookReviewsParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime {
+		if t == nil {
+			return sql.NullTime{}
+		}
+		return sql.NullTime{Time: *t, Valid: true}
+	}(cursor)}
 	rows, err := r.queries.ListBookReviews(ctx, fullParams)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	result := (&models.BookReviewEntities{}).FromSqlc(rows)
-	
+
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, keysRows, constants.ListCacheDuration)
 		for _, entity := range result {
@@ -698,7 +737,7 @@ func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset in
 	}
 
 	reviews := (&models.BookReviewEntities{}).FromListAllReviewsSqlc(rows)
-	
+
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, reviews, constants.ListCacheDuration)
 	}
@@ -740,7 +779,7 @@ func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []strin
 	collectionsByID := make(map[string]*models.CollectionEntity, len(ids))
 	missingIDs := make([]string, 0, len(ids))
 	missingKeys := make([]string, 0, len(ids))
-	
+
 	if r.c != nil {
 		raws := r.c.MGet(ctx, keys...)
 		for i, raw := range raws {
@@ -770,7 +809,7 @@ func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []strin
 			collectionsByID[collection.ID] = collection
 			missingMap[collection.ID] = collection
 		}
-		
+
 		if r.c != nil {
 			toCache := make(map[string]any, len(missingMap))
 			for i, missingID := range missingIDs {
@@ -792,7 +831,6 @@ func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []strin
 	return ordered, nil
 }
 
-
 func (r *featureRepository) AddBookToCollection(ctx context.Context, collectionID string, bookID string) error {
 	if err := r.queries.AddBookToCollection(ctx, sqlc.AddBookToCollectionParams{
 		CollectionID: collectionID,
@@ -801,7 +839,7 @@ func (r *featureRepository) AddBookToCollection(ctx context.Context, collectionI
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "") + "*")
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "")+"*")
 	}
 	return nil
 }
@@ -814,7 +852,7 @@ func (r *featureRepository) RemoveBookFromCollection(ctx context.Context, collec
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "") + "*")
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("feature", "book_collections", "user", "")+"*")
 	}
 	return nil
 }
@@ -840,3 +878,40 @@ func (r *featureRepository) GetBookCollectionIDs(ctx context.Context, userID int
 	return ids, nil
 }
 
+func (r *featureRepository) UpsertReadingSession(ctx context.Context, arg sqlc.UpsertReadingSessionParams) (*models.ReadingSessionEntity, error) {
+	res, err := r.queries.UpsertReadingSession(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		r.c.Del(ctx, cache.BuildKey("feature", "reading_heatmap", arg.UserID))
+	}
+	entity := &models.ReadingSessionEntity{}
+	return entity.FromSqlc(res), nil
+}
+
+func (r *featureRepository) GetReadingHeatmap(ctx context.Context, userID int64) ([]*models.ReadingHeatmapEntity, error) {
+	key := cache.BuildKey("feature", "reading_heatmap", userID)
+	if r.c != nil {
+		var cached []*models.ReadingHeatmapEntity
+		err := r.c.GetOrFetch(ctx, key, &cached, 60*time.Minute, func() (any, error) {
+			res, err := r.queries.GetReadingHeatmap(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			entities := models.ReadingHeatmapEntities{}
+			return entities.FromSqlc(res), nil
+		})
+		if err == nil {
+			return cached, nil
+		}
+	}
+	
+	res, err := r.queries.GetReadingHeatmap(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	entities := models.ReadingHeatmapEntities{}
+	return entities.FromSqlc(res), nil
+}

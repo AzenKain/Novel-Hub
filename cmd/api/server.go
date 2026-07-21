@@ -40,6 +40,7 @@ import (
 	"novelhub/pkg/bookparser/rtf"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/config"
+	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/worker"
 )
@@ -140,11 +141,13 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	parserRegistry.Register(comic.NewParser("cb7"), "cb7")
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
+	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
+	txManager := database.NewTxManager(db)
 
-	authService := services.NewAuthService(userRepo, roleRepo, db, settingsRepo, settingsService)
-	userService := services.NewUserService(userRepo, roleRepo, db)
-	roleService := services.NewRoleService(roleRepo, permissionCache)
-	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, db, settingsService, permissionCache)
+	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
+	userService := services.NewUserService(userRepo, roleRepo, txManager)
+	roleService := services.NewRoleService(roleRepo, permissionCache, txManager)
+	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache)
 	jobWorkers := config.GetIntConfigWithDefault("JOB_WORKERS", 1)
 	if jobWorkers < 1 {
 		jobWorkers = 1
@@ -152,10 +155,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, jobQueue)
-	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache)
+	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
+	highlightService := services.NewHighlightService(highlightRepo)
 	metadataService := services.NewMetadataService(bookRepo)
 	jobService := services.NewJobService(jobRepo)
-	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry)
+	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
 
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
@@ -165,6 +169,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobController := controllers.NewJobController(jobService)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
+	highlightController := controllers.NewHighlightController(highlightService)
 	metadataController := controllers.NewMetadataController(metadataService)
 	settingsController := controllers.NewSettingsController(settingsService)
 
@@ -216,7 +221,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.LibraryRoutes(v1, libraryController, userRepo, permissionCache)
 	routes.JobRoutes(v1, jobController, userRepo, permissionCache)
 	routes.SetupReaderRoutes(v1, readerController, userRepo, bookRepo, permissionCache)
-	routes.FeatureRoutes(v1, featureController, userRepo, bookRepo, permissionCache)
+	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
 

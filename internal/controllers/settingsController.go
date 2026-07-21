@@ -11,6 +11,7 @@ import (
 	"novelhub/pkg/config"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
@@ -30,7 +31,7 @@ func (h *SettingsController) PublicSettings(c fiber.Ctx) error {
 
 	settings, err := h.service.Public(ctx)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to load settings"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: settings})
 }
@@ -47,9 +48,9 @@ func (h *SettingsController) UpdateSettings(c fiber.Ctx) error {
 	if err := c.Bind().Body(&dto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid settings payload"})
 	}
-	settings, ferr := h.service.UpdateSettings(ctx, dto)
-	if ferr != nil {
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+	settings, err := h.service.UpdateSettings(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: settings})
 }
@@ -88,7 +89,7 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err == nil {
 		if err := c.SaveFile(file, destPath); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to save file"})
+			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
 	}
@@ -104,12 +105,12 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 
 		out, err := os.Create(destPath)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to save file"})
+			return apperrors.HandleError(c, err)
 		}
 		defer out.Close()
 
 		if _, err := io.Copy(out, resp.Body); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to copy data"})
+			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
 	}
@@ -132,7 +133,7 @@ func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err == nil {
 		if err := c.SaveFile(file, destPath); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to save file"})
+			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
 	}
@@ -148,12 +149,12 @@ func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
 
 		out, err := os.Create(destPath)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to save file"})
+			return apperrors.HandleError(c, err)
 		}
 		defer out.Close()
 
 		if _, err := io.Copy(out, resp.Body); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "Failed to copy data"})
+			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
 	}

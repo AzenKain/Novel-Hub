@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -15,71 +14,81 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 )
 
 type RoleService interface {
-	GetRoleByID(ctx context.Context, id string) (*response.RoleResponse, *fiber.Error)
-	GetAllRole(ctx context.Context) ([]*response.RoleResponse, *fiber.Error)
-	GetPermissions(ctx context.Context) ([]*response.PermissionResponse, *fiber.Error)
-	CreateRole(ctx context.Context, dto *request.CreateRoleDto) (*response.RoleResponse, *fiber.Error)
-	UpdateRole(ctx context.Context, id string, dto *request.UpdateRoleDto) (*response.RoleResponse, *fiber.Error)
-	UpdateRolePermissions(ctx context.Context, id string, dto *request.UpdateRolePermissionsDto) (*response.RoleResponse, *fiber.Error)
-	DeleteRole(ctx context.Context, id string) *fiber.Error
+	GetRoleByID(ctx context.Context, id string) (*response.RoleResponse, error)
+	GetAllRole(ctx context.Context) ([]*response.RoleResponse, error)
+	GetPermissions(ctx context.Context) ([]*response.PermissionResponse, error)
+	CreateRole(ctx context.Context, dto *request.CreateRoleDto) (*response.RoleResponse, error)
+	UpdateRole(ctx context.Context, id string, dto *request.UpdateRoleDto) (*response.RoleResponse, error)
+	UpdateRolePermissions(ctx context.Context, id string, dto *request.UpdateRolePermissionsDto) (*response.RoleResponse, error)
+	DeleteRole(ctx context.Context, id string) error
 }
 
 type roleService struct {
 	roleRepo        repositories.RoleRepository
 	permissionCache PermissionCache
+	txManager       database.TxManager
 }
 
-func NewRoleService(roleRepo repositories.RoleRepository, permissionCache PermissionCache) RoleService {
-	return &roleService{roleRepo: roleRepo, permissionCache: permissionCache}
+func NewRoleService(roleRepo repositories.RoleRepository, permissionCache PermissionCache, txManager database.TxManager) RoleService {
+	return &roleService{roleRepo: roleRepo, permissionCache: permissionCache, txManager: txManager}
 }
 
-func (r *roleService) GetAllRole(ctx context.Context) ([]*response.RoleResponse, *fiber.Error) {
+func (r *roleService) GetAllRole(ctx context.Context) ([]*response.RoleResponse, error) {
 	roles, err := r.roleRepo.All(ctx)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get roles")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get roles")
 	}
 	if err := r.attachPermissions(ctx, roles...); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get role permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get role permissions")
 	}
 	return models.RolesEntityToResponse(roles), nil
 }
 
-func (r *roleService) GetRoleByID(ctx context.Context, id string) (*response.RoleResponse, *fiber.Error) {
-	roleID, parseErr := strconv.ParseInt(id, 10, 64)
-	if parseErr != nil || roleID < 1 {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Invalid role ID")
+func (r *roleService) GetRoleByID(ctx context.Context, id string) (*response.RoleResponse, error) {
+	roleID, parseErr := convert.ParseID(id)
+	if parseErr != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
 	role, err := r.roleRepo.GetByID(ctx, roleID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Internal Server Error")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if role == nil {
-		return nil, fiber.NewError(fiber.StatusNotFound, "Role not found")
+		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
 	if err := r.attachPermissions(ctx, role); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get role permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get role permissions")
 	}
 	return role.ToResponse(), nil
 }
 
-func (r *roleService) GetPermissions(ctx context.Context) ([]*response.PermissionResponse, *fiber.Error) {
+func (r *roleService) GetPermissions(ctx context.Context) ([]*response.PermissionResponse, error) {
 	permissions, err := r.roleRepo.ListPermissions(ctx)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get permissions")
 	}
 	return models.PermissionsToResponse(permissions), nil
 }
 
-func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto) (*response.RoleResponse, *fiber.Error) {
-	name := normalizeRoleName(dto.Name)
+func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto) (*response.RoleResponse, error) {
+	name := strings.ToUpper(strings.TrimSpace(dto.Name))
 	if name == "" {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Role name is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Role name is required")
 	}
-	role, err := r.roleRepo.Create(ctx, sqlc.CreateRoleParams{
+
+	tx, err := r.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := r.roleRepo.WithTx(tx)
+
+	role, err := txRepo.Create(ctx, sqlc.CreateRoleParams{
 		Name:        name,
 		Description: strings.TrimSpace(dto.Description),
 		IsSystem:    0,
@@ -87,102 +96,132 @@ func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto
 		AutoAssign:  convert.BoolToInt64(dto.AutoAssign),
 	})
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to create role")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Failed to create role")
 	}
-	if err := r.replacePermissions(ctx, role, dto.Permissions); err != nil {
+	if err := r.replacePermissions(ctx, txRepo, role, dto.Permissions); err != nil {
 		return nil, err
 	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit role creation")
+	}
+
 	if err := r.reloadPermissionCache(ctx); err != nil {
 		return nil, err
 	}
 	if err := r.attachPermissions(ctx, role); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get role permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get role permissions")
 	}
 	return role.ToResponse(), nil
 }
 
-func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.UpdateRoleDto) (*response.RoleResponse, *fiber.Error) {
-	roleID, ferr := parseRoleID(id)
+func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.UpdateRoleDto) (*response.RoleResponse, error) {
+	roleID, ferr := convert.ParseID(id)
 	if ferr != nil {
-		return nil, ferr
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
 	existing, err := r.roleRepo.GetByID(ctx, roleID)
 	if err != nil || existing == nil {
-		return nil, fiber.NewError(fiber.StatusNotFound, "Role not found")
+		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
 	if existing.IsAdmin {
-		return nil, fiber.NewError(fiber.StatusForbidden, "Admin role cannot be modified")
+		return nil, apperrors.New(apperrors.ErrForbidden, "Admin role cannot be modified")
 	}
+
+	tx, err := r.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := r.roleRepo.WithTx(tx)
 
 	var role *models.RoleEntity
 	if existing.IsSystem {
-		role, err = r.roleRepo.UpdateSystemRoleDescription(ctx, sqlc.UpdateSystemRoleDescriptionParams{
+		role, err = txRepo.UpdateSystemRoleDescription(ctx, sqlc.UpdateSystemRoleDescriptionParams{
 			ID:          roleID,
 			Description: strings.TrimSpace(dto.Description),
 		})
 	} else {
-		role, err = r.roleRepo.Update(ctx, sqlc.UpdateRoleParams{
+		role, err = txRepo.Update(ctx, sqlc.UpdateRoleParams{
 			ID:          roleID,
-			Name:        normalizeRoleName(dto.Name),
+			Name:        strings.ToUpper(strings.TrimSpace(dto.Name)),
 			Description: strings.TrimSpace(dto.Description),
 			AutoAssign:  convert.BoolToInt64(dto.AutoAssign),
 		})
 	}
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Failed to update role")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Failed to update role")
 	}
 	if !existing.IsSystem {
-		if err := r.replacePermissions(ctx, role, dto.Permissions); err != nil {
+		if err := r.replacePermissions(ctx, txRepo, role, dto.Permissions); err != nil {
 			return nil, err
 		}
 	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit role update")
+	}
+
 	if err := r.reloadPermissionCache(ctx); err != nil {
 		return nil, err
 	}
 	if err := r.attachPermissions(ctx, role); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get role permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get role permissions")
 	}
 	return role.ToResponse(), nil
 }
 
-func (r *roleService) UpdateRolePermissions(ctx context.Context, id string, dto *request.UpdateRolePermissionsDto) (*response.RoleResponse, *fiber.Error) {
-	roleID, ferr := parseRoleID(id)
+func (r *roleService) UpdateRolePermissions(ctx context.Context, id string, dto *request.UpdateRolePermissionsDto) (*response.RoleResponse, error) {
+	roleID, ferr := convert.ParseID(id)
 	if ferr != nil {
-		return nil, ferr
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
 	role, err := r.roleRepo.GetByID(ctx, roleID)
 	if err != nil || role == nil {
-		return nil, fiber.NewError(fiber.StatusNotFound, "Role not found")
+		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
 	if role.IsAdmin {
-		return nil, fiber.NewError(fiber.StatusForbidden, "Admin role permissions cannot be modified")
+		return nil, apperrors.New(apperrors.ErrForbidden, "Admin role permissions cannot be modified")
 	}
-	if err := r.replacePermissions(ctx, role, dto.Permissions); err != nil {
+
+	tx, err := r.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := r.roleRepo.WithTx(tx)
+
+	if err := r.replacePermissions(ctx, txRepo, role, dto.Permissions); err != nil {
 		return nil, err
 	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit permission update")
+	}
+
 	if err := r.reloadPermissionCache(ctx); err != nil {
 		return nil, err
 	}
 	if err := r.attachPermissions(ctx, role); err != nil {
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get role permissions")
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get role permissions")
 	}
 	return role.ToResponse(), nil
 }
 
-func (r *roleService) DeleteRole(ctx context.Context, id string) *fiber.Error {
-	roleID, ferr := parseRoleID(id)
+func (r *roleService) DeleteRole(ctx context.Context, id string) error {
+	roleID, ferr := convert.ParseID(id)
 	if ferr != nil {
-		return ferr
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
 	role, err := r.roleRepo.GetByID(ctx, roleID)
 	if err != nil || role == nil {
-		return fiber.NewError(fiber.StatusNotFound, "Role not found")
+		return apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
 	if role.IsSystem || role.IsAdmin {
-		return fiber.NewError(fiber.StatusForbidden, "System roles cannot be deleted")
+		return apperrors.New(apperrors.ErrForbidden, "System roles cannot be deleted")
 	}
 	if err := r.roleRepo.Delete(ctx, roleID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete role")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to delete role")
 	}
 	return r.reloadPermissionCache(ctx)
 }
@@ -201,7 +240,7 @@ func (r *roleService) attachPermissions(ctx context.Context, roles ...*models.Ro
 	return nil
 }
 
-func (r *roleService) replacePermissions(ctx context.Context, role *models.RoleEntity, dto []request.RolePermissionDto) *fiber.Error {
+func (r *roleService) replacePermissions(ctx context.Context, txRepo repositories.RoleRepository, role *models.RoleEntity, dto []request.RolePermissionDto) error {
 	permissions := make([]*models.RolePermissionEntity, 0, len(dto))
 	for _, item := range dto {
 		key := strings.TrimSpace(item.PermissionKey)
@@ -218,7 +257,7 @@ func (r *roleService) replacePermissions(ctx context.Context, role *models.RoleE
 		}
 		data, err := jsonx.Marshal(conditions)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "Invalid permission conditions")
+			return apperrors.New(apperrors.ErrBadRequest, "Invalid permission conditions")
 		}
 		permissions = append(permissions, &models.RolePermissionEntity{
 			RoleID:         role.ID,
@@ -228,30 +267,20 @@ func (r *roleService) replacePermissions(ctx context.Context, role *models.RoleE
 			ConditionsJSON: string(data),
 		})
 	}
-	if err := r.roleRepo.ReplaceRolePermissions(ctx, role.ID, permissions); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Failed to update role permissions")
+	if err := txRepo.ReplaceRolePermissions(ctx, role.ID, permissions); err != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Failed to update role permissions")
 	}
 	return nil
 }
 
-func (r *roleService) reloadPermissionCache(ctx context.Context) *fiber.Error {
+func (r *roleService) reloadPermissionCache(ctx context.Context) error {
 	if r.permissionCache == nil {
 		return nil
 	}
 	if err := r.permissionCache.Reload(ctx); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to reload permission cache")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to reload permission cache")
 	}
 	return nil
 }
 
-func parseRoleID(id string) (int64, *fiber.Error) {
-	roleID, parseErr := strconv.ParseInt(id, 10, 64)
-	if parseErr != nil || roleID < 1 {
-		return 0, fiber.NewError(fiber.StatusBadRequest, "Invalid role ID")
-	}
-	return roleID, nil
-}
 
-func normalizeRoleName(name string) string {
-	return strings.ToUpper(strings.TrimSpace(name))
-}

@@ -15,12 +15,12 @@ RETURNING *;
 
 -- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = ? AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
 ORDER BY created_at DESC
-LIMIT ?;
+LIMIT sqlc.arg('limit');
 
 -- name: GetCollectionsByIDs :many
-SELECT * FROM collections WHERE id IN (sqlc.slice('ids'));
+SELECT id, user_id, name, created_at, updated_at FROM collections WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteCollection :exec
 DELETE FROM collections
@@ -63,7 +63,7 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
 RETURNING *;
 
 -- name: GetReadingProgress :one
-SELECT * FROM reading_progress
+SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM reading_progress
 WHERE user_id = ? AND book_id = ?
 LIMIT 1;
 
@@ -98,7 +98,7 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
 RETURNING *;
 
 -- name: GetBookReadStats :one
-SELECT * FROM book_read_stats
+SELECT book_id, total_open_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM book_read_stats
 WHERE book_id = ?
 LIMIT 1;
 
@@ -134,7 +134,7 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < sqlc.narg('cursor_updated_at'))
+WHERE rp.user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < sqlc.narg('cursor_updated_at'))
 ORDER BY rp.updated_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -153,12 +153,12 @@ ON CONFLICT(book_id) DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP;
 
 -- name: GetBookDownloadStats :one
-SELECT * FROM book_download_stats
+SELECT book_id, total_download_count, last_downloaded_at, updated_at FROM book_download_stats
 WHERE book_id = ?
 LIMIT 1;
 
 -- name: GetBookmark :one
-SELECT * FROM bookmarks
+SELECT user_id, book_id, created_at FROM bookmarks
 WHERE user_id = ? AND book_id = ?
 LIMIT 1;
 
@@ -199,7 +199,7 @@ ON CONFLICT(book_id) DO UPDATE SET
 
 -- name: GetBookmarkedBookIDs :many
 SELECT book_id FROM bookmarks
-WHERE user_id = ? AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
 ORDER BY created_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -242,13 +242,13 @@ ON CONFLICT(book_id) DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP;
 
 -- name: GetBookReview :one
-SELECT * FROM book_reviews
+SELECT user_id, book_id, rating, review, created_at, updated_at FROM book_reviews
 WHERE user_id = ? AND book_id = ?
 LIMIT 1;
 
 -- name: ListBookReviews :many
-SELECT * FROM book_reviews
-WHERE book_id = ? AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < sqlc.narg('cursor_updated_at'))
+SELECT user_id, book_id, rating, review, created_at, updated_at FROM book_reviews
+WHERE book_id = sqlc.arg('book_id') AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < sqlc.narg('cursor_updated_at'))
 ORDER BY updated_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -262,7 +262,7 @@ WHERE book_id = ?
 LIMIT 1;
 
 -- name: GetBookSocialStats :one
-SELECT * FROM book_social_stats
+SELECT book_id, bookmark_count, rating_count, average_rating, share_count, updated_at FROM book_social_stats
 WHERE book_id = ?
 LIMIT 1;
 

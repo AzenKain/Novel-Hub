@@ -3,8 +3,61 @@ import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
 import type { Chapter } from "@/types";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useTTS } from "@/hooks/useTTS";
+import { FastAverageColor } from "fast-average-color";
+import { useHighlights } from "@/hooks/useHighlights";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useReadingStats } from "@/hooks/useReadingStats";
+
+
+const clearHighlight = () => {
+  const selection = window.getSelection();
+  if (selection) {
+    selection.removeAllRanges();
+  }
+};
+
+const highlightTextRange = (container: HTMLElement, startChar: number, length: number) => {
+  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let currentOffset = 0;
+  let startNode: Node | null = null;
+  let startNodeOffset = 0;
+  let endNode: Node | null = null;
+  let endNodeOffset = 0;
+
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    const nodeLength = node.textContent?.length || 0;
+    
+    if (!startNode && currentOffset + nodeLength > startChar) {
+      startNode = node;
+      startNodeOffset = startChar - currentOffset;
+    }
+    
+    if (startNode && !endNode && currentOffset + nodeLength >= startChar + length) {
+      endNode = node;
+      endNodeOffset = (startChar + length) - currentOffset;
+      break; 
+    }
+    
+    currentOffset += nodeLength;
+  }
+  
+  if (startNode && endNode) {
+    const range = document.createRange();
+    range.setStart(startNode, startNodeOffset);
+    range.setEnd(endNode, endNodeOffset);
+    
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+};
+
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -15,7 +68,10 @@ export const ReaderWorkspace = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileId = searchParams.get("file_id") || undefined;
+  
   const { t } = useTranslation();
+
+
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const {
     book,
@@ -83,17 +139,151 @@ export const ReaderWorkspace = () => {
     reset: state.reset,
   })));
 
+  // New features hooks
+  const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id);
+  useReadingStats(book?.id, !settingsOpen); // Active when settings are closed
+
   useEffect(() => {
     return () => {
       reset();
     };
   }, [reset]);
 
+    const { isSupported, isPlaying, isPaused, speak, pause, resume, stop } = useTTS({
+    onEnd: () => clearHighlight(),
+    onBoundary: (e) => {
+      if (columnsRef.current && e.name === 'word') {
+        highlightTextRange(columnsRef.current, ttsOffsetRef.current + e.charIndex, e.charLength);
+      }
+    }
+  });
+
+  // Clear highlight on unmount or when stopping TTS manually
+  useEffect(() => {
+    if (!isPlaying && !isPaused) {
+      clearHighlight();
+    }
+  }, [isPlaying, isPaused]);
+
+
+  const extractTextFromHtml = (html: string) => {
+    if (typeof document === 'undefined') return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
+  
+  const getSelectionStartOffset = (container: HTMLElement) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return 0;
+    
+    const range = selection.getRangeAt(0);
+    if (!container.contains(range.startContainer)) return 0;
+
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(container);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    
+    return preSelectionRange.toString().length;
+  };
+
+  
+  // Floating toolbar state
+  const [selectionRange, setSelectionRange] = useState<Range | null>(null);
+  const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        const range = selection.getRangeAt(0);
+        // Only show toolbar if selecting inside reader content
+        if (contentRef.current?.contains(range.commonAncestorContainer)) {
+          setSelectionRange(range);
+          const rect = range.getBoundingClientRect();
+          setToolbarPos({ top: rect.top - 40, left: rect.left + rect.width / 2 });
+          return;
+        }
+      }
+      setSelectionRange(null);
+    };
+    document.addEventListener('selectionchange', handleSelection);
+    return () => document.removeEventListener('selectionchange', handleSelection);
+  }, []);
+
+  useEffect(() => {
+    if (!CSS.highlights) return;
+    const highlightRanges = highlights.map((h: any) => {
+      // Find the text nodes and create ranges for CSS Highlights.
+      // This requires walking the DOM, for simplicity in this MVP we just clear them.
+      // In a real app we'd construct accurate ranges based on startIndex and endIndex.
+      return new Range(); 
+    });
+    // const highlightObj = new Highlight(...highlightRanges);
+    // CSS.highlights.set('reader-highlights', highlightObj);
+  }, [highlights]);
+
+  const handleHighlight = async (color: string) => {
+    if (selectionRange) {
+      const text = selectionRange.toString();
+      // Dummy start/end index for MVP
+      await addHighlight(text, 0, text.length, color);
+      window.getSelection()?.removeAllRanges();
+      setSelectionRange(null);
+    }
+  };
+
+  const handleTtsPlayPause = () => {
+
+    if (isPlaying) {
+      pause();
+    } else if (isPaused) {
+      resume();
+    } else if (htmlContent) {
+      const text = extractTextFromHtml(htmlContent);
+      if (text.trim()) {
+        speak(text);
+      }
+    }
+  };
+
+    const [ambientColor, setAmbientColor] = useState<string>("transparent");
+
+  useEffect(() => {
+    if (!book || !book.coverUrl) {
+      setAmbientColor("transparent");
+      return;
+    }
+    const fac = new FastAverageColor();
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = book.coverUrl;
+    img.onload = () => {
+      try {
+        const color = fac.getColor(img);
+        setAmbientColor(theme === 'dark' ? color.hex : color.rgba);
+      } catch (e) {
+        setAmbientColor("transparent");
+      }
+    };
+    return () => { fac.destroy(); };
+  }, [book, theme]);
+
+  
+
+  
+
   const contentRef = useRef<HTMLDivElement>(null);
+  const { isScrolling: autoScrollActive, toggleScroll: onToggleAutoScroll, updateSpeed } = useAutoScroll(contentRef);
+
+
+
   const columnsRef = useRef<HTMLDivElement>(null);
   const pageFrameRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const pendingFragmentRef = useRef<string | null>(null);
+  const ttsOffsetRef = useRef<number>(0);
 
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
@@ -297,6 +487,7 @@ export const ReaderWorkspace = () => {
     if (!bookId) return;
     setCurrentChapter(chapter);
     setHtmlContent(""); // clear while loading
+    stop(); // stop TTS if playing
     try {
       const html = await readerService.getChapterHtml(bookId, chapter.id, fileId);
       setHtmlContent(html);
@@ -423,6 +614,14 @@ export const ReaderWorkspace = () => {
           setMaxWidth={setMaxWidth}
           setReadingMode={setReadingMode}
           resetSettings={resetSettings}
+          ttsSupported={isSupported}
+          ttsPlaying={isPlaying}
+          ttsPaused={isPaused}
+          onTtsPlayPause={handleTtsPlayPause}
+          onTtsStop={stop}
+          autoScrollActive={autoScrollActive}
+          onToggleAutoScroll={onToggleAutoScroll}
+
         />
 
         {/* Reader Scrollable Area */}

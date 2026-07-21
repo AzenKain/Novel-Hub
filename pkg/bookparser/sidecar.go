@@ -1,10 +1,11 @@
 package bookparser
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	"novelhub/pkg/jsonx"
 )
 
 func MetadataSidecarPath(filePath string) string {
@@ -15,7 +16,7 @@ func SaveMetadataSidecar(filePath string, meta *BookMetadata) error {
 	if meta == nil {
 		return fmt.Errorf("metadata is nil")
 	}
-	data, err := json.MarshalIndent(meta, "", "  ")
+	data, err := jsonx.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal metadata sidecar: %w", err)
 	}
@@ -34,7 +35,7 @@ func MergeMetadataSidecar(filePath string, meta *BookMetadata) *BookMetadata {
 		return meta
 	}
 	var sidecar BookMetadata
-	if err := json.Unmarshal(data, &sidecar); err != nil {
+	if err := jsonx.Unmarshal(data, &sidecar); err != nil {
 		return meta
 	}
 	overlayMetadata(meta, &sidecar)
@@ -57,23 +58,13 @@ func overlayMetadata(target *BookMetadata, source *BookMetadata) {
 	if strings.TrimSpace(source.Language) != "" {
 		target.Language = source.Language
 	}
-	if strings.TrimSpace(source.Date) != "" {
-		target.Date = source.Date
-	}
-	if len(source.Subjects) > 0 {
-		target.Subjects = append([]string(nil), source.Subjects...)
-	}
 	if strings.TrimSpace(source.Series) != "" {
 		target.Series = source.Series
 	}
 	if strings.TrimSpace(source.SeriesIndex) != "" {
 		target.SeriesIndex = source.SeriesIndex
 	}
-	if len(source.CoverData) > 0 {
-		target.CoverData = append([]byte(nil), source.CoverData...)
-		target.CoverType = source.CoverType
-	}
-	if strings.TrimSpace(source.MetadataJSON) != "" {
-		target.MetadataJSON = source.MetadataJSON
+	if len(source.Subjects) > 0 {
+		target.Subjects = source.Subjects
 	}
 }

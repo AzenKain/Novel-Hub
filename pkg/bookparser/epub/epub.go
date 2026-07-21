@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bytedance/sonic"
-
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/jsonx"
 )
 
 type Parser struct{}
@@ -170,7 +169,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 		SeriesIndex: normalized.SeriesIndex,
 	}
 
-	meta.MetadataJSON, _ = sonic.MarshalString(normalized)
+	meta.MetadataJSON, _ = jsonx.MarshalString(normalized)
 
 	// Attempt to extract cover
 	var coverHref string

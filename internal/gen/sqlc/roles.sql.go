@@ -149,7 +149,7 @@ func (q *Queries) GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error) {
 }
 
 const getPermissionsByKeys = `-- name: GetPermissionsByKeys :many
-SELECT "key", description, created_at, updated_at FROM permissions WHERE key IN (/*SLICE:keys*/?)
+SELECT key, description, created_at, updated_at FROM permissions WHERE key IN (/*SLICE:keys*/?)
 `
 
 func (q *Queries) GetPermissionsByKeys(ctx context.Context, keys []string) ([]Permission, error) {
@@ -452,7 +452,7 @@ func (q *Queries) ListPermissionKeys(ctx context.Context) ([]string, error) {
 }
 
 const listPermissions = `-- name: ListPermissions :many
-SELECT "key", description, created_at, updated_at FROM permissions
+SELECT key, description, created_at, updated_at FROM permissions
 ORDER BY key ASC
 `
 

@@ -16,9 +16,32 @@ func BuildKey(parts ...any) string {
 		if i > 0 {
 			sb.WriteString(":")
 		}
-		sb.WriteString(fmt.Sprint(p))
+		appendPart(&sb, p)
 	}
 	return sb.String()
+}
+
+func appendPart(sb *strings.Builder, p any) {
+	switch v := p.(type) {
+	case string:
+		sb.WriteString(v)
+	case int64:
+		sb.WriteString(strconv.FormatInt(v, 10))
+	case int:
+		sb.WriteString(strconv.Itoa(v))
+	case uint64:
+		sb.WriteString(strconv.FormatUint(v, 10))
+	case bool:
+		if v {
+			sb.WriteString("true")
+		} else {
+			sb.WriteString("false")
+		}
+	case fmt.Stringer:
+		sb.WriteString(v.String())
+	default:
+		sb.WriteString(fmt.Sprint(p))
+	}
 }
 
 func QueryKey(prefix string, params any) string {

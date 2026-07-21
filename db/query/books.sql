@@ -7,7 +7,7 @@ INSERT INTO books (
 RETURNING *;
 
 -- name: GetBook :one
-SELECT * FROM books
+SELECT id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at FROM books
 WHERE id = ? LIMIT 1;
 
 -- name: ListBookIDs :many
@@ -35,7 +35,7 @@ INSERT INTO chapters (
 RETURNING *;
 
 -- name: GetChapter :one
-SELECT * FROM chapters
+SELECT id, book_id, title, content_path, chapter_index, created_at, updated_at FROM chapters
 WHERE id = ? LIMIT 1;
 
 -- name: ListChapterIDsByBook :many
@@ -44,7 +44,7 @@ WHERE book_id = ?
 ORDER BY chapter_index ASC;
 
 -- name: GetChaptersByIDs :many
-SELECT * FROM chapters WHERE id IN (sqlc.slice('ids'));
+SELECT id, book_id, title, content_path, chapter_index, created_at, updated_at FROM chapters WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteChapter :exec
 DELETE FROM chapters
@@ -59,15 +59,15 @@ INSERT INTO authors (
 RETURNING *;
 
 -- name: GetAuthorByName :one
-SELECT * FROM authors
+SELECT id, name, bio, created_at, updated_at FROM authors
 WHERE name = ? LIMIT 1;
 
 -- name: GetAuthorById :one
-SELECT * FROM authors
+SELECT id, name, bio, created_at, updated_at FROM authors
 WHERE id = ? LIMIT 1;
 
 -- name: GetAuthorsByIDs :many
-SELECT * FROM authors WHERE id IN (sqlc.slice('ids'));
+SELECT id, name, bio, created_at, updated_at FROM authors WHERE id IN (sqlc.slice('ids'));
 
 -- name: CreateTag :one
 INSERT INTO tags (
@@ -78,7 +78,7 @@ INSERT INTO tags (
 RETURNING *;
 
 -- name: GetTagByName :one
-SELECT * FROM tags
+SELECT id, name, created_at FROM tags
 WHERE name = ? LIMIT 1;
 
 -- name: AddBookTag :exec
@@ -125,7 +125,7 @@ ORDER BY
 LIMIT sqlc.arg('limit');
 
 -- name: GetBooksByIDs :many
-SELECT * FROM books WHERE id IN (sqlc.slice('ids'));
+SELECT id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at FROM books WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetRandomBookIDs :many
 SELECT b.id FROM books b

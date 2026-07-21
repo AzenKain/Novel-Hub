@@ -35,6 +35,7 @@ func (r *bookDBRepository) CreateBook(ctx context.Context, book *models.BookEnti
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
 	}
 	return nil
 }
@@ -65,11 +66,12 @@ func (r *bookDBRepository) CreateBookWithFile(ctx context.Context, book *models.
 			cache.BuildKey("book", "id", book.ID),
 			cache.BuildKey("book_file", "book", book.ID),
 			"feature:library_stats",
-			"book_file:all",
-			"book_file:duplicates",
 			cache.BuildKey("book_file", "count", book.ID),
 		)
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 	}
 	return nil
 }
@@ -147,10 +149,21 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return r.GetBooksByIDs(ctx, ids)
 	}
 
-		if collection != "" && collection != "Missing metadata" {
-		ids, err := r.queries.GetBookIDsInCollection(ctx, collection)
-		if err != nil {
-			return nil, err
+	if collection != "" && collection != "Missing metadata" {
+		colKey := cache.BuildKey("book", "search", "collection", collection)
+		var ids []string
+		if r.c != nil && !r.inTx {
+			_ = r.c.Get(ctx, colKey, &ids)
+		}
+		if len(ids) == 0 {
+			var err error
+			ids, err = r.queries.GetBookIDsInCollection(ctx, collection)
+			if err != nil {
+				return nil, err
+			}
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, colKey, ids, constants.ListCacheDuration)
+			}
 		}
 		books, err := r.GetBooksByIDs(ctx, ids)
 		if err != nil {
@@ -357,6 +370,7 @@ func (r *bookDBRepository) UpdateBook(ctx context.Context, book *models.BookEnti
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), "feature:library_stats")
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
 		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 	}
@@ -393,6 +407,9 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 			)
 		}
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
+		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
 		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
 	}

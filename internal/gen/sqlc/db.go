@@ -75,6 +75,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createCollectionStmt, err = db.PrepareContext(ctx, createCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateCollection: %w", err)
 	}
+	if q.createHighlightStmt, err = db.PrepareContext(ctx, createHighlight); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateHighlight: %w", err)
+	}
 	if q.createJobStmt, err = db.PrepareContext(ctx, createJob); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateJob: %w", err)
 	}
@@ -119,6 +122,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteFileStmt, err = db.PrepareContext(ctx, deleteFile); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteFile: %w", err)
+	}
+	if q.deleteHighlightStmt, err = db.PrepareContext(ctx, deleteHighlight); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteHighlight: %w", err)
 	}
 	if q.deleteLibraryStmt, err = db.PrepareContext(ctx, deleteLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteLibrary: %w", err)
@@ -213,6 +219,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getFilesByBookIdStmt, err = db.PrepareContext(ctx, getFilesByBookId); err != nil {
 		return nil, fmt.Errorf("error preparing query GetFilesByBookId: %w", err)
 	}
+	if q.getHighlightIDsByChapterStmt, err = db.PrepareContext(ctx, getHighlightIDsByChapter); err != nil {
+		return nil, fmt.Errorf("error preparing query GetHighlightIDsByChapter: %w", err)
+	}
+	if q.getHighlightsByChapterStmt, err = db.PrepareContext(ctx, getHighlightsByChapter); err != nil {
+		return nil, fmt.Errorf("error preparing query GetHighlightsByChapter: %w", err)
+	}
+	if q.getHighlightsByIDsStmt, err = db.PrepareContext(ctx, getHighlightsByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetHighlightsByIDs: %w", err)
+	}
 	if q.getJobStmt, err = db.PrepareContext(ctx, getJob); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJob: %w", err)
 	}
@@ -239,6 +254,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getRandomBookIDsStmt, err = db.PrepareContext(ctx, getRandomBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRandomBookIDs: %w", err)
+	}
+	if q.getReadingHeatmapStmt, err = db.PrepareContext(ctx, getReadingHeatmap); err != nil {
+		return nil, fmt.Errorf("error preparing query GetReadingHeatmap: %w", err)
 	}
 	if q.getReadingProgressStmt, err = db.PrepareContext(ctx, getReadingProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query GetReadingProgress: %w", err)
@@ -417,6 +435,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateFileHashStmt, err = db.PrepareContext(ctx, updateFileHash); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateFileHash: %w", err)
 	}
+	if q.updateHighlightNoteStmt, err = db.PrepareContext(ctx, updateHighlightNote); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateHighlightNote: %w", err)
+	}
 	if q.updateJobProgressStmt, err = db.PrepareContext(ctx, updateJobProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateJobProgress: %w", err)
 	}
@@ -473,6 +494,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.upsertReadingProgressStmt, err = db.PrepareContext(ctx, upsertReadingProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertReadingProgress: %w", err)
+	}
+	if q.upsertReadingSessionStmt, err = db.PrepareContext(ctx, upsertReadingSession); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertReadingSession: %w", err)
 	}
 	if q.upsertRolePermissionStmt, err = db.PrepareContext(ctx, upsertRolePermission); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertRolePermission: %w", err)
@@ -573,6 +597,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createCollectionStmt: %w", cerr)
 		}
 	}
+	if q.createHighlightStmt != nil {
+		if cerr := q.createHighlightStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createHighlightStmt: %w", cerr)
+		}
+	}
 	if q.createJobStmt != nil {
 		if cerr := q.createJobStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createJobStmt: %w", cerr)
@@ -646,6 +675,11 @@ func (q *Queries) Close() error {
 	if q.deleteFileStmt != nil {
 		if cerr := q.deleteFileStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteFileStmt: %w", cerr)
+		}
+	}
+	if q.deleteHighlightStmt != nil {
+		if cerr := q.deleteHighlightStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteHighlightStmt: %w", cerr)
 		}
 	}
 	if q.deleteLibraryStmt != nil {
@@ -803,6 +837,21 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getFilesByBookIdStmt: %w", cerr)
 		}
 	}
+	if q.getHighlightIDsByChapterStmt != nil {
+		if cerr := q.getHighlightIDsByChapterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getHighlightIDsByChapterStmt: %w", cerr)
+		}
+	}
+	if q.getHighlightsByChapterStmt != nil {
+		if cerr := q.getHighlightsByChapterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getHighlightsByChapterStmt: %w", cerr)
+		}
+	}
+	if q.getHighlightsByIDsStmt != nil {
+		if cerr := q.getHighlightsByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getHighlightsByIDsStmt: %w", cerr)
+		}
+	}
 	if q.getJobStmt != nil {
 		if cerr := q.getJobStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJobStmt: %w", cerr)
@@ -846,6 +895,11 @@ func (q *Queries) Close() error {
 	if q.getRandomBookIDsStmt != nil {
 		if cerr := q.getRandomBookIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRandomBookIDsStmt: %w", cerr)
+		}
+	}
+	if q.getReadingHeatmapStmt != nil {
+		if cerr := q.getReadingHeatmapStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getReadingHeatmapStmt: %w", cerr)
 		}
 	}
 	if q.getReadingProgressStmt != nil {
@@ -1143,6 +1197,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateFileHashStmt: %w", cerr)
 		}
 	}
+	if q.updateHighlightNoteStmt != nil {
+		if cerr := q.updateHighlightNoteStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateHighlightNoteStmt: %w", cerr)
+		}
+	}
 	if q.updateJobProgressStmt != nil {
 		if cerr := q.updateJobProgressStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateJobProgressStmt: %w", cerr)
@@ -1238,6 +1297,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertReadingProgressStmt: %w", cerr)
 		}
 	}
+	if q.upsertReadingSessionStmt != nil {
+		if cerr := q.upsertReadingSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertReadingSessionStmt: %w", cerr)
+		}
+	}
 	if q.upsertRolePermissionStmt != nil {
 		if cerr := q.upsertRolePermissionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertRolePermissionStmt: %w", cerr)
@@ -1309,6 +1373,7 @@ type Queries struct {
 	createBookShareEventStmt           *sql.Stmt
 	createChapterStmt                  *sql.Stmt
 	createCollectionStmt               *sql.Stmt
+	createHighlightStmt                *sql.Stmt
 	createJobStmt                      *sql.Stmt
 	createLanguageStmt                 *sql.Stmt
 	createLibraryStmt                  *sql.Stmt
@@ -1324,6 +1389,7 @@ type Queries struct {
 	deleteCollectionStmt               *sql.Stmt
 	deleteFTSBookStmt                  *sql.Stmt
 	deleteFileStmt                     *sql.Stmt
+	deleteHighlightStmt                *sql.Stmt
 	deleteLibraryStmt                  *sql.Stmt
 	deleteRoleStmt                     *sql.Stmt
 	deleteRolePermissionsStmt          *sql.Stmt
@@ -1355,6 +1421,9 @@ type Queries struct {
 	getDuplicateFilesStmt              *sql.Stmt
 	getFilesByBookIDsStmt              *sql.Stmt
 	getFilesByBookIdStmt               *sql.Stmt
+	getHighlightIDsByChapterStmt       *sql.Stmt
+	getHighlightsByChapterStmt         *sql.Stmt
+	getHighlightsByIDsStmt             *sql.Stmt
 	getJobStmt                         *sql.Stmt
 	getJobsByIDsStmt                   *sql.Stmt
 	getLanguageByNameStmt              *sql.Stmt
@@ -1364,6 +1433,7 @@ type Queries struct {
 	getPermissionsByKeysStmt           *sql.Stmt
 	getPublisherByNameStmt             *sql.Stmt
 	getRandomBookIDsStmt               *sql.Stmt
+	getReadingHeatmapStmt              *sql.Stmt
 	getReadingProgressStmt             *sql.Stmt
 	getRecentReadingHistoryStmt        *sql.Stmt
 	getRecentReadingHistoryBookIDsStmt *sql.Stmt
@@ -1423,6 +1493,7 @@ type Queries struct {
 	updateBookStmt                     *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
 	updateFileHashStmt                 *sql.Stmt
+	updateHighlightNoteStmt            *sql.Stmt
 	updateJobProgressStmt              *sql.Stmt
 	updateJobStatusStmt                *sql.Stmt
 	updateLibraryStmt                  *sql.Stmt
@@ -1442,6 +1513,7 @@ type Queries struct {
 	upsertPermissionStmt               *sql.Stmt
 	upsertReadingHistoryStmt           *sql.Stmt
 	upsertReadingProgressStmt          *sql.Stmt
+	upsertReadingSessionStmt           *sql.Stmt
 	upsertRolePermissionStmt           *sql.Stmt
 	upsertSetupStateStmt               *sql.Stmt
 	upsertUserStmt                     *sql.Stmt
@@ -1468,6 +1540,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createBookShareEventStmt:           q.createBookShareEventStmt,
 		createChapterStmt:                  q.createChapterStmt,
 		createCollectionStmt:               q.createCollectionStmt,
+		createHighlightStmt:                q.createHighlightStmt,
 		createJobStmt:                      q.createJobStmt,
 		createLanguageStmt:                 q.createLanguageStmt,
 		createLibraryStmt:                  q.createLibraryStmt,
@@ -1483,6 +1556,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteCollectionStmt:               q.deleteCollectionStmt,
 		deleteFTSBookStmt:                  q.deleteFTSBookStmt,
 		deleteFileStmt:                     q.deleteFileStmt,
+		deleteHighlightStmt:                q.deleteHighlightStmt,
 		deleteLibraryStmt:                  q.deleteLibraryStmt,
 		deleteRoleStmt:                     q.deleteRoleStmt,
 		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
@@ -1514,6 +1588,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getDuplicateFilesStmt:              q.getDuplicateFilesStmt,
 		getFilesByBookIDsStmt:              q.getFilesByBookIDsStmt,
 		getFilesByBookIdStmt:               q.getFilesByBookIdStmt,
+		getHighlightIDsByChapterStmt:       q.getHighlightIDsByChapterStmt,
+		getHighlightsByChapterStmt:         q.getHighlightsByChapterStmt,
+		getHighlightsByIDsStmt:             q.getHighlightsByIDsStmt,
 		getJobStmt:                         q.getJobStmt,
 		getJobsByIDsStmt:                   q.getJobsByIDsStmt,
 		getLanguageByNameStmt:              q.getLanguageByNameStmt,
@@ -1523,6 +1600,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getPermissionsByKeysStmt:           q.getPermissionsByKeysStmt,
 		getPublisherByNameStmt:             q.getPublisherByNameStmt,
 		getRandomBookIDsStmt:               q.getRandomBookIDsStmt,
+		getReadingHeatmapStmt:              q.getReadingHeatmapStmt,
 		getReadingProgressStmt:             q.getReadingProgressStmt,
 		getRecentReadingHistoryStmt:        q.getRecentReadingHistoryStmt,
 		getRecentReadingHistoryBookIDsStmt: q.getRecentReadingHistoryBookIDsStmt,
@@ -1582,6 +1660,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateBookStmt:                     q.updateBookStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,
 		updateFileHashStmt:                 q.updateFileHashStmt,
+		updateHighlightNoteStmt:            q.updateHighlightNoteStmt,
 		updateJobProgressStmt:              q.updateJobProgressStmt,
 		updateJobStatusStmt:                q.updateJobStatusStmt,
 		updateLibraryStmt:                  q.updateLibraryStmt,
@@ -1601,6 +1680,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertPermissionStmt:               q.upsertPermissionStmt,
 		upsertReadingHistoryStmt:           q.upsertReadingHistoryStmt,
 		upsertReadingProgressStmt:          q.upsertReadingProgressStmt,
+		upsertReadingSessionStmt:           q.upsertReadingSessionStmt,
 		upsertRolePermissionStmt:           q.upsertRolePermissionStmt,
 		upsertSetupStateStmt:               q.upsertSetupStateStmt,
 		upsertUserStmt:                     q.upsertUserStmt,

@@ -3,12 +3,12 @@ package services
 import (
 	"context"
 
-	"novelhub/internal/models"
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 )
 
 type JobService interface {
-	GetJob(ctx context.Context, id string) (*models.JobEntity, error)
+	GetJob(ctx context.Context, id string) (*response.JobResponse, error)
 }
 
 type jobService struct {
@@ -19,6 +19,10 @@ func NewJobService(repo repositories.JobRepository) JobService {
 	return &jobService{repo: repo}
 }
 
-func (s *jobService) GetJob(ctx context.Context, id string) (*models.JobEntity, error) {
-	return s.repo.GetJob(ctx, id)
+func (s *jobService) GetJob(ctx context.Context, id string) (*response.JobResponse, error) {
+	job, err := s.repo.GetJob(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return job.ToResponse(), nil
 }

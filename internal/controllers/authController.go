@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -87,9 +88,9 @@ func (h *AuthController) Register(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, ferr := h.service.Register(ctx, dto)
-	if ferr != nil {
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+	res, err := h.service.Register(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(response.CommonResponse{Status: true, Data: res})
 }
@@ -103,9 +104,9 @@ func (h *AuthController) SubmitSetup(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, ferr := h.service.SubmitSetup(ctx, dto)
-	if ferr != nil {
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+	res, err := h.service.SubmitSetup(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
@@ -119,9 +120,9 @@ func (h *AuthController) Signin(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, ferr := h.service.Signin(ctx, dto)
-	if ferr != nil {
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+	res, err := h.service.Signin(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
 	}
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)
@@ -149,11 +150,11 @@ func (h *AuthController) RefreshToken(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Missing refresh token"})
 	}
 
-	res, ferr := h.service.RefreshToken(ctx, c.Locals("uid").(string), token)
-	if ferr != nil {
+	res, err := h.service.RefreshToken(ctx, c.Locals("uid").(string), token)
+	if err != nil {
 		clearAuthCookie(c, "access_token")
 		clearAuthCookie(c, "refresh_token")
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+		return apperrors.HandleError(c, err)
 	}
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)
@@ -165,9 +166,9 @@ func (h *AuthController) Logout(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	ferr := h.service.Logout(ctx, c.Locals("uid").(string))
-	if ferr != nil {
-		return c.Status(ferr.Code).JSON(response.CommonResponse{Status: false, Message: ferr.Message})
+	err := h.service.Logout(ctx, c.Locals("uid").(string))
+	if err != nil {
+		return apperrors.HandleError(c, err)
 	}
 
 	clearAuthCookie(c, "access_token")

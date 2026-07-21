@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -39,6 +40,10 @@ func gracefulShutdown(server *FiberServer, done chan bool) {
 func main() {
 	if err := config.LoadEnv(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load env")
+	}
+
+	if gcPercent := config.GetIntConfigWithDefault("GOGC", 200); gcPercent > 0 {
+		debug.SetGCPercent(gcPercent)
 	}
 
 	db, err := database.NewSQLiteDB()

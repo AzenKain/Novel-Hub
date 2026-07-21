@@ -2,6 +2,7 @@ import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 
 export const UserProfile = () => {
@@ -200,6 +201,10 @@ export const UserProfile = () => {
                 </button>
               </div>
             </form>
+            <div className="mt-6 border-t border-base-300 pt-6">
+              <ReadingHeatmap />
+            </div>
+
           </>
         )}
       </div>

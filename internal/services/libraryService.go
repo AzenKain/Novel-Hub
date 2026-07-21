@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
@@ -20,12 +21,12 @@ import (
 )
 
 type LibraryService interface {
-	CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*models.LibraryEntity, error)
-	GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error)
-	ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error)
-	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*models.LibraryEntity, error)
+	CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*response.LibraryResponse, error)
+	GetLibrary(ctx context.Context, id string) (*response.LibraryResponse, error)
+	ListLibraries(ctx context.Context) ([]*response.LibraryResponse, error)
+	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error)
 	DeleteLibrary(ctx context.Context, id string) error
-	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*models.LibraryUploadResult, error)
+	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
 }
 
 type libraryService struct {
@@ -44,7 +45,7 @@ func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositorie
 	}
 }
 
-func (s *libraryService) CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*models.LibraryEntity, error) {
+func (s *libraryService) CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*response.LibraryResponse, error) {
 	lib := &models.LibraryEntity{
 		ID:   uuid.Must(uuid.NewV7()).String(),
 		Name: dto.Name,
@@ -52,18 +53,26 @@ func (s *libraryService) CreateLibrary(ctx context.Context, dto *request.CreateL
 	if err := s.libraryRepo.CreateLibrary(ctx, lib); err != nil {
 		return nil, err
 	}
-	return lib, nil
+	return lib.ToResponse(), nil
 }
 
-func (s *libraryService) GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error) {
-	return s.libraryRepo.GetLibrary(ctx, id)
+func (s *libraryService) GetLibrary(ctx context.Context, id string) (*response.LibraryResponse, error) {
+	lib, err := s.libraryRepo.GetLibrary(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return lib.ToResponse(), nil
 }
 
-func (s *libraryService) ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error) {
-	return s.libraryRepo.ListLibraries(ctx)
+func (s *libraryService) ListLibraries(ctx context.Context) ([]*response.LibraryResponse, error) {
+	libs, err := s.libraryRepo.ListLibraries(ctx, 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+	return models.LibraryEntitiesToResponse(libs), nil
 }
 
-func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*models.LibraryEntity, error) {
+func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error) {
 	lib, err := s.libraryRepo.GetLibrary(ctx, id)
 	if err != nil {
 		return nil, err
@@ -74,14 +83,14 @@ func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *requ
 	if err := s.libraryRepo.UpdateLibrary(ctx, lib); err != nil {
 		return nil, err
 	}
-	return lib, nil
+	return lib.ToResponse(), nil
 }
 
 func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
 	return s.libraryRepo.DeleteLibrary(ctx, id)
 }
 
-func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*models.LibraryUploadResult, error) {
+func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error) {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
 		return nil, err
 	}
@@ -167,5 +176,6 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 		}
 	}
 
-	return &models.LibraryUploadResult{Uploaded: successCount, Total: len(files)}, nil
+	res := &models.LibraryUploadResult{Uploaded: successCount, Total: len(files)}
+	return res.ToResponse(), nil
 }

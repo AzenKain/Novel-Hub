@@ -327,7 +327,7 @@ func (q *Queries) GetBookmark(ctx context.Context, arg GetBookmarkParams) (Bookm
 
 const getBookmarkedBookIDs = `-- name: GetBookmarkedBookIDs :many
 SELECT book_id FROM bookmarks
-WHERE user_id = ? AND (?2 IS NULL OR created_at < ?2)
+WHERE user_id = ?1 AND (?2 IS NULL OR created_at < ?2)
 ORDER BY created_at DESC
 LIMIT ?3
 `
@@ -469,7 +469,7 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = ? AND (?2 IS NULL OR rp.updated_at < ?2)
+WHERE rp.user_id = ?1 AND (?2 IS NULL OR rp.updated_at < ?2)
 ORDER BY rp.updated_at DESC
 LIMIT ?3
 `
@@ -565,9 +565,9 @@ func (q *Queries) GetRecentReadingHistoryBookIDs(ctx context.Context, arg GetRec
 
 const getUserCollectionIDs = `-- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = ? AND (?3 IS NULL OR created_at < ?3)
+WHERE user_id = ?1 AND (?2 IS NULL OR created_at < ?2)
 ORDER BY created_at DESC
-LIMIT ?
+LIMIT ?3
 `
 
 type GetUserCollectionIDsParams struct {
@@ -698,7 +698,7 @@ func (q *Queries) ListBookReviewCompositeKeys(ctx context.Context, arg ListBookR
 
 const listBookReviews = `-- name: ListBookReviews :many
 SELECT user_id, book_id, rating, review, created_at, updated_at FROM book_reviews
-WHERE book_id = ? AND (?2 IS NULL OR updated_at < ?2)
+WHERE book_id = ?1 AND (?2 IS NULL OR updated_at < ?2)
 ORDER BY updated_at DESC
 LIMIT ?3
 `

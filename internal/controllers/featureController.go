@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -32,11 +33,7 @@ func (c *FeatureController) GetLibraryStats(ctx fiber.Ctx) error {
 
 	stats, err := c.service.GetLibraryStats(reqCtx)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch library stats",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 	return ctx.JSON(response.CommonResponse{
 		Status: true,
@@ -91,11 +88,7 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 
 	collections, err := c.service.GetUserCollections(reqCtx, userID, cursorCreatedAt, limit)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch collections",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -126,11 +119,7 @@ func (c *FeatureController) CreateCollection(ctx fiber.Ctx) error {
 
 	col, err := c.service.CreateCollection(reqCtx, dto.Name, userID)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to create collection",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -163,10 +152,7 @@ func (c *FeatureController) UpdateCollection(ctx fiber.Ctx) error {
 
 	col, err := c.service.UpdateCollection(reqCtx, id, dto.Name, userID)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to update collection",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -194,10 +180,7 @@ func (c *FeatureController) DeleteCollection(ctx fiber.Ctx) error {
 
 	err := c.service.DeleteCollection(reqCtx, id, userID)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to delete collection",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -231,11 +214,7 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 
 	history, err := c.service.GetRecentReadingHistory(reqCtx, userID, cursorTime, int64(dto.Limit))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch reading history",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	var nextCursor *string
@@ -244,8 +223,8 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 		nextCursor = &c
 	}
 	return ctx.JSON(fiber.Map{
-		"status": true,
-		"data": history,
+		"status":      true,
+		"data":        history,
 		"next_cursor": nextCursor,
 	})
 }
@@ -286,7 +265,6 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to record reading activity",
-			
 		})
 	}
 
@@ -305,7 +283,6 @@ func (c *FeatureController) GetBookReadStats(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch read stats",
-			
 		})
 	}
 
@@ -324,7 +301,6 @@ func (c *FeatureController) GetBookDownloadStats(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch download stats",
-			
 		})
 	}
 
@@ -343,7 +319,6 @@ func (c *FeatureController) GetBookEngagementStats(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch engagement stats",
-			
 		})
 	}
 
@@ -370,7 +345,6 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to record share",
-			
 		})
 	}
 
@@ -379,8 +353,6 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 		Data:   stats,
 	})
 }
-
-
 
 func (c *FeatureController) SetBookmark(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -407,7 +379,6 @@ func (c *FeatureController) SetBookmark(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to update bookmark",
-			
 		})
 	}
 
@@ -442,7 +413,7 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 	}
 	books, err := c.service.GetBookmarkedBooks(reqCtx, userID, cursorTime, int64(dto.Limit))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{Status: false, Message: "failed to fetch bookmarked books"})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	var nextCursor *string
@@ -451,8 +422,8 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 		nextCursor = &c
 	}
 	return ctx.JSON(fiber.Map{
-		"status": true,
-		"data": books,
+		"status":      true,
+		"data":        books,
 		"next_cursor": nextCursor,
 	})
 }
@@ -474,7 +445,6 @@ func (c *FeatureController) GetBookUserState(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch book state",
-			
 		})
 	}
 
@@ -509,7 +479,6 @@ func (c *FeatureController) UpsertBookReview(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to save review",
-			
 		})
 	}
 
@@ -538,7 +507,6 @@ func (c *FeatureController) DeleteBookReview(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to delete review",
-			
 		})
 	}
 
@@ -565,7 +533,6 @@ func (c *FeatureController) AdminDeleteReview(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to delete review",
-			
 		})
 	}
 
@@ -589,7 +556,6 @@ func (c *FeatureController) ListAllReviews(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch reviews",
-			
 		})
 	}
 
@@ -620,7 +586,6 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch reviews",
-			
 		})
 	}
 
@@ -630,8 +595,8 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		nextCursor = &c
 	}
 	return ctx.JSON(fiber.Map{
-		"status": true,
-		"data": reviews,
+		"status":      true,
+		"data":        reviews,
 		"next_cursor": nextCursor,
 	})
 }
@@ -645,7 +610,6 @@ func (c *FeatureController) GetBookRatingSummary(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "failed to fetch rating summary",
-			
 		})
 	}
 
@@ -678,11 +642,7 @@ func (c *FeatureController) AddBookToCollection(ctx fiber.Ctx) error {
 	collectionID := ctx.Params("id")
 	err := c.service.AddBookToCollection(reqCtx, userID, collectionID, dto.BookID)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to add book to collection",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -709,11 +669,7 @@ func (c *FeatureController) RemoveBookFromCollection(ctx fiber.Ctx) error {
 	}
 	err := c.service.RemoveBookFromCollection(reqCtx, userID, collectionID, bookID)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to remove book from collection",
-			
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -721,4 +677,52 @@ func (c *FeatureController) RemoveBookFromCollection(ctx fiber.Ctx) error {
 	})
 }
 
+func (c *FeatureController) RecordReadingSession(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	type SessionDto struct {
+		BookID   string `json:"bookId"`
+		Duration int64  `json:"duration"`
+		Words    int64  `json:"words"`
+	}
+	dto := &SessionDto{}
+	if err := ctx.Bind().JSON(dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "invalid input"})
+	}
+
+	err := c.service.RecordReadingSession(reqCtx, userID, dto.BookID, dto.Duration, dto.Words)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{Status: true})
+}
+
+func (c *FeatureController) GetReadingHeatmap(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	res, err := c.service.GetReadingHeatmap(reqCtx, userID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
+}
