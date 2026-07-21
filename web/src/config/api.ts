@@ -40,7 +40,16 @@ interface QueueItem {
 }
 
 let isRefreshing = false;
+let authFailed = false;
 let queue: QueueItem[] = [];
+
+// Reset authFailed flag when user performs signin/signup
+api.interceptors.request.use((config) => {
+  if (config.url?.includes("/auth/signin") || config.url?.includes("/auth/signup")) {
+    authFailed = false;
+  }
+  return config;
+});
 
 const processQueue = (error: unknown = null) => {
   queue.forEach((p) => {
@@ -73,7 +82,8 @@ api.interceptors.response.use(
       err.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !shouldSkip
+      !shouldSkip &&
+      !authFailed
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -90,13 +100,13 @@ api.interceptors.response.use(
       try {
         await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
 
+        authFailed = false;
         processQueue(null);
 
         return api(originalRequest);
       } catch (refreshErr) {
+        authFailed = true;
         processQueue(refreshErr);
-        
-        // window.location.href = "/login"
         
         return Promise.reject(refreshErr);
       } finally {

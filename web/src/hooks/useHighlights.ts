@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react';
 import { getHighlights, createHighlight, deleteHighlight, Highlight } from '../api/highlights';
+import { useAuthStore } from '@/stores';
 
 export const useHighlights = (bookId: string, chapterId: string | undefined) => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const { user } = useAuthStore();
+
   useEffect(() => {
-    if (!chapterId) return;
+    if (!chapterId || !user) {
+      setHighlights([]);
+      return;
+    }
     const fetchHighlights = async () => {
       try {
         setLoading(true);
         const data = await getHighlights(chapterId);
-        setHighlights(data);
+        setHighlights(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch highlights", err);
       } finally {

@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { api } from "@/config/api";
+import { useAuthStore } from "@/stores";
+import { useShallow } from "zustand/react/shallow";
 
 export const useReadingStats = (bookId: string | undefined, isActive: boolean) => {
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const durationRef = useRef(0);
   const wordsRef = useRef(0);
   const lastSyncTimeRef = useRef(Date.now());
@@ -13,7 +16,7 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
   // For simplicity, we assume 150 words per minute of active reading (2.5 words/sec)
 
   useEffect(() => {
-    if (!bookId || !isActive) {
+    if (!bookId || !isActive || !user) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -42,16 +45,18 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
     const wrds = Math.floor(wordsRef.current);
     if (dur === 0) return;
 
+    // Reset lastSyncTimeRef immediately to prevent repeated 1-second spam on error
+    lastSyncTimeRef.current = Date.now();
+
     try {
-      await api.post('/features/reader/stats/session', {
+      await api.post('/reader/stats/session', {
         bookId: bookIdToSync,
         duration: dur,
         words: wrds,
       });
-      // Reset after successful sync
+      // Reset duration & words after successful sync
       durationRef.current = 0;
       wordsRef.current = 0;
-      lastSyncTimeRef.current = Date.now();
     } catch (err) {
       console.error("Failed to sync reading stats", err);
     }
@@ -59,6 +64,6 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
 };
 
 export const getReadingHeatmap = async () => {
-  const { data } = await api.get('/features/reader/stats/heatmap');
+  const { data } = await api.get('/reader/stats/heatmap');
   return data.data;
 };

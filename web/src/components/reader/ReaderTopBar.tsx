@@ -1,10 +1,10 @@
 import type { TFunction } from "i18next";
-import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown } from "lucide-react";
-import React from "react";
-
+import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2 } from "lucide-react";
+import React, { useState } from "react";
 import { LanguageSwitcher } from "@/components/ui";
 import type { ReaderTheme, ReadingMode } from "@/stores";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
+import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
 
 type ReaderTopBarProps = {
   t: TFunction;
@@ -33,11 +33,15 @@ type ReaderTopBarProps = {
   ttsPaused?: boolean;
   onTtsPlayPause?: () => void;
   onTtsStop?: () => void;
+  ttsVoices?: SpeechSynthesisVoice[];
+  ttsSelectedVoice?: SpeechSynthesisVoice | null;
+  setTtsSelectedVoice?: (voice: SpeechSynthesisVoice | null) => void;
+  ttsRate?: number;
+  setTtsRate?: (rate: number) => void;
 
   autoScrollActive?: boolean;
   onToggleAutoScroll?: () => void;
 };
-
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   t,
@@ -66,98 +70,143 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   ttsPaused,
   onTtsPlayPause,
   onTtsStop,
+  ttsVoices,
+  ttsSelectedVoice,
+  setTtsSelectedVoice,
+  ttsRate,
+  setTtsRate,
   autoScrollActive,
   onToggleAutoScroll,
-}) => (
-  <header
-    className={`absolute left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
-  >
-    <div className="flex items-center gap-2">
-      <label
-        htmlFor="reader-drawer"
-        className="reader-control-btn btn btn-square btn-sm cursor-pointer"
-      >
-        <Menu className="h-5 w-5" />
-      </label>
-      <span className="line-clamp-1 hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
-        {title || "Reading"}
-      </span>
-    </div>
+}) => {
+  const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
 
-    <div className="relative flex items-center gap-1">
-      <button
-        onClick={onPrev}
-        disabled={!canGoPrev}
-        className="reader-control-btn btn btn-square btn-sm animate-none"
-        title={t("reader.prev_chapter", "Previous Chapter")}
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button
-        onClick={onNext}
-        disabled={!canGoNext}
-        className="reader-control-btn btn btn-square btn-sm animate-none"
-        title={t("reader.next_chapter", "Next Chapter")}
-      >
-        <ChevronLeft className="h-5 w-5 rotate-180" />
-      </button>
+  return (
+    <header
+      className={`absolute left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
+    >
+      <div className="flex items-center gap-2">
+        <label
+          htmlFor="reader-drawer"
+          className="reader-control-btn btn btn-square btn-sm cursor-pointer"
+        >
+          <Menu className="h-5 w-5" />
+        </label>
+        <span className="line-clamp-1 hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
+          {title || "Reading"}
+        </span>
+      </div>
 
-      {ttsSupported && (
-        <div className="flex items-center gap-1 mr-2 border-r border-base-300 pr-2">
-          <button
-            onClick={onTtsPlayPause}
-            className={`reader-control-btn btn btn-square btn-sm animate-none ${(ttsPlaying || ttsPaused) ? 'text-primary' : ''}`}
-            title={ttsPlaying ? t("reader.tts_pause", "Pause Reading") : t("reader.tts_play", "Read Aloud")}
-          >
-            {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          </button>
-          {(ttsPlaying || ttsPaused) && (
+      <div className="relative flex items-center gap-1">
+        <button
+          onClick={onPrev}
+          disabled={!canGoPrev}
+          className="reader-control-btn btn btn-square btn-sm animate-none"
+          title={t("reader.prev_chapter", "Previous Chapter")}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          onClick={onNext}
+          disabled={!canGoNext}
+          className="reader-control-btn btn btn-square btn-sm animate-none"
+          title={t("reader.next_chapter", "Next Chapter")}
+        >
+          <ChevronLeft className="h-5 w-5 rotate-180" />
+        </button>
+
+        {ttsSupported && (
+          <div className="relative flex items-center gap-1 border-r border-base-300 pr-2">
             <button
-              onClick={onTtsStop}
-              className="reader-control-btn btn btn-square btn-sm animate-none text-error"
-              title={t("reader.tts_stop", "Stop Reading")}
+              onClick={onTtsPlayPause}
+              className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                ttsPlaying || ttsPaused ? "text-primary" : ""
+              }`}
+              title={
+                ttsPlaying
+                  ? t("reader.tts_pause", "Pause Reading")
+                  : t("reader.tts_play", "Read Aloud")
+              }
             >
-              <Square className="h-5 w-5" />
+              {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
-          )}
-        </div>
-      )}
+            {(ttsPlaying || ttsPaused) && (
+              <button
+                onClick={onTtsStop}
+                className="reader-control-btn btn btn-square btn-sm animate-none text-error"
+                title={t("reader.tts_stop", "Stop Reading")}
+              >
+                <Square className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setTtsSettingsOpen(!ttsSettingsOpen);
+                if (settingsOpen) setSettingsOpen(false);
+              }}
+              className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                ttsSettingsOpen ? "reader-control-btn-active text-primary" : ""
+              }`}
+              title={t("reader.tts_settings", "Voice & Speed Settings")}
+            >
+              <Volume2 className="h-5 w-5" />
+            </button>
 
-      
-      <button
-        onClick={onToggleAutoScroll}
-        className={`reader-control-btn btn btn-square btn-sm animate-none ${autoScrollActive ? 'text-primary' : ''}`}
-        title={t("reader.auto_scroll", "Auto Scroll")}
-      >
-        <ArrowDown className="h-5 w-5" />
-      </button>
+            {ttsSettingsOpen && (
+              <ReaderTtsSettingsPanel
+                t={t}
+                ttsVoices={ttsVoices}
+                ttsSelectedVoice={ttsSelectedVoice}
+                setTtsSelectedVoice={setTtsSelectedVoice}
+                ttsRate={ttsRate}
+                setTtsRate={setTtsRate}
+              />
+            )}
+          </div>
+        )}
 
-      <LanguageSwitcher className="dropdown-end" />
+        <button
+          onClick={onToggleAutoScroll}
+          className={`reader-control-btn btn btn-square btn-sm animate-none ${
+            autoScrollActive ? "text-primary" : ""
+          }`}
+          title={t("reader.auto_scroll", "Auto Scroll")}
+        >
+          <ArrowDown className="h-5 w-5" />
+        </button>
 
-      <button
-        onClick={() => setSettingsOpen(!settingsOpen)}
-        className={`reader-control-btn btn btn-square btn-sm animate-none ${settingsOpen ? "reader-control-btn-active" : ""}`}
-      >
-        <Settings className="h-5 w-5" />
-      </button>
+        <LanguageSwitcher className="dropdown-end" />
 
-      {settingsOpen && (
-        <ReaderSettingsPanel
-          t={t}
-          theme={theme}
-          fontFamily={fontFamily}
-          fontSize={fontSize}
-          maxWidth={maxWidth}
-          effectiveReadingMode={effectiveReadingMode}
-          canUseDoubleMode={canUseDoubleMode}
-          setTheme={setTheme}
-          setFontFamily={setFontFamily}
-          setFontSize={setFontSize}
-          setMaxWidth={setMaxWidth}
-          setReadingMode={setReadingMode}
-          resetSettings={resetSettings}
-        />
-      )}
-    </div>
-  </header>
-);
+        <button
+          onClick={() => {
+            setSettingsOpen(!settingsOpen);
+            if (ttsSettingsOpen) setTtsSettingsOpen(false);
+          }}
+          className={`reader-control-btn btn btn-square btn-sm animate-none ${
+            settingsOpen ? "reader-control-btn-active" : ""
+          }`}
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+
+        {settingsOpen && (
+          <ReaderSettingsPanel
+            t={t}
+            theme={theme}
+            fontFamily={fontFamily}
+            fontSize={fontSize}
+            maxWidth={maxWidth}
+            effectiveReadingMode={effectiveReadingMode}
+            canUseDoubleMode={canUseDoubleMode}
+            setTheme={setTheme}
+            setFontFamily={setFontFamily}
+            setFontSize={setFontSize}
+            setMaxWidth={setMaxWidth}
+            setReadingMode={setReadingMode}
+            resetSettings={resetSettings}
+          />
+        )}
+      </div>
+    </header>
+  );
+};
+

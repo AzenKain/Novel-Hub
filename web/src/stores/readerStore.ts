@@ -21,6 +21,8 @@ interface ReaderState {
   readingMode: ReadingMode;
   pageIndex: number;
   pageFrameWidth: number;
+  ttsVoiceName: string | null;
+  ttsRate: number;
 
   setBook: (book: Book | null) => void;
   setChapters: (chapters: Chapter[]) => void;
@@ -37,6 +39,8 @@ interface ReaderState {
   setReadingMode: (mode: ReadingMode) => void;
   setPageIndex: (index: number | ((prev: number) => number)) => void;
   setPageFrameWidth: (width: number) => void;
+  setTtsVoiceName: (voiceName: string | null) => void;
+  setTtsRate: (rate: number) => void;
   resetSettings: () => void;
   reset: () => void;
 }
@@ -60,6 +64,8 @@ const readerSettingDefaults = {
   lineHeight: 1.8,
   maxWidth: 920,
   readingMode: "scroll" as const,
+  ttsVoiceName: null as string | null,
+  ttsRate: 1.0,
 };
 
 const initialState = {
@@ -87,13 +93,15 @@ export const useReaderStore = create<ReaderState>()(
       setReadingMode: (readingMode) => set({ readingMode }),
       setPageIndex: (index) => set((state) => ({ pageIndex: typeof index === 'function' ? index(state.pageIndex) : index })),
       setPageFrameWidth: (pageFrameWidth) => set({ pageFrameWidth }),
+      setTtsVoiceName: (ttsVoiceName) => set({ ttsVoiceName }),
+      setTtsRate: (ttsRate) => set({ ttsRate }),
       resetSettings: () => set(readerSettingDefaults),
       reset: () => set(sessionInitialState),
     }),
     {
       name: 'novelhub-reader-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,
@@ -101,6 +109,8 @@ export const useReaderStore = create<ReaderState>()(
         lineHeight: state.lineHeight,
         maxWidth: state.maxWidth,
         readingMode: state.readingMode,
+        ttsVoiceName: state.ttsVoiceName,
+        ttsRate: state.ttsRate,
       }),
     }
   )

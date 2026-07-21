@@ -1,4 +1,4 @@
-import { ReaderContent, ReaderPageControls, ReaderSidebar, ReaderTopBar } from "@/components/reader";
+import { ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
@@ -11,53 +11,7 @@ import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReadingStats } from "@/hooks/useReadingStats";
-
-
-const clearHighlight = () => {
-  const selection = window.getSelection();
-  if (selection) {
-    selection.removeAllRanges();
-  }
-};
-
-const highlightTextRange = (container: HTMLElement, startChar: number, length: number) => {
-  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-  let currentOffset = 0;
-  let startNode: Node | null = null;
-  let startNodeOffset = 0;
-  let endNode: Node | null = null;
-  let endNodeOffset = 0;
-
-  while (treeWalker.nextNode()) {
-    const node = treeWalker.currentNode;
-    const nodeLength = node.textContent?.length || 0;
-    
-    if (!startNode && currentOffset + nodeLength > startChar) {
-      startNode = node;
-      startNodeOffset = startChar - currentOffset;
-    }
-    
-    if (startNode && !endNode && currentOffset + nodeLength >= startChar + length) {
-      endNode = node;
-      endNodeOffset = (startChar + length) - currentOffset;
-      break; 
-    }
-    
-    currentOffset += nodeLength;
-  }
-  
-  if (startNode && endNode) {
-    const range = document.createRange();
-    range.setStart(startNode, startNodeOffset);
-    range.setEnd(endNode, endNodeOffset);
-    
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-};
+import { clearHighlight, highlightTextRange, highlightTextRangeFromNode, extractTextFromHtml, getSelectionInfo, saveSelection, getTextFromHereFromSaved, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -72,8 +26,11 @@ export const ReaderWorkspace = () => {
   
   const { t } = useTranslation();
 
+  const ttsStartPointRef = useRef<TtsStartPoint | null>(null);
+  const savedSelectionRef = useRef<SavedSelection | null>(null);
 
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
+
   const {
     book,
     chapters,
@@ -100,10 +57,15 @@ export const ReaderWorkspace = () => {
     setFontSize,
     setFontFamily,
     setTheme,
+    setLineHeight,
     setMaxWidth,
     setReadingMode,
     setPageIndex,
     setPageFrameWidth,
+    ttsVoiceName,
+    ttsRate,
+    setTtsVoiceName,
+    setTtsRate,
     resetSettings,
     reset,
   } = useReaderStore(useShallow((state) => ({
@@ -122,6 +84,8 @@ export const ReaderWorkspace = () => {
     readingMode: state.readingMode,
     pageIndex: state.pageIndex,
     pageFrameWidth: state.pageFrameWidth,
+    ttsVoiceName: state.ttsVoiceName,
+    ttsRate: state.ttsRate,
     setBook: state.setBook,
     setChapters: state.setChapters,
     setCurrentChapter: state.setCurrentChapter,
@@ -132,10 +96,13 @@ export const ReaderWorkspace = () => {
     setFontSize: state.setFontSize,
     setFontFamily: state.setFontFamily,
     setTheme: state.setTheme,
+    setLineHeight: state.setLineHeight,
     setMaxWidth: state.setMaxWidth,
     setReadingMode: state.setReadingMode,
     setPageIndex: state.setPageIndex,
     setPageFrameWidth: state.setPageFrameWidth,
+    setTtsVoiceName: state.setTtsVoiceName,
+    setTtsRate: state.setTtsRate,
     resetSettings: state.resetSettings,
     reset: state.reset,
   })));
@@ -150,14 +117,42 @@ export const ReaderWorkspace = () => {
     };
   }, [reset]);
 
-    const { isSupported, isPlaying, isPaused, speak, pause, resume, stop } = useTTS({
+  const { isSupported, isPlaying, isPaused, speak, pause, resume, stop, voices, selectedVoice, setSelectedVoice, rate, setRate } = useTTS({
     onEnd: () => clearHighlight(),
     onBoundary: (e) => {
-      if (columnsRef.current && e.name === 'word') {
-        highlightTextRange(columnsRef.current, ttsOffsetRef.current + e.charIndex, e.charLength);
+      if (columnsRef.current && (e.name === 'word' || !e.name)) {
+        const textToSearch = e.utterance?.text || "";
+        const wordLen = e.charLength || (textToSearch ? (textToSearch.slice(e.charIndex).match(/^\S+/)?.[0]?.length || 1) : 1);
+        highlightTextRangeFromNode(columnsRef.current, ttsStartPointRef.current, e.charIndex, wordLen);
       }
     }
   });
+
+  // Sync stored TTS voice and rate from Zustand store
+  useEffect(() => {
+    if (ttsRate && ttsRate !== rate) {
+      setRate(ttsRate);
+    }
+  }, [ttsRate]);
+
+  useEffect(() => {
+    if (voices.length > 0 && ttsVoiceName) {
+      const found = voices.find(v => v.name === ttsVoiceName);
+      if (found && selectedVoice?.name !== found.name) {
+        setSelectedVoice(found);
+      }
+    }
+  }, [voices, ttsVoiceName]);
+
+  const handleTtsVoiceChange = (voice: SpeechSynthesisVoice | null) => {
+    setSelectedVoice(voice);
+    setTtsVoiceName(voice?.name || null);
+  };
+
+  const handleTtsRateChange = (newRate: number) => {
+    setRate(newRate);
+    setTtsRate(newRate);
+  };
 
   // Clear highlight on unmount or when stopping TTS manually
   useEffect(() => {
@@ -166,77 +161,101 @@ export const ReaderWorkspace = () => {
     }
   }, [isPlaying, isPaused]);
 
-
-  const extractTextFromHtml = (html: string) => {
-    if (typeof document === 'undefined') return '';
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
-  };
-
-  
-  const getSelectionStartOffset = (container: HTMLElement) => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return 0;
-    
-    const range = selection.getRangeAt(0);
-    if (!container.contains(range.startContainer)) return 0;
-
-    const preSelectionRange = range.cloneRange();
-    preSelectionRange.selectNodeContents(container);
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    
-    return preSelectionRange.toString().length;
-  };
-
   
   // Floating toolbar state
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-        const range = selection.getRangeAt(0);
-        // Only show toolbar if selecting inside reader content
-        if (contentRef.current?.contains(range.commonAncestorContainer)) {
-          setSelectionRange(range);
-          const rect = range.getBoundingClientRect();
-          setToolbarPos({ top: rect.top - 40, left: rect.left + rect.width / 2 });
-          return;
-        }
+    const handleSelection = (e: Event) => {
+      const targetNode = e.target as Node | null;
+      const targetElem = targetNode?.nodeType === Node.ELEMENT_NODE
+        ? (targetNode as HTMLElement)
+        : targetNode?.parentElement;
+      const isToolbar = !!targetElem?.closest?.('[data-reader-toolbar="true"]');
+
+      if (isToolbar) {
+        return;
       }
-      setSelectionRange(null);
+
+      setTimeout(() => {
+        const selection = window.getSelection();
+
+        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+          const range = selection.getRangeAt(0);
+          const container = columnsRef.current || contentRef.current;
+          const commonNode = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+            ? range.commonAncestorContainer.parentNode
+            : range.commonAncestorContainer;
+          if (container && commonNode && container.contains(commonNode)) {
+            const saved = saveSelection(container, range);
+            if (saved) {
+              savedSelectionRef.current = saved;
+              setSelectionRange(range.cloneRange());
+              const rect = range.getBoundingClientRect();
+              setToolbarPos({ top: Math.max(10, rect.top - 40), left: rect.left + rect.width / 2 });
+              return;
+            }
+          }
+        }
+        savedSelectionRef.current = null;
+        setSelectionRange(null);
+      }, 20);
     };
-    document.addEventListener('selectionchange', handleSelection);
-    return () => document.removeEventListener('selectionchange', handleSelection);
+
+    document.addEventListener("mouseup", handleSelection);
+    document.addEventListener("keyup", handleSelection);
+    return () => {
+      document.removeEventListener("mouseup", handleSelection);
+      document.removeEventListener("keyup", handleSelection);
+    };
   }, []);
 
   useEffect(() => {
     if (!CSS.highlights) return;
     const highlightRanges = highlights.map((h: any) => {
-      // Find the text nodes and create ranges for CSS Highlights.
-      // This requires walking the DOM, for simplicity in this MVP we just clear them.
-      // In a real app we'd construct accurate ranges based on startIndex and endIndex.
       return new Range(); 
     });
-    // const highlightObj = new Highlight(...highlightRanges);
-    // CSS.highlights.set('reader-highlights', highlightObj);
   }, [highlights]);
 
   const handleHighlight = async (color: string) => {
     if (selectionRange) {
       const text = selectionRange.toString();
-      // Dummy start/end index for MVP
       await addHighlight(text, 0, text.length, color);
       window.getSelection()?.removeAllRanges();
+      savedSelectionRef.current = null;
+      setSelectionRange(null);
+    }
+  };
+
+  const handleReadSelection = () => {
+    const container = columnsRef.current || contentRef.current;
+    const saved = savedSelectionRef.current;
+    if (container && saved && saved.selectedText) {
+      ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+      stop();
+      speak(saved.selectedText);
+      savedSelectionRef.current = null;
+      setSelectionRange(null);
+    }
+  };
+
+  const handleReadFromHere = () => {
+    const container = columnsRef.current || contentRef.current;
+    const saved = savedSelectionRef.current;
+    if (container && saved) {
+      const textFromHere = getTextFromHereFromSaved(container, saved);
+      if (textFromHere) {
+        ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+        stop();
+        speak(textFromHere);
+      }
+      savedSelectionRef.current = null;
       setSelectionRange(null);
     }
   };
 
   const handleTtsPlayPause = () => {
-
     if (isPlaying) {
       pause();
     } else if (isPaused) {
@@ -244,6 +263,7 @@ export const ReaderWorkspace = () => {
     } else if (htmlContent) {
       const text = extractTextFromHtml(htmlContent);
       if (text.trim()) {
+        ttsOffsetRef.current = 0;
         speak(text);
       }
     }
@@ -467,7 +487,7 @@ export const ReaderWorkspace = () => {
       try {
         const [res, progressRes] = await Promise.allSettled([
           readerService.getBootstrap(bookId, fileId),
-          featureService.getReadingProgress(bookId)
+          user ? featureService.getReadingProgress(bookId) : Promise.reject("guest"),
         ]);
 
         if (res.status === "fulfilled" && res.value.status && res.value.data) {
@@ -547,7 +567,7 @@ export const ReaderWorkspace = () => {
   }, [htmlContent]);
 
   useEffect(() => {
-    if (!user || !bookId || !currentChapter || chapters.length === 0) return;
+    if (!user || !currentChapter || !bookId) return;
     const chapterPosition = chapters.findIndex((chapter) => chapter.id === currentChapter.id);
     const progressPercent = chapterPosition >= 0
       ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
@@ -569,7 +589,7 @@ export const ReaderWorkspace = () => {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
-    if (effectiveReadingMode !== "scroll" || !contentRef.current || !currentChapter || !bookId) return;
+    if (!user || effectiveReadingMode !== "scroll" || !contentRef.current || !currentChapter || !bookId) return;
     
     const scrollTop = contentRef.current.scrollTop;
     if (scrollTimeoutRef.current) {
@@ -597,7 +617,7 @@ export const ReaderWorkspace = () => {
   };
 
   useEffect(() => {
-    if (effectiveReadingMode === "scroll" || !currentChapter || !bookId) return;
+    if (!user || effectiveReadingMode === "scroll" || !currentChapter || !bookId) return;
 
     const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
     const progressPercent = chapterPosition >= 0
@@ -615,7 +635,7 @@ export const ReaderWorkspace = () => {
       locationType: "page",
       eventType: "progress_update",
     }).catch(console.debug);
-  }, [pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
+  }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
 
   const handleNext = () => {
     if (!currentChapter) return;
@@ -705,6 +725,11 @@ export const ReaderWorkspace = () => {
           ttsPaused={isPaused}
           onTtsPlayPause={handleTtsPlayPause}
           onTtsStop={stop}
+          ttsVoices={voices}
+          ttsSelectedVoice={selectedVoice}
+          setTtsSelectedVoice={handleTtsVoiceChange}
+          ttsRate={rate}
+          setTtsRate={handleTtsRateChange}
           autoScrollActive={autoScrollActive}
           onToggleAutoScroll={onToggleAutoScroll}
 
@@ -820,6 +845,17 @@ export const ReaderWorkspace = () => {
           setSidebarOpen(false);
         }}
       />
+
+      {selectionRange && (
+        <ReaderSelectionToolbar
+          t={t}
+          toolbarPos={toolbarPos}
+          isSupported={isSupported}
+          onReadSelection={handleReadSelection}
+          onReadFromHere={handleReadFromHere}
+          onHighlight={handleHighlight}
+        />
+      )}
     </div>
   );
 };

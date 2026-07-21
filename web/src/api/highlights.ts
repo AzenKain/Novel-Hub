@@ -23,7 +23,7 @@ export const createHighlight = async (
   color: string,
   note?: string
 ): Promise<Highlight> => {
-  const { data } = await api.post("/features/highlights", {
+  const { data } = await api.post("/highlights", {
     bookId,
     chapterId,
     textContent,
@@ -36,7 +36,7 @@ export const createHighlight = async (
 };
 
 export const getHighlights = async (chapterId: string): Promise<Highlight[]> => {
-  const { data } = await api.get(`/features/highlights?chapterId=${chapterId}`);
+  const { data } = await api.get(`/highlights?chapterId=${chapterId}`);
   return data.data;
 };
 
@@ -45,10 +45,10 @@ export const updateHighlightNote = async (
   color: string,
   note?: string
 ): Promise<Highlight> => {
-  const { data } = await api.put(`/features/highlights/${id}`, { color, note });
+  const { data } = await api.put(`/highlights/${id}`, { color, note });
   return data.data;
 };
 
 export const deleteHighlight = async (id: string): Promise<void> => {
-  await api.delete(`/features/highlights/${id}`);
+  await api.delete(`/highlights/${id}`);
 };

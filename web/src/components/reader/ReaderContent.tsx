@@ -40,7 +40,7 @@ const isVisualChapter = (html: string) => {
   return text.length <= 24;
 };
 
-export const ReaderContent: React.FC<ReaderContentProps> = ({
+export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   htmlContent,
   proseClass,
   effectiveReadingMode,
@@ -75,4 +75,4 @@ export const ReaderContent: React.FC<ReaderContentProps> = ({
       dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
     />
   );
-};
+});

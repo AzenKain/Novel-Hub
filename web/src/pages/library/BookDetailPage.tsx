@@ -28,13 +28,14 @@ import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection } from "@/components/book-detail";
 import { toast } from "react-toastify";
-import { useLibraryStore } from "@/stores";
+import { useLibraryStore, useAuthStore } from "@/stores";
 
 export const BookDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { bookId } = useParams<{ bookId: string }>();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   
   const [shareOpen, setShareOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -61,7 +62,8 @@ export const BookDetailPage: React.FC = () => {
       if (!res.status) throw new Error(res.message || "Failed to fetch user state");
       return res.data;
     },
-    enabled: !!bookId,
+    enabled: !!bookId && !!user,
+    retry: false,
   });
 
   const toggleBookmarkMutation = useMutation({
@@ -125,7 +127,7 @@ export const BookDetailPage: React.FC = () => {
     }
   };
 
-  const isLoading = isBookLoading || isUserStateLoading;
+  const isLoading = isBookLoading;
 
   if (isLoading) {
     return (

@@ -41,7 +41,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   setMaxWidth,
   setReadingMode,
   resetSettings,
-}) => (
+}) => {
+
+  return (
   <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border p-4 shadow-2xl transition-colors duration-300">
     <h3 className="mb-4 text-xs font-bold uppercase tracking-wider opacity-50">
       {t("reader.settings", "Reader Settings")}
@@ -207,4 +209,5 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
       </button>
     </div>
   </div>
-);
+  );
+};
