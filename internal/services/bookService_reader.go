@@ -252,6 +252,14 @@ func readerAssetContentType(assetPath string) string {
 		return "font/woff2"
 	case ".ttf":
 		return "font/ttf"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".m4a", ".m4b":
+		return "audio/mp4"
+	case ".flac":
+		return "audio/flac"
+	case ".ogg":
+		return "audio/ogg"
 	default:
 		return "application/octet-stream"
 	}

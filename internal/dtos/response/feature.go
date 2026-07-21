@@ -120,6 +120,8 @@ type ReadingHistoryResponse struct {
 	FileID          *string   `json:"fileId,omitempty"`
 	ChapterID       string    `json:"chapterId"`
 	ProgressPercent *float64  `json:"progressPercent"`
+	LocationCfi     *string   `json:"locationCfi,omitempty"`
+	LocationType    *string   `json:"locationType,omitempty"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 	BookTitle       string    `json:"bookTitle"`
 	BookCoverURL    *string   `json:"bookCoverUrl"`
@@ -135,6 +137,8 @@ type ReadingProgressResponse struct {
 	ChapterTitle       string     `json:"chapterTitle"`
 	ChapterIndex       int64      `json:"chapterIndex"`
 	ProgressPercent    *float64   `json:"progressPercent,omitempty"`
+	LocationCfi        *string    `json:"locationCfi,omitempty"`
+	LocationType       *string    `json:"locationType,omitempty"`
 	OpenedCount        int64      `json:"openedCount"`
 	QualifiedReadCount int64      `json:"qualifiedReadCount"`
 	LastOpenedAt       *time.Time `json:"lastOpenedAt,omitempty"`

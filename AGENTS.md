@@ -20,6 +20,11 @@ To maintain clean code maintainability, the project enforces a strict three-laye
     - Use `validator.ValidateBodyDto(c, &dto)` for request bodies.
     - Use `validator.ValidateQueryDto(c, &dto)` for query parameters.
   - Return responses using standard DTO envelopes from `internal/dtos/response`.
+  - **Context Handling**: Controllers MUST NOT pass `c.Context()` (the fiber context) down to services. Instead, they MUST create a new context with timeout:
+    ```go
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+    ```
 
 ### B. Service Layer (`internal/services`)
 - **Responsibility**: Houses core business rules, file parsing (EPUB, PDF, MOBI, FB2, DOCX, etc.), HTML/CSS reader scoping, and transactional use-cases.
@@ -51,6 +56,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
 - **Mapping Helpers**:
   - Entities **MUST** provide `FromSqlc` conversion methods to construct entities from `sqlc` generated rows.
   - Entities **MUST** provide `ToResponse` methods to convert domain entities to DTO response structs.
+  - **Strict Field Checking**: When accessing entity fields, do not guess their names or types. For example, `BookEntity` uses `AuthorName *string` (not `Authors`) and `Description *string` (requires nil checks). Always look at the struct definition in `internal/models` before using it.
 
 ---
 
@@ -111,3 +117,12 @@ All utility logic must be centralized within the `pkg/` directory:
 - **SQL Projection**: Always specify explicit columns in SQL queries under `db/query` (avoid `SELECT *` projection at runtime).
 - **SQLite Performance**: Maintain SQLite connection limits: `MaxOpenConns` should be CPU-bound (typically 4-16) and `journal_mode=WAL` with `synchronous=NORMAL` must be preserved.
 - **Authentication**: JWT authentication uses token versioning (`token_version`). Validating token version in middleware guarantees instant logout across all devices.
+
+---
+
+## 🛑 5. Agent Workflow & Feature Proposal
+
+- **Feature Proposals**: Do not propose or re-implement features that already exist in the codebase (e.g., Metadata Fetching/Scraping is already handled by frontend; Cross-device sync, Reviews/Ratings, Share Links are already built-in).
+- **Core Engine Mechanics**: The codebase already handles **Chunked Uploads** (for files >100MB), **Smart Garbage Collection** for orphaned uploads, and **Native Audio Streaming** (MP3, M4B, FLAC) without FFmpeg/HLS. Do NOT propose adding FFmpeg or HLS back into the project.
+- **Codebase Review**: You **MUST** thoroughly search the codebase and database schemas (`db/schema/*.sql`) to verify if a feature or schema exists before planning to build it.
+

@@ -7,8 +7,13 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 ## Features
 
 - **Multi-Format Reader**: Native browser rendering for 15+ formats (EPUB, MOBI, AZW3, PDF, DOCX, FB2, CBZ/CBR, TXT, MD, HTML). Includes 6 reader themes, custom typography, text highlighting, notes, and 3 page layouts.
+- **Audiobook Support**: Native HTML5 audio streaming for MP3, M4A, M4B, and FLAC (no FFmpeg/HLS dependencies). Features smart chunked streaming to bypass reverse proxy size limits (e.g., Cloudflare).
+- **Cross-device Sync & Scroll Tracking**: Accurately tracks reading progress (CFI/scroll positions/audio timestamps) across multiple devices in real-time.
 - **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern) and `singleflight` for thundering-herd protection.
 - **Library Management**: Automatic file scanning, cover extraction, metadata editing, tag/author filtering, duplicate detection (SHA-256), and SQLite FTS5 full-text search.
+- **Chunked Uploads & Smart GC**: Robust upload system for massive files (bypassing Cloudflare's 100MB body limit) with smart background garbage collection for orphaned uploads using `pkg/worker`.
+- **OPDS Server**: Built-in OPDS catalog (with basic auth and guest access controls) for seamless integration with mobile reader apps.
+- **Social Features**: Read and write reviews, rate books, and generate public share links.
 - **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF and DNS Rebinding protection via `pkg/netx`.
 - **Multi-Language Support**: i18n support with translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
 - **Single Binary Deployment**: Embedded React frontend in Go binary. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode, MMAP, and auto-migrations.
@@ -111,6 +116,7 @@ novelhub/
 |---|---|---|---|---|
 | EPUB / KePub | `.epub`, `.kepub.epub` | ✅ HTML | ✅ | ✅ |
 | MOBI / AZW3 | `.mobi`, `.azw`, `.azw3` | ✅ HTML | ✅ | ✅ |
+| Audiobooks | `.mp3`, `.m4a`, `.m4b`, `.flac` | ✅ Audio | ✅ | ❌ |
 | PDF | `.pdf` | ✅ Native | ⚠️ Basic | ❌ |
 | DOCX / DOC | `.docx`, `.doc` | ✅ HTML | ✅ | ❌ |
 | FB2 | `.fb2` | ✅ HTML | ✅ | ✅ |

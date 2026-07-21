@@ -1,5 +1,5 @@
 import { getMetaContent, toStringList } from "@/lib/bookDetail";
-import { bookService, libraryService, metadataService } from "@/services";
+import { bookService, libraryService, metadataService, uploadService } from "@/services";
 import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
 import { toast } from 'react-toastify';
 import { create } from "zustand";
@@ -372,16 +372,25 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
 
     set({ uploadingBookFiles: true });
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => formData.append("files", file));
-      const res = await bookService.uploadFiles(editingBook.id, formData);
-      if (!res.status) throw new Error(res.message || "Upload failed");
-      const nextFiles = res.data?.files || [];
+      let successCount = 0;
+      for (const file of Array.from(files)) {
+        try {
+          await uploadService.uploadFileChunked(file, "book", editingBook.id);
+          successCount++;
+        } catch (fileErr) {
+          console.error("Failed to upload book file:", file.name, fileErr);
+        }
+      }
+
+      if (successCount === 0) throw new Error("All file uploads failed");
+
+      toast.success(`Successfully uploaded ${successCount} files!`);
+      const res = await bookService.listFiles(editingBook.id);
+      const nextFiles = res.data || [];
       set((state) => ({
         bookFiles: nextFiles,
         editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
       }));
-      toast.success(`Uploaded ${res.data?.uploaded || 0}/${res.data?.total || files.length} files.`);
       await get().loadData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error uploading files");
@@ -430,23 +439,28 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     set({ uploading: true });
     
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => {
-        formData.append("files", file);
-      });
-      const res = await libraryService.uploadFiles(uploadLibraryId, formData);
-      if (!res.status) throw new Error(res.message || "Upload failed");
+      let successCount = 0;
+      for (const file of Array.from(files)) {
+        try {
+          await uploadService.uploadFileChunked(file, "library", uploadLibraryId);
+          successCount++;
+        } catch (fileErr) {
+          console.error("Failed to upload file:", file.name, fileErr);
+        }
+      }
       
+      if (successCount === 0) throw new Error("All uploads failed");
+
       set({ 
         showUploadModal: false,
         page: 1
       });
-      toast.info(`Uploaded ${res.data?.uploaded || 0} books. Processing metadata...`);
+      toast.info(`Uploaded ${successCount} books. Processing metadata...`);
 
       for (let attempt = 0; attempt < 12; attempt += 1) {
         await get().loadData();
         if (!get().books.some(book => book.status === "processing")) {
-          toast.success(`Successfully processed ${res.data?.uploaded || 0} books.`);
+          toast.success(`Successfully processed ${successCount} books.`);
           break;
         }
         await sleep(1000);

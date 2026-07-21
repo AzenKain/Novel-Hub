@@ -147,19 +147,20 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
 	userService := services.NewUserService(userRepo, roleRepo, txManager)
 	roleService := services.NewRoleService(roleRepo, permissionCache, txManager)
-	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache)
 	jobWorkers := config.GetIntConfigWithDefault("JOB_WORKERS", 1)
 	if jobWorkers < 1 {
 		jobWorkers = 1
 	}
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
+	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo)
 	metadataService := services.NewMetadataService(bookRepo)
 	jobService := services.NewJobService(jobRepo)
 	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
+	uploadService := services.NewUploadService(libraryService, bookService)
 
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
@@ -172,6 +173,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	highlightController := controllers.NewHighlightController(highlightService)
 	metadataController := controllers.NewMetadataController(metadataService)
 	settingsController := controllers.NewSettingsController(settingsService)
+	uploadController := controllers.NewUploadController(uploadService)
 
 	jobQueue.RegisterHandler("extract_metadata", func(ctx context.Context, jobID string, payload string) error {
 		err := bookService.ExtractMetadata(ctx, payload)
@@ -196,6 +198,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.RegisterHandler("maintenance", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.RunMaintenance(ctx)
 	})
+
 
 	jobQueue.Start()
 
@@ -224,6 +227,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
+	routes.SetupUploadRoutes(v1, uploadController, userRepo)
 
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)

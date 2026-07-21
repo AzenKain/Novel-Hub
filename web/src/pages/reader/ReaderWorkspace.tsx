@@ -6,6 +6,7 @@ import type { Chapter } from "@/types";
 import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTTS } from "@/hooks/useTTS";
+import { AudioPlayer } from "@/components/reader/AudioPlayer";
 import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
@@ -464,14 +465,41 @@ export const ReaderWorkspace = () => {
     
     const bootstrap = async () => {
       try {
-        const res = await readerService.getBootstrap(bookId, fileId);
-        if (res.status && res.data) {
-          setBook(res.data.book);
+        const [res, progressRes] = await Promise.allSettled([
+          readerService.getBootstrap(bookId, fileId),
+          featureService.getReadingProgress(bookId)
+        ]);
+
+        if (res.status === "fulfilled" && res.value.status && res.value.data) {
+          setBook(res.value.data.book);
           // Sort chapters by index
-          const sorted = [...res.data.chapters].sort((a, b) => a.chapterIndex - b.chapterIndex);
+          const sorted = [...res.value.data.chapters].sort((a, b) => a.chapterIndex - b.chapterIndex);
           setChapters(sorted);
           if (sorted.length > 0) {
-            loadChapter(sorted[0]);
+            let targetChapter = sorted[0];
+            let locationCfi: string | undefined = undefined;
+
+            if (progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
+              const progress = progressRes.value.data;
+              const found = sorted.find(ch => ch.id === progress.chapterId);
+              if (found) {
+                targetChapter = found;
+                if (progress.locationType === "scroll" && progress.locationCfi) {
+                  locationCfi = `scroll:${progress.locationCfi}`;
+                } else if (progress.locationType === "page" && progress.locationCfi) {
+                  locationCfi = `page:${progress.locationCfi}`;
+                } else if (progress.locationType === "audio" && progress.locationCfi) {
+                  locationCfi = `audio:${progress.locationCfi}`;
+                } else if (progress.locationCfi) {
+                  locationCfi = progress.locationCfi;
+                }
+              }
+            }
+
+            if (locationCfi) {
+              pendingFragmentRef.current = locationCfi;
+            }
+            loadChapter(targetChapter);
           }
         }
       } catch (err) {
@@ -507,7 +535,14 @@ export const ReaderWorkspace = () => {
     const fragment = pendingFragmentRef.current;
     pendingFragmentRef.current = null;
     requestAnimationFrame(() => {
-      scrollToFragment(fragment);
+      if (fragment.startsWith("scroll:") && contentRef.current) {
+        contentRef.current.scrollTop = parseInt(fragment.slice(7), 10) || 0;
+      } else if (fragment.startsWith("page:")) {
+        const pIndex = parseInt(fragment.slice(5), 10) || 0;
+        scrollToPageIndex(pIndex);
+      } else {
+        scrollToFragment(fragment);
+      }
     });
   }, [htmlContent]);
 
@@ -530,6 +565,57 @@ export const ReaderWorkspace = () => {
       console.debug("Failed to record reading activity", error);
     });
   }, [user, bookId, fileId, currentChapter?.id, chapters.length]);
+
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleScroll = () => {
+    if (effectiveReadingMode !== "scroll" || !contentRef.current || !currentChapter || !bookId) return;
+    
+    const scrollTop = contentRef.current.scrollTop;
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
+      const progressPercent = chapterPosition >= 0
+        ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
+        : 0;
+
+      void featureService.recordReadingActivity({
+        bookId,
+        fileId,
+        chapterId: currentChapter.id,
+        chapterTitle: currentChapter.title,
+        chapterIndex: currentChapter.chapterIndex,
+        progressPercent,
+        locationCfi: String(scrollTop),
+        locationType: "scroll",
+        eventType: "progress_update",
+      }).catch(console.debug);
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (effectiveReadingMode === "scroll" || !currentChapter || !bookId) return;
+
+    const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
+    const progressPercent = chapterPosition >= 0
+      ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
+      : 0;
+
+    void featureService.recordReadingActivity({
+      bookId,
+      fileId,
+      chapterId: currentChapter.id,
+      chapterTitle: currentChapter.title,
+      chapterIndex: currentChapter.chapterIndex,
+      progressPercent,
+      locationCfi: String(pageIndex),
+      locationType: "page",
+      eventType: "progress_update",
+    }).catch(console.debug);
+  }, [pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
 
   const handleNext = () => {
     if (!currentChapter) return;
@@ -633,6 +719,7 @@ export const ReaderWorkspace = () => {
               : 'overflow-hidden flex flex-col pt-14 pb-6 px-4 sm:px-20'
           } relative`}
           onClick={() => setSettingsOpen(false)}
+          onScroll={handleScroll}
         >
           <div 
             ref={pageFrameRef}
@@ -650,7 +737,36 @@ export const ReaderWorkspace = () => {
               "--reader-content-measure": `${READER_CONTENT_MEASURE}ch`
             } as React.CSSProperties}
           >
-            {htmlContent ? (
+            {book?.files?.find(f => f.id === fileId)?.format.match(/^(mp3|m4a|m4b|flac)$/i) ? (
+              <div className="flex-1 w-full h-full pb-32">
+                <AudioPlayer 
+                  rawUrl={`/api/v1/reader/${bookId}/file?file_id=${fileId}`}
+                  title={book.title}
+                  author={book.authorName || "Unknown"}
+                  coverUrl={book.coverUrl || `/api/v1/books/${book.id}/cover`}
+                  initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
+                  onTimeUpdate={(time) => {
+                    pendingFragmentRef.current = `audio:${time}`;
+                    const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
+                    const progressPercent = chapterPosition >= 0
+                      ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
+                      : 0;
+              
+                    void featureService.recordReadingActivity({
+                      bookId: bookId || '',
+                      fileId: fileId || '',
+                      chapterId: currentChapter?.id || '',
+                      chapterTitle: currentChapter?.title || '',
+                      chapterIndex: currentChapter?.chapterIndex || 0,
+                      progressPercent,
+                      locationCfi: String(time),
+                      locationType: "audio",
+                      eventType: "progress_update",
+                    }).catch(() => {});
+                  }}
+                />
+              </div>
+            ) : htmlContent ? (
               <ReaderContent
                 htmlContent={htmlContent}
                 proseClass={proseClass}

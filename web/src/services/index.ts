@@ -6,3 +6,4 @@ export * from "./libraryService";
 export * from "./metadataService";
 export * from "./readerService";
 export * from "./settingsService";
+export * from './uploadService';

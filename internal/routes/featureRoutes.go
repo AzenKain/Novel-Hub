@@ -48,6 +48,7 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	readerHistoryGroup := app.Group("/reader/history", middlewares.JwtAccess(userRepo))
 	readerHistoryGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
 	readerHistoryGroup.Get("/", featureController.GetRecentReadingHistory)
+	readerHistoryGroup.Get("/progress/:bookId", featureController.GetReadingProgress)
 	readerHistoryGroup.Post("/", featureController.RecordReadingActivity)
 
 	// Reading Stats & Heatmap

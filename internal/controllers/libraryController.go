@@ -3,10 +3,12 @@ package controllers
 import (
 	"context"
 	"errors"
+	"io"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"novelhub/pkg/apperrors"
+
+	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -121,4 +123,25 @@ func (h *LibraryController) UploadFiles(c fiber.Ctx) error {
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Uploaded and queued files successfully", Data: result})
+}
+
+func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
+	libraryID := c.Params("id")
+	if libraryID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Library ID is required"})
+	}
+
+	c.Set("Content-Type", "application/zip")
+	c.Set("Content-Disposition", `attachment; filename="library_`+libraryID+`.zip"`)
+
+	pr, pw := io.Pipe()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+		defer cancel()
+		err := h.libraryService.StreamLibraryZip(ctx, libraryID, pw)
+		pw.CloseWithError(err)
+	}()
+
+	return c.SendStream(pr)
 }

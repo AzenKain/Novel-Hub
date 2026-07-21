@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"os"
 	"net/http"
 	"net/url"
 	"novelhub/pkg/database"
@@ -25,6 +26,7 @@ import (
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/worker"
 	"novelhub/pkg/netx"
 )
 
@@ -40,6 +42,7 @@ type BookService interface {
 	GetBookFile(ctx context.Context, bookID string, fileID string) (*models.BookFileEntity, error)
 	ListBookFiles(ctx context.Context, bookID string) ([]*models.BookFileEntity, error)
 	UploadBookFiles(ctx context.Context, bookID string, files []*multipart.FileHeader) (*models.BookFileUploadResult, error)
+	ProcessSingleLocalFile(ctx context.Context, bookID string, filename string, localFilePath string) error
 	ExtractMetadata(ctx context.Context, bookID string) error
 	SearchDeep(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error)
 	GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error)
@@ -72,9 +75,10 @@ type bookService struct {
 	txManager   database.TxManager
 	settings    SettingsService
 	permissions PermissionCache
+	jobQueue    *worker.Queue
 }
 
-func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache) BookService {
+func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue) BookService {
 	return &bookService{
 		bookRepo:    repo,
 		fileRepo:    fileRepo,
@@ -82,6 +86,7 @@ func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.Bo
 		txManager:   txManager,
 		settings:    settings,
 		permissions: permissions,
+		jobQueue:    jobQueue,
 	}
 }
 
@@ -302,6 +307,7 @@ func (s *bookService) UploadBookFiles(ctx context.Context, bookID string, files 
 		}); err != nil {
 			continue
 		}
+
 		successCount++
 	}
 	currentFiles, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
@@ -309,6 +315,50 @@ func (s *bookService) UploadBookFiles(ctx context.Context, bookID string, files 
 		return nil, err
 	}
 	return &models.BookFileUploadResult{Uploaded: successCount, Total: len(files), Files: currentFiles}, nil
+}
+
+func (s *bookService) ProcessSingleLocalFile(ctx context.Context, bookID string, filename string, localFilePath string) error {
+	if _, err := s.GetBook(ctx, bookID); err != nil {
+		return err
+	}
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !isAllowedBookFormat(ext) {
+		return fmt.Errorf("unsupported format")
+	}
+
+	src, err := os.Open(localFilePath)
+	if err != nil {
+		return err
+	}
+	saved, saveErr := s.fileRepo.SaveBook(ctx, bookID, filename, src)
+	closeErr := src.Close()
+	if saveErr != nil || closeErr != nil {
+		return fmt.Errorf("failed to save book")
+	}
+
+	fileID := uuid.Must(uuid.NewV7()).String()
+	state := "managed"
+	hash, _ := s.fileRepo.HashSHA256(ctx, saved.Path)
+	hashPtr := &hash
+	if hash == "" {
+		hashPtr = nil
+	}
+
+	if err := s.bookRepo.CreateBookFile(ctx, sqlc.CreateBookFileParams{
+		ID:        fileID,
+		BookID:    bookID,
+		Path:      saved.Path,
+		Format:    saved.Format,
+		SizeBytes: saved.SizeBytes,
+		ModTime:   saved.ModTime,
+		Hash:      convert.StrPtrToNullString(hashPtr),
+		State:     convert.StrPtrToNullString(&state),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error {

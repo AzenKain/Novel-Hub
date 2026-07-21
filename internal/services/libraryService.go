@@ -1,9 +1,12 @@
 package services
 
 import (
+	"archive/zip"
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,6 +30,8 @@ type LibraryService interface {
 	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error)
 	DeleteLibrary(ctx context.Context, id string) error
 	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
+	ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error
+	StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error
 }
 
 type libraryService struct {
@@ -35,6 +40,7 @@ type libraryService struct {
 	fileRepo    repositories.BookFileRepository
 	jobQueue    *worker.Queue
 }
+
 
 func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
@@ -99,7 +105,7 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 	}
 
 	successCount := 0
-	pendingJobs := make([]worker.Job, 0, len(files)*2)
+	pendingJobs := make([]worker.Job, 0, len(files))
 	for _, file := range files {
 		bookID := uuid.Must(uuid.NewV7()).String()
 		ext := filepath.Ext(file.Filename)
@@ -178,4 +184,124 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 
 	res := &models.LibraryUploadResult{Uploaded: successCount, Total: len(files)}
 	return res.ToResponse(), nil
+}
+
+func (s *libraryService) ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error {
+	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
+		return err
+	}
+
+	bookID := uuid.Must(uuid.NewV7()).String()
+	ext := filepath.Ext(filename)
+
+	src, err := os.Open(localFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open local file: %w", err)
+	}
+	saved, saveErr := s.fileRepo.SaveBook(ctx, bookID, filename, src)
+	closeErr := src.Close()
+	if saveErr != nil {
+		_ = s.fileRepo.RemoveBookDir(ctx, bookID)
+		return fmt.Errorf("failed to save book: %w", saveErr)
+	}
+	if closeErr != nil {
+		_ = s.fileRepo.RemoveBookDir(ctx, bookID)
+		return fmt.Errorf("failed to close local file: %w", closeErr)
+	}
+
+	metaData := map[string]string{
+		"original_filename": filename,
+		"upload_time":       time.Now().Format(time.RFC3339),
+		"uuid":              bookID,
+	}
+	if err := s.fileRepo.WriteBookMeta(ctx, bookID, metaData); err != nil {
+		_ = s.fileRepo.RemoveBookDir(ctx, bookID)
+		return fmt.Errorf("failed to write book metadata: %w", err)
+	}
+
+	book := &models.BookEntity{
+		ID:        bookID,
+		LibraryID: libraryID,
+		Title:     strings.TrimSuffix(filename, ext),
+		Status:    "processing",
+	}
+
+	fileID := uuid.Must(uuid.NewV7()).String()
+	state := "managed"
+	err = s.bookRepo.CreateBookWithFile(ctx, book, &sqlc.CreateBookFileParams{
+		ID:        fileID,
+		BookID:    bookID,
+		Path:      saved.Path,
+		Format:    saved.Format,
+		SizeBytes: saved.SizeBytes,
+		ModTime:   saved.ModTime,
+		State:     convert.StrPtrToNullString(&state),
+	})
+	if err != nil {
+		_ = s.fileRepo.RemoveBookDir(ctx, bookID)
+		return fmt.Errorf("failed to create book and file record: %w", err)
+	}
+
+	pendingJobs := []worker.Job{
+		{
+			ID:      uuid.Must(uuid.NewV7()).String(),
+			Type:    "extract_metadata",
+			Payload: bookID,
+		},
+		{
+			ID:      uuid.Must(uuid.NewV7()).String(),
+			Type:    "hash_file",
+			Payload: fileID,
+		},
+	}
+	for _, job := range pendingJobs {
+		s.jobQueue.Enqueue(job)
+	}
+	return nil
+}
+
+func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error {
+	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
+		return err
+	}
+
+	books, err := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", nil, 1000000)
+	if err != nil {
+		return err
+	}
+
+	zw := zip.NewWriter(w)
+	defer zw.Close()
+
+	for _, book := range books {
+		files, err := s.bookRepo.GetFilesByBookId(ctx, book.ID)
+		if err != nil || len(files) == 0 {
+			continue
+		}
+
+		for _, f := range files {
+			if f.State != nil && *f.State == "deleted" {
+				continue
+			}
+
+			src, err := os.Open(f.Path)
+			if err != nil {
+				continue
+			}
+
+			// Sanitize filename for ZIP
+			safeTitle := strings.ReplaceAll(book.Title, "/", "-")
+			filename := fmt.Sprintf("%s.%s", safeTitle, f.Format)
+
+			fw, err := zw.Create(filename)
+			if err != nil {
+				src.Close()
+				continue
+			}
+			io.Copy(fw, src)
+			src.Close()
+		}
+	}
+
+	return nil
 }

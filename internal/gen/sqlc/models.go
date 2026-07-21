@@ -237,6 +237,8 @@ type ReadingProgress struct {
 	LastOpenedAt       sql.NullTime    `json:"last_opened_at"`
 	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
 	UpdatedAt          sql.NullTime    `json:"updated_at"`
+	LocationCfi        sql.NullString  `json:"location_cfi"`
+	LocationType       sql.NullString  `json:"location_type"`
 }
 
 type ReadingSession struct {

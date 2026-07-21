@@ -85,6 +85,8 @@ type ReadingProgressEntity struct {
 	ChapterTitle       string     `json:"chapterTitle"`
 	ChapterIndex       int64      `json:"chapterIndex"`
 	ProgressPercent    *float64   `json:"progressPercent,omitempty"`
+	LocationCfi        *string    `json:"locationCfi,omitempty"`
+	LocationType       *string    `json:"locationType,omitempty"`
 	OpenedCount        int64      `json:"openedCount"`
 	QualifiedReadCount int64      `json:"qualifiedReadCount"`
 	LastOpenedAt       *time.Time `json:"lastOpenedAt,omitempty"`
@@ -102,6 +104,8 @@ func (e *ReadingProgressEntity) FromSqlc(res sqlc.ReadingProgress) *ReadingProgr
 	if res.ProgressPercent.Valid {
 		e.ProgressPercent = &res.ProgressPercent.Float64
 	}
+	e.LocationCfi = convert.NullStringToStrPtr(res.LocationCfi)
+	e.LocationType = convert.NullStringToStrPtr(res.LocationType)
 	e.OpenedCount = res.OpenedCount
 	e.QualifiedReadCount = res.QualifiedReadCount
 	e.LastOpenedAt = convert.NullTimeToTimePtr(res.LastOpenedAt)
@@ -122,6 +126,8 @@ func (e *ReadingProgressEntity) ToResponse() *response.ReadingProgressResponse {
 		ChapterTitle:       e.ChapterTitle,
 		ChapterIndex:       e.ChapterIndex,
 		ProgressPercent:    e.ProgressPercent,
+		LocationCfi:        e.LocationCfi,
+		LocationType:       e.LocationType,
 		OpenedCount:        e.OpenedCount,
 		QualifiedReadCount: e.QualifiedReadCount,
 		LastOpenedAt:       e.LastOpenedAt,
@@ -138,6 +144,8 @@ type ReadingActivityInput struct {
 	ChapterTitle    string
 	ChapterIndex    int64
 	ProgressPercent *float64
+	LocationCfi     *string
+	LocationType    *string
 	EventType       string
 }
 

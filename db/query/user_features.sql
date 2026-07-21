@@ -63,7 +63,7 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
 RETURNING *;
 
 -- name: GetReadingProgress :one
-SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM reading_progress
+SELECT * FROM reading_progress
 WHERE user_id = ? AND book_id = ?
 LIMIT 1;
 
@@ -76,13 +76,15 @@ INSERT INTO reading_progress (
     chapter_title,
     chapter_index,
     progress_percent,
+    location_cfi,
+    location_type,
     opened_count,
     qualified_read_count,
     last_opened_at,
     last_counted_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP
 )
 ON CONFLICT(user_id, book_id) DO UPDATE SET
     file_id = excluded.file_id,
@@ -90,6 +92,8 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     chapter_title = excluded.chapter_title,
     chapter_index = excluded.chapter_index,
     progress_percent = excluded.progress_percent,
+    location_cfi = excluded.location_cfi,
+    location_type = excluded.location_type,
     opened_count = excluded.opened_count,
     qualified_read_count = excluded.qualified_read_count,
     last_opened_at = CURRENT_TIMESTAMP,

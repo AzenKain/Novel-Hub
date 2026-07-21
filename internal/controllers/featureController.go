@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"novelhub/pkg/apperrors"
+
+	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -259,6 +261,8 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		ChapterTitle:    dto.ChapterTitle,
 		ChapterIndex:    dto.ChapterIndex,
 		ProgressPercent: dto.ProgressPercent,
+		LocationCfi:     dto.LocationCfi,
+		LocationType:    dto.LocationType,
 		EventType:       dto.EventType,
 	})
 	if err != nil {
@@ -272,6 +276,24 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		Status: true,
 		Data:   result,
 	})
+}
+
+func (h *FeatureController) GetReadingProgress(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	bookID := c.Params("bookId")
+	claims, _ := c.Locals("user_claims").(*response.JWTClaims)
+	userID, _ := strconv.ParseInt(claims.Subject, 10, 64)
+
+	progress, err := h.service.GetReadingProgress(ctx, userID, bookID)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "No reading progress found"})
+		}
+		return err
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: progress})
 }
 
 func (c *FeatureController) GetBookReadStats(ctx fiber.Ctx) error {

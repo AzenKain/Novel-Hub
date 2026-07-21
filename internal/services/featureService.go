@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,6 +28,7 @@ type FeatureService interface {
 	DeleteCollection(ctx context.Context, id string, userID int64) error
 	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error)
 	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error)
+	GetReadingProgress(ctx context.Context, userID int64, bookID string) (*response.ReadingProgressResponse, error)
 	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error)
 	GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error)
 	RecordDownload(ctx context.Context, bookID string) error
@@ -118,6 +121,17 @@ func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int
 	return models.ReadingHistoryEntitiesToResponse(history), nil
 }
 
+func (s *featureService) GetReadingProgress(ctx context.Context, userID int64, bookID string) (*response.ReadingProgressResponse, error) {
+	entity, err := s.repo.GetReadingProgress(ctx, userID, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "No reading progress found")
+		}
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
 func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error) {
 	if strings.TrimSpace(input.BookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
@@ -173,6 +187,8 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 		ChapterTitle:       chapterTitle,
 		ChapterIndex:       input.ChapterIndex,
 		ProgressPercent:    progressPercent,
+		LocationCfi:        input.LocationCfi,
+		LocationType:       input.LocationType,
 		OpenedCount:        openedCount,
 		QualifiedReadCount: qualifiedReadCount,
 		LastCountedAt:      lastCountedAt,

@@ -2,12 +2,17 @@ package services
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
+
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/config"
 	"novelhub/pkg/database"
 )
 
@@ -15,6 +20,7 @@ type MaintenanceService interface {
 	HashFile(ctx context.Context, fileID string) error
 	IndexBook(ctx context.Context, bookID string) error
 	RunMaintenance(ctx context.Context) error
+	CleanOrphanUploads(ctx context.Context) error
 }
 
 type maintenanceService struct {
@@ -131,23 +137,96 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 }
 
 func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
-	files, err := s.bookRepo.ListAllFiles(ctx, 1000, 0)
+	limit := int64(100)
+	var offset int64 = 0
+
+	for {
+		files, err := s.bookRepo.ListAllFiles(ctx, limit, offset)
+		if err != nil {
+			return err
+		}
+
+		if len(files) == 0 {
+			break
+		}
+
+		for _, f := range files {
+			if !s.fileRepo.Exists(ctx, f.Path) {
+				log.Info().Str("path", f.Path).Msg("File not found, cleaning up")
+				_ = s.bookRepo.DeleteFile(ctx, f.ID)
+				count, _ := s.bookRepo.CountFilesForBook(ctx, f.BookID)
+				if count == 0 {
+					log.Info().Str("book", f.BookID).Msg("Book has no files, cleaning up book")
+					_ = s.bookRepo.DeleteBook(ctx, f.BookID)
+				}
+			}
+		}
+
+		offset += limit
+		time.Sleep(50 * time.Millisecond) // Yield to avoid CPU/IO starvation
+	}
+
+	if err := s.CleanOrphanUploads(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to clean orphan uploads")
+	}
+
+	return nil
+}
+
+func (s *maintenanceService) CleanOrphanUploads(ctx context.Context) error {
+	uploadDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "uploads")
+	entries, err := os.ReadDir(uploadDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
-	for _, f := range files {
-		if !s.fileRepo.Exists(ctx, f.Path) {
-			log.Info().Str("path", f.Path).Msg("File not found, cleaning up")
-			_ = s.bookRepo.DeleteFile(ctx, f.ID)
+	cutoff := time.Now().Add(-2 * time.Hour)
+	count := 0
 
-			// Check if book has other files
-			count, _ := s.bookRepo.CountFilesForBook(ctx, f.BookID)
-			if count == 0 {
-				log.Info().Str("book", f.BookID).Msg("Book has no files, cleaning up book")
-				_ = s.bookRepo.DeleteBook(ctx, f.BookID)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		targetPath := filepath.Join(uploadDir, entry.Name())
+		chunks, err := os.ReadDir(targetPath)
+		if err != nil {
+			continue
+		}
+
+		var newest time.Time
+		for _, chunk := range chunks {
+			info, err := chunk.Info()
+			if err != nil {
+				continue
+			}
+			if info.ModTime().After(newest) {
+				newest = info.ModTime()
 			}
 		}
+
+		// If no chunks yet, use directory modtime
+		if newest.IsZero() {
+			info, err := entry.Info()
+			if err == nil {
+				newest = info.ModTime()
+			}
+		}
+
+		if newest.Before(cutoff) {
+			if err := os.RemoveAll(targetPath); err != nil {
+				log.Error().Err(err).Str("path", targetPath).Msg("Failed to clean orphan upload dir")
+			} else {
+				count++
+			}
+		}
+	}
+
+	if count > 0 {
+		log.Info().Int("cleaned", count).Msg("Cleaned orphan upload directories")
 	}
 
 	return nil

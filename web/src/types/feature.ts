@@ -4,6 +4,8 @@ export interface ReadingHistory {
   fileId?: string;
   chapterId: string;
   progressPercent?: number;
+  locationCfi?: string;
+  locationType?: string;
   updatedAt: string;
   bookTitle: string;
   bookCoverUrl?: string;
@@ -82,6 +84,8 @@ export interface RecordReadingActivityPayload {
   chapterTitle?: string;
   chapterIndex?: number;
   progressPercent?: number;
+  locationCfi?: string;
+  locationType?: string;
   eventType?: string;
 }
 
@@ -94,6 +98,8 @@ export interface ReadingActivityResult {
     chapterTitle: string;
     chapterIndex: number;
     progressPercent?: number;
+    locationCfi?: string;
+    locationType?: string;
     openedCount: number;
     qualifiedReadCount: number;
   };

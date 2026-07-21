@@ -15,6 +15,8 @@ type RecordReadingActivityDto struct {
 	ChapterTitle    string   `json:"chapterTitle"`
 	ChapterIndex    int64    `json:"chapterIndex"`
 	ProgressPercent *float64 `json:"progressPercent"`
+	LocationCfi     *string  `json:"locationCfi"`
+	LocationType    *string  `json:"locationType"`
 	EventType       string   `json:"eventType"`
 }
 

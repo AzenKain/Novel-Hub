@@ -106,6 +106,19 @@ export const featureService = {
     }
   },
 
+  getReadingProgress: async (
+    bookId: string,
+  ): Promise<CommonResponse<ReadingHistory>> => {
+    try {
+      const res = await api.get(`/reader/history/progress/${bookId}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<ReadingHistory>;
+      throw error;
+    }
+  },
+
   getBookReadStats: async (
     bookId: string,
   ): Promise<CommonResponse<BookReadStats>> => {

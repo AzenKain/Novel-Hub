@@ -91,6 +91,8 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 	return c.SendFile(file.Path, fiber.SendFile{ByteRange: true})
 }
 
+
+
 func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -199,6 +201,12 @@ func rawFileContentType(filePath string) string {
 		return "application/x-7z-compressed"
 	case ".mobi", ".azw", ".azw3", ".amz":
 		return "application/octet-stream"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".m4a", ".m4b":
+		return "audio/mp4"
+	case ".flac":
+		return "audio/flac"
 	default:
 		if contentType := mime.TypeByExtension(filepath.Ext(filePath)); contentType != "" {
 			return contentType

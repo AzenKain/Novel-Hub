@@ -425,7 +425,7 @@ func (q *Queries) GetLibraryStats(ctx context.Context) (GetLibraryStatsRow, erro
 }
 
 const getReadingProgress = `-- name: GetReadingProgress :one
-SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM reading_progress
+SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at, location_cfi, location_type FROM reading_progress
 WHERE user_id = ? AND book_id = ?
 LIMIT 1
 `
@@ -451,6 +451,8 @@ func (q *Queries) GetReadingProgress(ctx context.Context, arg GetReadingProgress
 		&i.LastOpenedAt,
 		&i.LastCountedAt,
 		&i.UpdatedAt,
+		&i.LocationCfi,
+		&i.LocationType,
 	)
 	return i, err
 }
@@ -1074,13 +1076,15 @@ INSERT INTO reading_progress (
     chapter_title,
     chapter_index,
     progress_percent,
+    location_cfi,
+    location_type,
     opened_count,
     qualified_read_count,
     last_opened_at,
     last_counted_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP
 )
 ON CONFLICT(user_id, book_id) DO UPDATE SET
     file_id = excluded.file_id,
@@ -1088,12 +1092,14 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     chapter_title = excluded.chapter_title,
     chapter_index = excluded.chapter_index,
     progress_percent = excluded.progress_percent,
+    location_cfi = excluded.location_cfi,
+    location_type = excluded.location_type,
     opened_count = excluded.opened_count,
     qualified_read_count = excluded.qualified_read_count,
     last_opened_at = CURRENT_TIMESTAMP,
     last_counted_at = COALESCE(excluded.last_counted_at, reading_progress.last_counted_at),
     updated_at = CURRENT_TIMESTAMP
-RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at
+RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at, location_cfi, location_type
 `
 
 type UpsertReadingProgressParams struct {
@@ -1104,6 +1110,8 @@ type UpsertReadingProgressParams struct {
 	ChapterTitle       string          `json:"chapter_title"`
 	ChapterIndex       int64           `json:"chapter_index"`
 	ProgressPercent    sql.NullFloat64 `json:"progress_percent"`
+	LocationCfi        sql.NullString  `json:"location_cfi"`
+	LocationType       sql.NullString  `json:"location_type"`
 	OpenedCount        int64           `json:"opened_count"`
 	QualifiedReadCount int64           `json:"qualified_read_count"`
 	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
@@ -1118,6 +1126,8 @@ func (q *Queries) UpsertReadingProgress(ctx context.Context, arg UpsertReadingPr
 		arg.ChapterTitle,
 		arg.ChapterIndex,
 		arg.ProgressPercent,
+		arg.LocationCfi,
+		arg.LocationType,
 		arg.OpenedCount,
 		arg.QualifiedReadCount,
 		arg.LastCountedAt,
@@ -1136,6 +1146,8 @@ func (q *Queries) UpsertReadingProgress(ctx context.Context, arg UpsertReadingPr
 		&i.LastOpenedAt,
 		&i.LastCountedAt,
 		&i.UpdatedAt,
+		&i.LocationCfi,
+		&i.LocationType,
 	)
 	return i, err
 }
