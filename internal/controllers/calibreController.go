@@ -2,13 +2,16 @@ package controllers
 
 import (
 	"context"
+	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/validator"
 )
 
 type CalibreController struct {
@@ -19,31 +22,27 @@ func NewCalibreController(calibreService services.CalibreSyncService) *CalibreCo
 	return &CalibreController{calibreService: calibreService}
 }
 
-type ImportCalibreDto struct {
-	Path      string `json:"path"`
-	LibraryID string `json:"library_id"`
-}
-
 func (c *CalibreController) ImportCalibre(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	var dto ImportCalibreDto
-	if err := ctx.Bind().Body(&dto); err != nil {
+	dto := &request.ImportCalibreDto{}
+	if errs := validator.ValidateBodyDto(ctx, dto); errs != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "invalid payload",
+			Status: false,
+			Errors: errs,
 		})
 	}
 
-	if dto.Path == "" {
+	cleanPath := filepath.Clean(dto.Path)
+	if cleanPath == "." || cleanPath == "/" {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
-			Message: "path is required",
+			Message: "invalid calibre path",
 		})
 	}
 
-	count, err := c.calibreService.ImportCalibreLibrary(reqCtx, dto.Path, dto.LibraryID)
+	count, err := c.calibreService.ImportCalibreLibrary(reqCtx, cleanPath, dto.LibraryID)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { parseMetadata } from '@/lib/bookDetail';
+import { getMediaUrl } from '@/config/api';
 
 interface BookCardProps {
   book: Book;
@@ -44,7 +45,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
       <figure className={`relative aspect-[3/4.12] w-full text-white flex flex-col justify-between p-4 bg-linear-to-br ${gradientClass}`}>
         {book.coverUrl ? (
           <>
-            <img src={book.coverUrl} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
+            <img src={getMediaUrl(book.coverUrl)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
             <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
           </>
         ) : (

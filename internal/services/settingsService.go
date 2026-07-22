@@ -16,6 +16,7 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/config"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/netx"
 )
@@ -40,7 +41,6 @@ var (
 		"collections",
 	}
 	availableHomeSections = []string{"random_books", "top_books"}
-	availablePolicyModes  = []string{"disabled", "all", "selected_libraries"}
 	availableGuestModes   = []string{"all", "selected_libraries", "login_required"}
 )
 
@@ -48,24 +48,29 @@ type SettingsService interface {
 	Reload(ctx context.Context) error
 	Public(ctx context.Context) (*models.PublicSettings, error)
 	UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, error)
-	PolicyAllows(policy string, libraryID string, admin bool) bool
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
 	SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error)
 }
 
 type settingsService struct {
-	repo repositories.SettingsRepository
-	mu   sync.RWMutex
-	data *models.PublicSettings
-	raw  map[string]any
+	repo        repositories.SettingsRepository
+	permissions PermissionCache
+	mu          sync.RWMutex
+	data        *models.PublicSettings
+	raw         map[string]any
 }
 
-func NewSettingsService(repo repositories.SettingsRepository) SettingsService {
+func NewSettingsService(repo repositories.SettingsRepository, permissions ...PermissionCache) SettingsService {
+	var permCache PermissionCache
+	if len(permissions) > 0 {
+		permCache = permissions[0]
+	}
 	return &settingsService{
-		repo: repo,
-		raw:  map[string]any{},
-		data: defaultPublicSettings(),
+		repo:        repo,
+		permissions: permCache,
+		raw:         map[string]any{},
+		data:        defaultPublicSettings(),
 	}
 }
 
@@ -80,17 +85,10 @@ func defaultPublicSettings() *models.PublicSettings {
 		HomeSections:          models.HomeSectionSettings{RandomBooks: true, TopBooks: true},
 		RegistrationEnabled:   true,
 		GuestAccess:           models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Download:              models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Bookmark:              models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Collection:            models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Review:                models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Share:                 models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Read:                  models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
-		Stats:                 models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}, VisibleStats: []string{"reads", "downloads", "bookmarks", "collections", "rating", "shares"}},
+		GuestPermissions:      constants.GetDefaultPermissionsForRole(constants.RoleTypeGuest),
 		SetupCompleted:        true,
 		AvailableSidebarItems: append([]string(nil), availableSidebarItems...),
 		AvailableHomeSections: append([]string(nil), availableHomeSections...),
-		AvailablePolicyModes:  append([]string(nil), availablePolicyModes...),
 		AvailableGuestModes:   append([]string(nil), availableGuestModes...),
 	}
 }
@@ -136,14 +134,15 @@ func (s *settingsService) Public(ctx context.Context) (*models.PublicSettings, e
 	copyValue := *current
 	copyValue.SidebarVisibleItems = append([]string(nil), current.SidebarVisibleItems...)
 	copyValue.GuestAccess.LibraryIDs = append([]string(nil), current.GuestAccess.LibraryIDs...)
-	copyValue.Download.LibraryIDs = append([]string(nil), current.Download.LibraryIDs...)
-	copyValue.Bookmark.LibraryIDs = append([]string(nil), current.Bookmark.LibraryIDs...)
-	copyValue.Collection.LibraryIDs = append([]string(nil), current.Collection.LibraryIDs...)
-	copyValue.Review.LibraryIDs = append([]string(nil), current.Review.LibraryIDs...)
-	copyValue.Share.LibraryIDs = append([]string(nil), current.Share.LibraryIDs...)
-	copyValue.Read.LibraryIDs = append([]string(nil), current.Read.LibraryIDs...)
-	copyValue.Stats.LibraryIDs = append([]string(nil), current.Stats.LibraryIDs...)
-	copyValue.Stats.VisibleStats = append([]string(nil), current.Stats.VisibleStats...)
+	if s.permissions != nil {
+		if dynamicGuestPerms := s.permissions.GetGuestPermissions(); len(dynamicGuestPerms) > 0 {
+			copyValue.GuestPermissions = dynamicGuestPerms
+		} else {
+			copyValue.GuestPermissions = append([]string(nil), current.GuestPermissions...)
+		}
+	} else {
+		copyValue.GuestPermissions = append([]string(nil), current.GuestPermissions...)
+	}
 	return &copyValue, nil
 }
 
@@ -168,36 +167,6 @@ func (s *settingsService) UpdateSettings(ctx context.Context, settings map[strin
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load settings")
 	}
 	return public, nil
-}
-
-func (s *settingsService) PolicyAllows(policy string, libraryID string, admin bool) bool {
-	if admin {
-		return true
-	}
-	s.mu.RLock()
-	current := s.data
-	s.mu.RUnlock()
-	if current == nil {
-		current = defaultPublicSettings()
-	}
-	switch policy {
-	case "download":
-		return libraryPolicyAllows(current.Download, libraryID)
-	case "bookmark":
-		return libraryPolicyAllows(current.Bookmark, libraryID)
-	case "collection":
-		return libraryPolicyAllows(current.Collection, libraryID)
-	case "review":
-		return libraryPolicyAllows(current.Review, libraryID)
-	case "share":
-		return libraryPolicyAllows(current.Share, libraryID)
-	case "read":
-		return libraryPolicyAllows(current.Read, libraryID)
-	case "stats":
-		return libraryPolicyAllows(current.Stats, libraryID)
-	default:
-		return false
-	}
 }
 
 func (s *settingsService) GuestAllows(libraryID string) bool {
@@ -243,9 +212,6 @@ func (s *settingsService) setupCompleted(ctx context.Context) bool {
 	if value != "true" {
 		return false
 	}
-	// The setup flag is set, but if no administrator account exists the setup
-	// was never actually finished (e.g. a stale/seeded state from an older
-	// schema). Treat it as incomplete so the setup wizard can run again.
 	count, err := s.repo.CountAdminUsers(ctx)
 	if err != nil {
 		return true
@@ -264,14 +230,6 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.HomeSections = rawHomeSections(raw, settings.HomeSections)
 	settings.RegistrationEnabled = rawBool(raw, "auth.registration_enabled", settings.RegistrationEnabled)
 	settings.GuestAccess = rawPolicy(raw, "guest_access", settings.GuestAccess, availableGuestModes)
-	settings.Download = rawPolicy(raw, "download", settings.Download, availablePolicyModes)
-	settings.Bookmark = rawPolicy(raw, "bookmark", settings.Bookmark, availablePolicyModes)
-	settings.Collection = rawPolicy(raw, "collection", settings.Collection, availablePolicyModes)
-	settings.Review = rawPolicy(raw, "review", settings.Review, availablePolicyModes)
-	settings.Share = rawPolicy(raw, "share", settings.Share, availablePolicyModes)
-	settings.Read = rawPolicy(raw, "read", settings.Read, availablePolicyModes)
-	settings.Stats = rawPolicy(raw, "stats", settings.Stats, availablePolicyModes)
-	settings.Stats.VisibleStats = rawStringSlice(raw, "stats.visible_stats", settings.Stats.VisibleStats)
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	return settings
@@ -351,19 +309,7 @@ func mapBool(raw map[string]any, key string, fallback bool) bool {
 	if !ok {
 		return fallback
 	}
-	typed, ok = value.(bool)
 	return typed
-}
-
-func libraryPolicyAllows(policy models.LibraryPolicy, libraryID string) bool {
-	switch policy.Mode {
-	case "disabled":
-		return false
-	case "selected_libraries":
-		return libraryID != "" && slices.Contains(policy.LibraryIDs, libraryID)
-	default:
-		return true
-	}
 }
 
 func filterKnown(items []string, known []string) []string {
@@ -388,21 +334,6 @@ func allowedSettingKey(key string) bool {
 		"auth.registration_enabled",
 		"guest_access.mode",
 		"guest_access.library_ids",
-		"download.mode",
-		"download.library_ids",
-		"bookmark.mode",
-		"bookmark.library_ids",
-		"collection.mode",
-		"collection.library_ids",
-		"review.mode",
-		"review.library_ids",
-		"share.mode",
-		"share.library_ids",
-		"read.mode",
-		"read.library_ids",
-		"stats.mode",
-		"stats.library_ids",
-		"stats.visible_stats",
 		"reader.enable_in_book_search",
 		"font.enable_custom_font_upload":
 		return true

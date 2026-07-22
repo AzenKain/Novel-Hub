@@ -325,21 +325,6 @@ func buildSetupSettings(dto *request.SetupDto) map[string]any {
 		settings["guest_access.library_ids"] = dto.GuestLibraryIDs
 	}
 
-	for _, p := range []struct{ mode, libraryIDs string }{
-		{dto.DownloadMode, "download"},
-		{dto.BookmarkMode, "bookmark"},
-		{dto.CollectionMode, "collection"},
-		{dto.ReviewMode, "review"},
-		{dto.ShareMode, "share"},
-		{dto.ReadMode, "read"},
-	} {
-		mode := p.mode
-		if mode == "" {
-			mode = "all"
-		}
-		settings[p.libraryIDs+".mode"] = mode
-	}
-
 	if len(dto.SidebarVisibleItems) > 0 {
 		settings["sidebar.visible_items"] = dto.SidebarVisibleItems
 	}

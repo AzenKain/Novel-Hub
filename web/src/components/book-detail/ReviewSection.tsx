@@ -6,7 +6,8 @@ import { featureService } from "@/services";
 import { useAuthStore } from "@/stores";
 import type { BookReview } from "@/types";
 import { toast } from "react-toastify";
-import { isModOrAdminUser } from "@/utils/permission";
+import { hasPermission } from "@/utils/permission";
+import { useShallow } from "zustand/react/shallow";
 
 interface ReviewSectionProps {
   bookId: string;
@@ -16,7 +17,7 @@ interface ReviewSectionProps {
 export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   
   const [rating, setRating] = useState(userReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -185,7 +186,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
                         <Star className="w-4 h-4 fill-warning text-warning" />
                         <span className="font-bold text-sm">{rv?.rating}</span>
                       </div>
-                      {isModOrAdminUser(user) && (
+                      {hasPermission(user, "book.review.delete") && (
                         <button
                           className="btn btn-ghost btn-xs text-error"
                           onClick={async () => {

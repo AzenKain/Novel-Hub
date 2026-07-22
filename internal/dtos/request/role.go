@@ -23,3 +23,7 @@ type UpdateRoleDto struct {
 type UpdateRolePermissionsDto struct {
 	Permissions []RolePermissionDto `json:"permissions" validate:"required,dive"`
 }
+
+type ReorderRolesDto struct {
+	RoleIDs []int64 `json:"role_ids" validate:"required,min=1"`
+}

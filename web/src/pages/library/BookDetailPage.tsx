@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   BookOpen,
@@ -25,24 +25,34 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
-import { bookService, featureService } from "@/services";
+import { bookService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection } from "@/components/book-detail";
-import { usePublicSettings, isPolicyAllowed } from "@/hooks/useSettings";
+import { usePublicSettings } from "@/hooks/useSettings";
+import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
 import { useLibraryStore, useAuthStore } from "@/stores";
+import { useShallow } from "zustand/react/shallow";
+import {
+  useBookQuery,
+  useBookUserStateQuery,
+  useBookEngagementStatsQuery,
+  useToggleBookmarkMutation,
+  useAddBookToCollectionMutation,
+  useRemoveBookFromCollectionMutation
+} from "@/hooks";
 
 export const BookDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { bookId } = useParams<{ bookId: string }>();
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const publicSettings = usePublicSettings();
   
   const [shareOpen, setShareOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const collections = useLibraryStore((state) => state.collections);
+  const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
 
@@ -53,108 +63,32 @@ export const BookDetailPage: React.FC = () => {
     };
   }, [queryClient]);
 
-  const { data: bookData, isLoading: isBookLoading, error: bookError } = useQuery({
-    queryKey: ["book", bookId],
-    queryFn: async () => {
-      if (!bookId) throw new Error("No book ID");
-      const res = await bookService.getBook(bookId);
-      if (!res.status) throw new Error(res.message || "Failed to fetch book");
-      return res.data;
-    },
-    enabled: !!bookId,
-  });
+  const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(bookId || "");
+  const { data: userState } = useBookUserStateQuery(bookId || "", !!user);
+  const { data: engagementData } = useBookEngagementStatsQuery(bookId || "");
 
-  const { data: userStateData } = useQuery({
-    queryKey: ["bookUserState", bookId],
-    queryFn: async () => {
-      if (!bookId) throw new Error("No book ID");
-      const res = await featureService.getBookUserState(bookId);
-      if (!res.status) throw new Error(res.message || "Failed to fetch user state");
-      return res.data;
-    },
-    enabled: !!bookId && !!user,
-    retry: false,
-  });
+  const toggleBookmarkMutation = useToggleBookmarkMutation(bookId || "");
+  const addBookToColMutation = useAddBookToCollectionMutation(bookId || "");
+  const removeBookFromColMutation = useRemoveBookFromCollectionMutation(bookId || "");
 
-  const { data: engagementData } = useQuery({
-    queryKey: ["bookEngagement", bookId],
-    queryFn: async () => {
-      if (!bookId) throw new Error("No book ID");
-      const res = await featureService.getBookEngagementStats(bookId);
-      return res.status ? res.data : null;
-    },
-    enabled: !!bookId,
-    retry: false,
-  });
-
-  const toggleBookmarkMutation = useMutation({
-    mutationFn: async (bookmarked: boolean) => {
-      if (!bookId) throw new Error("No book ID");
-      const res = await featureService.setBookmark(bookId, bookmarked);
-      if (!res.status) throw new Error(res.message || "Failed to toggle bookmark");
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
-      toast.success(t("book.bookmark_updated", "Bookmark updated successfully"));
-    },
-    onError: (err: any) => {
-      toast.error(err.message || t("error.unknown", "An unknown error occurred"));
-    }
-  });
-
-  const addBookToColMutation = useMutation({
-    mutationFn: async (collectionId: string) => {
-      if (!bookId) throw new Error("No book ID");
-      return featureService.addBookToCollection(collectionId, bookId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || t("error.unknown", "An unknown error occurred"));
-    }
-  });
-
-  const removeBookFromColMutation = useMutation({
-    mutationFn: async (collectionId: string) => {
-      if (!bookId) throw new Error("No book ID");
-      return featureService.removeBookFromCollection(collectionId, bookId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || t("error.unknown", "An unknown error occurred"));
-    }
-  });
-
-  const book = bookData;
-  const userState = userStateData;
   const meta = book ? parseMetadata(book.metadataJson) : {};
   const tags = toStringList(meta.subject);
 
-  const allowCollection = isPolicyAllowed(publicSettings?.collection, book?.libraryId);
-  const allowBookmark = isPolicyAllowed(publicSettings?.bookmark, book?.libraryId);
-  const allowShare = isPolicyAllowed(publicSettings?.share, book?.libraryId);
-  const allowDownload = isPolicyAllowed(publicSettings?.download, book?.libraryId);
-  const allowReview = isPolicyAllowed(publicSettings?.review, book?.libraryId);
-  const allowRead = isPolicyAllowed(publicSettings?.read, book?.libraryId);
-  const allowStats = isPolicyAllowed(publicSettings?.stats, book?.libraryId);
+  const guestPerms = publicSettings?.guest_permissions;
+  const allowCollection = hasPermission(user, "book.collection", book?.libraryId, guestPerms);
+  const allowBookmark = hasPermission(user, "book.bookmark", book?.libraryId, guestPerms);
+  const allowShare = hasPermission(user, "book.share", book?.libraryId, guestPerms);
+  const allowDownload = hasPermission(user, "book.download", book?.libraryId, guestPerms);
+  const allowReview = hasPermission(user, "book.review.create", book?.libraryId, guestPerms);
+  const allowRead = hasPermission(user, "book.read", book?.libraryId, guestPerms);
+  const allowStats = hasPermission(user, "user.stats.read", book?.libraryId, guestPerms);
 
-  const visibleStats = publicSettings?.stats?.visible_stats || ["reads", "downloads", "bookmarks", "collections", "rating", "shares"];
-
-  const showReads = allowStats && visibleStats.includes("reads") && allowRead;
-  const showDownloads = allowStats && visibleStats.includes("downloads") && allowDownload;
-  const showBookmarks = allowStats && visibleStats.includes("bookmarks") && allowBookmark;
-  const showCollections = allowStats && visibleStats.includes("collections") && allowCollection;
-  const showRating = allowStats && visibleStats.includes("rating") && allowReview;
-  const showShares = allowStats && visibleStats.includes("shares") && allowShare;
+  const showReads = allowStats && allowRead;
+  const showDownloads = allowStats && allowDownload;
+  const showBookmarks = allowStats && allowBookmark;
+  const showCollections = allowStats && allowCollection;
+  const showRating = allowStats && allowReview;
+  const showShares = allowStats && allowShare;
 
   const hasAnyStatToShow = showReads || showDownloads || showBookmarks || showCollections || showRating || showShares;
 
@@ -240,9 +174,17 @@ export const BookDetailPage: React.FC = () => {
                       <a 
                         onClick={() => {
                           if (isInCol) {
-                            removeBookFromColMutation.mutate(col.id);
+                            removeBookFromColMutation.mutate(col.id, {
+                              onError: (err: any) => {
+                                toast.error(err.message || t("error.unknown", "An unknown error occurred"));
+                              }
+                            });
                           } else {
-                            addBookToColMutation.mutate(col.id);
+                            addBookToColMutation.mutate(col.id, {
+                              onError: (err: any) => {
+                                toast.error(err.message || t("error.unknown", "An unknown error occurred"));
+                              }
+                            });
                           }
                         }}
                         className={isInCol ? "text-primary bg-primary/10" : ""}
@@ -258,7 +200,14 @@ export const BookDetailPage: React.FC = () => {
           )}
           {allowBookmark && (
             <button 
-              onClick={() => toggleBookmarkMutation.mutate(!isBookmarked)} 
+              onClick={() => toggleBookmarkMutation.mutate(!isBookmarked, {
+                onSuccess: () => {
+                  toast.success(t("book.bookmark_updated", "Bookmark updated successfully"));
+                },
+                onError: (err: any) => {
+                  toast.error(err.message || t("error.unknown", "An unknown error occurred"));
+                }
+              })} 
               className={`btn btn-ghost btn-sm ${isBookmarked ? "text-primary" : ""}`}
               disabled={toggleBookmarkMutation.isPending}
             >

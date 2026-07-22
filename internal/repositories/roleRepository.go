@@ -30,6 +30,7 @@ type RoleRepository interface {
 	BulkDeleteRolesFromUser(ctx context.Context, userID int64) error
 	GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error)
 	CountActiveAdminUsers(ctx context.Context) (int64, error)
+	UpdateRolePositions(ctx context.Context, roleIDs []int64) error
 	WithTx(tx *sql.Tx) RoleRepository
 }
 
@@ -194,7 +195,7 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 }
 
 func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.RolePermissionEntity, error) {
-	key := "role_permission:all"
+	key := constants.CacheKeyRolePermAll
 	if r.c != nil {
 		var ids []int64
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -377,7 +378,7 @@ func (r *roleRepository) Create(ctx context.Context, params sqlc.CreateRoleParam
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all")
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll)
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
@@ -388,7 +389,7 @@ func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParam
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
@@ -399,7 +400,7 @@ func (r *roleRepository) UpdateSystemRoleDescription(ctx context.Context, params
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
@@ -409,7 +410,7 @@ func (r *roleRepository) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "role:all", cache.BuildKey("role", "id", id))
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", id))
 		_ = r.c.DelByPattern(context.Background(), "user:*")
 	}
 	return nil
@@ -443,6 +444,10 @@ func (r *roleRepository) ReplaceRolePermissions(ctx context.Context, roleID int6
 		}); err != nil {
 			return err
 		}
+	}
+
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRolePermAll, cache.BuildKey("role", "permissions", roleID))
 	}
 	return nil
 }
@@ -572,6 +577,23 @@ func (r *roleRepository) CountActiveAdminUsers(ctx context.Context) (int64, erro
 		return 0, err
 	}
 	return v.(int64), nil
+}
+
+func (r *roleRepository) UpdateRolePositions(ctx context.Context, roleIDs []int64) error {
+	total := len(roleIDs)
+	for i, id := range roleIDs {
+		pos := int64((total - i) * 10)
+		if err := r.q.UpdateRolePosition(ctx, sqlc.UpdateRolePositionParams{
+			Position: pos,
+			ID:       id,
+		}); err != nil {
+			return err
+		}
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll)
+	}
+	return nil
 }
 
 func DecodeRole(raw []byte) (*models.RoleEntity, error) {

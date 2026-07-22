@@ -126,9 +126,17 @@ func (h *LibraryController) UploadFiles(c fiber.Ctx) error {
 }
 
 func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	libraryID := c.Params("id")
 	if libraryID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Library ID is required"})
+	}
+
+	_, err := h.libraryService.GetLibrary(ctx, libraryID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
 	}
 
 	c.Set("Content-Type", "application/zip")
@@ -136,10 +144,11 @@ func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
 
 	pr, pw := io.Pipe()
 
+	reqCtx := c.Context()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
-		defer cancel()
-		err := h.libraryService.StreamLibraryZip(ctx, libraryID, pw)
+		streamCtx, cancelStream := context.WithTimeout(reqCtx, 15*time.Minute)
+		defer cancelStream()
+		err := h.libraryService.StreamLibraryZip(streamCtx, libraryID, pw)
 		pw.CloseWithError(err)
 	}()
 

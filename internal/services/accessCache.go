@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"novelhub/internal/repositories"
@@ -32,6 +34,7 @@ type PermissionCache interface {
 	Can(ctx context.Context, userID string, permission string, attrs map[string]any) bool
 	CanRoles(roleIDs []int64, roles []constants.RoleType, permission string, attrs map[string]any) bool
 	IsAdmin(roleIDs []int64, roles []constants.RoleType) bool
+	GetGuestPermissions() []string
 }
 
 type cachedRolePermission struct {
@@ -44,20 +47,21 @@ type cachedRole struct {
 	ID          int64
 	Name        string
 	IsAdmin     bool
+	Position    int64
 	Permissions []cachedRolePermission
 }
 
 type permissionCache struct {
 	roleRepo repositories.RoleRepository
 	mu       sync.RWMutex
-	roles    map[int64]cachedRole
+	roles    map[int64]*cachedRole
 	nameToID map[string]int64
 }
 
 func NewPermissionCache(roleRepo repositories.RoleRepository) PermissionCache {
 	return &permissionCache{
 		roleRepo: roleRepo,
-		roles:    map[int64]cachedRole{},
+		roles:    map[int64]*cachedRole{},
 		nameToID: map[string]int64{},
 	}
 }
@@ -72,16 +76,17 @@ func (p *permissionCache) Reload(ctx context.Context) error {
 		return err
 	}
 
-	nextRoles := make(map[int64]cachedRole, len(roles))
+	nextRoles := make(map[int64]*cachedRole, len(roles))
 	nextNames := make(map[string]int64, len(roles))
 	for _, role := range roles {
 		if role == nil || role.IsDeleted {
 			continue
 		}
-		nextRoles[role.ID] = cachedRole{
-			ID:      role.ID,
-			Name:    role.Name,
-			IsAdmin: role.IsAdmin,
+		nextRoles[role.ID] = &cachedRole{
+			ID:       role.ID,
+			Name:     role.Name,
+			IsAdmin:  role.IsAdmin,
+			Position: role.Position,
 		}
 		nextNames[role.Name] = role.ID
 	}
@@ -96,10 +101,9 @@ func (p *permissionCache) Reload(ctx context.Context) error {
 		}
 		role.Permissions = append(role.Permissions, cachedRolePermission{
 			PermissionKey: permission.PermissionKey,
-			Effect:        permission.Effect,
-			Conditions:    permission.Conditions,
+			Effect:         permission.Effect,
+			Conditions:     permission.Conditions,
 		})
-		nextRoles[permission.RoleID] = role
 	}
 
 	p.mu.Lock()
@@ -122,14 +126,34 @@ func (p *permissionCache) CanRoles(roleIDs []int64, roles []constants.RoleType, 
 	defer p.mu.RUnlock()
 
 	resolvedRoleIDs := p.resolveRoleIDs(roleIDs, roles)
-	allowed := false
-	for _, roleID := range resolvedRoleIDs {
-		role, ok := p.roles[roleID]
-		if !ok {
-			continue
+
+	if p.hasBanned(resolvedRoleIDs) {
+		return false
+	}
+
+	if p.hasAdmin(resolvedRoleIDs) {
+		return true
+	}
+
+	sortedIDs := append([]int64(nil), resolvedRoleIDs...)
+	sort.Slice(sortedIDs, func(i, j int) bool {
+		rI := p.roles[sortedIDs[i]]
+		rJ := p.roles[sortedIDs[j]]
+		posI, posJ := int64(0), int64(0)
+		if rI != nil {
+			posI = rI.Position
 		}
-		if role.IsAdmin {
-			return true
+		if rJ != nil {
+			posJ = rJ.Position
+		}
+		return posI > posJ
+	})
+
+	allowed := false
+	for _, roleID := range sortedIDs {
+		role, ok := p.roles[roleID]
+		if !ok || role == nil {
+			continue
 		}
 		for _, rolePermission := range role.Permissions {
 			if rolePermission.PermissionKey != permission {
@@ -141,7 +165,7 @@ func (p *permissionCache) CanRoles(roleIDs []int64, roles []constants.RoleType, 
 			if rolePermission.Effect == "deny" {
 				return false
 			}
-			if rolePermission.Effect == "" || rolePermission.Effect == "allow" {
+			if rolePermission.Effect == "allow" {
 				allowed = true
 			}
 		}
@@ -153,10 +177,53 @@ func (p *permissionCache) IsAdmin(roleIDs []int64, roles []constants.RoleType) b
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	for _, roleID := range p.resolveRoleIDs(roleIDs, roles) {
-		role, ok := p.roles[roleID]
-		if ok && role.IsAdmin {
+	resolved := p.resolveRoleIDs(roleIDs, roles)
+	if p.hasBanned(resolved) {
+		return false
+	}
+	return p.hasAdmin(resolved)
+}
+
+func (p *permissionCache) GetGuestPermissions() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	guestRole, ok := p.roles[constants.SystemRoleIDGuest]
+	if !ok || guestRole == nil {
+		return nil
+	}
+	keys := make([]string, 0, len(guestRole.Permissions))
+	for _, perm := range guestRole.Permissions {
+		if perm.Effect != "deny" {
+			keys = append(keys, perm.PermissionKey)
+		}
+	}
+	return keys
+}
+
+func (p *permissionCache) hasBanned(roleIDs []int64) bool {
+	for _, id := range roleIDs {
+		if id == constants.SystemRoleIDBanned {
 			return true
+		}
+		if role, ok := p.roles[id]; ok && role != nil {
+			if strings.EqualFold(role.Name, string(constants.RoleTypeBanned)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *permissionCache) hasAdmin(roleIDs []int64) bool {
+	for _, id := range roleIDs {
+		if id == constants.SystemRoleIDAdmin {
+			return true
+		}
+		if role, ok := p.roles[id]; ok && role != nil {
+			if role.IsAdmin || strings.EqualFold(role.Name, string(constants.RoleTypeAdmin)) {
+				return true
+			}
 		}
 	}
 	return false

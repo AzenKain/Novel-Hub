@@ -62,7 +62,17 @@ func UsersEntityToResponse(users []*UserEntity) []*response.UserResponse {
 	}
 	return out
 }
-
+func (u *UserEntity) IsAdmin() bool {
+	if u == nil {
+		return false
+	}
+	for _, r := range u.Roles {
+		if r != nil && (r.IsAdmin || r.Name == "ADMIN") {
+			return true
+		}
+	}
+	return false
+}
 
 func (u *UserEntity) FromSqlc(row sqlc.User) *UserEntity {
 	u.ID = row.ID

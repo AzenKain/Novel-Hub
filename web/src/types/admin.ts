@@ -4,7 +4,9 @@ export type Role = {
   description: string;
   is_system: boolean;
   is_admin: boolean;
+  is_banned: boolean;
   auto_assign: boolean;
+  position?: number;
   is_deleted: boolean;
   created_at?: string;
   updated_at?: string;
@@ -15,6 +17,9 @@ export type RoleSimple = {
   id: number;
   name: string;
   is_admin?: boolean;
+  is_banned?: boolean;
+  position?: number;
+  permissions?: RolePermission[];
 };
 
 export type Permission = {
@@ -95,19 +100,12 @@ export interface PublicSettings {
   home_sections: HomeSectionSettings;
   registration_enabled: boolean;
   guest_access: LibraryPolicy;
-  download: LibraryPolicy;
-  bookmark: LibraryPolicy;
-  collection: LibraryPolicy;
-  review: LibraryPolicy;
-  share: LibraryPolicy;
-  read: LibraryPolicy;
-  stats: LibraryPolicy;
+  guest_permissions?: string[];
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
   setup_completed: boolean;
   available_sidebar_items: string[];
   available_home_sections: string[];
-  available_policy_modes: string[];
   available_guest_modes: string[];
 }
 

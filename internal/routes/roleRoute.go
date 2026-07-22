@@ -14,6 +14,7 @@ func RoleRoutes(app fiber.Router, controller *controllers.RoleController, userRe
 	route.Get("/", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.GetAllRole)
 	route.Post("/", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.CreateRole)
 	route.Get("/permissions", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.GetPermissions)
+	route.Put("/reorder", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.ReorderRoles)
 	route.Get("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.GetRoleByID)
 	route.Put("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.UpdateRole)
 	route.Put("/:id/permissions", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "role.manage"), controller.UpdateRolePermissions)

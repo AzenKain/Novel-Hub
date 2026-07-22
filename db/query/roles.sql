@@ -4,12 +4,12 @@ VALUES (?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetRoleByName :one
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE name = ? AND is_deleted = 0;
 
 -- name: GetRoleByID :one
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE id = ? AND is_deleted = 0;
 
@@ -17,7 +17,12 @@ WHERE id = ? AND is_deleted = 0;
 SELECT id
 FROM roles
 WHERE is_deleted = 0
-ORDER BY name ASC;
+ORDER BY position DESC, name ASC;
+
+-- name: UpdateRolePosition :exec
+UPDATE roles
+SET position = ?
+WHERE id = ? AND is_deleted = 0;
 
 -- name: GetAutoAssignRoleIDs :many
 SELECT id
@@ -25,7 +30,7 @@ FROM roles
 WHERE is_deleted = 0 AND auto_assign = 1 AND is_admin = 0;
 
 -- name: GetRolesByIDs :many
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles WHERE id IN (sqlc.slice('ids'));
 
 -- name: UpdateRole :one
@@ -36,8 +41,8 @@ RETURNING *;
 
 -- name: UpdateSystemRoleDescription :one
 UPDATE roles
-SET description = ?
-WHERE id = ? AND is_deleted = 0 AND is_system = 1
+SET description = ?, auto_assign = ?
+WHERE id = ? AND is_deleted = 0 AND is_system = 1 AND is_admin = 0
 RETURNING *;
 
 -- name: DeleteRole :exec

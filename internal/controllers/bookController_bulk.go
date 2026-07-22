@@ -16,7 +16,7 @@ func (h *BookController) BulkDeleteBooks(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
@@ -41,7 +41,7 @@ func (h *BookController) BulkMoveBooks(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
@@ -66,7 +66,7 @@ func (h *BookController) BulkAssignCollections(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
@@ -91,7 +91,7 @@ func (h *BookController) BulkAddTags(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}

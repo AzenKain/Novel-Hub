@@ -4,9 +4,12 @@ import (
 	"context"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/convert"
+	"novelhub/pkg/validator"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -74,12 +77,19 @@ func (ctrl *KoboController) SyncState(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var stateData map[string]any
-	if err := c.Bind().Body(&stateData); err != nil {
-		stateData = make(map[string]any)
+	dto := &request.KoboSyncStateDto{}
+	if errs := validator.ValidateBodyDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	if err := ctrl.koboService.SyncState(ctx, 0, stateData); err != nil {
+	var userID int64
+	if uidRaw := c.Locals("uid"); uidRaw != nil {
+		if uidStr, ok := uidRaw.(string); ok {
+			userID, _ = convert.ParseID(uidStr)
+		}
+	}
+
+	if err := ctrl.koboService.SyncState(ctx, userID, dto.State); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(fiber.Map{"status": "ok"})

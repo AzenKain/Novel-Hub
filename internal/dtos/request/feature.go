@@ -51,3 +51,10 @@ type UpdateHighlightNoteDto struct {
 	Note  *string `json:"note,omitempty"`
 	Color string  `json:"color" validate:"required"`
 }
+
+type RecordReadingSessionDto struct {
+	BookID   string `json:"bookId" validate:"required"`
+	Duration int64  `json:"duration" validate:"required,min=1"`
+	Words    int64  `json:"words" validate:"min=0"`
+}
+

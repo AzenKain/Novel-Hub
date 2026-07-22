@@ -18,6 +18,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
 )
 
@@ -554,42 +555,33 @@ func (s *featureService) RemoveBookFromCollection(ctx context.Context, userID in
 	return s.repo.RemoveBookFromCollection(ctx, collectionID, bookID)
 }
 
+
 func (s *featureService) PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	if err != nil || book == nil {
 		return false
 	}
-	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if !s.settings.PolicyAllows(policy, book.LibraryID, admin) {
+	c := resolveClaims(claims)
+	if isGuestClaims(c) && !s.settings.GuestAllows(book.LibraryID) {
 		return false
 	}
-	if claims != nil {
-		permKey := "book." + policy
-		if policy == "review" {
-			permKey = "book.review.create"
-		}
-		if !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, permKey, map[string]any{"library_id": book.LibraryID}) {
-			return false
-		}
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
+		return true
 	}
-	return true
+	permKey := "book." + policy
+	if policy == "review" {
+		permKey = constants.PermBookReviewCreate
+	}
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, permKey, map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *featureService) PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool {
-	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if admin {
+	c := resolveClaims(claims)
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
 		return true
 	}
-	settings, err := s.settings.Public(ctx)
-	if err != nil {
-		return false
-	}
-	switch policy {
-	case "collection":
-		return settings.Collection.Mode != "disabled"
-	default:
-		return false
-	}
+	permKey := "book." + policy
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, permKey, nil)
 }
 
 func (s *featureService) ShareActorKey(clientID string, ip string, userAgent string) string {

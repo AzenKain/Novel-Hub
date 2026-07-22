@@ -183,6 +183,20 @@ export function useDeleteRoleMutation() {
   });
 }
 
+export function useReorderRolesMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (roleIDs: number[]) => {
+      const res = await adminService.reorderRoles(roleIDs);
+      if (!res.status) throw new Error(res.message || "Failed to reorder roles");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+    },
+  });
+}
+
 export function usePermissionsQuery() {
   return useQuery<Permission[]>({
     queryKey: ["admin", "permissions"],

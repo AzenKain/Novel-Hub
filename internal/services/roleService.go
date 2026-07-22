@@ -13,6 +13,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
@@ -26,6 +27,7 @@ type RoleService interface {
 	UpdateRole(ctx context.Context, id string, dto *request.UpdateRoleDto) (*response.RoleResponse, error)
 	UpdateRolePermissions(ctx context.Context, id string, dto *request.UpdateRolePermissionsDto) (*response.RoleResponse, error)
 	DeleteRole(ctx context.Context, id string) error
+	ReorderRoles(ctx context.Context, dto *request.ReorderRolesDto) error
 }
 
 type roleService struct {
@@ -124,8 +126,9 @@ func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.Up
 	if err != nil || existing == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
-	if existing.IsAdmin {
-		return nil, apperrors.New(apperrors.ErrForbidden, "Admin role cannot be modified")
+
+	if existing.IsAdmin || existing.IsBanned {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Admin or Banned roles cannot be modified")
 	}
 
 	tx, err := r.txManager.BeginTx(ctx, nil)
@@ -135,18 +138,24 @@ func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.Up
 	defer func() { _ = tx.Rollback() }()
 	txRepo := r.roleRepo.WithTx(tx)
 
+	autoAssign := dto.AutoAssign
+	if existing.IsBanned || existing.ID == constants.SystemRoleIDGuest || strings.EqualFold(existing.Name, string(constants.RoleTypeGuest)) {
+		autoAssign = false
+	}
+
 	var role *models.RoleEntity
 	if existing.IsSystem {
 		role, err = txRepo.UpdateSystemRoleDescription(ctx, sqlc.UpdateSystemRoleDescriptionParams{
 			ID:          roleID,
 			Description: strings.TrimSpace(dto.Description),
+			AutoAssign:  convert.BoolToInt64(autoAssign),
 		})
 	} else {
 		role, err = txRepo.Update(ctx, sqlc.UpdateRoleParams{
 			ID:          roleID,
 			Name:        strings.ToUpper(strings.TrimSpace(dto.Name)),
 			Description: strings.TrimSpace(dto.Description),
-			AutoAssign:  convert.BoolToInt64(dto.AutoAssign),
+			AutoAssign:  convert.BoolToInt64(autoAssign),
 		})
 	}
 	if err != nil {
@@ -180,8 +189,9 @@ func (r *roleService) UpdateRolePermissions(ctx context.Context, id string, dto 
 	if err != nil || role == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
-	if role.IsAdmin {
-		return nil, apperrors.New(apperrors.ErrForbidden, "Admin role permissions cannot be modified")
+
+	if role.IsAdmin || role.IsBanned {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Permissions of Admin or Banned roles cannot be modified")
 	}
 
 	tx, err := r.txManager.BeginTx(ctx, nil)
@@ -213,15 +223,29 @@ func (r *roleService) DeleteRole(ctx context.Context, id string) error {
 	if ferr != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
+
 	role, err := r.roleRepo.GetByID(ctx, roleID)
 	if err != nil || role == nil {
 		return apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
-	if role.IsSystem || role.IsAdmin {
+
+	if role.IsSystem || role.IsAdmin || role.IsBanned {
 		return apperrors.New(apperrors.ErrForbidden, "System roles cannot be deleted")
 	}
+
 	if err := r.roleRepo.Delete(ctx, roleID); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to delete role")
+	}
+
+	return r.reloadPermissionCache(ctx)
+}
+
+func (r *roleService) ReorderRoles(ctx context.Context, dto *request.ReorderRolesDto) error {
+	if dto == nil || len(dto.RoleIDs) == 0 {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid role order payload")
+	}
+	if err := r.roleRepo.UpdateRolePositions(ctx, dto.RoleIDs); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to reorder roles")
 	}
 	return r.reloadPermissionCache(ctx)
 }
@@ -282,5 +306,3 @@ func (r *roleService) reloadPermissionCache(ctx context.Context) error {
 	}
 	return nil
 }
-
-

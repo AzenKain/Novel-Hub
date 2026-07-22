@@ -10,7 +10,7 @@ import {
   useUsersQuery,
 } from "@/hooks";
 import { adminService } from "@/services";
-import { useUserAdminStore } from "@/stores";
+import { useUserAdminStore, useAuthStore } from "@/stores";
 import type { CreateUserRequest, User } from "@/types";
 import {
   AlertCircle,
@@ -33,6 +33,7 @@ const emptyCreate: CreateUserRequest = {
 
 export function Users() {
   const { t } = useTranslation();
+  const currentUser = useAuthStore((state) => state.user);
 
   const {
     selectedUser: selected, setSelectedUser: setSelected,
@@ -277,6 +278,7 @@ export function Users() {
           onRoles={openRoles}
           onDelete={setUserToDelete}
           onRestore={handleRestore}
+          currentUserId={currentUser?.id}
         />
       </div>
 

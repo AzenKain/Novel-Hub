@@ -78,11 +78,11 @@ export function LibraryScopeSelector({
           {t("library_scope", "Library Scope")}:
         </span>
 
-        <div className="join bg-base-200/80 p-0.5 rounded-lg text-xs font-medium border border-base-300/50">
+        <div className="flex items-center gap-1 bg-base-200/80 p-0.5 rounded-lg text-xs font-medium border border-base-300/50">
           <button
             type="button"
             onClick={() => handleToggleMode(true)}
-            className={`join-item px-3 py-1 rounded-md transition-all ${
+            className={`px-3 py-1 rounded-md transition-all ${
               isAll
                 ? "bg-primary text-primary-content font-bold shadow-xs"
                 : "text-base-content/70 hover:text-base-content"
@@ -93,7 +93,7 @@ export function LibraryScopeSelector({
           <button
             type="button"
             onClick={() => handleToggleMode(false)}
-            className={`join-item px-3 py-1 rounded-md transition-all ${
+            className={`px-3 py-1 rounded-md transition-all ${
               !isAll
                 ? "bg-primary text-primary-content font-bold shadow-xs"
                 : "text-base-content/70 hover:text-base-content"

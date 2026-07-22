@@ -2,6 +2,7 @@ import { Language, useSettingsStore } from '@/stores';
 import { Globe } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
 const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -13,7 +14,9 @@ const LANGUAGES: { code: Language; label: string }[] = [
 
 export function LanguageSwitcher({ className = 'dropdown-end' }: { className?: string }) {
   const { i18n } = useTranslation();
-  const { language, setLanguage } = useSettingsStore();
+  const { language, setLanguage } = useSettingsStore(
+    useShallow((state) => ({ language: state.language, setLanguage: state.setLanguage }))
+  );
 
   useEffect(() => {
     if (i18n.language !== language) {

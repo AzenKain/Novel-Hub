@@ -274,7 +274,9 @@ type Role struct {
 	Description string `json:"description"`
 	IsSystem    int64  `json:"is_system"`
 	IsAdmin     int64  `json:"is_admin"`
+	IsBanned    int64  `json:"is_banned"`
 	AutoAssign  int64  `json:"auto_assign"`
+	Position    int64  `json:"position"`
 	IsDeleted   int64  `json:"is_deleted"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`

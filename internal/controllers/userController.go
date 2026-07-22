@@ -62,12 +62,12 @@ func (h *UserController) UpdateProfile(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	uid, ok := c.Locals("uid").(string)
-	if !ok || uid == "" {
+	claims, ok := getUserClaims(c)
+	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 
-	res, err := h.service.UpdateProfile(ctx, uid, dto)
+	res, err := h.service.UpdateProfile(ctx, claims.UId, claims, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -131,7 +131,12 @@ func (h *UserController) AdminUpdateProfile(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := h.service.UpdateProfile(ctx, c.Params("id"), dto)
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	res, err := h.service.UpdateProfile(ctx, c.Params("id"), claims, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -147,7 +152,12 @@ func (h *UserController) AdminResetPassword(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	err := h.service.AdminResetPassword(ctx, c.Params("id"), dto)
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	err := h.service.AdminResetPassword(ctx, c.Params("id"), claims, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -163,7 +173,7 @@ func (h *UserController) ChangeRoleUser(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
@@ -190,12 +200,12 @@ func (h *UserController) DeleteUser(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	claims, ok := getUserClaims(c)
 	if ok && claims.UId == c.Params("id") {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You cannot delete yourself"})
 	}
 
-	err := h.service.DeleteUser(ctx, c.Params("id"))
+	err := h.service.DeleteUser(ctx, c.Params("id"), claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

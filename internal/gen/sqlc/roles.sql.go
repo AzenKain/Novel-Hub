@@ -48,7 +48,7 @@ func (q *Queries) CountActiveAdminUsers(ctx context.Context) (int64, error) {
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (name, description, is_system, is_admin, auto_assign)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type CreateRoleParams struct {
@@ -74,7 +74,9 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 		&i.Description,
 		&i.IsSystem,
 		&i.IsAdmin,
+		&i.IsBanned,
 		&i.AutoAssign,
+		&i.Position,
 		&i.IsDeleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -206,7 +208,7 @@ func (q *Queries) GetPermissionsByKeys(ctx context.Context, keys []string) ([]Pe
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE id = ? AND is_deleted = 0
 `
@@ -220,7 +222,9 @@ func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
 		&i.Description,
 		&i.IsSystem,
 		&i.IsAdmin,
+		&i.IsBanned,
 		&i.AutoAssign,
+		&i.Position,
 		&i.IsDeleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -229,7 +233,7 @@ func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
 }
 
 const getRoleByName = `-- name: GetRoleByName :one
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE name = ? AND is_deleted = 0
 `
@@ -243,7 +247,9 @@ func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) 
 		&i.Description,
 		&i.IsSystem,
 		&i.IsAdmin,
+		&i.IsBanned,
 		&i.AutoAssign,
+		&i.Position,
 		&i.IsDeleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -255,7 +261,7 @@ const getRoleIDs = `-- name: GetRoleIDs :many
 SELECT id
 FROM roles
 WHERE is_deleted = 0
-ORDER BY name ASC
+ORDER BY position DESC, name ASC
 `
 
 func (q *Queries) GetRoleIDs(ctx context.Context) ([]int64, error) {
@@ -392,7 +398,7 @@ func (q *Queries) GetRolePermissionsByIDs(ctx context.Context, ids []int64) ([]R
 }
 
 const getRolesByIDs = `-- name: GetRolesByIDs :many
-SELECT id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles WHERE id IN (/*SLICE:ids*/?)
 `
 
@@ -421,7 +427,9 @@ func (q *Queries) GetRolesByIDs(ctx context.Context, ids []int64) ([]Role, error
 			&i.Description,
 			&i.IsSystem,
 			&i.IsAdmin,
+			&i.IsBanned,
 			&i.AutoAssign,
+			&i.Position,
 			&i.IsDeleted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -578,7 +586,7 @@ const updateRole = `-- name: UpdateRole :one
 UPDATE roles
 SET name = ?, description = ?, auto_assign = ?
 WHERE id = ? AND is_deleted = 0 AND is_system = 0
-RETURNING id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type UpdateRoleParams struct {
@@ -602,7 +610,9 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, e
 		&i.Description,
 		&i.IsSystem,
 		&i.IsAdmin,
+		&i.IsBanned,
 		&i.AutoAssign,
+		&i.Position,
 		&i.IsDeleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -610,20 +620,37 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, e
 	return i, err
 }
 
+const updateRolePosition = `-- name: UpdateRolePosition :exec
+UPDATE roles
+SET position = ?
+WHERE id = ? AND is_deleted = 0
+`
+
+type UpdateRolePositionParams struct {
+	Position int64 `json:"position"`
+	ID       int64 `json:"id"`
+}
+
+func (q *Queries) UpdateRolePosition(ctx context.Context, arg UpdateRolePositionParams) error {
+	_, err := q.exec(ctx, q.updateRolePositionStmt, updateRolePosition, arg.Position, arg.ID)
+	return err
+}
+
 const updateSystemRoleDescription = `-- name: UpdateSystemRoleDescription :one
 UPDATE roles
-SET description = ?
-WHERE id = ? AND is_deleted = 0 AND is_system = 1
-RETURNING id, name, description, is_system, is_admin, auto_assign, is_deleted, created_at, updated_at
+SET description = ?, auto_assign = ?
+WHERE id = ? AND is_deleted = 0 AND is_system = 1 AND is_admin = 0
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type UpdateSystemRoleDescriptionParams struct {
 	Description string `json:"description"`
+	AutoAssign  int64  `json:"auto_assign"`
 	ID          int64  `json:"id"`
 }
 
 func (q *Queries) UpdateSystemRoleDescription(ctx context.Context, arg UpdateSystemRoleDescriptionParams) (Role, error) {
-	row := q.queryRow(ctx, q.updateSystemRoleDescriptionStmt, updateSystemRoleDescription, arg.Description, arg.ID)
+	row := q.queryRow(ctx, q.updateSystemRoleDescriptionStmt, updateSystemRoleDescription, arg.Description, arg.AutoAssign, arg.ID)
 	var i Role
 	err := row.Scan(
 		&i.ID,
@@ -631,7 +658,9 @@ func (q *Queries) UpdateSystemRoleDescription(ctx context.Context, arg UpdateSys
 		&i.Description,
 		&i.IsSystem,
 		&i.IsAdmin,
+		&i.IsBanned,
 		&i.AutoAssign,
+		&i.Position,
 		&i.IsDeleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,

@@ -1,25 +1,17 @@
 import { LibraryMultiSelect } from "@/components/admin/settings/LibraryMultiSelect";
-import { GUEST_MODES, POLICY_MODES, SIDEBAR_LABELS } from "@/constants";
+import { GUEST_MODES, SIDEBAR_LABELS } from "@/constants";
 import { useAdminSettingsQuery, useLibrariesQuery, useUpdateAdminSettingsMutation } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
 import { adminService } from "@/services";
 import { useSettingsAdminStore } from "@/stores";
 import {
-  BarChart3,
-  Bookmark,
-  BookOpen,
-  Download,
   Eye,
   Globe,
   Home,
   Layout,
-  Library,
   Loader2,
-  MessageSquareText,
   RefreshCw,
   Save,
-  Share2,
-  ShieldCheck,
   UserPlus,
 } from "lucide-react";
 import { SyntheticEvent, useEffect } from "react";
@@ -42,21 +34,6 @@ export function Settings() {
     registration, setRegistration,
     guestMode, setGuestMode,
     guestLibraryIds, setGuestLibraryIds,
-    downloadMode, setDownloadMode,
-    downloadLibraryIds, setDownloadLibraryIds,
-    bookmarkMode, setBookmarkMode,
-    bookmarkLibraryIds, setBookmarkLibraryIds,
-    collectionMode, setCollectionMode,
-    collectionLibraryIds, setCollectionLibraryIds,
-    reviewMode, setReviewMode,
-    reviewLibraryIds, setReviewLibraryIds,
-    shareMode, setShareMode,
-    shareLibraryIds, setShareLibraryIds,
-    readMode, setReadMode,
-    readLibraryIds, setReadLibraryIds,
-    statsMode, setStatsMode,
-    statsLibraryIds, setStatsLibraryIds,
-    statsVisibleStats, setStatsVisibleStats,
     inBookSearch, setInBookSearch,
     customFontUpload, setCustomFontUpload,
     savingSection, setSavingSection,
@@ -72,21 +49,6 @@ export function Settings() {
     registration: state.registration, setRegistration: state.setRegistration,
     guestMode: state.guestMode, setGuestMode: state.setGuestMode,
     guestLibraryIds: state.guestLibraryIds, setGuestLibraryIds: state.setGuestLibraryIds,
-    downloadMode: state.downloadMode, setDownloadMode: state.setDownloadMode,
-    downloadLibraryIds: state.downloadLibraryIds, setDownloadLibraryIds: state.setDownloadLibraryIds,
-    bookmarkMode: state.bookmarkMode, setBookmarkMode: state.setBookmarkMode,
-    bookmarkLibraryIds: state.bookmarkLibraryIds, setBookmarkLibraryIds: state.setBookmarkLibraryIds,
-    collectionMode: state.collectionMode, setCollectionMode: state.setCollectionMode,
-    collectionLibraryIds: state.collectionLibraryIds, setCollectionLibraryIds: state.setCollectionLibraryIds,
-    reviewMode: state.reviewMode, setReviewMode: state.setReviewMode,
-    reviewLibraryIds: state.reviewLibraryIds, setReviewLibraryIds: state.setReviewLibraryIds,
-    shareMode: state.shareMode, setShareMode: state.setShareMode,
-    shareLibraryIds: state.shareLibraryIds, setShareLibraryIds: state.setShareLibraryIds,
-    readMode: state.readMode, setReadMode: state.setReadMode,
-    readLibraryIds: state.readLibraryIds, setReadLibraryIds: state.setReadLibraryIds,
-    statsMode: state.statsMode, setStatsMode: state.setStatsMode,
-    statsLibraryIds: state.statsLibraryIds, setStatsLibraryIds: state.setStatsLibraryIds,
-    statsVisibleStats: state.statsVisibleStats, setStatsVisibleStats: state.setStatsVisibleStats,
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
     customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
     savingSection: state.savingSection, setSavingSection: state.setSavingSection,
@@ -223,26 +185,6 @@ export function Settings() {
       "auth.registration_enabled": registration,
       "guest_access.mode": guestMode,
       "guest_access.library_ids": guestMode === "selected_libraries" ? guestLibraryIds : [],
-    });
-  }
-
-  function handleAllPoliciesSave() {
-    void saveSection("Policies", {
-      "read.mode": readMode,
-      "read.library_ids": readMode === "selected_libraries" ? readLibraryIds : [],
-      "download.mode": downloadMode,
-      "download.library_ids": downloadMode === "selected_libraries" ? downloadLibraryIds : [],
-      "bookmark.mode": bookmarkMode,
-      "bookmark.library_ids": bookmarkMode === "selected_libraries" ? bookmarkLibraryIds : [],
-      "collection.mode": collectionMode,
-      "collection.library_ids": collectionMode === "selected_libraries" ? collectionLibraryIds : [],
-      "review.mode": reviewMode,
-      "review.library_ids": reviewMode === "selected_libraries" ? reviewLibraryIds : [],
-      "share.mode": shareMode,
-      "share.library_ids": shareMode === "selected_libraries" ? shareLibraryIds : [],
-      "stats.mode": statsMode,
-      "stats.library_ids": statsMode === "selected_libraries" ? statsLibraryIds : [],
-      "stats.visible_stats": statsVisibleStats,
     });
   }
 
@@ -634,188 +576,6 @@ export function Settings() {
                     />
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-
-          {/* ────── Feature Policies ────── */}
-          <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-base-200 pb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <ShieldCheck className="h-5 w-5 text-primary" />
-                    <h2 className="card-title text-lg">{t("settings.feature_policies", "Feature & Library Policies")}</h2>
-                  </div>
-                  <p className="text-xs text-base-content/50">
-                    {t("settings.feature_policies_desc", "Configure access control for reading, downloading, bookmarks, collections, reviews, and sharing across libraries.")}
-                  </p>
-                </div>
-                <button
-                  onClick={handleAllPoliciesSave}
-                  disabled={isSaving("Policies")}
-                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
-                >
-                  {isSaving("Policies") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {t("settings.save_all_policies", "Save Policies")}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  {
-                    key: "read",
-                    icon: BookOpen,
-                    titleKey: "settings.read_policy",
-                    title: "Read Policy",
-                    descKey: "settings.read_policy_desc",
-                    desc: "Control who can read books in the library.",
-                    mode: readMode,
-                    setMode: setReadMode,
-                    ids: readLibraryIds,
-                    setIds: setReadLibraryIds,
-                  },
-                  {
-                    key: "download",
-                    icon: Download,
-                    titleKey: "settings.download_policy",
-                    title: "Download Policy",
-                    descKey: "settings.download_policy_desc",
-                    desc: "Control who can download book files.",
-                    mode: downloadMode,
-                    setMode: setDownloadMode,
-                    ids: downloadLibraryIds,
-                    setIds: setDownloadLibraryIds,
-                  },
-                  {
-                    key: "bookmark",
-                    icon: Bookmark,
-                    titleKey: "settings.bookmark_policy",
-                    title: "Bookmark Policy",
-                    descKey: "settings.bookmark_policy_desc",
-                    desc: "Control who can bookmark books.",
-                    mode: bookmarkMode,
-                    setMode: setBookmarkMode,
-                    ids: bookmarkLibraryIds,
-                    setIds: setBookmarkLibraryIds,
-                  },
-                  {
-                    key: "collection",
-                    icon: Library,
-                    titleKey: "settings.collection_policy",
-                    title: "Collection Policy",
-                    descKey: "settings.collection_policy_desc",
-                    desc: "Control who can create and manage collections.",
-                    mode: collectionMode,
-                    setMode: setCollectionMode,
-                    ids: collectionLibraryIds,
-                    setIds: setCollectionLibraryIds,
-                  },
-                  {
-                    key: "review",
-                    icon: MessageSquareText,
-                    titleKey: "settings.review_policy",
-                    title: "Review Policy",
-                    descKey: "settings.review_policy_desc",
-                    desc: "Control who can submit and read reviews.",
-                    mode: reviewMode,
-                    setMode: setReviewMode,
-                    ids: reviewLibraryIds,
-                    setIds: setReviewLibraryIds,
-                  },
-                  {
-                    key: "share",
-                    icon: Share2,
-                    titleKey: "settings.share_policy",
-                    title: "Share Policy",
-                    descKey: "settings.share_policy_desc",
-                    desc: "Control who can share books.",
-                    mode: shareMode,
-                    setMode: setShareMode,
-                    ids: shareLibraryIds,
-                    setIds: setShareLibraryIds,
-                  },
-                  {
-                    key: "stats",
-                    icon: BarChart3,
-                    titleKey: "settings.stats_policy",
-                    title: "Engagement Stats Policy",
-                    descKey: "settings.stats_policy_desc",
-                    desc: "Control visibility of stats under book cover.",
-                    mode: statsMode,
-                    setMode: setStatsMode,
-                    ids: statsLibraryIds,
-                    setIds: setStatsLibraryIds,
-                    visibleStats: statsVisibleStats,
-                    setVisibleStats: setStatsVisibleStats,
-                  },
-                ].map((policy: any) => (
-                  <div key={policy.key} className="p-3.5 bg-base-200/40 rounded-xl border border-base-200 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <policy.icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-bold text-sm">{t(policy.titleKey, policy.title) as string}</span>
-                    </div>
-                    <p className="text-xs text-base-content/50 leading-snug">{t(policy.descKey, policy.desc) as string}</p>
-                    <div className="flex flex-col gap-1.5 mt-auto pt-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">{t("settings.mode", "Mode")}</label>
-                      <select
-                        className="select select-bordered select-sm w-full"
-                        value={policy.mode}
-                        onChange={(e) => policy.setMode(e.target.value)}
-                      >
-                        {POLICY_MODES.map((m) => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </select>
-                      {policy.mode === "selected_libraries" && (
-                        <div className="flex flex-col gap-1 pt-1">
-                          <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">{t("settings.allowed_libraries", "Allowed Libraries")}</label>
-                          <LibraryMultiSelect
-                            ids={policy.ids}
-                            libraries={libraries}
-                            onChange={policy.setIds}
-                          />
-                        </div>
-                      )}
-                      {policy.visibleStats && policy.setVisibleStats && (
-                        <div className="flex flex-col gap-1 pt-2 border-t border-base-200/60 mt-1">
-                          <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            {t("settings.visible_stats", "Custom Visible Stats")}
-                          </label>
-                          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                            {[
-                              { id: "reads", label: t("book.reads", "Reads") },
-                              { id: "downloads", label: t("book.downloads", "Downloads") },
-                              { id: "bookmarks", label: t("book.bookmarks", "Bookmarks") },
-                              { id: "collections", label: t("book.collections", "Collections") },
-                              { id: "rating", label: t("book.rating", "Rating") },
-                              { id: "shares", label: t("common.share", "Shares") },
-                            ].map((item) => {
-                              const checked = policy.visibleStats.includes(item.id);
-                              return (
-                                <label key={item.id} className="cursor-pointer flex items-center gap-1.5 text-xs select-none">
-                                  <input
-                                    type="checkbox"
-                                    className="checkbox checkbox-xs checkbox-primary"
-                                    checked={checked}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        policy.setVisibleStats([...policy.visibleStats, item.id]);
-                                      } else {
-                                        policy.setVisibleStats(policy.visibleStats.filter((s: string) => s !== item.id));
-                                      }
-                                    }}
-                                  />
-                                  <span className="truncate">{item.label}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

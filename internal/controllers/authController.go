@@ -32,9 +32,9 @@ type authCookieSettings struct {
 
 func getAuthCookieSettings() authCookieSettings {
 	secure := config.GetBoolConfigWithDefault("COOKIE_SECURE", false)
-	sameSite := "Lax"
-	if secure {
-		sameSite = "None"
+	sameSite := config.GetConfigWithDefault("COOKIE_SAMESITE", "Lax")
+	if sameSite == "" {
+		sameSite = "Lax"
 	}
 	return authCookieSettings{
 		secure:   secure,

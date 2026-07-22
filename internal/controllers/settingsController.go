@@ -13,6 +13,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/validator"
 )
 
 type SettingsController struct {
@@ -42,11 +43,11 @@ func (h *SettingsController) UpdateSettings(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	dto := map[string]any{}
-	if err := c.Bind().Body(&dto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid settings payload"})
+	dto := &map[string]any{}
+	if errs := validator.ValidateBodyDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
-	settings, err := h.service.UpdateSettings(ctx, dto)
+	settings, err := h.service.UpdateSettings(ctx, *dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

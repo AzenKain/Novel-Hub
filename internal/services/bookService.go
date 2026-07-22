@@ -24,10 +24,12 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
-	"novelhub/pkg/worker"
 	"novelhub/pkg/netx"
+	"novelhub/pkg/worker"
+	"slices"
 )
 
 var readerLinkAttrRegex = regexp.MustCompile(`(src|href)=["']([^"']+)["']`)
@@ -960,26 +962,35 @@ func (s *bookService) UpdateCover(ctx context.Context, bookID string, input Upda
 	return coverURLPath, nil
 }
 
+func isGuestClaims(c *response.JWTClaims) bool {
+	return c == nil || c.UId == "0" || slices.Contains(c.Roles, constants.RoleTypeGuest)
+}
+
+func resolveClaims(claims *response.JWTClaims) *response.JWTClaims {
+	if claims == nil {
+		return &response.JWTClaims{
+			UId:     "0",
+			Roles:   []constants.RoleType{constants.RoleTypeGuest},
+			RoleIDs: []int64{constants.SystemRoleIDGuest},
+		}
+	}
+	return claims
+}
+
 func (s *bookService) FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool) {
 	if len(books) == 0 {
 		return books, true
 	}
-	if claims == nil {
+	c := resolveClaims(claims)
+	if isGuestClaims(c) {
 		settings, err := s.settings.Public(ctx)
 		if err == nil && settings.GuestAccess.Mode == "login_required" {
 			return nil, false
 		}
-		out := make([]*models.BookEntity, 0, len(books))
-		for _, book := range books {
-			if book != nil && s.settings.GuestAllows(book.LibraryID) {
-				out = append(out, book)
-			}
-		}
-		return out, true
 	}
 	out := make([]*models.BookEntity, 0, len(books))
 	for _, book := range books {
-		if book != nil && s.CanReadBook(ctx, book, claims) {
+		if book != nil && s.CanReadBook(ctx, book, c) {
 			out = append(out, book)
 		}
 	}
@@ -990,48 +1001,52 @@ func (s *bookService) CanReadBook(ctx context.Context, book *models.BookEntity, 
 	if book == nil {
 		return false
 	}
-	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if !s.settings.PolicyAllows("read", book.LibraryID, admin) {
+	c := resolveClaims(claims)
+	if isGuestClaims(c) && !s.settings.GuestAllows(book.LibraryID) {
 		return false
 	}
-	if claims == nil {
-		return s.settings.GuestAllows(book.LibraryID)
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
+		return true
 	}
-	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.read", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
 	if book == nil {
 		return false
 	}
-	if claims == nil {
+	c := resolveClaims(claims)
+	if isGuestClaims(c) && !s.settings.GuestAllows(book.LibraryID) {
 		return false
 	}
-	admin := s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	if !s.settings.PolicyAllows("download", book.LibraryID, admin) {
-		return false
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
+		return true
 	}
-	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.download", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookDownload, map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) CanUpdateBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
-	if book == nil || claims == nil {
+	if book == nil {
 		return false
 	}
-	if s.permissions.IsAdmin(claims.RoleIDs, claims.Roles) {
+	c := resolveClaims(claims)
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
 		return true
 	}
-	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.update", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookEdit, map[string]any{"library_id": book.LibraryID}) ||
+		s.permissions.CanRoles(c.RoleIDs, c.Roles, "book.manage", map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
-	if book == nil || claims == nil {
+	if book == nil {
 		return false
 	}
-	if s.permissions.IsAdmin(claims.RoleIDs, claims.Roles) {
+	c := resolveClaims(claims)
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
 		return true
 	}
-	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.delete", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookDelete, map[string]any{"library_id": book.LibraryID}) ||
+		s.permissions.CanRoles(c.RoleIDs, c.Roles, "book.manage", map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) SafeDownloadFilename(title string, ext string) string {

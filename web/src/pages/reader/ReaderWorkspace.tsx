@@ -19,6 +19,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
 import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "@/constants";
+import { usePublicSettings } from "@/hooks/useSettings";
+import { hasPermission } from "@/utils/permission";
 
 export const ReaderWorkspace = () => {
   const { bookId } = useParams<{ bookId: string }>();
@@ -113,6 +115,10 @@ export const ReaderWorkspace = () => {
 
   const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id);
   useReadingStats(book?.id, !settingsOpen); 
+
+  const publicSettings = usePublicSettings();
+  const guestPerms = publicSettings?.guest_permissions;
+  const allowTTS = hasPermission(user, "book.tts", book?.libraryId, guestPerms);
 
   useEffect(() => {
     return () => {
@@ -751,7 +757,7 @@ export const ReaderWorkspace = () => {
           setMaxWidth={setMaxWidth}
           setReadingMode={setReadingMode}
           resetSettings={resetSettings}
-          ttsSupported={isSupported}
+          ttsSupported={isSupported && allowTTS}
           ttsPlaying={isPlaying}
           ttsPaused={isPaused}
           onTtsPlayPause={handleTtsPlayPause}
@@ -881,7 +887,7 @@ export const ReaderWorkspace = () => {
         <ReaderSelectionToolbar
           t={t}
           toolbarPos={toolbarPos}
-          isSupported={isSupported}
+          isSupported={isSupported && allowTTS}
           onReadSelection={handleReadSelection}
           onReadFromHere={handleReadFromHere}
           onCopyText={handleCopyText}

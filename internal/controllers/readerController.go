@@ -30,11 +30,6 @@ func NewReaderController(bookService services.BookService, settings services.Set
 	}
 }
 
-func (h *ReaderController) claims(c fiber.Ctx) *response.JWTClaims {
-	claims, _ := c.Locals("user_claims").(*response.JWTClaims)
-	return claims
-}
-
 func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -44,7 +39,7 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
 	}
-	if !h.bookService.CanReadBook(ctx, bootstrap.Book, h.claims(c)) {
+	if !h.bookService.CanReadBook(ctx, bootstrap.Book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -58,7 +53,7 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	chapterID := decodeRouteParam(c.Params("chapterId"))
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
+	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -77,7 +72,7 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 
 	bookID := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
+	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	file, err := h.bookService.GetBookFile(ctx, bookID, c.Query("file_id"))
@@ -100,7 +95,7 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	assetPath := decodeRouteParam(c.Params("*"))
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
+	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -127,7 +122,7 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 
 	bookID := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, h.claims(c)) {
+	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 

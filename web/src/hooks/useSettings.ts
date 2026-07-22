@@ -1,7 +1,9 @@
 import { settingsService } from "@/services";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useAuthStore } from "@/stores/authStore";
 import type { PublicSettings } from "@/types";
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 let fetching = false;
 
@@ -25,22 +27,20 @@ function applySiteSettingsToDOM(settings: PublicSettings | null) {
 }
 
 export function usePublicSettings(): PublicSettings | null {
-  const publicSettings = useSettingsStore(state => state.publicSettings);
-  const setPublicSettings = useSettingsStore(state => state.setPublicSettings);
+  const { publicSettings } = useSettingsStore(
+    useShallow((state) => ({ publicSettings: state.publicSettings }))
+  );
+  const { user } = useAuthStore(
+    useShallow((state) => ({ user: state.user }))
+  );
 
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
 
-    if (!fetching) {
-      fetching = true;
-      settingsService.getPublic().then((res) => {
-        setPublicSettings(res.data || null);
-        fetching = false;
-      }).catch(() => {
-        fetching = false;
-      });
-    }
-  }, []);
+    settingsService.getPublic().then((res) => {
+      useSettingsStore.getState().setPublicSettings(res.data || null);
+    }).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
@@ -49,14 +49,6 @@ export function usePublicSettings(): PublicSettings | null {
   return publicSettings;
 }
 
-export function isPolicyAllowed(policy: import("@/types").LibraryPolicy | undefined, libraryId?: string): boolean {
-  if (!policy) return true;
-  if (policy.mode === "disabled") return false;
-  if (policy.mode === "selected_libraries") {
-    return !!libraryId && (policy.library_ids || []).includes(libraryId);
-  }
-  return true;
-}
 
 export async function invalidatePublicSettings(): Promise<void> {
   fetching = false;

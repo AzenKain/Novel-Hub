@@ -33,8 +33,8 @@ func (ctrl *TrackerController) ConnectTracker(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
-	if !ok || claims == nil {
+	claims, ok := getUserClaims(c)
+	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 
@@ -98,8 +98,8 @@ func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
-	if !ok || claims == nil {
+	claims, ok := getUserClaims(c)
+	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 

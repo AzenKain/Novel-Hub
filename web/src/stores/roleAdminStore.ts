@@ -1,4 +1,4 @@
-import type { Permission, Role } from "@/types";
+import type { Role } from "@/types";
 import { create } from "zustand";
 
 export interface PermissionAssignment {
@@ -15,7 +15,6 @@ interface RoleAdminState {
   modalMode: "create" | "edit";
   form: { name: string; description: string; auto_assign: boolean };
   roleToDelete: Role | null;
-  libraryIdsInput: Record<string, string>;
 
   setSelectedRole: (role: Role | null | ((prev: Role | null) => Role | null)) => void;
   setError: (error: string) => void;
@@ -24,7 +23,6 @@ interface RoleAdminState {
   setModalMode: (mode: "create" | "edit") => void;
   setForm: (form: { name: string; description: string; auto_assign: boolean } | ((prev: any) => any)) => void;
   setRoleToDelete: (role: Role | null) => void;
-  setLibraryIdsInput: (input: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void;
 
   reset: () => void;
 }
@@ -39,7 +37,6 @@ const initialState = {
   modalMode: "create" as "create" | "edit",
   form: initialForm,
   roleToDelete: null,
-  libraryIdsInput: {},
 };
 
 export const useRoleAdminStore = create<RoleAdminState>((set) => ({
@@ -52,7 +49,6 @@ export const useRoleAdminStore = create<RoleAdminState>((set) => ({
   setModalMode: (modalMode) => set({ modalMode }),
   setForm: (form) => set((state) => ({ form: typeof form === "function" ? form(state.form) : form })),
   setRoleToDelete: (roleToDelete) => set({ roleToDelete }),
-  setLibraryIdsInput: (libraryIdsInput) => set((state) => ({ libraryIdsInput: typeof libraryIdsInput === "function" ? libraryIdsInput(state.libraryIdsInput) : libraryIdsInput })),
 
   reset: () => set(initialState),
 }));

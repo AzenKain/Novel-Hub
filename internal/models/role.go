@@ -8,16 +8,17 @@ import (
 )
 
 type RoleSimple struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	IsAdmin bool   `json:"is_admin"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	IsAdmin  bool   `json:"is_admin"`
+	IsBanned bool   `json:"is_banned"`
 }
 
 func (r *RoleSimple) ToResponse() *response.RoleSimpleResponse {
 	if r == nil {
 		return nil
 	}
-	return &response.RoleSimpleResponse{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin}
+	return &response.RoleSimpleResponse{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin, IsBanned: r.IsBanned}
 }
 
 func RolesToResponse(roles []*RoleSimple) []*response.RoleSimpleResponse {
@@ -37,7 +38,9 @@ type RoleEntity struct {
 	Description string                  `json:"description"`
 	IsSystem    bool                    `json:"is_system"`
 	IsAdmin     bool                    `json:"is_admin"`
+	IsBanned    bool                    `json:"is_banned"`
 	AutoAssign  bool                    `json:"auto_assign"`
+	Position    int64                   `json:"position"`
 	IsDeleted   bool                    `json:"is_deleted"`
 	CreatedAt   string                  `json:"created_at"`
 	UpdatedAt   string                  `json:"updated_at"`
@@ -54,7 +57,9 @@ func (r *RoleEntity) ToResponse() *response.RoleResponse {
 		Description: r.Description,
 		IsSystem:    r.IsSystem,
 		IsAdmin:     r.IsAdmin,
+		IsBanned:    r.IsBanned,
 		AutoAssign:  r.AutoAssign,
+		Position:    r.Position,
 		IsDeleted:   r.IsDeleted,
 		CreatedAt:   r.CreatedAt,
 		UpdatedAt:   r.UpdatedAt,
@@ -66,8 +71,9 @@ func (r *RoleEntity) ToRoleSimple() *RoleSimple {
 	if r == nil {
 		return nil
 	}
-	return &RoleSimple{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin}
+	return &RoleSimple{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin, IsBanned: r.IsBanned}
 }
+
 
 func RolesEntityToResponse(roles []*RoleEntity) []*response.RoleResponse {
 	out := make([]*response.RoleResponse, 0, len(roles))
@@ -86,9 +92,8 @@ func RolesEntityToRoleConstant(roles []*RoleSimple) []constants.RoleType {
 		if role == nil {
 			continue
 		}
-		parsed, ok := constants.ParseRole(role.Name)
-		if ok {
-			out = append(out, parsed)
+		if role.Name != "" {
+			out = append(out, constants.RoleType(role.Name))
 		}
 	}
 	return out
@@ -179,7 +184,9 @@ func (r *RoleEntity) FromSqlc(row sqlc.Role) *RoleEntity {
 	r.Description = row.Description
 	r.IsSystem = row.IsSystem != 0
 	r.IsAdmin = row.IsAdmin != 0
+	r.IsBanned = row.IsBanned != 0
 	r.AutoAssign = row.AutoAssign != 0
+	r.Position = row.Position
 	r.IsDeleted = row.IsDeleted != 0
 	r.CreatedAt = row.CreatedAt
 	r.UpdatedAt = row.UpdatedAt

@@ -4,11 +4,16 @@ import { useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 export const UserProfile = () => {
-  const user = useAuthStore((state) => state.user);
-  const isProfileModalOpen = useAuthStore((state) => state.isProfileModalOpen);
-  const setProfileModalOpen = useAuthStore((state) => state.setProfileModalOpen);
+  const { user, isProfileModalOpen, setProfileModalOpen } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      isProfileModalOpen: state.isProfileModalOpen,
+      setProfileModalOpen: state.setProfileModalOpen,
+    }))
+  );
 
   const updateProfileMutation = useUpdateProfileMutation();
   const { t } = useTranslation();

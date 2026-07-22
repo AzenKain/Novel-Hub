@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"strings"
+	"time"
+
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
-	"time"
+	"novelhub/pkg/config"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -64,11 +67,17 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 }
 
 func getBaseURL(ctx fiber.Ctx) string {
+	if serverURL := config.GetConfigWithDefault("SERVER_URL", ""); serverURL != "" {
+		return strings.TrimSuffix(serverURL, "/")
+	}
 	scheme := "http"
 	if ctx.Protocol() == "https" || ctx.Get("X-Forwarded-Proto") == "https" {
 		scheme = "https"
 	}
-	return fmt.Sprintf("%s://%s", scheme, ctx.Host())
+	host := strings.TrimSpace(ctx.Host())
+	host = strings.ReplaceAll(host, "\r", "")
+	host = strings.ReplaceAll(host, "\n", "")
+	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
 func sendXML(ctx fiber.Ctx, data any) error {

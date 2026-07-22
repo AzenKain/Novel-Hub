@@ -25,7 +25,7 @@ func JwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey:     jwtware.SigningKey{Key: []byte(jwtSecret)},
 		ErrorHandler:   jwtError,
-		SuccessHandler: jwtSuccess(userRepo),
+		SuccessHandler: jwtSuccess(userRepo, false),
 		Extractor: extractors.Chain(
 			extractors.FromAuthHeader("Bearer"),
 			extractors.FromCookie("access_token"),
@@ -34,18 +34,34 @@ func JwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	})
 }
 
+func GuestClaims() *response.JWTClaims {
+	return &response.JWTClaims{
+		UId:     "0",
+		Roles:   []constants.RoleType{constants.RoleTypeGuest},
+		RoleIDs: []int64{constants.SystemRoleIDGuest},
+	}
+}
+
 func OptionalJwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	jwtSecret, err := config.GetConfig("JWT_SECRET")
 	if err != nil {
 		return func(c fiber.Ctx) error {
+			claims := GuestClaims()
+			c.Locals("user_claims", claims)
+			c.Locals("uid", claims.UId)
 			return c.Next()
 		}
 	}
 
 	return jwtware.New(jwtware.Config{
-		SigningKey:     jwtware.SigningKey{Key: []byte(jwtSecret)},
-		ErrorHandler:   func(c fiber.Ctx, err error) error { return c.Next() },
-		SuccessHandler: jwtSuccess(userRepo),
+		SigningKey: jwtware.SigningKey{Key: []byte(jwtSecret)},
+		ErrorHandler: func(c fiber.Ctx, err error) error {
+			claims := GuestClaims()
+			c.Locals("user_claims", claims)
+			c.Locals("uid", claims.UId)
+			return c.Next()
+		},
+		SuccessHandler: jwtSuccess(userRepo, true),
 		Extractor: extractors.Chain(
 			extractors.FromAuthHeader("Bearer"),
 			extractors.FromCookie("access_token"),
@@ -65,7 +81,7 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey:     jwtware.SigningKey{Key: []byte(jwtRefreshSecret)},
 		ErrorHandler:   jwtError,
-		SuccessHandler: jwtSuccess(userRepo),
+		SuccessHandler: jwtSuccess(userRepo, false),
 		Extractor: extractors.Chain(
 			extractors.FromCookie("refresh_token"),
 			extractors.FromAuthHeader("Bearer"),
@@ -74,9 +90,19 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 	})
 }
 
-func jwtSuccess(userRepo repositories.UserRepository) fiber.Handler {
+func jwtSuccess(userRepo repositories.UserRepository, optional bool) fiber.Handler {
 	return func(c fiber.Ctx) error {
+		fallbackToGuest := func() error {
+			claims := GuestClaims()
+			c.Locals("user_claims", claims)
+			c.Locals("uid", claims.UId)
+			return c.Next()
+		}
+
 		unauthorized := func() error {
+			if optional {
+				return fallbackToGuest()
+			}
 			return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Invalid or missing token"})
 		}
 
@@ -89,6 +115,9 @@ func jwtSuccess(userRepo repositories.UserRepository) fiber.Handler {
 			return unauthorized()
 		}
 		if slices.Contains(claims.Roles, constants.RoleTypeBanned) {
+			if optional {
+				return fallbackToGuest()
+			}
 			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "User account is banned"})
 		}
 
@@ -101,6 +130,9 @@ func jwtSuccess(userRepo repositories.UserRepository) fiber.Handler {
 			return unauthorized()
 		}
 		if tokenVersion != claims.TokenVersion {
+			if optional {
+				return fallbackToGuest()
+			}
 			return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Token has been invalidated"})
 		}
 

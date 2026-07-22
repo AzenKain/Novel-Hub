@@ -23,13 +23,6 @@ export function SetupWizard() {
     favicon: "/favicon.ico",
     registration: true,
     guest_mode: "all" as string,
-    download_mode: "all" as string,
-    bookmark_mode: "all" as string,
-    collection_mode: "all" as string,
-    review_mode: "all" as string,
-    share_mode: "all" as string,
-    read_mode: "all" as string,
-    stats_mode: "all" as string,
     sidebar_visible_items: Object.keys(SIDEBAR_LABELS),
   });
 
@@ -66,13 +59,6 @@ export function SetupWizard() {
         favicon: form.favicon,
         registration: form.registration,
         guest_mode: form.guest_mode,
-        read_mode: form.read_mode,
-        download_mode: form.download_mode,
-        bookmark_mode: form.bookmark_mode,
-        collection_mode: form.collection_mode,
-        review_mode: form.review_mode,
-        share_mode: form.share_mode,
-        stats_mode: form.stats_mode,
         sidebar_visible_items: form.sidebar_visible_items,
       });
       if (res.status) {
@@ -390,21 +376,6 @@ export function SetupWizard() {
                     <option value="login_required">Login required</option>
                   </select>
                 </div>
-
-                {["read", "download", "bookmark", "collection", "review", "share", "stats"].map((policy) => (
-                  <div key={policy} className="form-control w-full">
-                    <label className="label py-0.5">
-                      <span className="label-text text-xs font-semibold capitalize">{policy} policy</span>
-                    </label>
-                    <select className="select select-bordered select-sm w-full"
-                      value={form[`${policy}_mode` as keyof typeof form] as string}
-                      onChange={(e) => setForm({ ...form, [`${policy}_mode`]: e.target.value })}>
-                      <option value="all">All</option>
-                      <option value="disabled">Disabled</option>
-                      <option value="selected_libraries">Selected libraries</option>
-                    </select>
-                  </div>
-                ))}
               </div>
             </fieldset>
 

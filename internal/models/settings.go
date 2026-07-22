@@ -27,25 +27,18 @@ type LibraryPolicy struct {
 }
 
 type PublicSettings struct {
-	Site                    SiteSettings         `json:"site"`
-	SidebarVisibleItems     []string             `json:"sidebar_visible_items"`
-	HomeSections            HomeSectionSettings  `json:"home_sections"`
-	RegistrationEnabled     bool                 `json:"registration_enabled"`
-	GuestAccess             LibraryPolicy        `json:"guest_access"`
-	Download                LibraryPolicy        `json:"download"`
-	Bookmark                LibraryPolicy        `json:"bookmark"`
-	Collection              LibraryPolicy        `json:"collection"`
-	Review                  LibraryPolicy        `json:"review"`
-	Share                   LibraryPolicy        `json:"share"`
-	Read                    LibraryPolicy        `json:"read"`
-	Stats                   LibraryPolicy        `json:"stats"`
-	EnableInBookSearch      bool                 `json:"enable_in_book_search"`
-	EnableCustomFontUpload  bool                 `json:"enable_custom_font_upload"`
-	SetupCompleted          bool                 `json:"setup_completed"`
-	AvailableSidebarItems   []string             `json:"available_sidebar_items"`
-	AvailableHomeSections   []string             `json:"available_home_sections"`
-	AvailablePolicyModes    []string             `json:"available_policy_modes"`
-	AvailableGuestModes     []string             `json:"available_guest_modes"`
+	Site                   SiteSettings        `json:"site"`
+	SidebarVisibleItems    []string            `json:"sidebar_visible_items"`
+	HomeSections           HomeSectionSettings `json:"home_sections"`
+	RegistrationEnabled    bool                `json:"registration_enabled"`
+	GuestAccess            LibraryPolicy       `json:"guest_access"`
+	GuestPermissions       []string            `json:"guest_permissions"`
+	EnableInBookSearch     bool                `json:"enable_in_book_search"`
+	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
+	SetupCompleted         bool                `json:"setup_completed"`
+	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
+	AvailableHomeSections  []string            `json:"available_home_sections"`
+	AvailableGuestModes    []string            `json:"available_guest_modes"`
 }
 
 

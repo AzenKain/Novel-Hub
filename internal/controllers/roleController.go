@@ -109,3 +109,17 @@ func (h *RoleController) DeleteRole(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Role deleted successfully"})
 }
+
+func (h *RoleController) ReorderRoles(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dto := &request.ReorderRolesDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	if err := h.service.ReorderRoles(ctx, dto); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Role order updated successfully"})
+}

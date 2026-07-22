@@ -26,7 +26,8 @@ export default defineConfig({
     proxy: {
       "/api": "http://127.0.0.1:3434",
       "/uploads": "http://127.0.0.1:3434",
-      "/covers": "http://127.0.0.1:3434"
+      "/covers": "http://127.0.0.1:3434",
+      "/storage": "http://127.0.0.1:3434"
     }
   }
 });

@@ -25,14 +25,14 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, dto *request.CreateUserDto) (*response.UserResponse, error)
 	GetUserCurrent(ctx context.Context, userID string) (*response.UserResponse, error)
-	UpdateProfile(ctx context.Context, userID string, dto *request.UpdateProfileDto) (*response.UserResponse, error)
+	UpdateProfile(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.UpdateProfileDto) (*response.UserResponse, error)
 	ChangePassword(ctx context.Context, userID string, dto *request.ChangePasswordDto) error
-	DeleteUser(ctx context.Context, userID string) error
+	DeleteUser(ctx context.Context, userID string, claims *response.JWTClaims) error
 	ChangeRoleUser(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ChangeRoleDto) (*response.UserResponse, error)
 	RestoreUser(ctx context.Context, userID string) (*response.UserResponse, error)
 	GetUserByID(ctx context.Context, userID string) (*response.UserResponse, error)
 	SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, error)
-	AdminResetPassword(ctx context.Context, userID string, dto *request.ResetPasswordDto) error
+	AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error
 }
 
 type userService struct {
@@ -43,7 +43,12 @@ type userService struct {
 }
 
 func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager) UserService {
-	return &userService{userRepo: userRepo, roleRepo: roleRepo, settingsRepo: settingsRepo, txManager: txManager}
+	return &userService{
+		userRepo:     userRepo,
+		roleRepo:     roleRepo,
+		settingsRepo: settingsRepo,
+		txManager:    txManager,
+	}
 }
 
 func (u *userService) resolveRoles(ctx context.Context, roleIDs []int64) ([]*models.RoleEntity, error) {
@@ -147,11 +152,24 @@ func (u *userService) GetUserCurrent(ctx context.Context, userID string) (*respo
 	return u.GetUserByID(ctx, userID)
 }
 
-func (u *userService) UpdateProfile(ctx context.Context, userID string, dto *request.UpdateProfileDto) (*response.UserResponse, error) {
+func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.UpdateProfileDto) (*response.UserResponse, error) {
 	id, ferr := convert.ParseID(userID)
 	if ferr != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
+
+	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
+	if id == 1 && callerID != 1 {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
+	}
+
+	userObj, err := u.userRepo.GetByID(ctx, id)
+	if err == nil && userObj != nil {
+		if userObj.IsAdmin() && callerID != 1 && userID != claims.UId {
+			return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
+		}
+	}
+
 	user, err := u.userRepo.UpdateProfile(ctx, sqlc.UpdateProfileParams{
 		ID:        id,
 		FullName:  convert.StrPtrToNullString(dto.FullName),
@@ -204,7 +222,7 @@ func (u *userService) ChangePassword(ctx context.Context, userID string, dto *re
 	return nil
 }
 
-func (u *userService) AdminResetPassword(ctx context.Context, userID string, dto *request.ResetPasswordDto) error {
+func (u *userService) AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error {
 	if err := constants.ValidatePassword(dto.NewPassword); err != nil {
 		return apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
@@ -215,6 +233,15 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, dto
 	user, err := u.userRepo.GetByID(ctx, id)
 	if err != nil || user == nil {
 		return apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
+	if id == 1 && callerID != 1 {
+		return apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
+	}
+
+	if user.IsAdmin() && callerID != 1 && userID != claims.UId {
+		return apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
 	}
 
 	tx, err := u.txManager.BeginTx(ctx, nil)
@@ -241,7 +268,6 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, dto
 	}
 	return nil
 }
-
 func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ChangeRoleDto) (*response.UserResponse, error) {
 	id, ferr := convert.ParseID(userID)
 	if ferr != nil {
@@ -250,6 +276,22 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 	user, err := u.userRepo.GetByID(ctx, id)
 	if err != nil || user == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
+	if id == 1 && callerID != 1 {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
+	}
+
+	targetIsAdmin := false
+	for _, r := range user.Roles {
+		if r != nil && (r.IsAdmin || r.Name == "ADMIN") {
+			targetIsAdmin = true
+		}
+	}
+
+	if targetIsAdmin && callerID != 1 && userID != claims.UId {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
 	}
 
 	roles, ferr := u.resolveRoles(ctx, dto.Roles)
@@ -266,6 +308,10 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 		if role.Name == constants.RoleTypeBanned.String() {
 			hasBanned = true
 		}
+	}
+
+	if hasAdmin && callerID != 1 {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can grant the ADMIN role")
 	}
 
 	isSelf := userID == claims.UId
@@ -311,11 +357,26 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 	return user.ToResponse(), nil
 }
 
-func (u *userService) DeleteUser(ctx context.Context, userID string) error {
+func (u *userService) DeleteUser(ctx context.Context, userID string, claims *response.JWTClaims) error {
 	id, ferr := convert.ParseID(userID)
 	if ferr != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
+
+	if id == 1 {
+		return apperrors.New(apperrors.ErrForbidden, "The owner account cannot be deleted")
+	}
+
+	user, err := u.userRepo.GetByID(ctx, id)
+	if err != nil || user == nil {
+		return apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
+	if user.IsAdmin() && callerID != 1 {
+		return apperrors.New(apperrors.ErrForbidden, "Only the owner can delete other admin accounts")
+	}
+
 	if err := u.userRepo.Delete(ctx, id); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to delete user")
 	}

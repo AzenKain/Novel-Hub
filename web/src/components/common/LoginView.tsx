@@ -3,10 +3,15 @@ import { useAuthStore } from "@/stores";
 import { BookOpen, LogIn } from "lucide-react";
 import { SyntheticEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 export function LoginView() {
-  const isLoginModalOpen = useAuthStore((state) => state.isLoginModalOpen);
-  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+  const { isLoginModalOpen, setLoginModalOpen } = useAuthStore(
+    useShallow((state) => ({
+      isLoginModalOpen: state.isLoginModalOpen,
+      setLoginModalOpen: state.setLoginModalOpen,
+    }))
+  );
 
   const loginMutation = useLoginMutation();
 

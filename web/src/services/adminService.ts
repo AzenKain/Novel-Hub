@@ -164,6 +164,18 @@ export const adminService = {
     }
   },
 
+  async reorderRoles(roleIDs: number[]): Promise<CommonResponse<unknown>> {
+    try {
+      const res = await api.put("/roles/reorder", { role_ids: roleIDs });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<unknown>;
+      }
+      throw error;
+    }
+  },
+
   async deleteRole(id: number): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.delete(`/roles/${id}`);

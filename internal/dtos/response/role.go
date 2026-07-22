@@ -1,9 +1,10 @@
 package response
 
 type RoleSimpleResponse struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	IsAdmin bool   `json:"is_admin"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	IsAdmin  bool   `json:"is_admin"`
+	IsBanned bool   `json:"is_banned"`
 }
 
 type RoleResponse struct {
@@ -12,7 +13,9 @@ type RoleResponse struct {
 	Description string                    `json:"description"`
 	IsSystem    bool                      `json:"is_system"`
 	IsAdmin     bool                      `json:"is_admin"`
+	IsBanned    bool                      `json:"is_banned"`
 	AutoAssign  bool                      `json:"auto_assign"`
+	Position    int64                     `json:"position"`
 	IsDeleted   bool                      `json:"is_deleted"`
 	CreatedAt   string                    `json:"created_at,omitempty"`
 	UpdatedAt   string                    `json:"updated_at,omitempty"`

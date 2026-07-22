@@ -2,10 +2,13 @@ import { Theme, useSettingsStore } from '@/stores';
 import { Coffee, Heart, Monitor, Moon, Sun } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
 export const ThemeController = ({ className = 'dropdown-end' }: { className?: string }) => {
   const { t } = useTranslation();
-  const { theme, setTheme } = useSettingsStore();
+  const { theme, setTheme } = useSettingsStore(
+    useShallow((state) => ({ theme: state.theme, setTheme: state.setTheme }))
+  );
 
   const themes: { value: Theme; label: string; icon: React.ReactNode }[] = [
     { value: 'system', label: t('common.system', 'System'), icon: <Monitor className="w-4 h-4" /> },

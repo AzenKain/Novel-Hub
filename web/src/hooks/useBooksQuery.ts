@@ -121,3 +121,89 @@ export function useBulkAddTagsMutation() {
     },
   });
 }
+
+export function useBookQuery(bookId: string) {
+  return useQuery({
+    queryKey: ["book", bookId],
+    queryFn: async () => {
+      if (!bookId) throw new Error("No book ID");
+      const res = await bookService.getBook(bookId);
+      if (!res.status) throw new Error(res.message || "Failed to fetch book");
+      return res.data;
+    },
+    enabled: !!bookId,
+  });
+}
+
+export function useBookUserStateQuery(bookId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["bookUserState", bookId],
+    queryFn: async () => {
+      if (!bookId) throw new Error("No book ID");
+      const res = await featureService.getBookUserState(bookId);
+      if (!res.status) throw new Error(res.message || "Failed to fetch user state");
+      return res.data;
+    },
+    enabled: !!bookId && enabled,
+    retry: false,
+  });
+}
+
+export function useBookEngagementStatsQuery(bookId: string) {
+  return useQuery({
+    queryKey: ["bookEngagement", bookId],
+    queryFn: async () => {
+      if (!bookId) throw new Error("No book ID");
+      const res = await featureService.getBookEngagementStats(bookId);
+      return res.status ? res.data : null;
+    },
+    enabled: !!bookId,
+    retry: false,
+  });
+}
+
+export function useToggleBookmarkMutation(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (bookmarked: boolean) => {
+      if (!bookId) throw new Error("No book ID");
+      const res = await featureService.setBookmark(bookId, bookmarked);
+      if (!res.status) throw new Error(res.message || "Failed to toggle bookmark");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useAddBookToCollectionMutation(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (collectionId: string) => {
+      if (!bookId) throw new Error("No book ID");
+      return featureService.addBookToCollection(collectionId, bookId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useRemoveBookFromCollectionMutation(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (collectionId: string) => {
+      if (!bookId) throw new Error("No book ID");
+      return featureService.removeBookFromCollection(collectionId, bookId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}

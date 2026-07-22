@@ -4,6 +4,7 @@ import {
   useDeleteRoleMutation,
   useLibrariesQuery,
   usePermissionsQuery,
+  useReorderRolesMutation,
   useRolesQuery,
   useUpdateRoleMutation,
 } from "@/hooks";
@@ -11,6 +12,9 @@ import { LibraryScopeSelector } from "@/components/admin";
 import type { CreateRoleRequest } from "@/types";
 import {
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
   Loader2,
   Pencil,
   Plus,
@@ -18,9 +22,8 @@ import {
   Save,
   Shield,
   Trash2,
-  X,
 } from "lucide-react";
-import { SyntheticEvent, useEffect } from "react";
+import { SyntheticEvent, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 interface PermissionAssignment {
@@ -41,6 +44,46 @@ export function Roles() {
   const updateRoleMutation = useUpdateRoleMutation();
   const deleteRoleMutation = useDeleteRoleMutation();
   const assignPermissionsMutation = useAssignRolePermissionsMutation();
+  const reorderRolesMutation = useReorderRolesMutation();
+
+  const handleMoveUp = (index: number, e: SyntheticEvent) => {
+    e.stopPropagation();
+    if (index <= 0) return;
+    const newRoles = [...roles];
+    const temp = newRoles[index - 1];
+    newRoles[index - 1] = newRoles[index];
+    newRoles[index] = temp;
+    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+  };
+
+  const handleMoveDown = (index: number, e: SyntheticEvent) => {
+    e.stopPropagation();
+    if (index >= roles.length - 1) return;
+    const newRoles = [...roles];
+    const temp = newRoles[index + 1];
+    newRoles[index + 1] = newRoles[index];
+    newRoles[index] = temp;
+    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+  };
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+    const newRoles = [...roles];
+    const [moved] = newRoles.splice(draggedIndex, 1);
+    newRoles.splice(dropIndex, 0, moved);
+    setDraggedIndex(null);
+    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+  };
 
   const {
     selectedRole, setSelectedRole,
@@ -49,7 +92,6 @@ export function Roles() {
     modalMode, setModalMode,
     form, setForm,
     roleToDelete, setRoleToDelete,
-    libraryIdsInput, setLibraryIdsInput,
   } = useRoleAdminStore(useShallow((state) => ({
     selectedRole: state.selectedRole, setSelectedRole: state.setSelectedRole,
     assignments: state.assignments, setAssignments: state.setAssignments,
@@ -57,7 +99,6 @@ export function Roles() {
     modalMode: state.modalMode, setModalMode: state.setModalMode,
     form: state.form, setForm: state.setForm,
     roleToDelete: state.roleToDelete, setRoleToDelete: state.setRoleToDelete,
-    libraryIdsInput: state.libraryIdsInput, setLibraryIdsInput: state.setLibraryIdsInput,
   })));
 
   const loading = rolesLoading || permissionsLoading;
@@ -67,7 +108,6 @@ export function Roles() {
     deleteRoleMutation.isPending ||
     assignPermissionsMutation.isPending;
 
-  // Auto select initial role when roles load
   useEffect(() => {
     if (roles.length > 0) {
       if (!selectedRole || !roles.some((r) => r.id === selectedRole.id)) {
@@ -79,7 +119,6 @@ export function Roles() {
     }
   }, [roles]);
 
-  // Sync assignments when selected role changes
   useEffect(() => {
     if (selectedRole?.permissions) {
       setAssignments(
@@ -92,7 +131,6 @@ export function Roles() {
     } else {
       setAssignments([]);
     }
-    setLibraryIdsInput({});
   }, [selectedRole?.id]);
 
   function isAssigned(key: string): boolean {
@@ -115,25 +153,6 @@ export function Roles() {
   function setEffect(key: string, effect: "allow" | "deny") {
     setAssignments((prev) =>
       prev.map((a) => (a.permission_key === key ? { ...a, effect } : a))
-    );
-  }
-
-  function setLibraryIds(key: string, input: string) {
-    setLibraryIdsInput((prev) => ({ ...prev, [key]: input }));
-  }
-
-  function applyLibraryIds(key: string) {
-    const input = libraryIdsInput[key] || "";
-    const ids = input
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    setAssignments((prev) =>
-      prev.map((a) =>
-        a.permission_key === key
-          ? { ...a, conditions: ids.length > 0 ? { library_ids: ids } : {} }
-          : a
-      )
     );
   }
 
@@ -227,8 +246,7 @@ export function Roles() {
     });
   }
 
-  const canModify = selectedRole && !selectedRole.is_system && !selectedRole.is_admin;
-  const isAdminRole = selectedRole?.is_admin;
+  const canModify = selectedRole && !selectedRole.is_admin && !selectedRole.is_banned;
 
   return (
     <div className="flex flex-col h-full bg-base-100">
@@ -263,31 +281,55 @@ export function Roles() {
             </div>
 
             <div className="space-y-2">
-              {roles.map((r) => {
+              {roles.map((r, index) => {
                 const isSelected = selectedRole?.id === r.id;
                 return (
                   <div
                     key={r.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(index)}
                     onClick={() => setSelectedRole(r)}
                     className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isSelected
-                        ? "bg-primary/10 border-primary shadow-sm"
-                        : "bg-base-100 border-base-200 hover:border-base-300"
+                      ? "bg-primary/10 border-primary shadow-sm"
+                      : "bg-base-100 border-base-200 hover:border-base-300"
                       }`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Shield className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`} />
-                        <span className="font-bold text-sm truncate">{r.name}</span>
-                        {r.is_admin && <span className="badge badge-error badge-xs">Admin</span>}
-                        {r.is_system && !r.is_admin && <span className="badge badge-neutral badge-xs">System</span>}
-                        {r.auto_assign && <span className="badge badge-info badge-xs">Auto</span>}
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 shrink-0 text-base-content/30 cursor-grab active:cursor-grabbing" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Shield className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`} />
+                          <span className="font-bold text-sm truncate">{r.name}</span>
+                          <span className="badge badge-ghost badge-xs font-mono">Rank #{index + 1}</span>
+                          {r.is_admin && <span className="badge badge-error badge-xs">Admin</span>}
+                          {r.is_system && !r.is_admin && <span className="badge badge-neutral badge-xs">System</span>}
+                          {r.auto_assign && <span className="badge badge-info badge-xs">Auto</span>}
+                        </div>
+                        {r.description && (
+                          <p className="text-xs text-base-content/60 truncate mt-1 pl-6">{r.description}</p>
+                        )}
                       </div>
-                      {r.description && (
-                        <p className="text-xs text-base-content/60 truncate mt-1 pl-6">{r.description}</p>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button
+                        disabled={index === 0 || reorderRolesMutation.isPending}
+                        onClick={(e) => handleMoveUp(index, e)}
+                        className="btn btn-ghost btn-xs btn-square"
+                        title="Move Up Priority"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        disabled={index === roles.length - 1 || reorderRolesMutation.isPending}
+                        onClick={(e) => handleMoveDown(index, e)}
+                        className="btn btn-ghost btn-xs btn-square"
+                        title="Move Down Priority"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
                       {!r.is_admin && !r.is_system && (
                         <button
                           onClick={(e) => {
@@ -316,6 +358,7 @@ export function Roles() {
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold">{selectedRole.name}</h2>
                       {selectedRole.is_admin && <span className="badge badge-error">Full Admin Access</span>}
+                      {selectedRole.is_banned && <span className="badge badge-warning text-warning-content font-bold">Blocked Account</span>}
                     </div>
                     <p className="text-xs text-base-content/60 mt-1">
                       {selectedRole.description || "No description provided."}
@@ -328,7 +371,7 @@ export function Roles() {
                         <Pencil className="h-3.5 w-3.5" /> Edit Role
                       </button>
                     )}
-                    {!isAdminRole && (
+                    {!selectedRole.is_admin && !selectedRole.is_banned && (
                       <button
                         onClick={savePermissions}
                         disabled={saving}
@@ -341,12 +384,20 @@ export function Roles() {
                   </div>
                 </div>
 
-                {isAdminRole ? (
+                {selectedRole.is_admin ? (
                   <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-error opacity-80" />
                     <h3 className="font-bold text-lg">Administrator Role</h3>
                     <p className="text-xs text-base-content/60 max-w-md">
                       Users with the ADMIN role automatically bypass all permission checks and have full unrestricted system access.
+                    </p>
+                  </div>
+                ) : selectedRole.is_banned ? (
+                  <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
+                    <Shield className="h-12 w-12 text-warning opacity-80" />
+                    <h3 className="font-bold text-lg">Banned / Blocked Role</h3>
+                    <p className="text-xs text-base-content/60 max-w-md">
+                      Users with the BANNED role are blocked immediately. They are denied all actions and system permissions.
                     </p>
                   </div>
                 ) : (
@@ -359,73 +410,128 @@ export function Roles() {
                     </div>
 
                     <div className="divide-y divide-base-200">
-                      {permissions.map((perm) => {
-                        const assigned = isAssigned(perm.key);
-                        const assignment = getAssignment(perm.key);
-                        const libraryIdsVal = libraryIdsInput[perm.key] ?? (assignment?.conditions?.library_ids as string[])?.join(", ") ?? "";
+                      {(() => {
+                        const categories = [
+                          {
+                            id: "reading",
+                            name: "📖 Book Reading & Discovery",
+                            keys: ["book.read", "book.tts", "book.search.deep", "book.download", "book.send_email", "book.share"]
+                          },
+                          {
+                            id: "interactions",
+                            name: "💬 Interactions & Personal Features",
+                            keys: ["book.bookmark", "book.collection", "book.highlight", "book.review.create", "book.review.delete", "user.stats.read", "tracker.sync"]
+                          },
+                          {
+                            id: "content",
+                            name: "📦 Book Content Management",
+                            keys: ["book.upload", "book.edit", "book.metadata.fetch", "book.delete", "book.duplicate.manage", "book.archive", "book.bulk.manage"]
+                          },
+                          {
+                            id: "library",
+                            name: "📚 Library Management",
+                            keys: ["library.read", "library.manage"]
+                          },
+                          {
+                            id: "integration",
+                            name: "🔄 External Sync & Integration",
+                            keys: ["opds.read", "opds.download", "kobo.sync", "calibre.sync"]
+                          },
+                          {
+                            id: "admin",
+                            name: "⚙️ System Administration",
+                            keys: ["admin.access", "user.manage", "role.manage", "setting.manage", "job.read", "job.manage", "system.log.read", "system.backup", "webhook.manage"]
+                          }
+                        ];
+                        const allCategoryKeys = categories.flatMap((cat) => cat.keys);
+
+                        return categories.map((category) => {
+                          const categoryPerms = permissions.filter((p) => category.keys.includes(p.key));
+                          const otherPerms = permissions.filter((p) => !allCategoryKeys.includes(p.key));
+                          if (category.id === "admin" && otherPerms.length > 0) {
+                            categoryPerms.push(...otherPerms);
+                          }
+                        if (categoryPerms.length === 0) return null;
+
+                        const assignedCount = categoryPerms.filter((p) => isAssigned(p.key)).length;
 
                         return (
-                          <div key={perm.key} className="p-4 flex flex-col gap-3 hover:bg-base-200/20 transition-colors">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={assigned}
-                                  onChange={() => togglePermission(perm.key)}
-                                  className="checkbox checkbox-primary checkbox-sm mt-0.5"
-                                />
-                                <div>
-                                  <div className="font-bold text-sm flex items-center gap-2">
-                                    <span>{perm.description || perm.key}</span>
-                                    <span className="font-mono text-[10px] bg-base-200 text-base-content/70 px-1.5 py-0.5 rounded">
-                                      {perm.key}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-base-content/60 mt-0.5">{perm.key}</p>
-                                </div>
-                              </div>
-
-                              {assigned && (
-                                <div className="flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => setEffect(perm.key, "allow")}
-                                    className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success text-white font-bold" : "btn-ghost text-base-content/60"}`}
-                                  >
-                                    Allow
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEffect(perm.key, "deny")}
-                                    className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error text-white font-bold" : "btn-ghost text-base-content/60"}`}
-                                  >
-                                    Deny
-                                  </button>
-                                </div>
-                              )}
+                          <div key={category.id} className="border-b border-base-200 last:border-b-0">
+                            <div className="bg-base-200/40 px-4 py-2.5 flex items-center justify-between font-semibold text-xs tracking-wide uppercase text-base-content/70">
+                              <span>{category.name}</span>
+                              <span className="badge badge-sm badge-ghost">{assignedCount}/{categoryPerms.length} assigned</span>
                             </div>
+                            <div className="divide-y divide-base-200/60">
+                              {categoryPerms.map((perm) => {
+                                const assigned = isAssigned(perm.key);
+                                const assignment = getAssignment(perm.key);
 
-                            {/* Conditional Scope */}
-                            {assigned && (
-                              <div className="pl-7">
-                                <LibraryScopeSelector
-                                  selectedLibraryIds={(assignment?.conditions?.library_ids as string[]) || []}
-                                  onChange={(ids) => {
-                                    setAssignments((prev) =>
-                                      prev.map((a) =>
-                                        a.permission_key === perm.key
-                                          ? { ...a, conditions: ids.length > 0 ? { library_ids: ids } : {} }
-                                          : a
-                                      )
-                                    );
-                                  }}
-                                  libraries={libraries}
-                                />
-                              </div>
-                            )}
+                                return (
+                                  <div key={perm.key} className="p-4 flex flex-col gap-3 hover:bg-base-200/20 transition-colors">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex items-start gap-3">
+                                        <input
+                                          type="checkbox"
+                                          checked={assigned}
+                                          onChange={() => togglePermission(perm.key)}
+                                          className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                                        />
+                                        <div>
+                                          <div className="font-bold text-sm flex items-center gap-2">
+                                            <span>{perm.description || perm.key}</span>
+                                            <span className="font-mono text-[10px] bg-base-200 text-base-content/70 px-1.5 py-0.5 rounded">
+                                              {perm.key}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {assigned && (
+                                        <div className="flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEffect(perm.key, "allow")}
+                                            className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success text-white font-bold" : "btn-ghost text-base-content/60"}`}
+                                          >
+                                            Allow
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setEffect(perm.key, "deny")}
+                                            className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error text-white font-bold" : "btn-ghost text-base-content/60"}`}
+                                          >
+                                            Deny
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Conditional Scope */}
+                                    {assigned && (
+                                      <div className="pl-7">
+                                        <LibraryScopeSelector
+                                          selectedLibraryIds={(assignment?.conditions?.library_ids as string[]) || []}
+                                          onChange={(ids) => {
+                                            setAssignments((prev) =>
+                                              prev.map((a) =>
+                                                a.permission_key === perm.key
+                                                  ? { ...a, conditions: ids.length > 0 ? { library_ids: ids } : {} }
+                                                  : a
+                                              )
+                                            );
+                                          }}
+                                          libraries={libraries}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
-                      })}
+                      });
+                    })()}
                     </div>
                   </div>
                 )}
@@ -475,20 +581,22 @@ export function Roles() {
                 />
               </div>
 
-              <div className="form-control">
-                <label className="label cursor-pointer justify-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={form.auto_assign}
-                    onChange={(e) => setForm({ ...form, auto_assign: e.target.checked })}
-                    className="checkbox checkbox-primary checkbox-sm"
-                  />
-                  <div>
-                    <span className="label-text font-semibold">Auto-assign on Register</span>
-                    <p className="text-xs text-base-content/60">Newly registered users automatically get this role.</p>
-                  </div>
-                </label>
-              </div>
+              {!(modalMode === "edit" && (selectedRole?.is_admin || selectedRole?.is_banned || selectedRole?.name?.toUpperCase() === "GUEST")) && (
+                <div className="form-control">
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.auto_assign}
+                      onChange={(e) => setForm({ ...form, auto_assign: e.target.checked })}
+                      className="checkbox checkbox-primary checkbox-sm"
+                    />
+                    <div>
+                      <span className="label-text font-semibold">Auto-assign on Register</span>
+                      <p className="text-xs text-base-content/60">Newly registered users automatically get this role.</p>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               <div className="modal-action">
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">

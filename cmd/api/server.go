@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,6 +44,7 @@ import (
 	"novelhub/pkg/config"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/localfs"
 	"novelhub/pkg/worker"
 )
 
@@ -118,7 +120,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	if err := permissionCache.Reload(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("failed to load permission cache")
 	}
-	settingsService := services.NewSettingsService(settingsRepo)
+	settingsService := services.NewSettingsService(settingsRepo, permissionCache)
 	if err := settingsService.Reload(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("failed to load settings cache")
 	}
@@ -221,15 +223,29 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return webhookService.ExecuteDispatch(ctx, jobData.WebhookID, jobData.EventType, []byte(jobData.Data))
 	})
 
-
 	jobQueue.Start()
 
-	s.App.Use("/storage/books", static.New(booksDir))
 	s.App.Use("/public", static.New(publicDir))
-	s.App.Get("/books/:bookID/:filename", func(c fiber.Ctx) error {
-		return c.Redirect().Status(fiber.StatusMovedPermanently).To(
-			"/storage/books/" + c.Params("bookID") + "/" + c.Params("filename"),
-		)
+	s.App.Get("/storage/books/:bookID/:filename", func(c fiber.Ctx) error {
+		rawFilename := c.Params("filename")
+		ext := strings.ToLower(filepath.Ext(rawFilename))
+		switch ext {
+		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".ico":
+			relPath := filepath.Join(c.Params("bookID"), rawFilename)
+			safePath, err := localfs.SafeJoin(booksDir, relPath)
+			if err != nil {
+				return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
+					Status:  false,
+					Message: "Invalid image path",
+				})
+			}
+			return c.SendFile(safePath)
+		default:
+			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
+				Status:  false,
+				Message: "Direct download of raw book files via storage URL is disabled",
+			})
+		}
 	})
 
 	api := s.App.Group("/api")
@@ -259,7 +275,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	koboService := services.NewKoboService(bookRepo, bookFileRepo)
 	koboController := controllers.NewKoboController(koboService)
-	routes.KoboRoutes(s.App, koboController)
+	routes.KoboRoutes(s.App, koboController, userRepo)
 
 	trackerRepo := repositories.NewTrackerRepository(db, ramCache)
 	trackerService := services.NewTrackerService(trackerRepo)

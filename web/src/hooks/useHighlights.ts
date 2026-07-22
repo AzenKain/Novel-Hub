@@ -2,10 +2,11 @@ import { highlightService } from '@/services';
 import type { Highlight } from '@/types';
 import { useAuthStore } from '@/stores';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 
 export const useHighlights = (bookId: string, chapterId: string | undefined) => {
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
 
   const highlightsQuery = useQuery<Highlight[]>({
     queryKey: ['highlights', chapterId],

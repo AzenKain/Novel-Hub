@@ -66,22 +66,41 @@ BEGIN
 END;
 
 INSERT INTO permissions (key, description) VALUES
-    ('book.read', 'Read books and book metadata'),
-    ('book.download', 'Download book files'),
-    ('book.share', 'Share books and generate share links'),
-    ('book.bookmark', 'Bookmark books'),
-    ('book.collection', 'Manage personal collections'),
+    ('book.read', 'Read books and online reader'),
+    ('book.tts', 'Use text-to-speech audio reader'),
+    ('book.search.deep', 'Deep search inside book content'),
+    ('book.download', 'Download raw book files'),
+    ('book.send_email', 'Send book files to email / Send-to-Kindle'),
+    ('book.share', 'Share books and create public share links'),
+    ('book.bookmark', 'Bookmark books and manage reading lists'),
+    ('book.collection', 'Manage personal book collections'),
+    ('book.highlight', 'Create and manage reading highlights and notes'),
     ('book.review.create', 'Create and update book reviews'),
     ('book.review.delete', 'Delete book reviews'),
-    ('book.manage', 'Manage books and metadata'),
-    ('library.read', 'Read libraries'),
-    ('library.manage', 'Manage libraries and uploads'),
+    ('user.stats.read', 'View reading statistics and progress'),
+    ('tracker.sync', 'Sync reading progress with external trackers'),
+    ('book.upload', 'Upload new books to library'),
+    ('book.edit', 'Edit book details and metadata'),
+    ('book.metadata.fetch', 'Fetch metadata automatically from online providers'),
+    ('book.delete', 'Delete books or book files'),
+    ('book.duplicate.manage', 'Manage and clean up duplicate book files'),
+    ('book.archive', 'Archive or unarchive books'),
+    ('book.bulk.manage', 'Perform bulk operations on books'),
+    ('library.read', 'Read libraries and details'),
+    ('library.manage', 'Manage libraries'),
+    ('opds.read', 'Access OPDS catalog feed'),
+    ('opds.download', 'Download books via OPDS'),
+    ('kobo.sync', 'Sync reading progress with Kobo devices'),
+    ('calibre.sync', 'Sync and import from Calibre server'),
+    ('admin.access', 'Access admin dashboard'),
+    ('user.manage', 'Manage user accounts and roles'),
     ('role.manage', 'Manage roles and permissions'),
-    ('user.manage', 'Manage users'),
     ('setting.manage', 'Manage application settings'),
-    ('admin.access', 'Access admin area'),
-    ('job.read', 'Read background job status'),
-    ('webhook.manage', 'Manage webhooks and notification integrations')
+    ('job.read', 'View background job status'),
+    ('job.manage', 'Trigger background maintenance jobs'),
+    ('system.log.read', 'View system logs in admin area'),
+    ('system.backup', 'Backup and restore system data'),
+    ('webhook.manage', 'Manage webhooks and integrations')
 ON CONFLICT(key) DO UPDATE SET
     description = excluded.description;
 
@@ -95,13 +114,6 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('home.sections', '{"random_books":true,"top_books":true}'),
     ('auth.registration_enabled', 'true'),
     ('guest_access.mode', '"all"'),
-    ('guest_access.library_ids', '[]'),
-    ('download.mode', '"all"'),
-    ('download.library_ids', '[]'),
-    ('bookmark.mode', '"all"'),
-    ('bookmark.library_ids', '[]'),
-    ('collection.mode', '"all"'),
-    ('collection.library_ids', '[]'),
-    ('review.mode', '"all"'),
-    ('review.library_ids', '[]')
+    ('guest_access.library_ids', '[]')
 ON CONFLICT(key) DO NOTHING;
+

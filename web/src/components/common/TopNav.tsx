@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore, useLibraryStore } from "@/stores";
 import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
+import { useShallow } from "zustand/react/shallow";
 
-import { isModOrAdminUser } from "@/utils/permission";
+import { hasPermission } from "@/utils/permission";
 
 interface TopNavProps {
   showSidebarToggle?: boolean;
@@ -14,8 +15,17 @@ interface TopNavProps {
 export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, setProfileModalOpen, logout, setLoginModalOpen } = useAuthStore();
-  const { search, setSearch } = useLibraryStore();
+  const { user, setProfileModalOpen, logout, setLoginModalOpen } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      setProfileModalOpen: state.setProfileModalOpen,
+      logout: state.logout,
+      setLoginModalOpen: state.setLoginModalOpen,
+    }))
+  );
+  const { search, setSearch } = useLibraryStore(
+    useShallow((state) => ({ search: state.search, setSearch: state.setSearch }))
+  );
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -63,7 +73,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
 
         {user ? (
           <>
-            {isModOrAdminUser(user) && (
+            {hasPermission(user, "admin.access") && (
               <Link
                 to="/admin"
                 className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"

@@ -528,6 +528,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateRoleStmt, err = db.PrepareContext(ctx, updateRole); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateRole: %w", err)
 	}
+	if q.updateRolePositionStmt, err = db.PrepareContext(ctx, updateRolePosition); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateRolePosition: %w", err)
+	}
 	if q.updateSystemRoleDescriptionStmt, err = db.PrepareContext(ctx, updateSystemRoleDescription); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateSystemRoleDescription: %w", err)
 	}
@@ -1439,6 +1442,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateRoleStmt: %w", cerr)
 		}
 	}
+	if q.updateRolePositionStmt != nil {
+		if cerr := q.updateRolePositionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateRolePositionStmt: %w", cerr)
+		}
+	}
 	if q.updateSystemRoleDescriptionStmt != nil {
 		if cerr := q.updateSystemRoleDescriptionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateSystemRoleDescriptionStmt: %w", cerr)
@@ -1756,6 +1764,7 @@ type Queries struct {
 	updateLibraryStmt                  *sql.Stmt
 	updateProfileStmt                  *sql.Stmt
 	updateRoleStmt                     *sql.Stmt
+	updateRolePositionStmt             *sql.Stmt
 	updateSystemRoleDescriptionStmt    *sql.Stmt
 	updateUserPasswordStmt             *sql.Stmt
 	updateUserRefreshTokenStmt         *sql.Stmt
@@ -1952,6 +1961,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateLibraryStmt:                  q.updateLibraryStmt,
 		updateProfileStmt:                  q.updateProfileStmt,
 		updateRoleStmt:                     q.updateRoleStmt,
+		updateRolePositionStmt:             q.updateRolePositionStmt,
 		updateSystemRoleDescriptionStmt:    q.updateSystemRoleDescriptionStmt,
 		updateUserPasswordStmt:             q.updateUserPasswordStmt,
 		updateUserRefreshTokenStmt:         q.updateUserRefreshTokenStmt,

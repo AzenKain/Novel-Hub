@@ -5,9 +5,10 @@ import { useAuthStore } from "@/stores";
 import { BookOpen, Copy, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 
 export function AdminLayout() {
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const logoutMutation = useLogoutMutation();
   const navigate = useNavigate();
   const location = useLocation();
