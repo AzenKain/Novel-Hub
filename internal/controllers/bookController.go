@@ -295,3 +295,21 @@ func (h *BookController) SearchInBook(c fiber.Ctx) error {
 
 	return c.JSON(response.CommonResponse{Status: true, Data: results})
 }
+
+func (h *BookController) SendBookToEmail(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	bookID := c.Params("id")
+	dto := &request.SendEmailDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	if err := h.bookService.SendBookToEmail(ctx, bookID, dto.RecipientEmail); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Email dispatched successfully"})
+}
+

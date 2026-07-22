@@ -50,13 +50,11 @@ func (q *Queue) Enqueue(job Job) {
 
 func (q *Queue) Start() {
 	for i := 0; i < q.workers; i++ {
-		q.wg.Add(1)
-		go func(workerID int) {
-			defer q.wg.Done()
+		q.wg.Go(func() {
 			for job := range q.jobs {
 				q.process(job)
 			}
-		}(i)
+		})
 	}
 }
 

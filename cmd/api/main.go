@@ -56,10 +56,6 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to apply schema")
 	}
 
-	if err := database.SeedSuperAdmin(db); err != nil {
-		log.Fatal().Err(err).Msg("failed to seed admin user")
-	}
-
 	ramCache := cache.NewRamCache()
 
 	server := NewHTTPServer()

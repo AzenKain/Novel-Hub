@@ -26,13 +26,11 @@ func TestSQLiteConcurrency(t *testing.T) {
 	workers := 20
 	iterations := 10
 
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
+	for i := range workers {
+		workerID := i
+		wg.Go(func() {
 			ctx := context.Background()
-			for j := 0; j < iterations; j++ {
-				// Execute write transaction
+			for j := range iterations {
 				tx, err := BeginImmediateTx(ctx, db)
 				if err != nil {
 					t.Errorf("worker %d failed to begin tx: %v", workerID, err)
@@ -63,7 +61,7 @@ func TestSQLiteConcurrency(t *testing.T) {
 				}
 				rows.Close()
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()

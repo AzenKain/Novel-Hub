@@ -113,6 +113,17 @@
   "library": {
     "ready_to_read": "准备阅读",
     "selected": "已选择",
+    "move_library": "移动媒体库",
+    "add_tags": "添加标签",
+    "bulk_delete_title": "删除所选图书",
+    "bulk_delete_confirm": "确定要删除选中的 {{count}} 本图书吗？此操作无法撤销。",
+    "bulk_move_title": "移动图书至媒体库",
+    "bulk_move_subtitle": "请选择 {{count}} 本图书的目标媒体库:",
+    "select_target_library": "选择目标媒体库...",
+    "move": "移动",
+    "bulk_tag_title": "为所选图书添加标签",
+    "bulk_tag_subtitle": "请输入以逗号分隔的标签:",
+    "tag_input_placeholder": "例如: 奇幻, 动作",
     "processing": "处理中...",
     "by_author": "作者",
     "added_on": "添加于",
@@ -419,6 +430,44 @@
     "select_all": "全选",
     "clear_all": "取消全选",
     "permission_webhook_manage": "管理 Webhook 和通知集成",
-    "permission_book_share": "分享书籍与生成分享链接"
+    "permission_book_share": "分享书籍与生成分享链接",
+    "send_to_kindle": "发送至 Kindle",
+    "smtp_settings": "SMTP 邮件发送服务器设置",
+    "smtp_subtitle": "配置用于 Send-to-Kindle 及系统通知的发件邮件服务器。",
+    "smtp_host": "SMTP 主机",
+    "smtp_port": "端口",
+    "smtp_user": "用户名 / 邮箱",
+    "smtp_pass": "密码 / 应用密钥",
+    "smtp_from": "发件人邮箱地址",
+    "test_smtp": "测试连接"
+  },
+  "kobo": {
+    "title": "Kobo 电纸书 Wi-Fi 原生同步",
+    "subtitle": "在 Kobo Clara、Libra、Forma、Sage 等设备上通过 Wi-Fi 原生同步书籍、进度与封面。",
+    "endpoint_label": "Kobo API Endpoint URL",
+    "show_qr": "显示二维码",
+    "instructions_header": "Kobo 设备设置步骤：",
+    "step1": "使用 USB 数据线将 Kobo 电纸书连接至电脑。",
+    "step2": "使用文本编辑器打开 .kobo/Kobo/KoboeReader.conf 文件。",
+    "step3": "添加或更新 [FeatureSettings] 节下的 api_endpoint=：",
+    "step4": "安全弹出 Kobo 并通过 Wi-Fi 点击“同步”！"
+  },
+  "email": {
+    "invalid": "请输入有效的邮箱地址",
+    "sent_success": "书籍已成功发送至您的邮箱！",
+    "send_failed": "发送邮件失败，请检查 SMTP 服务器配置。",
+    "recipient_label": "接收者邮箱地址",
+    "kindle_tip": "请输入您的 Kindle 设备邮箱或个人邮箱地址。",
+    "send_btn": "发送书籍"
+  },
+  "trackers": {
+    "anilist_title": "AniList 阅读追踪器",
+    "anilist_subtitle": "自动将您的漫画与轻小说阅读进度同步至 AniList 个人主页。",
+    "token_label": "AniList OAuth 访问令牌",
+    "get_token_link": "获取 AniList 访问令牌 ↗",
+    "connect_btn": "绑定 AniList",
+    "enter_token": "请粘贴您的 AniList 访问令牌",
+    "connect_success": "AniList 账号绑定成功！",
+    "connect_failed": "绑定 AniList 账号失败"
   }
 }

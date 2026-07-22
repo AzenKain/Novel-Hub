@@ -6,7 +6,7 @@ Please refer to `AGENTS.md` for full system architecture rules.
 - **Architecture Boundaries**: Controller <-> Service <-> Repository <-> DB/RAM Cache.
 - **Controllers (`internal/controllers`)**: HTTP binding, validation via `pkg/validator` (`ValidateBodyDto`/`ValidateQueryDto`), response mapping. NO business/DB logic.
 - **Services (`internal/services`)**: Business rules, DTO inputs/outputs (`internal/dtos`), split large service files (`bookService_reader.go`, etc.). Multi-mutation DB operations MUST use atomic transactions via `pkg/database/transaction.go`. NO 1-line wrapper functions.
-- **Repositories (`internal/repositories`)**: Persistence & `theine-go` RAM Cache. Mandatory **Cache-by-IDs** pattern & `singleflight`. Accept `sqlc` params, return types MUST be converted to `internal/models`.
+- **Repositories (`internal/repositories`)**: Persistence & `theine-go` RAM Cache. Mandatory **Cache-by-IDs** pattern & **Singleflight protection (`sfg.Do(...)`)** on all DB fallback read operations. Accept `sqlc` params, return types MUST be converted to `internal/models`.
 - **Domain Models (`internal/models`)**: Provide `FromSqlc` and `ToResponse` mapping helpers.
 - **Shared Packages (`pkg/`)**:
   - `pkg/apperrors`: All custom errors (`ErrBadRequest`, `ErrNotFound`, etc.).

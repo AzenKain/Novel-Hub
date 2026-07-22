@@ -138,8 +138,11 @@ func systemMemoryBytes() int64 {
 
 func NewSQLiteDB() (*sql.DB, error) {
 	dbPath := config.GetConfigWithDefault("SQLITE_DB_PATH", "./data/novelhub.db")
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil {
 		return nil, err
+	}
+	if _, err := os.Stat(dbPath); err == nil {
+		_ = os.Chmod(dbPath, 0600)
 	}
 
 	db, err := sql.Open("sqlite", sqliteDSN(dbPath))
@@ -150,8 +153,7 @@ func NewSQLiteDB() (*sql.DB, error) {
 	cacheKB := autoSQLiteCacheKB()
 	mmapBytes := autoSQLiteMmapSize()
 
-	// golang-performance: Enable WAL mode, memory temp_store, cache size, mmap, foreign keys, and busy timeout
-	pragmas := fmt.Sprintf("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-%d; PRAGMA mmap_size=%d;", cacheKB, mmapBytes)
+	pragmas := fmt.Sprintf("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-%d; PRAGMA mmap_size=%d;", cacheKB, mmapBytes)
 	if _, err := db.Exec(pragmas); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("failed to apply SQLite pragmas: %w", err)
@@ -178,6 +180,7 @@ func sqliteDSN(dbPath string) string {
 	values := url.Values{}
 	values.Add("_pragma", "busy_timeout=10000")
 	values.Add("_pragma", "foreign_keys(ON)")
+	values.Add("_pragma", "trusted_schema(OFF)")
 	values.Add("_pragma", "journal_mode(WAL)")
 	values.Add("_pragma", "synchronous(NORMAL)")
 	values.Add("_pragma", "temp_store(MEMORY)")

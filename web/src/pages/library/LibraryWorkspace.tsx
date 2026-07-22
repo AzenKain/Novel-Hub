@@ -3,8 +3,8 @@ import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
-import { BulkActionToolbar } from "@/components/library/BulkActionToolbar";
-import { BookCard, BookGrid, LanguageSwitcher, ThemeController } from "@/components/ui";
+import { BulkActionToolbar, BulkDeleteModal, BulkMoveModal, BulkTagModal } from "@/components/library";
+import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
 import type { Book, MetadataCount } from "@/types";
@@ -150,6 +150,9 @@ export const LibraryWorkspace = () => {
   })));
   const publicSettings = usePublicSettings();
   const [selectedBookIds, setSelectedBookIds] = React.useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
+  const [showBulkMoveModal, setShowBulkMoveModal] = React.useState(false);
+  const [showBulkTagModal, setShowBulkTagModal] = React.useState(false);
   const debouncedSearch = useDebounce(search, 500);
 
   const { data: hotBooksData } = useHotBooksQuery(6);
@@ -921,11 +924,28 @@ export const LibraryWorkspace = () => {
       <BulkActionToolbar
         selectedCount={selectedBookIds.length}
         onClearSelection={() => setSelectedBookIds([])}
-        onBulkDelete={() => {
-          if (confirm(`Delete ${selectedBookIds.length} books?`)) {
-            setSelectedBookIds([]);
-          }
-        }}
+        onBulkMove={() => setShowBulkMoveModal(true)}
+        onBulkAddTags={() => setShowBulkTagModal(true)}
+        onBulkDelete={() => setShowBulkDeleteModal(true)}
+      />
+
+      <BulkDeleteModal
+        isOpen={showBulkDeleteModal}
+        bookIds={selectedBookIds}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onSuccess={() => setSelectedBookIds([])}
+      />
+      <BulkMoveModal
+        isOpen={showBulkMoveModal}
+        bookIds={selectedBookIds}
+        onClose={() => setShowBulkMoveModal(false)}
+        onSuccess={() => setSelectedBookIds([])}
+      />
+      <BulkTagModal
+        isOpen={showBulkTagModal}
+        bookIds={selectedBookIds}
+        onClose={() => setShowBulkTagModal(false)}
+        onSuccess={() => setSelectedBookIds([])}
       />
     </div>
   );

@@ -116,6 +116,14 @@ type BookTag struct {
 	TagID  string `json:"tag_id"`
 }
 
+type BookTrackerMapping struct {
+	ID               int64     `json:"id"`
+	BookID           int64     `json:"book_id"`
+	Provider         string    `json:"provider"`
+	ExternalSeriesID string    `json:"external_series_id"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
 type Bookmark struct {
 	UserID    int64        `json:"user_id"`
 	BookID    string       `json:"book_id"`
@@ -326,6 +334,17 @@ type User struct {
 type UserRole struct {
 	UserID int64 `json:"user_id"`
 	RoleID int64 `json:"role_id"`
+}
+
+type UserTracker struct {
+	ID           int64          `json:"id"`
+	UserID       int64          `json:"user_id"`
+	Provider     string         `json:"provider"`
+	AccessToken  string         `json:"access_token"`
+	RefreshToken sql.NullString `json:"refresh_token"`
+	ExpiresAt    sql.NullTime   `json:"expires_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type Webhook struct {

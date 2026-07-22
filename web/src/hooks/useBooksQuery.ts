@@ -1,6 +1,6 @@
 import { bookService, featureService } from "@/services";
 import type { Book, SearchBookParams } from "@/types";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useBooksQuery(params: SearchBookParams, enabled = true) {
   return useInfiniteQuery({
@@ -52,5 +52,72 @@ export function useRandomBooksQuery(limit = 6) {
     },
     refetchOnWindowFocus: false,
     staleTime: 0, // Random books can be refetched on demand
+  });
+}
+
+export function useSendBookToEmailMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookId, recipientEmail }: { bookId: string; recipientEmail: string }) => {
+      const res = await bookService.sendToEmail(bookId, recipientEmail);
+      if (!res.status) throw new Error(res.message || "Failed to send email");
+      return res;
+    },
+  });
+}
+
+export function useBulkDeleteBooksMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (bookIds: string[]) => {
+      const res = await bookService.bulkDeleteBooks(bookIds);
+      if (!res.status) throw new Error(res.message || "Failed to delete books");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useBulkMoveBooksMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookIds, targetLibraryId }: { bookIds: string[]; targetLibraryId: string }) => {
+      const res = await bookService.bulkMoveBooks(bookIds, targetLibraryId);
+      if (!res.status) throw new Error(res.message || "Failed to move books");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useBulkAssignCollectionsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookIds, collectionIds }: { bookIds: string[]; collectionIds: string[] }) => {
+      const res = await bookService.bulkAssignCollections(bookIds, collectionIds);
+      if (!res.status) throw new Error(res.message || "Failed to assign collections");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useBulkAddTagsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookIds, tagNames }: { bookIds: string[]; tagNames: string[] }) => {
+      const res = await bookService.bulkAddTags(bookIds, tagNames);
+      if (!res.status) throw new Error(res.message || "Failed to add tags");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
   });
 }

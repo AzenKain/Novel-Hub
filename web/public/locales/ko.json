@@ -113,6 +113,17 @@
   "library": {
     "ready_to_read": "읽을 준비 완료",
     "selected": "선택됨",
+    "move_library": "라이브러리 이동",
+    "add_tags": "태그 추가",
+    "bulk_delete_title": "선택한 도서 삭제",
+    "bulk_delete_confirm": "선택한 {{count}}권의 도서를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "bulk_move_title": "라이브러리로 도서 이동",
+    "bulk_move_subtitle": "선택한 {{count}}권의 대상 라이브러리를 선택하세요:",
+    "select_target_library": "대상 라이브러리 선택...",
+    "move": "이동",
+    "bulk_tag_title": "선택한 도서에 태그 추가",
+    "bulk_tag_subtitle": "쉼표로 구분하여 태그를 입력하세요:",
+    "tag_input_placeholder": "예: 판타지, 액션",
     "processing": "처리 중...",
     "by_author": "저자:",
     "added_on": "추가됨",
@@ -419,6 +430,44 @@
     "select_all": "전체 선택",
     "clear_all": "전체 해제",
     "permission_webhook_manage": "웹훅 및 알림 연동 관리",
-    "permission_book_share": "도서 공유 및 공유 링크 생성"
+    "permission_book_share": "도서 공유 및 공유 링크 생성",
+    "send_to_kindle": "Kindle로 전송",
+    "smtp_settings": "SMTP 이메일 발송 서버 설정",
+    "smtp_subtitle": "Send-to-Kindle 및 시스템 알림용 발신 메일 서버를 설정합니다.",
+    "smtp_host": "SMTP 호스트",
+    "smtp_port": "포트",
+    "smtp_user": "사용자 이름 / 이메일",
+    "smtp_pass": "비밀번호 / 앱 시크릿",
+    "smtp_from": "발신자 이메일 주소",
+    "test_smtp": "연결 테스트"
+  },
+  "kobo": {
+    "title": "Kobo 전자책 Wi-Fi 동기화",
+    "subtitle": "Kobo Clara, Libra, Forma, Sage 기기에서 Wi-Fi를 통해 도서, 독서 진도 및 표지를 동기화합니다.",
+    "endpoint_label": "Kobo API 엔드포인트 URL",
+    "show_qr": "QR 코드 보기",
+    "instructions_header": "Kobo 기기 설정 방법:",
+    "step1": "USB 케이블로 Kobo 전자책 단말기를 컴퓨터에 연결합니다.",
+    "step2": "텍스트 편집기로 .kobo/Kobo/KoboeReader.conf 파일을 엽니다.",
+    "step3": "[FeatureSettings] 섹션에 api_endpoint= 항목을 추가하거나 수정합니다:",
+    "step4": "Kobo 연결을 안전하게 해제한 후 Wi-Fi로 '동기화'를 누르세요!"
+  },
+  "email": {
+    "invalid": "유효한 이메일 주소를 입력해 주세요",
+    "sent_success": "도서가 이메일로 성공적으로 전송되었습니다!",
+    "send_failed": "이메일 전송에 실패했습니다. SMTP 설정을 확인해 주세요.",
+    "recipient_label": "수신자 이메일 주소",
+    "kindle_tip": "Kindle 기기 이메일 또는 개인 이메일 주소를 입력해 주세요.",
+    "send_btn": "도서 전송"
+  },
+  "trackers": {
+    "anilist_title": "AniList 독서 트래커",
+    "anilist_subtitle": "만화 및 라이트 노벨 독서 진도를 AniList 프로필에 자동으로 동기화합니다.",
+    "token_label": "AniList OAuth 액세스 토큰",
+    "get_token_link": "AniList 액세스 토큰 받기 ↗",
+    "connect_btn": "AniList 연동",
+    "enter_token": "AniList 액세스 토큰을 붙여넣어 주세요",
+    "connect_success": "AniList 계정이 성공적으로 연동되었습니다!",
+    "connect_failed": "AniList 계정 연동에 실패했습니다"
   }
 }

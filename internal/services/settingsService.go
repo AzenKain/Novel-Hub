@@ -2,15 +2,22 @@ package services
 
 import (
 	"context"
-	"novelhub/pkg/apperrors"
 	"database/sql"
 	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/apperrors"
+	"novelhub/pkg/config"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/netx"
 )
 
 var (
@@ -44,6 +51,7 @@ type SettingsService interface {
 	PolicyAllows(policy string, libraryID string, admin bool) bool
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
+	SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error)
 }
 
 type settingsService struct {
@@ -401,4 +409,50 @@ func allowedSettingKey(key string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error) {
+	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
+	if err := os.MkdirAll(publicDir, 0755); err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to create public directory")
+	}
+
+	outFilename := "logo.png"
+	if target == "favicon" {
+		outFilename = "favicon.png"
+	}
+	destPath := filepath.Join(publicDir, outFilename)
+
+	if len(fileData) > 0 {
+		if err := os.WriteFile(destPath, fileData, 0644); err != nil {
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to save file")
+		}
+		return "/public/" + outFilename, nil
+	}
+
+	if urlStr != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid URL")
+		}
+		client := netx.NewSafeHTTPClient(15 * time.Second)
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Failed to fetch URL or URL blocked for security")
+		}
+		defer resp.Body.Close()
+
+		out, err := os.Create(destPath)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to create destination file")
+		}
+		defer out.Close()
+
+		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to write downloaded asset")
+		}
+		return "/public/" + outFilename, nil
+	}
+
+	return "", apperrors.New(apperrors.ErrBadRequest, "Provide a file or URL")
 }

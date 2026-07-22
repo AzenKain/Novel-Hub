@@ -29,6 +29,7 @@ type RoleRepository interface {
 	CreateUserRole(ctx context.Context, userID, roleID int64) error
 	BulkDeleteRolesFromUser(ctx context.Context, userID int64) error
 	GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error)
+	CountActiveAdminUsers(ctx context.Context) (int64, error)
 	WithTx(tx *sql.Tx) RoleRepository
 }
 
@@ -126,15 +127,21 @@ func (r *roleRepository) GetByID(ctx context.Context, id int64) (*models.RoleEnt
 		}
 	}
 
-	row, err := r.q.GetRoleByID(ctx, id)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.q.GetRoleByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
+		}
+		return rolePtr, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	rolePtr := (&models.RoleEntity{}).FromSqlc(row)
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
-	}
-	return rolePtr, nil
+	return v.(*models.RoleEntity), nil
 }
 
 func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.PermissionEntity, error) {
@@ -148,7 +155,7 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 		}
 	}
 
-	v, err, _ := r.sfg.Do(key, func() (interface{}, error) {
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		keyRows, err := r.q.ListPermissionKeys(ctx)
 		if err != nil {
 			return nil, err
@@ -169,7 +176,7 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 		out := (&models.PermissionEntities{}).FromSqlc(rows)
 		return out, nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -197,35 +204,41 @@ func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.Rol
 		}
 	}
 
-	idRows, err := r.q.ListRolePermissionIDs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(idRows) == 0 {
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		idRows, err := r.q.ListRolePermissionIDs(ctx)
+		if err != nil {
+			return nil, err
 		}
-		return []*models.RolePermissionEntity{}, nil
-	}
 
-	rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		if len(idRows) == 0 {
+			if r.c != nil {
+				_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+			}
+			return []*models.RolePermissionEntity{}, nil
+		}
+
+		rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		if err != nil {
+			return nil, err
+		}
+
+		out := (&models.RolePermissionEntities{}).FromSqlc(rows)
+
+		ids := make([]int64, len(out))
+		for i, entity := range out {
+			ids[i] = entity.ID
+		}
+
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheRolePermissionEntities(ctx, out)
+		}
+		return out, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	out := (&models.RolePermissionEntities{}).FromSqlc(rows)
-
-	ids := make([]int64, len(out))
-	for i, entity := range out {
-		ids[i] = entity.ID
-	}
-
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheRolePermissionEntities(ctx, out)
-	}
-	return out, nil
+	return v.([]*models.RolePermissionEntity), nil
 }
 
 func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID int64) ([]*models.RolePermissionEntity, error) {
@@ -239,35 +252,41 @@ func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID int64) (
 		}
 	}
 
-	idRows, err := r.q.GetRolePermissionIDs(ctx, roleID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(idRows) == 0 {
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		idRows, err := r.q.GetRolePermissionIDs(ctx, roleID)
+		if err != nil {
+			return nil, err
 		}
-		return []*models.RolePermissionEntity{}, nil
-	}
 
-	rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		if len(idRows) == 0 {
+			if r.c != nil {
+				_ = r.c.Set(ctx, key, []int64{}, constants.ListCacheDuration)
+			}
+			return []*models.RolePermissionEntity{}, nil
+		}
+
+		rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		if err != nil {
+			return nil, err
+		}
+
+		out := (&models.RolePermissionEntities{}).FromSqlc(rows)
+
+		ids := make([]int64, len(out))
+		for i, entity := range out {
+			ids[i] = entity.ID
+		}
+
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheRolePermissionEntities(ctx, out)
+		}
+		return out, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	out := (&models.RolePermissionEntities{}).FromSqlc(rows)
-
-	ids := make([]int64, len(out))
-	for i, entity := range out {
-		ids[i] = entity.ID
-	}
-
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheRolePermissionEntities(ctx, out)
-	}
-	return out, nil
+	return v.([]*models.RolePermissionEntity), nil
 }
 
 func (r *roleRepository) getPermissionsByKeys(ctx context.Context, keys []string) ([]*models.PermissionEntity, bool) {
@@ -437,15 +456,21 @@ func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.Ro
 		}
 	}
 
-	row, err := r.q.GetRoleByName(ctx, name)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.q.GetRoleByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
+		}
+		return rolePtr, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	rolePtr := (&models.RoleEntity{}).FromSqlc(row)
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
-	}
-	return rolePtr, nil
+	return v.(*models.RoleEntity), nil
 }
 
 func (r *roleRepository) All(ctx context.Context) ([]*models.RoleEntity, error) {
@@ -457,7 +482,7 @@ func (r *roleRepository) All(ctx context.Context) ([]*models.RoleEntity, error) 
 		}
 	}
 
-	v, err, _ := r.sfg.Do(key, func() (interface{}, error) {
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		dbIds, err := r.q.GetRoleIDs(ctx)
 		if err != nil {
 			return nil, err
@@ -480,7 +505,7 @@ func (r *roleRepository) CreateUserRole(ctx context.Context, userID, roleID int6
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -492,7 +517,7 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID int
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -500,7 +525,53 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID int
 }
 
 func (r *roleRepository) GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error) {
-	return r.q.GetAutoAssignRoleIDs(ctx)
+	key := constants.CacheKeyRoleAutoAssignIDs
+	if r.c != nil && !r.inTx {
+		var ids []int64
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			return ids, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		ids, err := r.q.GetAutoAssignRoleIDs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]int64), nil
+}
+
+func (r *roleRepository) CountActiveAdminUsers(ctx context.Context) (int64, error) {
+	key := constants.CacheKeyRoleCountActiveAdminUsers
+	if r.c != nil && !r.inTx {
+		var count int64
+		if err := r.c.Get(ctx, key, &count); err == nil {
+			return count, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		count, err := r.q.CountActiveAdminUsers(ctx)
+		if err != nil {
+			return int64(0), err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
+		}
+		return count, nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return v.(int64), nil
 }
 
 func DecodeRole(raw []byte) (*models.RoleEntity, error) {

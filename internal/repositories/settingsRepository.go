@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -22,18 +24,26 @@ type SettingsRepository interface {
 }
 
 type settingsRepository struct {
-	q *sqlc.Queries
-	c cache.Cache
+	q   *sqlc.Queries
+	c   cache.Cache
+	sfg *singleflight.Group
 }
 
 func NewSettingsRepository(db sqlc.DBTX, c cache.Cache) SettingsRepository {
-	return &settingsRepository{q: sqlc.New(db), c: c}
+	return &settingsRepository{
+		q:   sqlc.New(db),
+		c:   c,
+		sfg: &singleflight.Group{},
+	}
 }
 
 func (r *settingsRepository) WithTx(tx *sql.Tx) SettingsRepository {
-	return &settingsRepository{q: r.q.WithTx(tx), c: r.c}
+	return &settingsRepository{
+		q:   r.q.WithTx(tx),
+		c:   r.c,
+		sfg: r.sfg,
+	}
 }
-
 
 func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEntity, error) {
 	key := "settings:all"
@@ -45,40 +55,46 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 			}
 		}
 	}
-	
-	// Query list of keys
-	keyRows, err := r.q.ListAppSettingKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	
-	// Fast path: if list is empty
-	if len(keyRows) == 0 {
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		// Query list of keys
+		keyRows, err := r.q.ListAppSettingKeys(ctx)
+		if err != nil {
+			return nil, err
 		}
-		return []*models.AppSettingEntity{}, nil
-	}
-	
-	// Query all settings by keys
-	rows, err := r.q.GetAppSettingsByKeys(ctx, keyRows)
+
+		// Fast path: if list is empty
+		if len(keyRows) == 0 {
+			if r.c != nil {
+				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+			}
+			return []*models.AppSettingEntity{}, nil
+		}
+
+		// Query all settings by keys
+		rows, err := r.q.GetAppSettingsByKeys(ctx, keyRows)
+		if err != nil {
+			return nil, err
+		}
+
+		out := (&models.AppSettingEntities{}).FromSqlc(rows)
+
+		// Maintain correct order
+		keys := make([]string, len(out))
+		for i, entity := range out {
+			keys[i] = entity.Key
+		}
+
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, keys, constants.ListCacheDuration)
+			r.cacheSettingEntities(ctx, out)
+		}
+		return out, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	
-	out := (&models.AppSettingEntities{}).FromSqlc(rows)
-	
-	// Maintain correct order
-	keys := make([]string, len(out))
-	for i, entity := range out {
-		keys[i] = entity.Key
-	}
-	
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, keys, constants.ListCacheDuration)
-		r.cacheSettingEntities(ctx, out)
-	}
-	return out, nil
+	return v.([]*models.AppSettingEntity), nil
 }
 
 func (r *settingsRepository) getSettingsByKeys(ctx context.Context, keys []string) ([]*models.AppSettingEntity, bool) {
@@ -102,10 +118,11 @@ func (r *settingsRepository) getSettingsByKeys(ctx context.Context, keys []strin
 			return nil, false
 		}
 		var entity models.AppSettingEntity
-		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
+		if err := jsonx.Unmarshal(bytes, &entity); err == nil {
+			ordered = append(ordered, &entity)
+		} else {
 			return nil, false
 		}
-		ordered = append(ordered, &entity)
 	}
 
 	return ordered, true
@@ -130,15 +147,22 @@ func (r *settingsRepository) Get(ctx context.Context, key string) (*models.AppSe
 			return &setting, nil
 		}
 	}
-	row, err := r.q.GetAppSetting(ctx, key)
+
+	v, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
+		row, err := r.q.GetAppSetting(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.AppSettingEntity{}).FromSqlc(row)
+		if r.c != nil {
+			_ = r.c.Set(ctx, cacheKey, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.AppSettingEntity{}).FromSqlc(row)
-	if r.c != nil {
-		_ = r.c.Set(ctx, cacheKey, result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.AppSettingEntity), nil
 }
 
 func (r *settingsRepository) Upsert(ctx context.Context, key string, valueJSON string) error {
@@ -159,14 +183,21 @@ func (r *settingsRepository) GetSetupState(ctx context.Context, key string) (str
 			return state, nil
 		}
 	}
-	row, err := r.q.GetSetupState(ctx, key)
+
+	v, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
+		row, err := r.q.GetSetupState(ctx, key)
+		if err != nil {
+			return "", err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, cacheKey, row.Value, constants.NormalCacheDuration)
+		}
+		return row.Value, nil
+	})
 	if err != nil {
 		return "", err
 	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, cacheKey, row.Value, constants.NormalCacheDuration)
-	}
-	return row.Value, nil
+	return v.(string), nil
 }
 
 func (r *settingsRepository) UpsertSetupState(ctx context.Context, key string, value string) error {
@@ -187,12 +218,19 @@ func (r *settingsRepository) CountAdminUsers(ctx context.Context) (int64, error)
 			return count, nil
 		}
 	}
-	count, err := r.q.CountAdminUsers(ctx)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		count, err := r.q.CountAdminUsers(ctx)
+		if err != nil {
+			return int64(0), err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, count, constants.NormalCacheDuration)
+		}
+		return count, nil
+	})
 	if err != nil {
 		return 0, err
 	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, count, constants.NormalCacheDuration)
-	}
-	return count, nil
+	return v.(int64), nil
 }

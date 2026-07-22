@@ -45,8 +45,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
     1. Query the database to retrieve a slice of IDs (e.g., via `SearchBookIDs`).
     2. Check the RAM cache for the corresponding entities by ID.
     3. Query the database only for the IDs that missed the cache.
-    4. Fill the cache with the newly fetched entities and return the ordered slice.
-  - Singleflight: Use `singleflight.Group` to prevent Cache Stampede (Thundering Herd) issues under heavy load.
+  - **Singleflight Protection (Mandatory)**: EVERY Repository read operation that checks RAM Cache and falls back to Database queries MUST wrap the DB fallback execution inside `singleflight.Group` (`r.sfg.Do(key, func() (any, error) {...})`) to eliminate Thundering Herd / Cache Stampede issues under heavy load.
 - **Type Safety**:
   - Repositories are allowed to accept generated `sqlc` types for query params.
   - However, all repository return types **MUST** be converted into entities defined in the [`internal/models`](./internal/models) package.

@@ -147,7 +147,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	txManager := database.NewTxManager(db)
 
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
-	userService := services.NewUserService(userRepo, roleRepo, txManager)
+	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager)
 	roleService := services.NewRoleService(roleRepo, permissionCache, txManager)
 	jobWorkers := config.GetIntConfigWithDefault("JOB_WORKERS", 1)
 	if jobWorkers < 1 {
@@ -256,6 +256,16 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	opdsService := services.NewOPDSService(bookRepo, settingsService)
 	opdsController := controllers.NewOPDSController(opdsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
+
+	koboService := services.NewKoboService(bookRepo, bookFileRepo)
+	koboController := controllers.NewKoboController(koboService)
+	routes.KoboRoutes(s.App, koboController)
+
+	trackerRepo := repositories.NewTrackerRepository(db, ramCache)
+	trackerService := services.NewTrackerService(trackerRepo)
+	trackerController := controllers.NewTrackerController(trackerService)
+	routes.TrackerRoutes(v1, trackerController, userRepo)
+
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)
 }

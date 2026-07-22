@@ -117,6 +117,17 @@
   "library": {
     "ready_to_read": "読む準備ができました",
     "selected": "選択中",
+    "move_library": "ライブラリ移動",
+    "add_tags": "タグ追加",
+    "bulk_delete_title": "選択した本を削除",
+    "bulk_delete_confirm": "選択した{{count}}冊の本を削除してもよろしいですか？この操作は取り消せません。",
+    "bulk_move_title": "本をライブラリに移動",
+    "bulk_move_subtitle": "選択した{{count}}冊の移動先ライブラリを選択してください:",
+    "select_target_library": "移動先ライブラリを選択...",
+    "move": "移動",
+    "bulk_tag_title": "選択した本にタグを追加",
+    "bulk_tag_subtitle": "コンマ区切りでタグを入力してください:",
+    "tag_input_placeholder": "例: ファンタジー, アクション",
     "processing": "処理中...",
     "by_author": "著",
     "added_on": "追加日",
@@ -423,6 +434,44 @@
     "select_all": "すべて選択",
     "clear_all": "すべて解除",
     "permission_webhook_manage": "Webhook および通知連携の管理",
-    "permission_book_share": "書籍の共有と共有リンクの生成"
+    "permission_book_share": "書籍の共有と共有リンクの生成",
+    "send_to_kindle": "Kindle に送信",
+    "smtp_settings": "SMTP メール送信サーバー設定",
+    "smtp_subtitle": "Send-to-Kindle およびシステム通知用の送信メールサーバーを設定します。",
+    "smtp_host": "SMTP ホスト",
+    "smtp_port": "ポート",
+    "smtp_user": "ユーザー名 / メール",
+    "smtp_pass": "パスワード / アプリシークレット",
+    "smtp_from": "送信元メールアドレス",
+    "test_smtp": "接続テスト"
+  },
+  "kobo": {
+    "title": "Kobo E-Reader Wi-Fi 同期",
+    "subtitle": "Kobo Clara、Libra、Forma、Sage で Wi-Fi 経由で書籍、進捗、カバーを直接同期します。",
+    "endpoint_label": "Kobo API エンドポイント URL",
+    "show_qr": "QR コードを表示",
+    "instructions_header": "Kobo 端末の設定手順:",
+    "step1": "USB ケーブルで Kobo 電子書籍リーダーをコンピューターに接続します。",
+    "step2": "テキストエディタで .kobo/Kobo/KoboeReader.conf を開きます。",
+    "step3": "[FeatureSettings] セクションに api_endpoint= を追加または更新します:",
+    "step4": "Kobo を取り外し、Wi-Fi で「同期」をタップします！"
+  },
+  "email": {
+    "invalid": "有効なメールアドレスを入力してください",
+    "sent_success": "書籍がメールに正常に送信されました！",
+    "send_failed": "メールの送信に失敗しました。SMTP 設定を確認してください。",
+    "recipient_label": "受信者メールアドレス",
+    "kindle_tip": "Kindle 端末のメールアドレスまたは個人用メールアドレスを入力してください。",
+    "send_btn": "書籍を送信"
+  },
+  "trackers": {
+    "anilist_title": "AniList 読書トラッカー",
+    "anilist_subtitle": "マンガやライトノベルの読書進捗を AniList プロフィールに自動同期します。",
+    "token_label": "AniList OAuth アクセストークン",
+    "get_token_link": "AniList アクセストークンを取得 ↗",
+    "connect_btn": "AniList を連携",
+    "enter_token": "AniList アクセストークンを貼り付けてください",
+    "connect_success": "AniList アカウントの連携に成功しました！",
+    "connect_failed": "AniList アカウントの連携に失敗しました"
   }
 }

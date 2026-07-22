@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"time"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -71,7 +71,7 @@ func getBaseURL(ctx fiber.Ctx) string {
 	return fmt.Sprintf("%s://%s", scheme, ctx.Host())
 }
 
-func sendXML(ctx fiber.Ctx, data interface{}) error {
+func sendXML(ctx fiber.Ctx, data any) error {
 	xmlBytes, err := xml.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to marshal OPDS XML")

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -19,6 +21,8 @@ type BookCatalogRepository interface {
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
 	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *sqlc.CreateBookFileParams) error
 	ListBookIDs(ctx context.Context, cursor *time.Time, limit int64) ([]string, error)
+	BulkUpdateBookLibrary(ctx context.Context, bookIDs []string, libraryID string) error
+	BulkDeleteBooks(ctx context.Context, bookIDs []string) error
 	WithTx(tx *sql.Tx) BookDBRepository
 }
 
@@ -98,6 +102,7 @@ type bookDBRepository struct {
 	queries *sqlc.Queries
 	c       cache.Cache
 	inTx    bool
+	sfg     *singleflight.Group
 }
 
 func NewBookDBRepository(db *sql.DB, c cache.Cache) BookDBRepository {
@@ -105,6 +110,7 @@ func NewBookDBRepository(db *sql.DB, c cache.Cache) BookDBRepository {
 		db:      db,
 		queries: sqlc.New(db),
 		c:       c,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -114,5 +120,6 @@ func (r *bookDBRepository) WithTx(tx *sql.Tx) BookDBRepository {
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
 		inTx:    true,
+		sfg:     r.sfg,
 	}
 }

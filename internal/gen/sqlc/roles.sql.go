@@ -30,6 +30,21 @@ func (q *Queries) BulkDeleteUsersFromRole(ctx context.Context, roleID int64) err
 	return err
 }
 
+const countActiveAdminUsers = `-- name: CountActiveAdminUsers :one
+SELECT COUNT(DISTINCT u.id)
+FROM users u
+JOIN user_roles ur ON u.id = ur.user_id
+JOIN roles r ON ur.role_id = r.id
+WHERE u.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin = 1)
+`
+
+func (q *Queries) CountActiveAdminUsers(ctx context.Context) (int64, error) {
+	row := q.queryRow(ctx, q.countActiveAdminUsersStmt, countActiveAdminUsers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (name, description, is_system, is_admin, auto_assign)
 VALUES (?, ?, ?, ?, ?)

@@ -9,10 +9,10 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
-	"sort"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
+	"sort"
 )
 
 func (r *bookDBRepository) CreateBook(ctx context.Context, book *models.BookEntity) error {
@@ -85,18 +85,29 @@ func (r *bookDBRepository) ListBookIDs(ctx context.Context, cursor *time.Time, l
 		}
 	}
 
-	ids, err := r.queries.ListBookIDs(ctx, sqlc.ListBookIDsParams{
-		CursorCreatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
-		Limit:           limit,
+	v, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
+		ids, err := r.queries.ListBookIDs(ctx, sqlc.ListBookIDsParams{
+			CursorCreatedAt: func(t *time.Time) sql.NullTime {
+				if t == nil {
+					return sql.NullTime{}
+				}
+				return sql.NullTime{Time: *t, Valid: true}
+			}(cursor),
+			Limit: limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, cacheKey, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, cacheKey, ids, constants.ListCacheDuration)
-	}
-	return ids, nil
+	return v.([]string), nil
 }
 
 func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.BookEntity, error) {
@@ -108,20 +119,26 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 		}
 	}
 
-	res, err := r.queries.GetBook(ctx, id)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetBook(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		book := (&models.BookEntity{}).FromSqlc(res)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, book, constants.NormalCacheDuration)
+		}
+		return book, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	book := (&models.BookEntity{}).FromSqlc(res)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, book, constants.NormalCacheDuration)
-	}
-	return book, nil
+	return v.(*models.BookEntity), nil
 }
 
 func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
 	if nav == "random" {
-		var libID interface{}
+		var libID any
 		libStr := ""
 		if libraryID != nil && *libraryID != "" {
 			libID = *libraryID
@@ -175,11 +192,11 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 				filtered = append(filtered, b)
 			}
 		}
-		
+
 		sort.Slice(filtered, func(i, j int) bool {
 			return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
 		})
-		
+
 		if int64(len(filtered)) > limit {
 			filtered = filtered[:limit]
 		}
@@ -194,7 +211,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return []*models.BookEntity{}, nil
 	}
 
-	var libID, searchStr interface{}
+	var libID, searchStr any
 	if libraryID != nil && *libraryID != "" {
 		libID = *libraryID
 	}
@@ -229,8 +246,13 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		PublisherID:           filters.PublisherID,
 		LanguageID:            filters.LanguageID,
 		FileFormat:            filters.FileFormat,
-		CursorCreatedAt: func(t *time.Time) sql.NullTime { if t == nil { return sql.NullTime{} }; return sql.NullTime{Time: *t, Valid: true} }(cursor),
-		Limit:                 limit,
+		CursorCreatedAt: func(t *time.Time) sql.NullTime {
+			if t == nil {
+				return sql.NullTime{}
+			}
+			return sql.NullTime{Time: *t, Valid: true}
+		}(cursor),
+		Limit: limit,
 	}
 	queryKey := cache.QueryKey("book:search:cursor", params)
 	if r.c != nil && !r.inTx {
@@ -252,35 +274,35 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 
 type bookSearchFilters struct {
 	Valid           bool
-	MissingMetadata interface{}
-	NoCover         interface{}
-	HasFiles        interface{}
-	HasAuthor       interface{}
-	HasSeries       interface{}
-	HasTags         interface{}
-	HasPublishers   interface{}
-	HasLanguages    interface{}
-	HasFormats      interface{}
-	Reading         interface{}
-	Read            interface{}
-	Unread          interface{}
-	Hot             interface{}
-	TopDownloaded   interface{}
-	TopRated        interface{}
-	Archived        interface{}
-	Bookmarked      interface{}
+	MissingMetadata any
+	NoCover         any
+	HasFiles        any
+	HasAuthor       any
+	HasSeries       any
+	HasTags         any
+	HasPublishers   any
+	HasLanguages    any
+	HasFormats      any
+	Reading         any
+	Read            any
+	Unread          any
+	Hot             any
+	TopDownloaded   any
+	TopRated        any
+	Archived        any
+	Bookmarked      any
 	UserID          sql.NullInt64
-	AuthorID        interface{}
-	SeriesID        interface{}
-	TagID           interface{}
-	PublisherID     interface{}
-	LanguageID      interface{}
-	FileFormat      interface{}
+	AuthorID        any
+	SeriesID        any
+	TagID           any
+	PublisherID     any
+	LanguageID      any
+	FileFormat      any
 }
 
 func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSearchFilters {
 	filters := bookSearchFilters{Valid: true}
-	set := func(target *interface{}) {
+	set := func(target *any) {
 		*target = 1
 	}
 
@@ -459,7 +481,7 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 			booksByID[book.ID] = book
 			missingMap[book.ID] = book
 		}
-		
+
 		if r.c != nil && !r.inTx {
 			missingToCache := make(map[string]any, len(missingMap))
 			for i, missingID := range missingIDs {
@@ -484,4 +506,52 @@ func orderBooks(ids []string, booksByID map[string]*models.BookEntity) []*models
 		}
 	}
 	return ordered
+}
+
+func (r *bookDBRepository) BulkUpdateBookLibrary(ctx context.Context, bookIDs []string, libraryID string) error {
+	if len(bookIDs) == 0 {
+		return nil
+	}
+	err := r.queries.BulkUpdateBookLibrary(ctx, sqlc.BulkUpdateBookLibraryParams{
+		LibraryID: libraryID,
+		BookIds:   bookIDs,
+	})
+	if err != nil {
+		return err
+	}
+	if r.c != nil && !r.inTx {
+		delKeys := make([]string, 0, len(bookIDs)+1)
+		delKeys = append(delKeys, "feature:library_stats")
+		for _, id := range bookIDs {
+			delKeys = append(delKeys, cache.BuildKey("book", "id", id))
+		}
+		_ = r.c.Del(ctx, delKeys...)
+		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+	}
+	return nil
+}
+
+func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string) error {
+	if len(bookIDs) == 0 {
+		return nil
+	}
+	_ = r.queries.BulkDeleteBookFiles(ctx, bookIDs)
+	_ = r.queries.BulkDeleteBookChapters(ctx, bookIDs)
+	_ = r.queries.BulkDeleteBookTags(ctx, bookIDs)
+	err := r.queries.BulkDeleteBooks(ctx, bookIDs)
+	if err != nil {
+		return err
+	}
+	if r.c != nil && !r.inTx {
+		delKeys := make([]string, 0, len(bookIDs)+1)
+		delKeys = append(delKeys, "feature:library_stats")
+		for _, id := range bookIDs {
+			delKeys = append(delKeys, cache.BuildKey("book", "id", id))
+		}
+		_ = r.c.Del(ctx, delKeys...)
+		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+	}
+	return nil
 }

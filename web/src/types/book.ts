@@ -152,3 +152,28 @@ export interface UploadCommitParams {
   filename: string;
   total_chunks: number;
 }
+
+export interface BulkDeleteBooksInput {
+  book_ids: string[];
+}
+
+export interface BulkMoveBooksInput {
+  book_ids: string[];
+  target_library_id: string;
+}
+
+export interface BulkAssignCollectionsInput {
+  book_ids: string[];
+  collection_ids: string[];
+}
+
+export interface BulkAddTagsInput {
+  book_ids: string[];
+  tag_names: string[];
+}
+
+export interface BulkOperationResponse {
+  success_count: number;
+  failed_count: number;
+  errors?: Record<string, string>;
+}

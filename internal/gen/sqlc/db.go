@@ -30,6 +30,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.addBookToCollectionStmt, err = db.PrepareContext(ctx, addBookToCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query AddBookToCollection: %w", err)
 	}
+	if q.bulkDeleteBookChaptersStmt, err = db.PrepareContext(ctx, bulkDeleteBookChapters); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkDeleteBookChapters: %w", err)
+	}
+	if q.bulkDeleteBookFilesStmt, err = db.PrepareContext(ctx, bulkDeleteBookFiles); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkDeleteBookFiles: %w", err)
+	}
+	if q.bulkDeleteBookTagsStmt, err = db.PrepareContext(ctx, bulkDeleteBookTags); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkDeleteBookTags: %w", err)
+	}
 	if q.bulkDeleteBooksStmt, err = db.PrepareContext(ctx, bulkDeleteBooks); err != nil {
 		return nil, fmt.Errorf("error preparing query BulkDeleteBooks: %w", err)
 	}
@@ -56,6 +65,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.clearBookTagsStmt, err = db.PrepareContext(ctx, clearBookTags); err != nil {
 		return nil, fmt.Errorf("error preparing query ClearBookTags: %w", err)
+	}
+	if q.countActiveAdminUsersStmt, err = db.PrepareContext(ctx, countActiveAdminUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query CountActiveAdminUsers: %w", err)
 	}
 	if q.countAdminUsersStmt, err = db.PrepareContext(ctx, countAdminUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query CountAdminUsers: %w", err)
@@ -159,6 +171,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteUserRoleStmt, err = db.PrepareContext(ctx, deleteUserRole); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUserRole: %w", err)
 	}
+	if q.deleteUserTrackerStmt, err = db.PrepareContext(ctx, deleteUserTracker); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserTracker: %w", err)
+	}
 	if q.deleteWebhookStmt, err = db.PrepareContext(ctx, deleteWebhook); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteWebhook: %w", err)
 	}
@@ -212,6 +227,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getBookSocialStatsStmt, err = db.PrepareContext(ctx, getBookSocialStats); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBookSocialStats: %w", err)
+	}
+	if q.getBookTrackerMappingStmt, err = db.PrepareContext(ctx, getBookTrackerMapping); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBookTrackerMapping: %w", err)
+	}
+	if q.getBookTrackerMappingIDsByBookStmt, err = db.PrepareContext(ctx, getBookTrackerMappingIDsByBook); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBookTrackerMappingIDsByBook: %w", err)
+	}
+	if q.getBookTrackerMappingsByIDsStmt, err = db.PrepareContext(ctx, getBookTrackerMappingsByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBookTrackerMappingsByIDs: %w", err)
 	}
 	if q.getBookmarkStmt, err = db.PrepareContext(ctx, getBookmark); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBookmark: %w", err)
@@ -344,6 +368,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getUserTokenVersionStmt, err = db.PrepareContext(ctx, getUserTokenVersion); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserTokenVersion: %w", err)
+	}
+	if q.getUserTrackerStmt, err = db.PrepareContext(ctx, getUserTracker); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTracker: %w", err)
+	}
+	if q.getUserTrackerIDsByUserStmt, err = db.PrepareContext(ctx, getUserTrackerIDsByUser); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTrackerIDsByUser: %w", err)
+	}
+	if q.getUserTrackersByIDsStmt, err = db.PrepareContext(ctx, getUserTrackersByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTrackersByIDs: %w", err)
 	}
 	if q.getUsersByIDsStmt, err = db.PrepareContext(ctx, getUsersByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUsersByIDs: %w", err)
@@ -528,6 +561,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertBookShareStatsStmt, err = db.PrepareContext(ctx, upsertBookShareStats); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertBookShareStats: %w", err)
 	}
+	if q.upsertBookTrackerMappingStmt, err = db.PrepareContext(ctx, upsertBookTrackerMapping); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertBookTrackerMapping: %w", err)
+	}
 	if q.upsertBookmarkStmt, err = db.PrepareContext(ctx, upsertBookmark); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertBookmark: %w", err)
 	}
@@ -555,6 +591,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertUserReadingGoalStmt, err = db.PrepareContext(ctx, upsertUserReadingGoal); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertUserReadingGoal: %w", err)
 	}
+	if q.upsertUserTrackerStmt, err = db.PrepareContext(ctx, upsertUserTracker); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertUserTracker: %w", err)
+	}
 	return &q, nil
 }
 
@@ -568,6 +607,21 @@ func (q *Queries) Close() error {
 	if q.addBookToCollectionStmt != nil {
 		if cerr := q.addBookToCollectionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing addBookToCollectionStmt: %w", cerr)
+		}
+	}
+	if q.bulkDeleteBookChaptersStmt != nil {
+		if cerr := q.bulkDeleteBookChaptersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkDeleteBookChaptersStmt: %w", cerr)
+		}
+	}
+	if q.bulkDeleteBookFilesStmt != nil {
+		if cerr := q.bulkDeleteBookFilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkDeleteBookFilesStmt: %w", cerr)
+		}
+	}
+	if q.bulkDeleteBookTagsStmt != nil {
+		if cerr := q.bulkDeleteBookTagsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkDeleteBookTagsStmt: %w", cerr)
 		}
 	}
 	if q.bulkDeleteBooksStmt != nil {
@@ -613,6 +667,11 @@ func (q *Queries) Close() error {
 	if q.clearBookTagsStmt != nil {
 		if cerr := q.clearBookTagsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing clearBookTagsStmt: %w", cerr)
+		}
+	}
+	if q.countActiveAdminUsersStmt != nil {
+		if cerr := q.countActiveAdminUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countActiveAdminUsersStmt: %w", cerr)
 		}
 	}
 	if q.countAdminUsersStmt != nil {
@@ -785,6 +844,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteUserRoleStmt: %w", cerr)
 		}
 	}
+	if q.deleteUserTrackerStmt != nil {
+		if cerr := q.deleteUserTrackerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserTrackerStmt: %w", cerr)
+		}
+	}
 	if q.deleteWebhookStmt != nil {
 		if cerr := q.deleteWebhookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteWebhookStmt: %w", cerr)
@@ -873,6 +937,21 @@ func (q *Queries) Close() error {
 	if q.getBookSocialStatsStmt != nil {
 		if cerr := q.getBookSocialStatsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getBookSocialStatsStmt: %w", cerr)
+		}
+	}
+	if q.getBookTrackerMappingStmt != nil {
+		if cerr := q.getBookTrackerMappingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBookTrackerMappingStmt: %w", cerr)
+		}
+	}
+	if q.getBookTrackerMappingIDsByBookStmt != nil {
+		if cerr := q.getBookTrackerMappingIDsByBookStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBookTrackerMappingIDsByBookStmt: %w", cerr)
+		}
+	}
+	if q.getBookTrackerMappingsByIDsStmt != nil {
+		if cerr := q.getBookTrackerMappingsByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBookTrackerMappingsByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getBookmarkStmt != nil {
@@ -1093,6 +1172,21 @@ func (q *Queries) Close() error {
 	if q.getUserTokenVersionStmt != nil {
 		if cerr := q.getUserTokenVersionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserTokenVersionStmt: %w", cerr)
+		}
+	}
+	if q.getUserTrackerStmt != nil {
+		if cerr := q.getUserTrackerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTrackerStmt: %w", cerr)
+		}
+	}
+	if q.getUserTrackerIDsByUserStmt != nil {
+		if cerr := q.getUserTrackerIDsByUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTrackerIDsByUserStmt: %w", cerr)
+		}
+	}
+	if q.getUserTrackersByIDsStmt != nil {
+		if cerr := q.getUserTrackersByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTrackersByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getUsersByIDsStmt != nil {
@@ -1400,6 +1494,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertBookShareStatsStmt: %w", cerr)
 		}
 	}
+	if q.upsertBookTrackerMappingStmt != nil {
+		if cerr := q.upsertBookTrackerMappingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertBookTrackerMappingStmt: %w", cerr)
+		}
+	}
 	if q.upsertBookmarkStmt != nil {
 		if cerr := q.upsertBookmarkStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertBookmarkStmt: %w", cerr)
@@ -1445,6 +1544,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertUserReadingGoalStmt: %w", cerr)
 		}
 	}
+	if q.upsertUserTrackerStmt != nil {
+		if cerr := q.upsertUserTrackerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertUserTrackerStmt: %w", cerr)
+		}
+	}
 	return err
 }
 
@@ -1486,6 +1590,9 @@ type Queries struct {
 	tx                                 *sql.Tx
 	addBookTagStmt                     *sql.Stmt
 	addBookToCollectionStmt            *sql.Stmt
+	bulkDeleteBookChaptersStmt         *sql.Stmt
+	bulkDeleteBookFilesStmt            *sql.Stmt
+	bulkDeleteBookTagsStmt             *sql.Stmt
 	bulkDeleteBooksStmt                *sql.Stmt
 	bulkDeleteRolesFromUserStmt        *sql.Stmt
 	bulkDeleteUsersFromRoleStmt        *sql.Stmt
@@ -1495,6 +1602,7 @@ type Queries struct {
 	clearBookPublishersStmt            *sql.Stmt
 	clearBookSeriesStmt                *sql.Stmt
 	clearBookTagsStmt                  *sql.Stmt
+	countActiveAdminUsersStmt          *sql.Stmt
 	countAdminUsersStmt                *sql.Stmt
 	countFilesForBookStmt              *sql.Stmt
 	countUsersStmt                     *sql.Stmt
@@ -1529,6 +1637,7 @@ type Queries struct {
 	deleteSmartCollectionStmt          *sql.Stmt
 	deleteUserStmt                     *sql.Stmt
 	deleteUserRoleStmt                 *sql.Stmt
+	deleteUserTrackerStmt              *sql.Stmt
 	deleteWebhookStmt                  *sql.Stmt
 	getAppSettingStmt                  *sql.Stmt
 	getAppSettingsByKeysStmt           *sql.Stmt
@@ -1547,6 +1656,9 @@ type Queries struct {
 	getBookReadStatsStmt               *sql.Stmt
 	getBookReviewStmt                  *sql.Stmt
 	getBookSocialStatsStmt             *sql.Stmt
+	getBookTrackerMappingStmt          *sql.Stmt
+	getBookTrackerMappingIDsByBookStmt *sql.Stmt
+	getBookTrackerMappingsByIDsStmt    *sql.Stmt
 	getBookmarkStmt                    *sql.Stmt
 	getBookmarkedBookIDsStmt           *sql.Stmt
 	getBooksByIDsStmt                  *sql.Stmt
@@ -1591,6 +1703,9 @@ type Queries struct {
 	getUserReadingGoalStmt             *sql.Stmt
 	getUserRolesStmt                   *sql.Stmt
 	getUserTokenVersionStmt            *sql.Stmt
+	getUserTrackerStmt                 *sql.Stmt
+	getUserTrackerIDsByUserStmt        *sql.Stmt
+	getUserTrackersByIDsStmt           *sql.Stmt
 	getUsersByIDsStmt                  *sql.Stmt
 	getWebhookByIDStmt                 *sql.Stmt
 	insertFTSChapterStmt               *sql.Stmt
@@ -1652,6 +1767,7 @@ type Queries struct {
 	upsertBookReadStatsStmt            *sql.Stmt
 	upsertBookReviewStmt               *sql.Stmt
 	upsertBookShareStatsStmt           *sql.Stmt
+	upsertBookTrackerMappingStmt       *sql.Stmt
 	upsertBookmarkStmt                 *sql.Stmt
 	upsertPermissionStmt               *sql.Stmt
 	upsertReadingHistoryStmt           *sql.Stmt
@@ -1661,6 +1777,7 @@ type Queries struct {
 	upsertSetupStateStmt               *sql.Stmt
 	upsertUserStmt                     *sql.Stmt
 	upsertUserReadingGoalStmt          *sql.Stmt
+	upsertUserTrackerStmt              *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
@@ -1669,6 +1786,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		tx:                                 tx,
 		addBookTagStmt:                     q.addBookTagStmt,
 		addBookToCollectionStmt:            q.addBookToCollectionStmt,
+		bulkDeleteBookChaptersStmt:         q.bulkDeleteBookChaptersStmt,
+		bulkDeleteBookFilesStmt:            q.bulkDeleteBookFilesStmt,
+		bulkDeleteBookTagsStmt:             q.bulkDeleteBookTagsStmt,
 		bulkDeleteBooksStmt:                q.bulkDeleteBooksStmt,
 		bulkDeleteRolesFromUserStmt:        q.bulkDeleteRolesFromUserStmt,
 		bulkDeleteUsersFromRoleStmt:        q.bulkDeleteUsersFromRoleStmt,
@@ -1678,6 +1798,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		clearBookPublishersStmt:            q.clearBookPublishersStmt,
 		clearBookSeriesStmt:                q.clearBookSeriesStmt,
 		clearBookTagsStmt:                  q.clearBookTagsStmt,
+		countActiveAdminUsersStmt:          q.countActiveAdminUsersStmt,
 		countAdminUsersStmt:                q.countAdminUsersStmt,
 		countFilesForBookStmt:              q.countFilesForBookStmt,
 		countUsersStmt:                     q.countUsersStmt,
@@ -1712,6 +1833,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteSmartCollectionStmt:          q.deleteSmartCollectionStmt,
 		deleteUserStmt:                     q.deleteUserStmt,
 		deleteUserRoleStmt:                 q.deleteUserRoleStmt,
+		deleteUserTrackerStmt:              q.deleteUserTrackerStmt,
 		deleteWebhookStmt:                  q.deleteWebhookStmt,
 		getAppSettingStmt:                  q.getAppSettingStmt,
 		getAppSettingsByKeysStmt:           q.getAppSettingsByKeysStmt,
@@ -1730,6 +1852,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getBookReadStatsStmt:               q.getBookReadStatsStmt,
 		getBookReviewStmt:                  q.getBookReviewStmt,
 		getBookSocialStatsStmt:             q.getBookSocialStatsStmt,
+		getBookTrackerMappingStmt:          q.getBookTrackerMappingStmt,
+		getBookTrackerMappingIDsByBookStmt: q.getBookTrackerMappingIDsByBookStmt,
+		getBookTrackerMappingsByIDsStmt:    q.getBookTrackerMappingsByIDsStmt,
 		getBookmarkStmt:                    q.getBookmarkStmt,
 		getBookmarkedBookIDsStmt:           q.getBookmarkedBookIDsStmt,
 		getBooksByIDsStmt:                  q.getBooksByIDsStmt,
@@ -1774,6 +1899,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getUserReadingGoalStmt:             q.getUserReadingGoalStmt,
 		getUserRolesStmt:                   q.getUserRolesStmt,
 		getUserTokenVersionStmt:            q.getUserTokenVersionStmt,
+		getUserTrackerStmt:                 q.getUserTrackerStmt,
+		getUserTrackerIDsByUserStmt:        q.getUserTrackerIDsByUserStmt,
+		getUserTrackersByIDsStmt:           q.getUserTrackersByIDsStmt,
 		getUsersByIDsStmt:                  q.getUsersByIDsStmt,
 		getWebhookByIDStmt:                 q.getWebhookByIDStmt,
 		insertFTSChapterStmt:               q.insertFTSChapterStmt,
@@ -1835,6 +1963,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertBookReadStatsStmt:            q.upsertBookReadStatsStmt,
 		upsertBookReviewStmt:               q.upsertBookReviewStmt,
 		upsertBookShareStatsStmt:           q.upsertBookShareStatsStmt,
+		upsertBookTrackerMappingStmt:       q.upsertBookTrackerMappingStmt,
 		upsertBookmarkStmt:                 q.upsertBookmarkStmt,
 		upsertPermissionStmt:               q.upsertPermissionStmt,
 		upsertReadingHistoryStmt:           q.upsertReadingHistoryStmt,
@@ -1844,5 +1973,6 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertSetupStateStmt:               q.upsertSetupStateStmt,
 		upsertUserStmt:                     q.upsertUserStmt,
 		upsertUserReadingGoalStmt:          q.upsertUserReadingGoalStmt,
+		upsertUserTrackerStmt:              q.upsertUserTrackerStmt,
 	}
 }

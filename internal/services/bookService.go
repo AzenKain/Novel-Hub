@@ -57,11 +57,19 @@ type BookService interface {
 	UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
+	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string) error
+
+	BulkDeleteBooks(ctx context.Context, dto *request.BulkDeleteBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
+	BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
+	BulkAssignCollections(ctx context.Context, dto *request.BulkAssignCollectionsDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
+	BulkAddTags(ctx context.Context, dto *request.BulkAddTagsDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 
 	SetWebhookService(webhook WebhookService)
 
 	CanReadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
+	CanUpdateBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
+	CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool)
 	SafeDownloadFilename(title string, ext string) string
 }
@@ -1004,6 +1012,26 @@ func (s *bookService) CanDownloadBook(ctx context.Context, book *models.BookEnti
 		return false
 	}
 	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.download", map[string]any{"library_id": book.LibraryID})
+}
+
+func (s *bookService) CanUpdateBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
+	if book == nil || claims == nil {
+		return false
+	}
+	if s.permissions.IsAdmin(claims.RoleIDs, claims.Roles) {
+		return true
+	}
+	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.update", map[string]any{"library_id": book.LibraryID})
+}
+
+func (s *bookService) CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
+	if book == nil || claims == nil {
+		return false
+	}
+	if s.permissions.IsAdmin(claims.RoleIDs, claims.Roles) {
+		return true
+	}
+	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, "book.delete", map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) SafeDownloadFilename(title string, ext string) string {

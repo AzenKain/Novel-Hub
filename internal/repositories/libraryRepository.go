@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -25,6 +27,7 @@ type libraryRepository struct {
 	db      *sql.DB
 	queries *sqlc.Queries
 	c       cache.Cache
+	sfg     *singleflight.Group
 }
 
 func NewLibraryRepository(db *sql.DB, c cache.Cache) LibraryRepository {
@@ -32,6 +35,7 @@ func NewLibraryRepository(db *sql.DB, c cache.Cache) LibraryRepository {
 		db:      db,
 		queries: sqlc.New(db),
 		c:       c,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -43,6 +47,7 @@ func (r *libraryRepository) WithTx(tx *sql.Tx) LibraryRepository {
 		db:      r.db,
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
+		sfg:     r.sfg,
 	}
 }
 
@@ -72,16 +77,22 @@ func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.
 		}
 	}
 
-	res, err := r.queries.GetLibrary(ctx, id)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetLibrary(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		library := (&models.LibraryEntity{}).FromSqlc(res)
+
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, library, constants.NormalCacheDuration)
+		}
+		return library, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	library := (&models.LibraryEntity{}).FromSqlc(res)
-
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, library, constants.NormalCacheDuration)
-	}
-	return library, nil
+	return v.(*models.LibraryEntity), nil
 }
 
 func (r *libraryRepository) ListLibraries(ctx context.Context, limit, offset int64) ([]*models.LibraryEntity, error) {
@@ -93,14 +104,20 @@ func (r *libraryRepository) ListLibraries(ctx context.Context, limit, offset int
 		}
 	}
 
-	ids, err := r.queries.ListLibraryIDs(ctx, sqlc.ListLibraryIDsParams{Limit: limit, Offset: offset})
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		ids, err := r.queries.ListLibraryIDs(ctx, sqlc.ListLibraryIDsParams{Limit: limit, Offset: offset})
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-	}
-	return r.GetLibrariesByIDs(ctx, ids)
+	return r.GetLibrariesByIDs(ctx, v.([]string))
 }
 
 func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string) ([]*models.LibraryEntity, error) {

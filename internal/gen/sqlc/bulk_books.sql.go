@@ -11,6 +11,66 @@ import (
 	"strings"
 )
 
+const bulkDeleteBookChapters = `-- name: BulkDeleteBookChapters :exec
+DELETE FROM chapters
+WHERE book_id IN (/*SLICE:book_ids*/?)
+`
+
+func (q *Queries) BulkDeleteBookChapters(ctx context.Context, bookIds []string) error {
+	query := bulkDeleteBookChapters
+	var queryParams []interface{}
+	if len(bookIds) > 0 {
+		for _, v := range bookIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", strings.Repeat(",?", len(bookIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkDeleteBookFiles = `-- name: BulkDeleteBookFiles :exec
+DELETE FROM book_files
+WHERE book_id IN (/*SLICE:book_ids*/?)
+`
+
+func (q *Queries) BulkDeleteBookFiles(ctx context.Context, bookIds []string) error {
+	query := bulkDeleteBookFiles
+	var queryParams []interface{}
+	if len(bookIds) > 0 {
+		for _, v := range bookIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", strings.Repeat(",?", len(bookIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkDeleteBookTags = `-- name: BulkDeleteBookTags :exec
+DELETE FROM book_tags
+WHERE book_id IN (/*SLICE:book_ids*/?)
+`
+
+func (q *Queries) BulkDeleteBookTags(ctx context.Context, bookIds []string) error {
+	query := bulkDeleteBookTags
+	var queryParams []interface{}
+	if len(bookIds) > 0 {
+		for _, v := range bookIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", strings.Repeat(",?", len(bookIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:book_ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
 const bulkDeleteBooks = `-- name: BulkDeleteBooks :exec
 DELETE FROM books
 WHERE id IN (/*SLICE:book_ids*/?)

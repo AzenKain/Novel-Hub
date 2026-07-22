@@ -25,24 +25,31 @@ func (r *bookDBRepository) SearchFTS(ctx context.Context, query string, limit, o
 			}
 		}
 	}
-	rows, err := r.queries.SearchFTS(ctx, params)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.SearchFTS(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.FTSResultEntities{}).FromSqlc(rows)
+		if r.c != nil && !r.inTx {
+			ids := make([]string, len(result))
+			toCache := make(map[string]any, len(result))
+			for i, res := range result {
+				ids[i] = res.ChapterID
+				toCache[cache.BuildKey("fts", "result", res.ChapterID)] = res
+			}
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			if len(toCache) > 0 {
+				_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+			}
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.FTSResultEntities{}).FromSqlc(rows)
-	if r.c != nil && !r.inTx {
-		ids := make([]string, len(result))
-		toCache := make(map[string]any, len(result))
-		for i, res := range result {
-			ids[i] = res.ChapterID
-			toCache[cache.BuildKey("fts", "result", res.ChapterID)] = res
-		}
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		if len(toCache) > 0 {
-			_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
-		}
-	}
-	return result, nil
+	return v.([]*models.FTSResultEntity), nil
 }
 
 func (r *bookDBRepository) getFTSResultsByIDs(ctx context.Context, ids []string) ([]*models.FTSResultEntity, bool) {

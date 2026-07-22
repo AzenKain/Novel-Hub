@@ -1,0 +1,96 @@
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link2, Key, Check } from "lucide-react";
+import { useConnectTrackerMutation } from "@/hooks";
+import { toast } from "react-toastify";
+
+export const TrackerConnectCard: React.FC = () => {
+  const { t } = useTranslation();
+  const [accessToken, setAccessToken] = useState("");
+  const [connected, setConnected] = useState(false);
+
+  const connectMutation = useConnectTrackerMutation();
+
+  const handleConnect = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessToken.trim()) {
+      toast.error(t("trackers.enter_token", "Please paste your AniList Access Token"));
+      return;
+    }
+
+    connectMutation.mutate(
+      { provider: "anilist", access_token: accessToken.trim() },
+      {
+        onSuccess: () => {
+          setConnected(true);
+          toast.success(t("trackers.connect_success", "AniList account connected successfully!"));
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || t("trackers.connect_failed", "Failed to connect AniList account"));
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-base-200 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-info/10 text-info">
+            <Link2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold flex items-center gap-2">
+              {t("trackers.anilist_title", "AniList Reading Tracker")}
+              {connected && (
+                <span className="badge badge-success badge-sm">{t("common.connected", "Connected")}</span>
+              )}
+            </h3>
+            <p className="text-xs text-base-content/60">
+              {t("trackers.anilist_subtitle", "Auto-sync your manga and light novel reading progress to your AniList profile.")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleConnect} className="space-y-3">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-base-content/70 mb-1">
+            {t("trackers.token_label", "AniList OAuth Access Token")}
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="Paste your token (eyJ0eXAi...)"
+              className="input input-bordered w-full font-mono text-xs pr-10"
+              required
+            />
+            <Key className="absolute right-3 top-3 h-4 w-4 text-base-content/40" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <a
+            href="https://anilist.co/api/v2/oauth/authorize?client_id=19807&response_type=token"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            {t("trackers.get_token_link", "Get AniList Access Token ↗")}
+          </a>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm gap-2"
+            disabled={connectMutation.isPending}
+          >
+            {connectMutation.isPending ? <span className="loading loading-spinner loading-xs" /> : <Check className="h-4 w-4" />}
+            {t("trackers.connect_btn", "Connect AniList")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};

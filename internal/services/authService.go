@@ -287,6 +287,7 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	if err := settingsRepoTx.UpsertSetupState(ctx, "completed", "true"); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to complete setup")
 	}
+	_ = settingsRepoTx.UpsertSetupState(ctx, "root_admin_id", strconv.FormatInt(user.ID, 10))
 
 	if err := tx.Commit(); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit setup")

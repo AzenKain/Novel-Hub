@@ -6,10 +6,10 @@ import (
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
-	"novelhub/pkg/cache"
 )
 
 func (r *bookDBRepository) CreateAuthor(ctx context.Context, author *models.AuthorEntity) error {
@@ -44,15 +44,22 @@ func (r *bookDBRepository) GetAuthorByName(ctx context.Context, name string) (*m
 			return &author, nil
 		}
 	}
-	res, err := r.queries.GetAuthorByName(ctx, name)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetAuthorByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		author := (&models.AuthorEntity{}).FromSqlc(res)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, author, constants.NormalCacheDuration)
+		}
+		return author, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	author := (&models.AuthorEntity{}).FromSqlc(res)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, author, constants.NormalCacheDuration)
-	}
-	return author, nil
+	return v.(*models.AuthorEntity), nil
 }
 
 func (r *bookDBRepository) GetAuthorByID(ctx context.Context, id string) (*models.AuthorEntity, error) {
@@ -63,16 +70,23 @@ func (r *bookDBRepository) GetAuthorByID(ctx context.Context, id string) (*model
 			return &author, nil
 		}
 	}
-	res, err := r.queries.GetAuthorById(ctx, id)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetAuthorById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		author := (&models.AuthorEntity{}).FromSqlc(res)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, author, constants.NormalCacheDuration)
+			_ = r.c.Set(ctx, cache.BuildKey("author", "name", author.Name), author, constants.NormalCacheDuration)
+		}
+		return author, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	author := (&models.AuthorEntity{}).FromSqlc(res)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, author, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, cache.BuildKey("author", "name", author.Name), author, constants.NormalCacheDuration)
-	}
-	return author, nil
+	return v.(*models.AuthorEntity), nil
 }
 
 func (r *bookDBRepository) GetAuthorsByIDs(ctx context.Context, ids []string) ([]*models.AuthorEntity, error) {
@@ -207,15 +221,22 @@ func (r *bookDBRepository) GetSeriesByName(ctx context.Context, name string) (*m
 			return &series, nil
 		}
 	}
-	series, err := r.queries.GetSeriesByName(ctx, name)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		series, err := r.queries.GetSeriesByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.SeriesEntity{}).FromSqlc(series)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.SeriesEntity{}).FromSqlc(series)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.SeriesEntity), nil
 }
 
 func (r *bookDBRepository) CreateSeries(ctx context.Context, series *models.SeriesEntity) error {
@@ -277,15 +298,22 @@ func (r *bookDBRepository) GetPublisherByName(ctx context.Context, name string) 
 			return &publisher, nil
 		}
 	}
-	publisher, err := r.queries.GetPublisherByName(ctx, name)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		publisher, err := r.queries.GetPublisherByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.PublisherEntity{}).FromSqlc(publisher)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.PublisherEntity{}).FromSqlc(publisher)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.PublisherEntity), nil
 }
 
 func (r *bookDBRepository) CreatePublisher(ctx context.Context, publisher *models.PublisherEntity) error {
@@ -346,15 +374,22 @@ func (r *bookDBRepository) GetLanguageByName(ctx context.Context, name string) (
 			return &language, nil
 		}
 	}
-	language, err := r.queries.GetLanguageByName(ctx, name)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		language, err := r.queries.GetLanguageByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.LanguageEntity{}).FromSqlc(language)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.LanguageEntity{}).FromSqlc(language)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.LanguageEntity), nil
 }
 
 func (r *bookDBRepository) CreateLanguage(ctx context.Context, language *models.LanguageEntity) error {
@@ -430,29 +465,36 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, cursor stri
 			}
 		}
 	}
-	params := sqlc.ListAuthorsWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListAuthorsWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListAuthorsWithCount(ctx, params)
+		rows, err := r.queries.ListAuthorsWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "author", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "author", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
@@ -465,29 +507,36 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, cursor strin
 			}
 		}
 	}
-	params := sqlc.ListSeriesWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListSeriesWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListSeriesWithCount(ctx, params)
+		rows, err := r.queries.ListSeriesWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount, CoverURL: row.CoverUrl.String}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "series", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount, CoverURL: row.CoverUrl.String}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "series", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
@@ -500,29 +549,36 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, cursor s
 			}
 		}
 	}
-	params := sqlc.ListPublishersWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListPublishersWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListPublishersWithCount(ctx, params)
+		rows, err := r.queries.ListPublishersWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "publisher", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "publisher", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
@@ -535,29 +591,36 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, cursor st
 			}
 		}
 	}
-	params := sqlc.ListLanguagesWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListLanguagesWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListLanguagesWithCount(ctx, params)
+		rows, err := r.queries.ListLanguagesWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "language", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "language", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
@@ -570,29 +633,36 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, cursor string,
 			}
 		}
 	}
-	params := sqlc.ListTagsWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListTagsWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListTagsWithCount(ctx, params)
+		rows, err := r.queries.ListTagsWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "tag", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "tag", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
@@ -605,29 +675,36 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, cursor stri
 			}
 		}
 	}
-	params := sqlc.ListFormatsWithCountParams{Limit: limit}
-	if cursor != "" {
-		parts := convert.DecodeCursor(cursor)
-		if len(parts) == 2 {
-			params.CursorName = parts[0]
-			params.CursorID = sql.NullString{String: parts[1], Valid: true}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		params := sqlc.ListFormatsWithCountParams{Limit: limit}
+		if cursor != "" {
+			parts := convert.DecodeCursor(cursor)
+			if len(parts) == 2 {
+				params.CursorName = parts[0]
+				params.CursorID = sql.NullString{String: parts[1], Valid: true}
+			}
 		}
-	}
-	rows, err := r.queries.ListFormatsWithCount(ctx, params)
+		rows, err := r.queries.ListFormatsWithCount(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "format", result)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(rows))
-	result := make([]*models.MetadataCountEntity, len(rows))
-	for i, row := range rows {
-		result[i] = &models.MetadataCountEntity{ID: row.ID, Name: row.Name, BookCount: row.BookCount}
-		ids[i] = row.ID
-	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheMetadataCountEntities(ctx, "format", result)
-	}
-	return result, nil
+	return v.([]*models.MetadataCountEntity), nil
 }
 
 func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType string, ids []string) ([]*models.MetadataCountEntity, bool) {

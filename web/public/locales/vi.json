@@ -113,6 +113,17 @@
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
     "selected": "đã chọn",
+    "move_library": "Chuyển Thư Viện",
+    "add_tags": "Thêm Thẻ",
+    "bulk_delete_title": "Xóa Các Sách Đã Chọn",
+    "bulk_delete_confirm": "Bạn có chắc chắn muốn xóa {{count}} sách đã chọn? Hành động này không thể hoàn tác và sẽ xóa tất cả các tệp liên quan.",
+    "bulk_move_title": "Chuyển Sách Sang Thư Viện",
+    "bulk_move_subtitle": "Chọn thư viện đích cho {{count}} sách đã chọn:",
+    "select_target_library": "Chọn thư viện đích...",
+    "move": "Chuyển",
+    "bulk_tag_title": "Thêm Thẻ Cho Các Sách Đã Chọn",
+    "bulk_tag_subtitle": "Nhập các thẻ phân cách bằng dấu phẩy để thêm vào {{count}} sách:",
+    "tag_input_placeholder": "Ví dụ: Fantasy, Action, Sci-Fi",
     "processing": "Đang xử lý...",
     "by_author": "bởi",
     "added_on": "Đã thêm",
@@ -422,6 +433,44 @@
     "select_all": "Chọn tất cả",
     "clear_all": "Bỏ chọn tất cả",
     "permission_webhook_manage": "Quản lý webhook và tích hợp thông báo",
-    "permission_book_share": "Chia sẻ sách và tạo liên kết chia sẻ"
+    "permission_book_share": "Chia sẻ sách và tạo liên kết chia sẻ",
+    "send_to_kindle": "Gửi đến Kindle",
+    "smtp_settings": "Cài đặt Máy chủ Email SMTP",
+    "smtp_subtitle": "Cấu hình máy chủ gửi mail hệ thống cho tính năng Gửi đến Kindle và thông báo.",
+    "smtp_host": "SMTP Host",
+    "smtp_port": "Cổng (Port)",
+    "smtp_user": "Tên đăng nhập / Email",
+    "smtp_pass": "Mật khẩu / App Secret",
+    "smtp_from": "Địa chỉ Email người gửi",
+    "test_smtp": "Kiểm tra Kết nối"
+  },
+  "kobo": {
+    "title": "Đồng bộ Wi-Fi Máy đọc sách Kobo",
+    "subtitle": "Tự động đồng bộ sách, tiến độ đọc và ảnh bìa qua Wi-Fi cho các dòng Kobo Clara, Libra, Forma, Sage.",
+    "endpoint_label": "Kobo API Endpoint URL",
+    "show_qr": "Mở mã QR Code",
+    "instructions_header": "Các bước thiết lập trên máy Kobo:",
+    "step1": "Kết nối máy đọc sách Kobo với máy tính bằng cáp USB.",
+    "step2": "Mở tệp .kobo/Kobo/KoboeReader.conf bằng trình chỉnh sửa văn bản.",
+    "step3": "Thêm hoặc cập nhật mục [FeatureSettings] với api_endpoint=",
+    "step4": "Ngắt kết nối an toàn và nhấn nút 'Đồng bộ' (Sync) qua Wi-Fi!"
+  },
+  "email": {
+    "invalid": "Vui lòng nhập địa chỉ email hợp lệ",
+    "sent_success": "Đã gửi sách thành công đến email của bạn!",
+    "send_failed": "Gửi email thất bại. Hãy kiểm tra lại cấu hình máy chủ SMTP.",
+    "recipient_label": "Địa chỉ Email nhận sách",
+    "kindle_tip": "Nhập địa chỉ email thiết bị Kindle hoặc email cá nhân của bạn.",
+    "send_btn": "Gửi Sách Ngay"
+  },
+  "trackers": {
+    "anilist_title": "Đồng bộ Tiến độ อ่าน AniList",
+    "anilist_subtitle": "Tự động đồng bộ tiến độ đọc manga và light novel lên hồ sơ AniList cá nhân.",
+    "token_label": "Mã AniList OAuth Access Token",
+    "get_token_link": "Lấy mã AniList Access Token ↗",
+    "connect_btn": "Kết nối AniList",
+    "enter_token": "Vui lòng dán mã AniList Access Token của bạn",
+    "connect_success": "Đã kết nối tài khoản AniList thành công!",
+    "connect_failed": "Kết nối tài khoản AniList thất bại"
   }
 }

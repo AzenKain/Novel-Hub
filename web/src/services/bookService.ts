@@ -234,4 +234,59 @@ export const bookService = {
       throw error;
     }
   },
+
+  async sendToEmail(id: string, recipientEmail: string): Promise<CommonResponse<void>> {
+    try {
+      const res = await api.post(`/books/${id}/send-email`, { recipient_email: recipientEmail });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<void>;
+      throw error;
+    }
+  },
+
+  async bulkDeleteBooks(bookIds: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+    try {
+      const res = await api.post(`/books/bulk-delete`, { book_ids: bookIds });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+      throw error;
+    }
+  },
+
+  async bulkMoveBooks(bookIds: string[], targetLibraryId: string): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+    try {
+      const res = await api.post(`/books/bulk-move`, { book_ids: bookIds, target_library_id: targetLibraryId });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+      throw error;
+    }
+  },
+
+  async bulkAssignCollections(bookIds: string[], collectionIds: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+    try {
+      const res = await api.post(`/books/bulk-assign-collections`, { book_ids: bookIds, collection_ids: collectionIds });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+      throw error;
+    }
+  },
+
+  async bulkAddTags(bookIds: string[], tagNames: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+    try {
+      const res = await api.post(`/books/bulk-add-tags`, { book_ids: bookIds, tag_names: tagNames });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+      throw error;
+    }
+  },
 };

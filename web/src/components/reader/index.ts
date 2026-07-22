@@ -5,3 +5,4 @@ export * from "./ReaderTtsSettingsPanel";
 export * from "./ReaderSelectionToolbar";
 export * from "./ReaderSidebar";
 export * from "./ReaderTopBar";
+export * from "./ComicReader";

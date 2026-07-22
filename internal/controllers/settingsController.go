@@ -4,18 +4,15 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"novelhub/pkg/config"
-
 	"github.com/gofiber/fiber/v3"
-	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
-	"novelhub/pkg/netx"
+	"novelhub/pkg/apperrors"
 )
 
 type SettingsController struct {
@@ -69,109 +66,58 @@ func (h *SettingsController) SetupStatus(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if !h.service.SetupRequired(ctx) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Setup already completed"})
 	}
 
-	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
-	os.MkdirAll(publicDir, 0755)
-
-	target := c.FormValue("target", "logo")
-	filename := "logo.png"
-	if target == "favicon" {
-		filename = "favicon.png"
-	}
-	destPath := filepath.Join(publicDir, filename)
-
-	// Try file upload
-	file, err := c.FormFile("file")
-	if err == nil {
-		if err := c.SaveFile(file, destPath); err != nil {
-			return apperrors.HandleError(c, err)
-		}
-		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
-	}
-
-	// Try URL
-	urlStr := c.FormValue("url")
-	if urlStr != "" {
-		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
-		if reqErr != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid URL"})
-		}
-		client := netx.NewSafeHTTPClient(15 * time.Second)
-		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 200 {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL or URL blocked for security"})
-		}
-		defer resp.Body.Close()
-
-		out, err := os.Create(destPath)
-		if err != nil {
-			return apperrors.HandleError(c, err)
-		}
-		defer out.Close()
-
-		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
-			return apperrors.HandleError(c, err)
-		}
-		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
-	}
-
-	return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Provide a file or URL"})
+	return h.handleAssetUpload(ctx, c)
 }
 
 func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
-	os.MkdirAll(publicDir, 0755)
+	return h.handleAssetUpload(ctx, c)
+}
 
+func (h *SettingsController) handleAssetUpload(ctx context.Context, c fiber.Ctx) error {
 	target := c.FormValue("target", "logo")
-	filename := "logo.png"
-	if target == "favicon" {
-		filename = "favicon.png"
-	}
-	destPath := filepath.Join(publicDir, filename)
-
-	// Try file upload
-	file, err := c.FormFile("file")
-	if err == nil {
-		if err := c.SaveFile(file, destPath); err != nil {
-			return apperrors.HandleError(c, err)
-		}
-		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
-	}
-
-	// Try URL
 	urlStr := c.FormValue("url")
-	if urlStr != "" {
-		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
-		if reqErr != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid URL"})
-		}
-		client := netx.NewSafeHTTPClient(15 * time.Second)
-		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 200 {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL or URL blocked for security"})
-		}
-		defer resp.Body.Close()
 
-		out, err := os.Create(destPath)
+	var fileData []byte
+	var fileName string
+
+	fileHeader, err := c.FormFile("file")
+	if err == nil && fileHeader != nil {
+		f, err := fileHeader.Open()
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to open uploaded file"})
+		}
+		defer f.Close()
+		
+		fileData, err = io.ReadAll(io.LimitReader(f, 5<<20))
 		if err != nil {
 			return apperrors.HandleError(c, err)
 		}
-		defer out.Close()
 
-		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
-			return apperrors.HandleError(c, err)
+		contentType := http.DetectContentType(fileData)
+		if !strings.HasPrefix(contentType, "image/") {
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Uploaded file must be a valid image"})
 		}
-		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
+
+		fileName = filepath.Base(fileHeader.Filename)
 	}
 
-	return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Provide a file or URL"})
+	assetURL, err := h.service.SaveAsset(ctx, target, fileData, fileName, urlStr)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
+		Status: true,
+		Data:   map[string]string{"url": assetURL},
+	})
 }

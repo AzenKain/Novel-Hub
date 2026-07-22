@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -20,10 +22,15 @@ type JobRepository interface {
 type jobRepository struct {
 	queries *sqlc.Queries
 	c       cache.Cache
+	sfg     *singleflight.Group
 }
 
 func NewJobRepository(db *sql.DB, c cache.Cache) JobRepository {
-	return &jobRepository{queries: sqlc.New(db), c: c}
+	return &jobRepository{
+		queries: sqlc.New(db),
+		c:       c,
+		sfg:     &singleflight.Group{},
+	}
 }
 
 func (r *jobRepository) WithTx(tx *sql.Tx) JobRepository {
@@ -33,6 +40,7 @@ func (r *jobRepository) WithTx(tx *sql.Tx) JobRepository {
 	return &jobRepository{
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
+		sfg:     r.sfg,
 	}
 }
 
@@ -44,15 +52,22 @@ func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntit
 			return &job, nil
 		}
 	}
-	row, err := r.queries.GetJob(ctx, id)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetJob(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		job := (&models.JobEntity{}).FromSqlc(row)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, job, constants.NormalCacheDuration)
+		}
+		return job, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	job := (&models.JobEntity{}).FromSqlc(row)
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, job, constants.NormalCacheDuration)
-	}
-	return job, nil
+	return v.(*models.JobEntity), nil
 }
 
 func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error) {
@@ -65,31 +80,31 @@ func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset in
 			}
 		}
 	}
-	
+
 	idRows, err := r.queries.ListUnfinishedJobIDs(ctx, sqlc.ListUnfinishedJobIDsParams{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(idRows) == 0 {
 		if r.c != nil {
 			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 		}
 		return []*models.JobEntity{}, nil
 	}
-	
+
 	rows, err := r.queries.GetJobsByIDs(ctx, idRows)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	jobs := make([]*models.JobEntity, len(rows))
 	ids := make([]string, len(rows))
 	for i, row := range rows {
 		jobs[i] = (&models.JobEntity{}).FromSqlc(row)
 		ids[i] = row.ID
 	}
-	
+
 	if r.c != nil {
 		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 		r.cacheJobEntities(ctx, jobs)

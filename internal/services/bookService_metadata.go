@@ -35,7 +35,7 @@ func ensureAuthor(ctx context.Context, repo repositories.BookDBRepository, name 
 }
 
 func mergeBookMetadataJSON(existing *string, req *request.UpdateBookMetadataDto) (string, error) {
-	metaMap := map[string]interface{}{}
+	metaMap := map[string]any{}
 	if existing != nil && strings.TrimSpace(*existing) != "" {
 		_ = jsonx.UnmarshalString(*existing, &metaMap)
 	}
@@ -53,7 +53,7 @@ func mergeBookMetadataJSON(existing *string, req *request.UpdateBookMetadataDto)
 		delete(metaMap, "subject")
 	}
 
-	rawMeta, _ := metaMap["meta"].([]interface{})
+	rawMeta, _ := metaMap["meta"].([]any)
 	rawMeta = upsertMetaValue(rawMeta, "calibre:series", req.Series)
 	rawMeta = upsertMetaValue(rawMeta, "calibre:series_index", req.SeriesIndex)
 	if len(rawMeta) > 0 {
@@ -64,7 +64,7 @@ func mergeBookMetadataJSON(existing *string, req *request.UpdateBookMetadataDto)
 	return jsonx.MarshalString(metaMap)
 }
 
-func setStringMetadata(metaMap map[string]interface{}, key string, value string) {
+func setStringMetadata(metaMap map[string]any, key string, value string) {
 	value = strings.TrimSpace(value)
 	if value != "" {
 		metaMap[key] = value
@@ -73,12 +73,12 @@ func setStringMetadata(metaMap map[string]interface{}, key string, value string)
 	}
 }
 
-func upsertMetaValue(rawMeta []interface{}, name string, value string) []interface{} {
+func upsertMetaValue(rawMeta []any, name string, value string) []any {
 	value = strings.TrimSpace(value)
-	var updated []interface{}
+	var updated []any
 	found := false
 	for _, item := range rawMeta {
-		m, ok := item.(map[string]interface{})
+		m, ok := item.(map[string]any)
 		if !ok {
 			updated = append(updated, item)
 			continue
@@ -94,7 +94,7 @@ func upsertMetaValue(rawMeta []interface{}, name string, value string) []interfa
 		updated = append(updated, item)
 	}
 	if !found && value != "" {
-		updated = append(updated, map[string]interface{}{
+		updated = append(updated, map[string]any{
 			"name":    name,
 			"content": value,
 		})

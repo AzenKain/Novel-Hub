@@ -60,44 +60,50 @@ func (r *bookDBRepository) GetFilesByBookId(ctx context.Context, bookID string) 
 		}
 	}
 
-	idRows, err := r.queries.ListFileIDsByBookId(ctx, bookID)
-	if err != nil {
-		return nil, err
-	}
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		idRows, err := r.queries.ListFileIDsByBookId(ctx, bookID)
+		if err != nil {
+			return nil, err
+		}
 
-	if len(idRows) == 0 {
+		if len(idRows) == 0 {
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+			}
+			return []*models.BookFileEntity{}, nil
+		}
+
+		rows, err := r.queries.GetBookFilesByIDs(ctx, idRows)
+		if err != nil {
+			return nil, err
+		}
+
+		out := (&models.BookFileEntities{}).FromSqlc(rows)
+
+		ids := make([]string, len(out))
+		fileMap := make(map[string]*models.BookFileEntity, len(out))
+		for _, entity := range out {
+			fileMap[entity.ID] = entity
+		}
+
+		ordered := make([]*models.BookFileEntity, 0, len(idRows))
+		for i, id := range idRows {
+			if entity, ok := fileMap[id]; ok {
+				ordered = append(ordered, entity)
+				ids[i] = id
+			}
+		}
+
 		if r.c != nil && !r.inTx {
-			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheBookFileEntities(ctx, ordered)
 		}
-		return []*models.BookFileEntity{}, nil
-	}
-
-	rows, err := r.queries.GetBookFilesByIDs(ctx, idRows)
+		return ordered, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	out := (&models.BookFileEntities{}).FromSqlc(rows)
-
-	ids := make([]string, len(out))
-	fileMap := make(map[string]*models.BookFileEntity, len(out))
-	for _, entity := range out {
-		fileMap[entity.ID] = entity
-	}
-
-	ordered := make([]*models.BookFileEntity, 0, len(idRows))
-	for i, id := range idRows {
-		if entity, ok := fileMap[id]; ok {
-			ordered = append(ordered, entity)
-			ids[i] = id
-		}
-	}
-
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheBookFileEntities(ctx, ordered)
-	}
-	return ordered, nil
+	return v.([]*models.BookFileEntity), nil
 }
 
 func (r *bookDBRepository) GetFilesByBookIDs(ctx context.Context, bookIDs []string) ([]*models.BookFileEntity, error) {
@@ -216,16 +222,23 @@ func (r *bookDBRepository) GetBookFileByPath(ctx context.Context, path string) (
 			return &file, nil
 		}
 	}
-	file, err := r.queries.GetBookFileByPath(ctx, path)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		file, err := r.queries.GetBookFileByPath(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.BookFileEntity{}).FromSqlc(file)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
+			_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.BookFileEntity{}).FromSqlc(file)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.BookFileEntity), nil
 }
 
 func (r *bookDBRepository) GetBookFileById(ctx context.Context, id string) (*models.BookFileEntity, error) {
@@ -236,16 +249,23 @@ func (r *bookDBRepository) GetBookFileById(ctx context.Context, id string) (*mod
 			return &file, nil
 		}
 	}
-	file, err := r.queries.GetBookFileById(ctx, id)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		file, err := r.queries.GetBookFileById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.BookFileEntity{}).FromSqlc(file)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
+			_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.BookFileEntity{}).FromSqlc(file)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
-	}
-	return result, nil
+	return v.(*models.BookFileEntity), nil
 }
 
 func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, hash string) error {

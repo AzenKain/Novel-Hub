@@ -260,16 +260,16 @@ func BuildBookWebhookPayload(book *models.BookEntity) map[string]any {
 
 	if book.MetadataJSON != nil && *book.MetadataJSON != "" {
 		var meta struct {
-			Creator     string      `json:"creator"`
-			Creators    []string    `json:"creators"`
-			Description string      `json:"description"`
-			Publisher   string      `json:"publisher"`
-			Publishers  []string    `json:"publishers"`
-			Language    string      `json:"language"`
-			Date        string      `json:"date"`
-			Series      string      `json:"series"`
-			SeriesIndex string      `json:"seriesIndex"`
-			Subject     interface{} `json:"subject"`
+			Creator     string   `json:"creator"`
+			Creators    []string `json:"creators"`
+			Description string   `json:"description"`
+			Publisher   string   `json:"publisher"`
+			Publishers  []string `json:"publishers"`
+			Language    string   `json:"language"`
+			Date        string   `json:"date"`
+			Series      string   `json:"series"`
+			SeriesIndex string   `json:"seriesIndex"`
+			Subject     any      `json:"subject"`
 		}
 		if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
 			if _, exists := payload["author"]; !exists {
@@ -308,7 +308,7 @@ func BuildBookWebhookPayload(book *models.BookEntity) map[string]any {
 				if v != "" {
 					tags = []string{v}
 				}
-			case []interface{}:
+			case []any:
 				for _, item := range v {
 					if str, ok := item.(string); ok && str != "" {
 						tags = append(tags, str)
@@ -398,7 +398,7 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 			"tags":      "🏷️ Tags",
 			"event":     "⚡ Event",
 		}
-		if customLabels, ok := rawData["_field_labels"].(map[string]interface{}); ok {
+		if customLabels, ok := rawData["_field_labels"].(map[string]any); ok {
 			for k, v := range customLabels {
 				if str, ok := v.(string); ok && strings.TrimSpace(str) != "" {
 					labels[k] = str
@@ -426,7 +426,7 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 		if dateVal, ok := rawData["date"].(string); ok && dateVal != "" {
 			fields = append(fields, map[string]any{"name": labels["date"], "value": dateVal, "inline": true})
 		}
-		if tags, ok := rawData["tags"].([]interface{}); ok && len(tags) > 0 {
+		if tags, ok := rawData["tags"].([]any); ok && len(tags) > 0 {
 			var tagStrs []string
 			for _, t := range tags {
 				if ts, ok := t.(string); ok {

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type ReaderTheme = "light" | "dark" | "sepia" | "warm" | "coffee" | "dim";
-export type ReadingMode = "scroll" | "single" | "double";
+export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
 
 interface ReaderState {
   book: Book | null;

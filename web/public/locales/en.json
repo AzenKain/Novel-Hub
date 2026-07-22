@@ -113,6 +113,17 @@
   "library": {
     "ready_to_read": "Ready to read",
     "selected": "selected",
+    "move_library": "Move Library",
+    "add_tags": "Add Tags",
+    "bulk_delete_title": "Delete Selected Books",
+    "bulk_delete_confirm": "Are you sure you want to delete {{count}} selected books? This action cannot be undone and will remove all associated files.",
+    "bulk_move_title": "Move Books to Library",
+    "bulk_move_subtitle": "Select target library for {{count}} selected books:",
+    "select_target_library": "Select target library...",
+    "move": "Move",
+    "bulk_tag_title": "Add Tags to Selected Books",
+    "bulk_tag_subtitle": "Enter tags separated by commas to add to {{count}} books:",
+    "tag_input_placeholder": "e.g. Fantasy, Action, Sci-Fi",
     "processing": "Processing...",
     "by_author": "by",
     "added_on": "Added",
@@ -456,6 +467,44 @@
     "select_all": "Select All",
     "clear_all": "Clear All",
     "permission_webhook_manage": "Manage webhooks and notification integrations",
-    "permission_book_share": "Share books and generate share links"
+    "permission_book_share": "Share books and generate share links",
+    "send_to_kindle": "Send to Kindle",
+    "smtp_settings": "SMTP Email Dispatcher Settings",
+    "smtp_subtitle": "Configure outbound mail server for Send-to-Kindle and system notifications.",
+    "smtp_host": "SMTP Host",
+    "smtp_port": "Port",
+    "smtp_user": "Username / Email",
+    "smtp_pass": "Password / App Secret",
+    "smtp_from": "From Email Address",
+    "test_smtp": "Test Connection"
+  },
+  "kobo": {
+    "title": "Kobo E-Reader Wi-Fi Sync",
+    "subtitle": "Sync books, progress, and covers natively over Wi-Fi on your Kobo Clara, Libra, Forma, or Sage.",
+    "endpoint_label": "Kobo API Endpoint URL",
+    "show_qr": "Show QR Code",
+    "instructions_header": "How to setup your Kobo device:",
+    "step1": "Connect your Kobo e-reader to your computer via USB cable.",
+    "step2": "Open the file .kobo/Kobo/KoboeReader.conf in a text editor.",
+    "step3": "Add or update the [FeatureSettings] section with api_endpoint=",
+    "step4": "Safely eject your Kobo and tap 'Sync' over Wi-Fi!"
+  },
+  "email": {
+    "invalid": "Please enter a valid email address",
+    "sent_success": "Book successfully dispatched to your email!",
+    "send_failed": "Failed to send email. Check SMTP configuration.",
+    "recipient_label": "Recipient Email Address",
+    "kindle_tip": "Enter your Kindle device email or personal email address.",
+    "send_btn": "Send Book"
+  },
+  "trackers": {
+    "anilist_title": "AniList Reading Tracker",
+    "anilist_subtitle": "Auto-sync your manga and light novel reading progress to your AniList profile.",
+    "token_label": "AniList OAuth Access Token",
+    "get_token_link": "Get AniList Access Token ↗",
+    "connect_btn": "Connect AniList",
+    "enter_token": "Please paste your AniList Access Token",
+    "connect_success": "AniList account connected successfully!",
+    "connect_failed": "Failed to connect AniList account"
   }
 }

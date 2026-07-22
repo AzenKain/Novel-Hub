@@ -15,8 +15,8 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
-	"novelhub/pkg/constants"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
 
 	"novelhub/pkg/convert"
@@ -36,16 +36,15 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo repositories.UserRepository
-	roleRepo repositories.RoleRepository
-	txManager database.TxManager
+	userRepo     repositories.UserRepository
+	roleRepo     repositories.RoleRepository
+	settingsRepo repositories.SettingsRepository
+	txManager    database.TxManager
 }
 
-func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, txManager database.TxManager) UserService {
-	return &userService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager}
+func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager) UserService {
+	return &userService{userRepo: userRepo, roleRepo: roleRepo, settingsRepo: settingsRepo, txManager: txManager}
 }
-
-
 
 func (u *userService) resolveRoles(ctx context.Context, roleIDs []int64) ([]*models.RoleEntity, error) {
 	if len(roleIDs) == 0 {
@@ -358,7 +357,7 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 }
 
 func (u *userService) fillSearchArgs(dto *request.SearchUserDto) (sqlc.SearchUserIDsParams, sqlc.CountUsersParams) {
-	var isDeleted interface{}
+	var isDeleted any
 	if dto.IsDeleted != nil {
 		if *dto.IsDeleted {
 			isDeleted = int64(1)
@@ -366,23 +365,23 @@ func (u *userService) fillSearchArgs(dto *request.SearchUserDto) (sqlc.SearchUse
 			isDeleted = int64(0)
 		}
 	}
-	var roleID interface{}
+	var roleID any
 	if len(dto.RoleIDs) > 0 {
 		roleID = dto.RoleIDs[0]
 	}
-	var authProvider interface{}
+	var authProvider any
 	if dto.AuthProvider != "" {
 		authProvider = dto.AuthProvider
 	}
-	var createdFrom interface{}
+	var createdFrom any
 	if dto.CreatedFrom != nil {
 		createdFrom = dto.CreatedFrom.Format("2006-01-02 15:04:05")
 	}
-	var createdTo interface{}
+	var createdTo any
 	if dto.CreatedTo != nil {
 		createdTo = dto.CreatedTo.Format("2006-01-02 15:04:05")
 	}
-	var searchText interface{}
+	var searchText any
 	if dto.Search != "" {
 		searchText = dto.Search
 	}
@@ -416,7 +415,7 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 		dto.Limit = 20
 	}
 	searchParams, countParams := u.fillSearchArgs(dto)
-	
+
 	if dto.Cursor != "" {
 		parts := convert.DecodeCursor(dto.Cursor)
 		if len(parts) == 2 {

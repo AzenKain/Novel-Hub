@@ -39,15 +39,22 @@ func (r *bookDBRepository) GetChapter(ctx context.Context, id string) (*models.C
 			return &chapter, nil
 		}
 	}
-	res, err := r.queries.GetChapter(ctx, id)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetChapter(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		chapter := (&models.ChapterEntity{}).FromSqlc(res)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, chapter, constants.NormalCacheDuration)
+		}
+		return chapter, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	chapter := (&models.ChapterEntity{}).FromSqlc(res)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, chapter, constants.NormalCacheDuration)
-	}
-	return chapter, nil
+	return v.(*models.ChapterEntity), nil
 }
 
 func (r *bookDBRepository) ListChaptersByBook(ctx context.Context, bookID string) ([]*models.ChapterEntity, error) {
@@ -58,14 +65,21 @@ func (r *bookDBRepository) ListChaptersByBook(ctx context.Context, bookID string
 			return r.GetChaptersByIDs(ctx, ids)
 		}
 	}
-	ids, err := r.queries.ListChapterIDsByBook(ctx, bookID)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		ids, err := r.queries.ListChapterIDsByBook(ctx, bookID)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-	}
-	return r.GetChaptersByIDs(ctx, ids)
+	return r.GetChaptersByIDs(ctx, v.([]string))
 }
 
 func (r *bookDBRepository) GetChaptersByIDs(ctx context.Context, ids []string) ([]*models.ChapterEntity, error) {

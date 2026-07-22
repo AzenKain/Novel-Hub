@@ -21,7 +21,7 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **OPDS Server**: Built-in OPDS catalog (with basic auth and guest access controls) for seamless integration with mobile reader apps (Kobo, Moon+ Reader, KyBook).
 - **Social Features**: Read and write reviews, rate books, and generate public share links.
 - **First-Run Setup Wizard**: Intuitive setup wizard (`/setup`) for admin account creation, branding configuration (Logo & Favicon cropper/fetcher), sidebar navigation toggle, and default feature policy setup.
-- **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF and DNS Rebinding protection via `pkg/netx`.
+- **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF protection via `pkg/netx`. Automatic **AES-256-GCM Envelope Encryption** via `pkg/crypto` (`DB_ENCRYPTION_KEY`) for sensitive tokens & credentials stored in SQLite.
 - **Multi-Language Support**: i18n support with complete translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
 - **Single Binary Deployment**: Embedded React frontend in Go binary. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode, MMAP, and auto-migrations.
 
@@ -111,8 +111,7 @@ novelhub/
 | `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database file path |
 | `JWT_SECRET` | — | Access token signing secret |
 | `JWT_REFRESH_SECRET` | — | Refresh token signing secret |
-| `ADMIN_EMAIL` | `admin@novelhub.local` | Default admin email |
-| `ADMIN_PASSWORD` | `Admin@123456` | Default admin password |
+| `DB_ENCRYPTION_KEY` | — | Master key for AES-256-GCM database field encryption |
 | `FIBER_BODY_LIMIT` | `1073741824` | Max request body limit (1 GB) |
 | `GOGC` | `200` | GC percent tuning for high throughput |
 

@@ -5,3 +5,4 @@ export * from "./useDebounce";
 export * from "./useLibraryQueries";
 export * from "./useMetadataQueries";
 export * from "./useSettings";
+export * from "./useTrackerQueries";

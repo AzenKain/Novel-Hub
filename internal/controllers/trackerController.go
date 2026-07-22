@@ -1,0 +1,121 @@
+package controllers
+
+import (
+	"context"
+	"time"
+
+	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
+	"novelhub/internal/services"
+	"novelhub/pkg/apperrors"
+	"novelhub/pkg/convert"
+	"novelhub/pkg/validator"
+
+	"github.com/gofiber/fiber/v3"
+)
+
+type TrackerController struct {
+	trackerService services.TrackerService
+}
+
+func NewTrackerController(trackerService services.TrackerService) *TrackerController {
+	return &TrackerController{
+		trackerService: trackerService,
+	}
+}
+
+func (ctrl *TrackerController) ConnectTracker(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dto := &request.ConnectTrackerDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	if !ok || claims == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	userID, err := convert.ParseID(claims.UId)
+	if err != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
+	}
+
+	if err := ctrl.trackerService.SaveUserTracker(ctx, userID, dto.Provider, dto.AccessToken); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Tracker connected successfully"})
+}
+
+func (ctrl *TrackerController) MapBookTracker(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dto := &request.MapTrackerDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	if err := ctrl.trackerService.SaveBookMapping(ctx, dto.BookID, dto.Provider, dto.ExternalSeriesID); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Book mapped successfully"})
+}
+
+func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	title := c.Query("title")
+	if title == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Title query is required"})
+	}
+
+	mediaID, err := ctrl.trackerService.SearchAniListMediaID(ctx, title)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{
+		Status: true,
+		Data: fiber.Map{
+			"provider":           "anilist",
+			"external_series_id": mediaID,
+		},
+	})
+}
+
+func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	dto := &request.SyncProgressDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+	if !ok || claims == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	userID, err := convert.ParseID(claims.UId)
+	if err != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
+	}
+
+	mediaID, err := ctrl.trackerService.GetOrMapBookTrackerID(ctx, dto.BookID, dto.Title, "anilist")
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	if err := ctrl.trackerService.SyncAniListProgress(ctx, userID, mediaID, dto.Progress); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Progress synced to AniList"})
+}

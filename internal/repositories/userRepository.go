@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -31,18 +33,26 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	q *sqlc.Queries
-	c cache.Cache
+	q   *sqlc.Queries
+	c   cache.Cache
+	sfg *singleflight.Group
 }
 
 func NewUserRepository(db sqlc.DBTX, c cache.Cache) UserRepository {
-	return &userRepository{q: sqlc.New(db), c: c}
+	return &userRepository{
+		q:   sqlc.New(db),
+		c:   c,
+		sfg: &singleflight.Group{},
+	}
 }
 
 func (r *userRepository) WithTx(tx *sql.Tx) UserRepository {
-	return &userRepository{q: r.q.WithTx(tx), c: r.c}
+	return &userRepository{
+		q:   r.q.WithTx(tx),
+		c:   r.c,
+		sfg: r.sfg,
+	}
 }
-
 
 func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEntity) error {
 	key := cache.BuildKey("user", "roles", user.ID)
@@ -53,17 +63,25 @@ func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEnti
 			return nil
 		}
 	}
-	rows, err := r.q.GetUserRoles(ctx, user.ID)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.q.GetUserRoles(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+		userRoles := make([]*models.RoleSimple, 0, len(rows))
+		for _, row := range rows {
+			userRoles = append(userRoles, &models.RoleSimple{ID: row.ID, Name: row.Name})
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, userRoles, constants.NormalCacheDuration)
+		}
+		return userRoles, nil
+	})
 	if err != nil {
 		return err
 	}
-	user.Roles = make([]*models.RoleSimple, 0, len(rows))
-	for _, row := range rows {
-		user.Roles = append(user.Roles, &models.RoleSimple{ID: row.ID, Name: row.Name})
-	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, user.Roles, constants.NormalCacheDuration)
-	}
+	user.Roles = v.([]*models.RoleSimple)
 	return nil
 }
 
@@ -76,18 +94,24 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.UserEnt
 		}
 	}
 
-	row, err := r.q.GetUserByID(ctx, id)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.q.GetUserByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		userPtr := (&models.UserEntity{}).FromSqlc(row)
+		if err := r.hydrateRoles(ctx, userPtr); err != nil {
+			return nil, err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
+		}
+		return userPtr, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	userPtr := (&models.UserEntity{}).FromSqlc(row)
-	if err := r.hydrateRoles(ctx, userPtr); err != nil {
-		return nil, err
-	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
-	}
-	return userPtr, nil
+	return v.(*models.UserEntity), nil
 }
 
 func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id int64) (*models.UserEntity, error) {
@@ -111,19 +135,25 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		}
 	}
 
-	row, err := r.q.GetUserByEmail(ctx, email)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.q.GetUserByEmail(ctx, email)
+		if err != nil {
+			return nil, err
+		}
+		userPtr := (&models.UserEntity{}).FromSqlc(row)
+		if err := r.hydrateRoles(ctx, userPtr); err != nil {
+			return nil, err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
+			_ = r.c.Set(ctx, cache.BuildKey("user", "id", userPtr.ID), userPtr, constants.NormalCacheDuration)
+		}
+		return userPtr, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	userPtr := (&models.UserEntity{}).FromSqlc(row)
-	if err := r.hydrateRoles(ctx, userPtr); err != nil {
-		return nil, err
-	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, cache.BuildKey("user", "id", userPtr.ID), userPtr, constants.NormalCacheDuration)
-	}
-	return userPtr, nil
+	return v.(*models.UserEntity), nil
 }
 
 func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserParams) (*models.UserEntity, error) {
@@ -163,15 +193,20 @@ func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsPa
 		}
 	}
 
-	dbIds, err := r.q.SearchUserIDs(ctx, params)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		dbIds, err := r.q.SearchUserIDs(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
+		}
+		return dbIds, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
-	}
-	return r.GetByIDs(ctx, dbIds)
+	return r.GetByIDs(ctx, v.([]int64))
 }
 
 func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.UserEntity, error) {
@@ -253,14 +288,21 @@ func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams
 			return count, nil
 		}
 	}
-	count, err := r.q.CountUsers(ctx, params)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		count, err := r.q.CountUsers(ctx, params)
+		if err != nil {
+			return int64(0), err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
+		}
+		return count, nil
+	})
 	if err != nil {
 		return 0, err
 	}
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
-	}
-	return count, nil
+	return v.(int64), nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, id int64) error {
@@ -299,15 +341,22 @@ func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, 
 			return version, nil
 		}
 	}
-	raw, err := r.q.GetUserTokenVersion(ctx, id)
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		raw, err := r.q.GetUserTokenVersion(ctx, id)
+		if err != nil {
+			return int32(0), err
+		}
+		version := int32(raw)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, version, constants.NormalCacheDuration)
+		}
+		return version, nil
+	})
 	if err != nil {
 		return 0, err
 	}
-	version := int32(raw)
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, version, constants.NormalCacheDuration)
-	}
-	return version, nil
+	return v.(int32), nil
 }
 
 func (r *userRepository) UpdateTokenVersion(ctx context.Context, id int64, tokenVersion int64) error {

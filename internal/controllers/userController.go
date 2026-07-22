@@ -41,7 +41,12 @@ func (h *UserController) GetUserCurrent(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	res, err := h.service.GetUserCurrent(ctx, c.Locals("uid").(string))
+	uid, ok := c.Locals("uid").(string)
+	if !ok || uid == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	res, err := h.service.GetUserCurrent(ctx, uid)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -57,7 +62,12 @@ func (h *UserController) UpdateProfile(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := h.service.UpdateProfile(ctx, c.Locals("uid").(string), dto)
+	uid, ok := c.Locals("uid").(string)
+	if !ok || uid == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	res, err := h.service.UpdateProfile(ctx, uid, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -73,7 +83,12 @@ func (h *UserController) ChangePassword(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	err := h.service.ChangePassword(ctx, c.Locals("uid").(string), dto)
+	uid, ok := c.Locals("uid").(string)
+	if !ok || uid == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	err := h.service.ChangePassword(ctx, uid, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

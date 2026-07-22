@@ -9,3 +9,4 @@ export * from "./readerService";
 export * from "./settingsService";
 export * from './uploadService';
 export * from "./webhookService";
+export * from "./trackerService";

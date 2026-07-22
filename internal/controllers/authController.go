@@ -150,7 +150,12 @@ func (h *AuthController) RefreshToken(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Missing refresh token"})
 	}
 
-	res, err := h.service.RefreshToken(ctx, c.Locals("uid").(string), token)
+	uid, ok := c.Locals("uid").(string)
+	if !ok || uid == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	res, err := h.service.RefreshToken(ctx, uid, token)
 	if err != nil {
 		clearAuthCookie(c, "access_token")
 		clearAuthCookie(c, "refresh_token")
@@ -166,7 +171,12 @@ func (h *AuthController) Logout(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	err := h.service.Logout(ctx, c.Locals("uid").(string))
+	uid, ok := c.Locals("uid").(string)
+	if !ok || uid == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	err := h.service.Logout(ctx, uid)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

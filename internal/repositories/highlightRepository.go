@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"golang.org/x/sync/singleflight"
+
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
@@ -24,6 +26,7 @@ type highlightRepository struct {
 	queries *sqlc.Queries
 	db      *sql.DB
 	c       cache.Cache
+	sfg     *singleflight.Group
 }
 
 func NewHighlightRepository(db *sql.DB, c cache.Cache) HighlightRepository {
@@ -31,6 +34,7 @@ func NewHighlightRepository(db *sql.DB, c cache.Cache) HighlightRepository {
 		queries: sqlc.New(db),
 		db:      db,
 		c:       c,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -42,6 +46,7 @@ func (r *highlightRepository) WithTx(tx *sql.Tx) HighlightRepository {
 		queries: sqlc.New(tx),
 		db:      r.db,
 		c:       r.c,
+		sfg:     r.sfg,
 	}
 }
 
@@ -51,9 +56,7 @@ func (r *highlightRepository) Create(ctx context.Context, arg sqlc.CreateHighlig
 		return nil, err
 	}
 	if r.c != nil {
-		// Invalidate the chapter list cache
 		r.c.Del(ctx, cache.BuildKey("highlight", "ids", "chapter", arg.UserID, arg.ChapterID))
-		// Delete specific highlight cache just in case
 		r.c.Del(ctx, cache.BuildKey("highlight", "id", res.ID))
 	}
 	entity := &models.HighlightEntity{}
@@ -62,7 +65,7 @@ func (r *highlightRepository) Create(ctx context.Context, arg sqlc.CreateHighlig
 
 func (r *highlightRepository) GetByChapter(ctx context.Context, userID int64, chapterID string) ([]*models.HighlightEntity, error) {
 	key := cache.BuildKey("highlight", "ids", "chapter", userID, chapterID)
-	
+
 	if r.c != nil {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -72,35 +75,41 @@ func (r *highlightRepository) GetByChapter(ctx context.Context, userID int64, ch
 			}
 		}
 	}
-	
-	rows, err := r.queries.GetHighlightsByChapter(ctx, sqlc.GetHighlightsByChapterParams{
-		UserID:    userID,
-		ChapterID: chapterID,
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.GetHighlightsByChapter(ctx, sqlc.GetHighlightsByChapterParams{
+			UserID:    userID,
+			ChapterID: chapterID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		ids := make([]string, len(rows))
+		result := make([]*models.HighlightEntity, len(rows))
+		for i, row := range rows {
+			h := (&models.HighlightEntity{}).FromSqlc(row)
+			result[i] = h
+			ids[i] = h.ID
+		}
+
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			missingToCache := make(map[string]any)
+			for _, h := range result {
+				missingToCache[cache.BuildKey("highlight", "id", h.ID)] = h
+			}
+			if len(missingToCache) > 0 {
+				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
+			}
+		}
+
+		return result, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	
-	ids := make([]string, len(rows))
-	result := make([]*models.HighlightEntity, len(rows))
-	for i, row := range rows {
-		h := (&models.HighlightEntity{}).FromSqlc(row)
-		result[i] = h
-		ids[i] = h.ID
-	}
-	
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		missingToCache := make(map[string]any)
-		for _, h := range result {
-			missingToCache[cache.BuildKey("highlight", "id", h.ID)] = h
-		}
-		if len(missingToCache) > 0 {
-			_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
-		}
-	}
-	
-	return result, nil
+	return v.([]*models.HighlightEntity), nil
 }
 
 func (r *highlightRepository) GetHighlightsByIDs(ctx context.Context, ids []string) ([]*models.HighlightEntity, error) {
@@ -178,8 +187,6 @@ func (r *highlightRepository) Delete(ctx context.Context, arg sqlc.DeleteHighlig
 	err := r.queries.DeleteHighlight(ctx, arg)
 	if err == nil && r.c != nil {
 		r.c.Del(ctx, cache.BuildKey("highlight", "id", arg.ID))
-		// We don't have chapterID here to invalidate the list cache, so we use pattern match or rely on TTL.
-		// Alternatively, if we need chapterID, we should fetch it first.
 		r.c.DelByPattern(ctx, cache.BuildKey("highlight", "ids", "chapter", arg.UserID, "*"))
 	}
 	return err

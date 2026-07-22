@@ -173,7 +173,7 @@ func (r *RamCache) GetOrFetch(ctx context.Context, key string, dest any, ttl tim
 	if err := r.Get(ctx, key, dest); err == nil {
 		return nil
 	}
-	res, err, _ := r.sf.Do(key, func() (interface{}, error) {
+	res, err, _ := r.sf.Do(key, func() (any, error) {
 		val, fetchErr := fetcher()
 		if fetchErr != nil {
 			return nil, fetchErr
