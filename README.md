@@ -9,14 +9,20 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **Multi-Format Reader**: Native browser rendering for 15+ formats (EPUB, MOBI, AZW3, PDF, DOCX, FB2, CBZ/CBR, TXT, MD, HTML). Includes 6 reader themes, custom typography, text highlighting, notes, Unicode in-book search, and 3 page layouts.
 - **Audiobook Support**: Native HTML5 audio streaming for MP3, M4A, M4B, and FLAC (no FFmpeg/HLS dependencies). Features smart chunked streaming to bypass reverse proxy size limits (e.g., Cloudflare).
 - **Calibre Library Sync**: Complete import & sync from Calibre's `metadata.db` including full metadata (authors, series, publishers, languages, tags, ratings, identifiers, comments).
-- **Cross-device Sync & Scroll Tracking**: Accurately tracks reading progress (CFI/scroll positions/audio timestamps) across multiple devices in real-time.
-- **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern) and `singleflight` for thundering-herd protection.
-- **Library Management**: Automatic file scanning, cover extraction, metadata editing, tag/author filtering, duplicate detection (SHA-256), and SQLite FTS5 full-text search.
+- **Cross-device Sync & Reading History**: Accurately tracks reading progress (CFI/scroll positions/audio timestamps) across multiple devices in real-time.
+- **Granular Library & Role Permission Policies**: Multi-role security model with 16 granular permissions (`book.read`, `book.download`, `book.share`, `book.bookmark`, `book.collection`, `book.review.create`, `book.review.delete`, `book.manage`, `library.read`, `library.manage`, `role.manage`, `user.manage`, `setting.manage`, `admin.access`, `job.read`, `webhook.manage`). Includes a modern **Library Scope Selector** UI with mode toggles, searchable multi-select dropdowns, and interactive library chips.
+- **Customizable Book Engagement Stats**: Displays 6 cover engagement metrics (Reads, Downloads, Bookmarks, Collections, Rating, Shares) with custom admin visibility selection.
+- **Webhooks & Live Builder**: Webhook notifications dispatcher for Discord, Telegram, Slack, and generic HTTP endpoints with HMAC SHA-256 signatures, custom headers, and a live preview builder.
+- **Duplicate Detection & Management**: SHA-256 file hashing engine to detect and clean up duplicate book files across libraries.
+- **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern), `singleflight` for thundering-herd protection, and 14 composite SQLite performance indexes for sub-millisecond query execution.
+- **Path Traversal & SSRF Hardened**: Robust security engine featuring socket-level SSRF prevention via `pkg/netx` and `filepath.Rel` path traversal prevention in `pkg/localfs`.
+- **Library Management**: Automatic file scanning, cover extraction, metadata editing, tag/author filtering, and SQLite FTS5 full-text search.
 - **Chunked Uploads & Smart GC**: Robust upload system for massive files (bypassing Cloudflare's 100MB body limit) with smart background garbage collection for orphaned uploads using `pkg/worker`.
-- **OPDS Server**: Built-in OPDS catalog (with basic auth and guest access controls) for seamless integration with mobile reader apps.
+- **OPDS Server**: Built-in OPDS catalog (with basic auth and guest access controls) for seamless integration with mobile reader apps (Kobo, Moon+ Reader, KyBook).
 - **Social Features**: Read and write reviews, rate books, and generate public share links.
+- **First-Run Setup Wizard**: Intuitive setup wizard (`/setup`) for admin account creation, branding configuration (Logo & Favicon cropper/fetcher), sidebar navigation toggle, and default feature policy setup.
 - **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF and DNS Rebinding protection via `pkg/netx`.
-- **Multi-Language Support**: i18n support with translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
+- **Multi-Language Support**: i18n support with complete translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
 - **Single Binary Deployment**: Embedded React frontend in Go binary. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode, MMAP, and auto-migrations.
 
 ---
@@ -30,7 +36,7 @@ cp .env.example .env
 make run
 ```
 
-Access the UI at `http://127.0.0.1:3434`. Default admin credentials: `admin@novelhub.local` / `Admin@123456`.
+Access the UI at `http://127.0.0.1:3434`. On first launch, the Setup Wizard (`/setup`) will guide you through creating the root administrator account and configuring initial policies.
 
 ### Docker
 
@@ -70,7 +76,7 @@ novelhub/
 ├── internal/
 │   ├── controllers/    # Fiber v3 HTTP handlers & DTO validation
 │   ├── dtos/           # Request / Response payload definitions
-│   ├── gen/sqlc/        # Type-safe generated database code
+│   ├── gen/sqlc/       # Type-safe generated database code
 │   ├── middlewares/    # JWT auth, RBAC permissions, logger, compression
 │   ├── models/         # Domain entities (FromSqlc / ToResponse helpers)
 │   ├── repositories/   # Persistence layer with RAM Cache-by-IDs pattern

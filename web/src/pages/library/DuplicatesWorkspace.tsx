@@ -5,12 +5,20 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getMediaUrl } from "@/config/api";
 import { toast } from "react-toastify";
+import { DeleteConfirmModal } from "@/components/admin";
+
+type ConfirmState =
+  | { type: "single"; fileId: string; title: string }
+  | { type: "keepOne"; keepFileId: string; toDeleteFileIds: string[] }
+  | null;
 
 export const DuplicatesWorkspace = () => {
   const { t } = useTranslation();
   const { data: duplicateGroups = [], isLoading: loading, refetch } = useDuplicatesQuery();
   const deleteFileMutation = useDeleteBookFileMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatSize = (bytes: number) => {
     if (!bytes) return "0 B";
@@ -20,34 +28,64 @@ export const DuplicatesWorkspace = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const handleDeleteSingle = async (fileId: string, title: string) => {
-    if (!window.confirm(t("admin.confirm_delete_file", `Are you sure you want to delete file for "${title}"?`))) return;
-    setDeletingId(fileId);
+  const openDeleteSingle = (fileId: string, title: string) => {
+    setConfirmState({ type: "single", fileId, title });
+  };
+
+  const openKeepOnlyOne = (keepFileId: string, groupFiles: { fileId: string }[]) => {
+    const toDelete = groupFiles.filter((f) => f.fileId !== keepFileId).map((f) => f.fileId);
+    if (toDelete.length === 0) return;
+    setConfirmState({ type: "keepOne", keepFileId, toDeleteFileIds: toDelete });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmState) return;
+    setIsDeleting(true);
     try {
-      await deleteFileMutation.mutateAsync(fileId);
-      toast.success(t("common.success", "File deleted successfully"));
+      if (confirmState.type === "single") {
+        setDeletingId(confirmState.fileId);
+        await deleteFileMutation.mutateAsync(confirmState.fileId);
+        toast.success(t("common.success", "File deleted successfully"));
+      } else if (confirmState.type === "keepOne") {
+        for (const id of confirmState.toDeleteFileIds) {
+          try {
+            await deleteFileMutation.mutateAsync(id);
+          } catch (err) {
+            toast.error(`Error: ${String(err)}`);
+          }
+        }
+        toast.success(t("common.success", "Duplicates cleaned up"));
+      }
       void refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
+      setIsDeleting(false);
       setDeletingId(null);
+      setConfirmState(null);
     }
   };
 
-  const handleKeepOnlyOne = async (keepFileId: string, groupFiles: { fileId: string }[]) => {
-    const toDelete = groupFiles.filter((f) => f.fileId !== keepFileId).map((f) => f.fileId);
-    if (toDelete.length === 0) return;
-    if (!window.confirm(t("admin.confirm_keep_one", `Keep this file and delete ${toDelete.length} duplicate copy(ies)?`))) return;
-
-    for (const id of toDelete) {
-      try {
-        await deleteFileMutation.mutateAsync(id);
-      } catch (err) {
-        toast.error(`Error: ${String(err)}`);
-      }
+  const renderModalContent = () => {
+    if (!confirmState) return { title: "", message: null };
+    if (confirmState.type === "single") {
+      return {
+        title: t("admin.confirm_delete_file_title", "Delete Duplicate File"),
+        message: (
+          <span>
+            {t("admin.confirm_delete_file_msg", "Are you sure you want to delete file for")} <strong>"{confirmState.title}"</strong>?
+          </span>
+        ),
+      };
     }
-    toast.success(t("common.success", "Duplicates cleaned up"));
-    void refetch();
+    return {
+      title: t("admin.confirm_keep_one_title", "Keep Only This Copy"),
+      message: (
+        <span>
+          {t("admin.confirm_keep_one_msg", `Are you sure you want to keep this copy and delete ${confirmState.toDeleteFileIds.length} duplicate copy(ies)?`)}
+        </span>
+      ),
+    };
   };
 
   return (
@@ -126,14 +164,14 @@ export const DuplicatesWorkspace = () => {
 
                       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         <button
-                          onClick={() => void handleKeepOnlyOne(file.fileId, group.files)}
+                          onClick={() => openKeepOnlyOne(file.fileId, group.files)}
                           className="btn btn-ghost btn-xs text-primary"
                         >
                           {t("admin.keep_this_only", "Keep Only This")}
                         </button>
                         <button
-                          onClick={() => void handleDeleteSingle(file.fileId, file.bookTitle)}
-                          disabled={deletingId === file.fileId}
+                          onClick={() => openDeleteSingle(file.fileId, file.bookTitle)}
+                          disabled={deletingId === file.fileId || isDeleting}
                           className="btn btn-ghost btn-square btn-sm text-error"
                         >
                           {deletingId === file.fileId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -147,6 +185,16 @@ export const DuplicatesWorkspace = () => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={Boolean(confirmState)}
+        title={renderModalContent().title}
+        message={renderModalContent().message}
+        loading={isDeleting}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </div>
   );
 };

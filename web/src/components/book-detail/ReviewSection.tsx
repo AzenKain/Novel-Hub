@@ -6,6 +6,7 @@ import { featureService } from "@/services";
 import { useAuthStore } from "@/stores";
 import type { BookReview } from "@/types";
 import { toast } from "react-toastify";
+import { isModOrAdminUser } from "@/utils/permission";
 
 interface ReviewSectionProps {
   bookId: string;
@@ -184,7 +185,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
                         <Star className="w-4 h-4 fill-warning text-warning" />
                         <span className="font-bold text-sm">{rv?.rating}</span>
                       </div>
-                      {user?.roles?.some(r => r.name === "ADMIN" || r.name === "MOD") && (
+                      {isModOrAdminUser(user) && (
                         <button
                           className="btn btn-ghost btn-xs text-error"
                           onClick={async () => {

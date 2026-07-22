@@ -425,7 +425,7 @@ func (q *Queries) GetLibraryStats(ctx context.Context) (GetLibraryStatsRow, erro
 }
 
 const getReadingProgress = `-- name: GetReadingProgress :one
-SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at, location_cfi, location_type FROM reading_progress
+SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM reading_progress
 WHERE user_id = ? AND book_id = ?
 LIMIT 1
 `
@@ -446,13 +446,13 @@ func (q *Queries) GetReadingProgress(ctx context.Context, arg GetReadingProgress
 		&i.ChapterTitle,
 		&i.ChapterIndex,
 		&i.ProgressPercent,
+		&i.LocationCfi,
+		&i.LocationType,
 		&i.OpenedCount,
 		&i.QualifiedReadCount,
 		&i.LastOpenedAt,
 		&i.LastCountedAt,
 		&i.UpdatedAt,
-		&i.LocationCfi,
-		&i.LocationType,
 	)
 	return i, err
 }
@@ -1099,7 +1099,7 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     last_opened_at = CURRENT_TIMESTAMP,
     last_counted_at = COALESCE(excluded.last_counted_at, reading_progress.last_counted_at),
     updated_at = CURRENT_TIMESTAMP
-RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at, location_cfi, location_type
+RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at
 `
 
 type UpsertReadingProgressParams struct {
@@ -1141,13 +1141,13 @@ func (q *Queries) UpsertReadingProgress(ctx context.Context, arg UpsertReadingPr
 		&i.ChapterTitle,
 		&i.ChapterIndex,
 		&i.ProgressPercent,
+		&i.LocationCfi,
+		&i.LocationType,
 		&i.OpenedCount,
 		&i.QualifiedReadCount,
 		&i.LastOpenedAt,
 		&i.LastCountedAt,
 		&i.UpdatedAt,
-		&i.LocationCfi,
-		&i.LocationType,
 	)
 	return i, err
 }

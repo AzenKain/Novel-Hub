@@ -29,7 +29,7 @@ export function ProtectedRoute({ requiredRoles, redirectPath = "/login" }: Prote
   }
 
   if (requiredRoles && requiredRoles.length > 0) {
-    const hasRole = user.roles.some((role) => requiredRoles.includes(role.name.toUpperCase()));
+    const hasRole = user.roles.some((role) => Boolean(role.is_admin) || requiredRoles.includes(role.name.toUpperCase()));
     if (!hasRole) {
       return <Navigate to="/" replace />;
     }

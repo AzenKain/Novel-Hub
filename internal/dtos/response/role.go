@@ -1,8 +1,9 @@
 package response
 
 type RoleSimpleResponse struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	IsAdmin bool   `json:"is_admin"`
 }
 
 type RoleResponse struct {

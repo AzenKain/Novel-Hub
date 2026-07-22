@@ -14,6 +14,7 @@ export type Role = {
 export type RoleSimple = {
   id: number;
   name: string;
+  is_admin?: boolean;
 };
 
 export type Permission = {
@@ -85,6 +86,7 @@ export interface HomeSectionSettings {
 export interface LibraryPolicy {
   mode: string;
   library_ids: string[];
+  visible_stats?: string[];
 }
 
 export interface PublicSettings {
@@ -97,6 +99,9 @@ export interface PublicSettings {
   bookmark: LibraryPolicy;
   collection: LibraryPolicy;
   review: LibraryPolicy;
+  share: LibraryPolicy;
+  read: LibraryPolicy;
+  stats: LibraryPolicy;
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
   setup_completed: boolean;

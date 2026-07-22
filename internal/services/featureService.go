@@ -560,7 +560,19 @@ func (s *featureService) PolicyAllowsBook(ctx context.Context, policy string, bo
 		return false
 	}
 	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
-	return s.settings.PolicyAllows(policy, book.LibraryID, admin)
+	if !s.settings.PolicyAllows(policy, book.LibraryID, admin) {
+		return false
+	}
+	if claims != nil {
+		permKey := "book." + policy
+		if policy == "review" {
+			permKey = "book.review.create"
+		}
+		if !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, permKey, map[string]any{"library_id": book.LibraryID}) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *featureService) PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool {

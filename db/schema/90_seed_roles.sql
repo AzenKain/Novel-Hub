@@ -24,6 +24,7 @@ FROM roles r
 JOIN permissions p ON p.key IN (
     'book.read',
     'book.download',
+    'book.share',
     'book.bookmark',
     'book.collection',
     'book.review.create',
@@ -38,6 +39,7 @@ FROM roles r
 JOIN permissions p ON p.key IN (
     'book.read',
     'book.download',
+    'book.share',
     'book.bookmark',
     'book.collection',
     'book.review.create',
@@ -46,7 +48,8 @@ JOIN permissions p ON p.key IN (
     'library.read',
     'library.manage',
     'admin.access',
-    'job.read'
+    'job.read',
+    'webhook.manage'
 )
 WHERE r.name = 'MOD'
 ON CONFLICT(role_id, permission_key) DO NOTHING;

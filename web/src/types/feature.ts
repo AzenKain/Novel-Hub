@@ -50,6 +50,7 @@ export interface BookSocialStats {
   ratingCount: number;
   averageRating: number;
   shareCount: number;
+  collectionCount?: number;
   updatedAt?: string;
 }
 

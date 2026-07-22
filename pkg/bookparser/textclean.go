@@ -1,6 +1,8 @@
 package bookparser
 
 import (
+	"html"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -31,3 +33,22 @@ func CleanOfficeTextLine(value string) string {
 	}
 	return strings.TrimSpace(value)
 }
+
+func CleanChapterTitle(title string) string {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return ""
+	}
+
+	if strings.Contains(title, "%") {
+		if unescaped, err := url.PathUnescape(title); err == nil && unescaped != "" {
+			title = unescaped
+		} else if unescaped, err := url.QueryUnescape(title); err == nil && unescaped != "" {
+			title = unescaped
+		}
+	}
+
+	title = html.UnescapeString(title)
+	return strings.Join(strings.Fields(strings.TrimSpace(title)), " ")
+}
+

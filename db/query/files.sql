@@ -1,8 +1,9 @@
 -- name: GetDuplicateFiles :many
-SELECT hash, COUNT(*) as duplicate_count, GROUP_CONCAT(id) as file_ids
-FROM book_files
-WHERE hash IS NOT NULL AND hash != ''
-GROUP BY hash
+SELECT bf.hash, COUNT(*) as duplicate_count, GROUP_CONCAT(bf.id) as file_ids
+FROM book_files bf
+JOIN books b ON bf.book_id = b.id
+WHERE bf.hash IS NOT NULL AND bf.hash != ''
+GROUP BY bf.hash
 HAVING COUNT(*) > 1
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
@@ -21,7 +22,12 @@ SELECT
 FROM book_files bf
 JOIN books b ON bf.book_id = b.id
 WHERE bf.hash IS NOT NULL AND bf.hash != '' AND bf.hash IN (
-    SELECT hash FROM book_files WHERE hash IS NOT NULL AND hash != '' GROUP BY hash HAVING COUNT(*) > 1
+    SELECT bf2.hash 
+    FROM book_files bf2 
+    JOIN books b2 ON bf2.book_id = b2.id 
+    WHERE bf2.hash IS NOT NULL AND bf2.hash != '' 
+    GROUP BY bf2.hash 
+    HAVING COUNT(*) > 1
 )
 ORDER BY bf.hash, bf.created_at ASC;
 

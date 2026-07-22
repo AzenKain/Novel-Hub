@@ -54,6 +54,7 @@ export function useReadingHistoryQuery(enabled = true) {
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
+    staleTime: 0,
   });
 }
 
@@ -78,6 +79,8 @@ export function useDeleteBookFileMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["duplicates"] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
     },
   });
 }

@@ -545,7 +545,7 @@ WHERE
     (?13 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
     (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
     (?15 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?16 IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
+    (?16 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
     (?17 IS NULL OR b.download_count > 0) AND
     (?18 IS NULL OR b.rating_count > 0) AND
     (?19 IS NULL OR b.status = 'archived') AND

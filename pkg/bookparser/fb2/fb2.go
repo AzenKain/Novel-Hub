@@ -566,7 +566,7 @@ func findBinary(book *fictionBook, id string) ([]byte, string, bool) {
 }
 
 func clean(value string) string {
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	return bookparser.CleanChapterTitle(value)
 }
 
 func min(a, b int) int {

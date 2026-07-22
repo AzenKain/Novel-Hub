@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -233,57 +234,286 @@ func (s *webhookService) sendHTTPRequest(ctx context.Context, wh *models.Webhook
 	return nil
 }
 
+func BuildBookWebhookPayload(book *models.BookEntity) map[string]any {
+	if book == nil {
+		return map[string]any{}
+	}
+
+	payload := map[string]any{
+		"id":         book.ID,
+		"title":      book.Title,
+		"library_id": book.LibraryID,
+		"status":     book.Status,
+		"created_at": book.CreatedAt,
+		"updated_at": book.UpdatedAt,
+	}
+
+	if book.AuthorName != nil && *book.AuthorName != "" {
+		payload["author"] = *book.AuthorName
+	}
+	if book.Description != nil && *book.Description != "" {
+		payload["description"] = *book.Description
+	}
+	if book.CoverURL != nil && *book.CoverURL != "" {
+		payload["cover_url"] = *book.CoverURL
+	}
+
+	if book.MetadataJSON != nil && *book.MetadataJSON != "" {
+		var meta struct {
+			Creator     string      `json:"creator"`
+			Creators    []string    `json:"creators"`
+			Description string      `json:"description"`
+			Publisher   string      `json:"publisher"`
+			Publishers  []string    `json:"publishers"`
+			Language    string      `json:"language"`
+			Date        string      `json:"date"`
+			Series      string      `json:"series"`
+			SeriesIndex string      `json:"seriesIndex"`
+			Subject     interface{} `json:"subject"`
+		}
+		if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
+			if _, exists := payload["author"]; !exists {
+				if meta.Creator != "" {
+					payload["author"] = meta.Creator
+				} else if len(meta.Creators) > 0 {
+					payload["author"] = strings.Join(meta.Creators, ", ")
+				}
+			}
+			if _, exists := payload["description"]; !exists && meta.Description != "" {
+				payload["description"] = meta.Description
+			}
+			pub := strings.TrimSpace(meta.Publisher)
+			if pub == "" && len(meta.Publishers) > 0 {
+				pub = strings.Join(meta.Publishers, ", ")
+			}
+			if pub != "" {
+				payload["publisher"] = pub
+			}
+			if meta.Language != "" {
+				payload["language"] = meta.Language
+			}
+			if meta.Date != "" {
+				payload["date"] = meta.Date
+			}
+			if meta.Series != "" {
+				payload["series"] = meta.Series
+			}
+			if meta.SeriesIndex != "" {
+				payload["series_index"] = meta.SeriesIndex
+			}
+
+			var tags []string
+			switch v := meta.Subject.(type) {
+			case string:
+				if v != "" {
+					tags = []string{v}
+				}
+			case []interface{}:
+				for _, item := range v {
+					if str, ok := item.(string); ok && str != "" {
+						tags = append(tags, str)
+					}
+				}
+			}
+			if len(tags) > 0 {
+				payload["tags"] = tags
+			}
+		}
+	}
+
+	return payload
+}
+
 func (s *webhookService) formatBodyByTemplate(templateType, eventType string, rawPayloadBytes []byte) ([]byte, string) {
 	var rawData map[string]any
 	_ = jsonx.Unmarshal(rawPayloadBytes, &rawData)
 
 	switch templateType {
 	case "discord":
-		desc := fmt.Sprintf("Event **%s** triggered in NovelHub.", eventType)
-		if title, ok := rawData["title"].(string); ok && title != "" {
-			desc = fmt.Sprintf("**Title:** %s\nEvent: %s", title, eventType)
+		eventTitles := map[string]string{
+			"book.created":      "📚 New Book Added",
+			"book.deleted":      "🗑️ Book Deleted",
+			"metadata.updated":  "📝 Book Metadata Updated",
+			"reading.completed": "🎉 Reading Completed",
+		}
+		titleText, ok := eventTitles[eventType]
+		if !ok {
+			titleText = fmt.Sprintf("📚 NovelHub Notification: %s", eventType)
 		}
 
-		discordMsg := map[string]any{
-			"embeds": []map[string]any{
-				{
-					"title":       fmt.Sprintf("📚 NovelHub Notification: %s", eventType),
-					"description": desc,
-					"color":       5814782, // Discord Blurple
-					"timestamp":   time.Now().Format(time.RFC3339),
-				},
+		color := 3447003 // Blue for created
+		if eventType == "book.deleted" {
+			color = 15158332 // Red
+		} else if eventType == "reading.completed" {
+			color = 3066993 // Green
+		} else if eventType == "metadata.updated" {
+			color = 15844367 // Gold
+		}
+
+		if customHex, ok := rawData["_embed_color"].(string); ok && strings.TrimSpace(customHex) != "" {
+			hexStr := strings.TrimPrefix(customHex, "#")
+			if parsedColor, err := strconv.ParseInt(hexStr, 16, 64); err == nil {
+				color = int(parsedColor)
+			}
+		}
+
+		embed := map[string]any{
+			"title":     titleText,
+			"color":     color,
+			"timestamp": time.Now().Format(time.RFC3339),
+			"footer": map[string]string{
+				"text": fmt.Sprintf("NovelHub • Event: %s", eventType),
 			},
+		}
+
+		titleTmpl := "📚 {title}"
+		if customTmpl, ok := rawData["_title_template"].(string); ok && strings.TrimSpace(customTmpl) != "" {
+			titleTmpl = customTmpl
+		}
+
+		if bookTitle, ok := rawData["title"].(string); ok && bookTitle != "" {
+			embed["title"] = strings.ReplaceAll(titleTmpl, "{title}", bookTitle)
+		}
+
+		if desc, ok := rawData["description"].(string); ok && strings.TrimSpace(desc) != "" {
+			descClean := strings.TrimSpace(desc)
+			if len(descClean) > 500 {
+				descClean = descClean[:497] + "..."
+			}
+			embed["description"] = descClean
+		}
+
+		if coverURL, ok := rawData["cover_url"].(string); ok && strings.TrimSpace(coverURL) != "" {
+			embed["thumbnail"] = map[string]string{
+				"url": coverURL,
+			}
+		}
+
+		labels := map[string]string{
+			"author":    "👤 Author",
+			"publisher": "🏢 Publisher",
+			"language":  "🌐 Language",
+			"series":    "📖 Series",
+			"date":      "📅 Release Date",
+			"tags":      "🏷️ Tags",
+			"event":     "⚡ Event",
+		}
+		if customLabels, ok := rawData["_field_labels"].(map[string]interface{}); ok {
+			for k, v := range customLabels {
+				if str, ok := v.(string); ok && strings.TrimSpace(str) != "" {
+					labels[k] = str
+				}
+			}
+		}
+
+		var fields []map[string]any
+		if author, ok := rawData["author"].(string); ok && author != "" {
+			fields = append(fields, map[string]any{"name": labels["author"], "value": author, "inline": true})
+		}
+		if publisher, ok := rawData["publisher"].(string); ok && publisher != "" {
+			fields = append(fields, map[string]any{"name": labels["publisher"], "value": publisher, "inline": true})
+		}
+		if lang, ok := rawData["language"].(string); ok && lang != "" {
+			fields = append(fields, map[string]any{"name": labels["language"], "value": lang, "inline": true})
+		}
+		if series, ok := rawData["series"].(string); ok && series != "" {
+			seriesVal := series
+			if idx, ok := rawData["series_index"].(string); ok && idx != "" {
+				seriesVal += fmt.Sprintf(" (Vol. %s)", idx)
+			}
+			fields = append(fields, map[string]any{"name": labels["series"], "value": seriesVal, "inline": true})
+		}
+		if dateVal, ok := rawData["date"].(string); ok && dateVal != "" {
+			fields = append(fields, map[string]any{"name": labels["date"], "value": dateVal, "inline": true})
+		}
+		if tags, ok := rawData["tags"].([]interface{}); ok && len(tags) > 0 {
+			var tagStrs []string
+			for _, t := range tags {
+				if ts, ok := t.(string); ok {
+					tagStrs = append(tagStrs, ts)
+				}
+			}
+			if len(tagStrs) > 0 {
+				fields = append(fields, map[string]any{"name": labels["tags"], "value": strings.Join(tagStrs, ", "), "inline": false})
+			}
+		}
+		fields = append(fields, map[string]any{"name": labels["event"], "value": fmt.Sprintf("`%s`", eventType), "inline": true})
+
+		embed["fields"] = fields
+
+		discordMsg := map[string]any{
+			"embeds": []map[string]any{embed},
 		}
 		b, _ := jsonx.Marshal(discordMsg)
 		return b, "application/json"
 
 	case "telegram":
-		msgText := fmt.Sprintf("<b>📚 NovelHub Event: %s</b>\n<pre>%s</pre>", eventType, string(rawPayloadBytes))
+		bookTitle, _ := rawData["title"].(string)
+		author, _ := rawData["author"].(string)
+		publisher, _ := rawData["publisher"].(string)
+		lang, _ := rawData["language"].(string)
+		series, _ := rawData["series"].(string)
+		desc, _ := rawData["description"].(string)
+
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("<b>📚 NovelHub Event: %s</b>\n", eventType))
+		if bookTitle != "" {
+			sb.WriteString(fmt.Sprintf("<b>📖 Book:</b> %s\n", bookTitle))
+		}
+		if author != "" {
+			sb.WriteString(fmt.Sprintf("<b>👤 Author:</b> %s\n", author))
+		}
+		if publisher != "" {
+			sb.WriteString(fmt.Sprintf("<b>🏢 Publisher:</b> %s\n", publisher))
+		}
+		if lang != "" {
+			sb.WriteString(fmt.Sprintf("<b>🌐 Language:</b> %s\n", lang))
+		}
+		if series != "" {
+			sb.WriteString(fmt.Sprintf("<b>📖 Series:</b> %s\n", series))
+		}
+		if desc != "" {
+			descClean := strings.TrimSpace(desc)
+			if len(descClean) > 250 {
+				descClean = descClean[:247] + "..."
+			}
+			sb.WriteString(fmt.Sprintf("<b>📝 Description:</b> %s\n", descClean))
+		}
+
 		telegramMsg := map[string]any{
-			"text":       msgText,
+			"text":       sb.String(),
 			"parse_mode": "HTML",
 		}
 		b, _ := jsonx.Marshal(telegramMsg)
 		return b, "application/json"
 
 	case "slack":
-		slackMsg := map[string]any{
-			"blocks": []map[string]any{
-				{
-					"type": "header",
-					"text": map[string]string{
-						"type": "plain_text",
-						"text": fmt.Sprintf("📚 NovelHub: %s", eventType),
-					},
-				},
-				{
-					"type": "section",
-					"text": map[string]string{
-						"type": "mrkdwn",
-						"text": fmt.Sprintf("Event `%s` triggered at %s", eventType, time.Now().Format(time.Kitchen)),
-					},
-				},
+		bookTitle, _ := rawData["title"].(string)
+		author, _ := rawData["author"].(string)
+		publisher, _ := rawData["publisher"].(string)
+		lang, _ := rawData["language"].(string)
+
+		mrkdwn := fmt.Sprintf("*📚 NovelHub: %s*\n*Book:* %s\n*Author:* %s\n*Publisher:* %s\n*Language:* %s",
+			eventType, bookTitle, author, publisher, lang)
+
+		section := map[string]any{
+			"type": "section",
+			"text": map[string]string{
+				"type": "mrkdwn",
+				"text": mrkdwn,
 			},
+		}
+
+		if coverURL, ok := rawData["cover_url"].(string); ok && strings.TrimSpace(coverURL) != "" {
+			section["accessory"] = map[string]string{
+				"type":      "image",
+				"image_url": coverURL,
+				"alt_text":  bookTitle,
+			}
+		}
+
+		slackMsg := map[string]any{
+			"blocks": []map[string]any{section},
 		}
 		b, _ := jsonx.Marshal(slackMsg)
 		return b, "application/json"

@@ -49,6 +49,15 @@ export function usePublicSettings(): PublicSettings | null {
   return publicSettings;
 }
 
+export function isPolicyAllowed(policy: import("@/types").LibraryPolicy | undefined, libraryId?: string): boolean {
+  if (!policy) return true;
+  if (policy.mode === "disabled") return false;
+  if (policy.mode === "selected_libraries") {
+    return !!libraryId && (policy.library_ids || []).includes(libraryId);
+  }
+  return true;
+}
+
 export async function invalidatePublicSettings(): Promise<void> {
   fetching = false;
   try {

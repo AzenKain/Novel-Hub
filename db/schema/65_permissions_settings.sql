@@ -68,6 +68,7 @@ END;
 INSERT INTO permissions (key, description) VALUES
     ('book.read', 'Read books and book metadata'),
     ('book.download', 'Download book files'),
+    ('book.share', 'Share books and generate share links'),
     ('book.bookmark', 'Bookmark books'),
     ('book.collection', 'Manage personal collections'),
     ('book.review.create', 'Create and update book reviews'),
@@ -79,7 +80,8 @@ INSERT INTO permissions (key, description) VALUES
     ('user.manage', 'Manage users'),
     ('setting.manage', 'Manage application settings'),
     ('admin.access', 'Access admin area'),
-    ('job.read', 'Read background job status')
+    ('job.read', 'Read background job status'),
+    ('webhook.manage', 'Manage webhooks and notification integrations')
 ON CONFLICT(key) DO UPDATE SET
     description = excluded.description;
 

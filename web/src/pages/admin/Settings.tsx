@@ -1,11 +1,13 @@
 import { LibraryMultiSelect } from "@/components/admin/settings/LibraryMultiSelect";
 import { GUEST_MODES, POLICY_MODES, SIDEBAR_LABELS } from "@/constants";
-import { useAdminSettingsQuery, useLibrariesQuery, useUpdateAdminSettingsMutation, useUploadAdminLogoMutation } from "@/hooks";
+import { useAdminSettingsQuery, useLibrariesQuery, useUpdateAdminSettingsMutation } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
 import { adminService } from "@/services";
 import { useSettingsAdminStore } from "@/stores";
 import {
+  BarChart3,
   Bookmark,
+  BookOpen,
   Download,
   Eye,
   Globe,
@@ -16,15 +18,19 @@ import {
   MessageSquareText,
   RefreshCw,
   Save,
+  Share2,
+  ShieldCheck,
   UserPlus,
 } from "lucide-react";
-import { SyntheticEvent, useEffect, useState } from "react";
+import { SyntheticEvent, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { WebhooksTab } from "@/components/admin/settings/WebhooksTab";
 
 export function Settings() {
+  const { t } = useTranslation();
   const { data: adminSettings, isLoading: settingsLoading, refetch: refetchSettings } = useAdminSettingsQuery();
   const { data: librariesList = [], isLoading: librariesLoading, refetch: refetchLibraries } = useLibrariesQuery();
   const updateSettingsMutation = useUpdateAdminSettingsMutation();
@@ -44,6 +50,13 @@ export function Settings() {
     collectionLibraryIds, setCollectionLibraryIds,
     reviewMode, setReviewMode,
     reviewLibraryIds, setReviewLibraryIds,
+    shareMode, setShareMode,
+    shareLibraryIds, setShareLibraryIds,
+    readMode, setReadMode,
+    readLibraryIds, setReadLibraryIds,
+    statsMode, setStatsMode,
+    statsLibraryIds, setStatsLibraryIds,
+    statsVisibleStats, setStatsVisibleStats,
     inBookSearch, setInBookSearch,
     customFontUpload, setCustomFontUpload,
     savingSection, setSavingSection,
@@ -67,6 +80,13 @@ export function Settings() {
     collectionLibraryIds: state.collectionLibraryIds, setCollectionLibraryIds: state.setCollectionLibraryIds,
     reviewMode: state.reviewMode, setReviewMode: state.setReviewMode,
     reviewLibraryIds: state.reviewLibraryIds, setReviewLibraryIds: state.setReviewLibraryIds,
+    shareMode: state.shareMode, setShareMode: state.setShareMode,
+    shareLibraryIds: state.shareLibraryIds, setShareLibraryIds: state.setShareLibraryIds,
+    readMode: state.readMode, setReadMode: state.setReadMode,
+    readLibraryIds: state.readLibraryIds, setReadLibraryIds: state.setReadLibraryIds,
+    statsMode: state.statsMode, setStatsMode: state.setStatsMode,
+    statsLibraryIds: state.statsLibraryIds, setStatsLibraryIds: state.setStatsLibraryIds,
+    statsVisibleStats: state.statsVisibleStats, setStatsVisibleStats: state.setStatsVisibleStats,
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
     customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
     savingSection: state.savingSection, setSavingSection: state.setSavingSection,
@@ -89,8 +109,9 @@ export function Settings() {
   function saveSection(section: string, data: Record<string, unknown>) {
     setSavingSection(section);
     updateSettingsMutation.mutate(data, {
-      onSuccess: () => {
-        toast.success(`${section} saved`);
+      onSuccess: async () => {
+        toast.success(t("settings.saved_success", "Saved successfully"));
+        await invalidatePublicSettings();
         setSavingSection(null);
       },
       onError: (err) => {
@@ -205,23 +226,23 @@ export function Settings() {
     });
   }
 
-  function handlePolicySave(prefix: string) {
-    const modeMap: Record<string, string> = {
-      download: downloadMode,
-      bookmark: bookmarkMode,
-      collection: collectionMode,
-      review: reviewMode,
-    };
-    const idsMap: Record<string, string[]> = {
-      download: downloadLibraryIds,
-      bookmark: bookmarkLibraryIds,
-      collection: collectionLibraryIds,
-      review: reviewLibraryIds,
-    };
-    const mode = modeMap[prefix];
-    void saveSection(`${prefix} policy`, {
-      [`${prefix}.mode`]: mode,
-      [`${prefix}.library_ids`]: mode === "selected_libraries" ? idsMap[prefix] : [],
+  function handleAllPoliciesSave() {
+    void saveSection("Policies", {
+      "read.mode": readMode,
+      "read.library_ids": readMode === "selected_libraries" ? readLibraryIds : [],
+      "download.mode": downloadMode,
+      "download.library_ids": downloadMode === "selected_libraries" ? downloadLibraryIds : [],
+      "bookmark.mode": bookmarkMode,
+      "bookmark.library_ids": bookmarkMode === "selected_libraries" ? bookmarkLibraryIds : [],
+      "collection.mode": collectionMode,
+      "collection.library_ids": collectionMode === "selected_libraries" ? collectionLibraryIds : [],
+      "review.mode": reviewMode,
+      "review.library_ids": reviewMode === "selected_libraries" ? reviewLibraryIds : [],
+      "share.mode": shareMode,
+      "share.library_ids": shareMode === "selected_libraries" ? shareLibraryIds : [],
+      "stats.mode": statsMode,
+      "stats.library_ids": statsMode === "selected_libraries" ? statsLibraryIds : [],
+      "stats.visible_stats": statsVisibleStats,
     });
   }
 
@@ -233,8 +254,6 @@ export function Settings() {
     );
   }
 
-
-
   const isSaving = (s: string) => savingSection === s;
 
   return (
@@ -242,8 +261,8 @@ export function Settings() {
       {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-sm text-base-content/60 mt-1">Website customization, policies, and access control</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("settings.title", "Settings")}</h1>
+          <p className="text-sm text-base-content/60 mt-1">{t("settings.subtitle", "Website customization, policies, and access control")}</p>
         </div>
         <button
           onClick={() => {
@@ -251,26 +270,39 @@ export function Settings() {
             void refetchLibraries();
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
-          title="Refresh"
+          title={t("settings.refresh", "Refresh")}
         >
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </button>
       </header>
 
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-7xl mx-auto w-full space-y-3">
           {/* ────── Site Settings ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Globe className="h-5 w-5 text-primary" />
-                <h2 className="card-title text-lg">Site Information</h2>
-              </div>
-              <p className="text-xs text-base-content/50 mb-4">Customize how your library appears to visitors.</p>
-              <form onSubmit={handleSiteSave} className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="card-body p-4 sm:p-5">
+              <form onSubmit={handleSiteSave} className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-base-200/60">
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Globe className="h-5 w-5 text-primary" />
+                      <h2 className="card-title text-lg">{t("settings.site_info", "Site Information")}</h2>
+                    </div>
+                    <p className="text-xs text-base-content/50">{t("settings.site_info_desc", "Customize how your library appears to visitors.")}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSaving("Site settings")}
+                    className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                  >
+                    {isSaving("Site settings") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {t("settings.save_site", "Save Site")}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Title</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.title_label", "Title")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
@@ -279,7 +311,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Meta Description</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.meta_desc_label", "Meta Description")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
@@ -288,7 +320,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Logo URL</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.logo_url_label", "Logo URL")}</label>
                     <div className="flex gap-2 items-start">
                       <div className="flex flex-col gap-2 flex-1">
                         <div className="join w-full">
@@ -305,12 +337,12 @@ export function Settings() {
                             onClick={() => handleUploadLink("logo")}
                             disabled={!site.logo.startsWith('http') || uploadingLogo}
                           >
-                            {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                            {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : t("settings.fetch", "Fetch")}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
-                            Upload Logo
+                            {t("settings.upload_logo", "Upload Logo")}
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, "logo")} />
                           </label>
                           <button 
@@ -318,7 +350,7 @@ export function Settings() {
                             className="btn btn-sm btn-ghost font-normal"
                             onClick={() => setSite({ ...site, logo: '/logo.svg' })}
                           >
-                            Use Default
+                            {t("settings.use_default", "Use Default")}
                           </button>
                         </div>
                       </div>
@@ -340,7 +372,7 @@ export function Settings() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Favicon URL</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.favicon_url_label", "Favicon URL")}</label>
                     <div className="flex gap-2 items-start">
                       <div className="flex flex-col gap-2 flex-1">
                         <div className="join w-full">
@@ -357,12 +389,12 @@ export function Settings() {
                             onClick={() => handleUploadLink("favicon")}
                             disabled={!site.favicon.startsWith('http') || uploadingFavicon}
                           >
-                            {uploadingFavicon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                            {uploadingFavicon ? <Loader2 className="w-4 h-4 animate-spin" /> : t("settings.fetch", "Fetch")}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
-                            Upload Favicon
+                            {t("settings.upload_favicon", "Upload Favicon")}
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, "favicon")} />
                           </label>
                           <button 
@@ -370,7 +402,7 @@ export function Settings() {
                             className="btn btn-sm btn-ghost font-normal"
                             onClick={() => setSite({ ...site, favicon: '/favicon.ico' })}
                           >
-                            Use Default
+                            {t("settings.use_default", "Use Default")}
                           </button>
                         </div>
                       </div>
@@ -384,7 +416,7 @@ export function Settings() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Description</label>
+                  <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.description_label", "Description")}</label>
                   <textarea
                     className="textarea textarea-bordered w-full"
                     value={site.description}
@@ -392,29 +424,32 @@ export function Settings() {
                     rows={2}
                   />
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSaving("Site settings")}
-                    className="btn btn-primary btn-sm gap-1"
-                  >
-                    {isSaving("Site settings") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Site
-                  </button>
-                </div>
               </form>
             </div>
           </div>
 
           {/* ────── Sidebar Visibility ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Layout className="h-5 w-5 text-primary" />
-                <h2 className="card-title text-lg">Sidebar Navigation</h2>
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Layout className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.sidebar_nav", "Sidebar Navigation")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">{t("settings.sidebar_nav_desc", "Choose which navigation items appear in the library sidebar.")}</p>
+                </div>
+                <button
+                  onClick={handleSidebarSave}
+                  disabled={isSaving("Sidebar")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Sidebar") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_sidebar", "Save Sidebar")}
+                </button>
               </div>
-              <p className="text-xs text-base-content/50 mb-4">Choose which navigation items appear in the library sidebar.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-4">
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {(adminSettings?.available_sidebar_items || []).map((key: string) => (
                   <label
                     key={key}
@@ -438,28 +473,31 @@ export function Settings() {
                   </label>
                 ))}
               </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSidebarSave}
-                  disabled={isSaving("Sidebar")}
-                  className="btn btn-primary btn-sm gap-1"
-                >
-                  {isSaving("Sidebar") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Sidebar
-                </button>
-              </div>
             </div>
           </div>
 
           {/* ────── Home Sections ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Home className="h-5 w-5 text-primary" />
-                <h2 className="card-title text-lg">Home Page Sections</h2>
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Home className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.home_sections", "Home Page Sections")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">{t("settings.home_sections_desc", "Enable or disable sections on the library home page.")}</p>
+                </div>
+                <button
+                  onClick={handleHomeSave}
+                  disabled={isSaving("Home sections")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Home sections") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_home", "Save Home")}
+                </button>
               </div>
-              <p className="text-xs text-base-content/50 mb-4">Enable or disable sections on the library home page.</p>
-              <div className="flex flex-col gap-3 mb-4">
+
+              <div className="flex flex-col gap-2.5">
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
                   <input
                     type="checkbox"
@@ -468,8 +506,8 @@ export function Settings() {
                     onChange={(e) => setHomeSections({ ...homeSections, random_books: e.target.checked })}
                   />
                   <div>
-                    <span className="text-sm font-medium">Random Books</span>
-                    <p className="text-xs text-base-content/50">Show random books section on the home page.</p>
+                    <span className="text-sm font-medium">{t("settings.random_books", "Random Books")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.random_books_desc", "Show random books section on the home page.")}</p>
                   </div>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
@@ -480,33 +518,36 @@ export function Settings() {
                     onChange={(e) => setHomeSections({ ...homeSections, top_books: e.target.checked })}
                   />
                   <div>
-                    <span className="text-sm font-medium">Top Books</span>
-                    <p className="text-xs text-base-content/50">Show top rated / most read books section.</p>
+                    <span className="text-sm font-medium">{t("settings.top_books", "Top Books")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.top_books_desc", "Show top rated / most read books section.")}</p>
                   </div>
                 </label>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleHomeSave}
-                  disabled={isSaving("Home sections")}
-                  className="btn btn-primary btn-sm gap-1"
-                >
-                  {isSaving("Home sections") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Home
-                </button>
               </div>
             </div>
           </div>
 
           {/* ────── Reader Features & Custom Fonts ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Layout className="h-5 w-5 text-primary" />
-                <h2 className="card-title text-lg">Reader Features & Fonts</h2>
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Layout className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.reader_features", "Reader Features & Fonts")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">{t("settings.reader_features_desc", "Toggle advanced reader search and server font uploads.")}</p>
+                </div>
+                <button
+                  onClick={handleReaderFeaturesSave}
+                  disabled={isSaving("Reader features")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Reader features") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_reader", "Save Reader Settings")}
+                </button>
               </div>
-              <p className="text-xs text-base-content/50 mb-4">Toggle advanced reader search and server font uploads.</p>
-              <div className="flex flex-col gap-4">
+
+              <div className="flex flex-col gap-2.5">
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
                   <input
                     type="checkbox"
@@ -515,8 +556,8 @@ export function Settings() {
                     onChange={(e) => setInBookSearch(e.target.checked)}
                   />
                   <div>
-                    <span className="text-sm font-medium">Enable In-Book Search</span>
-                    <p className="text-xs text-base-content/50">Allow readers to search text inside open books (On-demand disk scan).</p>
+                    <span className="text-sm font-medium">{t("settings.in_book_search", "Enable In-Book Search")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.in_book_search_desc", "Allow readers to search text inside open books (On-demand disk scan).")}</p>
                   </div>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
@@ -527,33 +568,36 @@ export function Settings() {
                     onChange={(e) => setCustomFontUpload(e.target.checked)}
                   />
                   <div>
-                    <span className="text-sm font-medium">Enable Server Custom Font Uploads</span>
-                    <p className="text-xs text-base-content/50">Allow authorized users to upload custom fonts to server (default is local IndexedDB font storage).</p>
+                    <span className="text-sm font-medium">{t("settings.custom_font_upload", "Enable Server Custom Font Uploads")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.custom_font_upload_desc", "Allow authorized users to upload custom fonts to server (default is local IndexedDB font storage).")}</p>
                   </div>
                 </label>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleReaderFeaturesSave}
-                  disabled={isSaving("Reader features")}
-                  className="btn btn-primary btn-sm gap-1"
-                >
-                  {isSaving("Reader features") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Reader Settings
-                </button>
               </div>
             </div>
           </div>
 
           {/* ────── Registration & Guest ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <UserPlus className="h-5 w-5 text-primary" />
-                <h2 className="card-title text-lg">Registration & Guest Access</h2>
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <UserPlus className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.registration_guest", "Registration & Guest Access")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">{t("settings.registration_guest_desc", "Control who can register and what guests can see.")}</p>
+                </div>
+                <button
+                  onClick={handleRegistrationSave}
+                  disabled={isSaving("Registration & Guest")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Registration & Guest") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_access", "Save Access")}
+                </button>
               </div>
-              <p className="text-xs text-base-content/50 mb-4">Control who can register and what guests can see.</p>
-              <div className="flex flex-col gap-4">
+
+              <div className="flex flex-col gap-3">
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
                   <input
                     type="checkbox"
@@ -562,13 +606,13 @@ export function Settings() {
                     onChange={(e) => setRegistration(e.target.checked)}
                   />
                   <div>
-                    <span className="text-sm font-medium">Enable Public Registration</span>
-                    <p className="text-xs text-base-content/50">Allow new users to create accounts.</p>
+                    <span className="text-sm font-medium">{t("settings.public_registration", "Enable Public Registration")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.public_registration_desc", "Allow new users to create accounts.")}</p>
                   </div>
                 </label>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1 flex items-center gap-1">
-                    <Eye className="h-3 w-3" /> Guest Access Mode
+                    <Eye className="h-3 w-3" /> {t("settings.guest_mode", "Guest Access Mode")}
                   </label>
                   <select
                     className="select select-bordered w-full"
@@ -582,7 +626,7 @@ export function Settings() {
                 </div>
                 {guestMode === "selected_libraries" && (
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Allowed Libraries</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.allowed_libraries", "Allowed Libraries")}</label>
                     <LibraryMultiSelect
                       ids={guestLibraryIds}
                       libraries={libraries}
@@ -591,110 +635,194 @@ export function Settings() {
                   </div>
                 )}
               </div>
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={handleRegistrationSave}
-                  disabled={isSaving("Registration & Guest")}
-                  className="btn btn-primary btn-sm gap-1"
-                >
-                  {isSaving("Registration & Guest") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Access
-                </button>
-              </div>
             </div>
           </div>
 
           {/* ────── Feature Policies ────── */}
-          {[
-            {
-              key: "download",
-              icon: Download,
-              title: "Download Policy",
-              desc: "Control who can download book files.",
-              mode: downloadMode,
-              setMode: setDownloadMode,
-              ids: downloadLibraryIds,
-              setIds: setDownloadLibraryIds,
-            },
-            {
-              key: "bookmark",
-              icon: Bookmark,
-              title: "Bookmark Policy",
-              desc: "Control who can bookmark books.",
-              mode: bookmarkMode,
-              setMode: setBookmarkMode,
-              ids: bookmarkLibraryIds,
-              setIds: setBookmarkLibraryIds,
-            },
-            {
-              key: "collection",
-              icon: Library,
-              title: "Collection Policy",
-              desc: "Control who can create and manage collections.",
-              mode: collectionMode,
-              setMode: setCollectionMode,
-              ids: collectionLibraryIds,
-              setIds: setCollectionLibraryIds,
-            },
-            {
-              key: "review",
-              icon: MessageSquareText,
-              title: "Review Policy",
-              desc: "Control who can submit and read reviews.",
-              mode: reviewMode,
-              setMode: setReviewMode,
-              ids: reviewLibraryIds,
-              setIds: setReviewLibraryIds,
-            },
-          ].map((policy) => (
-            <div key={policy.key} className="card bg-base-100 border border-base-200 shadow-sm">
-              <div className="card-body p-5 sm:p-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <policy.icon className="h-5 w-5 text-primary" />
-                  <h2 className="card-title text-lg">{policy.title}</h2>
-                </div>
-                <p className="text-xs text-base-content/50 mb-4">{policy.desc}</p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Mode</label>
-                    <select
-                      className="select select-bordered w-full"
-                      value={policy.mode}
-                      onChange={(e) => policy.setMode(e.target.value)}
-                    >
-                      {POLICY_MODES.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
-                      ))}
-                    </select>
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-base-200 pb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.feature_policies", "Feature & Library Policies")}</h2>
                   </div>
-                  {policy.mode === "selected_libraries" && (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Allowed Libraries</label>
-                      <LibraryMultiSelect
-                        ids={policy.ids}
-                        libraries={libraries}
-                        onChange={policy.setIds}
-                      />
+                  <p className="text-xs text-base-content/50">
+                    {t("settings.feature_policies_desc", "Configure access control for reading, downloading, bookmarks, collections, reviews, and sharing across libraries.")}
+                  </p>
+                </div>
+                <button
+                  onClick={handleAllPoliciesSave}
+                  disabled={isSaving("Policies")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Policies") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_all_policies", "Save Policies")}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  {
+                    key: "read",
+                    icon: BookOpen,
+                    titleKey: "settings.read_policy",
+                    title: "Read Policy",
+                    descKey: "settings.read_policy_desc",
+                    desc: "Control who can read books in the library.",
+                    mode: readMode,
+                    setMode: setReadMode,
+                    ids: readLibraryIds,
+                    setIds: setReadLibraryIds,
+                  },
+                  {
+                    key: "download",
+                    icon: Download,
+                    titleKey: "settings.download_policy",
+                    title: "Download Policy",
+                    descKey: "settings.download_policy_desc",
+                    desc: "Control who can download book files.",
+                    mode: downloadMode,
+                    setMode: setDownloadMode,
+                    ids: downloadLibraryIds,
+                    setIds: setDownloadLibraryIds,
+                  },
+                  {
+                    key: "bookmark",
+                    icon: Bookmark,
+                    titleKey: "settings.bookmark_policy",
+                    title: "Bookmark Policy",
+                    descKey: "settings.bookmark_policy_desc",
+                    desc: "Control who can bookmark books.",
+                    mode: bookmarkMode,
+                    setMode: setBookmarkMode,
+                    ids: bookmarkLibraryIds,
+                    setIds: setBookmarkLibraryIds,
+                  },
+                  {
+                    key: "collection",
+                    icon: Library,
+                    titleKey: "settings.collection_policy",
+                    title: "Collection Policy",
+                    descKey: "settings.collection_policy_desc",
+                    desc: "Control who can create and manage collections.",
+                    mode: collectionMode,
+                    setMode: setCollectionMode,
+                    ids: collectionLibraryIds,
+                    setIds: setCollectionLibraryIds,
+                  },
+                  {
+                    key: "review",
+                    icon: MessageSquareText,
+                    titleKey: "settings.review_policy",
+                    title: "Review Policy",
+                    descKey: "settings.review_policy_desc",
+                    desc: "Control who can submit and read reviews.",
+                    mode: reviewMode,
+                    setMode: setReviewMode,
+                    ids: reviewLibraryIds,
+                    setIds: setReviewLibraryIds,
+                  },
+                  {
+                    key: "share",
+                    icon: Share2,
+                    titleKey: "settings.share_policy",
+                    title: "Share Policy",
+                    descKey: "settings.share_policy_desc",
+                    desc: "Control who can share books.",
+                    mode: shareMode,
+                    setMode: setShareMode,
+                    ids: shareLibraryIds,
+                    setIds: setShareLibraryIds,
+                  },
+                  {
+                    key: "stats",
+                    icon: BarChart3,
+                    titleKey: "settings.stats_policy",
+                    title: "Engagement Stats Policy",
+                    descKey: "settings.stats_policy_desc",
+                    desc: "Control visibility of stats under book cover.",
+                    mode: statsMode,
+                    setMode: setStatsMode,
+                    ids: statsLibraryIds,
+                    setIds: setStatsLibraryIds,
+                    visibleStats: statsVisibleStats,
+                    setVisibleStats: setStatsVisibleStats,
+                  },
+                ].map((policy: any) => (
+                  <div key={policy.key} className="p-3.5 bg-base-200/40 rounded-xl border border-base-200 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <policy.icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-bold text-sm">{t(policy.titleKey, policy.title) as string}</span>
                     </div>
-                  )}
-                </div>
-                <div className="flex justify-end mt-4">
-                  <button
-                    onClick={() => handlePolicySave(policy.key)}
-                    disabled={isSaving(`${policy.key} policy`)}
-                    className="btn btn-primary btn-sm gap-1"
-                  >
-                    {isSaving(`${policy.key} policy`) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save {policy.key}
-                  </button>
-                </div>
+                    <p className="text-xs text-base-content/50 leading-snug">{t(policy.descKey, policy.desc) as string}</p>
+                    <div className="flex flex-col gap-1.5 mt-auto pt-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">{t("settings.mode", "Mode")}</label>
+                      <select
+                        className="select select-bordered select-sm w-full"
+                        value={policy.mode}
+                        onChange={(e) => policy.setMode(e.target.value)}
+                      >
+                        {POLICY_MODES.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                      {policy.mode === "selected_libraries" && (
+                        <div className="flex flex-col gap-1 pt-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">{t("settings.allowed_libraries", "Allowed Libraries")}</label>
+                          <LibraryMultiSelect
+                            ids={policy.ids}
+                            libraries={libraries}
+                            onChange={policy.setIds}
+                          />
+                        </div>
+                      )}
+                      {policy.visibleStats && policy.setVisibleStats && (
+                        <div className="flex flex-col gap-1 pt-2 border-t border-base-200/60 mt-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                            {t("settings.visible_stats", "Custom Visible Stats")}
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                            {[
+                              { id: "reads", label: t("book.reads", "Reads") },
+                              { id: "downloads", label: t("book.downloads", "Downloads") },
+                              { id: "bookmarks", label: t("book.bookmarks", "Bookmarks") },
+                              { id: "collections", label: t("book.collections", "Collections") },
+                              { id: "rating", label: t("book.rating", "Rating") },
+                              { id: "shares", label: t("common.share", "Shares") },
+                            ].map((item) => {
+                              const checked = policy.visibleStats.includes(item.id);
+                              return (
+                                <label key={item.id} className="cursor-pointer flex items-center gap-1.5 text-xs select-none">
+                                  <input
+                                    type="checkbox"
+                                    className="checkbox checkbox-xs checkbox-primary"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        policy.setVisibleStats([...policy.visibleStats, item.id]);
+                                      } else {
+                                        policy.setVisibleStats(policy.visibleStats.filter((s: string) => s !== item.id));
+                                      }
+                                    }}
+                                  />
+                                  <span className="truncate">{item.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
 
           {/* ────── Webhooks Integration ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
-            <div className="card-body p-5 sm:p-6">
+            <div className="card-body p-4 sm:p-5">
               <WebhooksTab />
             </div>
           </div>

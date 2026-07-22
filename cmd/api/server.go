@@ -166,6 +166,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	calibreController := controllers.NewCalibreController(calibreService)
 	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
 	webhookController := controllers.NewWebhookController(webhookService)
+	bookService.SetWebhookService(webhookService)
 	uploadService := services.NewUploadService(libraryService, bookService)
 
 	authController := controllers.NewAuthController(authService)
@@ -190,13 +191,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 				Payload: payload,
 			})
 			if book, getErr := bookService.GetBook(ctx, payload); getErr == nil && book != nil {
-				webhookService.DispatchEvent(ctx, "book.created", map[string]any{
-					"id":         book.ID,
-					"title":      book.Title,
-					"author":     book.AuthorName,
-					"library_id": book.LibraryID,
-					"created_at": book.CreatedAt,
-				})
+				webhookService.DispatchEvent(ctx, "book.created", services.BuildBookWebhookPayload(book))
 			}
 		}
 		return err

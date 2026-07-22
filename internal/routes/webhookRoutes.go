@@ -17,7 +17,7 @@ func WebhookRoutes(
 ) {
 	group := router.Group("/admin/webhooks")
 	group.Use(middlewares.JwtAccess(userRepo))
-	group.Use(middlewares.RequirePermission(permissionCache, "settings.edit"))
+	group.Use(middlewares.RequirePermission(permissionCache, "webhook.manage"))
 
 	group.Get("", controller.ListWebhooks)
 	group.Post("", controller.CreateWebhook)

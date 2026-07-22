@@ -76,6 +76,9 @@ func defaultPublicSettings() *models.PublicSettings {
 		Bookmark:              models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
 		Collection:            models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
 		Review:                models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
+		Share:                 models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
+		Read:                  models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
+		Stats:                 models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}, VisibleStats: []string{"reads", "downloads", "bookmarks", "collections", "rating", "shares"}},
 		SetupCompleted:        true,
 		AvailableSidebarItems: append([]string(nil), availableSidebarItems...),
 		AvailableHomeSections: append([]string(nil), availableHomeSections...),
@@ -129,6 +132,10 @@ func (s *settingsService) Public(ctx context.Context) (*models.PublicSettings, e
 	copyValue.Bookmark.LibraryIDs = append([]string(nil), current.Bookmark.LibraryIDs...)
 	copyValue.Collection.LibraryIDs = append([]string(nil), current.Collection.LibraryIDs...)
 	copyValue.Review.LibraryIDs = append([]string(nil), current.Review.LibraryIDs...)
+	copyValue.Share.LibraryIDs = append([]string(nil), current.Share.LibraryIDs...)
+	copyValue.Read.LibraryIDs = append([]string(nil), current.Read.LibraryIDs...)
+	copyValue.Stats.LibraryIDs = append([]string(nil), current.Stats.LibraryIDs...)
+	copyValue.Stats.VisibleStats = append([]string(nil), current.Stats.VisibleStats...)
 	return &copyValue, nil
 }
 
@@ -174,6 +181,12 @@ func (s *settingsService) PolicyAllows(policy string, libraryID string, admin bo
 		return libraryPolicyAllows(current.Collection, libraryID)
 	case "review":
 		return libraryPolicyAllows(current.Review, libraryID)
+	case "share":
+		return libraryPolicyAllows(current.Share, libraryID)
+	case "read":
+		return libraryPolicyAllows(current.Read, libraryID)
+	case "stats":
+		return libraryPolicyAllows(current.Stats, libraryID)
 	default:
 		return false
 	}
@@ -247,6 +260,10 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.Bookmark = rawPolicy(raw, "bookmark", settings.Bookmark, availablePolicyModes)
 	settings.Collection = rawPolicy(raw, "collection", settings.Collection, availablePolicyModes)
 	settings.Review = rawPolicy(raw, "review", settings.Review, availablePolicyModes)
+	settings.Share = rawPolicy(raw, "share", settings.Share, availablePolicyModes)
+	settings.Read = rawPolicy(raw, "read", settings.Read, availablePolicyModes)
+	settings.Stats = rawPolicy(raw, "stats", settings.Stats, availablePolicyModes)
+	settings.Stats.VisibleStats = rawStringSlice(raw, "stats.visible_stats", settings.Stats.VisibleStats)
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	return settings
@@ -326,6 +343,7 @@ func mapBool(raw map[string]any, key string, fallback bool) bool {
 	if !ok {
 		return fallback
 	}
+	typed, ok = value.(bool)
 	return typed
 }
 
@@ -370,6 +388,13 @@ func allowedSettingKey(key string) bool {
 		"collection.library_ids",
 		"review.mode",
 		"review.library_ids",
+		"share.mode",
+		"share.library_ids",
+		"read.mode",
+		"read.library_ids",
+		"stats.mode",
+		"stats.library_ids",
+		"stats.visible_stats",
 		"reader.enable_in_book_search",
 		"font.enable_custom_font_upload":
 		return true

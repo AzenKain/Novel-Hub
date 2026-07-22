@@ -17,6 +17,7 @@ func TitleFromPath(filePath string) string {
 		ext = ".kepub.epub"
 	}
 	title := strings.TrimSuffix(name, ext)
+	title = CleanChapterTitle(title)
 	title = strings.ReplaceAll(title, "_", " ")
 	title = strings.ReplaceAll(title, "-", " ")
 	title = strings.TrimSpace(title)

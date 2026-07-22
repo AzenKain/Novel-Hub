@@ -137,7 +137,7 @@ func htmlMetadata(data []byte) (string, string) {
 			switch strings.ToLower(node.Data) {
 			case "title":
 				if title == "" {
-					title = strings.TrimSpace(textContent(node))
+					title = bookparser.CleanChapterTitle(textContent(node))
 				}
 			case "meta":
 				name := strings.ToLower(attrValue(node, "name"))

@@ -38,7 +38,7 @@ export function useHotBooksQuery(limit = 6) {
       if (!res.status) throw new Error(res.message || "Failed to fetch hot books");
       return res.data || [];
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes cache for hot books
+    staleTime: 1000 * 60, // 1 minute cache for hot books
   });
 }
 

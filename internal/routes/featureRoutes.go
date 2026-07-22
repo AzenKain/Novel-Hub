@@ -20,7 +20,12 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 
 	app.Get("/library/stats", featureController.GetLibraryStats)
 
-	// Reading Stats & Heatmap (Static routes MUST be registered before wildcard :id parameters)
+	historyGroup := app.Group("/reader/history", middlewares.JwtAccess(userRepo))
+	historyGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
+	historyGroup.Get("/", featureController.GetRecentReadingHistory)
+	historyGroup.Post("/", featureController.RecordReadingActivity)
+	historyGroup.Get("/progress/:id", featureController.GetReadingProgress)
+
 	statsGroup := app.Group("/reader/stats", middlewares.JwtAccess(userRepo))
 	statsGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
 	statsGroup.Post("/session", featureController.RecordReadingSession)
@@ -31,7 +36,7 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	app.Get("/books/:id/engagement", featureController.GetBookEngagementStats)
 	app.Get("/books/:id/rating", featureController.GetBookRatingSummary)
 	app.Get("/books/:id/reviews", featureController.ListBookReviews)
-	app.Post("/books/:id/share", featureController.RecordBookShare)
+	app.Post("/books/:id/share", middlewares.OptionalJwtAccess(userRepo), featureController.RecordBookShare)
 
 	adminReviewGroup := app.Group("/admin/reviews", middlewares.JwtAccess(userRepo))
 	adminReviewGroup.Use(middlewares.RequirePermission(permissionCache, "book.review.delete"))

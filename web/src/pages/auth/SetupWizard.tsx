@@ -27,6 +27,9 @@ export function SetupWizard() {
     bookmark_mode: "all" as string,
     collection_mode: "all" as string,
     review_mode: "all" as string,
+    share_mode: "all" as string,
+    read_mode: "all" as string,
+    stats_mode: "all" as string,
     sidebar_visible_items: Object.keys(SIDEBAR_LABELS),
   });
 
@@ -63,10 +66,13 @@ export function SetupWizard() {
         favicon: form.favicon,
         registration: form.registration,
         guest_mode: form.guest_mode,
+        read_mode: form.read_mode,
         download_mode: form.download_mode,
         bookmark_mode: form.bookmark_mode,
         collection_mode: form.collection_mode,
         review_mode: form.review_mode,
+        share_mode: form.share_mode,
+        stats_mode: form.stats_mode,
         sidebar_visible_items: form.sidebar_visible_items,
       });
       if (res.status) {
@@ -168,7 +174,7 @@ export function SetupWizard() {
 
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <div className="card w-full max-w-lg bg-base-100 shadow-xl">
+      <div className="card w-full max-w-2xl bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex flex-col items-center gap-2 mb-4">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -363,41 +369,43 @@ export function SetupWizard() {
             </fieldset>
 
             <fieldset className="fieldset">
-              <legend className="fieldset-legend font-semibold">Policies</legend>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <legend className="fieldset-legend font-semibold">Policies & Access Control</legend>
+              <div className="flex items-center gap-2 mb-2">
                 <input
                   type="checkbox"
-                  className="toggle toggle-primary"
+                  className="toggle toggle-primary toggle-sm"
                   checked={form.registration}
                   onChange={(e) => setForm({ ...form, registration: e.target.checked })}
                 />
-                <span className="text-sm">Enable public registration</span>
-              </label>
-
-              <div className="form-control w-full">
-                <label className="label py-1"><span className="label-text text-xs">Guest access mode</span></label>
-                <select className="select select-bordered select-sm w-full" value={form.guest_mode}
-                  onChange={(e) => setForm({ ...form, guest_mode: e.target.value })}>
-                  <option value="all">All libraries</option>
-                  <option value="selected_libraries">Selected libraries</option>
-                  <option value="login_required">Login required</option>
-                </select>
+                <span className="text-sm font-medium">Enable public registration</span>
               </div>
 
-              {["download", "bookmark", "collection", "review"].map((policy) => (
-                <div key={policy} className="form-control w-full">
-                  <label className="label py-1">
-                    <span className="label-text text-xs capitalize">{policy} mode</span>
-                  </label>
-                  <select className="select select-bordered select-sm w-full"
-                    value={form[`${policy}_mode` as keyof typeof form] as string}
-                    onChange={(e) => setForm({ ...form, [`${policy}_mode`]: e.target.value })}>
-                    <option value="all">All</option>
-                    <option value="disabled">Disabled</option>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 my-1">
+                <div className="form-control w-full">
+                  <label className="label py-0.5"><span className="label-text text-xs font-semibold">Guest access</span></label>
+                  <select className="select select-bordered select-sm w-full" value={form.guest_mode}
+                    onChange={(e) => setForm({ ...form, guest_mode: e.target.value })}>
+                    <option value="all">All libraries</option>
                     <option value="selected_libraries">Selected libraries</option>
+                    <option value="login_required">Login required</option>
                   </select>
                 </div>
-              ))}
+
+                {["read", "download", "bookmark", "collection", "review", "share", "stats"].map((policy) => (
+                  <div key={policy} className="form-control w-full">
+                    <label className="label py-0.5">
+                      <span className="label-text text-xs font-semibold capitalize">{policy} policy</span>
+                    </label>
+                    <select className="select select-bordered select-sm w-full"
+                      value={form[`${policy}_mode` as keyof typeof form] as string}
+                      onChange={(e) => setForm({ ...form, [`${policy}_mode`]: e.target.value })}>
+                      <option value="all">All</option>
+                      <option value="disabled">Disabled</option>
+                      <option value="selected_libraries">Selected libraries</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
             </fieldset>
 
             {error && (

@@ -5,6 +5,8 @@ import { useAuthStore, useLibraryStore } from "@/stores";
 import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
 
+import { isModOrAdminUser } from "@/utils/permission";
+
 interface TopNavProps {
   showSidebarToggle?: boolean;
 }
@@ -61,9 +63,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
 
         {user ? (
           <>
-            {user.roles?.some(
-              (r) => r.name === "ADMIN" || r.name === "MOD",
-            ) && (
+            {isModOrAdminUser(user) && (
               <Link
                 to="/admin"
                 className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"

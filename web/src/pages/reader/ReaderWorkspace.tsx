@@ -12,6 +12,7 @@ import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReadingStats } from "@/hooks/useReadingStats";
+import { queryClient } from "@/config/queryClient";
 import { clearHighlight, highlightTextRange, highlightTextRangeFromNode, extractTextFromHtml, getSelectionInfo, saveSelection, getTextFromHereFromSaved, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -580,6 +581,14 @@ export const ReaderWorkspace = () => {
   }, [htmlContent]);
 
   useEffect(() => {
+    return () => {
+      void queryClient.invalidateQueries({ queryKey: ["reading"] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user || !currentChapter || !bookId) return;
     const chapterPosition = chapters.findIndex((chapter) => chapter.id === currentChapter.id);
     const progressPercent = chapterPosition >= 0
@@ -594,6 +603,9 @@ export const ReaderWorkspace = () => {
       chapterIndex: currentChapter.chapterIndex,
       progressPercent,
       eventType: "chapter_open",
+    }).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["reading"] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
     }).catch((error) => {
       console.debug("Failed to record reading activity", error);
     });
@@ -625,6 +637,9 @@ export const ReaderWorkspace = () => {
         locationCfi: String(scrollTop),
         locationType: "scroll",
         eventType: "progress_update",
+      }).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["reading"] });
+        void queryClient.invalidateQueries({ queryKey: ["books"] });
       }).catch(console.debug);
     }, 2000);
   };
@@ -647,6 +662,9 @@ export const ReaderWorkspace = () => {
       locationCfi: String(pageIndex),
       locationType: "page",
       eventType: "progress_update",
+    }).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["reading"] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
     }).catch(console.debug);
   }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
 

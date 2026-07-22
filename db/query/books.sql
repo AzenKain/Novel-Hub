@@ -109,7 +109,7 @@ WHERE
     (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
     (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
     (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0) AND
+    (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
     (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
     (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
     (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND

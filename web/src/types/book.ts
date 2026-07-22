@@ -31,6 +31,7 @@ export interface BookFile {
 
 export interface Book {
   id: string;
+  libraryId?: string;
   title: string;
   authorId?: string;
   authorName?: string;

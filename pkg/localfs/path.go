@@ -20,7 +20,8 @@ func SafeJoin(base string, parts ...string) (string, error) {
 		return "", fmt.Errorf("failed to get absolute joined path: %w", err)
 	}
 
-	if !strings.HasPrefix(absJoined, absBase) {
+	rel, err := filepath.Rel(absBase, absJoined)
+	if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
 		return "", fmt.Errorf("path traversal attempt detected")
 	}
 

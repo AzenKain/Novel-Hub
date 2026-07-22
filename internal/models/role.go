@@ -8,15 +8,16 @@ import (
 )
 
 type RoleSimple struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	IsAdmin bool   `json:"is_admin"`
 }
 
 func (r *RoleSimple) ToResponse() *response.RoleSimpleResponse {
 	if r == nil {
 		return nil
 	}
-	return &response.RoleSimpleResponse{ID: r.ID, Name: r.Name}
+	return &response.RoleSimpleResponse{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin}
 }
 
 func RolesToResponse(roles []*RoleSimple) []*response.RoleSimpleResponse {
@@ -65,7 +66,7 @@ func (r *RoleEntity) ToRoleSimple() *RoleSimple {
 	if r == nil {
 		return nil
 	}
-	return &RoleSimple{ID: r.ID, Name: r.Name}
+	return &RoleSimple{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin}
 }
 
 func RolesEntityToResponse(roles []*RoleEntity) []*response.RoleResponse {

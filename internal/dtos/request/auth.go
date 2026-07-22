@@ -25,6 +25,10 @@ type SetupDto struct {
 	DownloadMode    string                 `json:"download_mode"`
 	BookmarkMode    string                 `json:"bookmark_mode"`
 	CollectionMode  string                 `json:"collection_mode"`
-	ReviewMode          string                 `json:"review_mode"`
-	SidebarVisibleItems []string               `json:"sidebar_visible_items"`
+	ReviewMode      string                 `json:"review_mode"`
+	ShareMode       string                 `json:"share_mode"`
+	ShareLibraryIDs []string               `json:"share_library_ids"`
+	ReadMode        string                 `json:"read_mode"`
+	ReadLibraryIDs  []string               `json:"read_library_ids"`
+	SidebarVisibleItems []string           `json:"sidebar_visible_items"`
 }

@@ -58,6 +58,8 @@ type BookService interface {
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
 
+	SetWebhookService(webhook WebhookService)
+
 	CanReadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool)
@@ -72,13 +74,14 @@ type UpdateCoverInput struct {
 }
 
 type bookService struct {
-	bookRepo    repositories.BookDBRepository
-	fileRepo    repositories.BookFileRepository
-	parsers     *bookparser.Registry
-	txManager   database.TxManager
-	settings    SettingsService
-	permissions PermissionCache
-	jobQueue    *worker.Queue
+	bookRepo       repositories.BookDBRepository
+	fileRepo       repositories.BookFileRepository
+	parsers        *bookparser.Registry
+	txManager      database.TxManager
+	settings       SettingsService
+	permissions    PermissionCache
+	jobQueue       *worker.Queue
+	webhookService WebhookService
 }
 
 func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue) BookService {
@@ -91,6 +94,10 @@ func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.Bo
 		permissions: permissions,
 		jobQueue:    jobQueue,
 	}
+}
+
+func (s *bookService) SetWebhookService(webhook WebhookService) {
+	s.webhookService = webhook
 }
 
 func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntity, error) {
@@ -569,6 +576,9 @@ func (s *bookService) GetDuplicateGroups(ctx context.Context) ([]*response.Dupli
 	result := make([]*response.DuplicateGroupResponse, 0, len(hashOrder))
 	for _, h := range hashOrder {
 		files := groupMap[h]
+		if len(files) < 2 {
+			continue
+		}
 		result = append(result, &response.DuplicateGroupResponse{
 			Hash:           h,
 			DuplicateCount: len(files),
@@ -585,11 +595,27 @@ func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
 		return err
 	}
 
+	bookID := fileRecord.BookID
+
 	if fileRecord.Path != "" {
-		_ = os.Remove(fileRecord.Path)
+		if err := os.Remove(fileRecord.Path); err != nil && !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("path", fileRecord.Path).Msg("failed to remove physical book file")
+		}
 	}
 
-	return s.bookRepo.DeleteFile(ctx, fileID)
+	if err := s.bookRepo.DeleteFile(ctx, fileID); err != nil {
+		return err
+	}
+
+	count, err := s.bookRepo.CountFilesForBook(ctx, bookID)
+	if err == nil && count == 0 {
+		log.Info().Str("book_id", bookID).Msg("book has no remaining files, deleting book entity and folder")
+		if err := s.DeleteBook(ctx, bookID); err != nil {
+			log.Error().Err(err).Str("book_id", bookID).Msg("failed to delete book entity after removing last file")
+		}
+	}
+
+	return nil
 }
 
 func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *request.UpdateBookMetadataDto) error {
@@ -729,6 +755,12 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 	if err := parser.SaveOriginalMetadataAndFix(file.Path, meta); err != nil {
 		// Log error but don't fail the API since DB is updated
 		fmt.Printf("Failed to update source metadata for %s: %v\n", bookID, err)
+	}
+
+	if s.webhookService != nil {
+		if updatedBook, getErr := s.GetBook(ctx, bookID); getErr == nil && updatedBook != nil {
+			s.webhookService.DispatchEvent(ctx, "metadata.updated", BuildBookWebhookPayload(updatedBook))
+		}
 	}
 
 	return nil
@@ -950,6 +982,10 @@ func (s *bookService) CanReadBook(ctx context.Context, book *models.BookEntity, 
 	if book == nil {
 		return false
 	}
+	admin := claims != nil && s.permissions.IsAdmin(claims.RoleIDs, claims.Roles)
+	if !s.settings.PolicyAllows("read", book.LibraryID, admin) {
+		return false
+	}
 	if claims == nil {
 		return s.settings.GuestAllows(book.LibraryID)
 	}
@@ -1080,8 +1116,14 @@ func (s *bookService) ArchiveBook(ctx context.Context, id string, archived bool)
 }
 
 func (s *bookService) DeleteBook(ctx context.Context, id string) error {
+	book, _ := s.GetBook(ctx, id)
 	if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
 		log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book files")
 	}
-	return s.bookRepo.DeleteBook(ctx, id)
+	_ = s.bookRepo.DeleteFTSBook(ctx, id)
+	err := s.bookRepo.DeleteBook(ctx, id)
+	if err == nil && book != nil && s.webhookService != nil {
+		s.webhookService.DispatchEvent(ctx, "book.deleted", BuildBookWebhookPayload(book))
+	}
+	return err
 }

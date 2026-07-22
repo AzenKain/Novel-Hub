@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS reading_progress (
     chapter_title TEXT NOT NULL DEFAULT '',
     chapter_index INTEGER NOT NULL DEFAULT 0,
     progress_percent REAL DEFAULT 0,
+    location_cfi TEXT,
+    location_type TEXT,
     opened_count INTEGER NOT NULL DEFAULT 0,
     qualified_read_count INTEGER NOT NULL DEFAULT 0,
     last_opened_at DATETIME DEFAULT CURRENT_TIMESTAMP,

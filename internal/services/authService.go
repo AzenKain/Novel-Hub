@@ -329,6 +329,8 @@ func buildSetupSettings(dto *request.SetupDto) map[string]any {
 		{dto.BookmarkMode, "bookmark"},
 		{dto.CollectionMode, "collection"},
 		{dto.ReviewMode, "review"},
+		{dto.ShareMode, "share"},
+		{dto.ReadMode, "read"},
 	} {
 		mode := p.mode
 		if mode == "" {

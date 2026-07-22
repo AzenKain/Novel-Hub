@@ -78,10 +78,13 @@ All utility logic must be centralized within the `pkg/` directory:
 5. **SSRF-Safe HTTP Client ([`pkg/netx`](../pkg/netx))**:
    - Any outbound HTTP requests (e.g., cover downloads) **MUST** use `netx.NewSafeHTTPClient(timeout)` to prevent Server-Side Request Forgery and DNS Rebinding at the socket connection level.
 
-6. **Input Validation ([`pkg/validator`](../pkg/validator))**:
+6. **Path Traversal Protection ([`pkg/localfs`](../pkg/localfs))**:
+   - All file path joins and absolute resolution **MUST** use `localfs.SafeJoin(base, parts...)` which uses `filepath.Rel` to eliminate path traversal vulnerabilities.
+
+7. **Input Validation ([`pkg/validator`](../pkg/validator))**:
    - Validate HTTP request DTOs using `validator.ValidateBodyDto(c, &dto)` or `validator.ValidateQueryDto(c, &dto)`.
 
-7. **Background Queue ([`pkg/worker`](../pkg/worker))**:
+8. **Background Queue ([`pkg/worker`](../pkg/worker))**:
    - Async parsing and maintenance tasks must be dispatched through the bounded worker pool in `pkg/worker`.
 
 ---
@@ -91,6 +94,8 @@ All utility logic must be centralized within the `pkg/` directory:
 - **Component Organization**:
   - Component files must be modularized under `web/src/components/` categorized by domain (`admin`, `book-detail`, `common`, `library`, `profile`, `reader`, `ui`).
   - Do not create monolithic 1,000+ line JSX files. Extract sub-views into dedicated, focused components (~200-400 lines max).
+- **Permission Checking & Security Utilities**:
+  - Use centralized permission helpers in `web/src/utils/permission.ts` (`isAdminUser`, `isModOrAdminUser`). Do NOT write raw inline string checks for role names (`role.name === "ADMIN"`) in UI components.
 - **TypeScript Types Location**:
   - ALL TypeScript interfaces, DTOs, and entity types **MUST** be defined under `web/src/types/` (e.g. `book.ts`, `admin.ts`, `auth.ts`) and exported via `web/src/types/index.ts`.
   - NEVER define inline interfaces or duplicate types inside `web/src/services/` or `web/src/components/`.

@@ -311,7 +311,7 @@ func firstTextValue(values []TextValue) string {
 }
 
 func cleanMetadataText(value string) string {
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	return bookparser.CleanChapterTitle(value)
 }
 
 func normalizeIdentifiers(items []Identifier) []Identifier {
@@ -438,6 +438,8 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 			base = strings.ReplaceAll(base, "-", " ")
 			title = base
 		}
+
+		title = bookparser.CleanChapterTitle(title)
 
 		chapters = append(chapters, bookparser.ChapterData{
 			Title:       title,

@@ -21,8 +21,9 @@ type HomeSectionSettings struct {
 }
 
 type LibraryPolicy struct {
-	Mode       string   `json:"mode"`
-	LibraryIDs []string `json:"library_ids"`
+	Mode         string   `json:"mode"`
+	LibraryIDs   []string `json:"library_ids"`
+	VisibleStats []string `json:"visible_stats,omitempty"`
 }
 
 type PublicSettings struct {
@@ -35,6 +36,9 @@ type PublicSettings struct {
 	Bookmark                LibraryPolicy        `json:"bookmark"`
 	Collection              LibraryPolicy        `json:"collection"`
 	Review                  LibraryPolicy        `json:"review"`
+	Share                   LibraryPolicy        `json:"share"`
+	Read                    LibraryPolicy        `json:"read"`
+	Stats                   LibraryPolicy        `json:"stats"`
 	EnableInBookSearch      bool                 `json:"enable_in_book_search"`
 	EnableCustomFontUpload  bool                 `json:"enable_custom_font_upload"`
 	SetupCompleted          bool                 `json:"setup_completed"`

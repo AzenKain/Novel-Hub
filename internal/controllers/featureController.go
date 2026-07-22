@@ -354,6 +354,10 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	if !c.service.PolicyAllowsBook(reqCtx, "share", ctx.Params("id"), c.claims(ctx)) {
+		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Sharing is disabled"})
+	}
+
 	dto := &request.RecordShareDto{}
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})

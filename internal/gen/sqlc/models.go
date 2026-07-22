@@ -240,13 +240,13 @@ type ReadingProgress struct {
 	ChapterTitle       string          `json:"chapter_title"`
 	ChapterIndex       int64           `json:"chapter_index"`
 	ProgressPercent    sql.NullFloat64 `json:"progress_percent"`
+	LocationCfi        sql.NullString  `json:"location_cfi"`
+	LocationType       sql.NullString  `json:"location_type"`
 	OpenedCount        int64           `json:"opened_count"`
 	QualifiedReadCount int64           `json:"qualified_read_count"`
 	LastOpenedAt       sql.NullTime    `json:"last_opened_at"`
 	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
 	UpdatedAt          sql.NullTime    `json:"updated_at"`
-	LocationCfi        sql.NullString  `json:"location_cfi"`
-	LocationType       sql.NullString  `json:"location_type"`
 }
 
 type ReadingSession struct {

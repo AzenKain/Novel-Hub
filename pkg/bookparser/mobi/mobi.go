@@ -794,8 +794,7 @@ func articleInnerHTML(value string) string {
 
 func cleanHTMLText(value string) string {
 	value = htmlTagRegex.ReplaceAllString(value, " ")
-	value = html.UnescapeString(value)
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	return bookparser.CleanChapterTitle(value)
 }
 
 func isMobiNavigationTitle(value string) bool {

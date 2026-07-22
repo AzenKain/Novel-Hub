@@ -2,10 +2,12 @@ import {
   useAssignRolePermissionsMutation,
   useCreateRoleMutation,
   useDeleteRoleMutation,
+  useLibrariesQuery,
   usePermissionsQuery,
   useRolesQuery,
   useUpdateRoleMutation,
 } from "@/hooks";
+import { LibraryScopeSelector } from "@/components/admin";
 import type { CreateRoleRequest } from "@/types";
 import {
   AlertCircle,
@@ -33,6 +35,7 @@ import { useShallow } from "zustand/react/shallow";
 export function Roles() {
   const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRolesQuery();
   const { data: permissions = [], isLoading: permissionsLoading, refetch: refetchPermissions } = usePermissionsQuery();
+  const { data: libraries = [] } = useLibrariesQuery();
 
   const createRoleMutation = useCreateRoleMutation();
   const updateRoleMutation = useUpdateRoleMutation();
@@ -404,15 +407,19 @@ export function Roles() {
 
                             {/* Conditional Scope */}
                             {assigned && (
-                              <div className="pl-7 pt-1 flex items-center gap-2">
-                                <label className="text-xs font-semibold text-base-content/70 shrink-0">Scope Library IDs:</label>
-                                <input
-                                  type="text"
-                                  value={libraryIdsVal}
-                                  onChange={(e) => setLibraryIds(perm.key, e.target.value)}
-                                  onBlur={() => applyLibraryIds(perm.key)}
-                                  placeholder="All libraries (or comma separated IDs e.g. lib_1, lib_2)"
-                                  className="input input-bordered input-xs flex-1 font-mono text-xs"
+                              <div className="pl-7">
+                                <LibraryScopeSelector
+                                  selectedLibraryIds={(assignment?.conditions?.library_ids as string[]) || []}
+                                  onChange={(ids) => {
+                                    setAssignments((prev) =>
+                                      prev.map((a) =>
+                                        a.permission_key === perm.key
+                                          ? { ...a, conditions: ids.length > 0 ? { library_ids: ids } : {} }
+                                          : a
+                                      )
+                                    );
+                                  }}
+                                  libraries={libraries}
                                 />
                               </div>
                             )}

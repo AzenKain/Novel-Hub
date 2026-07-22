@@ -11,6 +11,7 @@ import {
   User,
   ArrowLeft,
   Share2,
+  Bookmark,
   BookmarkPlus,
   BookmarkMinus,
   Star,
@@ -27,6 +28,7 @@ import DOMPurify from "dompurify";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection } from "@/components/book-detail";
+import { usePublicSettings, isPolicyAllowed } from "@/hooks/useSettings";
 import { toast } from "react-toastify";
 import { useLibraryStore, useAuthStore } from "@/stores";
 
@@ -36,12 +38,20 @@ export const BookDetailPage: React.FC = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const publicSettings = usePublicSettings();
   
   const [shareOpen, setShareOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const collections = useLibraryStore((state) => state.collections);
   const [copied, setCopied] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
+
+  React.useEffect(() => {
+    return () => {
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    };
+  }, [queryClient]);
 
   const { data: bookData, isLoading: isBookLoading, error: bookError } = useQuery({
     queryKey: ["book", bookId],
@@ -54,7 +64,7 @@ export const BookDetailPage: React.FC = () => {
     enabled: !!bookId,
   });
 
-  const { data: userStateData, isLoading: isUserStateLoading } = useQuery({
+  const { data: userStateData } = useQuery({
     queryKey: ["bookUserState", bookId],
     queryFn: async () => {
       if (!bookId) throw new Error("No book ID");
@@ -63,6 +73,17 @@ export const BookDetailPage: React.FC = () => {
       return res.data;
     },
     enabled: !!bookId && !!user,
+    retry: false,
+  });
+
+  const { data: engagementData } = useQuery({
+    queryKey: ["bookEngagement", bookId],
+    queryFn: async () => {
+      if (!bookId) throw new Error("No book ID");
+      const res = await featureService.getBookEngagementStats(bookId);
+      return res.status ? res.data : null;
+    },
+    enabled: !!bookId,
     retry: false,
   });
 
@@ -75,6 +96,7 @@ export const BookDetailPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
       toast.success(t("book.bookmark_updated", "Bookmark updated successfully"));
     },
     onError: (err: any) => {
@@ -90,6 +112,7 @@ export const BookDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (err: any) => {
       toast.error(err.message || t("error.unknown", "An unknown error occurred"));
@@ -104,6 +127,7 @@ export const BookDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (err: any) => {
       toast.error(err.message || t("error.unknown", "An unknown error occurred"));
@@ -114,6 +138,34 @@ export const BookDetailPage: React.FC = () => {
   const userState = userStateData;
   const meta = book ? parseMetadata(book.metadataJson) : {};
   const tags = toStringList(meta.subject);
+
+  const allowCollection = isPolicyAllowed(publicSettings?.collection, book?.libraryId);
+  const allowBookmark = isPolicyAllowed(publicSettings?.bookmark, book?.libraryId);
+  const allowShare = isPolicyAllowed(publicSettings?.share, book?.libraryId);
+  const allowDownload = isPolicyAllowed(publicSettings?.download, book?.libraryId);
+  const allowReview = isPolicyAllowed(publicSettings?.review, book?.libraryId);
+  const allowRead = isPolicyAllowed(publicSettings?.read, book?.libraryId);
+  const allowStats = isPolicyAllowed(publicSettings?.stats, book?.libraryId);
+
+  const visibleStats = publicSettings?.stats?.visible_stats || ["reads", "downloads", "bookmarks", "collections", "rating", "shares"];
+
+  const showReads = allowStats && visibleStats.includes("reads") && allowRead;
+  const showDownloads = allowStats && visibleStats.includes("downloads") && allowDownload;
+  const showBookmarks = allowStats && visibleStats.includes("bookmarks") && allowBookmark;
+  const showCollections = allowStats && visibleStats.includes("collections") && allowCollection;
+  const showRating = allowStats && visibleStats.includes("rating") && allowReview;
+  const showShares = allowStats && visibleStats.includes("shares") && allowShare;
+
+  const hasAnyStatToShow = showReads || showDownloads || showBookmarks || showCollections || showRating || showShares;
+
+  const readStats = userState?.readStats || engagementData?.readStats;
+  const downloadStats = userState?.downloadStats || engagementData?.downloadStats;
+  const socialStats = userState?.socialStats || engagementData?.socialStats;
+  const ratingSummary = userState?.ratingSummary || (engagementData?.socialStats ? {
+    bookId: bookId || "",
+    ratingCount: engagementData.socialStats.ratingCount,
+    averageRating: engagementData.socialStats.averageRating,
+  } : undefined);
 
   const shareUrl = window.location.href;
 
@@ -163,59 +215,65 @@ export const BookDetailPage: React.FC = () => {
         </button>
         
         <div className="flex items-center gap-1">
-          <div className="dropdown dropdown-end">
-            <div 
-              tabIndex={0} 
-              role="button" 
-              className={`btn btn-ghost btn-sm ${(userState?.collections?.length || 0) > 0 ? "text-primary" : ""}`}
-            >
-              {(userState?.collections?.length || 0) > 0 ? <FolderCheck className="w-4 h-4" /> : <FolderPlus className="w-4 h-4" />}
-              <span className="hidden sm:inline ml-1">
-                {t("book.collection", "Collection")}
-              </span>
-            </div>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto flex-nowrap block">
-              {collections.length === 0 && (
-                <li className="px-4 py-2 text-sm text-base-content/50 text-center">
-                  {t("library.no_collections", "No collections")}
-                </li>
-              )}
-              {collections.map(col => {
-                const isInCol = userState?.collections?.includes(col.id);
-                return (
-                  <li key={col.id}>
-                    <a 
-                      onClick={() => {
-                        if (isInCol) {
-                          removeBookFromColMutation.mutate(col.id);
-                        } else {
-                          addBookToColMutation.mutate(col.id);
-                        }
-                      }}
-                      className={isInCol ? "text-primary bg-primary/10" : ""}
-                    >
-                      {isInCol ? <Check className="w-4 h-4 mr-1" /> : <span className="w-4 mr-1 inline-block"></span>}
-                      <span className="truncate">{col.name}</span>
-                    </a>
+          {allowCollection && (
+            <div className="dropdown dropdown-end">
+              <div 
+                tabIndex={0} 
+                role="button" 
+                className={`btn btn-ghost btn-sm ${(userState?.collections?.length || 0) > 0 ? "text-primary" : ""}`}
+              >
+                {(userState?.collections?.length || 0) > 0 ? <FolderCheck className="w-4 h-4" /> : <FolderPlus className="w-4 h-4" />}
+                <span className="hidden sm:inline ml-1">
+                  {t("book.collection", "Collection")}
+                </span>
+              </div>
+              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto flex-nowrap block">
+                {collections.length === 0 && (
+                  <li className="px-4 py-2 text-sm text-base-content/50 text-center">
+                    {t("library.no_collections", "No collections")}
                   </li>
-                );
-              })}
-            </ul>
-          </div>
-          <button 
-            onClick={() => toggleBookmarkMutation.mutate(!isBookmarked)} 
-            className={`btn btn-ghost btn-sm ${isBookmarked ? "text-primary" : ""}`}
-            disabled={toggleBookmarkMutation.isPending}
-          >
-            {isBookmarked ? <BookmarkMinus className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
-            <span className="hidden sm:inline ml-1">
-              {isBookmarked ? t("book.remove_bookmark", "Remove Bookmark") : t("book.add_bookmark", "Bookmark")}
-            </span>
-          </button>
-          <button onClick={() => setShareOpen(true)} className="btn btn-ghost btn-sm">
-            <Share2 className="w-4 h-4 mr-1" />
-            {t("common.share", "Share")}
-          </button>
+                )}
+                {collections.map(col => {
+                  const isInCol = userState?.collections?.includes(col.id);
+                  return (
+                    <li key={col.id}>
+                      <a 
+                        onClick={() => {
+                          if (isInCol) {
+                            removeBookFromColMutation.mutate(col.id);
+                          } else {
+                            addBookToColMutation.mutate(col.id);
+                          }
+                        }}
+                        className={isInCol ? "text-primary bg-primary/10" : ""}
+                      >
+                        {isInCol ? <Check className="w-4 h-4 mr-1" /> : <span className="w-4 mr-1 inline-block"></span>}
+                        <span className="truncate">{col.name}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {allowBookmark && (
+            <button 
+              onClick={() => toggleBookmarkMutation.mutate(!isBookmarked)} 
+              className={`btn btn-ghost btn-sm ${isBookmarked ? "text-primary" : ""}`}
+              disabled={toggleBookmarkMutation.isPending}
+            >
+              {isBookmarked ? <BookmarkMinus className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
+              <span className="hidden sm:inline ml-1">
+                {isBookmarked ? t("book.remove_bookmark", "Remove Bookmark") : t("book.add_bookmark", "Bookmark")}
+              </span>
+            </button>
+          )}
+          {allowShare && (
+            <button onClick={() => setShareOpen(true)} className="btn btn-ghost btn-sm">
+              <Share2 className="w-4 h-4 mr-1" />
+              {t("common.share", "Share")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -239,23 +297,52 @@ export const BookDetailPage: React.FC = () => {
             </div>
 
             {/* Engagement Stats */}
-            {userState && (
-              <div className="w-full grid grid-cols-3 gap-2 text-center bg-base-200/50 p-4 rounded-xl border border-base-200">
-                <div className="flex flex-col items-center">
-                  <Eye className="w-5 h-5 text-primary mb-1" />
-                  <span className="font-bold text-lg">{userState.readStats?.totalOpenCount || 0}</span>
-                  <span className="text-xs text-base-content/60">{t("book.reads", "Reads")}</span>
-                </div>
-                <div className="flex flex-col items-center border-l border-r border-base-300">
-                  <Download className="w-5 h-5 text-secondary mb-1" />
-                  <span className="font-bold text-lg">{userState.downloadStats?.totalDownloadCount || 0}</span>
-                  <span className="text-xs text-base-content/60">{t("book.downloads", "Downloads")}</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Star className="w-5 h-5 text-warning mb-1" />
-                  <span className="font-bold text-lg">{userState.ratingSummary?.averageRating ? userState.ratingSummary.averageRating.toFixed(1) : "0.0"}</span>
-                  <span className="text-xs text-base-content/60">{t("book.rating", "Rating")}</span>
-                </div>
+            {hasAnyStatToShow && (
+              <div className="w-full grid grid-cols-3 gap-2 text-center bg-base-200/50 p-3 rounded-xl border border-base-200">
+                {showReads && (
+                  <div className="flex flex-col items-center p-1">
+                    <Eye className="w-4 h-4 text-primary mb-1" />
+                    <span className="font-bold text-base">{readStats?.totalOpenCount || 0}</span>
+                    <span className="text-[11px] text-base-content/60">{t("book.reads", "Reads")}</span>
+                  </div>
+                )}
+                {showDownloads && (
+                  <div className="flex flex-col items-center p-1">
+                    <Download className="w-4 h-4 text-secondary mb-1" />
+                    <span className="font-bold text-base">{downloadStats?.totalDownloadCount || 0}</span>
+                    <span className="text-[11px] text-base-content/60">{t("book.downloads", "Downloads")}</span>
+                  </div>
+                )}
+                {showBookmarks && (
+                  <div className="flex flex-col items-center p-1">
+                    <Bookmark className="w-4 h-4 text-accent mb-1" />
+                    <span className="font-bold text-base">{socialStats?.bookmarkCount || 0}</span>
+                    <span className="text-[11px] text-base-content/60">{t("book.bookmarks", "Bookmarks")}</span>
+                  </div>
+                )}
+                {showCollections && (
+                  <div className="flex flex-col items-center p-1">
+                    <FolderPlus className="w-4 h-4 text-success mb-1" />
+                    <span className="font-bold text-base">{socialStats?.collectionCount ?? userState?.collections?.length ?? 0}</span>
+                    <span className="text-[11px] text-base-content/60">{t("book.collections", "Collections")}</span>
+                  </div>
+                )}
+                {showRating && (
+                  <div className="flex flex-col items-center p-1">
+                    <Star className="w-4 h-4 text-warning mb-1" />
+                    <span className="font-bold text-base">{ratingSummary?.averageRating ? ratingSummary.averageRating.toFixed(1) : "0.0"}</span>
+                    <span className="text-[11px] text-base-content/60">
+                      {ratingSummary?.ratingCount ? `(${ratingSummary.ratingCount})` : t("book.rating", "Rating")}
+                    </span>
+                  </div>
+                )}
+                {showShares && (
+                  <div className="flex flex-col items-center p-1">
+                    <Share2 className="w-4 h-4 text-info mb-1" />
+                    <span className="font-bold text-base">{socialStats?.shareCount || 0}</span>
+                    <span className="text-[11px] text-base-content/60">{t("common.share", "Shares")}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -338,7 +425,7 @@ export const BookDetailPage: React.FC = () => {
             </div>
 
             {/* Quick Actions (Read/Download) */}
-            {book.files && book.files.length > 0 && (
+            {(allowRead || allowDownload) && book.files && book.files.length > 0 && (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 my-2">
                 <select
                   className="select select-bordered select-md w-full sm:max-w-[240px] font-medium text-ellipsis overflow-hidden whitespace-nowrap"
@@ -359,25 +446,29 @@ export const BookDetailPage: React.FC = () => {
                 </select>
 
                 <div className="flex gap-2 w-full sm:w-auto shrink-0">
-                  <button
-                    onClick={() => navigate(`/reader/${encodeURIComponent(book.id)}?fileId=${encodeURIComponent(selectedFileId || book.files![0].id)}`)}
-                    className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap"
-                    disabled={!book.files.length}
-                  >
-                    <BookOpen className="w-5 h-5 mr-1 shrink-0" />
-                    {t("reader.read", "Read")}
-                  </button>
-                  <a
-                    href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
-                    className="btn btn-outline btn-md flex-1 sm:w-[140px] whitespace-nowrap"
-                    download
-                    onClick={(e) => {
-                      if (!book.files?.length) e.preventDefault();
-                    }}
-                  >
-                    <Download className="w-5 h-5 mr-1 shrink-0" />
-                    {t("common.download", "Download")}
-                  </a>
+                  {allowRead && (
+                    <button
+                      onClick={() => navigate(`/reader/${encodeURIComponent(book.id)}?fileId=${encodeURIComponent(selectedFileId || book.files![0].id)}`)}
+                      className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap"
+                      disabled={!book.files.length}
+                    >
+                      <BookOpen className="w-5 h-5 mr-1 shrink-0" />
+                      {t("reader.read", "Read")}
+                    </button>
+                  )}
+                  {allowDownload && (
+                    <a
+                      href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
+                      className="btn btn-outline btn-md flex-1 sm:w-[140px] whitespace-nowrap"
+                      download
+                      onClick={(e) => {
+                        if (!book.files?.length) e.preventDefault();
+                      }}
+                    >
+                      <Download className="w-5 h-5 mr-1 shrink-0" />
+                      {t("common.download", "Download")}
+                    </a>
+                  )}
                 </div>
               </div>
             )}
@@ -397,21 +488,25 @@ export const BookDetailPage: React.FC = () => {
 
 
             {/* Reviews Section */}
-            <div className="pt-2 border-t border-base-200 mt-2">
-              <ReviewSection bookId={book.id!} userReview={userState?.myReview} />
-            </div>
+            {allowReview && (
+              <div className="pt-2 border-t border-base-200 mt-2">
+                <ReviewSection bookId={book.id!} userReview={userState?.myReview} />
+              </div>
+            )}
           </div>
       </div>
 
-      <ShareDialog
-        open={shareOpen}
-        book={book}
-        shareUrl={shareUrl}
-        copied={copied}
-        t={t}
-        onClose={() => setShareOpen(false)}
-        onCopy={handleCopy}
-      />
+      {allowShare && (
+        <ShareDialog
+          open={shareOpen}
+          book={book}
+          shareUrl={shareUrl}
+          copied={copied}
+          t={t}
+          onClose={() => setShareOpen(false)}
+          onCopy={handleCopy}
+        />
+      )}
     </div>
   );
 };

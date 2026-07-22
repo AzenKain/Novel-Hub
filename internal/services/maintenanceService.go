@@ -156,7 +156,9 @@ func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
 				_ = s.bookRepo.DeleteFile(ctx, f.ID)
 				count, _ := s.bookRepo.CountFilesForBook(ctx, f.BookID)
 				if count == 0 {
-					log.Info().Str("book", f.BookID).Msg("Book has no files, cleaning up book")
+					log.Info().Str("book", f.BookID).Msg("Book has no files, cleaning up book folder and record")
+					_ = s.fileRepo.RemoveBookDir(ctx, f.BookID)
+					_ = s.bookRepo.DeleteFTSBook(ctx, f.BookID)
 					_ = s.bookRepo.DeleteBook(ctx, f.BookID)
 				}
 			}
