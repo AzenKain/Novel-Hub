@@ -97,9 +97,34 @@ export interface PublicSettings {
   bookmark: LibraryPolicy;
   collection: LibraryPolicy;
   review: LibraryPolicy;
+  enable_in_book_search?: boolean;
+  enable_custom_font_upload?: boolean;
   setup_completed: boolean;
   available_sidebar_items: string[];
   available_home_sections: string[];
   available_policy_modes: string[];
   available_guest_modes: string[];
+}
+
+export interface Webhook {
+  id: string;
+  name: string;
+  url: string;
+  template_type: "generic" | "discord" | "telegram" | "slack";
+  secret?: string;
+  custom_headers?: string;
+  events: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateWebhookInput {
+  name: string;
+  url: string;
+  template_type: "generic" | "discord" | "telegram" | "slack";
+  secret?: string;
+  custom_headers?: string;
+  events: string[];
+  is_active?: boolean;
 }

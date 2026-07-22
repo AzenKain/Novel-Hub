@@ -53,7 +53,21 @@
     "reviews": "Đánh giá",
     "email": "Địa chỉ Email",
     "password": "Mật khẩu",
-    "account_status": "Trạng thái tài khoản"
+    "account_status": "Trạng thái tài khoản",
+    "duplicates": "Tệp trùng lặp",
+    "duplicates_title": "Quản lý tệp trùng lặp",
+    "duplicates_subtitle": "Phát hiện và dọn dẹp các tệp sách điện tử trùng lặp dựa trên mã hash SHA-256.",
+    "no_duplicates_desc": "Tất cả các tệp trong thư viện của bạn đều là duy nhất. Không có xung đột mã hash SHA-256.",
+    "total_groups": "Nhóm trùng lặp",
+    "space_wasted": "Dung lượng lãng phí",
+    "select_all_duplicates": "Chọn tất cả tệp trùng (Giữ 1 tệp/Nhóm)",
+    "deselect_all": "Bỏ chọn tất cả",
+    "delete_selected": "Xóa các tệp đã chọn",
+    "primary_copy": "Bản gốc",
+    "keep_this_only": "Giữ duy nhất bản này",
+    "confirm_delete_file": "Bạn có chắc chắn muốn xóa tệp này?",
+    "confirm_keep_one": "Bạn có muốn giữ lại tệp này và xóa tất cả bản trùng lặp khác?",
+    "confirm_delete_selected": "Xóa các tệp đã chọn?"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",
@@ -98,6 +112,7 @@
   },
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
+    "selected": "đã chọn",
     "processing": "Đang xử lý...",
     "by_author": "bởi",
     "added_on": "Đã thêm",
@@ -252,6 +267,8 @@
     "tts_speed": "Tốc độ đọc",
     "read_selection": "Đọc đoạn đã chọn",
     "read_from_here": "Đọc từ đây",
+    "copy_text": "Sao chép văn bản",
+    "text_copied": "Đã sao chép vào bộ nhớ tạm",
     "tts_play": "Đọc thành tiếng",
     "tts_pause": "Tạm dừng đọc",
     "tts_stop": "Dừng đọc",
@@ -260,7 +277,21 @@
     "available": "khả dụng",
     "found": "tìm thấy",
     "no_voices_found": "Không tìm thấy giọng đọc phù hợp",
-    "no_voices": "Không có giọng đọc khả dụng"
+    "no_voices": "Không có giọng đọc khả dụng",
+    "in_book_search": "Tìm trong sách",
+    "search_placeholder": "Nhập từ cần tìm...",
+    "no_results": "Không tìm thấy kết quả."
+  },
+  "analytics": {
+    "title": "Thống kê & Tiến trình đọc",
+    "subtitle": "Theo dõi thói quen, chuỗi đọc và hoạt động của bạn.",
+    "words_read": "Số từ đã đọc",
+    "days": "ngày",
+    "active_days": "Số ngày đọc",
+    "mins": "phút",
+    "est_time": "Thời gian đọc ước tính",
+    "goal_progress": "Tiến độ mục tiêu ngày",
+    "activity_grid": "Hoạt động đọc hàng năm"
   },
   "review": {
     "submitted": "Gửi đánh giá thành công",

@@ -53,7 +53,21 @@
     "reviews": "Reviews",
     "email": "Email Address",
     "password": "Password",
-    "account_status": "Account Status"
+    "account_status": "Account Status",
+    "duplicates": "Duplicate Files",
+    "duplicates_title": "Duplicate Files Management",
+    "duplicates_subtitle": "Detect and clean up identical ebook files uploaded across the library by SHA-256 hash.",
+    "no_duplicates_desc": "All files in your library are unique. There are no SHA-256 hash collisions.",
+    "total_groups": "Duplicate Groups",
+    "space_wasted": "Wasted Space",
+    "select_all_duplicates": "Select All Duplicates (Keep 1/Group)",
+    "deselect_all": "Deselect All",
+    "delete_selected": "Delete Selected Files",
+    "primary_copy": "Primary Copy",
+    "keep_this_only": "Keep Only This",
+    "confirm_delete_file": "Are you sure you want to delete file?",
+    "confirm_keep_one": "Keep this file and delete duplicate copies?",
+    "confirm_delete_selected": "Delete selected duplicate files?"
   },
   "auth": {
     "login_to_account": "Login to your account",
@@ -98,6 +112,7 @@
   },
   "library": {
     "ready_to_read": "Ready to read",
+    "selected": "selected",
     "processing": "Processing...",
     "by_author": "by",
     "added_on": "Added",
@@ -252,6 +267,8 @@
     "tts_speed": "Reading Speed",
     "read_selection": "Read Selection",
     "read_from_here": "Read From Here",
+    "copy_text": "Copy Text",
+    "text_copied": "Copied to clipboard",
     "tts_play": "Read Aloud",
     "tts_pause": "Pause Reading",
     "tts_stop": "Stop Reading",
@@ -260,7 +277,21 @@
     "available": "available",
     "found": "found",
     "no_voices_found": "No voices matching your search",
-    "no_voices": "No voices available"
+    "no_voices": "No voices available",
+    "in_book_search": "Search in Book",
+    "search_placeholder": "Search text...",
+    "no_results": "No matches found."
+  },
+  "analytics": {
+    "title": "Reading Analytics & Stats",
+    "subtitle": "Track your reading habits, streaks, and activity over time.",
+    "words_read": "Words Read",
+    "days": "days",
+    "active_days": "Active Days",
+    "mins": "mins",
+    "est_time": "Estimated Reading Time",
+    "goal_progress": "Daily Goal Progress",
+    "activity_grid": "Annual Reading Activity"
   },
   "review": {
     "submitted": "Review submitted successfully",

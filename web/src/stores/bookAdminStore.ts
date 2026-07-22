@@ -103,9 +103,9 @@ interface BookAdminState {
   handleSelectEpubImage: (imagePath: string) => Promise<void>;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleLinkUpload: () => Promise<void>;
-  handleEditSubmit: (e?: React.FormEvent) => Promise<void>;
+  handleEditSubmit: (e?: React.SyntheticEvent) => Promise<void>;
   handleUploadBookFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleCreateLibrary: (e: React.FormEvent) => Promise<void>;
+  handleCreateLibrary: (e: React.SyntheticEvent) => Promise<void>;
   handleDeleteLibrary: (id: string) => Promise<void>;
   handleUploadFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;

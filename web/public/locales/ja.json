@@ -53,7 +53,21 @@
     "reviews": "レビュー",
     "email": "メールアドレス",
     "password": "パスワード",
-    "account_status": "アカウントステータス"
+    "account_status": "アカウントステータス",
+    "duplicates": "重複ファイル",
+    "duplicates_title": "重複ファイル管理",
+    "duplicates_subtitle": "SHA-256ハッシュを使用してライブラリ内の重複ファイルを検出およびクリーンアップします。",
+    "no_duplicates_desc": "ライブラリ内のすべてのファイルは一意です。重複ファイルはありません。",
+    "total_groups": "重複グループ数",
+    "space_wasted": "無駄な使用容量",
+    "select_all_duplicates": "全重複ファイルを選択（各グループ1つ保持）",
+    "deselect_all": "すべての選択を解除",
+    "delete_selected": "選択したファイルを削除",
+    "primary_copy": "メインコピー",
+    "keep_this_only": "このファイルのみ保持",
+    "confirm_delete_file": "このファイルを削除してもよろしいですか？",
+    "confirm_keep_one": "このファイルを保持し、他の重複コピーを削除しますか？",
+    "confirm_delete_selected": "選択した重複ファイルを削除しますか？"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -98,6 +112,7 @@
   },
   "library": {
     "ready_to_read": "読む準備ができました",
+    "selected": "選択中",
     "processing": "処理中...",
     "by_author": "著",
     "added_on": "追加日",
@@ -249,6 +264,8 @@
     "tts_speed": "再生速度",
     "read_selection": "選択範囲を読み上げ",
     "read_from_here": "ここから読み上げ",
+    "copy_text": "テキストをコピー",
+    "text_copied": "クリップボードにコピーしました",
     "tts_play": "読み上げ",
     "tts_pause": "一時停止",
     "tts_stop": "停止",
@@ -257,7 +274,21 @@
     "available": "利用可能",
     "found": "件発見",
     "no_voices_found": "一致する音声が見つかりません",
-    "no_voices": "利用可能な音声がありません"
+    "no_voices": "利用可能な音声がありません",
+    "in_book_search": "本内検索",
+    "search_placeholder": "テキストを検索...",
+    "no_results": "一致する結果が見つかりません。"
+  },
+  "analytics": {
+    "title": "読書分析と統計",
+    "subtitle": "読書習慣、ストリーク、アクティビティを追跡します。",
+    "words_read": "読んだ単語数",
+    "days": "日",
+    "active_days": "アクティブ日数",
+    "mins": "分",
+    "est_time": "推定読書時間",
+    "goal_progress": "毎日の目標の進捗",
+    "activity_grid": "年間読書アクティビティ"
   },
   "review": {
     "submitted": "レビューが正常に送信されました",

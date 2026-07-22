@@ -15,7 +15,7 @@ RETURNING *;
 
 -- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR datetime(created_at) < datetime(sqlc.narg('cursor_created_at')))
 ORDER BY created_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -138,7 +138,7 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < sqlc.narg('cursor_updated_at'))
+WHERE rp.user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_updated_at') IS NULL OR datetime(rp.updated_at) < datetime(sqlc.narg('cursor_updated_at')))
 ORDER BY rp.updated_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -203,7 +203,7 @@ ON CONFLICT(book_id) DO UPDATE SET
 
 -- name: GetBookmarkedBookIDs :many
 SELECT book_id FROM bookmarks
-WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+WHERE user_id = sqlc.arg('user_id') AND (sqlc.narg('cursor_created_at') IS NULL OR datetime(created_at) < datetime(sqlc.narg('cursor_created_at')))
 ORDER BY created_at DESC
 LIMIT sqlc.arg('limit');
 

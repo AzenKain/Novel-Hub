@@ -62,4 +62,7 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 
 	group.Get("/", opdsController.GetRootCatalog)
 	group.Get("/recent", opdsController.GetRecentBooks)
+
+	v2Group := app.Group("/opds/v2")
+	v2Group.Get("/catalog", opdsController.GetOPDS2Catalog)
 }

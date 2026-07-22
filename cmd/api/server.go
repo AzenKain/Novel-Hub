@@ -22,6 +22,7 @@ import (
 
 	"novelhub/internal/controllers"
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
 	"novelhub/internal/routes"
 	"novelhub/internal/services"
@@ -142,6 +143,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
+	webhookRepo := repositories.NewWebhookRepository(db, ramCache)
 	txManager := database.NewTxManager(db)
 
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
@@ -160,6 +162,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	metadataService := services.NewMetadataService(bookRepo)
 	jobService := services.NewJobService(jobRepo)
 	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
+	calibreService := services.NewCalibreSyncService(bookRepo, bookFileRepo, txManager)
+	calibreController := controllers.NewCalibreController(calibreService)
+	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
+	webhookController := controllers.NewWebhookController(webhookService)
 	uploadService := services.NewUploadService(libraryService, bookService)
 
 	authController := controllers.NewAuthController(authService)
@@ -183,6 +189,15 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 				Type:    "index_book",
 				Payload: payload,
 			})
+			if book, getErr := bookService.GetBook(ctx, payload); getErr == nil && book != nil {
+				webhookService.DispatchEvent(ctx, "book.created", map[string]any{
+					"id":         book.ID,
+					"title":      book.Title,
+					"author":     book.AuthorName,
+					"library_id": book.LibraryID,
+					"created_at": book.CreatedAt,
+				})
+			}
 		}
 		return err
 	})
@@ -197,6 +212,18 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	jobQueue.RegisterHandler("maintenance", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.RunMaintenance(ctx)
+	})
+
+	jobQueue.RegisterHandler("webhook.dispatch", func(ctx context.Context, jobID string, payload string) error {
+		var jobData struct {
+			WebhookID string `json:"webhook_id"`
+			EventType string `json:"event_type"`
+			Data      string `json:"data"`
+		}
+		if err := jsonx.UnmarshalString(payload, &jobData); err != nil {
+			return err
+		}
+		return webhookService.ExecuteDispatch(ctx, jobData.WebhookID, jobData.EventType, []byte(jobData.Data))
 	})
 
 
@@ -227,8 +254,13 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
+	routes.WebhookRoutes(v1, webhookController, userRepo, permissionCache)
 	routes.SetupUploadRoutes(v1, uploadController, userRepo)
+	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "book.manage"), calibreController.ImportCalibre)
 
+	opdsService := services.NewOPDSService(bookRepo, settingsService)
+	opdsController := controllers.NewOPDSController(opdsService)
+	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)
 }

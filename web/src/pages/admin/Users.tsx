@@ -1,4 +1,14 @@
 import { UserTable } from "@/components/admin";
+import { PasswordStrength } from "@/components/common";
+import {
+  useChangeUserRolesMutation,
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useResetUserPasswordMutation,
+  useRolesQuery,
+  useUpdateUserMutation,
+  useUsersQuery,
+} from "@/hooks";
 import { adminService } from "@/services";
 import { useUserAdminStore } from "@/stores";
 import type { CreateUserRequest, User } from "@/types";
@@ -8,13 +18,10 @@ import {
   Search,
   UserPlus
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo } from "react";
-import { PasswordStrength } from "@/components/common";
+import { SyntheticEvent, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from 'react-toastify';
 import { useShallow } from "zustand/react/shallow";
-
-type ModalMode = "create" | "edit" | "password" | "roles" | null;
 
 const emptyCreate: CreateUserRequest = {
   email: "",
@@ -26,83 +33,56 @@ const emptyCreate: CreateUserRequest = {
 
 export function Users() {
   const { t } = useTranslation();
+
   const {
-    users, setUsers,
-    roles, setRoles,
     selectedUser: selected, setSelectedUser: setSelected,
     query, setQuery,
     showDeleted, setShowDeleted,
-    loading, setLoading,
-    saving, setSaving,
     error, setError,
     modal, setModal,
     form, setForm,
     newPassword, setNewPassword,
     roleIDs, setRoleIDs,
     userToDelete, setUserToDelete,
-    reset
   } = useUserAdminStore(useShallow((state) => ({
-    users: state.users, setUsers: state.setUsers,
-    roles: state.roles, setRoles: state.setRoles,
     selectedUser: state.selectedUser, setSelectedUser: state.setSelectedUser,
     query: state.query, setQuery: state.setQuery,
     showDeleted: state.showDeleted, setShowDeleted: state.setShowDeleted,
-    loading: state.loading, setLoading: state.setLoading,
-    saving: state.saving, setSaving: state.setSaving,
     error: state.error, setError: state.setError,
     modal: state.modal, setModal: state.setModal,
     form: state.form, setForm: state.setForm,
     newPassword: state.newPassword, setNewPassword: state.setNewPassword,
     roleIDs: state.roleIDs, setRoleIDs: state.setRoleIDs,
     userToDelete: state.userToDelete, setUserToDelete: state.setUserToDelete,
-    reset: state.reset
   })));
 
-  useEffect(() => {
-    return () => {
-      reset();
-    };
-  }, [reset]);
+  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = useUsersQuery({
+    page: 1,
+    limit: 50,
+    search: query || undefined,
+    is_deleted: showDeleted ? undefined : false,
+    sort: "created_at",
+    order: "desc"
+  });
+
+  const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRolesQuery();
+
+  const createUserMutation = useCreateUserMutation();
+  const updateUserMutation = useUpdateUserMutation();
+  const resetPasswordMutation = useResetUserPasswordMutation();
+  const changeRolesMutation = useChangeUserRolesMutation();
+  const deleteUserMutation = useDeleteUserMutation();
+
+  const users = usersData?.users || [];
+  const loading = usersLoading || rolesLoading;
+  const saving =
+    createUserMutation.isPending ||
+    updateUserMutation.isPending ||
+    resetPasswordMutation.isPending ||
+    changeRolesMutation.isPending ||
+    deleteUserMutation.isPending;
 
   const activeUsers = useMemo(() => users.filter((item) => !item.is_deleted).length, [users]);
-
-  async function loadData() {
-    setLoading(true);
-    setError("");
-    try {
-      const [userRes, roleRes] = await Promise.all([
-        adminService.searchUsers({
-          page: 1,
-          limit: 50,
-          search: query || undefined,
-          is_deleted: showDeleted ? undefined : false,
-          sort: "created_at",
-          order: "desc"
-        }),
-        adminService.getRoles()
-      ]);
-      const nextUsers = userRes.data || [];
-      const nextRoles = roleRes.data || [];
-      setUsers(nextUsers);
-      setRoles(nextRoles);
-      
-      setSelected((current) => {
-        if (current && nextUsers.some((item) => item.id === current.id)) {
-          return nextUsers.find((item) => item.id === current.id) || nextUsers[0] || null;
-        }
-        return nextUsers[0] || null;
-      });
-
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadData();
-  }, [showDeleted]);
 
   function openCreate() {
     setForm({ ...emptyCreate, role_ids: roles.filter((role) => role.name === "USER").map((role) => role.id) });
@@ -137,177 +117,158 @@ export function Users() {
     setError("");
   }
 
-  async function handleCreate(event: FormEvent) {
+  function handleCreate(event: SyntheticEvent) {
     event.preventDefault();
-    setSaving(true);
     setError("");
-    try {
-      await adminService.createUser(form);
-      toast.success(t('common.success', 'Success'));
-      setModal(null);
-      await loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    createUserMutation.mutate(form, {
+      onSuccess: () => {
+        toast.success(t('common.success', 'Success'));
+        setModal(null);
+      },
+      onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+    });
   }
 
-  async function handleEdit(event: FormEvent) {
+  function handleEdit(event: SyntheticEvent) {
     event.preventDefault();
     if (!selected) return;
-    setSaving(true);
     setError("");
-    try {
-      await adminService.updateUser(selected.id, {
-        full_name: form.full_name,
-        avatar_url: form.avatar_url || undefined
-      });
-      toast.success(t('common.success', 'Success'));
-      setModal(null);
-      await loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    updateUserMutation.mutate(
+      {
+        id: selected.id,
+        data: { full_name: form.full_name, avatar_url: form.avatar_url || undefined },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('common.success', 'Success'));
+          setModal(null);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      }
+    );
   }
 
-  async function handlePassword(event: FormEvent) {
+  function handlePassword(event: SyntheticEvent) {
     event.preventDefault();
     if (!selected) return;
-    setSaving(true);
     setError("");
-    try {
-      await adminService.resetPassword(selected.id, newPassword);
-      toast.success(t('common.success', 'Success'));
-      setModal(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    resetPasswordMutation.mutate(
+      { id: selected.id, password: newPassword },
+      {
+        onSuccess: () => {
+          toast.success(t('common.success', 'Success'));
+          setModal(null);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      }
+    );
   }
 
-  async function handleRoles(event: FormEvent) {
+  function handleRoles(event: SyntheticEvent) {
     event.preventDefault();
     if (!selected) return;
-    setSaving(true);
     setError("");
-    try {
-      await adminService.changeRoles(selected.id, roleIDs);
-      toast.success(t('common.success', 'Success'));
-      setModal(null);
-      await loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    changeRolesMutation.mutate(
+      { id: selected.id, roleIDs },
+      {
+        onSuccess: () => {
+          toast.success(t('common.success', 'Success'));
+          setModal(null);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      }
+    );
   }
 
-  async function confirmDeleteUser() {
+  function confirmDeleteUser() {
     if (!userToDelete) return;
-    setSaving(true);
     setError("");
-    try {
-      await adminService.deleteUser(userToDelete.id);
-      toast.success(t('common.success', 'Success'));
-      setUserToDelete(null);
-      await loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    deleteUserMutation.mutate(userToDelete.id, {
+      onSuccess: () => {
+        toast.success(t('common.success', 'Success'));
+        setUserToDelete(null);
+      },
+      onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+    });
   }
 
   async function handleRestore(target: User) {
-    setSaving(true);
     setError("");
     try {
       await adminService.restoreUser(target.id);
       toast.success(t('common.success', 'Success'));
-      await loadData();
+      void refetchUsers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
     }
-  }
-
-  function toggleRole(id: number) {
-    setRoleIDs((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-    setForm((current) => ({
-      ...current,
-      role_ids: current.role_ids?.includes(id)
-        ? current.role_ids.filter((item) => item !== id)
-        : [...(current.role_ids || []), id]
-    }));
   }
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">{t('admin.users', 'User Management')}</h1>
-          <p className="text-sm text-base-content/60 mt-1">{t('admin.user_desc', 'Manage users, roles, and access controls')}</p>
+      {/* Header */}
+      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t('admin.user_management', 'User Management')}</h1>
+          <p className="text-sm text-base-content/60 mt-1">
+            {t('admin.user_subtitle', 'Manage accounts, roles, access levels, and security credentials.')}
+          </p>
         </div>
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void loadData();
-            }}
-            className="relative min-w-0 flex-1 basis-full sm:basis-64 lg:flex-none"
-          >
-            <input
-              type="text"
-              placeholder={t('admin.search', 'Search users...')}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="input input-bordered input-sm sm:input-md w-full lg:w-64 pl-10"
-            />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
-            <button type="submit" className="hidden" />
-          </form>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => void loadData()}
+            onClick={() => {
+              void refetchUsers();
+              void refetchRoles();
+            }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
-            title="Refresh list"
+            title="Refresh"
           >
             <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
           </button>
-          <button
-            onClick={openCreate}
-            className="btn btn-primary btn-sm sm:btn-md shrink-0"
-          >
-            <UserPlus className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">{t('admin.add_user', 'Add User')}</span>
+          <button onClick={openCreate} className="btn btn-primary btn-sm sm:btn-md gap-2">
+            <UserPlus className="w-4 h-4" />
+            {t('admin.add_user', 'Add User')}
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-6">
-            <h2 className="text-lg font-semibold">{t('admin.all_users', 'All Users')}</h2>
-            <div className="flex items-center text-sm">
-              <span className="badge badge-success badge-xs mr-2"></span>
-              <span className="font-medium opacity-70">{activeUsers} {t('admin.active', 'Active')}</span>
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-base-200/40 border border-base-200 p-2.5 rounded-2xl">
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('admin.search_users_placeholder', 'Search users by name or email...')}
+                className="input input-bordered w-full pl-10 focus:input-primary h-10 text-sm rounded-xl bg-base-100"
+              />
+            </div>
+            <label className="cursor-pointer flex items-center gap-2 px-3.5 h-10 rounded-xl border border-base-200 bg-base-100 hover:bg-base-200/50 transition-colors shrink-0">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="checkbox checkbox-primary checkbox-xs rounded"
+              />
+              <span className="text-xs font-medium select-none text-base-content/80">{t('admin.show_deleted', 'Show Deleted')}</span>
+            </label>
+          </div>
+
+          {/* Right: Stats Counters */}
+          <div className="flex items-center gap-2 shrink-0 sm:border-l sm:border-base-200/80 sm:pl-3">
+            <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-base-100 border border-base-200 text-xs">
+              <span className="text-base-content/60 font-medium">{t('admin.total_loaded', 'Loaded Users')}:</span>
+              <span className="font-bold text-primary text-sm">{users.length}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-base-100 border border-base-200 text-xs">
+              <span className="text-base-content/60 font-medium">{t('admin.active_users', 'Active')}:</span>
+              <span className="font-bold text-success text-sm">{activeUsers}</span>
             </div>
           </div>
-          <label className="label cursor-pointer justify-end gap-2 p-0 hover:opacity-80">
-            <span className="label-text">{t('admin.show_deleted', 'Show Deleted')}</span>
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="toggle toggle-sm toggle-primary"
-            />
-          </label>
         </div>
 
+        {/* User Table */}
         <UserTable
           users={users}
           t={t}
@@ -315,189 +276,303 @@ export function Users() {
           onPassword={openPassword}
           onRoles={openRoles}
           onDelete={setUserToDelete}
-          onRestore={(item) => void handleRestore(item)}
+          onRestore={handleRestore}
         />
       </div>
 
-      {/* Modals using DaisyUI */}
-      <dialog className={`modal ${modal !== null ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <button 
-            onClick={() => setModal(null)} 
-            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-          >
-            ✕
-          </button>
-          
-          <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
-            {modal === "create" && t('admin.create_user', 'Create New User')}
-            {modal === "edit" && t('admin.edit_user', 'Edit User Profile')}
-            {modal === "password" && t('admin.reset_password', 'Reset Password')}
-            {modal === "roles" && t('admin.manage_roles', 'Manage Roles')}
-          </h3>
-          
-          <form onSubmit={
-            modal === "create" ? handleCreate :
-            modal === "edit" ? handleEdit :
-            modal === "password" ? handlePassword :
-            handleRoles
-          }>
-            
-            {(modal === "create" || modal === "edit") && (
-              <div className="flex flex-col gap-4">
-                {modal === "create" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium pl-1">
-                      {t('admin.email', 'Email Address')}
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="input input-bordered focus:input-primary"
-                      placeholder="user@example.com"
-                    />
-                  </div>
-                )}
-                {modal === "create" && (
-                  <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium pl-1">
-                    {t('admin.password', 'Password')}
-                  </label>
-                    <input
-                      type="password"
-                      required
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      className="input input-bordered focus:input-primary"
-                    />
-                    {form.password.length > 0 && <PasswordStrength password={form.password} />}
-                  </div>
-                )}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium pl-1">
-                      {t('admin.full_name', 'Full Name')}
-                    </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.full_name}
-                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                    className="input input-bordered focus:input-primary"
-                    placeholder="John Doe"
-                  />
-                </div>
-                {(modal === "create") && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium pl-1">
-                      {t('admin.initial_roles', 'Initial Roles')}
-                    </label>
-                    <div className="p-3 bg-base-200/50 rounded-xl border border-base-200 max-h-40 overflow-y-auto flex flex-col gap-2">
-                      {roles.map((role) => (
-                        <label key={role.id} className="cursor-pointer label p-1 hover:bg-base-100 rounded-lg justify-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={form.role_ids?.includes(role.id) || false}
-                            onChange={() => toggleRole(role.id)}
-                            className="checkbox checkbox-sm checkbox-primary"
-                          />
-                          <span className="label-text font-medium">{role.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+      {/* Modals */}
+      {modal === "create" && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">{t('admin.create_user_title', 'Create New User')}</h3>
+            {error && (
+              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('auth.email', 'Email Address')}</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="user@example.com"
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
 
-            {modal === "password" && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium pl-1">
-                  {t('admin.new_password', 'New Password')}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('user.full_name', 'Full Name')}</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  placeholder="John Doe"
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('auth.password', 'Initial Password')}</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="input input-bordered w-full focus:input-primary"
+                />
+                <PasswordStrength password={form.password} />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('admin.assign_roles', 'Assign Roles')}</span>
+                </label>
+                <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
+                  {roles.map((role) => (
+                    <label key={role.id} className="label cursor-pointer justify-start gap-3 py-1">
+                      <input
+                        type="checkbox"
+                        checked={(form.role_ids || []).includes(role.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          const currentIds = form.role_ids || [];
+                          setForm((prev) => ({
+                            ...prev,
+                            role_ids: checked
+                              ? [...currentIds, role.id]
+                              : currentIds.filter((id) => id !== role.id)
+                          }));
+                        }}
+                        className="checkbox checkbox-primary checkbox-sm"
+                      />
+                      <div>
+                        <span className="font-semibold text-sm">{role.name}</span>
+                        {role.description && (
+                          <p className="text-xs text-base-content/60">{role.description}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="modal-action">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button type="submit" disabled={saving} className="btn btn-primary">
+                  {saving ? <span className="loading loading-spinner"></span> : t('common.create', 'Create User')}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setModal(null)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {modal === "edit" && selected && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">{t('admin.edit_user_title', 'Edit Profile')}</h3>
+            {error && (
+              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('auth.email', 'Email Address')}</span>
+                </label>
+                <input
+                  type="email"
+                  disabled
+                  value={form.email}
+                  className="input input-bordered w-full opacity-60 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('user.full_name', 'Full Name')}</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('user.avatar_url', 'Avatar URL')}</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.avatar_url || ""}
+                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+                  placeholder="https://example.com/avatar.jpg"
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
+
+              <div className="modal-action">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button type="submit" disabled={saving} className="btn btn-primary">
+                  {saving ? <span className="loading loading-spinner"></span> : t('common.save', 'Save Changes')}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setModal(null)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {modal === "password" && selected && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-2">{t('admin.reset_password_title', 'Reset Password')}</h3>
+            <p className="text-xs text-base-content/60 mb-4">
+              {t('admin.reset_password_desc', 'Set a new password for user:')} <span className="font-bold text-base-content">{selected.email}</span>
+            </p>
+            {error && (
+              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            <form onSubmit={handlePassword} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('auth.new_password', 'New Password')}</span>
                 </label>
                 <input
                   type="password"
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="input input-bordered focus:input-primary"
+                  placeholder="••••••••"
+                  className="input input-bordered w-full focus:input-primary"
                 />
-                {newPassword.length > 0 && <PasswordStrength password={newPassword} />}
+                <PasswordStrength password={newPassword} />
+              </div>
+
+              <div className="modal-action">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button type="submit" disabled={saving || !newPassword} className="btn btn-primary">
+                  {saving ? <span className="loading loading-spinner"></span> : t('admin.update_password', 'Update Password')}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setModal(null)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {modal === "roles" && selected && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-2">{t('admin.manage_user_roles', 'Manage User Roles')}</h3>
+            <p className="text-xs text-base-content/60 mb-4">
+              {t('admin.manage_user_roles_desc', 'Select active security roles for:')} <span className="font-bold text-base-content">{selected.email}</span>
+            </p>
+            {error && (
+              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
-
-            {modal === "roles" && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium pl-1">
-                  {t('admin.account_status', 'Account Status')}
-                </label>
-                <div className="p-3 bg-base-200/50 rounded-xl border border-base-200 flex flex-col gap-2">
-                  {roles.map((role) => (
-                    <label key={role.id} className="cursor-pointer label p-1 hover:bg-base-100 rounded-lg justify-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={roleIDs.includes(role.id)}
-                        onChange={() => toggleRole(role.id)}
-                        className="checkbox checkbox-sm checkbox-primary"
-                      />
-                      <span className="label-text font-medium">{role.name}</span>
-                    </label>
-                  ))}
-                </div>
+            <form onSubmit={handleRoles} className="space-y-4">
+              <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
+                {roles.map((role) => (
+                  <label key={role.id} className="label cursor-pointer justify-start gap-3 py-1">
+                    <input
+                      type="checkbox"
+                      checked={roleIDs.includes(role.id)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setRoleIDs((prev) =>
+                          checked ? [...prev, role.id] : prev.filter((id) => id !== role.id)
+                        );
+                      }}
+                      className="checkbox checkbox-primary checkbox-sm"
+                    />
+                    <div>
+                      <span className="font-semibold text-sm">{role.name}</span>
+                      {role.description && (
+                        <p className="text-xs text-base-content/60">{role.description}</p>
+                      )}
+                    </div>
+                  </label>
+                ))}
               </div>
-            )}
 
-            <div className="modal-action mt-6">
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                disabled={saving}
-                className="btn btn-ghost"
-              >
-                {t('admin.cancel', 'Cancel')}
+              <div className="modal-action">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button type="submit" disabled={saving} className="btn btn-primary">
+                  {saving ? <span className="loading loading-spinner"></span> : t('common.save', 'Save Roles')}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setModal(null)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {/* Delete User Modal */}
+      {userToDelete && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg">{t('admin.delete_user_confirm', 'Delete User Account?')}</h3>
+            <p className="text-xs text-base-content/60 mt-1 mb-6">
+              {t('admin.delete_user_desc', 'This user account will be soft-deleted. They will immediately lose access to NovelHub.')}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setUserToDelete(null)} className="btn btn-ghost flex-1">
+                {t('common.cancel', 'Cancel')}
               </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn btn-primary"
-              >
-                {saving && <span className="loading loading-spinner"></span>}
-                {t('admin.save_changes', 'Save Changes')}
+              <button onClick={confirmDeleteUser} disabled={saving} className="btn btn-error text-white flex-1">
+                {saving ? <span className="loading loading-spinner"></span> : t('common.delete', 'Delete')}
               </button>
             </div>
-          </form>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setModal(null)}>close</button>
-        </form>
-      </dialog>
-
-      {/* Delete User Confirmation Modal */}
-      <dialog className={`modal ${userToDelete ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <h3 className="font-bold text-lg text-error flex items-center gap-2">
-            <AlertCircle className="w-6 h-6" />
-            Delete User
-          </h3>
-          <p className="py-4 text-sm opacity-80">
-            Are you sure you want to delete user <strong>{userToDelete?.email}</strong>? This action is permanent and cannot be undone.
-          </p>
-          <div className="modal-action">
-            <button onClick={() => setUserToDelete(null)} className="btn btn-ghost">Cancel</button>
-            <button 
-              onClick={() => void confirmDeleteUser()} 
-              className="btn btn-error"
-              disabled={saving}
-            >
-              {saving ? <span className="loading loading-spinner loading-xs"></span> : "Delete"}
-            </button>
           </div>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setUserToDelete(null)}>close</button>
-        </form>
-      </dialog>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setUserToDelete(null)}>close</button>
+          </form>
+        </dialog>
+      )}
     </div>
   );
 }

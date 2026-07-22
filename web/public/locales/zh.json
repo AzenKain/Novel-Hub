@@ -53,7 +53,21 @@
     "reviews": "评论",
     "email": "电子邮件地址",
     "password": "密码",
-    "account_status": "帐户状态"
+    "account_status": "帐户状态",
+    "duplicates": "重复文件",
+    "duplicates_title": "重复文件管理",
+    "duplicates_subtitle": "通过 SHA-256 哈希检测并清理书库中重复上传的电子书文件。",
+    "no_duplicates_desc": "藏书库中的所有文件都是唯一的。没有发现 SHA-256 哈希冲突。",
+    "total_groups": "重复组数",
+    "space_wasted": "浪费的空间",
+    "select_all_duplicates": "选择所有重复文件（每组保留1份）",
+    "deselect_all": "取消全选",
+    "delete_selected": "删除所选文件",
+    "primary_copy": "主副本",
+    "keep_this_only": "仅保留此副本",
+    "confirm_delete_file": "确定要删除此文件吗？",
+    "confirm_keep_one": "保留此文件并删除其他重复副本？",
+    "confirm_delete_selected": "确定要删除所选的重复文件吗？"
   },
   "auth": {
     "login_to_account": "登录到您的账户",
@@ -98,6 +112,7 @@
   },
   "library": {
     "ready_to_read": "准备阅读",
+    "selected": "已选择",
     "processing": "处理中...",
     "by_author": "作者",
     "added_on": "添加于",
@@ -247,8 +262,10 @@
     "default_voice": "系统默认语音",
     "select_voice": "选择语音",
     "tts_speed": "朗读语速",
-    "read_selection": "朗读选中文本",
-    "read_from_here": "从此处开始朗读",
+    "read_selection": "朗读选中内容",
+    "read_from_here": "从此处朗读",
+    "copy_text": "复制文本",
+    "text_copied": "已复制到剪贴板",
     "tts_play": "朗读",
     "tts_pause": "暂停朗读",
     "tts_stop": "停止朗读",
@@ -257,7 +274,21 @@
     "available": "可用",
     "found": "个匹配",
     "no_voices_found": "未找到匹配的语音",
-    "no_voices": "无可用语音"
+    "no_voices": "无可用语音",
+    "in_book_search": "书内搜索",
+    "search_placeholder": "搜索文本...",
+    "no_results": "未找到匹配项。"
+  },
+  "analytics": {
+    "title": "阅读分析与统计",
+    "subtitle": "跟踪您的阅读习惯、连续记录和活动。",
+    "words_read": "已读字数",
+    "days": "天",
+    "active_days": "活跃天数",
+    "mins": "分钟",
+    "est_time": "预计阅读时间",
+    "goal_progress": "每日目标进度",
+    "activity_grid": "年度阅读活动"
   },
   "review": {
     "submitted": "评论提交成功",

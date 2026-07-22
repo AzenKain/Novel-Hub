@@ -53,6 +53,73 @@ func (q *Queries) GetBookFileById(ctx context.Context, id string) (BookFile, err
 	return i, err
 }
 
+const getDuplicateFileDetails = `-- name: GetDuplicateFileDetails :many
+SELECT 
+    bf.id as file_id,
+    bf.book_id,
+    bf.format,
+    bf.size_bytes,
+    bf.path,
+    bf.hash,
+    bf.created_at as file_created_at,
+    b.title as book_title,
+    b.cover_url as book_cover_url,
+    b.library_id
+FROM book_files bf
+JOIN books b ON bf.book_id = b.id
+WHERE bf.hash IS NOT NULL AND bf.hash != '' AND bf.hash IN (
+    SELECT hash FROM book_files WHERE hash IS NOT NULL AND hash != '' GROUP BY hash HAVING COUNT(*) > 1
+)
+ORDER BY bf.hash, bf.created_at ASC
+`
+
+type GetDuplicateFileDetailsRow struct {
+	FileID        string         `json:"file_id"`
+	BookID        string         `json:"book_id"`
+	Format        string         `json:"format"`
+	SizeBytes     int64          `json:"size_bytes"`
+	Path          string         `json:"path"`
+	Hash          sql.NullString `json:"hash"`
+	FileCreatedAt sql.NullTime   `json:"file_created_at"`
+	BookTitle     string         `json:"book_title"`
+	BookCoverUrl  sql.NullString `json:"book_cover_url"`
+	LibraryID     string         `json:"library_id"`
+}
+
+func (q *Queries) GetDuplicateFileDetails(ctx context.Context) ([]GetDuplicateFileDetailsRow, error) {
+	rows, err := q.query(ctx, q.getDuplicateFileDetailsStmt, getDuplicateFileDetails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDuplicateFileDetailsRow{}
+	for rows.Next() {
+		var i GetDuplicateFileDetailsRow
+		if err := rows.Scan(
+			&i.FileID,
+			&i.BookID,
+			&i.Format,
+			&i.SizeBytes,
+			&i.Path,
+			&i.Hash,
+			&i.FileCreatedAt,
+			&i.BookTitle,
+			&i.BookCoverUrl,
+			&i.LibraryID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDuplicateFiles = `-- name: GetDuplicateFiles :many
 SELECT hash, COUNT(*) as duplicate_count, GROUP_CONCAT(id) as file_ids
 FROM book_files

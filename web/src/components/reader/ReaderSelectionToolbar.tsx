@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { Volume2, Play } from "lucide-react";
+import { Volume2, Play, Copy } from "lucide-react";
 import React from "react";
 
 type ReaderSelectionToolbarProps = {
@@ -8,6 +8,7 @@ type ReaderSelectionToolbarProps = {
   isSupported: boolean;
   onReadSelection: () => void;
   onReadFromHere: () => void;
+  onCopyText?: () => void;
   onHighlight: (color: string) => void;
 };
 
@@ -17,6 +18,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
   isSupported,
   onReadSelection,
   onReadFromHere,
+  onCopyText,
   onHighlight,
 }) => {
   return (
@@ -33,6 +35,23 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       className="fixed z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/95 px-3.5 py-2 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200"
       style={{ top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px` }}
     >
+      {onCopyText && (
+        <button
+          type="button"
+          data-reader-toolbar="true"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onCopyText();
+          }}
+          className="btn btn-ghost btn-xs gap-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-white"
+          title={t("reader.copy_text", "Copy Text")}
+        >
+          <Copy className="h-3.5 w-3.5 text-amber-400 pointer-events-none" />
+          <span className="pointer-events-none">{t("reader.copy_text", "Copy Text")}</span>
+        </button>
+      )}
+
       {isSupported && (
         <>
           <button
@@ -63,9 +82,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             <Play className="h-3.5 w-3.5 text-emerald-400 pointer-events-none" />
             <span className="pointer-events-none">{t("reader.read_from_here", "Read From Here")}</span>
           </button>
-          <div className="mx-1 h-4 w-px bg-slate-700 pointer-events-none" />
         </>
       )}
+      <div className="mx-1 h-4 w-px bg-slate-700 pointer-events-none" />
 
       <div data-reader-toolbar="true" className="flex items-center gap-1.5 px-1">
         <button

@@ -6,8 +6,9 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 
 ## Features
 
-- **Multi-Format Reader**: Native browser rendering for 15+ formats (EPUB, MOBI, AZW3, PDF, DOCX, FB2, CBZ/CBR, TXT, MD, HTML). Includes 6 reader themes, custom typography, text highlighting, notes, and 3 page layouts.
+- **Multi-Format Reader**: Native browser rendering for 15+ formats (EPUB, MOBI, AZW3, PDF, DOCX, FB2, CBZ/CBR, TXT, MD, HTML). Includes 6 reader themes, custom typography, text highlighting, notes, Unicode in-book search, and 3 page layouts.
 - **Audiobook Support**: Native HTML5 audio streaming for MP3, M4A, M4B, and FLAC (no FFmpeg/HLS dependencies). Features smart chunked streaming to bypass reverse proxy size limits (e.g., Cloudflare).
+- **Calibre Library Sync**: Complete import & sync from Calibre's `metadata.db` including full metadata (authors, series, publishers, languages, tags, ratings, identifiers, comments).
 - **Cross-device Sync & Scroll Tracking**: Accurately tracks reading progress (CFI/scroll positions/audio timestamps) across multiple devices in real-time.
 - **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern) and `singleflight` for thundering-herd protection.
 - **Library Management**: Automatic file scanning, cover extraction, metadata editing, tag/author filtering, duplicate detection (SHA-256), and SQLite FTS5 full-text search.
@@ -42,8 +43,8 @@ docker compose up -d
 ## Development
 
 ```bash
-# Frontend dev (port 5173)
-cd web && npm install && npm run dev
+# Frontend dev (port 5173 with Bun)
+cd web && bun install && bun run dev
 
 # Backend dev
 go run ./cmd/api
@@ -53,7 +54,7 @@ go run ./cmd/api
 
 | Target | Description |
 |---|---|
-| `make run` | Build frontend and start Go server |
+| `make run` | Build frontend with Bun and start Go server |
 | `make test` | Run all Go unit tests |
 | `make sqlc` | Regenerate SQLC database models |
 | `make check` | Run full verification (sqlc + tests + web-build + go build) |
@@ -78,6 +79,7 @@ novelhub/
 │   ├── apperrors/      # Application error definitions
 │   ├── bookparser/     # Format parser engines (EPUB, MOBI, PDF, FB2, etc.)
 │   ├── cache/          # In-memory RAM cache (`theine-go`) & key builders
+│   ├── calibre/        # Calibre metadata.db import engine
 │   ├── convert/        # ID parsing, null conversion & cursor helpers
 │   ├── database/       # SQLite pragmas & transaction manager (`TxManager`)
 │   ├── jsonx/          # High-performance JSON engine (sonic with std fallback)
@@ -87,7 +89,7 @@ novelhub/
 ├── db/
 │   ├── schema/         # SQLite database migrations
 │   └── query/          # Type-safe SQLC query definitions (explicit column projections)
-└── web/                # React 18 + Vite + TailwindCSS + DaisyUI
+└── web/                # React 19 + Vite + TailwindCSS + DaisyUI (Bun)
     ├── public/locales/ # i18n translation datasets (en, vi, ja, ko, zh)
     └── src/            # Components, Pages, Services, Stores (Zustand)
 ```

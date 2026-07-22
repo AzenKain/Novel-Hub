@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2 } from "lucide-react";
+import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search } from "lucide-react";
 import React, { useState } from "react";
 import { LanguageSwitcher } from "@/components/ui";
 import type { ReaderTheme, ReadingMode } from "@/stores";
@@ -41,6 +41,7 @@ type ReaderTopBarProps = {
 
   autoScrollActive?: boolean;
   onToggleAutoScroll?: () => void;
+  onOpenSearch?: () => void;
 };
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -77,6 +78,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setTtsRate,
   autoScrollActive,
   onToggleAutoScroll,
+  onOpenSearch,
 }) => {
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
 
@@ -113,6 +115,16 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         >
           <ChevronLeft className="h-5 w-5 rotate-180" />
         </button>
+
+        {onOpenSearch && (
+          <button
+            onClick={onOpenSearch}
+            className="reader-control-btn btn btn-square btn-sm animate-none"
+            title={t("reader.in_book_search", "Search in Book")}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+        )}
 
         {ttsSupported && (
           <div className="relative flex items-center gap-1 border-r border-base-300 pr-2">

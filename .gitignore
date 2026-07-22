@@ -6,6 +6,7 @@ vendor/
 /api
 /cmd/api/dist/
 /web/dist/
+test-ebook/
 
 # Environment & secrets
 .env

@@ -327,7 +327,7 @@ func (q *Queries) GetBookmark(ctx context.Context, arg GetBookmarkParams) (Bookm
 
 const getBookmarkedBookIDs = `-- name: GetBookmarkedBookIDs :many
 SELECT book_id FROM bookmarks
-WHERE user_id = ?1 AND (?2 IS NULL OR created_at < ?2)
+WHERE user_id = ?1 AND (?2 IS NULL OR datetime(created_at) < datetime(?2))
 ORDER BY created_at DESC
 LIMIT ?3
 `
@@ -471,7 +471,7 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = ?1 AND (?2 IS NULL OR rp.updated_at < ?2)
+WHERE rp.user_id = ?1 AND (?2 IS NULL OR datetime(rp.updated_at) < datetime(?2))
 ORDER BY rp.updated_at DESC
 LIMIT ?3
 `
@@ -567,7 +567,7 @@ func (q *Queries) GetRecentReadingHistoryBookIDs(ctx context.Context, arg GetRec
 
 const getUserCollectionIDs = `-- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = ?1 AND (?2 IS NULL OR created_at < ?2)
+WHERE user_id = ?1 AND (?2 IS NULL OR datetime(created_at) < datetime(?2))
 ORDER BY created_at DESC
 LIMIT ?3
 `

@@ -293,6 +293,18 @@ func (r *bookDBRepository) GetDuplicateFiles(ctx context.Context, limit, offset 
 	return result, nil
 }
 
+func (r *bookDBRepository) GetDuplicateFileDetails(ctx context.Context) ([]*models.DuplicateFileDetailEntity, error) {
+	rows, err := r.queries.GetDuplicateFileDetails(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*models.DuplicateFileDetailEntity, len(rows))
+	for i, row := range rows {
+		result[i] = (&models.DuplicateFileDetailEntity{}).FromSqlc(row)
+	}
+	return result, nil
+}
+
 func (r *bookDBRepository) ListAllFiles(ctx context.Context, limit, offset int64) ([]*models.FileRefEntity, error) {
 	key := cache.BuildKey("book_file", "all", limit, offset)
 	if r.c != nil && !r.inTx {

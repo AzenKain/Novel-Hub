@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
 )
 
 type Parser struct{}
@@ -34,10 +35,16 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	if title == "" {
 		title = bookparser.TitleFromPath(filePath)
 	}
-	return bookparser.MergeMetadataSidecar(filePath, &bookparser.BookMetadata{
+	meta := &bookparser.BookMetadata{
 		Title:       title,
 		Description: firstTextPreview(text),
-	}), nil
+	}
+	merged := bookparser.MergeMetadataSidecar(filePath, meta)
+	if len(merged.CoverData) == 0 {
+		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.CoverType = "image/svg+xml"
+	}
+	return merged, nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

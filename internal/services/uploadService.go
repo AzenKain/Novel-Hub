@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/google/uuid"
 	"novelhub/pkg/config"
+
+	"github.com/google/uuid"
 )
 
 type UploadService interface {
@@ -43,6 +44,10 @@ func (s *uploadService) InitUploadSession(ctx context.Context) (string, error) {
 }
 
 func (s *uploadService) SaveChunk(ctx context.Context, uploadID string, chunkIndexStr string, file *multipart.FileHeader) error {
+	if _, err := uuid.Parse(uploadID); err != nil {
+		return fmt.Errorf("invalid upload session ID")
+	}
+
 	chunkIndex, err := strconv.Atoi(chunkIndexStr)
 	if err != nil {
 		return fmt.Errorf("invalid chunk index")
@@ -54,7 +59,7 @@ func (s *uploadService) SaveChunk(ctx context.Context, uploadID string, chunkInd
 	}
 
 	chunkPath := filepath.Join(uploadDir, fmt.Sprintf("chunk_%d", chunkIndex))
-	
+
 	src, err := file.Open()
 	if err != nil {
 		return fmt.Errorf("failed to open chunk file: %w", err)
@@ -75,6 +80,15 @@ func (s *uploadService) SaveChunk(ctx context.Context, uploadID string, chunkInd
 }
 
 func (s *uploadService) CommitUpload(ctx context.Context, uploadID, target, libraryID, bookID, filename string, totalChunks int) error {
+	if _, err := uuid.Parse(uploadID); err != nil {
+		return fmt.Errorf("invalid upload session ID")
+	}
+
+	cleanFilename := filepath.Base(filename)
+	if cleanFilename == "." || cleanFilename == "/" || cleanFilename == "" {
+		return fmt.Errorf("invalid filename")
+	}
+
 	uploadDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "uploads", uploadID)
 	finalPath := filepath.Join(uploadDir, "merged_file")
 
@@ -103,21 +117,22 @@ func (s *uploadService) CommitUpload(ctx context.Context, uploadID, target, libr
 	}
 	out.Close()
 
-	if target == "library" {
+	switch target {
+	case "library":
 		if libraryID == "" {
 			return fmt.Errorf("missing library ID")
 		}
-		if err := s.libraryService.ProcessSingleLocalFile(ctx, libraryID, filename, finalPath); err != nil {
+		if err := s.libraryService.ProcessSingleLocalFile(ctx, libraryID, cleanFilename, finalPath); err != nil {
 			return fmt.Errorf("failed to process file for library: %w", err)
 		}
-	} else if target == "book" {
+	case "book":
 		if bookID == "" {
 			return fmt.Errorf("missing book ID")
 		}
-		if err := s.bookService.ProcessSingleLocalFile(ctx, bookID, filename, finalPath); err != nil {
+		if err := s.bookService.ProcessSingleLocalFile(ctx, bookID, cleanFilename, finalPath); err != nil {
 			return fmt.Errorf("failed to process file for book: %w", err)
 		}
-	} else {
+	default:
 		return fmt.Errorf("invalid target")
 	}
 

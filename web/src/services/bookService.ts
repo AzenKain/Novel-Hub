@@ -6,6 +6,7 @@ import type {
   CursorPaginatedResponse,
   CommonResponse,
   DuplicateFileResult,
+  DuplicateGroupResult,
   OnlineMetadataResult,
   SearchBookParams,
   SearchDeepResult,
@@ -120,13 +121,13 @@ export const bookService = {
     }
   },
 
-  async getDuplicates(): Promise<CommonResponse<DuplicateFileResult[]>> {
+  async getDuplicates(): Promise<CommonResponse<DuplicateGroupResult[]>> {
     try {
       const res = await api.get(`/books/files/duplicates`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<DuplicateFileResult[]>;
+        return error.response.data as CommonResponse<DuplicateGroupResult[]>;
       throw error;
     }
   },

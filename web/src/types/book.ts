@@ -72,10 +72,30 @@ export interface SearchDeepResult {
   title: string;
 }
 
+export interface DuplicateFileDetail {
+  fileId: string;
+  bookId: string;
+  bookTitle: string;
+  bookCoverUrl?: string;
+  libraryId: string;
+  format: string;
+  sizeBytes: number;
+  path: string;
+  createdAt: string;
+}
+
+export interface DuplicateGroupResult {
+  hash: string;
+  duplicateCount: number;
+  files: DuplicateFileDetail[];
+}
+
 export interface DuplicateFileResult {
   hash: string;
-  duplicate_count: number;
-  file_ids: string;
+  duplicateCount?: number;
+  duplicate_count?: number;
+  fileIds?: string;
+  file_ids?: string;
 }
 
 export interface OnlineMetadataResult {
@@ -100,4 +120,34 @@ export interface MetadataCount {
 export interface BootstrapResponse {
   book: Book;
   chapters: Chapter[];
+}
+
+export interface Highlight {
+  id: string;
+  userId: number;
+  bookId: string;
+  chapterId: string;
+  textContent: string;
+  startIndex: number;
+  endIndex: number;
+  color: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SearchSnippet {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_index: number;
+  snippet: string;
+  offset: number;
+}
+
+export interface UploadCommitParams {
+  target: "library" | "book";
+  library_id?: string;
+  book_id?: string;
+  filename: string;
+  total_chunks: number;
 }

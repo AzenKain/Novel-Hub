@@ -12,6 +12,7 @@ import (
 type OPDSService interface {
 	GetRootCatalog(ctx context.Context, serverURL string) (*opds.Feed, error)
 	GetRecentBooks(ctx context.Context, serverURL string, limit int64) (*opds.Feed, error)
+	GetOPDS2Catalog(ctx context.Context, serverURL string) (map[string]any, error)
 }
 
 type opdsService struct {
@@ -106,4 +107,39 @@ func (s *opdsService) bookToEntry(book *models.BookEntity, serverURL string) opd
 	}
 
 	return entry
+}
+
+func (s *opdsService) GetOPDS2Catalog(ctx context.Context, serverURL string) (map[string]any, error) {
+	books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", nil, 50)
+	if err != nil {
+		return nil, err
+	}
+
+	var publications []map[string]any
+	for _, b := range books {
+		pub := map[string]any{
+			"metadata": map[string]any{
+				"title":      b.Title,
+				"identifier": "urn:novelhub:book:" + b.ID,
+			},
+			"links": []map[string]any{
+				{"rel": "http://opds-spec.org/image", "href": fmt.Sprintf("%s/api/v1/books/%s/cover", serverURL, b.ID), "type": "image/jpeg"},
+				{"rel": "http://opds-spec.org/acquisition", "href": fmt.Sprintf("%s/api/v1/books/%s/download", serverURL, b.ID), "type": "application/epub+zip"},
+			},
+		}
+		if b.AuthorName != nil && *b.AuthorName != "" {
+			pub["metadata"].(map[string]any)["author"] = *b.AuthorName
+		}
+		publications = append(publications, pub)
+	}
+
+	return map[string]any{
+		"metadata": map[string]any{
+			"title": "NovelHub OPDS 2.0 Catalog",
+		},
+		"links": []map[string]any{
+			{"rel": "self", "href": fmt.Sprintf("%s/api/opds/v2/catalog", serverURL), "type": "application/opds+json"},
+		},
+		"publications": publications,
+	}, nil
 }

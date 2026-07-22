@@ -53,7 +53,21 @@
     "reviews": "리뷰",
     "email": "이메일 주소",
     "password": "비밀번호",
-    "account_status": "계정 상태"
+    "account_status": "계정 상태",
+    "duplicates": "중복 파일",
+    "duplicates_title": "중복 파일 관리",
+    "duplicates_subtitle": "SHA-256 해시를 사용하여 라이브러리 전체의 중복 파일을 감지하고 정리합니다.",
+    "no_duplicates_desc": "라이브러리의 모든 파일이 고유합니다. 중복 충돌이 없습니다.",
+    "total_groups": "중복 그룹 수",
+    "space_wasted": "낭비된 용량",
+    "select_all_duplicates": "모든 중복 파일 선택 (그룹당 1개 유지)",
+    "deselect_all": "선택 모두 해제",
+    "delete_selected": "선택한 파일 삭제",
+    "primary_copy": "원본 복사본",
+    "keep_this_only": "이 파일만 유지",
+    "confirm_delete_file": "이 파일을 삭제하시겠습니까?",
+    "confirm_keep_one": "이 파일만 유지하고 다른 중복 복사본을 삭제하시겠습니까?",
+    "confirm_delete_selected": "선택한 중복 파일을 삭제하시겠습니까?"
   },
   "auth": {
     "login_to_account": "계정에 로그인",
@@ -98,6 +112,7 @@
   },
   "library": {
     "ready_to_read": "읽을 준비 완료",
+    "selected": "선택됨",
     "processing": "처리 중...",
     "by_author": "저자:",
     "added_on": "추가됨",
@@ -249,6 +264,8 @@
     "tts_speed": "읽기 속도",
     "read_selection": "선택 영역 읽기",
     "read_from_here": "여기부터 읽기",
+    "copy_text": "텍스트 복사",
+    "text_copied": "클립보드에 복사되었습니다",
     "tts_play": "음성 읽기",
     "tts_pause": "일시 정지",
     "tts_stop": "정지",
@@ -257,7 +274,21 @@
     "available": "사용 가능",
     "found": "개 발견",
     "no_voices_found": "검색 조건에 맞는 음성이 없습니다",
-    "no_voices": "사용 가능한 음성이 없습니다"
+    "no_voices": "사용 가능한 음성이 없습니다",
+    "in_book_search": "책 내 검색",
+    "search_placeholder": "텍스트 검색...",
+    "no_results": "검색 결과가 없습니다."
+  },
+  "analytics": {
+    "title": "독서 분석 및 통계",
+    "subtitle": "독서 습관, 연속 기록 및 활동을 추적하세요.",
+    "words_read": "읽은 단어 수",
+    "days": "일",
+    "active_days": "활동 일수",
+    "mins": "분",
+    "est_time": "예상 독서 시간",
+    "goal_progress": "일일 목표 진행률",
+    "activity_grid": "연간 독서 활동"
   },
   "review": {
     "submitted": "리뷰가 성공적으로 제출되었습니다",

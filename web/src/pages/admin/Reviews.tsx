@@ -1,14 +1,11 @@
-import { useReviewsQuery } from "@/hooks";
-import { adminService } from "@/services";
-import { useQueryClient } from "@tanstack/react-query";
+import { useDeleteReviewMutation, useReviewsQuery } from "@/hooks";
+import { useReviewAdminStore } from "@/stores";
 import { AlertCircle, Loader2, MessageSquareText, RefreshCw, Star, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
-import { useReviewAdminStore } from "@/stores";
 
 export function Reviews() {
-  const queryClient = useQueryClient();
   const {
     reviews, setReviews,
     loading, setLoading,
@@ -28,6 +25,7 @@ export function Reviews() {
   })));
 
   const { data: pageData, isLoading, refetch } = useReviewsQuery(page);
+  const deleteReviewMutation = useDeleteReviewMutation();
 
   useEffect(() => {
     if (pageData) {
@@ -54,29 +52,29 @@ export function Reviews() {
     };
   }, [reset]);
 
-  async function confirmDelete() {
+  function confirmDelete() {
     if (!reviewToDelete) return;
     const key = `${reviewToDelete.bookId}-${reviewToDelete.userId}`;
     setDeleting(key);
-    try {
-      await adminService.deleteReview(reviewToDelete.bookId, reviewToDelete.userId);
-      toast.success("Review deleted");
-      setReviews((prev) =>
-        prev.filter(
-          (r) => !(r.bookId === reviewToDelete.bookId && r.userId === reviewToDelete.userId)
-        )
-      );
-      setReviewToDelete(null);
-      await queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  function loadMore() {
-    setPage(page + 1);
+    deleteReviewMutation.mutate(
+      { bookId: reviewToDelete.bookId, userId: reviewToDelete.userId },
+      {
+        onSuccess: () => {
+          toast.success("Review deleted");
+          setReviews((prev) =>
+            prev.filter(
+              (r) => !(r.bookId === reviewToDelete.bookId && r.userId === reviewToDelete.userId)
+            )
+          );
+          setReviewToDelete(null);
+          setDeleting(null);
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : String(err));
+          setDeleting(null);
+        },
+      }
+    );
   }
 
   function renderStars(rating: number) {
@@ -185,7 +183,7 @@ export function Reviews() {
               {hasMore && (
                 <div className="flex justify-center pt-4">
                   <button
-                    onClick={loadMore}
+                    onClick={() => setPage(page + 1)}
                     disabled={loading}
                     className="btn btn-ghost btn-wide"
                   >
@@ -228,7 +226,7 @@ export function Reviews() {
               Cancel
             </button>
             <button
-              onClick={() => void confirmDelete()}
+              onClick={confirmDelete}
               className="btn btn-error"
               disabled={deleting !== null}
             >

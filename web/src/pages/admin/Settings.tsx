@@ -1,10 +1,9 @@
 import { LibraryMultiSelect } from "@/components/admin/settings/LibraryMultiSelect";
 import { GUEST_MODES, POLICY_MODES, SIDEBAR_LABELS } from "@/constants";
-import { useAdminSettingsQuery, useLibrariesQuery } from "@/hooks";
+import { useAdminSettingsQuery, useLibrariesQuery, useUpdateAdminSettingsMutation, useUploadAdminLogoMutation } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
 import { adminService } from "@/services";
 import { useSettingsAdminStore } from "@/stores";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Bookmark,
   Download,
@@ -19,22 +18,18 @@ import {
   Save,
   UserPlus,
 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { SyntheticEvent, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
-
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
+import { WebhooksTab } from "@/components/admin/settings/WebhooksTab";
 
 export function Settings() {
-  const queryClient = useQueryClient();
   const { data: adminSettings, isLoading: settingsLoading, refetch: refetchSettings } = useAdminSettingsQuery();
-  const { data: librariesList, isLoading: librariesLoading, refetch: refetchLibraries } = useLibrariesQuery();
+  const { data: librariesList = [], isLoading: librariesLoading, refetch: refetchLibraries } = useLibrariesQuery();
+  const updateSettingsMutation = useUpdateAdminSettingsMutation();
 
   const {
-    settings, setSettings,
-    libraries, setLibraries,
-    loading, setLoading,
-    saving, setSaving,
     site, setSite,
     sidebarItems, setSidebarItems,
     homeSections, setHomeSections,
@@ -49,12 +44,15 @@ export function Settings() {
     collectionLibraryIds, setCollectionLibraryIds,
     reviewMode, setReviewMode,
     reviewLibraryIds, setReviewLibraryIds,
-    reset
+    inBookSearch, setInBookSearch,
+    customFontUpload, setCustomFontUpload,
+    savingSection, setSavingSection,
+    uploadingLogo, setUploadingLogo,
+    uploadingFavicon, setUploadingFavicon,
+    selectedCropImage, setSelectedCropImage,
+    cropTarget, setCropTarget,
+    initFromSettings,
   } = useSettingsAdminStore(useShallow((state) => ({
-    settings: state.settings, setSettings: state.setSettings,
-    libraries: state.libraries, setLibraries: state.setLibraries,
-    loading: state.loading, setLoading: state.setLoading,
-    saving: state.saving, setSaving: state.setSaving,
     site: state.site, setSite: state.setSite,
     sidebarItems: state.sidebarItems, setSidebarItems: state.setSidebarItems,
     homeSections: state.homeSections, setHomeSections: state.setHomeSections,
@@ -69,62 +67,37 @@ export function Settings() {
     collectionLibraryIds: state.collectionLibraryIds, setCollectionLibraryIds: state.setCollectionLibraryIds,
     reviewMode: state.reviewMode, setReviewMode: state.setReviewMode,
     reviewLibraryIds: state.reviewLibraryIds, setReviewLibraryIds: state.setReviewLibraryIds,
-    reset: state.reset
+    inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
+    customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
+    savingSection: state.savingSection, setSavingSection: state.setSavingSection,
+    uploadingLogo: state.uploadingLogo, setUploadingLogo: state.setUploadingLogo,
+    uploadingFavicon: state.uploadingFavicon, setUploadingFavicon: state.setUploadingFavicon,
+    selectedCropImage: state.selectedCropImage, setSelectedCropImage: state.setSelectedCropImage,
+    cropTarget: state.cropTarget, setCropTarget: state.setCropTarget,
+    initFromSettings: state.initFromSettings,
   })));
 
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<"logo" | "favicon" | null>(null);
+  const loading = settingsLoading || librariesLoading;
+  const libraries = librariesList;
 
   useEffect(() => {
     if (adminSettings) {
-      setSettings(adminSettings);
-      setSite(adminSettings.site || { title: "", description: "", favicon: "", logo: "", meta_description: "" });
-      setSidebarItems(adminSettings.sidebar_visible_items || []);
-      setHomeSections(adminSettings.home_sections || { random_books: true, top_books: true });
-      setRegistration(adminSettings.registration_enabled);
-      setGuestMode(adminSettings.guest_access.mode);
-      setGuestLibraryIds(adminSettings.guest_access.library_ids || []);
-      setDownloadMode(adminSettings.download.mode);
-      setDownloadLibraryIds(adminSettings.download.library_ids || []);
-      setBookmarkMode(adminSettings.bookmark.mode);
-      setBookmarkLibraryIds(adminSettings.bookmark.library_ids || []);
-      setCollectionMode(adminSettings.collection.mode);
-      setCollectionLibraryIds(adminSettings.collection.library_ids || []);
-      setReviewMode(adminSettings.review.mode);
-      setReviewLibraryIds(adminSettings.review.library_ids || []);
+      initFromSettings(adminSettings);
     }
-  }, [adminSettings]);
+  }, [adminSettings, initFromSettings]);
 
-  useEffect(() => {
-    if (librariesList) {
-      setLibraries(librariesList);
-    }
-  }, [librariesList]);
-
-  useEffect(() => {
-    setLoading(settingsLoading || librariesLoading);
-  }, [settingsLoading, librariesLoading, setLoading]);
-
-  useEffect(() => {
-    return () => {
-      reset();
-    };
-  }, [reset]);
-
-  async function saveSection(section: string, data: Record<string, unknown>) {
-    setSaving(section);
-    try {
-      await adminService.updateSettings(data);
-      toast.success(`${section} saved`);
-      await invalidatePublicSettings();
-      await queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(null);
-    }
+  function saveSection(section: string, data: Record<string, unknown>) {
+    setSavingSection(section);
+    updateSettingsMutation.mutate(data, {
+      onSuccess: () => {
+        toast.success(`${section} saved`);
+        setSavingSection(null);
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : String(err));
+        setSavingSection(null);
+      },
+    });
   }
 
   const handleUploadLink = async (type: "logo" | "favicon") => {
@@ -198,7 +171,7 @@ export function Settings() {
     }
   };
 
-  function handleSiteSave(e: FormEvent) {
+  function handleSiteSave(e: SyntheticEvent) {
     e.preventDefault();
     void saveSection("Site settings", {
       "site.title": site.title,
@@ -215,6 +188,13 @@ export function Settings() {
 
   function handleHomeSave() {
     void saveSection("Home sections", { "home.sections": homeSections });
+  }
+
+  function handleReaderFeaturesSave() {
+    void saveSection("Reader features", {
+      "reader.enable_in_book_search": inBookSearch,
+      "font.enable_custom_font_upload": customFontUpload,
+    });
   }
 
   function handleRegistrationSave() {
@@ -255,7 +235,7 @@ export function Settings() {
 
 
 
-  const isSaving = (s: string) => saving === s;
+  const isSaving = (s: string) => savingSection === s;
 
   return (
     <div className="flex flex-col h-full bg-base-100">
@@ -435,7 +415,7 @@ export function Settings() {
               </div>
               <p className="text-xs text-base-content/50 mb-4">Choose which navigation items appear in the library sidebar.</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-4">
-                {(settings?.available_sidebar_items || []).map((key) => (
+                {(adminSettings?.available_sidebar_items || []).map((key: string) => (
                   <label
                     key={key}
                     className={`cursor-pointer flex items-center gap-2 p-2 rounded-lg border transition-colors ${
@@ -513,6 +493,53 @@ export function Settings() {
                 >
                   {isSaving("Home sections") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save Home
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ────── Reader Features & Custom Fonts ────── */}
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Layout className="h-5 w-5 text-primary" />
+                <h2 className="card-title text-lg">Reader Features & Fonts</h2>
+              </div>
+              <p className="text-xs text-base-content/50 mb-4">Toggle advanced reader search and server font uploads.</p>
+              <div className="flex flex-col gap-4">
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={inBookSearch}
+                    onChange={(e) => setInBookSearch(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Enable In-Book Search</span>
+                    <p className="text-xs text-base-content/50">Allow readers to search text inside open books (On-demand disk scan).</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={customFontUpload}
+                    onChange={(e) => setCustomFontUpload(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Enable Server Custom Font Uploads</span>
+                    <p className="text-xs text-base-content/50">Allow authorized users to upload custom fonts to server (default is local IndexedDB font storage).</p>
+                  </div>
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleReaderFeaturesSave}
+                  disabled={isSaving("Reader features")}
+                  className="btn btn-primary btn-sm gap-1"
+                >
+                  {isSaving("Reader features") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Reader Settings
                 </button>
               </div>
             </div>
@@ -664,6 +691,13 @@ export function Settings() {
               </div>
             </div>
           ))}
+
+          {/* ────── Webhooks Integration ────── */}
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-5 sm:p-6">
+              <WebhooksTab />
+            </div>
+          </div>
         </div>
       </div>
 

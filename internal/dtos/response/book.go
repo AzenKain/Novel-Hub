@@ -33,6 +33,24 @@ type DuplicateFileResponse struct {
 	FileIDs        string  `json:"fileIds"`
 }
 
+type DuplicateFileDetailResponse struct {
+	FileID       string  `json:"fileId"`
+	BookID       string  `json:"bookId"`
+	BookTitle    string  `json:"bookTitle"`
+	BookCoverURL *string `json:"bookCoverUrl,omitempty"`
+	LibraryID    string  `json:"libraryId"`
+	Format       string  `json:"format"`
+	SizeBytes    int64   `json:"sizeBytes"`
+	Path         string  `json:"path"`
+	CreatedAt    string  `json:"createdAt"`
+}
+
+type DuplicateGroupResponse struct {
+	Hash           string                         `json:"hash"`
+	DuplicateCount int                            `json:"duplicateCount"`
+	Files          []*DuplicateFileDetailResponse `json:"files"`
+}
+
 type ChapterResponse struct {
 	ID           string    `json:"id"`
 	BookID       string    `json:"bookId"`

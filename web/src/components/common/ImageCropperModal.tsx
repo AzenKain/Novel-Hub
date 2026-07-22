@@ -5,7 +5,7 @@ type ImageCropperModalProps = {
   imageSrc: string;
   onCrop: (base64: string) => void;
   onCancel: () => void;
-  cropSize?: number; // Size of the final cropped square image
+  cropSize?: number;
 };
 
 export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({

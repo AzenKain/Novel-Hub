@@ -247,6 +247,8 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.Bookmark = rawPolicy(raw, "bookmark", settings.Bookmark, availablePolicyModes)
 	settings.Collection = rawPolicy(raw, "collection", settings.Collection, availablePolicyModes)
 	settings.Review = rawPolicy(raw, "review", settings.Review, availablePolicyModes)
+	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
+	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	return settings
 }
 
@@ -367,7 +369,9 @@ func allowedSettingKey(key string) bool {
 		"collection.mode",
 		"collection.library_ids",
 		"review.mode",
-		"review.library_ids":
+		"review.library_ids",
+		"reader.enable_in_book_search",
+		"font.enable_custom_font_upload":
 		return true
 	default:
 		return false

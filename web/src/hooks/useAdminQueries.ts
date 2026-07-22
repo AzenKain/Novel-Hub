@@ -1,7 +1,20 @@
-import { adminService } from "@/services";
-import type { AdminReview, Permission, PublicSettings, Role } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { adminService, webhookService } from "@/services";
+import type {
+  AdminReview,
+  CreateRoleRequest,
+  CreateUserRequest,
+  CreateWebhookInput,
+  Permission,
+  PublicSettings,
+  Role,
+  SearchUserParams,
+  UpdateRoleRequest,
+  User,
+  Webhook,
+} from "@/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// Settings
 export function useAdminSettingsQuery() {
   return useQuery<PublicSettings>({
     queryKey: ["admin", "settings"],
@@ -13,6 +26,110 @@ export function useAdminSettingsQuery() {
   });
 }
 
+export function useUpdateAdminSettingsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await adminService.updateSettings(data);
+      if (!res.status) throw new Error(res.message || "Failed to update settings");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["public", "settings"] });
+    },
+  });
+}
+
+export function useUploadAdminLogoMutation() {
+  return useMutation({
+    mutationFn: async (fd: FormData) => {
+      const res = await adminService.uploadAdminLogo(fd);
+      if (!res.status || !res.data) throw new Error(res.message || "Failed to upload logo/favicon");
+      return res.data.url;
+    },
+  });
+}
+
+// Users
+export function useUsersQuery(params: SearchUserParams) {
+  return useQuery<{ users: User[]; total: number }>({
+    queryKey: ["admin", "users", params],
+    queryFn: async () => {
+      const res = await adminService.searchUsers(params);
+      if (!res.status) throw new Error(res.message || "Failed to fetch users");
+      return { users: res.data || [], total: res.pagination?.total_records || 0 };
+    },
+  });
+}
+
+export function useCreateUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateUserRequest) => {
+      const res = await adminService.createUser(input);
+      if (!res.status) throw new Error(res.message || "Failed to create user");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useUpdateUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { full_name: string; avatar_url?: string } }) => {
+      const res = await adminService.updateUser(id, data);
+      if (!res.status) throw new Error(res.message || "Failed to update user");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useResetUserPasswordMutation() {
+  return useMutation({
+    mutationFn: async ({ id, password }: { id: number; password: string }) => {
+      const res = await adminService.resetPassword(id, password);
+      if (!res.status) throw new Error(res.message || "Failed to reset password");
+      return res;
+    },
+  });
+}
+
+export function useChangeUserRolesMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, roleIDs }: { id: number; roleIDs: number[] }) => {
+      const res = await adminService.changeRoles(id, roleIDs);
+      if (!res.status) throw new Error(res.message || "Failed to change roles");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useDeleteUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await adminService.deleteUser(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete user");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+// Roles
 export function useRolesQuery() {
   return useQuery<Role[]>({
     queryKey: ["admin", "roles"],
@@ -20,6 +137,48 @@ export function useRolesQuery() {
       const res = await adminService.getRoles();
       if (!res.status) throw new Error(res.message || "Failed to fetch roles");
       return res.data || [];
+    },
+  });
+}
+
+export function useCreateRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateRoleRequest) => {
+      const res = await adminService.createRole(input);
+      if (!res.status) throw new Error(res.message || "Failed to create role");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+    },
+  });
+}
+
+export function useUpdateRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: UpdateRoleRequest }) => {
+      const res = await adminService.updateRole(id, data);
+      if (!res.status) throw new Error(res.message || "Failed to update role");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+    },
+  });
+}
+
+export function useDeleteRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await adminService.deleteRole(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete role");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
     },
   });
 }
@@ -35,6 +194,21 @@ export function usePermissionsQuery() {
   });
 }
 
+export function useAssignRolePermissionsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ roleID, assignments }: { roleID: number; assignments: any[] }) => {
+      const res = await adminService.updateRolePermissions(roleID, { permissions: assignments });
+      if (!res.status) throw new Error(res.message || "Failed to update role permissions");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+    },
+  });
+}
+
+// Reviews
 export function useReviewsQuery(page: number, limit = 20) {
   return useQuery<AdminReview[]>({
     queryKey: ["admin", "reviews", page, limit],
@@ -42,6 +216,85 @@ export function useReviewsQuery(page: number, limit = 20) {
       const res = await adminService.listAllReviews(limit, page * limit);
       if (!res.status) throw new Error(res.message || "Failed to fetch reviews");
       return res.data || [];
+    },
+  });
+}
+
+export function useDeleteReviewMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookId, userId }: { bookId: string; userId: number }) => {
+      const res = await adminService.deleteReview(bookId, userId);
+      if (!res.status) throw new Error(res.message || "Failed to delete review");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+    },
+  });
+}
+
+// Webhooks
+export function useWebhooksQuery() {
+  return useQuery<Webhook[]>({
+    queryKey: ["admin", "webhooks"],
+    queryFn: async () => {
+      const res = await webhookService.listWebhooks();
+      if (!res.status) throw new Error(res.message || "Failed to fetch webhooks");
+      return res.data || [];
+    },
+    retry: 1,
+  });
+}
+
+export function useCreateWebhookMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateWebhookInput) => {
+      const res = await webhookService.createWebhook(input);
+      if (!res.status) throw new Error(res.message || "Failed to create webhook");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+    },
+  });
+}
+
+export function useUpdateWebhookMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: CreateWebhookInput }) => {
+      const res = await webhookService.updateWebhook(id, input);
+      if (!res.status) throw new Error(res.message || "Failed to update webhook");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+    },
+  });
+}
+
+export function useDeleteWebhookMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await webhookService.deleteWebhook(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete webhook");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+    },
+  });
+}
+
+export function useTestWebhookMutation() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await webhookService.testPingWebhook(id);
+      if (!res.status) throw new Error(res.message || "Webhook test failed");
+      return res;
     },
   });
 }

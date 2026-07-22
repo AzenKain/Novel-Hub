@@ -1,13 +1,16 @@
+import { ImageCropperModal } from "@/components/common/ImageCropperModal";
+import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
+import { useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
-import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 
 export const UserProfile = () => {
-  const navigate = useNavigate();
-  const { user, updateProfile, logout, loading, error, clearError, isProfileModalOpen, setProfileModalOpen } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const isProfileModalOpen = useAuthStore((state) => state.isProfileModalOpen);
+  const setProfileModalOpen = useAuthStore((state) => state.setProfileModalOpen);
+
+  const updateProfileMutation = useUpdateProfileMutation();
   const { t } = useTranslation();
   
   const [fullName, setFullName] = useState("");
@@ -47,20 +50,19 @@ export const UserProfile = () => {
     setSelectedImage(null);
   };
 
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    clearError();
     setSuccess(false);
-    try {
-      await updateProfile({ full_name: fullName, avatar_url: avatarUrl });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      // Error handled by store
-    }
+    updateProfileMutation.mutate(
+      { full_name: fullName, avatar_url: avatarUrl },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+      }
+    );
   };
-
 
   return (
     <dialog className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}>
@@ -78,9 +80,9 @@ export const UserProfile = () => {
         </button>
         <h3 className="font-bold text-lg mb-6">{t('user.profile_title', 'Your Profile')}</h3>
 
-        {error && (
+        {updateProfileMutation.error && (
           <div className="alert alert-error py-2 text-sm rounded-lg mb-4">
-            <span>{error}</span>
+            <span>{updateProfileMutation.error instanceof Error ? updateProfileMutation.error.message : String(updateProfileMutation.error)}</span>
           </div>
         )}
         
@@ -194,10 +196,10 @@ export const UserProfile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={updateProfileMutation.isPending}
                   className="btn btn-primary"
                 >
-                  {loading ? <span className="loading loading-spinner"></span> : t('user.save_changes', 'Save Changes')}
+                  {updateProfileMutation.isPending ? <span className="loading loading-spinner"></span> : t('user.save_changes', 'Save Changes')}
                 </button>
               </div>
             </form>
@@ -218,4 +220,3 @@ export const UserProfile = () => {
     </dialog>
   );
 };
-

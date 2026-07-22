@@ -1,4 +1,3 @@
-import { adminService } from "@/services";
 import type { AdminReview } from "@/types";
 import { create } from "zustand";
 
@@ -17,7 +16,6 @@ interface ReviewAdminState {
   setPage: (page: number) => void;
   setHasMore: (hasMore: boolean) => void;
 
-  loadData: (nextPage?: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -30,7 +28,7 @@ const initialState = {
   hasMore: true,
 };
 
-export const useReviewAdminStore = create<ReviewAdminState>((set, get) => ({
+export const useReviewAdminStore = create<ReviewAdminState>((set) => ({
   ...initialState,
 
   setReviews: (reviews) => set((state) => ({ reviews: typeof reviews === "function" ? reviews(state.reviews) : reviews })),
@@ -39,25 +37,5 @@ export const useReviewAdminStore = create<ReviewAdminState>((set, get) => ({
   setReviewToDelete: (reviewToDelete) => set({ reviewToDelete }),
   setPage: (page) => set({ page }),
   setHasMore: (hasMore) => set({ hasMore }),
-
-  loadData: async (nextPage) => {
-    const p = nextPage ?? get().page;
-    set({ loading: true });
-    try {
-      const res = await adminService.listAllReviews(20, p * 20);
-      const data = res.data || [];
-      if (p === 0) {
-        set({ reviews: data });
-      } else {
-        set((state) => ({ reviews: [...state.reviews, ...data] }));
-      }
-      set({ hasMore: data.length === 20 });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
   reset: () => set(initialState),
 }));

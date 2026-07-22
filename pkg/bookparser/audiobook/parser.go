@@ -44,7 +44,7 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 		meta.CoverType = pic.MIMEType
 	}
 
-	return meta, nil
+	return bookparser.MergeMetadataSidecar(filePath, meta), nil
 }
 
 func (p *AudiobookParser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

@@ -1,7 +1,9 @@
 import { RecentlyReadPanel } from "@/components/book-detail";
+import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
+import { BulkActionToolbar } from "@/components/library/BulkActionToolbar";
 import { BookCard, BookGrid, LanguageSwitcher, ThemeController } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
@@ -32,6 +34,7 @@ import {
 } from "@/lib/libraryMetadata";
 import { useAuthStore, useLibraryStore } from "@/stores";
 import {
+  Activity,
   AlertCircle,
   Archive,
   ArrowDownAZ,
@@ -146,6 +149,7 @@ export const LibraryWorkspace = () => {
     setMetadataSort: state.setMetadataSort,
   })));
   const publicSettings = usePublicSettings();
+  const [selectedBookIds, setSelectedBookIds] = React.useState<string[]>([]);
   const debouncedSearch = useDebounce(search, 500);
 
   const { data: hotBooksData } = useHotBooksQuery(6);
@@ -205,12 +209,30 @@ export const LibraryWorkspace = () => {
     searchParams,
     !isMetadataNav && activeNav !== "bookmarks"
   );
-  const booksData = useMemo(() => (booksDataRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").Book[], [booksDataRaw]);
+  const booksData = useMemo(() => {
+    if (!booksDataRaw) return [];
+    const all = booksDataRaw.pages.flatMap((p) => p.data || []);
+    const seen = new Set<string>();
+    return all.filter((b) => {
+      if (!b || !b.id || seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+  }, [booksDataRaw]);
 
   const { data: bookmarkedBooksRaw, isLoading: bookmarksLoading, fetchNextPage: fetchNextBookmarks, hasNextPage: hasMoreBookmarks, isFetchingNextPage: isFetchingMoreBookmarks } = useBookmarkedBooksQuery(
     activeNav === "bookmarks" && !!user
   );
-  const bookmarkedBooksData = useMemo(() => (bookmarkedBooksRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").Book[], [bookmarkedBooksRaw]);
+  const bookmarkedBooksData = useMemo(() => {
+    if (!bookmarkedBooksRaw) return [];
+    const all = bookmarkedBooksRaw.pages.flatMap((p) => p.data || []);
+    const seen = new Set<string>();
+    return all.filter((b) => {
+      if (!b || !b.id || seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+  }, [bookmarkedBooksRaw]);
 
   const { data: statsData } = useLibraryStatsQuery();
   const { data: collectionsData, fetchNextPage: fetchNextCollections, hasNextPage: hasMoreCollections, isFetchingNextPage: isFetchingMoreCollections } = useCollectionsQuery(!!user);
@@ -278,7 +300,7 @@ export const LibraryWorkspace = () => {
     });
   }, [authorsFacet, seriesFacet, tagsFacet, publishersFacet, languagesFacet, formatsFacet, setMetadataFacets]);
 
-  const handleCreateCollection = async (e?: React.FormEvent) => {
+  const handleCreateCollection = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
     if (!newCollectionName.trim()) return;
     setCollectionError("");
@@ -690,12 +712,6 @@ export const LibraryWorkspace = () => {
               {t(`library.${chip.toLowerCase().replace(" ", "_")}`, chip)}
             </button>
           ))}
-          <button
-            className="btn btn-sm btn-ghost bg-base-100 rounded-full border-base-300 hover:bg-base-200"
-            onClick={() => navigate("/duplicates")}
-          >
-            {t("library.duplicates", "Duplicates")}
-          </button>
         </div>
 
         <select className="select select-bordered select-sm w-full sm:w-auto bg-base-100">
@@ -786,7 +802,7 @@ export const LibraryWorkspace = () => {
             </main>
 
             {!isCatalogPage && !bookId && (
-              <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start">
+              <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start flex flex-col gap-5">
                 <RecentlyReadPanel
                   className="mt-0"
                   items={recentReading}
@@ -797,6 +813,23 @@ export const LibraryWorkspace = () => {
                   }
                   t={t}
                 />
+                {user && (
+                  <div className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h4 className="flex items-center gap-1.5 text-xs font-bold text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">
+                        <Activity className="h-4 w-4 shrink-0 text-primary" />
+                        <span>{t("analytics.short_title", "Activity")}</span>
+                      </h4>
+                      <Link
+                        to="/analytics"
+                        className="text-xs font-semibold text-primary hover:underline shrink-0"
+                      >
+                        {t("common.view_analytics", "Analytics →")}
+                      </Link>
+                    </div>
+                    <ReadingHeatmap />
+                  </div>
+                )}
               </aside>
             )}
           </div>
@@ -884,6 +917,16 @@ export const LibraryWorkspace = () => {
           </button>
         </form>
       </dialog>
+
+      <BulkActionToolbar
+        selectedCount={selectedBookIds.length}
+        onClearSelection={() => setSelectedBookIds([])}
+        onBulkDelete={() => {
+          if (confirm(`Delete ${selectedBookIds.length} books?`)) {
+            setSelectedBookIds([]);
+          }
+        }}
+      />
     </div>
   );
 };

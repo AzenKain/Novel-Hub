@@ -1,4 +1,5 @@
 import { ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
+import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
@@ -25,6 +26,7 @@ export const ReaderWorkspace = () => {
   const fileId = searchParams.get("file_id") || undefined;
   
   const { t } = useTranslation();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const ttsStartPointRef = useRef<TtsStartPoint | null>(null);
   const savedSelectionRef = useRef<SavedSelection | null>(null);
@@ -107,9 +109,9 @@ export const ReaderWorkspace = () => {
     reset: state.reset,
   })));
 
-  // New features hooks
+
   const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id);
-  useReadingStats(book?.id, !settingsOpen); // Active when settings are closed
+  useReadingStats(book?.id, !settingsOpen); 
 
   useEffect(() => {
     return () => {
@@ -250,6 +252,17 @@ export const ReaderWorkspace = () => {
         stop();
         speak(textFromHere);
       }
+      savedSelectionRef.current = null;
+      setSelectionRange(null);
+    }
+  };
+
+  const handleCopyText = () => {
+    const saved = savedSelectionRef.current;
+    const textToCopy = saved?.selectedText || selectionRange?.toString();
+    if (textToCopy) {
+      void navigator.clipboard.writeText(textToCopy);
+      window.getSelection()?.removeAllRanges();
       savedSelectionRef.current = null;
       setSelectionRange(null);
     }
@@ -732,7 +745,7 @@ export const ReaderWorkspace = () => {
           setTtsRate={handleTtsRateChange}
           autoScrollActive={autoScrollActive}
           onToggleAutoScroll={onToggleAutoScroll}
-
+          onOpenSearch={() => setSearchOpen(true)}
         />
 
         {/* Reader Scrollable Area */}
@@ -853,8 +866,25 @@ export const ReaderWorkspace = () => {
           isSupported={isSupported}
           onReadSelection={handleReadSelection}
           onReadFromHere={handleReadFromHere}
+          onCopyText={handleCopyText}
           onHighlight={handleHighlight}
         />
+      )}
+
+      {searchOpen && bookId && (
+        <div className="fixed top-16 right-6 z-50 animate-fade-in">
+          <ReaderInBookSearch
+            bookId={bookId}
+            onClose={() => setSearchOpen(false)}
+            onSelectResult={(chapterId) => {
+              const ch = chapters.find((c) => c.id === chapterId);
+              if (ch) {
+                void loadChapter(ch);
+              }
+              setSearchOpen(false);
+            }}
+          />
+        </div>
       )}
     </div>
   );

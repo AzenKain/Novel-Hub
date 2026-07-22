@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { api } from "@/config/api";
+import { readerService } from "@/services";
 import { useAuthStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
+import { useQuery } from "@tanstack/react-query";
 
 export const useReadingStats = (bookId: string | undefined, isActive: boolean) => {
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
@@ -9,11 +10,6 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
   const wordsRef = useRef(0);
   const lastSyncTimeRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Approximate words based on scrolling or reading progress if possible, 
-  // but for now we'll increment words by a fixed rate (e.g. 200 wpm) when active, 
-  // or track exact words via intersection observer in the future.
-  // For simplicity, we assume 150 words per minute of active reading (2.5 words/sec)
 
   useEffect(() => {
     if (!bookId || !isActive || !user) {
@@ -49,11 +45,7 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
     lastSyncTimeRef.current = Date.now();
 
     try {
-      await api.post('/reader/stats/session', {
-        bookId: bookIdToSync,
-        duration: dur,
-        words: wrds,
-      });
+      await readerService.syncReadingSession(bookIdToSync, dur, wrds);
       // Reset duration & words after successful sync
       durationRef.current = 0;
       wordsRef.current = 0;
@@ -63,7 +55,9 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
   };
 };
 
-export const getReadingHeatmap = async () => {
-  const { data } = await api.get('/reader/stats/heatmap');
-  return data.data;
-};
+export function useReadingHeatmapQuery() {
+  return useQuery({
+    queryKey: ["reader", "heatmap"],
+    queryFn: () => readerService.getReadingHeatmap(),
+  });
+}

@@ -15,6 +15,7 @@ import (
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
+	"novelhub/pkg/netx"
 )
 
 type SettingsController struct {
@@ -97,9 +98,14 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 	// Try URL
 	urlStr := c.FormValue("url")
 	if urlStr != "" {
-		resp, err := http.Get(urlStr)
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+		if reqErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid URL"})
+		}
+		client := netx.NewSafeHTTPClient(15 * time.Second)
+		resp, err := client.Do(req)
 		if err != nil || resp.StatusCode != 200 {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL"})
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL or URL blocked for security"})
 		}
 		defer resp.Body.Close()
 
@@ -109,7 +115,7 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 		}
 		defer out.Close()
 
-		if _, err := io.Copy(out, resp.Body); err != nil {
+		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
 			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})
@@ -119,9 +125,12 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
 	os.MkdirAll(publicDir, 0755)
-	
+
 	target := c.FormValue("target", "logo")
 	filename := "logo.png"
 	if target == "favicon" {
@@ -141,9 +150,14 @@ func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
 	// Try URL
 	urlStr := c.FormValue("url")
 	if urlStr != "" {
-		resp, err := http.Get(urlStr)
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+		if reqErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid URL"})
+		}
+		client := netx.NewSafeHTTPClient(15 * time.Second)
+		resp, err := client.Do(req)
 		if err != nil || resp.StatusCode != 200 {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL"})
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to fetch URL or URL blocked for security"})
 		}
 		defer resp.Body.Close()
 
@@ -153,7 +167,7 @@ func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
 		}
 		defer out.Close()
 
-		if _, err := io.Copy(out, resp.Body); err != nil {
+		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
 			return apperrors.HandleError(c, err)
 		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: map[string]string{"url": "/public/" + filename}})

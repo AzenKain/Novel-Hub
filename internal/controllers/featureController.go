@@ -220,7 +220,7 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 	}
 
 	var nextCursor *string
-	if len(history) > 0 {
+	if len(history) >= int(dto.Limit) && len(history) > 0 {
 		c := history[len(history)-1].UpdatedAt.Format(time.RFC3339Nano)
 		nextCursor = &c
 	}
@@ -439,7 +439,7 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 	}
 
 	var nextCursor *string
-	if len(books) > 0 {
+	if len(books) >= int(dto.Limit) && len(books) > 0 {
 		c := books[len(books)-1].CreatedAt.Format(time.RFC3339Nano)
 		nextCursor = &c
 	}

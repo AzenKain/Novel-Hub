@@ -8,7 +8,7 @@ type ManageLibrariesModalProps = {
   newLibraryName: string;
   onClose: () => void;
   onNameChange: (name: string) => void;
-  onCreate: (event: React.FormEvent) => void;
+  onCreate: (event: React.SyntheticEvent) => void;
   onDelete: (library: Library) => void;
 };
 

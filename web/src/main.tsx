@@ -1,9 +1,10 @@
 import { ProtectedRoute } from "@/components/common";
 import "@/i18n";
-import { AdminLayout, Books, Reviews, Roles, Settings, Users } from "@/pages/admin";
+import { AdminLayout, Books, Duplicates, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { RegisterPage, SetupWizard } from "@/pages/auth";
-import { BookDetailPage, DuplicatesWorkspace, LibraryWorkspace } from "@/pages/library";
+import { LibraryWorkspace } from "@/pages/library";
 import { ReaderWorkspace } from "@/pages/reader";
+import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
 import { useSettingsStore } from "@/stores";
 import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
@@ -59,15 +60,13 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+import { useCurrentUserQuery } from "@/hooks";
+
 function App() {
-  const bootstrap = useAuthStore((state) => state.bootstrap);
+  const { isLoading: isAuthLoading } = useCurrentUserQuery();
   const booted = useAuthStore((state) => state.booted);
 
-  useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
-
-  if (!booted) {
+  if (!booted || isAuthLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-base-100 text-base-content">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -79,29 +78,30 @@ function App() {
     <BrowserRouter>
       <ThemeInitializer>
         <SetupGuard>
-        <Routes>
-          <Route path="/" element={<LibraryWorkspace />} />
-          <Route path="/books/:bookId" element={<LibraryWorkspace />} />
-          <Route path="/reader/:bookId" element={<ReaderWorkspace />} />
-          <Route path="/duplicates" element={<DuplicatesWorkspace />} />
-          <Route path="/setup" element={<SetupWizard />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/admin"
-            element={<ProtectedRoute requiredRoles={["ADMIN", "MOD"]} />}
-          >
-            <Route element={<AdminLayout />}>
-              <Route index element={<Navigate to="books" replace />} />
-              <Route path="users" element={<Users />} />
-              <Route path="roles" element={<Roles />} />
-              <Route path="books" element={<Books />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="reviews" element={<Reviews />} />
+          <Routes>
+            <Route path="/" element={<LibraryWorkspace />} />
+            <Route path="/books/:bookId" element={<LibraryWorkspace />} />
+            <Route path="/reader/:bookId" element={<ReaderWorkspace />} />
+            <Route path="/analytics" element={<ReadingAnalyticsPage />} />
+            <Route path="/setup" element={<SetupWizard />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/admin"
+              element={<ProtectedRoute requiredRoles={["ADMIN", "MOD"]} />}
+            >
+              <Route element={<AdminLayout />}>
+                <Route index element={<Navigate to="books" replace />} />
+                <Route path="users" element={<Users />} />
+                <Route path="roles" element={<Roles />} />
+                <Route path="books" element={<Books />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="duplicates" element={<Duplicates />} />
+                <Route path="reviews" element={<Reviews />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </SetupGuard>
         <ToastContainer
           position="top-right"
@@ -142,11 +142,11 @@ createRoot(document.getElementById("root")!).render(
 );
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
+  navigator.serviceWorker.getRegistrations().then(function (registrations) {
+    for (let registration of registrations) {
       registration.unregister();
     }
-  }).catch(function(err) {
+  }).catch(function (err) {
     console.log('Service Worker unregistration failed: ', err);
   });
 }

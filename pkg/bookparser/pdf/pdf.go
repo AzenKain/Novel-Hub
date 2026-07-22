@@ -3,8 +3,10 @@ package pdf
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
 )
 
 type Parser struct{}
@@ -14,9 +16,25 @@ func NewParser() *Parser {
 }
 
 func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error) {
-	return bookparser.MergeMetadataSidecar(filePath, &bookparser.BookMetadata{
+	meta := &bookparser.BookMetadata{
 		Title: bookparser.TitleFromPath(filePath),
-	}), nil
+	}
+
+	assets, err := readPDFImageAssets(filePath)
+	if err == nil && len(assets) > 0 {
+		meta.CoverData = assets[0].Data
+		if strings.HasSuffix(assets[0].Name, ".png") {
+			meta.CoverType = "image/png"
+		} else {
+			meta.CoverType = "image/jpeg"
+		}
+	} else {
+		svgCover := defaultcover.GenerateSVG(meta.Title, meta.Author)
+		meta.CoverData = []byte(svgCover)
+		meta.CoverType = "image/svg+xml"
+	}
+
+	return bookparser.MergeMetadataSidecar(filePath, meta), nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

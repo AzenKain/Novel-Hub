@@ -68,13 +68,13 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Login required"})
 	}
 	var nextCursor *string
-	if len(filtered) > 0 {
+	if len(filtered) >= int(dto.Limit) && len(filtered) > 0 {
 		c := filtered[len(filtered)-1].CreatedAt.Format(time.RFC3339Nano)
 		nextCursor = &c
 	}
 	return c.JSON(fiber.Map{
-		"status": true,
-		"data": filtered,
+		"status":      true,
+		"data":        filtered,
 		"next_cursor": nextCursor,
 	})
 }
@@ -205,11 +205,27 @@ func (h *BookController) GetDuplicates(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	results, err := h.bookService.GetDuplicates(ctx)
+	results, err := h.bookService.GetDuplicateGroups(ctx)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: results})
+}
+
+func (h *BookController) DeleteBookFile(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	fileID := c.Params("fileID")
+	if fileID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Missing file ID"})
+	}
+
+	if err := h.bookService.DeleteBookFile(ctx, fileID); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "File deleted successfully"})
 }
 
 func (h *BookController) UpdateMetadata(c fiber.Ctx) error {
@@ -255,4 +271,27 @@ func (h *BookController) ArchiveBook(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Message: "Archive state updated"})
+}
+
+func (h *BookController) SearchInBook(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	publicSettings, err := h.settings.Public(ctx)
+	if err != nil || publicSettings == nil || !publicSettings.EnableInBookSearch {
+		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "in-book search is disabled by system administrator",
+		})
+	}
+
+	bookID := c.Params("id")
+	query := c.Query("q")
+
+	results, err := h.bookService.SearchInBook(ctx, bookID, query)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Data: results})
 }

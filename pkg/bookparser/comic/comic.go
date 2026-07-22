@@ -26,9 +26,25 @@ func NewParser(format string) *Parser {
 }
 
 func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error) {
-	return bookparser.MergeMetadataSidecar(filePath, &bookparser.BookMetadata{
+	meta := &bookparser.BookMetadata{
 		Title: bookparser.TitleFromPath(filePath),
-	}), nil
+	}
+	images, err := p.ListImages(filePath)
+	if err == nil && len(images) > 0 {
+		coverData, err := p.GetAsset(filePath, images[0])
+		if err == nil && len(coverData) > 0 {
+			meta.CoverData = coverData
+			ext := strings.ToLower(filepath.Ext(images[0]))
+			if ext == ".png" {
+				meta.CoverType = "image/png"
+			} else if ext == ".webp" {
+				meta.CoverType = "image/webp"
+			} else {
+				meta.CoverType = "image/jpeg"
+			}
+		}
+	}
+	return bookparser.MergeMetadataSidecar(filePath, meta), nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

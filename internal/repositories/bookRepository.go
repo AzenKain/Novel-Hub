@@ -31,6 +31,7 @@ type BookFileRecordRepository interface {
 	GetBookFileById(ctx context.Context, id string) (*models.BookFileEntity, error)
 	UpdateBookFileHash(ctx context.Context, id string, hash string) error
 	GetDuplicateFiles(ctx context.Context, limit, offset int64) ([]*models.DuplicateFileEntity, error)
+	GetDuplicateFileDetails(ctx context.Context) ([]*models.DuplicateFileDetailEntity, error)
 	ListAllFiles(ctx context.Context, limit, offset int64) ([]*models.FileRefEntity, error)
 	DeleteFile(ctx context.Context, id string) error
 	CountFilesForBook(ctx context.Context, bookID string) (int64, error)

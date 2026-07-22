@@ -12,7 +12,7 @@ WHERE id = ? LIMIT 1;
 
 -- name: ListBookIDs :many
 SELECT id FROM books
-WHERE (sqlc.narg('cursor_created_at') IS NULL OR created_at < sqlc.narg('cursor_created_at'))
+WHERE (sqlc.narg('cursor_created_at') IS NULL OR datetime(created_at) < datetime(sqlc.narg('cursor_created_at')))
 ORDER BY created_at DESC
 LIMIT sqlc.arg('limit');
 
@@ -91,7 +91,7 @@ INSERT INTO book_tags (
 -- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (sqlc.narg('cursor_created_at') IS NULL OR b.created_at < sqlc.narg('cursor_created_at')) AND
+    (sqlc.narg('cursor_created_at') IS NULL OR datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at'))) AND
     (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
     (
         sqlc.narg('search') IS NULL OR

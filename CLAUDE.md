@@ -19,9 +19,11 @@ Please refer to `AGENTS.md` for full system architecture rules.
 - **Frontend (`web/src` & `web/public`)**:
   - Translation files in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
   - NO HARDCODED UI TEXT in TSX files. Always add keys to `web/public/locales/` and use `react-i18next` `t()`.
+  - Types & Interfaces MUST be defined in `web/src/types/` and exported via `web/src/types/index.ts` (NO inline type definitions inside services/components).
+  - Centralized API services in `web/src/services/` (Axios interceptor with auto 401 token refresh in `web/src/config/api.ts`). NEVER call direct `api.get` / `api.post` inside components or hooks.
+  - Data fetching & server mutations MUST use TanStack React Query hooks in `web/src/hooks/` (`useQuery`, `useMutation`).
+  - State management via Zustand stores in `web/src/stores/` (`useAuthStore`, `useThemeStore`, `useReaderSettingsStore`, `useSettingsAdminStore`, `useWebhookStore`). Transient form state in single modals may use `useState`.
   - Component modularization under `web/src/components/<domain>/` (~200-400 lines max).
-  - State management via Zustand stores in `web/src/stores/`.
-  - Centralized API services in `web/src/services/` (Axios interceptor with auto 401 token refresh in `web/src/config/api.ts`).
   - Media URLs via `getMediaUrl(path)`.
   - TailwindCSS + DaisyUI styling.
-- **Database (`db/query`)**: Explicit column selection ONLY (no `SELECT *`). Max pagination limit = 100.
+- **Database (`db/query`)**: **ZERO INLINE / RAW SQL STATEMENTS**: Writing raw SQL strings or inline SQL in Go application logic/repositories is strictly forbidden. EVERY query for NovelHub DB MUST be defined in `db/query/*.sql` files and generated via `make sqlc` (except reading 3rd-party external SQLite files like Calibre `metadata.db` or reading `.sql` schema files from disk). Explicit column selection ONLY (no `SELECT *`). Max pagination limit = 100.

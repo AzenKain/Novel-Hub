@@ -177,6 +177,63 @@ func (e *DuplicateFileEntity) ToResponse() *response.DuplicateFileResponse {
 	}
 }
 
+type DuplicateFileDetailEntity struct {
+	FileID       string
+	BookID       string
+	BookTitle    string
+	BookCoverURL *string
+	LibraryID    string
+	Format       string
+	SizeBytes    int64
+	Path         string
+	Hash         string
+	CreatedAt    string
+}
+
+func (e *DuplicateFileDetailEntity) FromSqlc(res sqlc.GetDuplicateFileDetailsRow) *DuplicateFileDetailEntity {
+	var coverURL *string
+	if res.BookCoverUrl.Valid {
+		coverURL = &res.BookCoverUrl.String
+	}
+	var createdAtStr string
+	if res.FileCreatedAt.Valid {
+		createdAtStr = res.FileCreatedAt.Time.Format(time.RFC3339)
+	}
+	var hashStr string
+	if res.Hash.Valid {
+		hashStr = res.Hash.String
+	}
+	return &DuplicateFileDetailEntity{
+		FileID:       res.FileID,
+		BookID:       res.BookID,
+		BookTitle:    res.BookTitle,
+		BookCoverURL: coverURL,
+		LibraryID:    res.LibraryID,
+		Format:       res.Format,
+		SizeBytes:    res.SizeBytes,
+		Path:         res.Path,
+		Hash:         hashStr,
+		CreatedAt:    createdAtStr,
+	}
+}
+
+func (e *DuplicateFileDetailEntity) ToResponse() *response.DuplicateFileDetailResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.DuplicateFileDetailResponse{
+		FileID:       e.FileID,
+		BookID:       e.BookID,
+		BookTitle:    e.BookTitle,
+		BookCoverURL: e.BookCoverURL,
+		LibraryID:    e.LibraryID,
+		Format:       e.Format,
+		SizeBytes:    e.SizeBytes,
+		Path:         e.Path,
+		CreatedAt:    e.CreatedAt,
+	}
+}
+
 func DuplicateFileEntitiesToResponse(entities []*DuplicateFileEntity) []*response.DuplicateFileResponse {
 	out := make([]*response.DuplicateFileResponse, 0, len(entities))
 	for _, d := range entities {

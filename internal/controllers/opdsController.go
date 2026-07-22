@@ -49,6 +49,20 @@ func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 	return sendXML(ctx, feed)
 }
 
+func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetOPDS2Catalog(reqCtx, serverURL)
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS 2.0 catalog")
+	}
+
+	ctx.Set(fiber.HeaderContentType, "application/opds+json; charset=utf-8")
+	return ctx.JSON(feed)
+}
+
 func getBaseURL(ctx fiber.Ctx) string {
 	scheme := "http"
 	if ctx.Protocol() == "https" || ctx.Get("X-Forwarded-Proto") == "https" {

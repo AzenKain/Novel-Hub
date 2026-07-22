@@ -216,6 +216,14 @@ type Publisher struct {
 	CreatedAt sql.NullTime `json:"created_at"`
 }
 
+type ReadingGoal struct {
+	UserID             int64        `json:"user_id"`
+	TargetWordsPerDay  int64        `json:"target_words_per_day"`
+	TargetBooksPerYear int64        `json:"target_books_per_year"`
+	CreatedAt          sql.NullTime `json:"created_at"`
+	UpdatedAt          sql.NullTime `json:"updated_at"`
+}
+
 type ReadingHistory struct {
 	UserID          int64           `json:"user_id"`
 	BookID          string          `json:"book_id"`
@@ -286,6 +294,15 @@ type SetupState struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
+type SmartCollection struct {
+	ID        string       `json:"id"`
+	UserID    int64        `json:"user_id"`
+	Name      string       `json:"name"`
+	RuleJson  string       `json:"rule_json"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
 type Tag struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`
@@ -309,4 +326,17 @@ type User struct {
 type UserRole struct {
 	UserID int64 `json:"user_id"`
 	RoleID int64 `json:"role_id"`
+}
+
+type Webhook struct {
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Url           string         `json:"url"`
+	TemplateType  string         `json:"template_type"`
+	Secret        sql.NullString `json:"secret"`
+	CustomHeaders sql.NullString `json:"custom_headers"`
+	Events        string         `json:"events"`
+	IsActive      int64          `json:"is_active"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }

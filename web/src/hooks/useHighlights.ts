@@ -1,38 +1,44 @@
-import { useState, useEffect } from 'react';
-import { getHighlights, createHighlight, deleteHighlight, Highlight } from '../api/highlights';
+import { highlightService } from '@/services';
+import type { Highlight } from '@/types';
 import { useAuthStore } from '@/stores';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const useHighlights = (bookId: string, chapterId: string | undefined) => {
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    if (!chapterId || !user) {
-      setHighlights([]);
-      return;
-    }
-    const fetchHighlights = async () => {
-      try {
-        setLoading(true);
-        const data = await getHighlights(chapterId);
-        setHighlights(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch highlights", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHighlights();
-  }, [chapterId]);
+  const highlightsQuery = useQuery<Highlight[]>({
+    queryKey: ['highlights', chapterId],
+    queryFn: async () => {
+      if (!chapterId) return [];
+      const data = await highlightService.getHighlights(chapterId);
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: Boolean(chapterId && user),
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async ({ textContent, startIndex, endIndex, color }: { textContent: string; startIndex: number; endIndex: number; color: string }) => {
+      if (!chapterId || !bookId) throw new Error("Missing chapterId or bookId");
+      return await highlightService.createHighlight(bookId, chapterId, textContent, startIndex, endIndex, color);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['highlights', chapterId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await highlightService.deleteHighlight(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['highlights', chapterId] });
+    },
+  });
 
   const addHighlight = async (textContent: string, startIndex: number, endIndex: number, color: string = 'yellow') => {
-    if (!chapterId || !bookId) return null;
     try {
-      const newHighlight = await createHighlight(bookId, chapterId, textContent, startIndex, endIndex, color);
-      setHighlights(prev => [...prev, newHighlight]);
-      return newHighlight;
+      return await addMutation.mutateAsync({ textContent, startIndex, endIndex, color });
     } catch (err) {
       console.error("Failed to create highlight", err);
       return null;
@@ -41,12 +47,16 @@ export const useHighlights = (bookId: string, chapterId: string | undefined) => 
 
   const removeHighlight = async (id: string) => {
     try {
-      await deleteHighlight(id);
-      setHighlights(prev => prev.filter(h => h.id !== id));
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
       console.error("Failed to delete highlight", err);
     }
   };
 
-  return { highlights, addHighlight, removeHighlight, loading };
+  return {
+    highlights: highlightsQuery.data || [],
+    addHighlight,
+    removeHighlight,
+    loading: highlightsQuery.isLoading || addMutation.isPending || deleteMutation.isPending,
+  };
 };

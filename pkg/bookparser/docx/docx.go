@@ -62,6 +62,19 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	if subject := clean(core.Subject); subject != "" {
 		meta.Subjects = []string{subject}
 	}
+	images, err := p.ListImages(filePath)
+	if err == nil && len(images) > 0 {
+		coverData, err := p.GetAsset(filePath, images[0])
+		if err == nil && len(coverData) > 0 {
+			meta.CoverData = coverData
+			ext := strings.ToLower(filepath.Ext(images[0]))
+			if ext == ".png" {
+				meta.CoverType = "image/png"
+			} else {
+				meta.CoverType = "image/jpeg"
+			}
+		}
+	}
 	return bookparser.MergeMetadataSidecar(filePath, meta), nil
 }
 

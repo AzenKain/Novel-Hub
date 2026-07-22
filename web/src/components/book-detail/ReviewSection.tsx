@@ -74,7 +74,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (rating === 0) {
       toast.warning(t("review.select_rating", "Please select a star rating"));

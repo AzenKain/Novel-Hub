@@ -45,7 +45,10 @@ type BookService interface {
 	ProcessSingleLocalFile(ctx context.Context, bookID string, filename string, localFilePath string) error
 	ExtractMetadata(ctx context.Context, bookID string) error
 	SearchDeep(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error)
+	SearchInBook(ctx context.Context, bookID string, query string) ([]*models.BookSearchSnippet, error)
 	GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error)
+	GetDuplicateGroups(ctx context.Context) ([]*response.DuplicateGroupResponse, error)
+	DeleteBookFile(ctx context.Context, fileID string) error
 	UpdateMetadata(ctx context.Context, bookID string, req *request.UpdateBookMetadataDto) error
 	GetReaderBootstrap(ctx context.Context, bookID string, fileID string) (*models.ReaderBootstrapEntity, error)
 	GetChapterHTML(ctx context.Context, bookID string, chapterID string, fileID string) (string, error)
@@ -542,6 +545,51 @@ func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offse
 
 func (s *bookService) GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error) {
 	return s.bookRepo.GetDuplicateFiles(ctx, 1000, 0)
+}
+
+func (s *bookService) GetDuplicateGroups(ctx context.Context) ([]*response.DuplicateGroupResponse, error) {
+	details, err := s.bookRepo.GetDuplicateFileDetails(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	groupMap := make(map[string][]*response.DuplicateFileDetailResponse)
+	hashOrder := make([]string, 0)
+
+	for _, d := range details {
+		if d == nil {
+			continue
+		}
+		if _, exists := groupMap[d.Hash]; !exists {
+			hashOrder = append(hashOrder, d.Hash)
+		}
+		groupMap[d.Hash] = append(groupMap[d.Hash], d.ToResponse())
+	}
+
+	result := make([]*response.DuplicateGroupResponse, 0, len(hashOrder))
+	for _, h := range hashOrder {
+		files := groupMap[h]
+		result = append(result, &response.DuplicateGroupResponse{
+			Hash:           h,
+			DuplicateCount: len(files),
+			Files:          files,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
+	fileRecord, err := s.bookRepo.GetBookFileById(ctx, fileID)
+	if err != nil {
+		return err
+	}
+
+	if fileRecord.Path != "" {
+		_ = os.Remove(fileRecord.Path)
+	}
+
+	return s.bookRepo.DeleteFile(ctx, fileID)
 }
 
 func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *request.UpdateBookMetadataDto) error {

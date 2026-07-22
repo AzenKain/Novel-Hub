@@ -462,7 +462,7 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 
 const listBookIDs = `-- name: ListBookIDs :many
 SELECT id FROM books
-WHERE (?1 IS NULL OR created_at < ?1)
+WHERE (?1 IS NULL OR datetime(created_at) < datetime(?1))
 ORDER BY created_at DESC
 LIMIT ?2
 `
@@ -527,7 +527,7 @@ func (q *Queries) ListChapterIDsByBook(ctx context.Context, bookID string) ([]st
 const searchBookIDs = `-- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (?1 IS NULL OR b.created_at < ?1) AND
+    (?1 IS NULL OR datetime(b.created_at) < datetime(?1)) AND
     (?2 IS NULL OR b.library_id = ?2) AND
     (
         ?3 IS NULL OR

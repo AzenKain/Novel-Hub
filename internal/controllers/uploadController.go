@@ -8,6 +8,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/validator"
 )
 
 type UploadController struct {
@@ -56,8 +57,6 @@ func (h *UploadController) UploadChunk(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Missing file chunk"})
 	}
 
-	// Read file content into memory to pass to service, or pass multipart.FileHeader
-	// We'll pass the multipart file header and let service handle the local FS saving
 	err = h.uploadService.SaveChunk(ctx, uploadID, chunkIndexStr, file)
 	if err != nil {
 		return apperrors.HandleError(c, err)
@@ -84,8 +83,8 @@ func (h *UploadController) CommitUpload(c fiber.Ctx) error {
 	}
 
 	var req CommitRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid request body"})
+	if err := validator.ValidateBodyDto(c, &req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
 	err := h.uploadService.CommitUpload(ctx, uploadID, req.Target, req.LibraryID, req.BookID, req.Filename, req.TotalChunks)

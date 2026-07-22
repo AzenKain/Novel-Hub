@@ -1,6 +1,6 @@
-import { bookService, featureService, libraryService } from "@/services";
-import type { Collection, DuplicateFileResult, Library, LibraryStats, ReadingHistory } from "@/types";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { adminService, bookService, featureService, libraryService } from "@/services";
+import type { Collection, DuplicateGroupResult, Library, LibraryStats, ReadingHistory } from "@/types";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useLibrariesQuery() {
   return useQuery<Library[]>({
@@ -58,12 +58,26 @@ export function useReadingHistoryQuery(enabled = true) {
 }
 
 export function useDuplicatesQuery() {
-  return useQuery<DuplicateFileResult[]>({
+  return useQuery<DuplicateGroupResult[]>({
     queryKey: ["duplicates"],
     queryFn: async () => {
       const res = await bookService.getDuplicates();
       if (!res.status) throw new Error(res.message || "Failed to fetch duplicates");
       return res.data || [];
+    },
+  });
+}
+
+export function useDeleteBookFileMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      const res = await adminService.deleteBookFile(fileId);
+      if (!res.status) throw new Error(res.message || "Failed to delete file");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["duplicates"] });
     },
   });
 }

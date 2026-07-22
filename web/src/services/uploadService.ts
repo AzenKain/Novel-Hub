@@ -1,15 +1,7 @@
 import { api } from "../config/api";
-import { CommonResponse } from "@/types";
+import type { CommonResponse, UploadCommitParams } from "@/types";
 
 const CHUNK_SIZE = 10 * 1024 * 1024;
-
-export interface UploadCommitParams {
-  target: "library" | "book";
-  library_id?: string;
-  book_id?: string;
-  filename: string;
-  total_chunks: number;
-}
 
 export const uploadService = {
   uploadFileChunked: async (

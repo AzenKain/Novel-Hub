@@ -1,13 +1,7 @@
-import { adminService, libraryService } from "@/services";
-import type { Library as LibraryType, PublicSettings } from "@/types";
+import type { PublicSettings } from "@/types";
 import { create } from "zustand";
 
 interface SettingsAdminState {
-  settings: PublicSettings | null;
-  libraries: LibraryType[];
-  loading: boolean;
-  saving: string | null;
-
   site: { title: string; description: string; favicon: string; logo: string; meta_description: string };
   sidebarItems: string[];
   homeSections: { random_books: boolean; top_books: boolean };
@@ -22,16 +16,21 @@ interface SettingsAdminState {
   collectionLibraryIds: string[];
   reviewMode: string;
   reviewLibraryIds: string[];
+  inBookSearch: boolean;
+  customFontUpload: boolean;
 
-  setSettings: (settings: PublicSettings | null) => void;
-  setLibraries: (libraries: LibraryType[]) => void;
-  setLoading: (loading: boolean) => void;
-  setSaving: (saving: string | null) => void;
+  savingSection: string | null;
+  uploadingLogo: boolean;
+  uploadingFavicon: boolean;
+  selectedCropImage: string | null;
+  cropTarget: "logo" | "favicon" | null;
 
   setSite: (site: { title: string; description: string; favicon: string; logo: string; meta_description: string } | ((prev: any) => any)) => void;
   setSidebarItems: (items: string[] | ((prev: string[]) => string[])) => void;
   setHomeSections: (sections: { random_books: boolean; top_books: boolean } | ((prev: any) => any)) => void;
   setRegistration: (enabled: boolean) => void;
+  setInBookSearch: (enabled: boolean) => void;
+  setCustomFontUpload: (enabled: boolean) => void;
   setGuestMode: (mode: string) => void;
   setGuestLibraryIds: (ids: string[] | ((prev: string[]) => string[])) => void;
   setDownloadMode: (mode: string) => void;
@@ -43,7 +42,13 @@ interface SettingsAdminState {
   setReviewMode: (mode: string) => void;
   setReviewLibraryIds: (ids: string[] | ((prev: string[]) => string[])) => void;
 
-  loadData: () => Promise<void>;
+  setSavingSection: (section: string | null) => void;
+  setUploadingLogo: (uploading: boolean) => void;
+  setUploadingFavicon: (uploading: boolean) => void;
+  setSelectedCropImage: (img: string | null) => void;
+  setCropTarget: (target: "logo" | "favicon" | null) => void;
+
+  initFromSettings: (s: PublicSettings) => void;
   reset: () => void;
 }
 
@@ -51,11 +56,6 @@ const initialSite = { title: "", description: "", favicon: "", logo: "", meta_de
 const initialHomeSections = { random_books: true, top_books: true };
 
 const initialState = {
-  settings: null,
-  libraries: [],
-  loading: true,
-  saving: null,
-
   site: initialSite,
   sidebarItems: [],
   homeSections: initialHomeSections,
@@ -70,20 +70,24 @@ const initialState = {
   collectionLibraryIds: [],
   reviewMode: "all",
   reviewLibraryIds: [],
+  inBookSearch: false,
+  customFontUpload: false,
+  savingSection: null,
+  uploadingLogo: false,
+  uploadingFavicon: false,
+  selectedCropImage: null,
+  cropTarget: null,
 };
 
-export const useSettingsAdminStore = create<SettingsAdminState>((set, get) => ({
+export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   ...initialState,
-
-  setSettings: (settings) => set({ settings }),
-  setLibraries: (libraries) => set({ libraries }),
-  setLoading: (loading) => set({ loading }),
-  setSaving: (saving) => set({ saving }),
 
   setSite: (site) => set((state) => ({ site: typeof site === "function" ? site(state.site) : site })),
   setSidebarItems: (sidebarItems) => set((state) => ({ sidebarItems: typeof sidebarItems === "function" ? sidebarItems(state.sidebarItems) : sidebarItems })),
   setHomeSections: (homeSections) => set((state) => ({ homeSections: typeof homeSections === "function" ? homeSections(state.homeSections) : homeSections })),
   setRegistration: (registration) => set({ registration }),
+  setInBookSearch: (inBookSearch) => set({ inBookSearch }),
+  setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
   setGuestMode: (guestMode) => set({ guestMode }),
   setGuestLibraryIds: (guestLibraryIds) => set((state) => ({ guestLibraryIds: typeof guestLibraryIds === "function" ? guestLibraryIds(state.guestLibraryIds) : guestLibraryIds })),
   setDownloadMode: (downloadMode) => set({ downloadMode }),
@@ -95,39 +99,31 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set, get) => ({
   setReviewMode: (reviewMode) => set({ reviewMode }),
   setReviewLibraryIds: (reviewLibraryIds) => set((state) => ({ reviewLibraryIds: typeof reviewLibraryIds === "function" ? reviewLibraryIds(state.reviewLibraryIds) : reviewLibraryIds })),
 
-  loadData: async () => {
-    set({ loading: true });
-    try {
-      const [settingsRes, libRes] = await Promise.all([
-        adminService.getAdminSettings(),
-        libraryService.getLibraries(),
-      ]);
-      const s = settingsRes.data;
-      set({ settings: s || null, libraries: libRes.data || [] });
-      if (s) {
-        set({
-          site: s.site || initialSite,
-          sidebarItems: s.sidebar_visible_items || [],
-          homeSections: s.home_sections || initialHomeSections,
-          registration: s.registration_enabled,
-          guestMode: s.guest_access.mode,
-          guestLibraryIds: s.guest_access.library_ids || [],
-          downloadMode: s.download.mode,
-          downloadLibraryIds: s.download.library_ids || [],
-          bookmarkMode: s.bookmark.mode,
-          bookmarkLibraryIds: s.bookmark.library_ids || [],
-          collectionMode: s.collection.mode,
-          collectionLibraryIds: s.collection.library_ids || [],
-          reviewMode: s.review.mode,
-          reviewLibraryIds: s.review.library_ids || [],
-        });
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      set({ loading: false });
-    }
-  },
+  setSavingSection: (savingSection) => set({ savingSection }),
+  setUploadingLogo: (uploadingLogo) => set({ uploadingLogo }),
+  setUploadingFavicon: (uploadingFavicon) => set({ uploadingFavicon }),
+  setSelectedCropImage: (selectedCropImage) => set({ selectedCropImage }),
+  setCropTarget: (cropTarget) => set({ cropTarget }),
+
+  initFromSettings: (s) =>
+    set({
+      site: s.site || initialSite,
+      sidebarItems: s.sidebar_visible_items || [],
+      homeSections: s.home_sections || initialHomeSections,
+      registration: s.registration_enabled,
+      inBookSearch: s.enable_in_book_search || false,
+      customFontUpload: s.enable_custom_font_upload || false,
+      guestMode: s.guest_access.mode,
+      guestLibraryIds: s.guest_access.library_ids || [],
+      downloadMode: s.download.mode,
+      downloadLibraryIds: s.download.library_ids || [],
+      bookmarkMode: s.bookmark.mode,
+      bookmarkLibraryIds: s.bookmark.library_ids || [],
+      collectionMode: s.collection.mode,
+      collectionLibraryIds: s.collection.library_ids || [],
+      reviewMode: s.review.mode,
+      reviewLibraryIds: s.review.library_ids || [],
+    }),
 
   reset: () => set(initialState),
 }));

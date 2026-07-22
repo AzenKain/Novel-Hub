@@ -1,25 +1,22 @@
+import { useLoginMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { BookOpen, LogIn } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { SyntheticEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 
 export function LoginView() {
-  const { login, loading, error, clearError, isLoginModalOpen, setLoginModalOpen } = useAuthStore();
-  const navigate = useNavigate();
+  const isLoginModalOpen = useAuthStore((state) => state.isLoginModalOpen);
+  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+
+  const loginMutation = useLoginMutation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { t } = useTranslation();
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SyntheticEvent) {
     event.preventDefault();
-    clearError();
-    try {
-      await login(email, password);
-      setLoginModalOpen(false);
-    } catch (err) {
-      // Error is handled and displayed by authStore
-    }
+    loginMutation.mutate({ email, password });
   }
 
   return (
@@ -69,17 +66,17 @@ export function LoginView() {
             />
           </div>
 
-          {error && (
+          {loginMutation.error && (
             <div className="alert alert-error mt-2 py-2 text-sm rounded-lg">
-              <span>{error}</span>
+              <span>{loginMutation.error instanceof Error ? loginMutation.error.message : String(loginMutation.error)}</span>
             </div>
           )}
 
           <button 
             className="btn btn-primary mt-4 w-full" 
-            disabled={loading}
+            disabled={loginMutation.isPending}
           >
-            {loading ? <span className="loading loading-spinner"></span> : <LogIn size={20} />}
+            {loginMutation.isPending ? <span className="loading loading-spinner"></span> : <LogIn size={20} />}
             {t("auth.sign_in")}
           </button>
         </form>

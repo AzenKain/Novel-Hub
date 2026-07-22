@@ -1,20 +1,23 @@
 import { LanguageSwitcher, ThemeController } from "@/components/ui";
+import { useLogoutMutation } from "@/hooks";
+import { usePublicSettings } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores";
-import { BookOpen, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
+import { BookOpen, Copy, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { usePublicSettings } from "@/hooks/useSettings";
 
 export function AdminLayout() {
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const logoutMutation = useLogoutMutation();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const settings = usePublicSettings();
 
   const handleLogout = () => {
-    logout();
-    navigate("/");
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => navigate("/"),
+    });
   };
 
   const navItems = [
@@ -22,6 +25,7 @@ export function AdminLayout() {
     { name: t("admin.roles", "Roles"), path: "/admin/roles", icon: Shield },
     { name: t("admin.books_libraries", "Books & Libraries"), path: "/admin/books", icon: BookOpen },
     { name: t("admin.settings", "Settings"), path: "/admin/settings", icon: Settings2 },
+    { name: t("admin.duplicates", "Duplicate Files"), path: "/admin/duplicates", icon: Copy },
     { name: t("admin.reviews", "Reviews"), path: "/admin/reviews", icon: MessageSquareText }
   ];
 
@@ -101,6 +105,7 @@ export function AdminLayout() {
             </div>
             <button
               onClick={handleLogout}
+              disabled={logoutMutation.isPending}
               className="btn btn-ghost w-full justify-start text-error hover:bg-error/10 hover:text-error mt-2"
             >
               <LogOut className="h-4 w-4 mr-1" />
