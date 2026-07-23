@@ -8,26 +8,20 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
-	"sync"
+	"strings"
 
 	"novelhub/pkg/config"
 )
 
-var (
-	keyCache []byte
-	keyOnce  sync.Once
-)
+const encryptedPrefix = "enc:v1:"
 
-func getEncryptionKey() []byte {
-	keyOnce.Do(func() {
-		secret := config.GetConfigWithDefault("DB_ENCRYPTION_KEY", "")
-		if secret == "" {
-			secret = config.GetConfigWithDefault("JWT_SECRET", "novelhub-default-encryption-secret-32b")
-		}
-		hash := sha256.Sum256([]byte(secret))
-		keyCache = hash[:]
-	})
-	return keyCache
+func getEncryptionKey() ([]byte, error) {
+	secret, err := config.GetConfig("DB_ENCRYPTION_KEY")
+	if err != nil {
+		return nil, errors.New("DB_ENCRYPTION_KEY is required")
+	}
+	hash := sha256.Sum256([]byte(secret))
+	return hash[:], nil
 }
 
 // EncryptAES encrypts plain text using AES-256-GCM and returns a base64 encoded string.
@@ -35,7 +29,10 @@ func EncryptAES(plaintext string) (string, error) {
 	if plaintext == "" {
 		return "", nil
 	}
-	key := getEncryptionKey()
+	key, err := getEncryptionKey()
+	if err != nil {
+		return "", err
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -52,7 +49,7 @@ func EncryptAES(plaintext string) (string, error) {
 	}
 
 	ciphertext := aesGCM.Seal(nonce, nonce, []byte(plaintext), nil)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
+	return encryptedPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
 // DecryptAES decrypts a base64 encoded AES-256-GCM string.
@@ -60,8 +57,14 @@ func DecryptAES(cryptoText string) (string, error) {
 	if cryptoText == "" {
 		return "", nil
 	}
-	key := getEncryptionKey()
-	data, err := base64.StdEncoding.DecodeString(cryptoText)
+	key, err := getEncryptionKey()
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasPrefix(cryptoText, encryptedPrefix) {
+		return "", errors.New("unencrypted secret rejected")
+	}
+	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(cryptoText, encryptedPrefix))
 	if err != nil {
 		return "", err
 	}

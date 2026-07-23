@@ -10,6 +10,21 @@ import (
 	"strings"
 )
 
+const claimInitialSetup = `-- name: ClaimInitialSetup :execrows
+INSERT INTO setup_state (key, value)
+VALUES ('completed', 'in_progress')
+ON CONFLICT(key) DO UPDATE SET value = 'in_progress'
+WHERE setup_state.value NOT IN ('true', 'in_progress')
+`
+
+func (q *Queries) ClaimInitialSetup(ctx context.Context) (int64, error) {
+	result, err := q.exec(ctx, q.claimInitialSetupStmt, claimInitialSetup)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const countAdminUsers = `-- name: CountAdminUsers :one
 SELECT COUNT(DISTINCT u.id) AS count
 FROM users u

@@ -18,6 +18,7 @@ type SettingsRepository interface {
 	Get(ctx context.Context, key string) (*models.AppSettingEntity, error)
 	Upsert(ctx context.Context, key string, valueJSON string) error
 	GetSetupState(ctx context.Context, key string) (string, error)
+	ClaimInitialSetup(ctx context.Context) (bool, error)
 	UpsertSetupState(ctx context.Context, key string, value string) error
 	CountAdminUsers(ctx context.Context) (int64, error)
 	WithTx(tx *sql.Tx) SettingsRepository
@@ -57,13 +58,11 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		// Query list of keys
 		keyRows, err := r.q.ListAppSettingKeys(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		// Fast path: if list is empty
 		if len(keyRows) == 0 {
 			if r.c != nil {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
@@ -71,15 +70,12 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 			return []*models.AppSettingEntity{}, nil
 		}
 
-		// Query all settings by keys
 		rows, err := r.q.GetAppSettingsByKeys(ctx, keyRows)
 		if err != nil {
 			return nil, err
 		}
 
 		out := (&models.AppSettingEntities{}).FromSqlc(rows)
-
-		// Maintain correct order
 		keys := make([]string, len(out))
 		for i, entity := range out {
 			keys[i] = entity.Key
@@ -198,6 +194,17 @@ func (r *settingsRepository) GetSetupState(ctx context.Context, key string) (str
 		return "", err
 	}
 	return v.(string), nil
+}
+
+func (r *settingsRepository) ClaimInitialSetup(ctx context.Context) (bool, error) {
+	updated, err := r.q.ClaimInitialSetup(ctx)
+	if err != nil {
+		return false, err
+	}
+	if updated > 0 && r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("setup_state", "key", "completed"))
+	}
+	return updated > 0, nil
 }
 
 func (r *settingsRepository) UpsertSetupState(ctx context.Context, key string, value string) error {

@@ -11,6 +11,8 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 )
 
 func (s *bookService) BulkDeleteBooks(ctx context.Context, dto *request.BulkDeleteBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error) {
@@ -23,19 +25,20 @@ func (s *bookService) BulkDeleteBooks(ctx context.Context, dto *request.BulkDele
 		return nil, err
 	}
 
+	bookByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			bookByID[book.ID] = book
+		}
+	}
+
 	res := &response.BulkOperationResponse{
 		Errors: make(map[string]string),
 	}
 
 	allowedIDs := make([]string, 0, len(books))
 	for _, id := range dto.BookIDs {
-		var found *models.BookEntity
-		for _, b := range books {
-			if b != nil && b.ID == id {
-				found = b
-				break
-			}
-		}
+		found := bookByID[id]
 
 		if found == nil {
 			res.FailedCount++
@@ -65,9 +68,6 @@ func (s *bookService) BulkDeleteBooks(ctx context.Context, dto *request.BulkDele
 
 		for _, id := range allowedIDs {
 			_ = txRepo.DeleteFTSBook(ctx, id)
-			if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
-				log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book dir during bulk delete")
-			}
 		}
 
 		if err := txRepo.BulkDeleteBooks(ctx, allowedIDs); err != nil {
@@ -77,11 +77,24 @@ func (s *bookService) BulkDeleteBooks(ctx context.Context, dto *request.BulkDele
 		if err := tx.Commit(); err != nil {
 			return nil, err
 		}
+		for _, id := range allowedIDs {
+			if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
+				log.Warn().Err(err).Str("book_id", id).Msg("failed to remove deleted book directory")
+			}
+		}
 
 		res.SuccessCount = len(allowedIDs)
 
+		allowed := make(map[string]struct{}, len(allowedIDs))
+		for _, id := range allowedIDs {
+			allowed[id] = struct{}{}
+		}
 		for _, b := range books {
-			if b != nil && containsString(allowedIDs, b.ID) && s.webhookService != nil {
+			if b == nil {
+				continue
+			}
+			_, wasDeleted := allowed[b.ID]
+			if wasDeleted && s.webhookService != nil {
 				s.webhookService.DispatchEvent(ctx, "book.deleted", BuildBookWebhookPayload(b))
 			}
 		}
@@ -94,10 +107,26 @@ func (s *bookService) BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBo
 	if dto == nil || len(dto.BookIDs) == 0 {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "No book IDs provided")
 	}
+	if s.libraryRepo == nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Library repository not configured")
+	}
+	if _, err := s.libraryRepo.GetLibrary(ctx, dto.TargetLibraryID); err != nil {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Target library not found")
+	}
+	if claims == nil || !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookUpload, map[string]any{"library_id": dto.TargetLibraryID}) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Target library permission denied")
+	}
 
 	books, err := s.bookRepo.GetBooksByIDs(ctx, dto.BookIDs)
 	if err != nil {
 		return nil, err
+	}
+
+	bookByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			bookByID[book.ID] = book
+		}
 	}
 
 	res := &response.BulkOperationResponse{
@@ -106,13 +135,7 @@ func (s *bookService) BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBo
 
 	allowedIDs := make([]string, 0, len(books))
 	for _, id := range dto.BookIDs {
-		var found *models.BookEntity
-		for _, b := range books {
-			if b != nil && b.ID == id {
-				found = b
-				break
-			}
-		}
+		found := bookByID[id]
 
 		if found == nil {
 			res.FailedCount++
@@ -149,19 +172,20 @@ func (s *bookService) BulkAssignCollections(ctx context.Context, dto *request.Bu
 		return nil, err
 	}
 
+	bookByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			bookByID[book.ID] = book
+		}
+	}
+
 	res := &response.BulkOperationResponse{
 		Errors: make(map[string]string),
 	}
 
 	allowedIDs := make([]string, 0, len(books))
 	for _, id := range dto.BookIDs {
-		var found *models.BookEntity
-		for _, b := range books {
-			if b != nil && b.ID == id {
-				found = b
-				break
-			}
-		}
+		found := bookByID[id]
 
 		if found == nil {
 			res.FailedCount++
@@ -179,6 +203,42 @@ func (s *bookService) BulkAssignCollections(ctx context.Context, dto *request.Bu
 	}
 
 	if len(allowedIDs) > 0 {
+		if s.featureRepo == nil || claims == nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Collection repository not configured")
+		}
+		userID, err := convert.ParseID(claims.UId)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid user")
+		}
+		collections, err := s.featureRepo.GetCollectionsByIDs(ctx, dto.CollectionIDs)
+		if err != nil {
+			return nil, err
+		}
+		owned := make(map[string]struct{}, len(collections))
+		for _, collection := range collections {
+			if collection != nil && collection.UserID == userID {
+				owned[collection.ID] = struct{}{}
+			}
+		}
+		if len(owned) != len(dto.CollectionIDs) {
+			return nil, apperrors.New(apperrors.ErrForbidden, "Collection permission denied")
+		}
+		tx, err := s.txManager.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		txRepo := s.featureRepo.WithTx(tx)
+		for _, bookID := range allowedIDs {
+			for _, collectionID := range dto.CollectionIDs {
+				if err := txRepo.AddBookToCollection(ctx, collectionID, bookID); err != nil {
+					return nil, err
+				}
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
 		res.SuccessCount = len(allowedIDs)
 	}
 
@@ -195,19 +255,20 @@ func (s *bookService) BulkAddTags(ctx context.Context, dto *request.BulkAddTagsD
 		return nil, err
 	}
 
+	bookByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			bookByID[book.ID] = book
+		}
+	}
+
 	res := &response.BulkOperationResponse{
 		Errors: make(map[string]string),
 	}
 
 	allowedIDs := make([]string, 0, len(books))
 	for _, id := range dto.BookIDs {
-		var found *models.BookEntity
-		for _, b := range books {
-			if b != nil && b.ID == id {
-				found = b
-				break
-			}
-		}
+		found := bookByID[id]
 
 		if found == nil {
 			res.FailedCount++
@@ -272,13 +333,4 @@ func ensureTagHelper(ctx context.Context, repo repositories.BookMetadataReposito
 		return "", err
 	}
 	return newID, nil
-}
-
-func containsString(slice []string, val string) bool {
-	for _, item := range slice {
-		if item == val {
-			return true
-		}
-	}
-	return false
 }

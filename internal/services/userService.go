@@ -189,7 +189,7 @@ func (u *userService) ChangePassword(ctx context.Context, userID string, dto *re
 	if ferr != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
-	user, err := u.userRepo.GetByID(ctx, id)
+	user, err := u.userRepo.GetAuthByID(ctx, id)
 	if err != nil || user == nil {
 		return apperrors.New(apperrors.ErrNotFound, "User not found")
 	}

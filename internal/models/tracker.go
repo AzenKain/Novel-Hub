@@ -12,31 +12,35 @@ type UserTrackerEntity struct {
 	ID           int64      `json:"id"`
 	UserID       int64      `json:"userId"`
 	Provider     string     `json:"provider"`
-	AccessToken  string     `json:"accessToken"`
-	RefreshToken *string    `json:"refreshToken"`
+	AccessToken  string     `json:"-"`
+	RefreshToken *string    `json:"-"`
 	ExpiresAt    *time.Time `json:"expiresAt"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
-func (e *UserTrackerEntity) FromSqlc(res sqlc.UserTracker) *UserTrackerEntity {
+func (e *UserTrackerEntity) FromSqlc(res sqlc.UserTracker) (*UserTrackerEntity, error) {
 	e.ID = res.ID
 	e.UserID = res.UserID
 	e.Provider = res.Provider
-	if decrypted, err := crypto.DecryptAES(res.AccessToken); err == nil && decrypted != "" {
-		e.AccessToken = decrypted
-	} else {
-		e.AccessToken = res.AccessToken
+	decrypted, err := crypto.DecryptAES(res.AccessToken)
+	if err != nil {
+		return nil, err
 	}
+	e.AccessToken = decrypted
 	if res.RefreshToken.Valid {
-		e.RefreshToken = &res.RefreshToken.String
+		refreshToken, err := crypto.DecryptAES(res.RefreshToken.String)
+		if err != nil {
+			return nil, err
+		}
+		e.RefreshToken = &refreshToken
 	}
 	if res.ExpiresAt.Valid {
 		e.ExpiresAt = &res.ExpiresAt.Time
 	}
 	e.CreatedAt = res.CreatedAt
 	e.UpdatedAt = res.UpdatedAt
-	return e
+	return e, nil
 }
 
 func (e *UserTrackerEntity) ToResponse() *response.UserTrackerResponse {

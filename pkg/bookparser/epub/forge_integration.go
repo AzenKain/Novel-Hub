@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 var (
@@ -120,7 +121,7 @@ func (p *Parser) SaveOriginalMetadataAndFix(filePath string, meta *bookparser.Bo
 				opfErr = err
 				break
 			}
-			opfBytes, err := io.ReadAll(rc)
+			opfBytes, err := bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 			rc.Close()
 			if err != nil {
 				opfErr = err

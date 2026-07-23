@@ -41,7 +41,6 @@ type libraryService struct {
 	jobQueue    *worker.Queue
 }
 
-
 func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
 		libraryRepo: repo,
@@ -178,7 +177,9 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 
 	if s.jobQueue != nil {
 		for _, job := range pendingJobs {
-			s.jobQueue.Enqueue(job)
+			if err := s.jobQueue.Enqueue(ctx, job); err != nil {
+				return nil, fmt.Errorf("queue post-processing: %w", err)
+			}
 		}
 	}
 
@@ -254,8 +255,13 @@ func (s *libraryService) ProcessSingleLocalFile(ctx context.Context, libraryID s
 			Payload: fileID,
 		},
 	}
+	if s.jobQueue == nil {
+		return fmt.Errorf("job queue is unavailable")
+	}
 	for _, job := range pendingJobs {
-		s.jobQueue.Enqueue(job)
+		if err := s.jobQueue.Enqueue(ctx, job); err != nil {
+			return fmt.Errorf("queue post-processing: %w", err)
+		}
 	}
 	return nil
 }

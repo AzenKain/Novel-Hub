@@ -22,6 +22,7 @@ type FeatureRepository interface {
 	UpdateCollection(ctx context.Context, id, name string, userID int64) (*models.CollectionEntity, error)
 	DeleteCollection(ctx context.Context, id string, userID int64) error
 	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error)
+	GetCollectionsByIDs(ctx context.Context, ids []string) ([]*models.CollectionEntity, error)
 	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error)
 	GetReadingProgress(ctx context.Context, userID int64, bookID string) (*models.ReadingProgressEntity, error)
 	UpsertReadingProgress(ctx context.Context, progress *models.ReadingProgressEntity) (*models.ReadingProgressEntity, error)
@@ -161,7 +162,7 @@ func (r *featureRepository) GetUserCollections(ctx context.Context, userID int64
 	if key != "" && r.c != nil {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			return r.getCollectionsByIDs(ctx, ids)
+			return r.GetCollectionsByIDs(ctx, ids)
 		}
 	}
 
@@ -192,7 +193,7 @@ func (r *featureRepository) GetUserCollections(ctx context.Context, userID int64
 	if err != nil {
 		return nil, err
 	}
-	return r.getCollectionsByIDs(ctx, v.([]string))
+	return r.GetCollectionsByIDs(ctx, v.([]string))
 }
 
 func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error) {
@@ -871,7 +872,7 @@ func (r *featureRepository) GetBookRatingSummary(ctx context.Context, bookID str
 	return v.(*models.BookRatingSummaryEntity), nil
 }
 
-func (r *featureRepository) getCollectionsByIDs(ctx context.Context, ids []string) ([]*models.CollectionEntity, error) {
+func (r *featureRepository) GetCollectionsByIDs(ctx context.Context, ids []string) ([]*models.CollectionEntity, error) {
 	if len(ids) == 0 {
 		return []*models.CollectionEntity{}, nil
 	}

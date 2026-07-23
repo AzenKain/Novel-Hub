@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"os"
 	"net/http"
 	"net/url"
 	"novelhub/pkg/database"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -59,7 +59,7 @@ type BookService interface {
 	UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
-	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string) error
+	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error
 
 	BulkDeleteBooks(ctx context.Context, dto *request.BulkDeleteBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 	BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
@@ -85,6 +85,8 @@ type UpdateCoverInput struct {
 
 type bookService struct {
 	bookRepo       repositories.BookDBRepository
+	featureRepo    repositories.FeatureRepository
+	libraryRepo    repositories.LibraryRepository
 	fileRepo       repositories.BookFileRepository
 	parsers        *bookparser.Registry
 	txManager      database.TxManager
@@ -94,9 +96,11 @@ type bookService struct {
 	webhookService WebhookService
 }
 
-func NewBookService(repo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue) BookService {
+func NewBookService(repo repositories.BookDBRepository, featureRepo repositories.FeatureRepository, libraryRepo repositories.LibraryRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue) BookService {
 	return &bookService{
 		bookRepo:    repo,
+		featureRepo: featureRepo,
+		libraryRepo: libraryRepo,
 		fileRepo:    fileRepo,
 		parsers:     parsers,
 		txManager:   txManager,
@@ -830,8 +834,6 @@ func (s *bookService) parseFileChapters(file *models.BookFileEntity) ([]*models.
 	return chapters, nil
 }
 
-
-
 func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapterID string, fileID string) (string, error) {
 	file, err := s.GetBookFile(ctx, bookID, fileID)
 	if err != nil {
@@ -902,8 +904,6 @@ func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapter
 	return rewriteReaderHTML(content, bookID, contentPath, fileID), nil
 }
 
-
-
 func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error) {
 	file, err := s.GetBookFile(ctx, bookID, fileID)
 	if err != nil {
@@ -919,6 +919,9 @@ func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath str
 	}
 
 	contentType := readerAssetContentType(assetPath)
+	if contentType == "text/html" || contentType == "application/javascript" || contentType == "image/svg+xml" {
+		return nil, fmt.Errorf("active reader assets are not served inline")
+	}
 	if contentType == "text/css" {
 		data = []byte(scopeReaderCSS(string(data)))
 	}
@@ -1074,11 +1077,11 @@ func (s *bookService) SafeDownloadFilename(title string, ext string) string {
 
 func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input UpdateCoverInput) ([]byte, string, error) {
 	if len(input.UploadedData) > 0 {
-		ext := strings.ToLower(filepath.Ext(input.UploadedFileName))
-		if ext == "" {
-			ext = ".jpg"
+		ext, err := bookparser.ValidateImage(input.UploadedData, constants.MaxCoverBytes)
+		if err != nil {
+			return nil, "", err
 		}
-		return input.UploadedData, normalizeCoverExt(ext), nil
+		return input.UploadedData, ext, nil
 	}
 
 	if input.EPUBImagePath != "" {
@@ -1094,7 +1097,11 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if err != nil {
 			return nil, "", err
 		}
-		return coverData, normalizeCoverExt(filepath.Ext(input.EPUBImagePath)), nil
+		ext, err := bookparser.ValidateImage(coverData, constants.MaxCoverBytes)
+		if err != nil {
+			return nil, "", err
+		}
+		return coverData, ext, nil
 	}
 
 	if input.CoverURL != "" {
@@ -1123,11 +1130,15 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if ct != "" && !strings.HasPrefix(ct, "image/") {
 			return nil, "", fmt.Errorf("cover URL did not return an image (got %s)", ct)
 		}
-		coverData, err := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
+		coverData, err := io.ReadAll(io.LimitReader(resp.Body, constants.MaxCoverBytes+1))
 		if err != nil {
 			return nil, "", err
 		}
-		return coverData, normalizeCoverExt(filepath.Ext(parsed.Path)), nil
+		ext, err := bookparser.ValidateImage(coverData, constants.MaxCoverBytes)
+		if err != nil {
+			return nil, "", err
+		}
+		return coverData, ext, nil
 	}
 
 	return nil, "", fmt.Errorf("no cover provided")

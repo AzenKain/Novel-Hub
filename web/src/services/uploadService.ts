@@ -10,14 +10,22 @@ export const uploadService = {
     id: string,
     onProgress?: (progress: number) => void
   ): Promise<CommonResponse<any>> => {
-    const initRes = await api.post<CommonResponse<any>>("/upload/init");
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const initPayload: UploadCommitParams & { total_bytes: number } = {
+      target,
+      filename: file.name,
+      total_chunks: totalChunks,
+      total_bytes: file.size,
+    };
+    if (target === "library") initPayload.library_id = id;
+    else initPayload.book_id = id;
+
+    const initRes = await api.post<CommonResponse<any>>("/upload/init", initPayload);
     if (!initRes.data.status || !initRes.data.data?.upload_id) {
       throw new Error("Failed to initialize upload");
     }
     const uploadId = initRes.data.data.upload_id;
 
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const start = chunkIndex * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);

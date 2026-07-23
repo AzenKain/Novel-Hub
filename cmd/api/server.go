@@ -60,7 +60,7 @@ func NewHTTPServer() *FiberServer {
 	app := fiber.New(fiber.Config{
 		ServerHeader:      "novelhub-api",
 		AppName:           "NovelHub API",
-		BodyLimit:         config.GetIntConfigWithDefault("FIBER_BODY_LIMIT", 1024*1024*1024),
+		BodyLimit:         config.GetIntConfigWithDefault("FIBER_BODY_LIMIT", 16*1024*1024),
 		Concurrency:       config.GetIntConfigWithDefault("FIBER_CONCURRENCY", 0),
 		ReadBufferSize:    config.GetIntConfigWithDefault("FIBER_READ_BUFFER_SIZE", 0),
 		WriteBufferSize:   config.GetIntConfigWithDefault("FIBER_WRITE_BUFFER_SIZE", 0),
@@ -157,7 +157,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	}
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
-	bookService := services.NewBookService(bookRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
+	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo)
@@ -169,7 +169,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
 	webhookController := controllers.NewWebhookController(webhookService)
 	bookService.SetWebhookService(webhookService)
-	uploadService := services.NewUploadService(libraryService, bookService)
+	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache)
 
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
@@ -187,11 +187,13 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.RegisterHandler("extract_metadata", func(ctx context.Context, jobID string, payload string) error {
 		err := bookService.ExtractMetadata(ctx, payload)
 		if err == nil {
-			jobQueue.Enqueue(worker.Job{
+			if enqueueErr := jobQueue.Enqueue(ctx, worker.Job{
 				ID:      uuid.Must(uuid.NewV7()).String(),
 				Type:    "index_book",
 				Payload: payload,
-			})
+			}); enqueueErr != nil {
+				return enqueueErr
+			}
 			if book, getErr := bookService.GetBook(ctx, payload); getErr == nil && book != nil {
 				webhookService.DispatchEvent(ctx, "book.created", services.BuildBookWebhookPayload(book))
 			}
@@ -226,26 +228,27 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.Start()
 
 	s.App.Use("/public", static.New(publicDir))
-	s.App.Get("/storage/books/:bookID/:filename", func(c fiber.Ctx) error {
-		rawFilename := c.Params("filename")
-		ext := strings.ToLower(filepath.Ext(rawFilename))
-		switch ext {
-		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".ico":
-			relPath := filepath.Join(c.Params("bookID"), rawFilename)
-			safePath, err := localfs.SafeJoin(booksDir, relPath)
-			if err != nil {
-				return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
-					Status:  false,
-					Message: "Invalid image path",
-				})
-			}
-			return c.SendFile(safePath)
-		default:
-			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
-				Status:  false,
-				Message: "Direct download of raw book files via storage URL is disabled",
-			})
+	s.App.Get("/storage/books/:bookID/:filename", middlewares.OptionalJwtAccess(userRepo), func(c fiber.Ctx) error {
+		book, err := bookService.GetBook(c.Context(), c.Params("bookID"))
+		claims, _ := c.Locals("user_claims").(*response.JWTClaims)
+		if err != nil || book == nil || !bookService.CanReadBook(c.Context(), book, claims) {
+			return fiber.ErrForbidden
 		}
+		if book.CoverURL == nil || filepath.Base(*book.CoverURL) != c.Params("filename") {
+			return fiber.ErrNotFound
+		}
+		ext := strings.ToLower(filepath.Ext(c.Params("filename")))
+		switch ext {
+		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".ico":
+		default:
+			return fiber.ErrForbidden
+		}
+		safePath, err := localfs.SafeJoin(booksDir, c.Params("bookID"), c.Params("filename"))
+		if err != nil {
+			return fiber.ErrForbidden
+		}
+		c.Set("X-Content-Type-Options", "nosniff")
+		return c.SendFile(safePath)
 	})
 
 	api := s.App.Group("/api")
@@ -269,7 +272,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.SetupUploadRoutes(v1, uploadController, userRepo)
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "book.manage"), calibreController.ImportCalibre)
 
-	opdsService := services.NewOPDSService(bookRepo, settingsService)
+	opdsService := services.NewOPDSService(bookService, permissionCache)
 	opdsController := controllers.NewOPDSController(opdsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 

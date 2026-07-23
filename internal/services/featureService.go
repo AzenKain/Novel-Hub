@@ -115,6 +115,9 @@ func (s *featureService) GetUserCollections(ctx context.Context, userID int64, c
 }
 
 func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error) {
+	if limit <= 0 || limit > constants.MaxPaginationLimit {
+		limit = 20
+	}
 	history, err := s.repo.GetRecentReadingHistory(ctx, userID, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -342,7 +345,7 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, c
 	if userID <= 0 {
 		return nil, fmt.Errorf("userId is required")
 	}
-	if limit <= 0 {
+	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
 	ids, err := s.repo.GetBookmarkedBookIDs(ctx, userID, cursor, limit)
@@ -451,7 +454,7 @@ func (s *featureService) DeleteReviewByAdmin(ctx context.Context, targetUserID i
 }
 
 func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error) {
-	if limit <= 0 {
+	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 50
 	}
 	reviews, err := s.repo.ListAllReviews(ctx, limit, offset)
@@ -465,7 +468,7 @@ func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cur
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
-	if limit <= 0 {
+	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
 	reviews, err := s.repo.ListBookReviews(ctx, bookID, cursor, limit)
@@ -554,7 +557,6 @@ func (s *featureService) RemoveBookFromCollection(ctx context.Context, userID in
 	}
 	return s.repo.RemoveBookFromCollection(ctx, collectionID, bookID)
 }
-
 
 func (s *featureService) PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool {
 	book, err := s.bookRepo.GetBook(ctx, bookID)

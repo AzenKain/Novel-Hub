@@ -258,6 +258,28 @@ func (q *Queries) RestoreUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const rotateUserRefreshToken = `-- name: RotateUserRefreshToken :execrows
+UPDATE users
+SET refresh_token = ?1
+WHERE id = ?2
+  AND is_deleted = 0
+  AND refresh_token = ?3
+`
+
+type RotateUserRefreshTokenParams struct {
+	NewRefreshToken     sql.NullString `json:"new_refresh_token"`
+	ID                  int64          `json:"id"`
+	CurrentRefreshToken sql.NullString `json:"current_refresh_token"`
+}
+
+func (q *Queries) RotateUserRefreshToken(ctx context.Context, arg RotateUserRefreshTokenParams) (int64, error) {
+	result, err := q.exec(ctx, q.rotateUserRefreshTokenStmt, rotateUserRefreshToken, arg.NewRefreshToken, arg.ID, arg.CurrentRefreshToken)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const searchUserIDs = `-- name: SearchUserIDs :many
 SELECT DISTINCT u.id
 FROM users u

@@ -7,6 +7,7 @@ import (
 )
 
 func TestAESEncryptionDecryption(t *testing.T) {
+	t.Setenv("DB_ENCRYPTION_KEY", "test-encryption-key")
 	original := "secret_oauth_token_123456"
 
 	encrypted, err := crypto.EncryptAES(original)

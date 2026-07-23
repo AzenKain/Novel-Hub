@@ -9,6 +9,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
+	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
@@ -18,6 +19,8 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*models.UserEntity, error)
 	GetByIDWithoutDeleted(ctx context.Context, id int64) (*models.UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (*models.UserEntity, error)
+	GetAuthByEmail(ctx context.Context, email string) (*models.UserEntity, error)
+	GetAuthByID(ctx context.Context, id int64) (*models.UserEntity, error)
 	Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error)
 	GetByIDs(ctx context.Context, ids []int64) ([]*models.UserEntity, error)
 	Count(ctx context.Context, params sqlc.CountUsersParams) (int64, error)
@@ -25,6 +28,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, id int64, passwordHash string) error
 	UpdateProfile(ctx context.Context, params sqlc.UpdateProfileParams) (*models.UserEntity, error)
 	UpdateRefreshToken(ctx context.Context, id int64, refreshToken *string) error
+	RotateRefreshToken(ctx context.Context, id int64, currentRefreshToken, newRefreshToken string) (bool, error)
 	GetTokenVersion(ctx context.Context, id int64) (int32, error)
 	UpdateTokenVersion(ctx context.Context, id int64, tokenVersion int64) error
 	Delete(ctx context.Context, id int64) error
@@ -154,6 +158,28 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		return nil, err
 	}
 	return v.(*models.UserEntity), nil
+}
+
+func (r *userRepository) GetAuthByEmail(ctx context.Context, email string) (*models.UserEntity, error) {
+	user, err := r.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.hydrateRoles(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *userRepository) GetAuthByID(ctx context.Context, id int64) (*models.UserEntity, error) {
+	user, err := r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.hydrateRoles(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserParams) (*models.UserEntity, error) {
@@ -333,7 +359,26 @@ func (r *userRepository) Restore(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (r *userRepository) RotateRefreshToken(ctx context.Context, id int64, currentRefreshToken, newRefreshToken string) (bool, error) {
+	updated, err := r.q.RotateUserRefreshToken(ctx, sqlc.RotateUserRefreshTokenParams{
+		ID:                  id,
+		CurrentRefreshToken: sql.NullString{String: currentRefreshToken, Valid: true},
+		NewRefreshToken:     sql.NullString{String: newRefreshToken, Valid: true},
+	})
+	if err != nil || updated == 0 {
+		return false, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id))
+	}
+	return true, nil
+}
+
 func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, error) {
+	if !config.GetBoolConfigWithDefault("TOKEN_VERSION_CACHE", true) || config.GetBoolConfigWithDefault("ENABLE_PREFORK", false) {
+		raw, err := r.q.GetUserTokenVersion(ctx, id)
+		return int32(raw), err // #nosec G115 -- token version is bounded by application updates
+	}
 	key := cache.BuildKey("user", "token", id)
 	if r.c != nil {
 		var version int32

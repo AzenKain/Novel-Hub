@@ -284,7 +284,7 @@ func (h *FeatureController) GetReadingProgress(c fiber.Ctx) error {
 	if !ok || claims == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
-	userID, err := convert.ParseID(claims.Subject)
+	userID, err := convert.ParseID(claims.UId)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid user ID"})
 	}

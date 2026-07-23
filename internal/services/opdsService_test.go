@@ -9,9 +9,13 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/bookparser"
 	"novelhub/pkg/cache"
+	"novelhub/pkg/constants"
+	"novelhub/pkg/database"
 )
 
 func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
@@ -38,6 +42,8 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 		"../../db/schema/50_user_features.sql",
 		"../../db/schema/55_reading_activity.sql",
 		"../../db/schema/65_permissions_settings.sql",
+		"../../db/schema/90_seed_roles.sql",
+		"../../db/schema/95_rbac_restructure.sql",
 	}
 
 	for _, sf := range schemaFiles {
@@ -53,7 +59,13 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 	ramCache := cache.NewRamCache()
 	bookRepo := repositories.NewBookDBRepository(db, ramCache)
 	settingsRepo := repositories.NewSettingsRepository(db, ramCache)
-	settingsService := NewSettingsService(settingsRepo)
+	roleRepo := repositories.NewRoleRepository(db, ramCache)
+	permissionCache := NewPermissionCache(roleRepo)
+	if err := permissionCache.Reload(context.Background()); err != nil {
+		t.Fatalf("failed to load permissions: %v", err)
+	}
+	settingsService := NewSettingsService(settingsRepo, permissionCache)
+	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
 
 	// Create test book
 	book := &models.BookEntity{
@@ -65,8 +77,9 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 		t.Fatalf("failed to create book: %v", err)
 	}
 
-	opdsService := NewOPDSService(bookRepo, settingsService)
-	catalog, err := opdsService.GetOPDS2Catalog(context.Background(), "http://localhost:8080")
+	opdsService := NewOPDSService(bookService, permissionCache)
+	claims := &response.JWTClaims{UId: "0", Roles: []constants.RoleType{constants.RoleTypeGuest}, RoleIDs: []int64{constants.SystemRoleIDGuest}}
+	catalog, err := opdsService.GetOPDS2Catalog(context.Background(), "http://localhost:8080", claims)
 	if err != nil {
 		t.Fatalf("failed to get OPDS 2.0 catalog: %v", err)
 	}

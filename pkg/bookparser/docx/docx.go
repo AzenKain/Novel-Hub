@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 type Parser struct{}
@@ -46,7 +47,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	defer rc.Close()
 
 	var core coreProperties
-	if err := xml.NewDecoder(rc).Decode(&core); err != nil {
+	if err := xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&core); err != nil {
 		return bookparser.MergeMetadataSidecar(filePath, meta), nil
 	}
 	if value := clean(core.Title); value != "" {
@@ -152,7 +153,7 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 		return nil, fmt.Errorf("open docx asset: %w", err)
 	}
 	defer rc.Close()
-	return io.ReadAll(rc)
+	return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 }
 
 func (p *Parser) ListImages(filePath string) ([]string, error) {

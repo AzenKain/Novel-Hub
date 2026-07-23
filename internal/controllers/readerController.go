@@ -14,6 +14,7 @@ import (
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
+	"novelhub/pkg/constants"
 )
 
 type ReaderController struct {
@@ -63,6 +64,8 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	}
 
 	c.Set("Content-Type", "text/html; charset=utf-8")
+	c.Set("X-Content-Type-Options", "nosniff")
+	c.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self' data:")
 	return c.SendString(content)
 }
 
@@ -80,13 +83,16 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "File not found"})
 	}
 
-	c.Set("Content-Type", rawFileContentType(file.Path))
+	contentType := rawFileContentType(file.Path)
+	c.Set("Content-Type", contentType)
+	c.Set("X-Content-Type-Options", "nosniff")
+	if strings.HasPrefix(contentType, "text/html") {
+		c.Set("Content-Security-Policy", "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'")
+	}
 	c.Set("Content-Disposition", inlineContentDisposition(filepath.Base(file.Path)))
 	c.Set("Accept-Ranges", "bytes")
 	return c.SendFile(file.Path, fiber.SendFile{ByteRange: true})
 }
-
-
 
 func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -105,6 +111,8 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	}
 
 	c.Set("Content-Type", asset.ContentType)
+	c.Set("X-Content-Type-Options", "nosniff")
+	c.Set("Content-Security-Policy", "default-src 'none'")
 	return c.Send(asset.Data)
 }
 
@@ -134,7 +142,6 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: images})
 }
 
-
 func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -151,9 +158,12 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to open uploaded file"})
 		}
 		defer f.Close()
-		input.UploadedData, err = io.ReadAll(f)
+		input.UploadedData, err = io.ReadAll(io.LimitReader(f, constants.MaxCoverBytes+1))
 		if err != nil {
 			return apperrors.HandleError(c, err)
+		}
+		if len(input.UploadedData) > constants.MaxCoverBytes {
+			return c.Status(fiber.StatusRequestEntityTooLarge).JSON(response.CommonResponse{Status: false, Message: "Cover exceeds size limit"})
 		}
 		input.UploadedFileName = file.Filename
 	}

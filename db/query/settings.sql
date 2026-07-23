@@ -23,6 +23,12 @@ INSERT INTO setup_state (key, value)
 VALUES (?, ?)
 ON CONFLICT(key) DO UPDATE SET value = excluded.value;
 
+-- name: ClaimInitialSetup :execrows
+INSERT INTO setup_state (key, value)
+VALUES ('completed', 'in_progress')
+ON CONFLICT(key) DO UPDATE SET value = 'in_progress'
+WHERE setup_state.value NOT IN ('true', 'in_progress');
+
 -- name: CountAdminUsers :one
 SELECT COUNT(DISTINCT u.id) AS count
 FROM users u

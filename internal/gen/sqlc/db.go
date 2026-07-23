@@ -54,6 +54,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.bulkUpdateBookLibraryStmt, err = db.PrepareContext(ctx, bulkUpdateBookLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query BulkUpdateBookLibrary: %w", err)
 	}
+	if q.claimInitialSetupStmt, err = db.PrepareContext(ctx, claimInitialSetup); err != nil {
+		return nil, fmt.Errorf("error preparing query ClaimInitialSetup: %w", err)
+	}
 	if q.clearBookLanguagesStmt, err = db.PrepareContext(ctx, clearBookLanguages); err != nil {
 		return nil, fmt.Errorf("error preparing query ClearBookLanguages: %w", err)
 	}
@@ -492,6 +495,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.restoreUserStmt, err = db.PrepareContext(ctx, restoreUser); err != nil {
 		return nil, fmt.Errorf("error preparing query RestoreUser: %w", err)
 	}
+	if q.rotateUserRefreshTokenStmt, err = db.PrepareContext(ctx, rotateUserRefreshToken); err != nil {
+		return nil, fmt.Errorf("error preparing query RotateUserRefreshToken: %w", err)
+	}
 	if q.searchBookIDsStmt, err = db.PrepareContext(ctx, searchBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchBookIDs: %w", err)
 	}
@@ -650,6 +656,11 @@ func (q *Queries) Close() error {
 	if q.bulkUpdateBookLibraryStmt != nil {
 		if cerr := q.bulkUpdateBookLibraryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing bulkUpdateBookLibraryStmt: %w", cerr)
+		}
+	}
+	if q.claimInitialSetupStmt != nil {
+		if cerr := q.claimInitialSetupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing claimInitialSetupStmt: %w", cerr)
 		}
 	}
 	if q.clearBookLanguagesStmt != nil {
@@ -1382,6 +1393,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing restoreUserStmt: %w", cerr)
 		}
 	}
+	if q.rotateUserRefreshTokenStmt != nil {
+		if cerr := q.rotateUserRefreshTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing rotateUserRefreshTokenStmt: %w", cerr)
+		}
+	}
 	if q.searchBookIDsStmt != nil {
 		if cerr := q.searchBookIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing searchBookIDsStmt: %w", cerr)
@@ -1606,6 +1622,7 @@ type Queries struct {
 	bulkDeleteUsersFromRoleStmt        *sql.Stmt
 	bulkUpdateBookAuthorStmt           *sql.Stmt
 	bulkUpdateBookLibraryStmt          *sql.Stmt
+	claimInitialSetupStmt              *sql.Stmt
 	clearBookLanguagesStmt             *sql.Stmt
 	clearBookPublishersStmt            *sql.Stmt
 	clearBookSeriesStmt                *sql.Stmt
@@ -1752,6 +1769,7 @@ type Queries struct {
 	removeBookFromCollectionStmt       *sql.Stmt
 	restoreRoleStmt                    *sql.Stmt
 	restoreUserStmt                    *sql.Stmt
+	rotateUserRefreshTokenStmt         *sql.Stmt
 	searchBookIDsStmt                  *sql.Stmt
 	searchFTSStmt                      *sql.Stmt
 	searchUserIDsStmt                  *sql.Stmt
@@ -1803,6 +1821,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		bulkDeleteUsersFromRoleStmt:        q.bulkDeleteUsersFromRoleStmt,
 		bulkUpdateBookAuthorStmt:           q.bulkUpdateBookAuthorStmt,
 		bulkUpdateBookLibraryStmt:          q.bulkUpdateBookLibraryStmt,
+		claimInitialSetupStmt:              q.claimInitialSetupStmt,
 		clearBookLanguagesStmt:             q.clearBookLanguagesStmt,
 		clearBookPublishersStmt:            q.clearBookPublishersStmt,
 		clearBookSeriesStmt:                q.clearBookSeriesStmt,
@@ -1949,6 +1968,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		removeBookFromCollectionStmt:       q.removeBookFromCollectionStmt,
 		restoreRoleStmt:                    q.restoreRoleStmt,
 		restoreUserStmt:                    q.restoreUserStmt,
+		rotateUserRefreshTokenStmt:         q.rotateUserRefreshTokenStmt,
 		searchBookIDsStmt:                  q.searchBookIDsStmt,
 		searchFTSStmt:                      q.searchFTSStmt,
 		searchUserIDsStmt:                  q.searchUserIDsStmt,

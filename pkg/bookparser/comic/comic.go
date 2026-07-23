@@ -16,6 +16,7 @@ import (
 	"github.com/nwaples/rardecode/v2"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 type Parser struct {
@@ -206,7 +207,7 @@ func getZipAsset(filePath string, assetPath string) ([]byte, error) {
 			return nil, fmt.Errorf("open cbz asset: %w", err)
 		}
 		defer rc.Close()
-		return io.ReadAll(rc)
+		return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 	}
 	return nil, fmt.Errorf("cbz asset %q not found", assetPath)
 }
@@ -253,7 +254,7 @@ func getRARAsset(filePath string, assetPath string) ([]byte, error) {
 		if filepath.ToSlash(header.Name) != assetPath {
 			continue
 		}
-		return io.ReadAll(reader)
+		return bookparser.ReadAllLimit(reader, constants.MaxArchiveAssetSize)
 	}
 	return nil, fmt.Errorf("cbr asset %q not found", assetPath)
 }
@@ -302,7 +303,7 @@ func getTarAsset(filePath string, assetPath string) ([]byte, error) {
 		if filepath.ToSlash(header.Name) != assetPath {
 			continue
 		}
-		return io.ReadAll(reader)
+		return bookparser.ReadAllLimit(reader, constants.MaxArchiveAssetSize)
 	}
 	return nil, fmt.Errorf("cbt asset %q not found", assetPath)
 }
@@ -340,7 +341,7 @@ func getSevenZipAsset(filePath string, assetPath string) ([]byte, error) {
 			return nil, fmt.Errorf("open cb7 asset: %w", err)
 		}
 		defer rc.Close()
-		return io.ReadAll(rc)
+		return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 	}
 	return nil, fmt.Errorf("cb7 asset %q not found", assetPath)
 }

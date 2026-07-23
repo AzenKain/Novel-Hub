@@ -23,9 +23,9 @@ func JwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	}
 
 	return jwtware.New(jwtware.Config{
-		SigningKey:     jwtware.SigningKey{Key: []byte(jwtSecret)},
+		SigningKey:     jwtware.SigningKey{JWTAlg: "HS256", Key: []byte(jwtSecret)},
 		ErrorHandler:   jwtError,
-		SuccessHandler: jwtSuccess(userRepo, false),
+		SuccessHandler: jwtSuccess(userRepo, false, "access"),
 		Extractor: extractors.Chain(
 			extractors.FromAuthHeader("Bearer"),
 			extractors.FromCookie("access_token"),
@@ -54,14 +54,14 @@ func OptionalJwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	}
 
 	return jwtware.New(jwtware.Config{
-		SigningKey: jwtware.SigningKey{Key: []byte(jwtSecret)},
+		SigningKey: jwtware.SigningKey{JWTAlg: "HS256", Key: []byte(jwtSecret)},
 		ErrorHandler: func(c fiber.Ctx, err error) error {
 			claims := GuestClaims()
 			c.Locals("user_claims", claims)
 			c.Locals("uid", claims.UId)
 			return c.Next()
 		},
-		SuccessHandler: jwtSuccess(userRepo, true),
+		SuccessHandler: jwtSuccess(userRepo, true, "access"),
 		Extractor: extractors.Chain(
 			extractors.FromAuthHeader("Bearer"),
 			extractors.FromCookie("access_token"),
@@ -81,7 +81,7 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey:     jwtware.SigningKey{Key: []byte(jwtRefreshSecret)},
 		ErrorHandler:   jwtError,
-		SuccessHandler: jwtSuccess(userRepo, false),
+		SuccessHandler: jwtSuccess(userRepo, false, "refresh"),
 		Extractor: extractors.Chain(
 			extractors.FromCookie("refresh_token"),
 			extractors.FromAuthHeader("Bearer"),
@@ -90,7 +90,7 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 	})
 }
 
-func jwtSuccess(userRepo repositories.UserRepository, optional bool) fiber.Handler {
+func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedType string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		fallbackToGuest := func() error {
 			claims := GuestClaims()
@@ -111,7 +111,11 @@ func jwtSuccess(userRepo repositories.UserRepository, optional bool) fiber.Handl
 			return unauthorized()
 		}
 		claims, ok := jwtToken.Claims.(*response.JWTClaims)
-		if !ok {
+		if !ok || claims.TokenType != expectedType || claims.Issuer != "novelhub" || claims.Subject != claims.UId || claims.Subject == "" {
+			return unauthorized()
+		}
+		expectedAudience := "novelhub-" + expectedType
+		if !slices.Contains([]string(claims.Audience), expectedAudience) {
 			return unauthorized()
 		}
 		if slices.Contains(claims.Roles, constants.RoleTypeBanned) {

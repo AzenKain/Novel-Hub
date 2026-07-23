@@ -111,7 +111,10 @@ novelhub/
 | `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database file path |
 | `JWT_SECRET` | — | Access token signing secret |
 | `JWT_REFRESH_SECRET` | — | Refresh token signing secret |
-| `DB_ENCRYPTION_KEY` | — | Master key for AES-256-GCM database field encryption |
+| `DB_ENCRYPTION_KEY` | — | Required master key for AES-256-GCM encrypted tracker credentials |
+| `TOKEN_VERSION_CACHE` | `true` | Cache token versions in single-process mode; disable for shared-DB multi-process deployments |
+| `SQLITE_CACHE_SIZE_KB` | `262144` | Total SQLite page-cache budget, divided across open connections |
+| `SQLITE_MMAP_SIZE_BYTES` | `536870912` | SQLite memory-map ceiling |
 | `FIBER_BODY_LIMIT` | `1073741824` | Max request body limit (1 GB) |
 | `GOGC` | `200` | GC percent tuning for high throughput |
 

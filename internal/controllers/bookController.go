@@ -176,7 +176,6 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: chapters})
 }
 
-
 func (h *BookController) SearchDeep(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -308,10 +307,13 @@ func (h *BookController) SendBookToEmail(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	if err := h.bookService.SendBookToEmail(ctx, bookID, dto.RecipientEmail); err != nil {
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return fiber.ErrUnauthorized
+	}
+	if err := h.bookService.SendBookToEmail(ctx, bookID, dto.RecipientEmail, claims); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Email dispatched successfully"})
 }
-

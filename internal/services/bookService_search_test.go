@@ -73,7 +73,7 @@ func TestBookService_SearchInBook_EPUB(t *testing.T) {
 	roleRepo := repositories.NewRoleRepository(db, ramCache)
 	permCache := NewPermissionCache(roleRepo)
 
-	bookService := NewBookService(bookRepo, fileRepo, registry, txManager, settingsService, permCache, nil)
+	bookService := NewBookService(bookRepo, nil, nil, fileRepo, registry, txManager, settingsService, permCache, nil)
 
 	bookID := "019f7f16-38a0-724a-9d8c-1ed7cde8e0d4"
 	bookEntity := &models.BookEntity{

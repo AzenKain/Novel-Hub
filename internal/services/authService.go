@@ -2,14 +2,17 @@ package services
 
 import (
 	"context"
-	"novelhub/pkg/database"
-	"novelhub/pkg/apperrors"
+	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"slices"
 	"strconv"
 	"time"
+
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"novelhub/internal/dtos/request"
@@ -17,14 +20,17 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 )
 
 type AuthService interface {
 	Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error)
+	ValidateCredentials(ctx context.Context, dto *request.SignInDto) (*response.JWTClaims, error)
 	Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, error)
 	SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error)
 	RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, error)
@@ -35,12 +41,46 @@ type authService struct {
 	userRepo     repositories.UserRepository
 	roleRepo     repositories.RoleRepository
 	settingsRepo repositories.SettingsRepository
-	txManager database.TxManager
+	txManager    database.TxManager
 	settings     SettingsService
 }
 
 func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, txManager database.TxManager, settingsRepo repositories.SettingsRepository, settings SettingsService) AuthService {
 	return &authService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager, settingsRepo: settingsRepo, settings: settings}
+}
+
+func refreshTokenDigest(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func refreshTokenMatches(stored, token string) bool {
+	actual := token
+	if len(stored) >= len("sha256:") && stored[:len("sha256:")] == "sha256:" {
+		actual = refreshTokenDigest(token)
+	}
+	return subtle.ConstantTimeCompare([]byte(stored), []byte(actual)) == 1
+}
+
+func tokenClaims(user *models.UserEntity, tokenType string, duration time.Duration) *response.JWTClaims {
+	now := time.Now()
+	uid := strconv.FormatInt(user.ID, 10)
+	return &response.JWTClaims{
+		UId:          uid,
+		Roles:        models.RolesEntityToRoleConstant(user.Roles),
+		RoleIDs:      models.RolesEntityToRoleIDs(user.Roles),
+		TokenVersion: user.TokenVersion,
+		TokenType:    tokenType,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "novelhub",
+			Subject:   uid,
+			Audience:  jwt.ClaimStrings{"novelhub-" + tokenType},
+			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ID:        uuid.Must(uuid.NewV7()).String(),
+		},
+	}
 }
 
 func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse, error) {
@@ -53,26 +93,8 @@ func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse,
 		return nil, apperrors.New(apperrors.ErrInternalError, "Missing JWT_REFRESH_SECRET")
 	}
 
-	roles := models.RolesEntityToRoleConstant(user.Roles)
-	roleIDs := models.RolesEntityToRoleIDs(user.Roles)
-	claimsAccess := &response.JWTClaims{
-		UId:          strconv.FormatInt(user.ID, 10),
-		Roles:        roles,
-		RoleIDs:      roleIDs,
-		TokenVersion: user.TokenVersion,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(constants.AccessTokenDuration)),
-		},
-	}
-	claimsRefresh := &response.JWTClaims{
-		UId:          strconv.FormatInt(user.ID, 10),
-		Roles:        roles,
-		RoleIDs:      roleIDs,
-		TokenVersion: user.TokenVersion,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(constants.RefreshTokenDuration)),
-		},
-	}
+	claimsAccess := tokenClaims(user, "access", constants.AccessTokenDuration)
+	claimsRefresh := tokenClaims(user, "refresh", constants.RefreshTokenDuration)
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claimsAccess)
 	access, err := accessToken.SignedString([]byte(jwtSecret))
@@ -89,23 +111,35 @@ func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse,
 	return &response.AuthResponse{AccessToken: access, RefreshToken: refresh}, nil
 }
 
-func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
+func (a *authService) authenticate(ctx context.Context, dto *request.SignInDto) (*models.UserEntity, error) {
 	if !constants.EMAIL_REGEX.MatchString(dto.Email) {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
-
-	user, err := a.userRepo.GetByEmail(ctx, dto.Email)
+	user, err := a.userRepo.GetAuthByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
-	if user == nil {
+	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(dto.Password)) != nil {
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid email or password")
 	}
 	if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
 		return nil, apperrors.New(apperrors.ErrForbidden, "User account is banned")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(dto.Password)); err != nil {
-		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid email or password")
+	return user, nil
+}
+
+func (a *authService) ValidateCredentials(ctx context.Context, dto *request.SignInDto) (*response.JWTClaims, error) {
+	user, err := a.authenticate(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+	return tokenClaims(user, "access", constants.AccessTokenDuration), nil
+}
+
+func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
+	user, err := a.authenticate(ctx, dto)
+	if err != nil {
+		return nil, err
 	}
 
 	tokens, tokenErr := a.genToken(user)
@@ -113,7 +147,8 @@ func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*resp
 		return nil, tokenErr
 	}
 
-	if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &tokens.RefreshToken); err != nil {
+	refreshDigest := refreshTokenDigest(tokens.RefreshToken)
+	if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &refreshDigest); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
 	}
 
@@ -244,6 +279,14 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	roleRepoTx := a.roleRepo.WithTx(tx)
 	settingsRepoTx := a.settingsRepo.WithTx(tx)
 
+	claimed, err := settingsRepoTx.ClaimInitialSetup(ctx)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to claim initial setup")
+	}
+	if !claimed {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Setup has already been completed or is in progress")
+	}
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to hash password")
@@ -337,11 +380,11 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid user ID")
 	}
-	user, err := a.userRepo.GetByID(ctx, id)
+	user, err := a.userRepo.GetAuthByID(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
-	if user == nil || user.RefreshToken == "" || user.RefreshToken != refreshToken {
+	if user == nil || user.RefreshToken == "" || !refreshTokenMatches(user.RefreshToken, refreshToken) {
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid refresh token")
 	}
 	if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
@@ -352,8 +395,12 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 	if tokenErr != nil {
 		return nil, tokenErr
 	}
-	if err := a.userRepo.UpdateRefreshToken(ctx, id, &tokens.RefreshToken); err != nil {
+	rotated, err := a.userRepo.RotateRefreshToken(ctx, id, user.RefreshToken, refreshTokenDigest(tokens.RefreshToken))
+	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
+	}
+	if !rotated {
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Refresh token has already been used")
 	}
 
 	return tokens, nil

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
 )
 
@@ -212,9 +214,9 @@ func (r *localBookFileRepository) SaveCover(ctx context.Context, bookID, ext str
 	if err != nil {
 		return "", "", err
 	}
-	ext = safeExtension(ext)
-	if ext == "" {
-		ext = ".jpg"
+	ext, err = bookparser.ValidateImage(data, constants.MaxCoverBytes)
+	if err != nil {
+		return "", "", err
 	}
 	filename := bookID + ext
 	relPath := filepath.ToSlash(filepath.Join(bookID, filename))

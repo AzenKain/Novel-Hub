@@ -3,7 +3,6 @@ package archivebook
 import (
 	"archive/zip"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"novelhub/pkg/bookparser/htmlfile"
 	"novelhub/pkg/bookparser/plain"
 	"novelhub/pkg/bookparser/rtf"
+	"novelhub/pkg/constants"
 )
 
 type Parser struct {
@@ -179,6 +179,9 @@ func readPrimaryEntry(filePath string) (*entryData, error) {
 		return nil, fmt.Errorf("open archive: %w", err)
 	}
 	defer reader.Close()
+	if len(reader.File) > constants.MaxArchiveEntries {
+		return nil, fmt.Errorf("archive has too many entries")
+	}
 	for _, wanted := range []string{"fb2", "epub", "kepub.epub", "html", "htm", "md", "markdown", "txt", "rtf", "docx"} {
 		for _, file := range reader.File {
 			if file.FileInfo().IsDir() || entryFormat(file.Name) != wanted {
@@ -210,12 +213,15 @@ func readNamedEntry(filePath string, name string) ([]byte, error) {
 }
 
 func readZipFile(file *zip.File) ([]byte, error) {
+	if file.UncompressedSize64 > constants.MaxArchiveAssetSize {
+		return nil, fmt.Errorf("archive entry exceeds size limit")
+	}
 	rc, err := file.Open()
 	if err != nil {
 		return nil, fmt.Errorf("open archive entry: %w", err)
 	}
 	defer rc.Close()
-	return io.ReadAll(rc)
+	return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 }
 
 func withEntryParser[T any](entry *entryData, fn func(bookparser.Parser, string) (T, error)) (T, error) {

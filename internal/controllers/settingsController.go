@@ -3,9 +3,7 @@ package controllers
 import (
 	"context"
 	"io"
-	"net/http"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -13,6 +11,8 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/validator"
 )
 
@@ -98,15 +98,13 @@ func (h *SettingsController) handleAssetUpload(ctx context.Context, c fiber.Ctx)
 			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to open uploaded file"})
 		}
 		defer f.Close()
-		
-		fileData, err = io.ReadAll(io.LimitReader(f, 5<<20))
+
+		fileData, err = io.ReadAll(io.LimitReader(f, constants.MaxSiteAssetBytes+1))
 		if err != nil {
 			return apperrors.HandleError(c, err)
 		}
-
-		contentType := http.DetectContentType(fileData)
-		if !strings.HasPrefix(contentType, "image/") {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Uploaded file must be a valid image"})
+		if _, err := bookparser.ValidateImage(fileData, constants.MaxSiteAssetBytes); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Uploaded file must be a valid JPEG, PNG, or GIF image"})
 		}
 
 		fileName = filepath.Base(fileHeader.Filename)

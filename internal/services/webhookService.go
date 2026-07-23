@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/models"
@@ -165,11 +166,13 @@ func (s *webhookService) DispatchEvent(ctx context.Context, eventType string, pa
 			"data":       string(payloadBytes),
 		})
 
-		s.jobQueue.Enqueue(worker.Job{
+		if err := s.jobQueue.Enqueue(ctx, worker.Job{
 			ID:      uuid.Must(uuid.NewV7()).String(),
 			Type:    "webhook.dispatch",
 			Payload: string(jobPayload),
-		})
+		}); err != nil {
+			log.Error().Err(err).Str("webhook_id", wh.ID).Msg("failed to queue webhook")
+		}
 	}
 }
 

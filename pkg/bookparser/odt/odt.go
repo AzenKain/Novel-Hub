@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 type Parser struct{}
@@ -137,7 +138,7 @@ func readZipEntry(filePath string, entryName string) ([]byte, error) {
 			return nil, fmt.Errorf("open odt entry: %w", err)
 		}
 		defer rc.Close()
-		return io.ReadAll(rc)
+		return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 	}
 	return nil, fmt.Errorf("odt entry %q not found", entryName)
 }

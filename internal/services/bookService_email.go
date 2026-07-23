@@ -4,15 +4,20 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/mailer"
 )
 
-func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipientEmail string) error {
+func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	if err != nil || book == nil {
 		return apperrors.New(apperrors.ErrNotFound, "Book not found")
+	}
+	if !s.CanDownloadBook(ctx, book, claims) {
+		return apperrors.New(apperrors.ErrForbidden, "Download permission denied")
 	}
 
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
@@ -21,25 +26,24 @@ func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipi
 	}
 
 	targetFile := files[0]
-	data, err := os.ReadFile(targetFile.Path)
+	info, err := os.Stat(targetFile.Path)
 	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, "Failed to read book file content")
+		return apperrors.New(apperrors.ErrInternalError, "Failed to inspect book file")
 	}
 
-	if len(data) > 50*1024*1024 {
+	if info.Size() > 50*1024*1024 {
 		return apperrors.New(apperrors.ErrBadRequest, "Book file exceeds 50MB email attachment size limit")
 	}
 
-	settings, _ := s.settings.Public(ctx)
+	attachment := &mailer.Attachment{
+		Filename: filepath.Base(targetFile.Path),
+		Path:     targetFile.Path,
+	}
 	smtpHost := "smtp.gmail.com"
 	smtpPort := 587
 	smtpUser := ""
 	smtpPass := ""
 	fromEmail := "noreply@novelhub.local"
-
-	if settings != nil {
-		// Use settings if configured
-	}
 
 	m := mailer.NewSMTPMailer(mailer.SMTPConfig{
 		Host:      smtpHost,
@@ -51,11 +55,6 @@ func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipi
 
 	subject := fmt.Sprintf("[NovelHub] Send to Kindle: %s", book.Title)
 	body := fmt.Sprintf("Enjoy reading '%s' on your Kindle or e-reader device!", book.Title)
-
-	attachment := &mailer.Attachment{
-		Filename: targetFile.Path,
-		Data:     data,
-	}
 
 	if err := m.SendEmail(recipientEmail, subject, body, attachment); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("Failed to dispatch email: %v", err))

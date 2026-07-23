@@ -11,8 +11,6 @@ import (
 	"novelhub/pkg/bookparser"
 )
 
-
-
 func fileChapterIndex(fileID string, chapterID string) (int, bool) {
 	prefix := fileID + ":"
 	if !strings.HasPrefix(chapterID, prefix) {
@@ -25,7 +23,7 @@ func fileChapterIndex(fileID string, chapterID string) (int, bool) {
 func rawFileReaderHTML(bookID string, fileID string, filePath string) string {
 	sourceURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/file?file_id=` + url.QueryEscape(fileID)
 	title := html.EscapeString(bookparser.TitleFromPath(filePath))
-	return `<div class="novelhub-raw-reader" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"><iframe title="` + title + `" src="` + sourceURL + `" style="width: 100%; height: 100%; border: 0; background: #fff;" loading="eager"></iframe></div>`
+	return `<div class="novelhub-raw-reader" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"><iframe sandbox title="` + title + `" src="` + sourceURL + `" style="width: 100%; height: 100%; border: 0; background: #fff;" loading="eager"></iframe></div>`
 }
 
 func rewriteReaderHTML(content string, bookID string, contentPath string, fileID string) string {
@@ -41,12 +39,13 @@ func rewriteReaderHTML(content string, bookID string, contentPath string, fileID
 		}
 
 		attr := matches[1]
-		value := matches[2]
-		if strings.HasPrefix(value, "http://") ||
-			strings.HasPrefix(value, "https://") ||
-			strings.HasPrefix(value, "data:") ||
-			strings.HasPrefix(value, "#") {
+		value := strings.TrimSpace(matches[2])
+		lower := strings.ToLower(value)
+		if strings.HasPrefix(value, "#") {
 			return match
+		}
+		if strings.HasPrefix(lower, "http:") || strings.HasPrefix(lower, "https:") || strings.HasPrefix(lower, "data:") || strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "vbscript:") || strings.HasPrefix(value, "//") {
+			return attr + `="#"`
 		}
 
 		resolved := filepath.ToSlash(filepath.Join(baseDir, value))
@@ -264,4 +263,3 @@ func readerAssetContentType(assetPath string) string {
 		return "application/octet-stream"
 	}
 }
-

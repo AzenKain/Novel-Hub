@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import DOMPurify from "dompurify";
 
 import type { ReadingMode } from "@/stores";
+import { sanitizeReaderHtml } from "@/utils/readerHtml";
 
 type ReaderContentProps = {
   htmlContent: string;
@@ -10,18 +10,6 @@ type ReaderContentProps = {
   pageWidth: number;
   columnsRef: React.RefObject<HTMLDivElement | null>;
   onContentClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-};
-
-const sanitizeReaderHtml = (html: string) => {
-  const stripped = html
-    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
-    .replace(/<meta\b[^>]*>/gi, "")
-    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "");
-    
-  return DOMPurify.sanitize(stripped, {
-    USE_PROFILES: { html: true, svg: true, mathMl: true },
-    ADD_ATTR: ['target'],
-  });
 };
 
 const isVisualChapter = (html: string) => {

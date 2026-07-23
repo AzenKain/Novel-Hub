@@ -3,7 +3,6 @@ package doc
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"golang.org/x/text/encoding/charmap"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 type Parser struct{}
@@ -123,7 +123,7 @@ func readDocStreams(filePath string) (map[string][]byte, error) {
 		if entry.FileInfo().IsDir() || entry.Size <= 0 {
 			continue
 		}
-		data, err := io.ReadAll(entry)
+		data, err := bookparser.ReadAllLimit(entry, constants.MaxArchiveAssetSize)
 		if err != nil {
 			continue
 		}

@@ -4,9 +4,9 @@ import (
 	"bytes"
 
 	"novelhub/internal/dtos/response"
-	"novelhub/pkg/jsonx"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/jsonx"
 )
 
 var jsonNull = []byte("null")
@@ -14,12 +14,12 @@ var jsonNull = []byte("null")
 type UserEntity struct {
 	ID           int64         `json:"id"`
 	Email        string        `json:"email"`
-	PasswordHash string        `json:"password_hash"`
+	PasswordHash string        `json:"-"`
 	FullName     string        `json:"full_name"`
 	AvatarUrl    string        `json:"avatar_url"`
 	TokenVersion int32         `json:"token_version"`
 	AuthProvider string        `json:"auth_provider"`
-	RefreshToken string        `json:"refresh_token"`
+	RefreshToken string        `json:"-"`
 	IsDeleted    bool          `json:"is_deleted"`
 	CreatedAt    string        `json:"created_at"`
 	UpdatedAt    string        `json:"updated_at"`

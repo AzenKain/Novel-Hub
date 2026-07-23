@@ -51,25 +51,13 @@ func (r *trackerRepository) WithTx(tx *sql.Tx) TrackerRepository {
 }
 
 func (r *trackerRepository) GetByID(ctx context.Context, id int64) (*models.UserTrackerEntity, error) {
-	key := cache.BuildKey("user_tracker", "id", id)
-	if r.c != nil {
-		var entity models.UserTrackerEntity
-		if err := r.c.Get(ctx, key, &entity); err == nil {
-			return &entity, nil
-		}
-	}
-
+	key := cache.BuildKey("user_tracker", "secret", "id", id)
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		rows, err := r.q.GetUserTrackersByIDs(ctx, []int64{id})
 		if err != nil || len(rows) == 0 {
 			return nil, sql.ErrNoRows
 		}
-
-		entity := (&models.UserTrackerEntity{}).FromSqlc(rows[0])
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
-		}
-		return entity, nil
+		return (&models.UserTrackerEntity{}).FromSqlc(rows[0])
 	})
 	if err != nil {
 		return nil, err
@@ -81,96 +69,35 @@ func (r *trackerRepository) GetUserTrackersByIDs(ctx context.Context, ids []int6
 	if len(ids) == 0 {
 		return []*models.UserTrackerEntity{}, nil
 	}
-	keys := make([]string, len(ids))
-	for i, id := range ids {
-		keys[i] = cache.BuildKey("user_tracker", "id", id)
+	rows, err := r.q.GetUserTrackersByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
 	}
-
-	trackers := make([]*models.UserTrackerEntity, 0, len(ids))
-	missingIds := []int64{}
-	missingKeys := []string{}
-
-	if r.c != nil {
-		cachedBytes := r.c.MGet(ctx, keys...)
-		for i, bytes := range cachedBytes {
-			if len(bytes) > 0 {
-				var tracker models.UserTrackerEntity
-				if err := jsonx.Unmarshal(bytes, &tracker); err == nil {
-					trackers = append(trackers, &tracker)
-					continue
-				}
-			}
-			missingIds = append(missingIds, ids[i])
-			missingKeys = append(missingKeys, keys[i])
-		}
-	} else {
-		missingIds = ids
-		missingKeys = keys
-	}
-
-	if len(missingIds) > 0 {
-		rows, err := r.q.GetUserTrackersByIDs(ctx, missingIds)
+	byID := make(map[int64]*models.UserTrackerEntity, len(rows))
+	for _, row := range rows {
+		entity, err := (&models.UserTrackerEntity{}).FromSqlc(row)
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[int64]*models.UserTrackerEntity)
-		for _, row := range rows {
-			u := (&models.UserTrackerEntity{}).FromSqlc(row)
-			missingMap[u.ID] = u
-			trackers = append(trackers, u)
-		}
-
-		if r.c != nil {
-			missingToCache := make(map[string]any)
-			for i, missingId := range missingIds {
-				if u, ok := missingMap[missingId]; ok {
-					missingToCache[missingKeys[i]] = u
-				}
-			}
-			if len(missingToCache) > 0 {
-				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
-			}
-		}
-	}
-
-	trackerMap := make(map[int64]*models.UserTrackerEntity)
-	for _, u := range trackers {
-		trackerMap[u.ID] = u
+		byID[entity.ID] = entity
 	}
 	ordered := make([]*models.UserTrackerEntity, 0, len(ids))
 	for _, id := range ids {
-		if u, ok := trackerMap[id]; ok {
-			ordered = append(ordered, u)
+		if entity := byID[id]; entity != nil {
+			ordered = append(ordered, entity)
 		}
 	}
-
 	return ordered, nil
 }
 
 func (r *trackerRepository) GetUserTracker(ctx context.Context, userID int64, provider string) (*models.UserTrackerEntity, error) {
-	key := cache.BuildKey("user_tracker", "user_provider", userID, provider)
-	if r.c != nil {
-		var entity models.UserTrackerEntity
-		if err := r.c.Get(ctx, key, &entity); err == nil {
-			return &entity, nil
-		}
-	}
-
+	key := cache.BuildKey("user_tracker", "secret", "user_provider", userID, provider)
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		res, err := r.q.GetUserTracker(ctx, sqlc.GetUserTrackerParams{
-			UserID:   userID,
-			Provider: provider,
-		})
+		res, err := r.q.GetUserTracker(ctx, sqlc.GetUserTrackerParams{UserID: userID, Provider: provider})
 		if err != nil {
 			return nil, err
 		}
-
-		entity := (&models.UserTrackerEntity{}).FromSqlc(res)
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
-			_ = r.c.Set(ctx, cache.BuildKey("user_tracker", "id", entity.ID), entity, constants.NormalCacheDuration)
-		}
-		return entity, nil
+		return (&models.UserTrackerEntity{}).FromSqlc(res)
 	})
 	if err != nil {
 		return nil, err
@@ -181,7 +108,7 @@ func (r *trackerRepository) GetUserTracker(ctx context.Context, userID int64, pr
 func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID int64, provider string, accessToken string) (*models.UserTrackerEntity, error) {
 	encToken, err := crypto.EncryptAES(accessToken)
 	if err != nil {
-		encToken = accessToken
+		return nil, err
 	}
 
 	res, err := r.q.UpsertUserTracker(ctx, sqlc.UpsertUserTrackerParams{
@@ -192,12 +119,9 @@ func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID int64,
 	if err != nil {
 		return nil, err
 	}
-	entity := (&models.UserTrackerEntity{}).FromSqlc(res)
-	if r.c != nil {
-		key := cache.BuildKey("user_tracker", "user_provider", userID, provider)
-		idKey := cache.BuildKey("user_tracker", "id", entity.ID)
-		_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
-		_ = r.c.Set(ctx, idKey, entity, constants.NormalCacheDuration)
+	entity, err := (&models.UserTrackerEntity{}).FromSqlc(res)
+	if err != nil {
+		return nil, err
 	}
 	return entity, nil
 }

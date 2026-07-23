@@ -29,7 +29,7 @@ func (c *OPDSController) GetRootCatalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetRootCatalog(reqCtx, serverURL)
+	feed, err := c.opdsService.GetRootCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS catalog")
 	}
@@ -44,7 +44,7 @@ func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 	serverURL := getBaseURL(ctx)
 	limit := int64(50)
 
-	feed, err := c.opdsService.GetRecentBooks(reqCtx, serverURL, limit)
+	feed, err := c.opdsService.GetRecentBooks(reqCtx, serverURL, limit, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS catalog")
 	}
@@ -57,7 +57,7 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetOPDS2Catalog(reqCtx, serverURL)
+	feed, err := c.opdsService.GetOPDS2Catalog(reqCtx, serverURL, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS 2.0 catalog")
 	}

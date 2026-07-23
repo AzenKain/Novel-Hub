@@ -81,40 +81,39 @@ func ApplySchema(db *sql.DB, schemaDir string) error {
 	return nil
 }
 
-
-
-func autoSQLiteCacheKB() int {
-	if configured := config.GetIntConfigWithDefault("SQLITE_CACHE_SIZE_KB", 0); configured > 0 {
-		return configured
+func autoSQLiteCacheKB(maxOpen int) int {
+	totalKB := config.GetIntConfigWithDefault("SQLITE_CACHE_SIZE_KB", 0)
+	if totalKB <= 0 {
+		totalKB = int(systemMemoryBytes() / 64 / 1024)
+		if totalKB < 64*1024 {
+			totalKB = 64 * 1024
+		}
+		if totalKB > 512*1024 {
+			totalKB = 512 * 1024
+		}
 	}
-	memBytes := systemMemoryBytes()
-	if memBytes >= 32<<30 { // >= 32GB RAM
-		return 1048576 // 1GB SQLite cache per connection
+	if maxOpen < 1 {
+		maxOpen = 1
 	}
-	if memBytes >= 16<<30 { // >= 16GB RAM
-		return 512000 // 512MB SQLite cache
+	perConnection := totalKB / maxOpen
+	if perConnection < 4*1024 {
+		perConnection = 4 * 1024
 	}
-	if memBytes >= 8<<30 { // >= 8GB RAM
-		return 256000 // 256MB SQLite cache
-	}
-	return 128000 // 128MB default
+	return perConnection
 }
 
 func autoSQLiteMmapSize() int64 {
 	if configured := config.GetIntConfigWithDefault("SQLITE_MMAP_SIZE_BYTES", 0); configured > 0 {
 		return int64(configured)
 	}
-	memBytes := systemMemoryBytes()
-	if memBytes >= 32<<30 {
-		return 16106127360 // 15GB Memory Mapped DB
+	mmap := systemMemoryBytes() / 8
+	if mmap < 256<<20 {
+		mmap = 256 << 20
 	}
-	if memBytes >= 16<<30 {
-		return 8589934592 // 8GB Memory Mapped DB
+	if mmap > 2<<30 {
+		mmap = 2 << 30
 	}
-	if memBytes >= 8<<30 {
-		return 4294967296 // 4GB Memory Mapped DB
-	}
-	return 1073741824 // 1GB default
+	return mmap
 }
 
 func systemMemoryBytes() int64 {
@@ -145,24 +144,17 @@ func NewSQLiteDB() (*sql.DB, error) {
 		_ = os.Chmod(dbPath, 0600)
 	}
 
-	db, err := sql.Open("sqlite", sqliteDSN(dbPath))
-	if err != nil {
-		return nil, err
-	}
-
-	cacheKB := autoSQLiteCacheKB()
-	mmapBytes := autoSQLiteMmapSize()
-
-	pragmas := fmt.Sprintf("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-%d; PRAGMA mmap_size=%d;", cacheKB, mmapBytes)
-	if _, err := db.Exec(pragmas); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("failed to apply SQLite pragmas: %w", err)
-	}
-
 	maxOpen := config.GetIntConfigWithDefault("SQLITE_MAX_OPEN_CONNS", defaultMaxOpenConns())
 	if maxOpen < 1 {
 		maxOpen = defaultMaxOpenConns()
 	}
+	cacheKB := autoSQLiteCacheKB(maxOpen)
+	mmapBytes := autoSQLiteMmapSize()
+	db, err := sql.Open("sqlite", sqliteDSN(dbPath, cacheKB, mmapBytes))
+	if err != nil {
+		return nil, err
+	}
+
 	db.SetMaxOpenConns(maxOpen)
 	db.SetMaxIdleConns(config.GetIntConfigWithDefault("SQLITE_MAX_IDLE_CONNS", maxOpen))
 
@@ -173,10 +165,7 @@ func NewSQLiteDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func sqliteDSN(dbPath string) string {
-	cacheKB := autoSQLiteCacheKB()
-	mmapBytes := autoSQLiteMmapSize()
-
+func sqliteDSN(dbPath string, cacheKB int, mmapBytes int64) string {
 	values := url.Values{}
 	values.Add("_pragma", "busy_timeout=10000")
 	values.Add("_pragma", "foreign_keys(ON)")

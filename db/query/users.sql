@@ -32,6 +32,13 @@ UPDATE users
 SET refresh_token = ?
 WHERE id = ? AND is_deleted = 0;
 
+-- name: RotateUserRefreshToken :execrows
+UPDATE users
+SET refresh_token = sqlc.arg('new_refresh_token')
+WHERE id = sqlc.arg('id')
+  AND is_deleted = 0
+  AND refresh_token = sqlc.arg('current_refresh_token');
+
 -- name: DeleteUser :exec
 UPDATE users
 SET is_deleted = 1

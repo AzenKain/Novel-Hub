@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
 )
 
@@ -19,7 +20,6 @@ func NewParser() *Parser {
 	return &Parser{}
 }
 
-// container.xml parsing
 type Container struct {
 	XMLName   xml.Name   `xml:"container"`
 	Rootfiles []Rootfile `xml:"rootfiles>rootfile"`
@@ -30,7 +30,6 @@ type Rootfile struct {
 	MediaType string `xml:"media-type,attr"`
 }
 
-// opf parsing
 type Package struct {
 	XMLName  xml.Name `xml:"package"`
 	Metadata Metadata `xml:"metadata"`
@@ -147,7 +146,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	defer rc.Close()
 
 	var pkg Package
-	if err := xml.NewDecoder(rc).Decode(&pkg); err != nil {
+	if err := xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&pkg); err != nil {
 		return nil, err
 	}
 
@@ -245,7 +244,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 		if err == nil {
 			crc, err := coverFile.Open()
 			if err == nil {
-				data, err := io.ReadAll(crc)
+				data, err := bookparser.ReadAllLimit(crc, constants.MaxCoverBytes)
 				if err == nil {
 					meta.CoverData = data
 				}
@@ -405,7 +404,7 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 		return nil, err
 	}
 	var pkg Package
-	_ = xml.NewDecoder(rc).Decode(&pkg)
+	_ = xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&pkg)
 	_ = rc.Close()
 
 	baseDir := filepath.Dir(opfPath)
@@ -535,7 +534,7 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 	}
 	defer rc.Close()
 
-	return io.ReadAll(rc)
+	return bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 }
 
 func (p *Parser) ListImages(filePath string) ([]string, error) {
@@ -558,7 +557,7 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 		return nil, err
 	}
 	var pkg Package
-	_ = xml.NewDecoder(rc).Decode(&pkg)
+	_ = xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&pkg)
 	_ = rc.Close()
 
 	baseDir := filepath.Dir(opfPath)
@@ -591,7 +590,7 @@ func findOPFPath(r *zip.ReadCloser) (string, error) {
 	defer rc.Close()
 
 	var container Container
-	if err := xml.NewDecoder(rc).Decode(&container); err != nil {
+	if err := xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&container); err != nil {
 		return "", err
 	}
 

@@ -9,11 +9,15 @@ import (
 )
 
 var (
-	_, cgnatNet, _ = net.ParseCIDR("100.64.0.0/10")
-	_, docNet1, _  = net.ParseCIDR("192.0.2.0/24")
-	_, docNet2, _  = net.ParseCIDR("198.51.100.0/24")
-	_, docNet3, _  = net.ParseCIDR("203.0.113.0/24")
-	_, testNet, _  = net.ParseCIDR("198.18.0.0/15")
+	_, cgnatNet, _  = net.ParseCIDR("100.64.0.0/10")
+	_, docNet1, _   = net.ParseCIDR("192.0.2.0/24")
+	_, docNet2, _   = net.ParseCIDR("198.51.100.0/24")
+	_, docNet3, _   = net.ParseCIDR("203.0.113.0/24")
+	_, testNet, _   = net.ParseCIDR("198.18.0.0/15")
+	_, zeroNet, _   = net.ParseCIDR("0.0.0.0/8")
+	_, protoNet, _  = net.ParseCIDR("192.0.0.0/24")
+	_, futureNet, _ = net.ParseCIDR("240.0.0.0/4")
+	_, docIPv6, _   = net.ParseCIDR("2001:db8::/32")
 )
 
 func IsPrivateIP(ip net.IP) bool {
@@ -34,7 +38,7 @@ func IsPrivateIP(ip net.IP) bool {
 		return true
 	}
 
-	if cgnatNet.Contains(ip) || docNet1.Contains(ip) || docNet2.Contains(ip) || docNet3.Contains(ip) || testNet.Contains(ip) {
+	if cgnatNet.Contains(ip) || docNet1.Contains(ip) || docNet2.Contains(ip) || docNet3.Contains(ip) || testNet.Contains(ip) || zeroNet.Contains(ip) || protoNet.Contains(ip) || futureNet.Contains(ip) || docIPv6.Contains(ip) {
 		return true
 	}
 

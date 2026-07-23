@@ -15,6 +15,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
@@ -343,18 +344,21 @@ func allowedSettingKey(key string) bool {
 }
 
 func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error) {
+	if target != "logo" && target != "favicon" {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset target")
+	}
 	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
 	if err := os.MkdirAll(publicDir, 0755); err != nil {
 		return "", apperrors.New(apperrors.ErrInternalError, "Failed to create public directory")
 	}
 
-	outFilename := "logo.png"
-	if target == "favicon" {
-		outFilename = "favicon.png"
-	}
-	destPath := filepath.Join(publicDir, outFilename)
-
 	if len(fileData) > 0 {
+		ext, err := bookparser.ValidateImage(fileData, constants.MaxSiteAssetBytes)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid image")
+		}
+		outFilename := target + ext
+		destPath := filepath.Join(publicDir, outFilename)
 		if err := os.WriteFile(destPath, fileData, 0644); err != nil {
 			return "", apperrors.New(apperrors.ErrInternalError, "Failed to save file")
 		}
@@ -373,14 +377,18 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		}
 		defer resp.Body.Close()
 
-		out, err := os.Create(destPath)
+		data, err := io.ReadAll(io.LimitReader(resp.Body, constants.MaxSiteAssetBytes+1))
 		if err != nil {
-			return "", apperrors.New(apperrors.ErrInternalError, "Failed to create destination file")
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to read downloaded asset")
 		}
-		defer out.Close()
-
-		if _, err := io.Copy(out, io.LimitReader(resp.Body, 10<<20)); err != nil {
-			return "", apperrors.New(apperrors.ErrInternalError, "Failed to write downloaded asset")
+		ext, err := bookparser.ValidateImage(data, constants.MaxSiteAssetBytes)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Downloaded asset is not a valid image")
+		}
+		outFilename := target + ext
+		destPath := filepath.Join(publicDir, outFilename)
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to save downloaded asset")
 		}
 		return "/public/" + outFilename, nil
 	}

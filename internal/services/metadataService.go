@@ -29,6 +29,9 @@ func NewMetadataService(bookRepo repositories.BookDBRepository) MetadataService 
 }
 
 func (s *metadataService) ListAuthors(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListAuthorsWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -43,6 +46,9 @@ func (s *metadataService) ListAuthors(ctx context.Context, cursor string, limit 
 }
 
 func (s *metadataService) ListSeries(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListSeriesWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -57,6 +63,9 @@ func (s *metadataService) ListSeries(ctx context.Context, cursor string, limit i
 }
 
 func (s *metadataService) ListPublishers(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListPublishersWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -71,6 +80,9 @@ func (s *metadataService) ListPublishers(ctx context.Context, cursor string, lim
 }
 
 func (s *metadataService) ListLanguages(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListLanguagesWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -85,6 +97,9 @@ func (s *metadataService) ListLanguages(ctx context.Context, cursor string, limi
 }
 
 func (s *metadataService) ListTags(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListTagsWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
@@ -99,6 +114,9 @@ func (s *metadataService) ListTags(ctx context.Context, cursor string, limit int
 }
 
 func (s *metadataService) ListFormats(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
 	items, err := s.bookRepo.ListFormatsWithCount(ctx, cursor, limit)
 	if err != nil {
 		return nil, err
