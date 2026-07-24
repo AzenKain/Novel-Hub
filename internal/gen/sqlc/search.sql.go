@@ -82,3 +82,66 @@ func (q *Queries) SearchFTS(ctx context.Context, arg SearchFTSParams) ([]SearchF
 	}
 	return items, nil
 }
+
+const searchFTSInBook = `-- name: SearchFTSInBook :many
+SELECT
+    fts_chapters.chapter_id,
+    fts_chapters.title AS chapter_title,
+    chapters.chapter_index,
+    snippet(fts_chapters, 3, '[NH_MARK_START]', '[NH_MARK_END]', ' ... ', 12) AS snippet
+FROM fts_chapters
+JOIN chapters
+    ON chapters.id = fts_chapters.chapter_id
+    AND chapters.book_id = fts_chapters.book_id
+WHERE content MATCH ?
+    AND fts_chapters.book_id = ?
+ORDER BY rank, chapters.chapter_index
+LIMIT ? OFFSET ?
+`
+
+type SearchFTSInBookParams struct {
+	Content string `json:"content"`
+	BookID  string `json:"book_id"`
+	Limit   int64  `json:"limit"`
+	Offset  int64  `json:"offset"`
+}
+
+type SearchFTSInBookRow struct {
+	ChapterID    string `json:"chapter_id"`
+	ChapterTitle string `json:"chapter_title"`
+	ChapterIndex int64  `json:"chapter_index"`
+	Snippet      string `json:"snippet"`
+}
+
+func (q *Queries) SearchFTSInBook(ctx context.Context, arg SearchFTSInBookParams) ([]SearchFTSInBookRow, error) {
+	rows, err := q.query(ctx, q.searchFTSInBookStmt, searchFTSInBook,
+		arg.Content,
+		arg.BookID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchFTSInBookRow{}
+	for rows.Next() {
+		var i SearchFTSInBookRow
+		if err := rows.Scan(
+			&i.ChapterID,
+			&i.ChapterTitle,
+			&i.ChapterIndex,
+			&i.Snippet,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

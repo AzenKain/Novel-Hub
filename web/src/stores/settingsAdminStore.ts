@@ -1,4 +1,4 @@
-import type { PublicSettings } from "@/types";
+import type { AdminSettings, RuntimeLimitBounds, RuntimeLimits } from "@/types";
 import { create } from "zustand";
 
 interface SettingsAdminState {
@@ -10,6 +10,8 @@ interface SettingsAdminState {
   guestLibraryIds: string[];
   inBookSearch: boolean;
   customFontUpload: boolean;
+  limits: RuntimeLimits | null;
+  limitBounds: RuntimeLimitBounds | null;
 
   savingSection: string | null;
   uploadingLogo: boolean;
@@ -23,6 +25,7 @@ interface SettingsAdminState {
   setRegistration: (enabled: boolean) => void;
   setInBookSearch: (enabled: boolean) => void;
   setCustomFontUpload: (enabled: boolean) => void;
+  setLimits: (limits: RuntimeLimits) => void;
   setGuestMode: (mode: string) => void;
   setGuestLibraryIds: (ids: string[] | ((prev: string[]) => string[])) => void;
 
@@ -32,7 +35,7 @@ interface SettingsAdminState {
   setSelectedCropImage: (img: string | null) => void;
   setCropTarget: (target: "logo" | "favicon" | null) => void;
 
-  initFromSettings: (s: PublicSettings) => void;
+  initFromSettings: (s: AdminSettings) => void;
   reset: () => void;
 }
 
@@ -48,6 +51,8 @@ const initialState = {
   guestLibraryIds: [],
   inBookSearch: false,
   customFontUpload: false,
+  limits: null,
+  limitBounds: null,
   savingSection: null,
   uploadingLogo: false,
   uploadingFavicon: false,
@@ -64,6 +69,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   setRegistration: (registration) => set({ registration }),
   setInBookSearch: (inBookSearch) => set({ inBookSearch }),
   setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
+  setLimits: (limits) => set({ limits }),
   setGuestMode: (guestMode) => set({ guestMode }),
   setGuestLibraryIds: (guestLibraryIds) => set((state) => ({ guestLibraryIds: typeof guestLibraryIds === "function" ? guestLibraryIds(state.guestLibraryIds) : guestLibraryIds })),
 
@@ -81,6 +87,8 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
       registration: s.registration_enabled,
       inBookSearch: s.enable_in_book_search || false,
       customFontUpload: s.enable_custom_font_upload || false,
+      limits: s.limits,
+      limitBounds: s.bounds,
       guestMode: s.guest_access?.mode || "all",
       guestLibraryIds: s.guest_access?.library_ids || [],
     }),

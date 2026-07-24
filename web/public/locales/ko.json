@@ -439,7 +439,21 @@
     "smtp_user": "사용자 이름 / 이메일",
     "smtp_pass": "비밀번호 / 앱 시크릿",
     "smtp_from": "발신자 이메일 주소",
-    "test_smtp": "연결 테스트"
+    "test_smtp": "연결 테스트",
+    "runtime_limits": "런타임 제한",
+    "runtime_limits_desc": "업로드, 이미지 및 임시 세션의 크기 제한을 관리합니다.",
+    "save_runtime_limits": "제한 저장",
+    "limit_upload_chunk_bytes": "업로드 청크 크기",
+    "limit_upload_chunks": "업로드당 최대 청크 수",
+    "limit_upload_sessions": "사용자당 업로드 세션 수",
+    "limit_upload_bytes": "최대 업로드 크기",
+    "limit_upload_session_ttl_seconds": "업로드 세션 유효 시간",
+    "limit_cover_bytes": "최대 표지 크기",
+    "limit_site_asset_bytes": "최대 사이트 자산 크기",
+    "unit_mib": "MiB",
+    "unit_minutes": "분",
+    "unit_count": "개",
+    "limit_range": "허용 범위: {{min}}–{{max}}"
   },
   "kobo": {
     "title": "Kobo 전자책 Wi-Fi 동기화",

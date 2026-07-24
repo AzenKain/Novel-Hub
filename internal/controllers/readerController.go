@@ -14,7 +14,6 @@ import (
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
-	"novelhub/pkg/constants"
 )
 
 type ReaderController struct {
@@ -158,11 +157,12 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to open uploaded file"})
 		}
 		defer f.Close()
-		input.UploadedData, err = io.ReadAll(io.LimitReader(f, constants.MaxCoverBytes+1))
+		limit := h.settings.Limits().CoverBytes
+		input.UploadedData, err = io.ReadAll(io.LimitReader(f, limit+1))
 		if err != nil {
 			return apperrors.HandleError(c, err)
 		}
-		if len(input.UploadedData) > constants.MaxCoverBytes {
+		if int64(len(input.UploadedData)) > limit {
 			return c.Status(fiber.StatusRequestEntityTooLarge).JSON(response.CommonResponse{Status: false, Message: "Cover exceeds size limit"})
 		}
 		input.UploadedFileName = file.Filename

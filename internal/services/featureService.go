@@ -361,9 +361,19 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID int64, c
 	if err != nil {
 		return nil, err
 	}
+	files, err := s.bookRepo.GetFilesByBookIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	filesByBookID := make(map[string][]*models.BookFileEntity, len(books))
+	for _, file := range files {
+		if file != nil {
+			filesByBookID[file.BookID] = append(filesByBookID[file.BookID], file)
+		}
+	}
 	for _, book := range books {
-		if files, err := s.bookRepo.GetFilesByBookId(ctx, book.ID); err == nil {
-			book.Files = files
+		if book != nil {
+			book.Files = filesByBookID[book.ID]
 		}
 	}
 	return books, nil

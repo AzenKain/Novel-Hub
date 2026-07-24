@@ -442,7 +442,21 @@
     "smtp_user": "Tên đăng nhập / Email",
     "smtp_pass": "Mật khẩu / App Secret",
     "smtp_from": "Địa chỉ Email người gửi",
-    "test_smtp": "Kiểm tra Kết nối"
+    "test_smtp": "Kiểm tra Kết nối",
+    "runtime_limits": "Giới hạn vận hành",
+    "runtime_limits_desc": "Kiểm soát giới hạn tải lên, hình ảnh và phiên tạm thời.",
+    "save_runtime_limits": "Lưu giới hạn",
+    "limit_upload_chunk_bytes": "Kích thước mỗi phần tải lên",
+    "limit_upload_chunks": "Số phần tối đa mỗi lượt tải",
+    "limit_upload_sessions": "Phiên tải lên mỗi người dùng",
+    "limit_upload_bytes": "Kích thước tải lên tối đa",
+    "limit_upload_session_ttl_seconds": "Thời hạn phiên tải lên",
+    "limit_cover_bytes": "Kích thước bìa tối đa",
+    "limit_site_asset_bytes": "Kích thước tài nguyên trang tối đa",
+    "unit_mib": "MiB",
+    "unit_minutes": "phút",
+    "unit_count": "lần",
+    "limit_range": "Cho phép: {{min}}–{{max}}"
   },
   "kobo": {
     "title": "Đồng bộ Wi-Fi Máy đọc sách Kobo",

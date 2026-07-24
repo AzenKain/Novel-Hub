@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,6 +21,7 @@ import (
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/netx"
 )
@@ -48,7 +52,9 @@ var (
 type SettingsService interface {
 	Reload(ctx context.Context) error
 	Public(ctx context.Context) (*models.PublicSettings, error)
-	UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, error)
+	Admin(ctx context.Context) (*models.AdminSettings, error)
+	Limits() models.RuntimeLimits
+	UpdateSettings(ctx context.Context, settings map[string]any) (*models.AdminSettings, error)
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
 	SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error)
@@ -57,12 +63,15 @@ type SettingsService interface {
 type settingsService struct {
 	repo        repositories.SettingsRepository
 	permissions PermissionCache
+	txManager   database.TxManager
+	updateMu    sync.Mutex
 	mu          sync.RWMutex
 	data        *models.PublicSettings
+	limits      models.RuntimeLimits
 	raw         map[string]any
 }
 
-func NewSettingsService(repo repositories.SettingsRepository, permissions ...PermissionCache) SettingsService {
+func NewSettingsService(repo repositories.SettingsRepository, txManager database.TxManager, permissions ...PermissionCache) SettingsService {
 	var permCache PermissionCache
 	if len(permissions) > 0 {
 		permCache = permissions[0]
@@ -70,8 +79,45 @@ func NewSettingsService(repo repositories.SettingsRepository, permissions ...Per
 	return &settingsService{
 		repo:        repo,
 		permissions: permCache,
+		txManager:   txManager,
 		raw:         map[string]any{},
 		data:        defaultPublicSettings(),
+		limits:      defaultRuntimeLimits(),
+	}
+}
+
+func defaultRuntimeLimits() models.RuntimeLimits {
+	return models.RuntimeLimits{
+		UploadChunkBytes:        constants.MaxUploadChunkBytes,
+		UploadChunks:            constants.MaxUploadChunks,
+		UploadSessions:          constants.MaxUploadSessions,
+		UploadBytes:             constants.MaxUploadBytes,
+		UploadSessionTTLSeconds: int64(constants.UploadSessionTTL / time.Second),
+		CoverBytes:              constants.MaxCoverBytes,
+		SiteAssetBytes:          constants.MaxSiteAssetBytes,
+	}
+}
+
+func runtimeLimitBounds() models.RuntimeLimitBounds {
+	return models.RuntimeLimitBounds{
+		Min: models.RuntimeLimits{
+			UploadChunkBytes:        constants.MinRuntimeUploadChunkBytes,
+			UploadChunks:            constants.MinRuntimeUploadChunks,
+			UploadSessions:          constants.MinRuntimeUploadSessions,
+			UploadBytes:             constants.MinRuntimeUploadBytes,
+			UploadSessionTTLSeconds: int64(constants.MinRuntimeUploadSessionTTL / time.Second),
+			CoverBytes:              constants.MinRuntimeCoverBytes,
+			SiteAssetBytes:          constants.MinRuntimeSiteAssetBytes,
+		},
+		Max: models.RuntimeLimits{
+			UploadChunkBytes:        constants.HardMaxUploadChunkBytes,
+			UploadChunks:            constants.HardMaxUploadChunks,
+			UploadSessions:          constants.HardMaxUploadSessions,
+			UploadBytes:             constants.HardMaxUploadBytes,
+			UploadSessionTTLSeconds: int64(constants.HardMaxUploadSessionTTL / time.Second),
+			CoverBytes:              constants.HardMaxCoverBytes,
+			SiteAssetBytes:          constants.HardMaxSiteAssetBytes,
+		},
 	}
 }
 
@@ -106,16 +152,24 @@ func (s *settingsService) Reload(ctx context.Context) error {
 		}
 		var value any
 		if err := jsonx.Unmarshal([]byte(row.ValueJSON), &value); err != nil {
+			if strings.HasPrefix(row.Key, "limits.") {
+				return errors.New("Invalid runtime limit: " + row.Key)
+			}
 			continue
 		}
 		raw[row.Key] = value
 	}
 	settings := settingsFromRaw(raw)
 	settings.SetupCompleted = s.setupCompleted(ctx)
+	limits, err := runtimeLimitsFromRaw(raw)
+	if err != nil {
+		return err
+	}
 
 	s.mu.Lock()
 	s.raw = raw
 	s.data = settings
+	s.limits = limits
 	s.mu.Unlock()
 	return nil
 }
@@ -147,27 +201,84 @@ func (s *settingsService) Public(ctx context.Context) (*models.PublicSettings, e
 	return &copyValue, nil
 }
 
-func (s *settingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.PublicSettings, error) {
+func (s *settingsService) Admin(ctx context.Context) (*models.AdminSettings, error) {
+	public, err := s.Public(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &models.AdminSettings{
+		PublicSettings: *public,
+		Limits:         s.Limits(),
+		Bounds:         runtimeLimitBounds(),
+	}, nil
+}
+
+func (s *settingsService) Limits() models.RuntimeLimits {
+	s.mu.RLock()
+	limits := s.limits
+	s.mu.RUnlock()
+	return limits
+}
+
+func (s *settingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.AdminSettings, error) {
+	s.updateMu.Lock()
+	defer s.updateMu.Unlock()
+
+	s.mu.RLock()
+	candidateRaw := make(map[string]any, len(s.raw)+len(settings))
+	for key, value := range s.raw {
+		candidateRaw[key] = value
+	}
+	s.mu.RUnlock()
+
+	keys := make([]string, 0, len(settings))
+	encoded := make(map[string]string, len(settings))
 	for key, value := range settings {
 		if !allowedSettingKey(key) {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "Unsupported setting: "+key)
 		}
+		value = dereferenceSettingValue(value)
+		candidateRaw[key] = value
 		data, err := jsonx.Marshal(value)
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid setting value")
 		}
-		if err := s.repo.Upsert(ctx, key, string(data)); err != nil {
+		encoded[key] = string(data)
+		keys = append(keys, key)
+	}
+
+	candidateLimits, err := runtimeLimitsFromRaw(candidateRaw)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
+	}
+	candidatePublic := settingsFromRaw(candidateRaw)
+	candidatePublic.SetupCompleted = s.setupCompleted(ctx)
+
+	if s.txManager == nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Settings transaction manager is unavailable")
+	}
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start settings update")
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := s.repo.WithTx(tx)
+	sort.Strings(keys)
+	for _, key := range keys {
+		if err := txRepo.Upsert(ctx, key, encoded[key]); err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to save settings")
 		}
 	}
-	if err := s.Reload(ctx); err != nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to reload settings")
+	if err := tx.Commit(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to save settings")
 	}
-	public, err := s.Public(ctx)
-	if err != nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load settings")
-	}
-	return public, nil
+
+	s.mu.Lock()
+	s.raw = candidateRaw
+	s.data = candidatePublic
+	s.limits = candidateLimits
+	s.mu.Unlock()
+	return s.Admin(ctx)
 }
 
 func (s *settingsService) GuestAllows(libraryID string) bool {
@@ -234,6 +345,74 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	return settings
+}
+
+func runtimeLimitsFromRaw(raw map[string]any) (models.RuntimeLimits, error) {
+	limits := defaultRuntimeLimits()
+	fields := []struct {
+		key      string
+		fallback int64
+		min      int64
+		max      int64
+		set      func(int64)
+	}{
+		{"limits.upload_chunk_bytes", limits.UploadChunkBytes, constants.MinRuntimeUploadChunkBytes, constants.HardMaxUploadChunkBytes, func(value int64) { limits.UploadChunkBytes = value }},
+		{"limits.upload_chunks", int64(limits.UploadChunks), constants.MinRuntimeUploadChunks, constants.HardMaxUploadChunks, func(value int64) { limits.UploadChunks = int(value) }},
+		{"limits.upload_sessions", int64(limits.UploadSessions), constants.MinRuntimeUploadSessions, constants.HardMaxUploadSessions, func(value int64) { limits.UploadSessions = int(value) }},
+		{"limits.upload_bytes", limits.UploadBytes, constants.MinRuntimeUploadBytes, constants.HardMaxUploadBytes, func(value int64) { limits.UploadBytes = value }},
+		{"limits.upload_session_ttl_seconds", limits.UploadSessionTTLSeconds, int64(constants.MinRuntimeUploadSessionTTL / time.Second), int64(constants.HardMaxUploadSessionTTL / time.Second), func(value int64) { limits.UploadSessionTTLSeconds = value }},
+		{"limits.cover_bytes", limits.CoverBytes, constants.MinRuntimeCoverBytes, constants.HardMaxCoverBytes, func(value int64) { limits.CoverBytes = value }},
+		{"limits.site_asset_bytes", limits.SiteAssetBytes, constants.MinRuntimeSiteAssetBytes, constants.HardMaxSiteAssetBytes, func(value int64) { limits.SiteAssetBytes = value }},
+	}
+	for _, field := range fields {
+		value, ok := raw[field.key]
+		if !ok {
+			field.set(field.fallback)
+			continue
+		}
+		integer, ok := strictInteger(value)
+		if !ok || integer < field.min || integer > field.max {
+			return models.RuntimeLimits{}, errors.New("Invalid runtime limit: " + field.key)
+		}
+		field.set(integer)
+	}
+	if limits.UploadChunkBytes > limits.UploadBytes || limits.UploadBytes > limits.UploadChunkBytes*int64(limits.UploadChunks) {
+		return models.RuntimeLimits{}, errors.New("Invalid runtime limits: require upload chunk <= total <= chunk * chunks")
+	}
+	return limits, nil
+}
+
+func strictInteger(value any) (int64, bool) {
+	switch typed := value.(type) {
+	case int:
+		return int64(typed), true
+	case int64:
+		return typed, true
+	case float64:
+		if math.IsNaN(typed) || math.IsInf(typed, 0) || typed != math.Trunc(typed) || typed < math.MinInt64 || typed > math.MaxInt64 {
+			return 0, false
+		}
+		return int64(typed), true
+	default:
+		return 0, false
+	}
+}
+
+func dereferenceSettingValue(value any) any {
+	switch typed := value.(type) {
+	case *string:
+		return *typed
+	case *bool:
+		return *typed
+	case *int:
+		return *typed
+	case *int64:
+		return *typed
+	case *[]string:
+		return *typed
+	default:
+		return value
+	}
 }
 
 func rawString(raw map[string]any, key string, fallback string) string {
@@ -336,7 +515,14 @@ func allowedSettingKey(key string) bool {
 		"guest_access.mode",
 		"guest_access.library_ids",
 		"reader.enable_in_book_search",
-		"font.enable_custom_font_upload":
+		"font.enable_custom_font_upload",
+		"limits.upload_chunk_bytes",
+		"limits.upload_chunks",
+		"limits.upload_sessions",
+		"limits.upload_bytes",
+		"limits.upload_session_ttl_seconds",
+		"limits.cover_bytes",
+		"limits.site_asset_bytes":
 		return true
 	default:
 		return false
@@ -347,13 +533,14 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 	if target != "logo" && target != "favicon" {
 		return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset target")
 	}
+	limit := s.Limits().SiteAssetBytes
 	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
 	if err := os.MkdirAll(publicDir, 0755); err != nil {
 		return "", apperrors.New(apperrors.ErrInternalError, "Failed to create public directory")
 	}
 
 	if len(fileData) > 0 {
-		ext, err := bookparser.ValidateImage(fileData, constants.MaxSiteAssetBytes)
+		ext, err := bookparser.ValidateImage(fileData, limit)
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid image")
 		}
@@ -377,7 +564,7 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		}
 		defer resp.Body.Close()
 
-		data, err := io.ReadAll(io.LimitReader(resp.Body, constants.MaxSiteAssetBytes+1))
+		data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrInternalError, "Failed to read downloaded asset")
 		}

@@ -443,7 +443,21 @@
     "smtp_user": "ユーザー名 / メール",
     "smtp_pass": "パスワード / アプリシークレット",
     "smtp_from": "送信元メールアドレス",
-    "test_smtp": "接続テスト"
+    "test_smtp": "接続テスト",
+    "runtime_limits": "ランタイム制限",
+    "runtime_limits_desc": "アップロード、画像、一時セッションのサイズ制限を管理します。",
+    "save_runtime_limits": "制限を保存",
+    "limit_upload_chunk_bytes": "アップロードチャンクサイズ",
+    "limit_upload_chunks": "アップロードごとの最大チャンク数",
+    "limit_upload_sessions": "ユーザーごとのアップロードセッション数",
+    "limit_upload_bytes": "最大アップロードサイズ",
+    "limit_upload_session_ttl_seconds": "アップロードセッションの有効期間",
+    "limit_cover_bytes": "最大カバーサイズ",
+    "limit_site_asset_bytes": "最大サイトアセットサイズ",
+    "unit_mib": "MiB",
+    "unit_minutes": "分",
+    "unit_count": "件",
+    "limit_range": "許容範囲: {{min}}～{{max}}"
   },
   "kobo": {
     "title": "Kobo E-Reader Wi-Fi 同期",

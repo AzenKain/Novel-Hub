@@ -1,4 +1,5 @@
 package models
+
 import "novelhub/internal/gen/sqlc"
 
 type AppSettingEntity struct {
@@ -41,7 +42,26 @@ type PublicSettings struct {
 	AvailableGuestModes    []string            `json:"available_guest_modes"`
 }
 
+type RuntimeLimits struct {
+	UploadChunkBytes        int64 `json:"upload_chunk_bytes"`
+	UploadChunks            int   `json:"upload_chunks"`
+	UploadSessions          int   `json:"upload_sessions"`
+	UploadBytes             int64 `json:"upload_bytes"`
+	UploadSessionTTLSeconds int64 `json:"upload_session_ttl_seconds"`
+	CoverBytes              int64 `json:"cover_bytes"`
+	SiteAssetBytes          int64 `json:"site_asset_bytes"`
+}
 
+type RuntimeLimitBounds struct {
+	Min RuntimeLimits `json:"min"`
+	Max RuntimeLimits `json:"max"`
+}
+
+type AdminSettings struct {
+	PublicSettings
+	Limits RuntimeLimits      `json:"limits"`
+	Bounds RuntimeLimitBounds `json:"bounds"`
+}
 
 func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {
 	s.Key = row.Key

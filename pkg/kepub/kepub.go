@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 )
 
 var tagRegex = regexp.MustCompile(`(?i)<(p|div|li|blockquote)[^>]*>`)
@@ -62,43 +65,83 @@ func splitSentences(text string) []string {
 	return res
 }
 
-func ConvertEPUBToKePub(epubReader io.ReaderAt, size int64, out io.Writer) error {
+func ConvertEPUBToKePub(epubReader io.ReaderAt, size int64, out io.Writer) (err error) {
 	zr, err := zip.NewReader(epubReader, size)
 	if err != nil {
 		return fmt.Errorf("failed to open epub zip reader: %w", err)
 	}
+	if len(zr.File) > constants.MaxArchiveEntries {
+		return fmt.Errorf("epub archive has too many entries")
+	}
+
+	var total uint64
+	for _, file := range zr.File {
+		if file.UncompressedSize64 > constants.MaxArchiveAssetSize {
+			return fmt.Errorf("epub entry %s exceeds size limit", file.Name)
+		}
+		if file.UncompressedSize64 > uint64(constants.MaxArchiveUncompressedBytes)-total {
+			return fmt.Errorf("epub archive exceeds uncompressed size limit")
+		}
+		total += file.UncompressedSize64
+	}
 
 	zw := zip.NewWriter(out)
-	defer zw.Close()
+	defer func() {
+		if closeErr := zw.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close kepub zip writer: %w", closeErr)
+		}
+	}()
 
+	var actualTotal int64
 	for _, file := range zr.File {
-		rc, err := file.Open()
-		if err != nil {
-			return fmt.Errorf("failed to open file %s in epub: %w", file.Name, err)
+		rc, openErr := file.Open()
+		if openErr != nil {
+			return fmt.Errorf("failed to open file %s in epub: %w", file.Name, openErr)
 		}
 
-		buf, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			return fmt.Errorf("failed to read file %s: %w", file.Name, err)
+		fh := file.FileHeader
+		fw, createErr := zw.CreateHeader(&fh)
+		if createErr != nil {
+			_ = rc.Close()
+			return fmt.Errorf("failed to create zip header for %s: %w", file.Name, createErr)
 		}
 
 		ext := strings.ToLower(filepath.Ext(file.Name))
 		if ext == ".xhtml" || ext == ".html" || ext == ".htm" {
-			modifiedHTML := InjectKoboSpans(string(buf))
-			buf = []byte(modifiedHTML)
+			buf, readErr := bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
+			closeErr := rc.Close()
+			if readErr != nil {
+				return fmt.Errorf("failed to read file %s: %w", file.Name, readErr)
+			}
+			if closeErr != nil {
+				return fmt.Errorf("failed to close file %s: %w", file.Name, closeErr)
+			}
+			actualTotal += int64(len(buf))
+			if actualTotal > constants.MaxArchiveUncompressedBytes {
+				return fmt.Errorf("epub archive exceeds uncompressed size limit")
+			}
+			if _, err = io.WriteString(fw, InjectKoboSpans(string(buf))); err != nil {
+				return fmt.Errorf("failed to write zip file content for %s: %w", file.Name, err)
+			}
+			continue
 		}
 
-		fh := file.FileHeader
-		fh.UncompressedSize64 = uint64(len(buf))
-		fw, err := zw.CreateHeader(&fh)
-		if err != nil {
-			return fmt.Errorf("failed to create zip header for %s: %w", file.Name, err)
+		written, copyErr := io.Copy(fw, io.LimitReader(rc, constants.MaxArchiveAssetSize+1))
+		closeErr := rc.Close()
+		if copyErr != nil {
+			return fmt.Errorf("failed to copy file %s: %w", file.Name, copyErr)
 		}
-		if _, err := fw.Write(buf); err != nil {
-			return fmt.Errorf("failed to write zip file content for %s: %w", file.Name, err)
+		if written > constants.MaxArchiveAssetSize {
+			return fmt.Errorf("epub entry %s exceeds size limit", file.Name)
+		}
+		actualTotal += written
+		if actualTotal > constants.MaxArchiveUncompressedBytes {
+			return fmt.Errorf("epub archive exceeds uncompressed size limit")
+		}
+		if closeErr != nil {
+			return fmt.Errorf("failed to close file %s: %w", file.Name, closeErr)
 		}
 	}
 
-	return zw.Close()
+	return nil
 }

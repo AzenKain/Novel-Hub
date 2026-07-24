@@ -1,12 +1,12 @@
 import { api, toQuery } from "@/config/api";
 import type {
   AdminReview,
+  AdminSettings,
   CommonResponse,
   CreateRoleRequest,
   CreateUserRequest,
   PaginatedResponse,
   Permission,
-  PublicSettings,
   Role,
   SearchUserParams,
   UpdateProfileRequest,
@@ -202,25 +202,25 @@ export const adminService = {
 
   // ─── Settings ───────────────────────────────────────────────
 
-  async getAdminSettings(): Promise<CommonResponse<PublicSettings>> {
+  async getAdminSettings(): Promise<CommonResponse<AdminSettings>> {
     try {
       const res = await api.get("/settings");
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<PublicSettings>;
+        return error.response.data as CommonResponse<AdminSettings>;
       }
       throw error;
     }
   },
 
-  async updateSettings(data: UpdateSettingsRequest): Promise<CommonResponse<PublicSettings>> {
+  async updateSettings(data: UpdateSettingsRequest): Promise<CommonResponse<AdminSettings>> {
     try {
       const res = await api.put("/settings", data);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<PublicSettings>;
+        return error.response.data as CommonResponse<AdminSettings>;
       }
       throw error;
     }

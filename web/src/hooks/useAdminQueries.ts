@@ -1,11 +1,11 @@
 import { adminService, webhookService } from "@/services";
 import type {
   AdminReview,
+  AdminSettings,
   CreateRoleRequest,
   CreateUserRequest,
   CreateWebhookInput,
   Permission,
-  PublicSettings,
   Role,
   SearchUserParams,
   UpdateRoleRequest,
@@ -16,7 +16,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Settings
 export function useAdminSettingsQuery() {
-  return useQuery<PublicSettings>({
+  return useQuery<AdminSettings>({
     queryKey: ["admin", "settings"],
     queryFn: async () => {
       const res = await adminService.getAdminSettings();

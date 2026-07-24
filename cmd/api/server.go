@@ -61,7 +61,7 @@ func NewHTTPServer() *FiberServer {
 	app := fiber.New(fiber.Config{
 		ServerHeader:      "novelhub-api",
 		AppName:           "NovelHub API",
-		BodyLimit:         config.GetIntConfigWithDefault("FIBER_BODY_LIMIT", 16*1024*1024),
+		BodyLimit:         constants.HardMaxUploadChunkBytes + constants.MultipartBodyOverhead,
 		Concurrency:       config.GetIntConfigWithDefault("FIBER_CONCURRENCY", 0),
 		ReadBufferSize:    config.GetIntConfigWithDefault("FIBER_READ_BUFFER_SIZE", 0),
 		WriteBufferSize:   config.GetIntConfigWithDefault("FIBER_WRITE_BUFFER_SIZE", 0),
@@ -117,11 +117,12 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	libraryRepo := repositories.NewLibraryRepository(db, ramCache)
 	jobRepo := repositories.NewJobRepository(db, ramCache)
 	settingsRepo := repositories.NewSettingsRepository(db, ramCache)
+	txManager := database.NewTxManager(db)
 	permissionCache := services.NewPermissionCache(roleRepo)
 	if err := permissionCache.Reload(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("failed to load permission cache")
 	}
-	settingsService := services.NewSettingsService(settingsRepo, permissionCache)
+	settingsService := services.NewSettingsService(settingsRepo, txManager, permissionCache)
 	if err := settingsService.Reload(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("failed to load settings cache")
 	}
@@ -147,7 +148,6 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
 	webhookRepo := repositories.NewWebhookRepository(db, ramCache)
-	txManager := database.NewTxManager(db)
 
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
 	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager)
@@ -170,7 +170,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
 	webhookController := controllers.NewWebhookController(webhookService)
 	bookService.SetWebhookService(webhookService)
-	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache)
+	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache, settingsService)
 
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
@@ -252,7 +252,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return c.SendFile(safePath)
 	})
 
-	api := s.App.Group("/api")
+	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService))
 	v1 := api.Group("/v1")
 
 	v1.Get("/health", func(c fiber.Ctx) error {

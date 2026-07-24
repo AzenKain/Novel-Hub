@@ -504,6 +504,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.searchFTSStmt, err = db.PrepareContext(ctx, searchFTS); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchFTS: %w", err)
 	}
+	if q.searchFTSInBookStmt, err = db.PrepareContext(ctx, searchFTSInBook); err != nil {
+		return nil, fmt.Errorf("error preparing query SearchFTSInBook: %w", err)
+	}
 	if q.searchUserIDsStmt, err = db.PrepareContext(ctx, searchUserIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchUserIDs: %w", err)
 	}
@@ -1408,6 +1411,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing searchFTSStmt: %w", cerr)
 		}
 	}
+	if q.searchFTSInBookStmt != nil {
+		if cerr := q.searchFTSInBookStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing searchFTSInBookStmt: %w", cerr)
+		}
+	}
 	if q.searchUserIDsStmt != nil {
 		if cerr := q.searchUserIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing searchUserIDsStmt: %w", cerr)
@@ -1772,6 +1780,7 @@ type Queries struct {
 	rotateUserRefreshTokenStmt         *sql.Stmt
 	searchBookIDsStmt                  *sql.Stmt
 	searchFTSStmt                      *sql.Stmt
+	searchFTSInBookStmt                *sql.Stmt
 	searchUserIDsStmt                  *sql.Stmt
 	updateBookStmt                     *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
@@ -1971,6 +1980,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		rotateUserRefreshTokenStmt:         q.rotateUserRefreshTokenStmt,
 		searchBookIDsStmt:                  q.searchBookIDsStmt,
 		searchFTSStmt:                      q.searchFTSStmt,
+		searchFTSInBookStmt:                q.searchFTSInBookStmt,
 		searchUserIDsStmt:                  q.searchUserIDsStmt,
 		updateBookStmt:                     q.updateBookStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,

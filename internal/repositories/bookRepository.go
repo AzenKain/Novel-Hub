@@ -83,6 +83,7 @@ type BookMetadataRepository interface {
 
 type BookFTSRepository interface {
 	SearchFTS(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error)
+	SearchFTSInBook(ctx context.Context, bookID, query string) ([]*models.BookSearchSnippet, error)
 	DeleteFTSBook(ctx context.Context, bookID string) error
 	InsertFTSChapter(ctx context.Context, bookID, chapterID, title, content string) error
 	WithTx(tx *sql.Tx) BookDBRepository

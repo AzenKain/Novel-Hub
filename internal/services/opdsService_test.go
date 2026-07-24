@@ -64,7 +64,7 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 	if err := permissionCache.Reload(context.Background()); err != nil {
 		t.Fatalf("failed to load permissions: %v", err)
 	}
-	settingsService := NewSettingsService(settingsRepo, permissionCache)
+	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
 	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
 
 	// Create test book

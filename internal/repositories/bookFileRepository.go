@@ -214,7 +214,7 @@ func (r *localBookFileRepository) SaveCover(ctx context.Context, bookID, ext str
 	if err != nil {
 		return "", "", err
 	}
-	ext, err = bookparser.ValidateImage(data, constants.MaxCoverBytes)
+	ext, err = bookparser.ValidateImage(data, constants.HardMaxCoverBytes)
 	if err != nil {
 		return "", "", err
 	}

@@ -476,7 +476,21 @@
     "smtp_user": "Username / Email",
     "smtp_pass": "Password / App Secret",
     "smtp_from": "From Email Address",
-    "test_smtp": "Test Connection"
+    "test_smtp": "Test Connection",
+    "runtime_limits": "Runtime Limits",
+    "runtime_limits_desc": "Control upload, image, and temporary session size limits.",
+    "save_runtime_limits": "Save Limits",
+    "limit_upload_chunk_bytes": "Upload Chunk Size",
+    "limit_upload_chunks": "Maximum Chunks per Upload",
+    "limit_upload_sessions": "Upload Sessions per User",
+    "limit_upload_bytes": "Maximum Upload Size",
+    "limit_upload_session_ttl_seconds": "Upload Session Lifetime",
+    "limit_cover_bytes": "Maximum Cover Size",
+    "limit_site_asset_bytes": "Maximum Site Asset Size",
+    "unit_mib": "MiB",
+    "unit_minutes": "minutes",
+    "unit_count": "count",
+    "limit_range": "Allowed: {{min}}–{{max}}"
   },
   "kobo": {
     "title": "Kobo E-Reader Wi-Fi Sync",

@@ -566,11 +566,30 @@ func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offse
 	if err != nil {
 		return nil, err
 	}
+	bookIDs := make([]string, 0, len(candidates))
+	seen := make(map[string]struct{}, len(candidates))
+	for _, result := range candidates {
+		if _, ok := seen[result.BookID]; !ok {
+			seen[result.BookID] = struct{}{}
+			bookIDs = append(bookIDs, result.BookID)
+		}
+	}
+	books, err := s.bookRepo.GetBooksByIDs(ctx, bookIDs)
+	if err != nil {
+		return nil, err
+	}
+	booksByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			booksByID[book.ID] = book
+		}
+	}
+
 	claims = resolveClaims(claims)
 	visible := make([]*models.FTSResultEntity, 0, min(int(limit), len(candidates)))
 	for _, result := range candidates {
-		book, err := s.bookRepo.GetBook(ctx, result.BookID)
-		if err != nil || book == nil || !s.CanReadBook(ctx, book, claims) {
+		book := booksByID[result.BookID]
+		if book == nil || !s.CanReadBook(ctx, book, claims) {
 			continue
 		}
 		if !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookSearchDeep, map[string]any{"library_id": book.LibraryID}) {
@@ -1094,8 +1113,9 @@ func (s *bookService) SafeDownloadFilename(title string, ext string) string {
 }
 
 func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input UpdateCoverInput) ([]byte, string, error) {
+	limit := s.settings.Limits().CoverBytes
 	if len(input.UploadedData) > 0 {
-		ext, err := bookparser.ValidateImage(input.UploadedData, constants.MaxCoverBytes)
+		ext, err := bookparser.ValidateImage(input.UploadedData, limit)
 		if err != nil {
 			return nil, "", err
 		}
@@ -1115,7 +1135,7 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if err != nil {
 			return nil, "", err
 		}
-		ext, err := bookparser.ValidateImage(coverData, constants.MaxCoverBytes)
+		ext, err := bookparser.ValidateImage(coverData, limit)
 		if err != nil {
 			return nil, "", err
 		}
@@ -1148,11 +1168,11 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if ct != "" && !strings.HasPrefix(ct, "image/") {
 			return nil, "", fmt.Errorf("cover URL did not return an image (got %s)", ct)
 		}
-		coverData, err := io.ReadAll(io.LimitReader(resp.Body, constants.MaxCoverBytes+1))
+		coverData, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 		if err != nil {
 			return nil, "", err
 		}
-		ext, err := bookparser.ValidateImage(coverData, constants.MaxCoverBytes)
+		ext, err := bookparser.ValidateImage(coverData, limit)
 		if err != nil {
 			return nil, "", err
 		}

@@ -114,6 +114,13 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('home.sections', '{"random_books":true,"top_books":true}'),
     ('auth.registration_enabled', 'true'),
     ('guest_access.mode', '"all"'),
-    ('guest_access.library_ids', '[]')
+    ('guest_access.library_ids', '[]'),
+    ('limits.upload_chunk_bytes', '33554432'),
+    ('limits.upload_chunks', '256'),
+    ('limits.upload_sessions', '16'),
+    ('limits.upload_bytes', '8589934592'),
+    ('limits.upload_session_ttl_seconds', '21600'),
+    ('limits.cover_bytes', '33554432'),
+    ('limits.site_asset_bytes', '10485760')
 ON CONFLICT(key) DO NOTHING;
 

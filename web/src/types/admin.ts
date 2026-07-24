@@ -94,6 +94,26 @@ export interface LibraryPolicy {
   visible_stats?: string[];
 }
 
+export interface RuntimeLimits {
+  upload_chunk_bytes: number;
+  upload_chunks: number;
+  upload_sessions: number;
+  upload_bytes: number;
+  upload_session_ttl_seconds: number;
+  cover_bytes: number;
+  site_asset_bytes: number;
+}
+
+export interface RuntimeLimitBounds {
+  min: RuntimeLimits;
+  max: RuntimeLimits;
+}
+
+export interface AdminSettings extends PublicSettings {
+  limits: RuntimeLimits;
+  bounds: RuntimeLimitBounds;
+}
+
 export interface PublicSettings {
   site: SiteSettings;
   sidebar_visible_items: string[];

@@ -1,4 +1,5 @@
 import { LibraryMultiSelect } from "@/components/admin/settings/LibraryMultiSelect";
+import { RuntimeLimitsCard } from "@/components/admin/settings/RuntimeLimitsCard";
 import { GUEST_MODES, SIDEBAR_LABELS } from "@/constants";
 import { useAdminSettingsQuery, useLibrariesQuery, useUpdateAdminSettingsMutation } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
@@ -579,6 +580,8 @@ export function Settings() {
               </div>
             </div>
           </div>
+
+          <RuntimeLimitsCard />
 
           {/* ────── Webhooks Integration ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">

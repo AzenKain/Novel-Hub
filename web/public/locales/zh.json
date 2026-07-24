@@ -439,7 +439,21 @@
     "smtp_user": "用户名 / 邮箱",
     "smtp_pass": "密码 / 应用密钥",
     "smtp_from": "发件人邮箱地址",
-    "test_smtp": "测试连接"
+    "test_smtp": "测试连接",
+    "runtime_limits": "运行时限制",
+    "runtime_limits_desc": "管理上传、图片和临时会话的大小限制。",
+    "save_runtime_limits": "保存限制",
+    "limit_upload_chunk_bytes": "上传分块大小",
+    "limit_upload_chunks": "每次上传最大分块数",
+    "limit_upload_sessions": "每位用户的上传会话数",
+    "limit_upload_bytes": "最大上传大小",
+    "limit_upload_session_ttl_seconds": "上传会话有效期",
+    "limit_cover_bytes": "最大封面大小",
+    "limit_site_asset_bytes": "最大站点资源大小",
+    "unit_mib": "MiB",
+    "unit_minutes": "分钟",
+    "unit_count": "个",
+    "limit_range": "允许范围：{{min}}–{{max}}"
   },
   "kobo": {
     "title": "Kobo 电纸书 Wi-Fi 原生同步",

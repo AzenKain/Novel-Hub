@@ -8,11 +8,11 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
-	"novelhub/pkg/constants"
 	"novelhub/pkg/validator"
 )
 
@@ -36,18 +36,25 @@ func (h *SettingsController) PublicSettings(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) AdminSettings(c fiber.Ctx) error {
-	return h.PublicSettings(c)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	settings, err := h.service.Admin(ctx)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: settings})
 }
 
 func (h *SettingsController) UpdateSettings(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	dto := &map[string]any{}
+	dto := &request.UpdateSettingsDto{}
 	if errs := validator.ValidateBodyDto(c, dto); errs != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
-	settings, err := h.service.UpdateSettings(ctx, *dto)
+	settings, err := h.service.UpdateSettings(ctx, dto.Values())
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -99,11 +106,12 @@ func (h *SettingsController) handleAssetUpload(ctx context.Context, c fiber.Ctx)
 		}
 		defer f.Close()
 
-		fileData, err = io.ReadAll(io.LimitReader(f, constants.MaxSiteAssetBytes+1))
+		limit := h.service.Limits().SiteAssetBytes
+		fileData, err = io.ReadAll(io.LimitReader(f, limit+1))
 		if err != nil {
 			return apperrors.HandleError(c, err)
 		}
-		if _, err := bookparser.ValidateImage(fileData, constants.MaxSiteAssetBytes); err != nil {
+		if _, err := bookparser.ValidateImage(fileData, limit); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Uploaded file must be a valid JPEG, PNG, or GIF image"})
 		}
 

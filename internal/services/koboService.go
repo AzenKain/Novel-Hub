@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -110,14 +109,18 @@ func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, cla
 	targetFile := files[0]
 	filePath := targetFile.Path
 
-	data, err := os.ReadFile(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
 	}
+	defer file.Close()
 
-	reader := bytes.NewReader(data)
-	if err := kepub.ConvertEPUBToKePub(reader, int64(len(data)), out); err != nil {
-		_, _ = out.Write(data)
+	info, err := file.Stat()
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
+	}
+	if err := kepub.ConvertEPUBToKePub(file, info.Size(), out); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to convert book file")
 	}
 
 	return nil
