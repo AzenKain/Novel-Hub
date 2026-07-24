@@ -3,13 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Link2, Key, Check } from "lucide-react";
 import { useConnectTrackerMutation } from "@/hooks";
 import { toast } from "react-toastify";
+import { useAuthStore } from "@/stores";
+import { hasPermission } from "@/utils/permission";
 
 export const TrackerConnectCard: React.FC = () => {
   const { t } = useTranslation();
+  const user = useAuthStore((state) => state.user);
   const [accessToken, setAccessToken] = useState("");
   const [connected, setConnected] = useState(false);
 
   const connectMutation = useConnectTrackerMutation();
+
+  if (!hasPermission(user, "tracker.sync")) return null;
 
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();

@@ -33,6 +33,7 @@ import {
   metadataNavIds,
 } from "@/lib/libraryMetadata";
 import { useAuthStore, useLibraryStore } from "@/stores";
+import { hasPermission } from "@/utils/permission";
 import {
   Activity,
   AlertCircle,
@@ -816,7 +817,7 @@ export const LibraryWorkspace = () => {
                   }
                   t={t}
                 />
-                {user && (
+                {hasPermission(user, "user.stats.read") && (
                   <div className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <h4 className="flex items-center gap-1.5 text-xs font-bold text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">

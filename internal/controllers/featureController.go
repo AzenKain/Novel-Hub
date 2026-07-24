@@ -261,7 +261,7 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		LocationCfi:     dto.LocationCfi,
 		LocationType:    dto.LocationType,
 		EventType:       dto.EventType,
-	})
+	}, getOptionalClaims(ctx))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
@@ -728,7 +728,7 @@ func (c *FeatureController) RecordReadingSession(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	err := c.service.RecordReadingSession(reqCtx, userID, dto.BookID, dto.Duration, dto.Words)
+	err := c.service.RecordReadingSession(reqCtx, userID, dto.BookID, dto.Duration, dto.Words, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

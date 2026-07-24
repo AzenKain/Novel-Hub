@@ -113,12 +113,13 @@ export const ReaderWorkspace = () => {
   })));
 
 
-  const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id);
-  useReadingStats(book?.id, !settingsOpen); 
+  useReadingStats(book?.id, !settingsOpen);
 
   const publicSettings = usePublicSettings();
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.libraryId, guestPerms);
+  const allowHighlights = hasPermission(user, "book.highlight", book?.libraryId, guestPerms);
+  const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
 
   useEffect(() => {
     return () => {
@@ -891,7 +892,7 @@ export const ReaderWorkspace = () => {
           onReadSelection={handleReadSelection}
           onReadFromHere={handleReadFromHere}
           onCopyText={handleCopyText}
-          onHighlight={handleHighlight}
+          onHighlight={allowHighlights ? handleHighlight : undefined}
         />
       )}
 

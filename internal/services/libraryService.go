@@ -19,14 +19,15 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/worker"
 )
 
 type LibraryService interface {
 	CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*response.LibraryResponse, error)
-	GetLibrary(ctx context.Context, id string) (*response.LibraryResponse, error)
-	ListLibraries(ctx context.Context) ([]*response.LibraryResponse, error)
+	GetLibrary(ctx context.Context, id string, claims *response.JWTClaims) (*response.LibraryResponse, error)
+	ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]*response.LibraryResponse, error)
 	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error)
 	DeleteLibrary(ctx context.Context, id string) error
 	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
@@ -38,14 +39,16 @@ type libraryService struct {
 	libraryRepo repositories.LibraryRepository
 	bookRepo    repositories.BookDBRepository
 	fileRepo    repositories.BookFileRepository
+	permissions PermissionCache
 	jobQueue    *worker.Queue
 }
 
-func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, jobQueue *worker.Queue) LibraryService {
+func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, permissions PermissionCache, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
 		libraryRepo: repo,
 		bookRepo:    bookRepo,
 		fileRepo:    fileRepo,
+		permissions: permissions,
 		jobQueue:    jobQueue,
 	}
 }
@@ -61,20 +64,31 @@ func (s *libraryService) CreateLibrary(ctx context.Context, dto *request.CreateL
 	return lib.ToResponse(), nil
 }
 
-func (s *libraryService) GetLibrary(ctx context.Context, id string) (*response.LibraryResponse, error) {
+func (s *libraryService) GetLibrary(ctx context.Context, id string, claims *response.JWTClaims) (*response.LibraryResponse, error) {
 	lib, err := s.libraryRepo.GetLibrary(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+	resolved := resolveClaims(claims)
+	if !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermLibraryRead, map[string]any{"library_id": lib.ID}) {
+		return nil, fmt.Errorf("library not found")
+	}
 	return lib.ToResponse(), nil
 }
 
-func (s *libraryService) ListLibraries(ctx context.Context) ([]*response.LibraryResponse, error) {
+func (s *libraryService) ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]*response.LibraryResponse, error) {
 	libs, err := s.libraryRepo.ListLibraries(ctx, 1000, 0)
 	if err != nil {
 		return nil, err
 	}
-	return models.LibraryEntitiesToResponse(libs), nil
+	resolved := resolveClaims(claims)
+	visible := make([]*models.LibraryEntity, 0, len(libs))
+	for _, lib := range libs {
+		if s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermLibraryRead, map[string]any{"library_id": lib.ID}) {
+			visible = append(visible, lib)
+		}
+	}
+	return models.LibraryEntitiesToResponse(visible), nil
 }
 
 func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error) {

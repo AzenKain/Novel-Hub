@@ -265,19 +265,34 @@ func (r *roleService) attachPermissions(ctx context.Context, roles ...*models.Ro
 }
 
 func (r *roleService) replacePermissions(ctx context.Context, txRepo repositories.RoleRepository, role *models.RoleEntity, dto []request.RolePermissionDto) error {
+	catalog, err := txRepo.ListPermissions(ctx)
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to load permission catalog")
+	}
+	validKeys := make(map[string]struct{}, len(catalog))
+	for _, permission := range catalog {
+		validKeys[permission.Key] = struct{}{}
+	}
+
 	permissions := make([]*models.RolePermissionEntity, 0, len(dto))
 	for _, item := range dto {
 		key := strings.TrimSpace(item.PermissionKey)
-		if key == "" {
-			continue
+		if _, ok := validKeys[key]; !ok {
+			return apperrors.New(apperrors.ErrBadRequest, "Invalid permission key")
 		}
 		effect := item.Effect
 		if effect == "" {
 			effect = "allow"
 		}
+		if effect != "allow" && effect != "deny" {
+			return apperrors.New(apperrors.ErrBadRequest, "Invalid permission effect")
+		}
 		conditions := item.Conditions
 		if conditions == nil {
 			conditions = map[string]any{}
+		}
+		if !validPermissionConditions(conditions) {
+			return apperrors.New(apperrors.ErrBadRequest, "Invalid permission conditions")
 		}
 		data, err := jsonx.Marshal(conditions)
 		if err != nil {

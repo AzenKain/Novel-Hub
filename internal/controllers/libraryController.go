@@ -48,7 +48,7 @@ func (h *LibraryController) GetLibrary(c fiber.Ctx) error {
 	defer cancel()
 
 	id := c.Params("id")
-	lib, err := h.libraryService.GetLibrary(ctx, id)
+	lib, err := h.libraryService.GetLibrary(ctx, id, getOptionalClaims(c))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
 	}
@@ -60,7 +60,7 @@ func (h *LibraryController) ListLibraries(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	libs, err := h.libraryService.ListLibraries(ctx)
+	libs, err := h.libraryService.ListLibraries(ctx, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -134,7 +134,7 @@ func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Library ID is required"})
 	}
 
-	_, err := h.libraryService.GetLibrary(ctx, libraryID)
+	_, err := h.libraryService.GetLibrary(ctx, libraryID, getOptionalClaims(c))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
 	}

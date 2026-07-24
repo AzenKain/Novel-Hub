@@ -42,6 +42,7 @@ import (
 	"novelhub/pkg/bookparser/rtf"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/config"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/localfs"
@@ -158,9 +159,9 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
 	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
-	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, jobQueue)
+	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, permissionCache, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
-	highlightService := services.NewHighlightService(highlightRepo)
+	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
 	metadataService := services.NewMetadataService(bookRepo)
 	jobService := services.NewJobService(jobRepo)
 	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
@@ -270,20 +271,20 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
 	routes.WebhookRoutes(v1, webhookController, userRepo, permissionCache)
 	routes.SetupUploadRoutes(v1, uploadController, userRepo)
-	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "book.manage"), calibreController.ImportCalibre)
+	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
 
 	opdsService := services.NewOPDSService(bookService, permissionCache)
 	opdsController := controllers.NewOPDSController(opdsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
-	koboService := services.NewKoboService(bookRepo, bookFileRepo)
+	koboService := services.NewKoboService(bookRepo, bookFileRepo, bookService, permissionCache)
 	koboController := controllers.NewKoboController(koboService)
-	routes.KoboRoutes(s.App, koboController, userRepo)
+	routes.KoboRoutes(s.App, koboController, userRepo, permissionCache)
 
 	trackerRepo := repositories.NewTrackerRepository(db, ramCache)
 	trackerService := services.NewTrackerService(trackerRepo)
 	trackerController := controllers.NewTrackerController(trackerService)
-	routes.TrackerRoutes(v1, trackerController, userRepo)
+	routes.TrackerRoutes(v1, trackerController, userRepo, permissionCache)
 
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)

@@ -1,15 +1,16 @@
 import { useAuthStore } from "@/stores";
-import { isAdminUser, isBannedUser } from "@/utils/permission";
+import type { ProtectedRouteProps } from "@/types";
+import { hasPermission, isAdminUser, isBannedUser } from "@/utils/permission";
 import { useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
-interface ProtectedRouteProps {
-  requiredRoles?: string[];
-  redirectPath?: string;
-}
-
-export function ProtectedRoute({ requiredRoles, redirectPath = "/login" }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  requiredRoles,
+  requiredPermission,
+  requiredAnyPermissions,
+  redirectPath = "/login",
+}: ProtectedRouteProps) {
   const { user, booted, bootstrap } = useAuthStore(
     useShallow((state) => ({
       user: state.user,
@@ -36,11 +37,16 @@ export function ProtectedRoute({ requiredRoles, redirectPath = "/login" }: Prote
     return <Navigate to={redirectPath} replace />;
   }
 
-  if (requiredRoles && requiredRoles.length > 0) {
-    const hasRole = isAdminUser(user) || user.roles.some((role) => requiredRoles.includes(role.name.toUpperCase()));
-    if (!hasRole) {
-      return <Navigate to="/" replace />;
-    }
+  const hasRequiredRole = !requiredRoles?.length || isAdminUser(user) || user.roles.some(
+    (role) => typeof role?.name === "string" && requiredRoles.includes(role.name.toUpperCase()),
+  );
+  const hasRequiredPermission = !requiredPermission || hasPermission(user, requiredPermission);
+  const hasAnyRequiredPermission = !requiredAnyPermissions?.length || requiredAnyPermissions.some(
+    (permission) => hasPermission(user, permission),
+  );
+
+  if (!hasRequiredRole || !hasRequiredPermission || !hasAnyRequiredPermission) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

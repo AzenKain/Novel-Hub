@@ -46,7 +46,7 @@ type BookService interface {
 	UploadBookFiles(ctx context.Context, bookID string, files []*multipart.FileHeader) (*models.BookFileUploadResult, error)
 	ProcessSingleLocalFile(ctx context.Context, bookID string, filename string, localFilePath string) error
 	ExtractMetadata(ctx context.Context, bookID string) error
-	SearchDeep(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error)
+	SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*models.FTSResultEntity, error)
 	SearchInBook(ctx context.Context, bookID string, query string) ([]*models.BookSearchSnippet, error)
 	GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error)
 	GetDuplicateGroups(ctx context.Context) ([]*response.DuplicateGroupResponse, error)
@@ -554,14 +554,34 @@ func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.
 	}
 }
 
-func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error) {
+func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*models.FTSResultEntity, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	return s.bookRepo.SearchFTS(ctx, query, limit, offset)
+
+	candidates, err := s.bookRepo.SearchFTS(ctx, query, 100, offset)
+	if err != nil {
+		return nil, err
+	}
+	claims = resolveClaims(claims)
+	visible := make([]*models.FTSResultEntity, 0, min(int(limit), len(candidates)))
+	for _, result := range candidates {
+		book, err := s.bookRepo.GetBook(ctx, result.BookID)
+		if err != nil || book == nil || !s.CanReadBook(ctx, book, claims) {
+			continue
+		}
+		if !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookSearchDeep, map[string]any{"library_id": book.LibraryID}) {
+			continue
+		}
+		visible = append(visible, result)
+		if int64(len(visible)) == limit {
+			break
+		}
+	}
+	return visible, nil
 }
 
 func (s *bookService) GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error) {
@@ -1036,8 +1056,7 @@ func (s *bookService) CanUpdateBook(ctx context.Context, book *models.BookEntity
 	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
 		return true
 	}
-	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookEdit, map[string]any{"library_id": book.LibraryID}) ||
-		s.permissions.CanRoles(c.RoleIDs, c.Roles, "book.manage", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookEdit, map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
@@ -1048,8 +1067,7 @@ func (s *bookService) CanDeleteBook(ctx context.Context, book *models.BookEntity
 	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
 		return true
 	}
-	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookDelete, map[string]any{"library_id": book.LibraryID}) ||
-		s.permissions.CanRoles(c.RoleIDs, c.Roles, "book.manage", map[string]any{"library_id": book.LibraryID})
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookDelete, map[string]any{"library_id": book.LibraryID})
 }
 
 func (s *bookService) SafeDownloadFilename(title string, ext string) string {

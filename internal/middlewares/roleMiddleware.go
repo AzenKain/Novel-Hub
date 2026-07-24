@@ -103,3 +103,17 @@ func BookLibraryAttr(bookRepo repositories.BookDBRepository, param string) Permi
 		return map[string]any{"library_id": book.LibraryID}, nil
 	}
 }
+
+func BookFileLibraryAttr(bookRepo repositories.BookDBRepository, param string) PermissionAttrResolver {
+	return func(c fiber.Ctx) (map[string]any, error) {
+		file, err := bookRepo.GetBookFileById(c.Context(), c.Params(param))
+		if err != nil || file == nil {
+			return nil, fiber.ErrNotFound
+		}
+		book, err := bookRepo.GetBook(c.Context(), file.BookID)
+		if err != nil || book == nil {
+			return nil, fiber.ErrNotFound
+		}
+		return map[string]any{"library_id": book.LibraryID}, nil
+	}
+}

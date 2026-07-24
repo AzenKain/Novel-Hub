@@ -7,12 +7,12 @@ import (
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
 	"novelhub/internal/services"
+	"novelhub/pkg/constants"
 )
 
 func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, highlightController *controllers.HighlightController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
 	// Highlights
 	highlightGroup := app.Group("/highlights", middlewares.JwtAccess(userRepo))
-	highlightGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
 	highlightGroup.Post("/", highlightController.CreateHighlight)
 	highlightGroup.Get("/", highlightController.GetHighlights)
 	highlightGroup.Put("/:id", highlightController.UpdateHighlightNote)
@@ -21,19 +21,17 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	app.Get("/library/stats", featureController.GetLibraryStats)
 
 	historyGroup := app.Group("/reader/history", middlewares.JwtAccess(userRepo))
-	historyGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
-	historyGroup.Get("/", featureController.GetRecentReadingHistory)
+	historyGroup.Get("/", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetRecentReadingHistory)
 	historyGroup.Post("/", featureController.RecordReadingActivity)
 	historyGroup.Get("/progress/:id", featureController.GetReadingProgress)
 
 	statsGroup := app.Group("/reader/stats", middlewares.JwtAccess(userRepo))
-	statsGroup.Use(middlewares.RequirePermission(permissionCache, "book.read"))
 	statsGroup.Post("/session", featureController.RecordReadingSession)
-	statsGroup.Get("/heatmap", featureController.GetReadingHeatmap)
+	statsGroup.Get("/heatmap", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingHeatmap)
 
-	app.Get("/reader/stats/:id", featureController.GetBookReadStats)
-	app.Get("/books/:id/download-stats", featureController.GetBookDownloadStats)
-	app.Get("/books/:id/engagement", featureController.GetBookEngagementStats)
+	app.Get("/reader/stats/:id", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookReadStats)
+	app.Get("/books/:id/download-stats", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookDownloadStats)
+	app.Get("/books/:id/engagement", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookEngagementStats)
 	app.Get("/books/:id/rating", featureController.GetBookRatingSummary)
 	app.Get("/books/:id/reviews", featureController.ListBookReviews)
 	app.Post("/books/:id/share", middlewares.OptionalJwtAccess(userRepo), featureController.RecordBookShare)

@@ -6,6 +6,7 @@ import (
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
 	"novelhub/internal/services"
+	"novelhub/pkg/constants"
 )
 
 func SetupReaderRoutes(router fiber.Router, controller *controllers.ReaderController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
@@ -15,6 +16,6 @@ func SetupReaderRoutes(router fiber.Router, controller *controllers.ReaderContro
 	reader.Get("/:id/chapter/:chapterId", middlewares.OptionalJwtAccess(userRepo), controller.GetChapter)
 	reader.Get("/:id/file", middlewares.OptionalJwtAccess(userRepo), controller.GetFile)
 	reader.Get("/:id/images", middlewares.OptionalJwtAccess(userRepo), controller.ListImages)
-	reader.Post("/:id/cover", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "book.manage", middlewares.BookLibraryAttr(bookRepo, "id")), controller.UpdateCover)
+	reader.Post("/:id/cover", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), controller.UpdateCover)
 	reader.Get("/:id/asset/*", middlewares.OptionalJwtAccess(userRepo), controller.GetAsset)
 }

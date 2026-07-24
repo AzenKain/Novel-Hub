@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-export const useHighlights = (bookId: string, chapterId: string | undefined) => {
+export const useHighlights = (bookId: string, chapterId: string | undefined, enabled = true) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
 
@@ -15,7 +15,7 @@ export const useHighlights = (bookId: string, chapterId: string | undefined) => 
       const data = await highlightService.getHighlights(chapterId);
       return Array.isArray(data) ? data : [];
     },
-    enabled: Boolean(chapterId && user),
+    enabled: Boolean(enabled && chapterId && user),
   });
 
   const addMutation = useMutation({

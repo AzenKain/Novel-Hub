@@ -187,7 +187,7 @@ func (h *BookController) SearchDeep(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	results, err := h.bookService.SearchDeep(ctx, dto.Query, int64(dto.Limit), int64(dto.Offset))
+	results, err := h.bookService.SearchDeep(ctx, dto.Query, int64(dto.Limit), int64(dto.Offset), getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

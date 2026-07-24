@@ -119,12 +119,14 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
                     {t("user.profile", "Profile")}
                   </button>
                 </li>
-                <li>
-                  <Link to="/analytics" className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-primary opacity-80" />
-                    {t("analytics.title", "Reading Analytics")}
-                  </Link>
-                </li>
+                {hasPermission(user, "user.stats.read") && (
+                  <li>
+                    <Link to="/analytics" className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-primary opacity-80" />
+                      {t("analytics.title", "Reading Analytics")}
+                    </Link>
+                  </li>
+                )}
                 <li>
                   <button className="text-error flex items-center gap-2" onClick={logout}>
                     <LogOut className="w-4 h-4 opacity-80" />

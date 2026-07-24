@@ -6,28 +6,34 @@ import (
 	"io"
 	"os"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/kepub"
 )
 
 type KoboService interface {
 	GetInitialization(ctx context.Context) (map[string]any, error)
 	GetUserProfile(ctx context.Context) (map[string]any, error)
-	GetSyncList(ctx context.Context, syncToken string) (map[string]any, error)
-	GetBookKePubStream(ctx context.Context, bookID string, out io.Writer) error
+	GetSyncList(ctx context.Context, syncToken string, claims *response.JWTClaims) (map[string]any, error)
+	GetBookKePubStream(ctx context.Context, bookID string, claims *response.JWTClaims, out io.Writer) error
 	SyncState(ctx context.Context, userID int64, stateData map[string]any) error
 }
 
 type koboService struct {
-	bookRepo repositories.BookDBRepository
-	diskRepo repositories.BookFileRepository
+	bookRepo    repositories.BookDBRepository
+	diskRepo    repositories.BookFileRepository
+	bookService BookService
+	permissions PermissionCache
 }
 
-func NewKoboService(bookRepo repositories.BookDBRepository, diskRepo repositories.BookFileRepository) KoboService {
+func NewKoboService(bookRepo repositories.BookDBRepository, diskRepo repositories.BookFileRepository, bookService BookService, permissions PermissionCache) KoboService {
 	return &koboService{
-		bookRepo: bookRepo,
-		diskRepo: diskRepo,
+		bookRepo:    bookRepo,
+		diskRepo:    diskRepo,
+		bookService: bookService,
+		permissions: permissions,
 	}
 }
 
@@ -53,14 +59,19 @@ func (s *koboService) GetUserProfile(ctx context.Context) (map[string]any, error
 	}, nil
 }
 
-func (s *koboService) GetSyncList(ctx context.Context, syncToken string) (map[string]any, error) {
+func (s *koboService) GetSyncList(ctx context.Context, syncToken string, claims *response.JWTClaims) (map[string]any, error) {
 	books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", nil, 100)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "failed to query books for kobo sync")
 	}
 
+	claims = resolveClaims(claims)
 	var syncItems []map[string]any
 	for _, b := range books {
+		attrs := map[string]any{"library_id": b.LibraryID}
+		if !s.bookService.CanReadBook(ctx, b, claims) || !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermKoboSync, attrs) {
+			continue
+		}
 		syncItems = append(syncItems, map[string]any{
 			"Id": b.ID,
 			"NewEntitlement": map[string]any{
@@ -82,7 +93,15 @@ func (s *koboService) GetSyncList(ctx context.Context, syncToken string) (map[st
 	}, nil
 }
 
-func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, out io.Writer) error {
+func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, claims *response.JWTClaims, out io.Writer) error {
+	book, err := s.bookRepo.GetBook(ctx, bookID)
+	if err != nil || book == nil || !s.bookService.CanReadBook(ctx, book, claims) || !s.bookService.CanDownloadBook(ctx, book, claims) {
+		return apperrors.New(apperrors.ErrNotFound, "Book file not found")
+	}
+	resolved := resolveClaims(claims)
+	if !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermKoboSync, map[string]any{"library_id": book.LibraryID}) {
+		return apperrors.New(apperrors.ErrNotFound, "Book file not found")
+	}
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil || len(files) == 0 {
 		return apperrors.New(apperrors.ErrNotFound, "Book file not found")

@@ -37,7 +37,7 @@ func (c *HighlightController) CreateHighlight(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := c.service.CreateHighlight(reqCtx, userID, dto)
+	res, err := c.service.CreateHighlight(reqCtx, userID, dto, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -68,7 +68,7 @@ func (c *HighlightController) GetHighlights(ctx fiber.Ctx) error {
 		})
 	}
 
-	res, err := c.service.GetHighlights(reqCtx, userID, chapterID)
+	res, err := c.service.GetHighlights(reqCtx, userID, chapterID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -97,7 +97,7 @@ func (c *HighlightController) UpdateHighlightNote(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := c.service.UpdateHighlightNote(reqCtx, userID, id, dto)
+	res, err := c.service.UpdateHighlightNote(reqCtx, userID, id, dto, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -121,7 +121,7 @@ func (c *HighlightController) DeleteHighlight(ctx fiber.Ctx) error {
 	}
 
 	id := ctx.Params("id")
-	err := c.service.DeleteHighlight(reqCtx, userID, id)
+	err := c.service.DeleteHighlight(reqCtx, userID, id, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

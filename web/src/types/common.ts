@@ -1,3 +1,10 @@
+export type ProtectedRouteProps = {
+  requiredRoles?: string[];
+  requiredPermission?: string;
+  requiredAnyPermissions?: string[];
+  redirectPath?: string;
+};
+
 export type CommonResponse<T> = {
   status: boolean;
   data?: T;

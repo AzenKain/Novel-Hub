@@ -2,6 +2,7 @@ import { LanguageSwitcher, ThemeController } from "@/components/ui";
 import { useLogoutMutation } from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores";
+import { hasPermission } from "@/utils/permission";
 import { BookOpen, Copy, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -22,13 +23,13 @@ export function AdminLayout() {
   };
 
   const navItems = [
-    { name: t("admin.users", "Users"), path: "/admin/users", icon: Users },
-    { name: t("admin.roles", "Roles"), path: "/admin/roles", icon: Shield },
-    { name: t("admin.books_libraries", "Books & Libraries"), path: "/admin/books", icon: BookOpen },
-    { name: t("admin.settings", "Settings"), path: "/admin/settings", icon: Settings2 },
-    { name: t("admin.duplicates", "Duplicate Files"), path: "/admin/duplicates", icon: Copy },
-    { name: t("admin.reviews", "Reviews"), path: "/admin/reviews", icon: MessageSquareText }
-  ];
+    { name: t("admin.users", "Users"), path: "/admin/users", icon: Users, permissions: ["user.manage"] },
+    { name: t("admin.roles", "Roles"), path: "/admin/roles", icon: Shield, permissions: ["role.manage"] },
+    { name: t("admin.books_libraries", "Books & Libraries"), path: "/admin/books", icon: BookOpen, permissions: ["book.upload", "book.edit", "book.delete", "book.bulk.manage", "library.manage"] },
+    { name: t("admin.settings", "Settings"), path: "/admin/settings", icon: Settings2, permissions: ["setting.manage"] },
+    { name: t("admin.duplicates", "Duplicate Files"), path: "/admin/duplicates", icon: Copy, permissions: ["book.duplicate.manage"] },
+    { name: t("admin.reviews", "Reviews"), path: "/admin/reviews", icon: MessageSquareText, permissions: ["book.review.delete"] }
+  ].filter((item) => item.permissions.some((permission) => hasPermission(user, permission)));
 
   return (
     <div className="drawer lg:drawer-open bg-base-200 min-h-screen font-sans">
@@ -58,7 +59,7 @@ export function AdminLayout() {
               {settings?.site?.logo ? (
                 <img src={settings.site.logo} alt="Logo" className="w-8 h-8 rounded bg-base-100 object-contain mr-3" />
               ) : (
-                <div className="w-8 h-8 rounded bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3">NH</div>
+                <div className="w-8 h-8 rounded bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3">NH</div>
               )}
               <div className="flex flex-col">
                 <span className="text-xl font-bold leading-tight">{settings?.site?.title || "NovelHub"}</span>

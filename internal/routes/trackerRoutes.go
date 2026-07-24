@@ -4,15 +4,18 @@ import (
 	"novelhub/internal/controllers"
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
+	"novelhub/internal/services"
+	"novelhub/pkg/constants"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-func TrackerRoutes(app fiber.Router, trackerController *controllers.TrackerController, userRepo repositories.UserRepository) {
-	group := app.Group("/trackers")
+func TrackerRoutes(app fiber.Router, trackerController *controllers.TrackerController, userRepo repositories.UserRepository, permissionCache services.PermissionCache) {
+	group := app.Group("/trackers", middlewares.JwtAccess(userRepo))
+	group.Use(middlewares.RequirePermission(permissionCache, constants.PermTrackerSync))
 
-	group.Post("/connect", middlewares.JwtAccess(userRepo), trackerController.ConnectTracker)
-	group.Post("/map", middlewares.JwtAccess(userRepo), trackerController.MapBookTracker)
-	group.Get("/search", middlewares.JwtAccess(userRepo), trackerController.SearchAniList)
-	group.Post("/sync", middlewares.JwtAccess(userRepo), trackerController.SyncProgress)
+	group.Post("/connect", trackerController.ConnectTracker)
+	group.Post("/map", trackerController.MapBookTracker)
+	group.Get("/search", trackerController.SearchAniList)
+	group.Post("/sync", trackerController.SyncProgress)
 }

@@ -51,7 +51,7 @@ func (ctrl *KoboController) GetSyncList(c fiber.Ctx) error {
 	defer cancel()
 
 	token := c.Query("SyncToken", "")
-	res, err := ctrl.koboService.GetSyncList(ctx, token)
+	res, err := ctrl.koboService.GetSyncList(ctx, token, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -70,7 +70,7 @@ func (ctrl *KoboController) DownloadKePub(c fiber.Ctx) error {
 	c.Set("Content-Type", "application/epub+zip")
 	c.Set("Content-Disposition", `attachment; filename="book.kepub.epub"`)
 
-	return ctrl.koboService.GetBookKePubStream(ctx, bookID, c.Response().BodyWriter())
+	return ctrl.koboService.GetBookKePubStream(ctx, bookID, getOptionalClaims(c), c.Response().BodyWriter())
 }
 
 func (ctrl *KoboController) SyncState(c fiber.Ctx) error {

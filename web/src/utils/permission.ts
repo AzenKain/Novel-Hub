@@ -1,13 +1,13 @@
 import type { User } from "@/types";
 
 export function isAdminUser(user: User | null | undefined): boolean {
-  if (!user || !user.roles) return false;
-  return user.roles.some((role) => Boolean(role.is_admin) || role.name.toUpperCase() === "ADMIN");
+  if (!user || !Array.isArray(user.roles)) return false;
+  return user.roles.some((role) => Boolean(role?.is_admin) || (typeof role?.name === "string" && role.name.toUpperCase() === "ADMIN"));
 }
 
 export function isBannedUser(user: User | null | undefined): boolean {
-  if (!user || !user.roles) return false;
-  return user.roles.some((role) => Boolean(role.is_banned) || role.name?.toUpperCase() === "BANNED");
+  if (!user || !Array.isArray(user.roles)) return false;
+  return user.roles.some((role) => Boolean(role?.is_banned) || (typeof role?.name === "string" && role.name.toUpperCase() === "BANNED"));
 }
 
 export function hasPermission(
@@ -16,10 +16,16 @@ export function hasPermission(
   libraryId?: string,
   guestPermissions?: string[]
 ): boolean {
-  if (!user || !user.roles || user.roles.length === 0) {
-    if (guestPermissions && Array.isArray(guestPermissions)) {
+  if (typeof permissionKey !== "string" || !permissionKey) return false;
+
+  if (!user || !Array.isArray(user.roles) || user.roles.length === 0) {
+    if (!user && Array.isArray(guestPermissions)) {
       return guestPermissions.includes(permissionKey);
     }
+    return false;
+  }
+
+  if (isBannedUser(user)) {
     return false;
   }
 
@@ -27,11 +33,7 @@ export function hasPermission(
     return true;
   }
 
-  if (isBannedUser(user)) {
-    return false;
-  }
-
-  const sortedRoles = [...user.roles].sort((a, b) => {
+  const sortedRoles = user.roles.filter(Boolean).sort((a, b) => {
     const posA = a.position ?? 0;
     const posB = b.position ?? 0;
     return posB - posA;
@@ -39,13 +41,20 @@ export function hasPermission(
 
   let allowed = false;
   for (const role of sortedRoles) {
-    if (role.permissions && role.permissions.length > 0) {
+    if (Array.isArray(role.permissions)) {
       for (const p of role.permissions) {
-        if (p.permission_key !== permissionKey) continue;
+        if (!p || p.permission_key !== permissionKey) continue;
+        if (p.effect !== "allow" && p.effect !== "deny") return false;
 
-        if (p.conditions && Array.isArray(p.conditions.library_ids) && p.conditions.library_ids.length > 0) {
-          if (!libraryId || !(p.conditions.library_ids as string[]).includes(libraryId)) {
-            continue;
+        const conditions = p.conditions;
+        if (conditions !== undefined) {
+          if (!conditions || typeof conditions !== "object" || Array.isArray(conditions)) return false;
+          const keys = Object.keys(conditions);
+          if (keys.some((key) => key !== "library_ids")) return false;
+          if ("library_ids" in conditions) {
+            const libraryIds = conditions.library_ids;
+            if (!Array.isArray(libraryIds) || libraryIds.some((id) => typeof id !== "string")) return false;
+            if (libraryIds.length > 0 && (!libraryId || !libraryIds.includes(libraryId))) continue;
           }
         }
 
@@ -53,9 +62,7 @@ export function hasPermission(
           return false;
         }
 
-        if (p.effect === "allow") {
-          allowed = true;
-        }
+        allowed = true;
       }
     }
   }

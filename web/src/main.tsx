@@ -82,21 +82,35 @@ function App() {
             <Route path="/" element={<LibraryWorkspace />} />
             <Route path="/books/:bookId" element={<LibraryWorkspace />} />
             <Route path="/reader/:bookId" element={<ReaderWorkspace />} />
-            <Route path="/analytics" element={<ReadingAnalyticsPage />} />
+            <Route element={<ProtectedRoute requiredPermission="user.stats.read" />}>
+              <Route path="/analytics" element={<ReadingAnalyticsPage />} />
+            </Route>
             <Route path="/setup" element={<SetupWizard />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route
               path="/admin"
-              element={<ProtectedRoute requiredRoles={["ADMIN", "MOD"]} />}
+              element={<ProtectedRoute requiredPermission="admin.access" />}
             >
               <Route element={<AdminLayout />}>
                 <Route index element={<Navigate to="books" replace />} />
-                <Route path="users" element={<Users />} />
-                <Route path="roles" element={<Roles />} />
-                <Route path="books" element={<Books />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="duplicates" element={<Duplicates />} />
-                <Route path="reviews" element={<Reviews />} />
+                <Route element={<ProtectedRoute requiredPermission="user.manage" />}>
+                  <Route path="users" element={<Users />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredPermission="role.manage" />}>
+                  <Route path="roles" element={<Roles />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredAnyPermissions={["book.upload", "book.edit", "book.delete", "book.bulk.manage", "library.manage"]} />}>
+                  <Route path="books" element={<Books />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredPermission="setting.manage" />}>
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredPermission="book.duplicate.manage" />}>
+                  <Route path="duplicates" element={<Duplicates />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredPermission="book.review.delete" />}>
+                  <Route path="reviews" element={<Reviews />} />
+                </Route>
               </Route>
             </Route>
 

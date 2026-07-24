@@ -2,10 +2,8 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -101,8 +99,8 @@ func (p *permissionCache) Reload(ctx context.Context) error {
 		}
 		role.Permissions = append(role.Permissions, cachedRolePermission{
 			PermissionKey: permission.PermissionKey,
-			Effect:         permission.Effect,
-			Conditions:     permission.Conditions,
+			Effect:        permission.Effect,
+			Conditions:    permission.Conditions,
 		})
 	}
 
@@ -194,7 +192,7 @@ func (p *permissionCache) GetGuestPermissions() []string {
 	}
 	keys := make([]string, 0, len(guestRole.Permissions))
 	for _, perm := range guestRole.Permissions {
-		if perm.Effect != "deny" {
+		if perm.Effect == "allow" && len(perm.Conditions) == 0 {
 			keys = append(keys, perm.PermissionKey)
 		}
 	}
@@ -248,54 +246,53 @@ func conditionsMatch(conditions map[string]any, attrs map[string]any) bool {
 	if len(conditions) == 0 {
 		return true
 	}
-	if libraryIDs, ok := stringSliceCondition(conditions["library_ids"]); ok {
-		if len(libraryIDs) == 0 {
-			return true
-		}
-		libraryID := attrString(attrs, "library_id")
-		if libraryID == "" {
-			return false
-		}
-		return slices.Contains(libraryIDs, libraryID)
+	if len(conditions) != 1 {
+		return false
 	}
-	return true
+	libraryIDs, ok := strictLibraryIDs(conditions["library_ids"])
+	if !ok {
+		return false
+	}
+	libraryID, ok := attrs["library_id"].(string)
+	return ok && libraryID != "" && slices.Contains(libraryIDs, libraryID)
 }
 
-func stringSliceCondition(value any) ([]string, bool) {
+func strictLibraryIDs(value any) ([]string, bool) {
+	var libraryIDs []string
 	switch typed := value.(type) {
-	case nil:
-		return nil, false
 	case []string:
-		return typed, true
+		libraryIDs = typed
 	case []any:
-		out := make([]string, 0, len(typed))
-		for _, item := range typed {
-			out = append(out, fmt.Sprint(item))
+		libraryIDs = make([]string, len(typed))
+		for i, item := range typed {
+			id, ok := item.(string)
+			if !ok {
+				return nil, false
+			}
+			libraryIDs[i] = id
 		}
-		return out, true
 	default:
-		return []string{fmt.Sprint(typed)}, true
+		return nil, false
 	}
+	if len(libraryIDs) == 0 {
+		return nil, false
+	}
+	for _, id := range libraryIDs {
+		if strings.TrimSpace(id) == "" {
+			return nil, false
+		}
+	}
+	return libraryIDs, true
 }
 
-func attrString(attrs map[string]any, key string) string {
-	if len(attrs) == 0 {
+func validPermissionConditions(conditions map[string]any) bool {
+	return len(conditions) == 0 || conditionsMatch(conditions, map[string]any{"library_id": firstLibraryID(conditions)})
+}
+
+func firstLibraryID(conditions map[string]any) string {
+	ids, ok := strictLibraryIDs(conditions["library_ids"])
+	if !ok {
 		return ""
 	}
-	value, ok := attrs[key]
-	if !ok || value == nil {
-		return ""
-	}
-	switch typed := value.(type) {
-	case string:
-		return typed
-	case fmt.Stringer:
-		return typed.String()
-	case int:
-		return strconv.Itoa(typed)
-	case int64:
-		return strconv.FormatInt(typed, 10)
-	default:
-		return fmt.Sprint(typed)
-	}
+	return ids[0]
 }

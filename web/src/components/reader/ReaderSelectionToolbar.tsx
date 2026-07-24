@@ -9,7 +9,7 @@ type ReaderSelectionToolbarProps = {
   onReadSelection: () => void;
   onReadFromHere: () => void;
   onCopyText?: () => void;
-  onHighlight: (color: string) => void;
+  onHighlight?: (color: string) => void;
 };
 
 export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
@@ -84,9 +84,11 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           </button>
         </>
       )}
-      <div className="mx-1 h-4 w-px bg-slate-700 pointer-events-none" />
+      {onHighlight && (
+        <>
+          <div className="mx-1 h-4 w-px bg-slate-700 pointer-events-none" />
 
-      <div data-reader-toolbar="true" className="flex items-center gap-1.5 px-1">
+          <div data-reader-toolbar="true" className="flex items-center gap-1.5 px-1">
         <button
           type="button"
           data-reader-toolbar="true"
@@ -131,7 +133,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           className="h-4 w-4 rounded-full bg-purple-400 border border-purple-200/50 shadow-sm transition-transform hover:scale-125"
           title="Highlight Purple"
         />
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

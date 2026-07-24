@@ -30,7 +30,7 @@ type FeatureService interface {
 	GetUserCollections(ctx context.Context, userID int64, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error)
 	GetRecentReadingHistory(ctx context.Context, userID int64, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error)
 	GetReadingProgress(ctx context.Context, userID int64, bookID string) (*response.ReadingProgressResponse, error)
-	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error)
+	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput, claims *response.JWTClaims) (*response.ReadingActivityResponse, error)
 	GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error)
 	RecordDownload(ctx context.Context, bookID string) error
 	GetBookDownloadStats(ctx context.Context, bookID string) (*response.BookDownloadStatsResponse, error)
@@ -52,7 +52,7 @@ type FeatureService interface {
 	PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool
 	PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool
 	ShareActorKey(clientID string, ip string, userAgent string) string
-	RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64) error
+	RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64, claims *response.JWTClaims) error
 	GetReadingHeatmap(ctx context.Context, userID int64) (map[string]map[string]int64, error)
 }
 
@@ -136,7 +136,12 @@ func (s *featureService) GetReadingProgress(ctx context.Context, userID int64, b
 	return entity.ToResponse(), nil
 }
 
-func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput) (*response.ReadingActivityResponse, error) {
+func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput, claims *response.JWTClaims) (*response.ReadingActivityResponse, error) {
+	book, err := s.bookRepo.GetBook(ctx, input.BookID)
+	resolved := resolveClaims(claims)
+	if err != nil || book == nil || !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID}) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
+	}
 	if strings.TrimSpace(input.BookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
@@ -595,8 +600,13 @@ func (s *featureService) ShareActorKey(clientID string, ip string, userAgent str
 	return hex.EncodeToString(sum[:])
 }
 
-func (s *featureService) RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64) error {
-	_, err := s.repo.UpsertReadingSession(ctx, sqlc.UpsertReadingSessionParams{
+func (s *featureService) RecordReadingSession(ctx context.Context, userID int64, bookID string, duration int64, words int64, claims *response.JWTClaims) error {
+	book, err := s.bookRepo.GetBook(ctx, bookID)
+	resolved := resolveClaims(claims)
+	if err != nil || book == nil || !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID}) {
+		return apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
+	}
+	_, err = s.repo.UpsertReadingSession(ctx, sqlc.UpsertReadingSessionParams{
 		UserID:          userID,
 		BookID:          bookID,
 		DurationSeconds: duration,
