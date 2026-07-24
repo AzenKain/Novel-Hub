@@ -152,4 +152,4 @@ Database restores are validated and staged first. With `RESTORE_AUTO_RESTART=tru
 
 ## License
 
-This project is for personal use. All rights reserved.
+MIT
