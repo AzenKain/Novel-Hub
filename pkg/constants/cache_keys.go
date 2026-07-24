@@ -13,4 +13,9 @@ const (
 	CacheKeyBookFileDupes              = "book_file:duplicates"
 	CacheKeyWebhookAll                 = "webhooks:all"
 	CacheKeyWebhookActive              = "webhooks:active"
+	CacheKeyJobScheduleList            = "job_schedule:list"
+	CacheKeyJobListPattern             = "job:list*"
+	CacheKeyJobCountPattern            = "job:count*"
+	CacheKeyJobUnfinishedPattern       = "job:unfinished*"
+	CacheKeyJobAllPattern              = "job:*"
 )

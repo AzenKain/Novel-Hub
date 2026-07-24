@@ -23,7 +23,7 @@ func fileChapterIndex(fileID string, chapterID string) (int, bool) {
 func rawFileReaderHTML(bookID string, fileID string, filePath string) string {
 	sourceURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/file?file_id=` + url.QueryEscape(fileID)
 	title := html.EscapeString(bookparser.TitleFromPath(filePath))
-	return `<div class="novelhub-raw-reader" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"><iframe sandbox title="` + title + `" src="` + sourceURL + `" style="width: 100%; height: 100%; border: 0; background: #fff;" loading="eager"></iframe></div>`
+	return `<div class="novelhub-raw-reader" style="width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;"><iframe title="` + title + `" src="` + sourceURL + `" style="width: 100%; height: 100%; border: 0; background: #fff;" loading="eager"></iframe></div>`
 }
 
 func rewriteReaderHTML(content string, bookID string, contentPath string, fileID string) string {
@@ -187,7 +187,7 @@ func normalizeCoverExt(ext string) string {
 		return ".jpg"
 	}
 	switch ext {
-	case ".jpg", ".png", ".webp", ".gif", ".bmp":
+	case ".jpg", ".png", ".webp", ".gif", ".bmp", ".svg":
 		return ext
 	default:
 		return ".jpg"
@@ -200,6 +200,8 @@ func coverExtFromContent(contentType string, data []byte) string {
 		contentType = strings.ToLower(http.DetectContentType(data))
 	}
 	switch {
+	case strings.Contains(contentType, "svg"):
+		return ".svg"
 	case strings.Contains(contentType, "png"):
 		return ".png"
 	case strings.Contains(contentType, "webp"):
@@ -220,7 +222,8 @@ func isSupportedCoverContentType(contentType string) bool {
 		strings.Contains(contentType, "png") ||
 		strings.Contains(contentType, "webp") ||
 		strings.Contains(contentType, "gif") ||
-		strings.Contains(contentType, "bmp")
+		strings.Contains(contentType, "bmp") ||
+		strings.Contains(contentType, "svg")
 }
 
 func readerAssetContentType(assetPath string) string {

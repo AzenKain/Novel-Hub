@@ -1,3 +1,4 @@
+import { getMediaUrl } from "@/config/api";
 import { BookOpen, Image as ImageIcon, Settings, Trash2 } from "lucide-react";
 import React from "react";
 
@@ -38,7 +39,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
         <div className="aspect-[3/4.12] overflow-hidden rounded-lg border border-base-200 bg-base-200 shadow-sm">
           {book?.coverUrl ? (
             <img
-              src={book.coverUrl}
+              src={getMediaUrl(book.coverUrl)}
               alt={book.title}
               loading="lazy"
               className="h-full w-full object-cover"

@@ -1,6 +1,6 @@
 import { ProtectedRoute } from "@/components/common";
 import "@/i18n";
-import { AdminLayout, Books, Duplicates, Reviews, Roles, Settings, Users } from "@/pages/admin";
+import { AdminLayout, Books, Duplicates, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { RegisterPage, SetupWizard } from "@/pages/auth";
 import { LibraryWorkspace } from "@/pages/library";
 import { ReaderWorkspace } from "@/pages/reader";
@@ -89,7 +89,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route
               path="/admin"
-              element={<ProtectedRoute requiredPermission="admin.access" />}
+              element={<ProtectedRoute requiredAnyPermissions={["admin.access", "job.read", "job.manage", "system.log.read", "system.backup"]} />}
             >
               <Route element={<AdminLayout />}>
                 <Route index element={<Navigate to="books" replace />} />
@@ -107,6 +107,9 @@ function App() {
                 </Route>
                 <Route element={<ProtectedRoute requiredPermission="book.duplicate.manage" />}>
                   <Route path="duplicates" element={<Duplicates />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredAnyPermissions={["job.read", "job.manage", "system.log.read", "system.backup"]} />}>
+                  <Route path="operations" element={<Operations />} />
                 </Route>
                 <Route element={<ProtectedRoute requiredPermission="book.review.delete" />}>
                   <Route path="reviews" element={<Reviews />} />

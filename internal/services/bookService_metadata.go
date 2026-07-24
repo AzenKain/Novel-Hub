@@ -12,6 +12,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
 )
 
@@ -102,7 +103,7 @@ func upsertMetaValue(rawMeta []any, name string, value string) []any {
 	return updated
 }
 
-func fallbackCoverFromImages(parser bookparser.Parser, filePath string) ([]byte, string, error) {
+func fallbackCoverFromImages(parser bookparser.Parser, filePath, format string) ([]byte, string, error) {
 	images, err := parser.ListImages(filePath)
 	if err != nil {
 		return nil, "", err
@@ -110,6 +111,9 @@ func fallbackCoverFromImages(parser bookparser.Parser, filePath string) ([]byte,
 	for _, imagePath := range images {
 		data, err := parser.GetAsset(filePath, imagePath)
 		if err != nil || len(data) == 0 {
+			continue
+		}
+		if len(data) > constants.HardMaxCoverBytes || (strings.EqualFold(format, "pdf") && !bookparser.IsSuitablePDFCover(data)) || bookparser.IsBlankImage(data) {
 			continue
 		}
 		contentType := readerAssetContentType(imagePath)

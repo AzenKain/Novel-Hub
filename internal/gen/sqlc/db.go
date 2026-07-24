@@ -57,6 +57,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.claimInitialSetupStmt, err = db.PrepareContext(ctx, claimInitialSetup); err != nil {
 		return nil, fmt.Errorf("error preparing query ClaimInitialSetup: %w", err)
 	}
+	if q.claimJobScheduleStmt, err = db.PrepareContext(ctx, claimJobSchedule); err != nil {
+		return nil, fmt.Errorf("error preparing query ClaimJobSchedule: %w", err)
+	}
 	if q.clearBookLanguagesStmt, err = db.PrepareContext(ctx, clearBookLanguages); err != nil {
 		return nil, fmt.Errorf("error preparing query ClearBookLanguages: %w", err)
 	}
@@ -77,6 +80,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.countFilesForBookStmt, err = db.PrepareContext(ctx, countFilesForBook); err != nil {
 		return nil, fmt.Errorf("error preparing query CountFilesForBook: %w", err)
+	}
+	if q.countJobsStmt, err = db.PrepareContext(ctx, countJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query CountJobs: %w", err)
 	}
 	if q.countUsersStmt, err = db.PrepareContext(ctx, countUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUsers: %w", err)
@@ -105,6 +111,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createJobStmt, err = db.PrepareContext(ctx, createJob); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateJob: %w", err)
 	}
+	if q.createJobScheduleStmt, err = db.PrepareContext(ctx, createJobSchedule); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateJobSchedule: %w", err)
+	}
 	if q.createLanguageStmt, err = db.PrepareContext(ctx, createLanguage); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateLanguage: %w", err)
 	}
@@ -132,6 +141,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createWebhookStmt, err = db.PrepareContext(ctx, createWebhook); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateWebhook: %w", err)
 	}
+	if q.databaseHealthCheckStmt, err = db.PrepareContext(ctx, databaseHealthCheck); err != nil {
+		return nil, fmt.Errorf("error preparing query DatabaseHealthCheck: %w", err)
+	}
 	if q.deleteBookStmt, err = db.PrepareContext(ctx, deleteBook); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteBook: %w", err)
 	}
@@ -155,6 +167,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteHighlightStmt, err = db.PrepareContext(ctx, deleteHighlight); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteHighlight: %w", err)
+	}
+	if q.deleteJobScheduleStmt, err = db.PrepareContext(ctx, deleteJobSchedule); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobSchedule: %w", err)
 	}
 	if q.deleteLibraryStmt, err = db.PrepareContext(ctx, deleteLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteLibrary: %w", err)
@@ -281,6 +296,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getJobStmt, err = db.PrepareContext(ctx, getJob); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJob: %w", err)
+	}
+	if q.getJobScheduleStmt, err = db.PrepareContext(ctx, getJobSchedule); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobSchedule: %w", err)
+	}
+	if q.getJobSchedulesByIDsStmt, err = db.PrepareContext(ctx, getJobSchedulesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobSchedulesByIDs: %w", err)
 	}
 	if q.getJobsByIDsStmt, err = db.PrepareContext(ctx, getJobsByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobsByIDs: %w", err)
@@ -435,11 +456,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listChapterIDsByBookStmt, err = db.PrepareContext(ctx, listChapterIDsByBook); err != nil {
 		return nil, fmt.Errorf("error preparing query ListChapterIDsByBook: %w", err)
 	}
+	if q.listDueJobScheduleIDsStmt, err = db.PrepareContext(ctx, listDueJobScheduleIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListDueJobScheduleIDs: %w", err)
+	}
 	if q.listFileIDsByBookIdStmt, err = db.PrepareContext(ctx, listFileIDsByBookId); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFileIDsByBookId: %w", err)
 	}
+	if q.listFilteredJobIDsStmt, err = db.PrepareContext(ctx, listFilteredJobIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListFilteredJobIDs: %w", err)
+	}
 	if q.listFormatsWithCountStmt, err = db.PrepareContext(ctx, listFormatsWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFormatsWithCount: %w", err)
+	}
+	if q.listJobScheduleIDsStmt, err = db.PrepareContext(ctx, listJobScheduleIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobScheduleIDs: %w", err)
 	}
 	if q.listJobsStmt, err = db.PrepareContext(ctx, listJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListJobs: %w", err)
@@ -480,11 +510,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listUnfinishedJobsStmt, err = db.PrepareContext(ctx, listUnfinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUnfinishedJobs: %w", err)
 	}
+	if q.markRunningJobsInterruptedStmt, err = db.PrepareContext(ctx, markRunningJobsInterrupted); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkRunningJobsInterrupted: %w", err)
+	}
+	if q.pruneFinishedJobsStmt, err = db.PrepareContext(ctx, pruneFinishedJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneFinishedJobs: %w", err)
+	}
 	if q.refreshBookBookmarkStatsStmt, err = db.PrepareContext(ctx, refreshBookBookmarkStats); err != nil {
 		return nil, fmt.Errorf("error preparing query RefreshBookBookmarkStats: %w", err)
 	}
 	if q.refreshBookRatingStatsStmt, err = db.PrepareContext(ctx, refreshBookRatingStats); err != nil {
 		return nil, fmt.Errorf("error preparing query RefreshBookRatingStats: %w", err)
+	}
+	if q.releaseJobScheduleClaimStmt, err = db.PrepareContext(ctx, releaseJobScheduleClaim); err != nil {
+		return nil, fmt.Errorf("error preparing query ReleaseJobScheduleClaim: %w", err)
 	}
 	if q.removeBookFromCollectionStmt, err = db.PrepareContext(ctx, removeBookFromCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveBookFromCollection: %w", err)
@@ -524,6 +563,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateJobProgressStmt, err = db.PrepareContext(ctx, updateJobProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateJobProgress: %w", err)
+	}
+	if q.updateJobScheduleStmt, err = db.PrepareContext(ctx, updateJobSchedule); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateJobSchedule: %w", err)
 	}
 	if q.updateJobStatusStmt, err = db.PrepareContext(ctx, updateJobStatus); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateJobStatus: %w", err)
@@ -666,6 +708,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing claimInitialSetupStmt: %w", cerr)
 		}
 	}
+	if q.claimJobScheduleStmt != nil {
+		if cerr := q.claimJobScheduleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing claimJobScheduleStmt: %w", cerr)
+		}
+	}
 	if q.clearBookLanguagesStmt != nil {
 		if cerr := q.clearBookLanguagesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing clearBookLanguagesStmt: %w", cerr)
@@ -699,6 +746,11 @@ func (q *Queries) Close() error {
 	if q.countFilesForBookStmt != nil {
 		if cerr := q.countFilesForBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countFilesForBookStmt: %w", cerr)
+		}
+	}
+	if q.countJobsStmt != nil {
+		if cerr := q.countJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countJobsStmt: %w", cerr)
 		}
 	}
 	if q.countUsersStmt != nil {
@@ -746,6 +798,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createJobStmt: %w", cerr)
 		}
 	}
+	if q.createJobScheduleStmt != nil {
+		if cerr := q.createJobScheduleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createJobScheduleStmt: %w", cerr)
+		}
+	}
 	if q.createLanguageStmt != nil {
 		if cerr := q.createLanguageStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createLanguageStmt: %w", cerr)
@@ -791,6 +848,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createWebhookStmt: %w", cerr)
 		}
 	}
+	if q.databaseHealthCheckStmt != nil {
+		if cerr := q.databaseHealthCheckStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing databaseHealthCheckStmt: %w", cerr)
+		}
+	}
 	if q.deleteBookStmt != nil {
 		if cerr := q.deleteBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteBookStmt: %w", cerr)
@@ -829,6 +891,11 @@ func (q *Queries) Close() error {
 	if q.deleteHighlightStmt != nil {
 		if cerr := q.deleteHighlightStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteHighlightStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobScheduleStmt != nil {
+		if cerr := q.deleteJobScheduleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobScheduleStmt: %w", cerr)
 		}
 	}
 	if q.deleteLibraryStmt != nil {
@@ -1039,6 +1106,16 @@ func (q *Queries) Close() error {
 	if q.getJobStmt != nil {
 		if cerr := q.getJobStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJobStmt: %w", cerr)
+		}
+	}
+	if q.getJobScheduleStmt != nil {
+		if cerr := q.getJobScheduleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobScheduleStmt: %w", cerr)
+		}
+	}
+	if q.getJobSchedulesByIDsStmt != nil {
+		if cerr := q.getJobSchedulesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobSchedulesByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getJobsByIDsStmt != nil {
@@ -1296,14 +1373,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listChapterIDsByBookStmt: %w", cerr)
 		}
 	}
+	if q.listDueJobScheduleIDsStmt != nil {
+		if cerr := q.listDueJobScheduleIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listDueJobScheduleIDsStmt: %w", cerr)
+		}
+	}
 	if q.listFileIDsByBookIdStmt != nil {
 		if cerr := q.listFileIDsByBookIdStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listFileIDsByBookIdStmt: %w", cerr)
 		}
 	}
+	if q.listFilteredJobIDsStmt != nil {
+		if cerr := q.listFilteredJobIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listFilteredJobIDsStmt: %w", cerr)
+		}
+	}
 	if q.listFormatsWithCountStmt != nil {
 		if cerr := q.listFormatsWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listFormatsWithCountStmt: %w", cerr)
+		}
+	}
+	if q.listJobScheduleIDsStmt != nil {
+		if cerr := q.listJobScheduleIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobScheduleIDsStmt: %w", cerr)
 		}
 	}
 	if q.listJobsStmt != nil {
@@ -1371,6 +1463,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listUnfinishedJobsStmt: %w", cerr)
 		}
 	}
+	if q.markRunningJobsInterruptedStmt != nil {
+		if cerr := q.markRunningJobsInterruptedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markRunningJobsInterruptedStmt: %w", cerr)
+		}
+	}
+	if q.pruneFinishedJobsStmt != nil {
+		if cerr := q.pruneFinishedJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneFinishedJobsStmt: %w", cerr)
+		}
+	}
 	if q.refreshBookBookmarkStatsStmt != nil {
 		if cerr := q.refreshBookBookmarkStatsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing refreshBookBookmarkStatsStmt: %w", cerr)
@@ -1379,6 +1481,11 @@ func (q *Queries) Close() error {
 	if q.refreshBookRatingStatsStmt != nil {
 		if cerr := q.refreshBookRatingStatsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing refreshBookRatingStatsStmt: %w", cerr)
+		}
+	}
+	if q.releaseJobScheduleClaimStmt != nil {
+		if cerr := q.releaseJobScheduleClaimStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing releaseJobScheduleClaimStmt: %w", cerr)
 		}
 	}
 	if q.removeBookFromCollectionStmt != nil {
@@ -1444,6 +1551,11 @@ func (q *Queries) Close() error {
 	if q.updateJobProgressStmt != nil {
 		if cerr := q.updateJobProgressStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateJobProgressStmt: %w", cerr)
+		}
+	}
+	if q.updateJobScheduleStmt != nil {
+		if cerr := q.updateJobScheduleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateJobScheduleStmt: %w", cerr)
 		}
 	}
 	if q.updateJobStatusStmt != nil {
@@ -1631,6 +1743,7 @@ type Queries struct {
 	bulkUpdateBookAuthorStmt           *sql.Stmt
 	bulkUpdateBookLibraryStmt          *sql.Stmt
 	claimInitialSetupStmt              *sql.Stmt
+	claimJobScheduleStmt               *sql.Stmt
 	clearBookLanguagesStmt             *sql.Stmt
 	clearBookPublishersStmt            *sql.Stmt
 	clearBookSeriesStmt                *sql.Stmt
@@ -1638,6 +1751,7 @@ type Queries struct {
 	countActiveAdminUsersStmt          *sql.Stmt
 	countAdminUsersStmt                *sql.Stmt
 	countFilesForBookStmt              *sql.Stmt
+	countJobsStmt                      *sql.Stmt
 	countUsersStmt                     *sql.Stmt
 	createAuthorStmt                   *sql.Stmt
 	createBookStmt                     *sql.Stmt
@@ -1647,6 +1761,7 @@ type Queries struct {
 	createCollectionStmt               *sql.Stmt
 	createHighlightStmt                *sql.Stmt
 	createJobStmt                      *sql.Stmt
+	createJobScheduleStmt              *sql.Stmt
 	createLanguageStmt                 *sql.Stmt
 	createLibraryStmt                  *sql.Stmt
 	createPublisherStmt                *sql.Stmt
@@ -1656,6 +1771,7 @@ type Queries struct {
 	createTagStmt                      *sql.Stmt
 	createUserRoleStmt                 *sql.Stmt
 	createWebhookStmt                  *sql.Stmt
+	databaseHealthCheckStmt            *sql.Stmt
 	deleteBookStmt                     *sql.Stmt
 	deleteBookReviewStmt               *sql.Stmt
 	deleteBookmarkStmt                 *sql.Stmt
@@ -1664,6 +1780,7 @@ type Queries struct {
 	deleteFTSBookStmt                  *sql.Stmt
 	deleteFileStmt                     *sql.Stmt
 	deleteHighlightStmt                *sql.Stmt
+	deleteJobScheduleStmt              *sql.Stmt
 	deleteLibraryStmt                  *sql.Stmt
 	deleteRoleStmt                     *sql.Stmt
 	deleteRolePermissionsStmt          *sql.Stmt
@@ -1706,6 +1823,8 @@ type Queries struct {
 	getHighlightsByChapterStmt         *sql.Stmt
 	getHighlightsByIDsStmt             *sql.Stmt
 	getJobStmt                         *sql.Stmt
+	getJobScheduleStmt                 *sql.Stmt
+	getJobSchedulesByIDsStmt           *sql.Stmt
 	getJobsByIDsStmt                   *sql.Stmt
 	getLanguageByNameStmt              *sql.Stmt
 	getLibrariesByIDsStmt              *sql.Stmt
@@ -1757,8 +1876,11 @@ type Queries struct {
 	listBookReviewCompositeKeysStmt    *sql.Stmt
 	listBookReviewsStmt                *sql.Stmt
 	listChapterIDsByBookStmt           *sql.Stmt
+	listDueJobScheduleIDsStmt          *sql.Stmt
 	listFileIDsByBookIdStmt            *sql.Stmt
+	listFilteredJobIDsStmt             *sql.Stmt
 	listFormatsWithCountStmt           *sql.Stmt
+	listJobScheduleIDsStmt             *sql.Stmt
 	listJobsStmt                       *sql.Stmt
 	listLanguagesWithCountStmt         *sql.Stmt
 	listLibraryIDsStmt                 *sql.Stmt
@@ -1772,8 +1894,11 @@ type Queries struct {
 	listTagsWithCountStmt              *sql.Stmt
 	listUnfinishedJobIDsStmt           *sql.Stmt
 	listUnfinishedJobsStmt             *sql.Stmt
+	markRunningJobsInterruptedStmt     *sql.Stmt
+	pruneFinishedJobsStmt              *sql.Stmt
 	refreshBookBookmarkStatsStmt       *sql.Stmt
 	refreshBookRatingStatsStmt         *sql.Stmt
+	releaseJobScheduleClaimStmt        *sql.Stmt
 	removeBookFromCollectionStmt       *sql.Stmt
 	restoreRoleStmt                    *sql.Stmt
 	restoreUserStmt                    *sql.Stmt
@@ -1787,6 +1912,7 @@ type Queries struct {
 	updateFileHashStmt                 *sql.Stmt
 	updateHighlightNoteStmt            *sql.Stmt
 	updateJobProgressStmt              *sql.Stmt
+	updateJobScheduleStmt              *sql.Stmt
 	updateJobStatusStmt                *sql.Stmt
 	updateLibraryStmt                  *sql.Stmt
 	updateProfileStmt                  *sql.Stmt
@@ -1831,6 +1957,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		bulkUpdateBookAuthorStmt:           q.bulkUpdateBookAuthorStmt,
 		bulkUpdateBookLibraryStmt:          q.bulkUpdateBookLibraryStmt,
 		claimInitialSetupStmt:              q.claimInitialSetupStmt,
+		claimJobScheduleStmt:               q.claimJobScheduleStmt,
 		clearBookLanguagesStmt:             q.clearBookLanguagesStmt,
 		clearBookPublishersStmt:            q.clearBookPublishersStmt,
 		clearBookSeriesStmt:                q.clearBookSeriesStmt,
@@ -1838,6 +1965,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countActiveAdminUsersStmt:          q.countActiveAdminUsersStmt,
 		countAdminUsersStmt:                q.countAdminUsersStmt,
 		countFilesForBookStmt:              q.countFilesForBookStmt,
+		countJobsStmt:                      q.countJobsStmt,
 		countUsersStmt:                     q.countUsersStmt,
 		createAuthorStmt:                   q.createAuthorStmt,
 		createBookStmt:                     q.createBookStmt,
@@ -1847,6 +1975,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createCollectionStmt:               q.createCollectionStmt,
 		createHighlightStmt:                q.createHighlightStmt,
 		createJobStmt:                      q.createJobStmt,
+		createJobScheduleStmt:              q.createJobScheduleStmt,
 		createLanguageStmt:                 q.createLanguageStmt,
 		createLibraryStmt:                  q.createLibraryStmt,
 		createPublisherStmt:                q.createPublisherStmt,
@@ -1856,6 +1985,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createTagStmt:                      q.createTagStmt,
 		createUserRoleStmt:                 q.createUserRoleStmt,
 		createWebhookStmt:                  q.createWebhookStmt,
+		databaseHealthCheckStmt:            q.databaseHealthCheckStmt,
 		deleteBookStmt:                     q.deleteBookStmt,
 		deleteBookReviewStmt:               q.deleteBookReviewStmt,
 		deleteBookmarkStmt:                 q.deleteBookmarkStmt,
@@ -1864,6 +1994,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteFTSBookStmt:                  q.deleteFTSBookStmt,
 		deleteFileStmt:                     q.deleteFileStmt,
 		deleteHighlightStmt:                q.deleteHighlightStmt,
+		deleteJobScheduleStmt:              q.deleteJobScheduleStmt,
 		deleteLibraryStmt:                  q.deleteLibraryStmt,
 		deleteRoleStmt:                     q.deleteRoleStmt,
 		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
@@ -1906,6 +2037,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getHighlightsByChapterStmt:         q.getHighlightsByChapterStmt,
 		getHighlightsByIDsStmt:             q.getHighlightsByIDsStmt,
 		getJobStmt:                         q.getJobStmt,
+		getJobScheduleStmt:                 q.getJobScheduleStmt,
+		getJobSchedulesByIDsStmt:           q.getJobSchedulesByIDsStmt,
 		getJobsByIDsStmt:                   q.getJobsByIDsStmt,
 		getLanguageByNameStmt:              q.getLanguageByNameStmt,
 		getLibrariesByIDsStmt:              q.getLibrariesByIDsStmt,
@@ -1957,8 +2090,11 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listBookReviewCompositeKeysStmt:    q.listBookReviewCompositeKeysStmt,
 		listBookReviewsStmt:                q.listBookReviewsStmt,
 		listChapterIDsByBookStmt:           q.listChapterIDsByBookStmt,
+		listDueJobScheduleIDsStmt:          q.listDueJobScheduleIDsStmt,
 		listFileIDsByBookIdStmt:            q.listFileIDsByBookIdStmt,
+		listFilteredJobIDsStmt:             q.listFilteredJobIDsStmt,
 		listFormatsWithCountStmt:           q.listFormatsWithCountStmt,
+		listJobScheduleIDsStmt:             q.listJobScheduleIDsStmt,
 		listJobsStmt:                       q.listJobsStmt,
 		listLanguagesWithCountStmt:         q.listLanguagesWithCountStmt,
 		listLibraryIDsStmt:                 q.listLibraryIDsStmt,
@@ -1972,8 +2108,11 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listTagsWithCountStmt:              q.listTagsWithCountStmt,
 		listUnfinishedJobIDsStmt:           q.listUnfinishedJobIDsStmt,
 		listUnfinishedJobsStmt:             q.listUnfinishedJobsStmt,
+		markRunningJobsInterruptedStmt:     q.markRunningJobsInterruptedStmt,
+		pruneFinishedJobsStmt:              q.pruneFinishedJobsStmt,
 		refreshBookBookmarkStatsStmt:       q.refreshBookBookmarkStatsStmt,
 		refreshBookRatingStatsStmt:         q.refreshBookRatingStatsStmt,
+		releaseJobScheduleClaimStmt:        q.releaseJobScheduleClaimStmt,
 		removeBookFromCollectionStmt:       q.removeBookFromCollectionStmt,
 		restoreRoleStmt:                    q.restoreRoleStmt,
 		restoreUserStmt:                    q.restoreUserStmt,
@@ -1987,6 +2126,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateFileHashStmt:                 q.updateFileHashStmt,
 		updateHighlightNoteStmt:            q.updateHighlightNoteStmt,
 		updateJobProgressStmt:              q.updateJobProgressStmt,
+		updateJobScheduleStmt:              q.updateJobScheduleStmt,
 		updateJobStatusStmt:                q.updateJobStatusStmt,
 		updateLibraryStmt:                  q.updateLibraryStmt,
 		updateProfileStmt:                  q.updateProfileStmt,

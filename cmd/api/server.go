@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
 	static "github.com/gofiber/fiber/v3/middleware/static"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/controllers"
@@ -46,6 +44,7 @@ import (
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/localfs"
+	"novelhub/pkg/systemgate"
 	"novelhub/pkg/worker"
 )
 
@@ -53,8 +52,10 @@ import (
 var embeddedDist embed.FS
 
 type FiberServer struct {
-	App      *fiber.App
-	JobQueue *worker.Queue
+	App       *fiber.App
+	JobQueue  *worker.Queue
+	Scheduler interface{ Stop() }
+	Restart   chan struct{}
 }
 
 func NewHTTPServer() *FiberServer {
@@ -71,19 +72,22 @@ func NewHTTPServer() *FiberServer {
 	})
 
 	if !config.GetBoolConfigWithDefault("DISABLE_REQUEST_LOG", false) {
-		logger := zerolog.New(zerolog.ConsoleWriter{
-			Out:        os.Stderr,
-			TimeFormat: time.RFC3339,
-		}).With().Timestamp().Logger()
-		app.Use(middleware.New(middleware.Config{Logger: &logger}))
+		app.Use(middleware.New(middleware.Config{Logger: &log.Logger}))
 	}
 
 	app.Use(helmet.New())
 
-	return &FiberServer{App: app}
+	return &FiberServer{App: app, Restart: make(chan struct{}, 1)}
 }
 
 func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
+	maintenanceGate := &systemgate.Gate{}
+	s.App.Use(func(c fiber.Ctx) error {
+		if !maintenanceGate.Enabled() || c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead || c.Method() == fiber.MethodOptions {
+			return c.Next()
+		}
+		return c.Status(fiber.StatusServiceUnavailable).JSON(response.CommonResponse{Status: false, Message: "restore pending; restart NovelHub to continue"})
+	})
 	frontendURL := config.GetConfigWithDefault("FRONTEND_URL", "http://localhost:5173")
 	s.App.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
@@ -163,8 +167,23 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
 	metadataService := services.NewMetadataService(bookRepo)
-	jobService := services.NewJobService(jobRepo)
+	jobService := services.NewJobService(jobRepo, jobQueue)
+	jobQueue.SetLifecycle(jobService)
+	if err := jobService.Recover(context.Background()); err != nil {
+		log.Fatal().Err(err).Msg("failed to recover background jobs")
+	}
+	jobScheduleRepo := repositories.NewJobScheduleRepository(db, ramCache)
+	jobScheduleService := services.NewJobScheduleService(jobScheduleRepo, jobService)
+	s.Scheduler = jobScheduleService
 	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
+	dataDir := config.GetConfigWithDefault("DATA_DIR", "./data")
+	logService := services.NewSystemLogService(filepath.Join(dataDir, "logs"))
+	backupService := services.NewBackupService(db, dataDir, config.GetBoolConfigWithDefault("RESTORE_AUTO_RESTART", false), func() {
+		select {
+		case s.Restart <- struct{}{}:
+		default:
+		}
+	}, maintenanceGate)
 	calibreService := services.NewCalibreSyncService(bookRepo, bookFileRepo, txManager)
 	calibreController := controllers.NewCalibreController(calibreService)
 	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
@@ -177,7 +196,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	roleController := controllers.NewRoleController(roleService)
 	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache)
 	libraryController := controllers.NewLibraryController(libraryService)
-	jobController := controllers.NewJobController(jobService)
+	jobController := controllers.NewJobController(jobService, jobScheduleService)
+	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
 	highlightController := controllers.NewHighlightController(highlightService)
@@ -213,6 +233,23 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.RegisterHandler("maintenance", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.RunMaintenance(ctx)
 	})
+	jobQueue.RegisterHandler("clean_empty_book_dirs", func(ctx context.Context, jobID string, payload string) error {
+		return maintenanceService.CleanEmptyBookDirs(ctx)
+	})
+	jobQueue.RegisterHandler("clean_orphan_uploads", func(ctx context.Context, jobID string, payload string) error {
+		return maintenanceService.CleanOrphanUploads(ctx)
+	})
+	jobQueue.RegisterHandler("database_health_check", func(ctx context.Context, jobID string, payload string) error {
+		return maintenanceService.CheckDatabaseHealth(ctx)
+	})
+	jobQueue.RegisterHandler("database_backup", func(ctx context.Context, jobID string, payload string) error {
+		_, err := backupService.Create(ctx, false)
+		return err
+	})
+	jobQueue.RegisterHandler("database_books_backup", func(ctx context.Context, jobID string, payload string) error {
+		_, err := backupService.Create(ctx, true)
+		return err
+	})
 
 	jobQueue.RegisterHandler("webhook.dispatch", func(ctx context.Context, jobID string, payload string) error {
 		var jobData struct {
@@ -227,6 +264,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	})
 
 	jobQueue.Start()
+	jobScheduleService.Start()
 
 	s.App.Use("/public", static.New(publicDir))
 	s.App.Get("/storage/books/:bookID/:filename", middlewares.OptionalJwtAccess(userRepo), func(c fiber.Ctx) error {
@@ -240,7 +278,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		}
 		ext := strings.ToLower(filepath.Ext(c.Params("filename")))
 		switch ext {
-		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".ico":
+		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".ico", ".svg":
 		default:
 			return fiber.ErrForbidden
 		}
@@ -265,6 +303,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.BookRoutes(v1, bookController, userRepo, bookRepo, permissionCache)
 	routes.LibraryRoutes(v1, libraryController, userRepo, permissionCache)
 	routes.JobRoutes(v1, jobController, userRepo, permissionCache)
+	routes.SystemOperationsRoutes(v1, systemOperationsController, userRepo, permissionCache)
 	routes.SetupReaderRoutes(v1, readerController, userRepo, bookRepo, permissionCache)
 	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)

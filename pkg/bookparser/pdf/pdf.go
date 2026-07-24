@@ -21,20 +21,27 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	}
 
 	assets, err := readPDFImageAssets(filePath)
-	if err == nil && len(assets) > 0 {
-		meta.CoverData = assets[0].Data
-		if strings.HasSuffix(assets[0].Name, ".png") {
-			meta.CoverType = "image/png"
-		} else {
-			meta.CoverType = "image/jpeg"
+	if err == nil {
+		for _, asset := range assets {
+			if bookparser.IsBlankImage(asset.Data) || !bookparser.IsSuitablePDFCover(asset.Data) {
+				continue
+			}
+			meta.CoverData = asset.Data
+			if strings.HasSuffix(asset.Name, ".png") {
+				meta.CoverType = "image/png"
+			} else {
+				meta.CoverType = "image/jpeg"
+			}
+			break
 		}
-	} else {
-		svgCover := defaultcover.GenerateSVG(meta.Title, meta.Author)
-		meta.CoverData = []byte(svgCover)
-		meta.CoverType = "image/svg+xml"
 	}
 
-	return bookparser.MergeMetadataSidecar(filePath, meta), nil
+	merged := bookparser.MergeMetadataSidecar(filePath, meta)
+	if len(merged.CoverData) == 0 {
+		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.CoverType = "image/svg+xml"
+	}
+	return merged, nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

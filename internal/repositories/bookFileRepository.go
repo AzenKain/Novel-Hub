@@ -1,15 +1,18 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"novelhub/pkg/bookparser"
@@ -31,6 +34,7 @@ type BookFileRepository interface {
 	HashSHA256(ctx context.Context, path string) (string, error)
 	Exists(ctx context.Context, path string) bool
 	RemoveBookDir(ctx context.Context, bookID string) error
+	RemoveEmptyBookDirs(ctx context.Context) (int, error)
 }
 
 type localBookFileRepository struct {
@@ -214,9 +218,17 @@ func (r *localBookFileRepository) SaveCover(ctx context.Context, bookID, ext str
 	if err != nil {
 		return "", "", err
 	}
-	ext, err = bookparser.ValidateImage(data, constants.HardMaxCoverBytes)
-	if err != nil {
-		return "", "", err
+	if len(data) == 0 || int64(len(data)) > constants.HardMaxCoverBytes {
+		return "", "", fmt.Errorf("image exceeds size limit")
+	}
+	trimmed := bytes.TrimSpace(data)
+	if (strings.EqualFold(ext, ".svg") || strings.EqualFold(ext, "image/svg+xml")) && (bytes.HasPrefix(trimmed, []byte("<svg")) || bytes.HasPrefix(trimmed, []byte("<?xml"))) {
+		ext = ".svg"
+	} else {
+		ext, err = bookparser.ValidateImage(data, constants.HardMaxCoverBytes)
+		if err != nil {
+			return "", "", err
+		}
 	}
 	filename := bookID + ext
 	relPath := filepath.ToSlash(filepath.Join(bookID, filename))
@@ -276,6 +288,34 @@ func (r *localBookFileRepository) Exists(ctx context.Context, path string) bool 
 	return err == nil
 }
 
+func isRetryableRemoveError(err error) bool {
+	return errors.Is(err, syscall.EBUSY) || errors.Is(err, syscall.ENOTEMPTY)
+}
+
+func removeAllWithRetry(ctx context.Context, remove func() error) error {
+	const (
+		attempts = 10
+		delay    = 50 * time.Millisecond
+	)
+
+	for attempt := 0; ; attempt++ {
+		err := remove()
+		if err == nil || !isRetryableRemoveError(err) || attempt == attempts {
+			return err
+		}
+
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
+
 func (r *localBookFileRepository) RemoveBookDir(ctx context.Context, bookID string) error {
 	bookID, err := safeBookID(bookID)
 	if err != nil {
@@ -284,7 +324,70 @@ func (r *localBookFileRepository) RemoveBookDir(ctx context.Context, bookID stri
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return r.withRoot(func(root *os.Root) error {
-		return root.RemoveAll(bookID)
+
+	err = r.withRoot(func(root *os.Root) error {
+		return removeAllWithRetry(ctx, func() error {
+			return root.RemoveAll(bookID)
+		})
 	})
+	if !isRetryableRemoveError(err) {
+		return err
+	}
+
+	// ponytail: FUSE may retain an open file briefly; remove only an empty directory
+	// so a newly imported book with the same ID can never be deleted by this callback.
+	time.AfterFunc(500*time.Millisecond, func() {
+		_ = r.withRoot(func(root *os.Root) error {
+			dir, err := root.Open(bookID)
+			if err != nil {
+				return err
+			}
+			_, readErr := dir.Readdirnames(1)
+			_ = dir.Close()
+			if errors.Is(readErr, io.EOF) {
+				return root.Remove(bookID)
+			}
+			return nil
+		})
+	})
+	return nil
+}
+
+func (r *localBookFileRepository) RemoveEmptyBookDirs(ctx context.Context) (int, error) {
+	entries, err := os.ReadDir(r.baseDir)
+	if err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, entry := range entries {
+		if err := ctx.Err(); err != nil {
+			return removed, err
+		}
+		if !entry.IsDir() {
+			continue
+		}
+		bookID, err := safeBookID(entry.Name())
+		if err != nil {
+			continue
+		}
+		dir, err := os.Open(filepath.Join(r.baseDir, bookID))
+		if err != nil {
+			continue
+		}
+		_, readErr := dir.Readdirnames(1)
+		_ = dir.Close()
+		if readErr != io.EOF {
+			continue
+		}
+		if err := r.withRoot(func(root *os.Root) error {
+			return removeAllWithRetry(ctx, func() error { return root.Remove(bookID) })
+		}); err != nil {
+			if errors.Is(err, syscall.ENOTEMPTY) {
+				continue
+			}
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
 }

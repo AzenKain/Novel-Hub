@@ -13,6 +13,9 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **Granular Library & Role Permission Policies**: Multi-role security model with 16 granular permissions (`book.read`, `book.download`, `book.share`, `book.bookmark`, `book.collection`, `book.review.create`, `book.review.delete`, `book.manage`, `library.read`, `library.manage`, `role.manage`, `user.manage`, `setting.manage`, `admin.access`, `job.read`, `webhook.manage`). Includes a modern **Library Scope Selector** UI with mode toggles, searchable multi-select dropdowns, and interactive library chips.
 - **Customizable Book Engagement Stats**: Displays 6 cover engagement metrics (Reads, Downloads, Bookmarks, Collections, Rating, Shares) with custom admin visibility selection.
 - **Webhooks & Live Builder**: Webhook notifications dispatcher for Discord, Telegram, Slack, and generic HTTP endpoints with HMAC SHA-256 signatures, custom headers, and a live preview builder.
+- **Job Scheduler & Queue Engine**: Background job queue (`pkg/worker`) integrated with cron-like job schedule management (`job_schedules`). Supports automated interval execution, manual job triggering, and instant status tracking with singleflight protection and Cache-by-IDs performance.
+- **System Logs & Live Tail Viewer**: Real-time log viewer and log tailing engine (`/admin/system/logs`) with log level filtering (`info`, `warn`, `error`), keyword search, and automatic file rotation (`LOG_MAX_SIZE_MB`, `LOG_MAX_FILES`).
+- **Database Backup & Staged Restore**: Zero-downtime online database backup system using SQLite Online Backup API. Includes SHA-256 integrity checksum verification, database health check validation, isolated staged restore workflow, and optional process supervisor auto-restart (`RESTORE_AUTO_RESTART`).
 - **Duplicate Detection & Management**: SHA-256 file hashing engine to detect and clean up duplicate book files across libraries.
 - **High Performance Architecture**: Powered by `theine-go` in-memory RAM caching (Cache-by-IDs pattern), `singleflight` for thundering-herd protection, and 14 composite SQLite performance indexes for sub-millisecond query execution.
 - **Path Traversal & SSRF Hardened**: Robust security engine featuring socket-level SSRF prevention via `pkg/netx` and `filepath.Rel` path traversal prevention in `pkg/localfs`.
@@ -89,6 +92,7 @@ novelhub/
 │   ├── convert/        # ID parsing, null conversion & cursor helpers
 │   ├── database/       # SQLite pragmas & transaction manager (`TxManager`)
 │   ├── jsonx/          # High-performance JSON engine (sonic with std fallback)
+│   ├── localfs/        # Path traversal prevention using SafeJoin & filepath.Rel
 │   ├── netx/           # SSRF-safe HTTP client with IP validation
 │   ├── validator/      # DTO struct validation engine
 │   └── worker/         # Bounded background worker pool
@@ -106,17 +110,28 @@ novelhub/
 
 | Variable | Default | Description |
 |---|---|---|
-| `SERVER_HOST` | `127.0.0.1` | Server bind IP |
+| `SERVER_HOST` | `127.0.0.1` | Server bind IP address |
 | `SERVER_PORT` | `3434` | Server listening port |
+| `FRONTEND_URL` | `http://your-domain.com` | Allowed frontend origin URL for CORS and auth redirects |
+| `DATA_DIR` | `./data` | Root directory for uploaded books, covers, and media files |
 | `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database file path |
-| `JWT_SECRET` | — | Access token signing secret |
-| `JWT_REFRESH_SECRET` | — | Refresh token signing secret |
-| `DB_ENCRYPTION_KEY` | — | Required master key for AES-256-GCM encrypted tracker credentials |
-| `TOKEN_VERSION_CACHE` | `true` | Cache token versions in single-process mode; disable for shared-DB multi-process deployments |
-| `SQLITE_CACHE_SIZE_KB` | `262144` | Total SQLite page-cache budget, divided across open connections |
-| `SQLITE_MMAP_SIZE_BYTES` | `536870912` | SQLite memory-map ceiling |
-| `FIBER_BODY_LIMIT` | `1073741824` | Max request body limit (1 GB) |
-| `GOGC` | `200` | GC percent tuning for high throughput |
+| `JWT_SECRET` | — | Required secret key for access token signing |
+| `JWT_REFRESH_SECRET` | — | Required secret key for refresh token signing |
+| `DB_ENCRYPTION_KEY` | — | Required 32-byte hex key for AES-256-GCM envelope encryption |
+| `TOKEN_VERSION_CACHE` | `true` | Cache token versions in RAM for single-instance deployments |
+| `SQLITE_CACHE_SIZE_KB` | `262144` | Total SQLite page-cache budget in KB (256 MB) |
+| `SQLITE_MMAP_SIZE_BYTES` | `536870912` | Memory-mapped I/O ceiling in bytes (512 MB) |
+| `COOKIE_SECURE` | `false` | Enable Secure flag on authentication cookies (requires HTTPS) |
+| `COOKIE_DOMAIN` | — | Domain attribute for session cookies (leave empty for host-only) |
+| `DISABLE_REQUEST_LOG` | `true` | Disable per-request console logging for maximum throughput |
+| `DISABLE_RESPONSE_COMPRESSION` | `false` | Disable Fiber response gzip/brotli compression |
+| `ENABLE_PREFORK` | `false` | Enable multi-process worker preforking across CPU cores |
+| `DISABLE_STARTUP_MESSAGE` | `false` | Disable Fiber startup ASCII banner |
+| `LOG_MAX_SIZE_MB` | `10` | Maximum size in MB of active log file before rolling rotation |
+| `LOG_MAX_FILES` | `5` | Maximum number of rotated log backup files retained |
+| `RESTORE_AUTO_RESTART` | `false` | Gracefully exit process after staging database restore for container supervisor restart |
+
+Database restores are validated and staged first. With `RESTORE_AUTO_RESTART=true`, NovelHub exits gracefully so the process supervisor (Docker/systemd) can restart it and apply the staged restore before opening SQLite. Otherwise, restart NovelHub manually after the admin UI reports that the restore is ready.
 
 ---
 

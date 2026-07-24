@@ -1,5 +1,6 @@
 import { ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
+import { API_BASE } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
@@ -774,99 +775,120 @@ export const ReaderWorkspace = () => {
         />
 
         {/* Reader Scrollable Area */}
-        <div 
-          ref={contentRef}
-          className={`flex-1 ${
-            effectiveReadingMode === 'scroll' 
-              ? 'overflow-y-auto pt-20 pb-24 px-4 sm:px-8' 
-              : 'overflow-hidden flex flex-col pt-14 pb-6 px-4 sm:px-20'
-          } relative`}
-          onClick={() => setSettingsOpen(false)}
-          onScroll={handleScroll}
-        >
-          <div 
-            ref={pageFrameRef}
-            className={`w-full mx-auto ${effectiveReadingMode === 'scroll' ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
-            style={{ 
-              maxWidth: maxWidth >= 1600 ? '100%' : `${maxWidth}px`,
-              fontSize: `${fontSize}px`,
-              lineHeight: lineHeight,
-              "--reader-font-family": fontFamily,
-              "--reader-link-color": linkColor,
-              "--reader-link-color-hover": linkColorHover,
-              "--reader-page-gap": `${READER_PAGE_GAP}px`,
-              "--reader-page-width": pageWidth > 0 ? `${pageWidth}px` : undefined,
-              "--reader-line-height": lineHeight,
-              "--reader-content-measure": `${READER_CONTENT_MEASURE}ch`
-            } as React.CSSProperties}
-          >
-            {book?.files?.find(f => f.id === fileId)?.format.match(/^(mp3|m4a|m4b|flac)$/i) ? (
-              <div className="flex-1 w-full h-full pb-32">
-                <AudioPlayer 
-                  rawUrl={`/api/v1/reader/${bookId}/file?file_id=${fileId}`}
-                  title={book.title}
-                  author={book.authorName || "Unknown"}
-                  coverUrl={book.coverUrl || `/api/v1/books/${book.id}/cover`}
-                  initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
-                  onTimeUpdate={(time) => {
-                    pendingFragmentRef.current = `audio:${time}`;
-                    const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
-                    const progressPercent = chapterPosition >= 0
-                      ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
-                      : 0;
-              
-                    void featureService.recordReadingActivity({
-                      bookId: bookId || '',
-                      fileId: fileId || '',
-                      chapterId: currentChapter?.id || '',
-                      chapterTitle: currentChapter?.title || '',
-                      chapterIndex: currentChapter?.chapterIndex || 0,
-                      progressPercent,
-                      locationCfi: String(time),
-                      locationType: "audio",
-                      eventType: "progress_update",
-                    }).catch(() => {});
-                  }}
-                />
-              </div>
-            ) : htmlContent ? (
-              <ReaderContent
-                htmlContent={htmlContent}
-                proseClass={proseClass}
-                effectiveReadingMode={effectiveReadingMode}
-                pageWidth={pageWidth}
-                columnsRef={columnsRef}
-                onContentClick={handleContentClick}
-              />
-            ) : (
-              <div className="flex justify-center items-center h-64 opacity-50">
-                {t('common.loading', 'Loading content...')}
-              </div>
-            )}
-            
-            {effectiveReadingMode === "scroll" && (
-              <ReaderPageControls
-                t={t}
-                mode="footer"
-                canGoPrev={canGoPrev}
-                canGoNext={canGoNext}
-                onPrev={handlePrev}
-                onNext={handleNext}
-              />
-            )}
-          </div>
+        {(() => {
+          const activeFile = fileId
+            ? book?.files?.find(f => f.id === fileId)
+            : book?.files?.[0];
+          const isPdf = !!(
+            activeFile?.format.match(/^pdf$/i) ||
+            currentChapter?.contentPath?.toLowerCase().endsWith(".pdf")
+          );
+          const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
 
-          {effectiveReadingMode !== "scroll" && htmlContent && (
-            <ReaderPageControls
-              t={t}
-              mode="floating"
-              canGoPrev
-              canGoNext
-              onPrev={handlePagePrev}
-              onNext={handlePageNext}
-            />
-          )}
-        </div>
+          return (
+            <div 
+              ref={contentRef}
+              className={`flex-1 ${
+                isPdf
+                  ? 'overflow-hidden flex flex-col pt-14 p-0'
+                  : effectiveReadingMode === 'scroll' 
+                    ? 'overflow-y-auto pt-20 pb-24 px-4 sm:px-8' 
+                    : 'overflow-hidden flex flex-col pt-14 pb-6 px-4 sm:px-20'
+              } relative`}
+              onClick={() => setSettingsOpen(false)}
+              onScroll={handleScroll}
+            >
+              <div 
+                ref={pageFrameRef}
+                className={`w-full mx-auto ${isPdf ? 'h-full flex-1 min-h-0 flex flex-col' : effectiveReadingMode === 'scroll' ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
+                style={{ 
+                  maxWidth: isPdf ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
+                  fontSize: `${fontSize}px`,
+                  lineHeight: lineHeight,
+                  "--reader-font-family": fontFamily,
+                  "--reader-link-color": linkColor,
+                  "--reader-link-color-hover": linkColorHover,
+                  "--reader-page-gap": `${READER_PAGE_GAP}px`,
+                  "--reader-page-width": pageWidth > 0 ? `${pageWidth}px` : undefined,
+                  "--reader-line-height": lineHeight,
+                  "--reader-content-measure": `${READER_CONTENT_MEASURE}ch`
+                } as React.CSSProperties}
+              >
+                {isPdf ? (
+                  <iframe
+                    title={book.title}
+                    src={`${API_BASE}/reader/${encodeURIComponent(bookId || "")}/file?file_id=${encodeURIComponent(activeFile?.id || fileId || "")}`}
+                    className="w-full h-full flex-1 border-0 bg-white"
+                  />
+                ) : isAudio ? (
+                  <div className="flex-1 w-full h-full pb-32">
+                    <AudioPlayer 
+                      rawUrl={`${API_BASE}/reader/${encodeURIComponent(bookId || "")}/file?file_id=${encodeURIComponent(activeFile?.id || fileId || "")}`}
+                      title={book.title}
+                      author={book.authorName || "Unknown"}
+                      coverUrl={book.coverUrl || `/api/v1/books/${book.id}/cover`}
+                      initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
+                      onTimeUpdate={(time) => {
+                        pendingFragmentRef.current = `audio:${time}`;
+                        const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
+                        const progressPercent = chapterPosition >= 0
+                          ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
+                          : 0;
+                  
+                        void featureService.recordReadingActivity({
+                          bookId: bookId || '',
+                          fileId: fileId || '',
+                          chapterId: currentChapter?.id || '',
+                          chapterTitle: currentChapter?.title || '',
+                          chapterIndex: currentChapter?.chapterIndex || 0,
+                          progressPercent,
+                          locationCfi: String(time),
+                          locationType: "audio",
+                          eventType: "progress_update",
+                        }).catch(() => {});
+                      }}
+                    />
+                  </div>
+                ) : htmlContent ? (
+                  <ReaderContent
+                    htmlContent={htmlContent}
+                    proseClass={proseClass}
+                    effectiveReadingMode={effectiveReadingMode}
+                    pageWidth={pageWidth}
+                    columnsRef={columnsRef}
+                    onContentClick={handleContentClick}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-64 opacity-50">
+                    {t('common.loading', 'Loading content...')}
+                  </div>
+                )}
+                
+                {!isPdf && effectiveReadingMode === "scroll" && (
+                  <ReaderPageControls
+                    t={t}
+                    mode="footer"
+                    canGoPrev={canGoPrev}
+                    canGoNext={canGoNext}
+                    onPrev={handlePrev}
+                    onNext={handleNext}
+                  />
+                )}
+              </div>
+
+              {!isPdf && effectiveReadingMode !== "scroll" && htmlContent && (
+                <ReaderPageControls
+                  t={t}
+                  mode="floating"
+                  canGoPrev
+                  canGoNext
+                  onPrev={handlePagePrev}
+                  onNext={handlePageNext}
+                />
+              )}
+            </div>
+          );
+        })()}
       </div>
       
       <ReaderSidebar

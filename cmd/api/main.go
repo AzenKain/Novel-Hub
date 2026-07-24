@@ -3,24 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"novelhub/pkg/cache"
 	"novelhub/pkg/config"
 	"novelhub/pkg/database"
+	"novelhub/pkg/logging"
 )
 
 func gracefulShutdown(server *FiberServer, done chan bool) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case <-server.Restart:
+	}
 	log.Info().Msg("shutting down gracefully")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -30,8 +37,15 @@ func gracefulShutdown(server *FiberServer, done chan bool) {
 		log.Error().Err(err).Msg("server forced to shutdown")
 	}
 
+	if server.Scheduler != nil {
+		server.Scheduler.Stop()
+	}
 	if server.JobQueue != nil {
-		server.JobQueue.Stop()
+		queueCtx, queueCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer queueCancel()
+		if err := server.JobQueue.StopContext(queueCtx); err != nil {
+			log.Warn().Err(err).Msg("job queue did not stop before shutdown deadline")
+		}
 	}
 
 	done <- true
@@ -40,6 +54,23 @@ func gracefulShutdown(server *FiberServer, done chan bool) {
 func main() {
 	if err := config.LoadEnv(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load env")
+	}
+
+	dataDir := config.GetConfigWithDefault("DATA_DIR", "./data")
+	logWriter, err := logging.NewRotatingWriter(
+		filepath.Join(dataDir, "logs", "novelhub.log"),
+		int64(config.GetIntConfigWithDefault("LOG_MAX_SIZE_MB", 10))<<20,
+		config.GetIntConfigWithDefault("LOG_MAX_FILES", 5),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize log writer")
+	}
+	defer logWriter.Close()
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}
+	log.Logger = zerolog.New(zerolog.MultiLevelWriter(consoleWriter, logWriter)).With().Timestamp().Logger()
+
+	if err := database.ApplyPendingRestore(); err != nil {
+		log.Error().Err(err).Msg("pending restore was not applied; starting with current data")
 	}
 
 	if gcPercent := config.GetIntConfigWithDefault("GOGC", 200); gcPercent > 0 {

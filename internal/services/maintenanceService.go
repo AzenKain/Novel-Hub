@@ -9,7 +9,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
@@ -21,6 +21,8 @@ type MaintenanceService interface {
 	IndexBook(ctx context.Context, bookID string) error
 	RunMaintenance(ctx context.Context) error
 	CleanOrphanUploads(ctx context.Context) error
+	CleanEmptyBookDirs(ctx context.Context) error
+	CheckDatabaseHealth(ctx context.Context) error
 }
 
 type maintenanceService struct {
@@ -137,42 +139,93 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 }
 
 func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
-	limit := int64(100)
-	var offset int64 = 0
+	const limit int64 = 100
+	var offset int64
 
 	for {
 		files, err := s.bookRepo.ListAllFiles(ctx, limit, offset)
 		if err != nil {
 			return err
 		}
-
 		if len(files) == 0 {
 			break
 		}
 
-		for _, f := range files {
-			if !s.fileRepo.Exists(ctx, f.Path) {
-				log.Info().Str("path", f.Path).Msg("File not found, cleaning up")
-				_ = s.bookRepo.DeleteFile(ctx, f.ID)
-				count, _ := s.bookRepo.CountFilesForBook(ctx, f.BookID)
-				if count == 0 {
-					log.Info().Str("book", f.BookID).Msg("Book has no files, cleaning up book folder and record")
-					_ = s.fileRepo.RemoveBookDir(ctx, f.BookID)
-					_ = s.bookRepo.DeleteFTSBook(ctx, f.BookID)
-					_ = s.bookRepo.DeleteBook(ctx, f.BookID)
+		var deleted int64
+		for _, file := range files {
+			if s.fileRepo.Exists(ctx, file.Path) {
+				continue
+			}
+			log.Info().Str("path", file.Path).Msg("File not found, cleaning up")
+			bookDeleted, err := s.removeMissingFile(ctx, file.ID, file.BookID)
+			if err != nil {
+				return err
+			}
+			deleted++
+			if bookDeleted {
+				if err := s.fileRepo.RemoveBookDir(ctx, file.BookID); err != nil {
+					log.Warn().Err(err).Str("book_id", file.BookID).Msg("failed to remove orphaned book directory")
 				}
 			}
 		}
 
-		offset += limit
-		time.Sleep(50 * time.Millisecond) // Yield to avoid CPU/IO starvation
+		offset += int64(len(files)) - deleted
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
 	}
 
 	if err := s.CleanOrphanUploads(ctx); err != nil {
-		log.Error().Err(err).Msg("Failed to clean orphan uploads")
+		return err
 	}
+	return s.CleanEmptyBookDirs(ctx)
+}
 
+func (s *maintenanceService) removeMissingFile(ctx context.Context, fileID, bookID string) (bool, error) {
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+	repo := s.bookRepo.WithTx(tx)
+	if err := repo.DeleteFile(ctx, fileID); err != nil {
+		return false, err
+	}
+	count, err := repo.CountFilesForBook(ctx, bookID)
+	if err != nil {
+		return false, err
+	}
+	bookDeleted := count == 0
+	if bookDeleted {
+		if err := repo.DeleteFTSBook(ctx, bookID); err != nil {
+			return false, err
+		}
+		if err := repo.DeleteBook(ctx, bookID); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return bookDeleted, nil
+}
+
+func (s *maintenanceService) CleanEmptyBookDirs(ctx context.Context) error {
+	removed, err := s.fileRepo.RemoveEmptyBookDirs(ctx)
+	if err != nil {
+		return err
+	}
+	if removed > 0 {
+		log.Info().Int("removed", removed).Msg("Removed empty book directories")
+	}
 	return nil
+}
+
+func (s *maintenanceService) CheckDatabaseHealth(ctx context.Context) error {
+	_, err := sqlc.New(s.txManager.DB()).DatabaseHealthCheck(ctx)
+	return err
 }
 
 func (s *maintenanceService) CleanOrphanUploads(ctx context.Context) error {

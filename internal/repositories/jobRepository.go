@@ -15,7 +15,13 @@ import (
 
 type JobRepository interface {
 	GetJob(ctx context.Context, id string) (*models.JobEntity, error)
+	GetJobsByIDs(ctx context.Context, ids []string) ([]*models.JobEntity, error)
 	ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error)
+	CreateJob(ctx context.Context, id, jobType, status, payload string) (*models.JobEntity, error)
+	UpdateJobStatus(ctx context.Context, id, status, errorMsg string) (*models.JobEntity, error)
+	ListJobs(ctx context.Context, status, jobType string, limit, offset int64) ([]*models.JobEntity, int64, error)
+	MarkRunningJobsInterrupted(ctx context.Context) error
+	PruneFinishedJobs(ctx context.Context, keep int64) error
 	WithTx(tx *sql.Tx) JobRepository
 }
 
@@ -70,85 +76,237 @@ func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntit
 	return v.(*models.JobEntity), nil
 }
 
-func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error) {
-	key := "job:unfinished"
+func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*models.JobEntity, error) {
+	if len(ids) == 0 {
+		return []*models.JobEntity{}, nil
+	}
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = cache.BuildKey("job", "id", id)
+	}
+
+	jobs := make([]*models.JobEntity, 0, len(ids))
+	missingIds := []string{}
+	missingKeys := []string{}
+
 	if r.c != nil {
-		var ids []string
-		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getJobsByIDs(ctx, ids); ok {
-				return result, nil
+		cachedBytes := r.c.MGet(ctx, keys...)
+		for i, bytes := range cachedBytes {
+			if len(bytes) > 0 {
+				var job models.JobEntity
+				if err := jsonx.Unmarshal(bytes, &job); err == nil {
+					jobs = append(jobs, &job)
+					continue
+				}
+			}
+			missingIds = append(missingIds, ids[i])
+			missingKeys = append(missingKeys, keys[i])
+		}
+	} else {
+		missingIds = ids
+		missingKeys = keys
+	}
+
+	if len(missingIds) > 0 {
+		rows, err := r.queries.GetJobsByIDs(ctx, missingIds)
+		if err != nil {
+			return nil, err
+		}
+		missingMap := make(map[string]*models.JobEntity)
+		for _, row := range rows {
+			j := (&models.JobEntity{}).FromSqlc(row)
+			missingMap[j.ID] = j
+			jobs = append(jobs, j)
+		}
+
+		if r.c != nil {
+			missingToCache := make(map[string]any)
+			for i, missingId := range missingIds {
+				if j, ok := missingMap[missingId]; ok {
+					missingToCache[missingKeys[i]] = j
+				}
+			}
+			if len(missingToCache) > 0 {
+				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
 			}
 		}
 	}
 
-	idRows, err := r.queries.ListUnfinishedJobIDs(ctx, sqlc.ListUnfinishedJobIDsParams{Limit: limit, Offset: offset})
-	if err != nil {
-		return nil, err
+	jobMap := make(map[string]*models.JobEntity)
+	for _, j := range jobs {
+		jobMap[j.ID] = j
 	}
-
-	if len(idRows) == 0 {
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
-		}
-		return []*models.JobEntity{}, nil
-	}
-
-	rows, err := r.queries.GetJobsByIDs(ctx, idRows)
-	if err != nil {
-		return nil, err
-	}
-
-	jobs := make([]*models.JobEntity, len(rows))
-	ids := make([]string, len(rows))
-	for i, row := range rows {
-		jobs[i] = (&models.JobEntity{}).FromSqlc(row)
-		ids[i] = row.ID
-	}
-
-	if r.c != nil {
-		_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-		r.cacheJobEntities(ctx, jobs)
-	}
-	return jobs, nil
-}
-
-func (r *jobRepository) getJobsByIDs(ctx context.Context, ids []string) ([]*models.JobEntity, bool) {
-	if len(ids) == 0 {
-		return []*models.JobEntity{}, true
-	}
-	if r.c == nil {
-		return nil, false
-	}
-
-	cacheKeys := make([]string, len(ids))
-	for i, id := range ids {
-		cacheKeys[i] = cache.BuildKey("job", "id", id)
-	}
-
-	cachedBytes := r.c.MGet(ctx, cacheKeys...)
 	ordered := make([]*models.JobEntity, 0, len(ids))
-
-	for _, bytes := range cachedBytes {
-		if len(bytes) == 0 {
-			return nil, false
+	for _, id := range ids {
+		if j, ok := jobMap[id]; ok {
+			ordered = append(ordered, j)
 		}
-		var entity models.JobEntity
-		if err := jsonx.Unmarshal(bytes, &entity); err != nil {
-			return nil, false
-		}
-		ordered = append(ordered, &entity)
 	}
 
-	return ordered, true
+	return ordered, nil
 }
 
-func (r *jobRepository) cacheJobEntities(ctx context.Context, entities []*models.JobEntity) {
-	if r.c == nil || len(entities) == 0 {
-		return
+func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error) {
+	key := cache.BuildKey("job", "unfinished", limit, offset)
+	if r.c != nil {
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			return r.GetJobsByIDs(ctx, ids)
+		}
 	}
-	toCache := make(map[string]any, len(entities))
-	for _, entity := range entities {
-		toCache[cache.BuildKey("job", "id", entity.ID)] = entity
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		dbIds, err := r.queries.ListUnfinishedJobIDs(ctx, sqlc.ListUnfinishedJobIDsParams{Limit: limit, Offset: offset})
+		if err != nil {
+			return nil, err
+		}
+		if dbIds == nil {
+			dbIds = []string{}
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
+		}
+		return dbIds, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+	return r.GetJobsByIDs(ctx, v.([]string))
+}
+
+func (r *jobRepository) CreateJob(ctx context.Context, id, jobType, status, payload string) (*models.JobEntity, error) {
+	params := sqlc.CreateJobParams{
+		ID:          id,
+		Type:        jobType,
+		Status:      sql.NullString{String: status, Valid: status != ""},
+		PayloadJson: sql.NullString{String: payload, Valid: payload != ""},
+	}
+	row, err := r.queries.CreateJob(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobListPattern)
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobCountPattern)
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobUnfinishedPattern)
+	}
+	return (&models.JobEntity{}).FromSqlc(row), nil
+}
+
+func (r *jobRepository) UpdateJobStatus(ctx context.Context, id, status, errorMsg string) (*models.JobEntity, error) {
+	row, err := r.queries.UpdateJobStatus(ctx, sqlc.UpdateJobStatusParams{
+		Status:   sql.NullString{String: status, Valid: status != ""},
+		ErrorMsg: sql.NullString{String: errorMsg, Valid: errorMsg != ""},
+		ID:       id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("job", "id", id))
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobListPattern)
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobCountPattern)
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobUnfinishedPattern)
+	}
+	return (&models.JobEntity{}).FromSqlc(row), nil
+}
+
+func (r *jobRepository) ListJobs(ctx context.Context, status, jobType string, limit, offset int64) ([]*models.JobEntity, int64, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	countKey := cache.BuildKey("job", "count", status, jobType)
+	var total int64
+	var countFetched bool
+	if r.c != nil {
+		if err := r.c.Get(ctx, countKey, &total); err == nil {
+			countFetched = true
+		}
+	}
+	if !countFetched {
+		v, err, _ := r.sfg.Do(countKey, func() (any, error) {
+			t, err := r.queries.CountJobs(ctx, sqlc.CountJobsParams{Status: status, Type: jobType})
+			if err != nil {
+				return int64(0), err
+			}
+			if r.c != nil {
+				_ = r.c.Set(ctx, countKey, t, constants.ListCacheDuration)
+			}
+			return t, nil
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+		total = v.(int64)
+	}
+
+	if total == 0 {
+		return []*models.JobEntity{}, 0, nil
+	}
+
+	key := cache.BuildKey("job", "list", status, jobType, limit, offset)
+	if r.c != nil {
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			jobs, err := r.GetJobsByIDs(ctx, ids)
+			if err != nil {
+				return nil, 0, err
+			}
+			return jobs, total, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		dbIds, err := r.queries.ListFilteredJobIDs(ctx, sqlc.ListFilteredJobIDsParams{
+			Status: status,
+			Type:   jobType,
+			Offset: offset,
+			Limit:  limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if dbIds == nil {
+			dbIds = []string{}
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
+		}
+		return dbIds, nil
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	dbIds := v.([]string)
+
+	jobs, err := r.GetJobsByIDs(ctx, dbIds)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return jobs, total, nil
+}
+
+func (r *jobRepository) MarkRunningJobsInterrupted(ctx context.Context) error {
+	if err := r.queries.MarkRunningJobsInterrupted(ctx); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobAllPattern)
+	}
+	return nil
+}
+
+func (r *jobRepository) PruneFinishedJobs(ctx context.Context, keep int64) error {
+	if _, err := r.queries.PruneFinishedJobs(ctx, keep); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobAllPattern)
+	}
+	return nil
 }

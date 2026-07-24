@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
+import { getMediaUrl } from "@/config/api";
 import { bookService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection } from "@/components/book-detail";
@@ -232,7 +233,7 @@ export const BookDetailPage: React.FC = () => {
             <div className="w-48 md:w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
               {book.coverUrl && !imgError ? (
                 <img
-                  src={book.coverUrl}
+                  src={getMediaUrl(book.coverUrl)}
                   alt={book.title}
                   onError={() => setImgError(true)}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -397,7 +398,7 @@ export const BookDetailPage: React.FC = () => {
                 <div className="flex gap-2 w-full sm:w-auto shrink-0">
                   {allowRead && (
                     <button
-                      onClick={() => navigate(`/reader/${encodeURIComponent(book.id)}?fileId=${encodeURIComponent(selectedFileId || book.files![0].id)}`)}
+                      onClick={() => navigate(`/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(selectedFileId || book.files![0].id)}`)}
                       className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap"
                       disabled={!book.files.length}
                     >

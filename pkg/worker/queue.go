@@ -13,6 +13,13 @@ var ErrQueueStopped = errors.New("job queue stopped")
 
 type JobFunc func(ctx context.Context, jobID string, payload string) error
 
+type Lifecycle interface {
+	Queued(ctx context.Context, job Job) error
+	Running(ctx context.Context, job Job) error
+	Completed(ctx context.Context, job Job) error
+	Failed(ctx context.Context, job Job, err error) error
+}
+
 type Job struct {
 	ID      string
 	Type    string
@@ -20,14 +27,15 @@ type Job struct {
 }
 
 type Queue struct {
-	jobs    chan Job
-	wg      sync.WaitGroup
-	workers int
-	ctx     context.Context
-	cancel  context.CancelFunc
-	handler map[string]JobFunc
-	mu      sync.RWMutex
-	stopped bool
+	jobs      chan Job
+	wg        sync.WaitGroup
+	workers   int
+	ctx       context.Context
+	cancel    context.CancelFunc
+	handler   map[string]JobFunc
+	lifecycle Lifecycle
+	mu        sync.RWMutex
+	stopped   bool
 }
 
 func NewQueue(workers int) *Queue {
@@ -37,15 +45,39 @@ func NewQueue(workers int) *Queue {
 
 func (q *Queue) RegisterHandler(jobType string, handler JobFunc) { q.handler[jobType] = handler }
 
+func (q *Queue) SetLifecycle(lifecycle Lifecycle) { q.lifecycle = lifecycle }
+
 func (q *Queue) Enqueue(ctx context.Context, job Job) error {
+	return q.enqueue(ctx, job, true)
+}
+
+func (q *Queue) EnqueueExisting(ctx context.Context, job Job) error {
+	return q.enqueue(ctx, job, false)
+}
+
+func (q *Queue) enqueue(ctx context.Context, job Job, persist bool) error {
 	q.mu.RLock()
-	defer q.mu.RUnlock()
-	if q.stopped {
+	stopped := q.stopped
+	q.mu.RUnlock()
+	if stopped {
 		return ErrQueueStopped
+	}
+	if persist && q.lifecycle != nil {
+		if err := q.lifecycle.Queued(ctx, job); err != nil {
+			return err
+		}
 	}
 	select {
 	case <-ctx.Done():
+		if q.lifecycle != nil {
+			_ = q.lifecycle.Failed(context.Background(), job, ctx.Err())
+		}
 		return ctx.Err()
+	case <-q.ctx.Done():
+		if q.lifecycle != nil {
+			_ = q.lifecycle.Failed(context.Background(), job, ErrQueueStopped)
+		}
+		return ErrQueueStopped
 	case q.jobs <- job:
 		return nil
 	}
@@ -54,8 +86,13 @@ func (q *Queue) Enqueue(ctx context.Context, job Job) error {
 func (q *Queue) Start() {
 	for range q.workers {
 		q.wg.Go(func() {
-			for job := range q.jobs {
-				q.process(job)
+			for {
+				select {
+				case <-q.ctx.Done():
+					return
+				case job := <-q.jobs:
+					q.process(job)
+				}
 			}
 		})
 	}
@@ -64,8 +101,15 @@ func (q *Queue) Start() {
 func (q *Queue) process(job Job) {
 	handler, ok := q.handler[job.Type]
 	if !ok {
+		err := errors.New("no handler found for job type")
+		if q.lifecycle != nil {
+			_ = q.lifecycle.Failed(q.ctx, job, err)
+		}
 		log.Error().Str("type", job.Type).Msg("No handler found for job type")
 		return
+	}
+	if q.lifecycle != nil {
+		_ = q.lifecycle.Running(q.ctx, job)
 	}
 	start := time.Now()
 	var lastErr error
@@ -74,6 +118,9 @@ func (q *Queue) process(job Job) {
 		err := handler(ctx, job.ID, job.Payload)
 		cancel()
 		if err == nil {
+			if q.lifecycle != nil {
+				_ = q.lifecycle.Completed(q.ctx, job)
+			}
 			log.Info().Str("job_id", job.ID).Dur("duration", time.Since(start)).Msg("Job completed successfully")
 			return
 		}
@@ -82,23 +129,40 @@ func (q *Queue) process(job Job) {
 		if attempt < 3 {
 			select {
 			case <-q.ctx.Done():
+				if q.lifecycle != nil {
+					_ = q.lifecycle.Failed(context.Background(), job, q.ctx.Err())
+				}
 				return
 			case <-time.After(time.Duration(attempt*500) * time.Millisecond):
 			}
 		}
 	}
+	if q.lifecycle != nil {
+		_ = q.lifecycle.Failed(q.ctx, job, lastErr)
+	}
 	log.Error().Err(lastErr).Str("job_id", job.ID).Msg("Job permanently failed after retries")
 }
 
 func (q *Queue) Stop() {
+	_ = q.StopContext(context.Background())
+}
+
+func (q *Queue) StopContext(ctx context.Context) error {
 	log.Info().Msg("Stopping job queue and draining workers...")
-	q.mu.Lock()
-	if !q.stopped {
-		q.stopped = true
-		close(q.jobs)
-	}
-	q.mu.Unlock()
-	q.wg.Wait()
 	q.cancel()
-	log.Info().Msg("Job queue stopped.")
+	q.mu.Lock()
+	q.stopped = true
+	q.mu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		q.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		log.Info().Msg("Job queue stopped.")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

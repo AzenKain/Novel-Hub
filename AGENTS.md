@@ -20,6 +20,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
     - Use `validator.ValidateBodyDto(c, &dto)` for request bodies.
     - Use `validator.ValidateQueryDto(c, &dto)` for query parameters.
   - Return responses using standard DTO envelopes from `internal/dtos/response`.
+  - Handle all service/repository errors using `return apperrors.HandleError(c, err)` to map domain errors to standard HTTP response envelopes.
   - **Context Handling**: Controllers MUST NOT pass `c.Context()` (the fiber context) down to services. Instead, they MUST create a new context with timeout:
     ```go
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -37,25 +38,26 @@ To maintain clean code maintainability, the project enforces a strict three-laye
   - Service functions **MUST** take input arguments and return results using structures defined under the [`internal/dtos`](./internal/dtos) package (`request/` and `response/`).
   - Services **MUST NOT** leak raw SQL structures (`sqlc`) or internal domain models directly to the controllers.
   - **No Trivial Wrapper Functions**: Avoid creating 1-line helper functions in services (e.g. converting types or wrappers around simple conversions). Use package helpers directly.
+  - Wrap database `sql.ErrNoRows` in `apperrors.New(apperrors.ErrNotFound, ...)` and validation failures in `apperrors.New(apperrors.ErrBadRequest, ...)` to ensure clean HTTP status mapping.
 
 ### C. Repository Layer (`internal/repositories`)
 - **Responsibility**: Data persistence layer wrapping database queries and RAM Caching.
 - **Cache-by-IDs Pattern (Mandatory)**:
   - All repository queries returning list datasets or searches **MUST** enforce the **Cache-by-IDs** pattern:
-    1. Query the database to retrieve a slice of IDs (e.g., via `SearchBookIDs`).
-    2. Check the RAM cache for the corresponding entities by ID.
-    3. Query the database only for the IDs that missed the cache.
+    1. Query the database to retrieve a slice of IDs (e.g., via `SearchBookIDs`, `ListFilteredJobIDs`, `ListJobScheduleIDs`).
+    2. Check the RAM cache for the corresponding entities by ID via `MGet` (`GetByIDs` / `GetJobsByIDs`).
+    3. Query the database only for the IDs that missed the cache and cache missing entities via `MSet`.
   - **Singleflight Protection (Mandatory)**: EVERY Repository read operation that checks RAM Cache and falls back to Database queries MUST wrap the DB fallback execution inside `singleflight.Group` (`r.sfg.Do(key, func() (any, error) {...})`) to eliminate Thundering Herd / Cache Stampede issues under heavy load.
 - **Type Safety**:
   - Repositories are allowed to accept generated `sqlc` types for query params.
   - However, all repository return types **MUST** be converted into entities defined in the [`internal/models`](./internal/models) package.
 
 ### D. Domain Models (`internal/models`)
-- **Responsibility**: Houses domain entity definitions (e.g., `BookEntity`, `UserEntity`, `ChapterEntity`).
+- **Responsibility**: Houses domain entity definitions (e.g., `BookEntity`, `UserEntity`, `JobEntity`, `JobScheduleEntity`).
 - **Mapping Helpers**:
   - Entities **MUST** provide `FromSqlc` conversion methods to construct entities from `sqlc` generated rows.
   - Entities **MUST** provide `ToResponse` methods to convert domain entities to DTO response structs.
-  - **Strict Field Checking**: When accessing entity fields, do not guess their names or types. For example, `BookEntity` uses `AuthorName *string` (not `Authors`) and `Description *string` (requires nil checks). Always look at the struct definition in `internal/models` before using it.
+  - **Strict Field Checking**: When accessing entity fields, do not guess their names or types. Always look at the struct definition in `internal/models` before using it.
 
 ---
 
@@ -74,7 +76,7 @@ All utility logic must be centralized within the `pkg/` directory:
    - Use `convert.EncodeCursor` / `convert.DecodeCursor` for pagination cursors.
 
 3. **Invariants & Cache Times ([`pkg/constants`](./pkg/constants))**:
-   - Define all cache durations and app invariants in the `constants` package. Never hardcode timeouts, role names, or magic strings.
+   - Centralize all cache key constants (`CacheKeyJobScheduleList`, `CacheKeyJobListPattern`, etc.) in `pkg/constants/cache_keys.go`. Never hardcode raw key strings, timeouts, role names, or magic strings in repositories or services.
 
 4. **JSON Engine ([`pkg/jsonx`](./pkg/jsonx))**:
    - Direct imports of `encoding/json` or `github.com/bytedance/sonic` inside application logic are strictly forbidden.
@@ -90,7 +92,7 @@ All utility logic must be centralized within the `pkg/` directory:
    - Validate HTTP request DTOs using `validator.ValidateBodyDto(c, &dto)` or `validator.ValidateQueryDto(c, &dto)`.
 
 8. **Background Queue ([`pkg/worker`](./pkg/worker))**:
-   - Async parsing and maintenance tasks must be dispatched through the bounded worker pool in `pkg/worker`.
+   - Async parsing, maintenance tasks, and job schedules must be dispatched through the bounded worker pool in `pkg/worker`.
 
 ---
 
@@ -132,6 +134,10 @@ All utility logic must be centralized within the `pkg/` directory:
 - **Unbounded Queries**: Every list or search query **MUST** enforce a pagination boundary: `if limit <= 0 || limit > 100 { limit = 20 }`.
 - **SQL Projection**: Always specify explicit columns in SQL queries under `db/query` (avoid `SELECT *` projection at runtime).
 - **SQLite Performance**: Maintain SQLite connection limits: `MaxOpenConns` should be CPU-bound (typically 4-16) and `journal_mode=WAL` with `synchronous=NORMAL` must be preserved.
+- **System Operations Safety**:
+  - All log file downloads and tail operations MUST enforce `localfs.SafeJoin` and check `os.Lstat` for regular file types to eliminate path traversal vulnerabilities.
+  - Database backups MUST use the SQLite Online Backup API (`sqliteSnapshot`) to prevent database file locking.
+  - Staged restores MUST verify SHA-256 database hashes and run `DatabaseHealthCheck` before enabling restore flags (`RESTORE_AUTO_RESTART`).
 - **Authentication**: JWT authentication uses token versioning (`token_version`). Validating token version in middleware guarantees instant logout across all devices.
 
 ---
@@ -141,4 +147,3 @@ All utility logic must be centralized within the `pkg/` directory:
 - **Feature Proposals**: Do not propose or re-implement features that already exist in the codebase (e.g., Metadata Fetching/Scraping is already handled by frontend; Cross-device sync, Reviews/Ratings, Share Links are already built-in).
 - **Core Engine Mechanics**: The codebase already handles **Chunked Uploads** (for files >100MB), **Smart Garbage Collection** for orphaned uploads, and **Native Audio Streaming** (MP3, M4B, FLAC) without FFmpeg/HLS. Do NOT propose adding FFmpeg or HLS back into the project.
 - **Codebase Review**: You **MUST** thoroughly search the codebase and database schemas (`db/schema/*.sql`) to verify if a feature or schema exists before planning to build it.
-

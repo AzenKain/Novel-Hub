@@ -28,6 +28,9 @@ const isVisualChapter = (html: string) => {
   return text.length <= 24;
 };
 
+const isRawReaderContent = (html: string) =>
+  html.includes('class="novelhub-raw-reader"');
+
 export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   htmlContent,
   proseClass,
@@ -44,6 +47,10 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
     () => isVisualChapter(sanitizedHTML),
     [sanitizedHTML],
   );
+  const rawReader = useMemo(
+    () => isRawReaderContent(sanitizedHTML),
+    [sanitizedHTML],
+  );
 
   if (!htmlContent) return null;
 
@@ -52,7 +59,9 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
       ref={columnsRef}
       onClick={onContentClick}
       className={`reader-content ${visualChapter ? "reader-content-visual" : ""} ${proseClass} max-w-none w-full ${
-        effectiveReadingMode === "scroll" ? "h-auto" : "flex-1 min-h-0"
+        rawReader
+          ? "flex-1 min-h-0 h-[calc(100vh-5rem)]"
+          : effectiveReadingMode === "scroll" ? "h-auto" : "flex-1 min-h-0"
       } [&>body]:m-0 [&>body]:p-0 [&>body]:display-block [&_img]:max-w-full [&_img]:h-auto ${
         effectiveReadingMode === "single"
           ? "reader-mode-single"

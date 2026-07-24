@@ -41,6 +41,25 @@ func RequireAnyRole(required ...constants.RoleType) fiber.Handler {
 
 type PermissionAttrResolver func(c fiber.Ctx) (map[string]any, error)
 
+func RequireAnyPermission(permissionCache services.PermissionCache, permissions ...string) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if permissionCache == nil {
+			return fiber.ErrForbidden
+		}
+		claims, ok := c.Locals("user_claims").(*response.JWTClaims)
+		if !ok || claims == nil {
+			return fiber.ErrUnauthorized
+		}
+		ctx := services.WithPermissionContext(context.Background(), services.PermissionContext{RoleIDs: claims.RoleIDs, Roles: claims.Roles})
+		for _, permission := range permissions {
+			if permissionCache.Can(ctx, claims.UId, permission, nil) {
+				return c.Next()
+			}
+		}
+		return fiber.ErrForbidden
+	}
+}
+
 func RequirePermission(permissionCache services.PermissionCache, permission string, resolvers ...PermissionAttrResolver) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if permissionCache == nil {

@@ -5,6 +5,7 @@ export * from "./featureService";
 export * from "./highlightService";
 export * from "./libraryService";
 export * from "./metadataService";
+export * from "./operationsService";
 export * from "./readerService";
 export * from "./settingsService";
 export * from './uploadService';

@@ -3,7 +3,7 @@ import { useLogoutMutation } from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, Copy, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
+import { BookOpen, Copy, ListTodo, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -28,6 +28,7 @@ export function AdminLayout() {
     { name: t("admin.books_libraries", "Books & Libraries"), path: "/admin/books", icon: BookOpen, permissions: ["book.upload", "book.edit", "book.delete", "book.bulk.manage", "library.manage"] },
     { name: t("admin.settings", "Settings"), path: "/admin/settings", icon: Settings2, permissions: ["setting.manage"] },
     { name: t("admin.duplicates", "Duplicate Files"), path: "/admin/duplicates", icon: Copy, permissions: ["book.duplicate.manage"] },
+    { name: t("admin.operations.title"), path: "/admin/operations", icon: ListTodo, permissions: ["job.read", "job.manage", "system.log.read", "system.backup"] },
     { name: t("admin.reviews", "Reviews"), path: "/admin/reviews", icon: MessageSquareText, permissions: ["book.review.delete"] }
   ].filter((item) => item.permissions.some((permission) => hasPermission(user, permission)));
 

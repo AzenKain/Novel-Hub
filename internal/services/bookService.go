@@ -409,7 +409,7 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 			meta = parsed
 		}
 		if len(meta.CoverData) == 0 {
-			if coverData, coverType, err := fallbackCoverFromImages(parser, filePath); err == nil {
+			if coverData, coverType, err := fallbackCoverFromImages(parser, filePath, file.Format); err == nil {
 				meta.CoverData = coverData
 				meta.CoverType = coverType
 			}
@@ -436,6 +436,8 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		ext := coverExtFromContent(meta.CoverType, meta.CoverData)
 		if coverURL, _, err := s.fileRepo.SaveCover(ctx, bookID, ext, meta.CoverData); err == nil {
 			book.CoverURL = &coverURL
+		} else {
+			log.Warn().Err(err).Str("book_id", bookID).Msg("failed to save extracted cover")
 		}
 	}
 
@@ -763,7 +765,6 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		}
 	}
 
-	// Synchronize Tags
 	_ = txRepo.ClearBookTags(ctx, book.ID)
 	for _, tagName := range req.Subjects {
 		if tagName == "" {
@@ -791,7 +792,7 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil || len(files) == 0 {
-		return nil // No file to update
+		return nil
 	}
 	file := s.preferReadableFile(files)
 	parser, err := s.parserForFile(file)
@@ -806,7 +807,6 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 	}
 
 	if err := parser.SaveOriginalMetadataAndFix(file.Path, meta); err != nil {
-		// Log error but don't fail the API since DB is updated
 		fmt.Printf("Failed to update source metadata for %s: %v\n", bookID, err)
 	}
 

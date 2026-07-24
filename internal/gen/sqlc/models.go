@@ -198,6 +198,20 @@ type Job struct {
 	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
 
+type JobSchedule struct {
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	TaskType        string         `json:"task_type"`
+	PayloadJson     sql.NullString `json:"payload_json"`
+	IntervalMinutes int64          `json:"interval_minutes"`
+	Enabled         int64          `json:"enabled"`
+	NextRunAt       time.Time      `json:"next_run_at"`
+	LastRunAt       sql.NullTime   `json:"last_run_at"`
+	LastJobID       sql.NullString `json:"last_job_id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
 type Language struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`

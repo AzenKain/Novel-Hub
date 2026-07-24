@@ -151,3 +151,65 @@ export interface CreateWebhookInput {
   events: string[];
   is_active?: boolean;
 }
+
+export interface BackgroundJob {
+  id: string;
+  type: string;
+  status?: "pending" | "running" | "completed" | "failed";
+  progress?: number;
+  total?: number;
+  errorMsg?: string;
+  payloadJson?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobTask {
+  type: string;
+  description: string;
+}
+
+export interface JobSchedule {
+  id: string;
+  name: string;
+  taskType: string;
+  payloadJson?: string;
+  intervalMinutes: number;
+  enabled: boolean;
+  nextRunAt: string;
+  lastRunAt?: string;
+  lastJobId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertJobScheduleInput {
+  name: string;
+  task_type: string;
+  payload_json?: string;
+  interval_minutes: number;
+  enabled: boolean;
+}
+
+export interface LogFileInfo {
+  name: string;
+  sizeBytes: number;
+  updatedAt: string;
+}
+
+export interface LogTail {
+  file: string;
+  lines: string[];
+}
+
+export interface BackupInfo {
+  name: string;
+  sizeBytes: number;
+  createdAt: string;
+  includeBooks: boolean;
+}
+
+export interface RestoreResult {
+  restartRequired: boolean;
+  autoRestart: boolean;
+}
