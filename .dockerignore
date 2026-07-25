@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+.idea
+.agents
+node_modules
+web/node_modules
+web/dist
+cmd/api/dist
+data
+*.db
+*.log

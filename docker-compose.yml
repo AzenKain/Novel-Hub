@@ -1,6 +1,6 @@
 services:
   novelhub:
-    build: .
+    image: azenkain/novel-hub:latest
     container_name: novelhub
     restart: unless-stopped
     env_file:
