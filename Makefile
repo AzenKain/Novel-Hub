@@ -37,5 +37,5 @@ docker-down:
 DOCKER_IMAGE ?= azenkain/novel-hub:latest
 
 docker-build-multi:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(DOCKER_IMAGE) --push .
+	docker buildx build --platform linux/amd64,linux/arm64 --no-cache -t $(DOCKER_IMAGE) --push .
 
