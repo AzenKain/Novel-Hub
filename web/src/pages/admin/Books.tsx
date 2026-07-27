@@ -1,13 +1,16 @@
-import { BookActionModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal } from "@/components/admin";
+import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
 import { BOOK_FILE_ACCEPT } from "@/constants";
+import { useCalibreImportMutation } from "@/hooks";
 import { fileNameFromPath, formatFileSize } from "@/lib/bookDetail";
-import { useBookAdminStore } from "@/stores";
+import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
-import { BookOpen, FilePlus2, FileText, Globe, Image as ImageIcon, Link as LinkIcon, Loader2, RefreshCw, Save, Search, Upload } from "lucide-react";
+import { hasPermission } from "@/utils/permission";
+import { BookOpen, DatabaseBackup, FilePlus2, FileText, Globe, Image as ImageIcon, Link as LinkIcon, Loader2, RefreshCw, Save, Search, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 
 export function Books() {
@@ -27,7 +30,7 @@ export function Books() {
     setEditingBook: state.setEditingBook, setSearchResults: state.setSearchResults, setBookToDelete: state.setBookToDelete, setLibraryToDelete: state.setLibraryToDelete,
     openEditModal: state.openEditModal, closeEditModal: state.closeEditModal, handleSearchOnline: state.handleSearchOnline, handleSelectResult: state.handleSelectResult,
     handleSelectEpubImage: state.handleSelectEpubImage, handleImageUpload: state.handleImageUpload, handleLinkUpload: state.handleLinkUpload, handleEditSubmit: state.handleEditSubmit,
-    handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadData: state.loadData, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook
+    handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleRenameLibrary: state.handleRenameLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadData: state.loadData, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook, archiveBook: state.archiveBook
   })));
   const [actionBook, setActionBook] = useState<Book | null>(null);
 
@@ -46,10 +49,14 @@ export function Books() {
     setEditingBook, setSearchResults, setBookToDelete, setLibraryToDelete,
     openEditModal, closeEditModal, handleSearchOnline, handleSelectResult,
     handleSelectEpubImage, handleImageUpload, handleLinkUpload, handleEditSubmit,
-    handleUploadBookFiles, handleCreateLibrary, handleDeleteLibrary, handleUploadFiles, loadData
+    handleUploadBookFiles, handleCreateLibrary, handleRenameLibrary, handleDeleteLibrary, handleUploadFiles, loadData
   } = store;
 
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canImportCalibre = hasPermission(user, "calibre.sync");
+  const [showCalibreModal, setShowCalibreModal] = useState(false);
+  const calibreImportMutation = useCalibreImportMutation();
 
   useEffect(() => {
     void store.loadData();
@@ -106,6 +113,15 @@ export function Books() {
           >
             Manage Libraries
           </button>
+          {canImportCalibre && (
+            <button
+              onClick={() => setShowCalibreModal(true)}
+              className="btn btn-outline btn-sm sm:btn-md gap-2"
+            >
+              <DatabaseBackup className="w-4 h-4" />
+              {t("admin.calibre_import", "Import from Calibre")}
+            </button>
+          )}
           <button
             onClick={() => setShowUploadModal(true)}
             className="btn btn-primary btn-sm sm:btn-md gap-2"
@@ -181,6 +197,10 @@ export function Books() {
         onDelete={(book) => {
           setActionBook(null);
           setBookToDelete(book);
+        }}
+        onArchive={(book) => {
+          setActionBook(null);
+          void store.archiveBook(book.id, book.status !== "archived");
         }}
       />
 
@@ -479,6 +499,30 @@ export function Books() {
         onUploadFiles={handleUploadFiles}
       />
 
+      {canImportCalibre && (
+        <CalibreImportModal
+          open={showCalibreModal}
+          libraries={libraries}
+          importing={calibreImportMutation.isPending}
+          onClose={() => setShowCalibreModal(false)}
+          onImport={(path, libraryId) => {
+            calibreImportMutation.mutate(
+              { path, libraryId: libraryId || undefined },
+              {
+                onSuccess: (data) => {
+                  toast.success(t("admin.calibre_import_success", { count: data.imported_count }));
+                  setShowCalibreModal(false);
+                  void loadData();
+                },
+                onError: (err) => {
+                  toast.error(err instanceof Error ? err.message : String(err));
+                },
+              }
+            );
+          }}
+        />
+      )}
+
       <ManageLibrariesModal
         open={showLibraryModal}
         libraries={libraries}
@@ -486,6 +530,7 @@ export function Books() {
         onClose={() => setShowLibraryModal(false)}
         onNameChange={setNewLibraryName}
         onCreate={handleCreateLibrary}
+        onRename={handleRenameLibrary}
         onDelete={setLibraryToDelete}
       />
 

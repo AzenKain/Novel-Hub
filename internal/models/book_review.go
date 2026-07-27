@@ -9,7 +9,7 @@ import (
 )
 
 type BookReviewEntity struct {
-	UserID    int64      `json:"userId"`
+	UserID    string     `json:"userId"`
 	BookID    string     `json:"bookId"`
 	Rating    int64      `json:"rating"`
 	Review    *string    `json:"review,omitempty"`

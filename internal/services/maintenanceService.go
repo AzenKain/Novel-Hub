@@ -82,7 +82,7 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil || len(files) == 0 {
-		return nil // skip
+		return nil 
 	}
 	var parser bookparser.Parser
 	var filePath string
@@ -263,7 +263,6 @@ func (s *maintenanceService) CleanOrphanUploads(ctx context.Context) error {
 			}
 		}
 
-		// If no chunks yet, use directory modtime
 		if newest.IsZero() {
 			info, err := entry.Info()
 			if err == nil {

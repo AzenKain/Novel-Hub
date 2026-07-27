@@ -1,8 +1,9 @@
 -- Migration 95: RBAC Restructure & GUEST Role
 
 -- Insert GUEST system role if missing
+-- Same fixed GUEST UUID literal as 90_seed_roles.sql (must stay in lockstep).
 INSERT INTO roles (id, name, is_system, is_admin, is_banned, auto_assign, description)
-VALUES (5, 'GUEST', 1, 0, 0, 0, 'Built-in unauthenticated visitor role')
+VALUES ('01920000-0000-7000-8000-000000000005', 'GUEST', 1, 0, 0, 0, 'Built-in unauthenticated visitor role')
 ON CONFLICT(name) DO UPDATE SET
     is_system = excluded.is_system,
     is_banned = excluded.is_banned,

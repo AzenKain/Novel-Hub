@@ -10,7 +10,7 @@ import (
 
 type ReadingSessionEntity struct {
 	ID              string     `json:"id"`
-	UserID          int64      `json:"userId"`
+	UserID          string     `json:"userId"`
 	BookID          string     `json:"bookId"`
 	DurationSeconds int64      `json:"durationSeconds"`
 	WordsRead       int64      `json:"wordsRead"`

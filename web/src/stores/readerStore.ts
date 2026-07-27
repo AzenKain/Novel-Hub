@@ -4,6 +4,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type ReaderTheme = "light" | "dark" | "sepia" | "warm" | "coffee" | "dim";
 export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
+export type ReadingDirection = "ltr" | "rtl";
+export type PageFit = "width" | "height" | "original";
 
 interface ReaderState {
   book: Book | null;
@@ -19,6 +21,8 @@ interface ReaderState {
   lineHeight: number;
   maxWidth: number;
   readingMode: ReadingMode;
+  readingDirection: ReadingDirection;
+  pageFit: PageFit;
   pageIndex: number;
   pageFrameWidth: number;
   ttsVoiceName: string | null;
@@ -37,6 +41,8 @@ interface ReaderState {
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
+  setReadingDirection: (direction: ReadingDirection) => void;
+  setPageFit: (fit: PageFit) => void;
   setPageIndex: (index: number | ((prev: number) => number)) => void;
   setPageFrameWidth: (width: number) => void;
   setTtsVoiceName: (voiceName: string | null) => void;
@@ -64,6 +70,8 @@ const readerSettingDefaults = {
   lineHeight: 1.8,
   maxWidth: 920,
   readingMode: "scroll" as const,
+  readingDirection: "ltr" as const,
+  pageFit: "height" as const,
   ttsVoiceName: null as string | null,
   ttsRate: 1.0,
 };
@@ -91,6 +99,8 @@ export const useReaderStore = create<ReaderState>()(
       setLineHeight: (height) => set((state) => ({ lineHeight: typeof height === 'function' ? height(state.lineHeight) : height })),
       setMaxWidth: (width) => set((state) => ({ maxWidth: typeof width === 'function' ? width(state.maxWidth) : width })),
       setReadingMode: (readingMode) => set({ readingMode }),
+      setReadingDirection: (readingDirection) => set({ readingDirection }),
+      setPageFit: (pageFit) => set({ pageFit }),
       setPageIndex: (index) => set((state) => ({ pageIndex: typeof index === 'function' ? index(state.pageIndex) : index })),
       setPageFrameWidth: (pageFrameWidth) => set({ pageFrameWidth }),
       setTtsVoiceName: (ttsVoiceName) => set({ ttsVoiceName }),
@@ -101,7 +111,7 @@ export const useReaderStore = create<ReaderState>()(
     {
       name: 'novelhub-reader-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,
@@ -109,6 +119,8 @@ export const useReaderStore = create<ReaderState>()(
         lineHeight: state.lineHeight,
         maxWidth: state.maxWidth,
         readingMode: state.readingMode,
+        readingDirection: state.readingDirection,
+        pageFit: state.pageFit,
         ttsVoiceName: state.ttsVoiceName,
         ttsRate: state.ttsRate,
       }),

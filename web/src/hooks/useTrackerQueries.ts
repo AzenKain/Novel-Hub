@@ -1,5 +1,10 @@
 import { trackerService } from "@/services";
-import type { ConnectTrackerInput, MapTrackerInput, SyncProgressInput } from "@/types";
+import type {
+  ConnectTrackerInput,
+  MapTrackerInput,
+  SyncProgressInput,
+  TrackerSearchResult,
+} from "@/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useConnectTrackerMutation() {
@@ -12,6 +17,16 @@ export function useConnectTrackerMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user", "trackers"] });
+    },
+  });
+}
+
+export function useSearchTrackerMutation() {
+  return useMutation<TrackerSearchResult, Error, string>({
+    mutationFn: async (title: string) => {
+      const res = await trackerService.searchAniList(title);
+      if (!res.status || !res.data) throw new Error(res.message || "No AniList match found");
+      return res.data;
     },
   });
 }

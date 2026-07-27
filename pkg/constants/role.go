@@ -15,16 +15,7 @@ func (r RoleType) String() string {
 }
 
 const (
-	SystemRoleIDUser   int64 = 1
-	SystemRoleIDAdmin  int64 = 2
-	SystemRoleIDMod    int64 = 3
-	SystemRoleIDBanned int64 = 4
-	SystemRoleIDGuest  int64 = 5
-)
-
-
-const (
-	// Category 1: Book Reading & Discovery
+	//Book Reading & Discovery
 	PermBookRead       = "book.read"
 	PermBookTTS        = "book.tts"
 	PermBookSearchDeep = "book.search.deep"
@@ -32,7 +23,7 @@ const (
 	PermBookSendEmail  = "book.send_email"
 	PermBookShare      = "book.share"
 
-	// Category 2: Interactions & Personal
+	//Interactions & Personal
 	PermBookBookmark     = "book.bookmark"
 	PermBookCollection   = "book.collection"
 	PermBookHighlight    = "book.highlight"
@@ -41,7 +32,7 @@ const (
 	PermUserStatsRead    = "user.stats.read"
 	PermTrackerSync      = "tracker.sync"
 
-	// Category 3: Book Content Management
+	//Book Content Management
 	PermBookUpload          = "book.upload"
 	PermBookEdit            = "book.edit"
 	PermBookMetadataFetch   = "book.metadata.fetch"
@@ -50,17 +41,17 @@ const (
 	PermBookArchive         = "book.archive"
 	PermBookBulkManage      = "book.bulk.manage"
 
-	// Category 4: Library Management
+	//Library Management
 	PermLibraryRead   = "library.read"
 	PermLibraryManage = "library.manage"
 
-	// Category 5: External Sync & Integration
+	//External Sync & Integration
 	PermOPDSRead     = "opds.read"
 	PermOPDSDownload = "opds.download"
 	PermKoboSync     = "kobo.sync"
 	PermCalibreSync  = "calibre.sync"
 
-	// Category 6: System Administration
+	//System Administration
 	PermAdminAccess   = "admin.access"
 	PermUserManage    = "user.manage"
 	PermRoleManage    = "role.manage"

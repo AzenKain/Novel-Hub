@@ -425,10 +425,14 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 	if meta.MetadataJSON != "" {
 		book.MetadataJSON = &meta.MetadataJSON
 	} else if book.MetadataJSON == nil || *book.MetadataJSON == "" {
-		fallbackJSON, _ := jsonx.MarshalString(map[string]string{
+		fallback := map[string]string{
 			"title":  book.Title,
 			"format": file.Format,
-		})
+		}
+		if meta.ReadingDirection != "" {
+			fallback["readingDirection"] = meta.ReadingDirection
+		}
+		fallbackJSON, _ := jsonx.MarshalString(fallback)
 		book.MetadataJSON = &fallbackJSON
 	}
 
@@ -713,7 +717,6 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		return err
 	}
 
-	// Synchronize Series
 	_ = txRepo.ClearBookSeries(ctx, book.ID)
 	if req.Series != "" {
 		series, err := txRepo.GetSeriesByName(ctx, req.Series)
@@ -733,7 +736,6 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		}
 	}
 
-	// Synchronize Publisher
 	_ = txRepo.ClearBookPublishers(ctx, book.ID)
 	if req.Publisher != "" {
 		publisher, err := txRepo.GetPublisherByName(ctx, req.Publisher)
@@ -749,7 +751,6 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		}
 	}
 
-	// Synchronize Language
 	_ = txRepo.ClearBookLanguages(ctx, book.ID)
 	if req.Language != "" {
 		language, err := txRepo.GetLanguageByName(ctx, req.Language)
@@ -1011,9 +1012,8 @@ func isGuestClaims(c *response.JWTClaims) bool {
 func resolveClaims(claims *response.JWTClaims) *response.JWTClaims {
 	if claims == nil {
 		return &response.JWTClaims{
-			UId:     "0",
-			Roles:   []constants.RoleType{constants.RoleTypeGuest},
-			RoleIDs: []int64{constants.SystemRoleIDGuest},
+			UId:   "0",
+			Roles: []constants.RoleType{constants.RoleTypeGuest},
 		}
 	}
 	return claims

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS highlights (
     id TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
     chapter_id TEXT NOT NULL,
     text_content TEXT NOT NULL,

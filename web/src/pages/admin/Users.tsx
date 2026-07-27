@@ -279,6 +279,7 @@ export function Users() {
           onDelete={setUserToDelete}
           onRestore={handleRestore}
           currentUserId={currentUser?.id}
+          isCallerOwner={Boolean(currentUser?.is_owner)}
         />
       </div>
 

@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
-	"strconv"
+	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
 
@@ -51,7 +52,23 @@ func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.
 	}
 }
 
-func (u *userService) resolveRoles(ctx context.Context, roleIDs []int64) ([]*models.RoleEntity, error) {
+// rootAdminID returns the owner account id recorded during setup, or "" when it
+// cannot be determined. Returning "" is safe: every "only the owner may ..."
+// check below compares the caller against this value, so an unknown owner makes
+// those comparisons fail and the privileged action is denied. The owner is
+// always an admin, so the admin guards still protect the owner account itself.
+func (u *userService) rootAdminID(ctx context.Context) string {
+	if u.settingsRepo == nil {
+		return ""
+	}
+	id, err := u.settingsRepo.GetSetupState(ctx, "root_admin_id")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(id)
+}
+
+func (u *userService) resolveRoles(ctx context.Context, roleIDs []string) ([]*models.RoleEntity, error) {
 	if len(roleIDs) == 0 {
 		autoIDs, err := u.roleRepo.GetAutoAssignRoleIDs(ctx)
 		if err != nil {
@@ -123,6 +140,7 @@ func (u *userService) CreateUser(ctx context.Context, dto *request.CreateUserDto
 	}
 
 	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
+		ID:           uuid.Must(uuid.NewV7()).String(),
 		Email:        dto.Email,
 		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
@@ -158,14 +176,16 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
 
-	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
-	if id == 1 && callerID != 1 {
+	rootID := u.rootAdminID(ctx)
+	callerID := claims.UId
+	isRoot := rootID != "" && callerID == rootID
+	if rootID != "" && id == rootID && !isRoot {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
 	}
 
 	userObj, err := u.userRepo.GetByID(ctx, id)
 	if err == nil && userObj != nil {
-		if userObj.IsAdmin() && callerID != 1 && userID != claims.UId {
+		if userObj.IsAdmin() && !isRoot && userID != claims.UId {
 			return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
 		}
 	}
@@ -178,7 +198,9 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update profile")
 	}
-	return user.ToResponse(), nil
+	res := user.ToResponse()
+	u.markOwner(ctx, res)
+	return res, nil
 }
 
 func (u *userService) ChangePassword(ctx context.Context, userID string, dto *request.ChangePasswordDto) error {
@@ -235,12 +257,13 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, cla
 		return apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
 
-	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
-	if id == 1 && callerID != 1 {
+	rootID := u.rootAdminID(ctx)
+	isRoot := rootID != "" && claims.UId == rootID
+	if rootID != "" && id == rootID && !isRoot {
 		return apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
 	}
 
-	if user.IsAdmin() && callerID != 1 && userID != claims.UId {
+	if user.IsAdmin() && !isRoot && userID != claims.UId {
 		return apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
 	}
 
@@ -278,8 +301,9 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 		return nil, apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
 
-	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
-	if id == 1 && callerID != 1 {
+	rootID := u.rootAdminID(ctx)
+	isRoot := rootID != "" && claims.UId == rootID
+	if rootID != "" && id == rootID && !isRoot {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
 	}
 
@@ -290,7 +314,7 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 		}
 	}
 
-	if targetIsAdmin && callerID != 1 && userID != claims.UId {
+	if targetIsAdmin && !isRoot && userID != claims.UId {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
 	}
 
@@ -310,7 +334,7 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 		}
 	}
 
-	if hasAdmin && callerID != 1 {
+	if hasAdmin && !isRoot {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can grant the ADMIN role")
 	}
 
@@ -354,7 +378,9 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit role change")
 	}
 
-	return user.ToResponse(), nil
+	res := user.ToResponse()
+	u.markOwner(ctx, res)
+	return res, nil
 }
 
 func (u *userService) DeleteUser(ctx context.Context, userID string, claims *response.JWTClaims) error {
@@ -363,7 +389,8 @@ func (u *userService) DeleteUser(ctx context.Context, userID string, claims *res
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
 
-	if id == 1 {
+	rootID := u.rootAdminID(ctx)
+	if rootID != "" && id == rootID {
 		return apperrors.New(apperrors.ErrForbidden, "The owner account cannot be deleted")
 	}
 
@@ -372,8 +399,8 @@ func (u *userService) DeleteUser(ctx context.Context, userID string, claims *res
 		return apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
 
-	callerID, _ := strconv.ParseInt(claims.UId, 10, 64)
-	if user.IsAdmin() && callerID != 1 {
+	isRoot := rootID != "" && claims.UId == rootID
+	if user.IsAdmin() && !isRoot {
 		return apperrors.New(apperrors.ErrForbidden, "Only the owner can delete other admin accounts")
 	}
 
@@ -414,7 +441,23 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 	if user == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
-	return user.ToResponse(), nil
+	res := user.ToResponse()
+	u.markOwner(ctx, res)
+	return res, nil
+}
+
+// markOwner flags the root admin so the UI can gate owner-only actions without
+// inferring ownership from the id.
+func (u *userService) markOwner(ctx context.Context, users ...*response.UserResponse) {
+	rootID := u.rootAdminID(ctx)
+	if rootID == "" {
+		return
+	}
+	for _, user := range users {
+		if user != nil && user.ID == rootID {
+			user.IsOwner = true
+		}
+	}
 }
 
 func (u *userService) fillSearchArgs(dto *request.SearchUserDto) (sqlc.SearchUserIDsParams, sqlc.CountUsersParams) {
@@ -481,8 +524,9 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 		parts := convert.DecodeCursor(dto.Cursor)
 		if len(parts) == 2 {
 			searchParams.CursorCreatedAt = parts[0]
-			if id, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
-				searchParams.CursorID = sql.NullInt64{Int64: id, Valid: true}
+			if parts[1] != "" {
+				// UUIDv7 is lexicographically time-ordered, so `id > cursor` still pages correctly.
+				searchParams.CursorID = sql.NullString{String: parts[1], Valid: true}
 			}
 		}
 	}
@@ -509,7 +553,9 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	var nextCursor string
 	if len(users) > 0 {
 		lastUser := users[len(users)-1]
-		nextCursor = convert.EncodeCursor(lastUser.CreatedAt, strconv.FormatInt(lastUser.ID, 10))
+		nextCursor = convert.EncodeCursor(lastUser.CreatedAt, lastUser.ID)
 	}
-	return response.BuildCursorPaginatedResponse(models.UsersEntityToResponse(users), total, dto.Limit, nextCursor), nil
+	items := models.UsersEntityToResponse(users)
+	u.markOwner(ctx, items...)
+	return response.BuildCursorPaginatedResponse(items, total, dto.Limit, nextCursor), nil
 }

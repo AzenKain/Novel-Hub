@@ -53,7 +53,6 @@ func TestReadMetadataDB_FullMetadata(t *testing.T) {
 		t.Fatalf("failed to execute schema: %v", err)
 	}
 
-	// Insert mock book data
 	_, _ = db.Exec("INSERT INTO books (id, title, sort, author_sort, path, pubdate, has_cover, uuid, isbn, series_index) VALUES (1, 'Dune', 'Dune', 'Herbert, Frank', 'Frank Herbert/Dune (1)', '1965-08-01', 1, 'uuid-1234', '9780441172719', 1.0)")
 	_, _ = db.Exec("INSERT INTO comments (book, text) VALUES (1, '<p>Set on the desert planet Arrakis...</p>')")
 	_, _ = db.Exec("INSERT INTO authors (id, name) VALUES (10, 'Frank Herbert')")
@@ -66,7 +65,7 @@ func TestReadMetadataDB_FullMetadata(t *testing.T) {
 	_, _ = db.Exec("INSERT INTO books_languages_link (book, lang_code) VALUES (1, 40)")
 	_, _ = db.Exec("INSERT INTO tags (id, name) VALUES (50, 'Sci-Fi'), (51, 'Classics')")
 	_, _ = db.Exec("INSERT INTO books_tags_link (book, tag) VALUES (1, 50), (1, 51)")
-	_, _ = db.Exec("INSERT INTO ratings (id, rating) VALUES (60, 10)") // 10 / 2 = 5 stars
+	_, _ = db.Exec("INSERT INTO ratings (id, rating) VALUES (60, 10)")
 	_, _ = db.Exec("INSERT INTO books_ratings_link (book, rating) VALUES (1, 60)")
 	_, _ = db.Exec("INSERT INTO identifiers (book, type, val) VALUES (1, 'goodreads', '23422'), (1, 'isbn', '9780441172719')")
 

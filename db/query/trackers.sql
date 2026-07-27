@@ -15,8 +15,8 @@ FROM user_trackers
 WHERE user_id = ?;
 
 -- name: UpsertUserTracker :one
-INSERT INTO user_trackers (user_id, provider, access_token, refresh_token, expires_at, updated_at)
-VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+INSERT INTO user_trackers (id, user_id, provider, access_token, refresh_token, expires_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(user_id, provider) DO UPDATE SET
     access_token = excluded.access_token,
     refresh_token = excluded.refresh_token,
@@ -45,8 +45,8 @@ FROM book_tracker_mappings
 WHERE book_id = ?;
 
 -- name: UpsertBookTrackerMapping :one
-INSERT INTO book_tracker_mappings (book_id, provider, external_series_id)
-VALUES (?, ?, ?)
+INSERT INTO book_tracker_mappings (id, book_id, provider, external_series_id)
+VALUES (?, ?, ?, ?)
 ON CONFLICT(book_id, provider) DO UPDATE SET
     external_series_id = excluded.external_series_id
 RETURNING id, book_id, provider, external_series_id, created_at;

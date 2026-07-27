@@ -9,7 +9,7 @@ import (
 
 type CollectionEntity struct {
 	ID        string    `json:"id"`
-	UserID    int64     `json:"userId"`
+	UserID    string    `json:"userId"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

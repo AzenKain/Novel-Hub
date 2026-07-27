@@ -503,8 +503,7 @@ func decodeText(data []byte, encoding uint32) string {
 	if encoding == 65001 || encoding == 0 {
 		return strings.ToValidUTF8(text, "")
 	}
-	// Most MOBI files in small personal libraries are UTF-8 or Windows-1252.
-	// We keep bytes readable without pulling in a full charset dependency.
+
 	return strings.ToValidUTF8(text, "")
 }
 

@@ -7,7 +7,7 @@ type CreateUserDto struct {
 	Password  string  `json:"password" validate:"required,min=8,max=64"`
 	FullName  string  `json:"full_name" validate:"required,min=2,max=100"`
 	AvatarUrl string  `json:"avatar_url,omitempty" validate:"omitempty,image_url"`
-	RoleIDs   []int64 `json:"role_ids,omitempty" validate:"omitempty,dive,min=1"`
+	RoleIDs   []string `json:"role_ids,omitempty" validate:"omitempty,dive,uuid"`
 }
 
 type UpdateProfileDto struct {
@@ -25,7 +25,7 @@ type ResetPasswordDto struct {
 }
 
 type ChangeRoleDto struct {
-	Roles []int64 `json:"role_ids" validate:"required,min=1,dive,min=1"`
+	Roles []string `json:"role_ids" validate:"required,min=1,dive,uuid"`
 }
 
 type SearchUserDto struct {
@@ -33,7 +33,7 @@ type SearchUserDto struct {
 	Sort         string     `json:"sort,omitempty" query:"sort" validate:"omitempty,oneof=id created_at updated_at email is_deleted auth_provider"`
 	Search       string     `json:"search,omitempty" query:"search" validate:"omitempty,min=2,max=200"`
 	IsDeleted    *bool      `json:"is_deleted,omitempty" query:"is_deleted" validate:"omitempty"`
-	RoleIDs      []int64    `json:"role_ids,omitempty" query:"role_ids" validate:"omitempty,dive,min=1"`
+	RoleIDs      []string   `json:"role_ids,omitempty" query:"role_ids" validate:"omitempty,dive,uuid"`
 	AuthProvider string     `json:"auth_provider,omitempty" query:"auth_provider" validate:"omitempty,oneof=LOCAL"`
 	CreatedFrom  *time.Time `json:"created_from,omitempty" query:"created_from" validate:"omitempty"`
 	CreatedTo    *time.Time `json:"created_to,omitempty" query:"created_to" validate:"omitempty"`

@@ -32,7 +32,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
       onSuccess();
       onClose();
     } catch {
-      // Error handled by mutation
+
     }
   };
 
@@ -109,7 +109,7 @@ export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({
       onSuccess();
       onClose();
     } catch {
-      // Error handled by mutation
+
     }
   };
 
@@ -215,7 +215,7 @@ export const BulkTagModal: React.FC<BulkTagModalProps> = ({
       onSuccess();
       onClose();
     } catch {
-      // Error handled by mutation
+
     }
   };
 

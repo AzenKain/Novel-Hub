@@ -1,12 +1,13 @@
 -- name: UpsertUser :one
 INSERT INTO users (
+    id,
     email,
     password_hash,
     auth_provider,
     full_name,
     avatar_url
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
 ON CONFLICT(email)
 DO UPDATE SET

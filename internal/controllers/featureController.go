@@ -44,18 +44,18 @@ func (c *FeatureController) GetLibraryStats(ctx fiber.Ctx) error {
 	})
 }
 
-func getUserIdFromLocals(ctx fiber.Ctx) (int64, bool) {
+func getUserIdFromLocals(ctx fiber.Ctx) (string, bool) {
 	uidRaw := ctx.Locals("uid")
 	if uidRaw == nil {
-		return 0, false
+		return "", false
 	}
 	uidStr, ok := uidRaw.(string)
 	if !ok {
-		return 0, false
+		return "", false
 	}
 	userID, err := convert.ParseID(uidStr)
 	if err != nil {
-		return 0, false
+		return "", false
 	}
 	return userID, true
 }
@@ -279,7 +279,7 @@ func (h *FeatureController) GetReadingProgress(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	bookID := c.Params("bookId")
+	bookID := c.Params("id")
 	claims, ok := c.Locals("user_claims").(*response.JWTClaims)
 	if !ok || claims == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})

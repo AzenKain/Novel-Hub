@@ -24,7 +24,6 @@ func getEncryptionKey() ([]byte, error) {
 	return hash[:], nil
 }
 
-// EncryptAES encrypts plain text using AES-256-GCM and returns a base64 encoded string.
 func EncryptAES(plaintext string) (string, error) {
 	if plaintext == "" {
 		return "", nil
@@ -52,7 +51,6 @@ func EncryptAES(plaintext string) (string, error) {
 	return encryptedPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-// DecryptAES decrypts a base64 encoded AES-256-GCM string.
 func DecryptAES(cryptoText string) (string, error) {
 	if cryptoText == "" {
 		return "", nil

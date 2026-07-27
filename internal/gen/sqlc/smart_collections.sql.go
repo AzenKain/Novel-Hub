@@ -20,7 +20,7 @@ RETURNING id, user_id, name, rule_json, created_at, updated_at
 
 type CreateSmartCollectionParams struct {
 	ID       string `json:"id"`
-	UserID   int64  `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Name     string `json:"name"`
 	RuleJson string `json:"rule_json"`
 }
@@ -51,7 +51,7 @@ WHERE id = ? AND user_id = ?
 
 type DeleteSmartCollectionParams struct {
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func (q *Queries) DeleteSmartCollection(ctx context.Context, arg DeleteSmartCollectionParams) error {
@@ -66,7 +66,7 @@ WHERE id = ? AND user_id = ?
 
 type GetSmartCollectionParams struct {
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func (q *Queries) GetSmartCollection(ctx context.Context, arg GetSmartCollectionParams) (SmartCollection, error) {
@@ -89,7 +89,7 @@ WHERE user_id = ?
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListSmartCollectionsByUser(ctx context.Context, userID int64) ([]SmartCollection, error) {
+func (q *Queries) ListSmartCollectionsByUser(ctx context.Context, userID string) ([]SmartCollection, error) {
 	rows, err := q.query(ctx, q.listSmartCollectionsByUserStmt, listSmartCollectionsByUser, userID)
 	if err != nil {
 		return nil, err

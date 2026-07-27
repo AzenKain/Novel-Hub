@@ -21,7 +21,7 @@ export function LibraryScopeSelector({
 
   const isAll = selectedLibraryIds.length === 0;
 
-  // Close dropdown on click outside
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -42,7 +42,6 @@ export function LibraryScopeSelector({
       onChange([]);
     } else {
       if (libraries.length > 0 && selectedLibraryIds.length === 0) {
-        // Default to first library if switching to specific mode
         onChange([libraries[0].id]);
       }
     }
@@ -108,7 +107,7 @@ export function LibraryScopeSelector({
       {!isAll && (
         <div className="bg-base-200/40 border border-base-300/60 rounded-xl p-3 flex flex-col gap-2.5 transition-all animate-fadeIn">
           {/* Selected Library Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
+          <div className="flex flex-wrap items-center gap-1.5 min-h-8">
             {selectedLibraryIds.length === 0 ? (
               <span className="text-xs text-warning flex items-center gap-1 italic">
                 {t("no_libraries_selected", "No libraries selected (Permission will not match any library)")}

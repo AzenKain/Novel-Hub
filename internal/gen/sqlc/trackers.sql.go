@@ -17,7 +17,7 @@ WHERE user_id = ? AND provider = ?
 `
 
 type DeleteUserTrackerParams struct {
-	UserID   int64  `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Provider string `json:"provider"`
 }
 
@@ -34,7 +34,7 @@ LIMIT 1
 `
 
 type GetBookTrackerMappingParams struct {
-	BookID   int64  `json:"book_id"`
+	BookID   string `json:"book_id"`
 	Provider string `json:"provider"`
 }
 
@@ -57,15 +57,15 @@ FROM book_tracker_mappings
 WHERE book_id = ?
 `
 
-func (q *Queries) GetBookTrackerMappingIDsByBook(ctx context.Context, bookID int64) ([]int64, error) {
+func (q *Queries) GetBookTrackerMappingIDsByBook(ctx context.Context, bookID string) ([]string, error) {
 	rows, err := q.query(ctx, q.getBookTrackerMappingIDsByBookStmt, getBookTrackerMappingIDsByBook, bookID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ FROM book_tracker_mappings
 WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) GetBookTrackerMappingsByIDs(ctx context.Context, ids []int64) ([]BookTrackerMapping, error) {
+func (q *Queries) GetBookTrackerMappingsByIDs(ctx context.Context, ids []string) ([]BookTrackerMapping, error) {
 	query := getBookTrackerMappingsByIDs
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -133,7 +133,7 @@ LIMIT 1
 `
 
 type GetUserTrackerParams struct {
-	UserID   int64  `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Provider string `json:"provider"`
 }
 
@@ -159,15 +159,15 @@ FROM user_trackers
 WHERE user_id = ?
 `
 
-func (q *Queries) GetUserTrackerIDsByUser(ctx context.Context, userID int64) ([]int64, error) {
+func (q *Queries) GetUserTrackerIDsByUser(ctx context.Context, userID string) ([]string, error) {
 	rows, err := q.query(ctx, q.getUserTrackerIDsByUserStmt, getUserTrackerIDsByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ FROM user_trackers
 WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) GetUserTrackersByIDs(ctx context.Context, ids []int64) ([]UserTracker, error) {
+func (q *Queries) GetUserTrackersByIDs(ctx context.Context, ids []string) ([]UserTracker, error) {
 	query := getUserTrackersByIDs
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -231,21 +231,27 @@ func (q *Queries) GetUserTrackersByIDs(ctx context.Context, ids []int64) ([]User
 }
 
 const upsertBookTrackerMapping = `-- name: UpsertBookTrackerMapping :one
-INSERT INTO book_tracker_mappings (book_id, provider, external_series_id)
-VALUES (?, ?, ?)
+INSERT INTO book_tracker_mappings (id, book_id, provider, external_series_id)
+VALUES (?, ?, ?, ?)
 ON CONFLICT(book_id, provider) DO UPDATE SET
     external_series_id = excluded.external_series_id
 RETURNING id, book_id, provider, external_series_id, created_at
 `
 
 type UpsertBookTrackerMappingParams struct {
-	BookID           int64  `json:"book_id"`
+	ID               string `json:"id"`
+	BookID           string `json:"book_id"`
 	Provider         string `json:"provider"`
 	ExternalSeriesID string `json:"external_series_id"`
 }
 
 func (q *Queries) UpsertBookTrackerMapping(ctx context.Context, arg UpsertBookTrackerMappingParams) (BookTrackerMapping, error) {
-	row := q.queryRow(ctx, q.upsertBookTrackerMappingStmt, upsertBookTrackerMapping, arg.BookID, arg.Provider, arg.ExternalSeriesID)
+	row := q.queryRow(ctx, q.upsertBookTrackerMappingStmt, upsertBookTrackerMapping,
+		arg.ID,
+		arg.BookID,
+		arg.Provider,
+		arg.ExternalSeriesID,
+	)
 	var i BookTrackerMapping
 	err := row.Scan(
 		&i.ID,
@@ -258,8 +264,8 @@ func (q *Queries) UpsertBookTrackerMapping(ctx context.Context, arg UpsertBookTr
 }
 
 const upsertUserTracker = `-- name: UpsertUserTracker :one
-INSERT INTO user_trackers (user_id, provider, access_token, refresh_token, expires_at, updated_at)
-VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+INSERT INTO user_trackers (id, user_id, provider, access_token, refresh_token, expires_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(user_id, provider) DO UPDATE SET
     access_token = excluded.access_token,
     refresh_token = excluded.refresh_token,
@@ -269,7 +275,8 @@ RETURNING id, user_id, provider, access_token, refresh_token, expires_at, create
 `
 
 type UpsertUserTrackerParams struct {
-	UserID       int64          `json:"user_id"`
+	ID           string         `json:"id"`
+	UserID       string         `json:"user_id"`
 	Provider     string         `json:"provider"`
 	AccessToken  string         `json:"access_token"`
 	RefreshToken sql.NullString `json:"refresh_token"`
@@ -278,6 +285,7 @@ type UpsertUserTrackerParams struct {
 
 func (q *Queries) UpsertUserTracker(ctx context.Context, arg UpsertUserTrackerParams) (UserTracker, error) {
 	row := q.queryRow(ctx, q.upsertUserTrackerStmt, upsertUserTracker,
+		arg.ID,
 		arg.UserID,
 		arg.Provider,
 		arg.AccessToken,

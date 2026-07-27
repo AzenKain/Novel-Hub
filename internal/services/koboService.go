@@ -17,7 +17,7 @@ type KoboService interface {
 	GetUserProfile(ctx context.Context) (map[string]any, error)
 	GetSyncList(ctx context.Context, syncToken string, claims *response.JWTClaims) (map[string]any, error)
 	GetBookKePubStream(ctx context.Context, bookID string, claims *response.JWTClaims, out io.Writer) error
-	SyncState(ctx context.Context, userID int64, stateData map[string]any) error
+	SyncState(ctx context.Context, userID string, stateData map[string]any) error
 }
 
 type koboService struct {
@@ -126,6 +126,6 @@ func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, cla
 	return nil
 }
 
-func (s *koboService) SyncState(ctx context.Context, userID int64, stateData map[string]any) error {
+func (s *koboService) SyncState(ctx context.Context, userID string, stateData map[string]any) error {
 	return nil
 }

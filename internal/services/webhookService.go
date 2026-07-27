@@ -205,7 +205,6 @@ func (s *webhookService) sendHTTPRequest(ctx context.Context, wh *models.Webhook
 	req.Header.Set("User-Agent", "NovelHub-Webhook/1.0")
 	req.Header.Set("X-NovelHub-Event", eventType)
 
-	// HMAC SHA-256 Signature
 	if wh.Secret != nil && *wh.Secret != "" {
 		mac := hmac.New(sha256.New, []byte(*wh.Secret))
 		mac.Write(formattedBody)
@@ -213,7 +212,6 @@ func (s *webhookService) sendHTTPRequest(ctx context.Context, wh *models.Webhook
 		req.Header.Set("X-NovelHub-Signature", "sha256="+signature)
 	}
 
-	// Custom Headers (JSON string mapping)
 	if wh.CustomHeaders != nil && *wh.CustomHeaders != "" {
 		var headers map[string]string
 		if err := jsonx.UnmarshalString(*wh.CustomHeaders, &headers); err == nil {

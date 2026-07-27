@@ -17,7 +17,6 @@ export const SmtpSettingsTab: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      // Save settings
       toast.success(t("admin.save_success", "SMTP Settings saved successfully!"));
     } catch (err: any) {
       toast.error(t("admin.save_failed", "Failed to save SMTP settings"));

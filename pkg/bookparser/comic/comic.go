@@ -46,32 +46,27 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 			}
 		}
 	}
-	if xmlData, err := p.GetAsset(filePath, "ComicInfo.xml"); err == nil && len(xmlData) > 0 {
-		if xmlMeta, err := ParseComicInfoXML(bytes.NewReader(xmlData)); err == nil && xmlMeta != nil {
-			if xmlMeta.Title != "" {
-				meta.Title = xmlMeta.Title
-			}
-			meta.Series = xmlMeta.Series
-			meta.SeriesIndex = xmlMeta.SeriesIndex
-			meta.Description = xmlMeta.Description
-			meta.Author = xmlMeta.Author
-			meta.Publisher = xmlMeta.Publisher
-			meta.Language = xmlMeta.Language
-			meta.Subjects = xmlMeta.Subjects
+	for _, name := range []string{"ComicInfo.xml", "comicinfo.xml"} {
+		xmlData, err := p.GetAsset(filePath, name)
+		if err != nil || len(xmlData) == 0 {
+			continue
 		}
-	} else if xmlData, err := p.GetAsset(filePath, "comicinfo.xml"); err == nil && len(xmlData) > 0 {
-		if xmlMeta, err := ParseComicInfoXML(bytes.NewReader(xmlData)); err == nil && xmlMeta != nil {
-			if xmlMeta.Title != "" {
-				meta.Title = xmlMeta.Title
-			}
-			meta.Series = xmlMeta.Series
-			meta.SeriesIndex = xmlMeta.SeriesIndex
-			meta.Description = xmlMeta.Description
-			meta.Author = xmlMeta.Author
-			meta.Publisher = xmlMeta.Publisher
-			meta.Language = xmlMeta.Language
-			meta.Subjects = xmlMeta.Subjects
+		xmlMeta, err := ParseComicInfoXML(bytes.NewReader(xmlData))
+		if err != nil || xmlMeta == nil {
+			continue
 		}
+		if xmlMeta.Title != "" {
+			meta.Title = xmlMeta.Title
+		}
+		meta.Series = xmlMeta.Series
+		meta.SeriesIndex = xmlMeta.SeriesIndex
+		meta.Description = xmlMeta.Description
+		meta.Author = xmlMeta.Author
+		meta.Publisher = xmlMeta.Publisher
+		meta.Language = xmlMeta.Language
+		meta.Subjects = xmlMeta.Subjects
+		meta.ReadingDirection = xmlMeta.ReadingDirection
+		break
 	}
 
 	return bookparser.MergeMetadataSidecar(filePath, meta), nil

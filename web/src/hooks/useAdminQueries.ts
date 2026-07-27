@@ -2,6 +2,7 @@ import { adminService, webhookService } from "@/services";
 import type {
   AdminReview,
   AdminSettings,
+  CalibreImportResult,
   CreateRoleRequest,
   CreateUserRequest,
   CreateWebhookInput,
@@ -51,6 +52,22 @@ export function useUploadAdminLogoMutation() {
   });
 }
 
+// Calibre
+export function useCalibreImportMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<CalibreImportResult, Error, { path: string; libraryId?: string }>({
+    mutationFn: async ({ path, libraryId }) => {
+      const res = await adminService.importCalibre(path, libraryId);
+      if (!res.status) throw new Error(res.message || "Failed to import Calibre library");
+      return res.data ?? { imported_count: 0 };
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    },
+  });
+}
+
 // Users
 export function useUsersQuery(params: SearchUserParams) {
   return useQuery<{ users: User[]; total: number }>({
@@ -80,7 +97,7 @@ export function useCreateUserMutation() {
 export function useUpdateUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { full_name: string; avatar_url?: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { full_name: string; avatar_url?: string } }) => {
       const res = await adminService.updateUser(id, data);
       if (!res.status) throw new Error(res.message || "Failed to update user");
       return res.data;
@@ -93,7 +110,7 @@ export function useUpdateUserMutation() {
 
 export function useResetUserPasswordMutation() {
   return useMutation({
-    mutationFn: async ({ id, password }: { id: number; password: string }) => {
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
       const res = await adminService.resetPassword(id, password);
       if (!res.status) throw new Error(res.message || "Failed to reset password");
       return res;
@@ -104,7 +121,7 @@ export function useResetUserPasswordMutation() {
 export function useChangeUserRolesMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, roleIDs }: { id: number; roleIDs: number[] }) => {
+    mutationFn: async ({ id, roleIDs }: { id: string; roleIDs: string[] }) => {
       const res = await adminService.changeRoles(id, roleIDs);
       if (!res.status) throw new Error(res.message || "Failed to change roles");
       return res;
@@ -118,7 +135,7 @@ export function useChangeUserRolesMutation() {
 export function useDeleteUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const res = await adminService.deleteUser(id);
       if (!res.status) throw new Error(res.message || "Failed to delete user");
       return res;
@@ -158,7 +175,7 @@ export function useCreateRoleMutation() {
 export function useUpdateRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: UpdateRoleRequest }) => {
+    mutationFn: async ({ id, data }: { id: string; data: UpdateRoleRequest }) => {
       const res = await adminService.updateRole(id, data);
       if (!res.status) throw new Error(res.message || "Failed to update role");
       return res.data;
@@ -172,7 +189,7 @@ export function useUpdateRoleMutation() {
 export function useDeleteRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const res = await adminService.deleteRole(id);
       if (!res.status) throw new Error(res.message || "Failed to delete role");
       return res;
@@ -186,7 +203,7 @@ export function useDeleteRoleMutation() {
 export function useReorderRolesMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (roleIDs: number[]) => {
+    mutationFn: async (roleIDs: string[]) => {
       const res = await adminService.reorderRoles(roleIDs);
       if (!res.status) throw new Error(res.message || "Failed to reorder roles");
       return res;
@@ -211,7 +228,7 @@ export function usePermissionsQuery() {
 export function useAssignRolePermissionsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ roleID, assignments }: { roleID: number; assignments: any[] }) => {
+    mutationFn: async ({ roleID, assignments }: { roleID: string; assignments: any[] }) => {
       const res = await adminService.updateRolePermissions(roleID, { permissions: assignments });
       if (!res.status) throw new Error(res.message || "Failed to update role permissions");
       return res;
@@ -237,7 +254,7 @@ export function useReviewsQuery(page: number, limit = 20) {
 export function useDeleteReviewMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ bookId, userId }: { bookId: string; userId: number }) => {
+    mutationFn: async ({ bookId, userId }: { bookId: string; userId: string }) => {
       const res = await adminService.deleteReview(bookId, userId);
       if (!res.status) throw new Error(res.message || "Failed to delete review");
       return res;

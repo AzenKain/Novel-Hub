@@ -1,6 +1,7 @@
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
+import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
-import { useUpdateProfileMutation } from "@/hooks";
+import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,14 @@ export const UserProfile = () => {
 
   // Crop states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Password states
+  const changePasswordMutation = useChangePasswordMutation();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -64,6 +73,24 @@ export const UserProfile = () => {
         onSuccess: () => {
           setSuccess(true);
           setTimeout(() => setSuccess(false), 3000);
+        },
+      }
+    );
+  };
+
+  const handleChangePassword = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    if (newPassword !== confirmPassword) {
+      setPasswordError(t('user.password_mismatch', 'New passwords do not match'));
+      return;
+    }
+    // Đổi mật khẩu thu hồi session -> hook clear auth, đóng modal để user đăng nhập lại.
+    changePasswordMutation.mutate(
+      { old_password: oldPassword, new_password: newPassword },
+      {
+        onSuccess: () => {
+          setProfileModalOpen(false);
         },
       }
     );
@@ -208,6 +235,78 @@ export const UserProfile = () => {
                 </button>
               </div>
             </form>
+
+            {user.auth_provider === "LOCAL" && (
+              <div className="mt-6 border-t border-base-300 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasswordOpen((v) => !v);
+                    setPasswordError("");
+                    setOldPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
+                  className="btn btn-sm btn-outline w-full"
+                >
+                  {t('user.change_password', 'Change Password')}
+                </button>
+
+                {passwordOpen && (
+                  <form onSubmit={handleChangePassword} className="flex flex-col gap-3 mt-4">
+                    {passwordError && (
+                      <div className="alert alert-error py-2 text-sm rounded-lg">
+                        <span>{passwordError}</span>
+                      </div>
+                    )}
+                    {changePasswordMutation.error && (
+                      <div className="alert alert-error py-2 text-sm rounded-lg">
+                        <span>{changePasswordMutation.error instanceof Error ? changePasswordMutation.error.message : String(changePasswordMutation.error)}</span>
+                      </div>
+                    )}
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      className="input input-bordered w-full focus:input-primary"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder={t('user.current_password', 'Current password')}
+                      required
+                    />
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      className="input input-bordered w-full focus:input-primary"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder={t('user.new_password', 'New password')}
+                      required
+                    />
+                    {newPassword.length > 0 && <PasswordStrength password={newPassword} />}
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      className="input input-bordered w-full focus:input-primary"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder={t('user.confirm_password', 'Confirm new password')}
+                      required
+                    />
+                    <p className="text-xs text-base-content/60">
+                      {t('user.password_relogin_note', 'You will be signed out after changing your password.')}
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={changePasswordMutation.isPending}
+                      className="btn btn-primary btn-sm"
+                    >
+                      {changePasswordMutation.isPending ? <span className="loading loading-spinner"></span> : t('user.update_password', 'Update Password')}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
             <div className="mt-6 border-t border-base-300 pt-6">
               <ReadingHeatmap />
             </div>

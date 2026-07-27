@@ -10,7 +10,7 @@ import (
 
 type HighlightEntity struct {
 	ID          string     `json:"id"`
-	UserID      int64      `json:"userId"`
+	UserID      string     `json:"userId"`
 	BookID      string     `json:"bookId"`
 	ChapterID   string     `json:"chapterId"`
 	TextContent string     `json:"textContent"`

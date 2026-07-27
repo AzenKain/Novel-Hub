@@ -1,13 +1,9 @@
 import { api } from "@/config/api";
 import type {
   Book,
-  BookDownloadStats,
   BookEngagementStats,
   Bookmark,
-  BookRatingSummary,
-  BookReadStats,
   BookReview,
-  BookSocialStats,
   BookUserState,
   Collection,
   CommonResponse,
@@ -18,19 +14,6 @@ import type {
   RecordReadingActivityPayload,
 } from "@/types";
 import axios from "axios";
-
-const shareClientId = () => {
-  const key = "novelhub_share_client_id";
-  if (typeof window === "undefined") return "";
-  const existing = window.localStorage.getItem(key);
-  if (existing) return existing;
-  const next =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  window.localStorage.setItem(key, next);
-  return next;
-};
 
 export const featureService = {
   getLibraryStats: async (): Promise<CommonResponse<LibraryStats>> => {
@@ -119,47 +102,6 @@ export const featureService = {
     }
   },
 
-  getBookReadStats: async (
-    bookId: string,
-  ): Promise<CommonResponse<BookReadStats>> => {
-    try {
-      const res = await api.get(`/reader/stats/${encodeURIComponent(bookId)}`);
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<BookReadStats>;
-      throw error;
-    }
-  },
-
-  getBookDownloadStats: async (
-    bookId: string,
-  ): Promise<CommonResponse<BookDownloadStats>> => {
-    try {
-      const res = await api.get(
-        `/books/${encodeURIComponent(bookId)}/download-stats`,
-      );
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<BookDownloadStats>;
-      throw error;
-    }
-  },
-
-  getBookRatingSummary: async (
-    bookId: string,
-  ): Promise<CommonResponse<BookRatingSummary>> => {
-    try {
-      const res = await api.get(`/books/${encodeURIComponent(bookId)}/rating`);
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<BookRatingSummary>;
-      throw error;
-    }
-  },
-
   getBookEngagementStats: async (
     bookId: string,
   ): Promise<CommonResponse<BookEngagementStats>> => {
@@ -171,21 +113,6 @@ export const featureService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<BookEngagementStats>;
-      throw error;
-    }
-  },
-
-  recordShare: async (
-    bookId: string,
-  ): Promise<CommonResponse<BookSocialStats>> => {
-    try {
-      const res = await api.post(`/books/${encodeURIComponent(bookId)}/share`, {
-        clientId: shareClientId(),
-      });
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<BookSocialStats>;
       throw error;
     }
   },
@@ -291,7 +218,7 @@ export const featureService = {
 
   adminDeleteBookReview: async (
     bookId: string,
-    userId: number,
+    userId: string,
   ): Promise<CommonResponse<void>> => {
     try {
       const res = await api.delete(

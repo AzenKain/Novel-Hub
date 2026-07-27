@@ -1,5 +1,5 @@
 export type Role = {
-  id: number;
+  id: string;
   name: string;
   description: string;
   is_system: boolean;
@@ -14,7 +14,7 @@ export type Role = {
 };
 
 export type RoleSimple = {
-  id: number;
+  id: string;
   name: string;
   is_admin?: boolean;
   is_banned?: boolean;
@@ -30,8 +30,8 @@ export type Permission = {
 };
 
 export type RolePermission = {
-  id: number;
-  role_id: number;
+  id: string;
+  role_id: string;
   permission_key: string;
   effect: "allow" | "deny";
   conditions_json: string;
@@ -64,7 +64,7 @@ export type UpdateRolePermissionsRequest = {
 export type UpdateSettingsRequest = Record<string, unknown>;
 
 export interface AdminReview {
-  userId: number;
+  userId: string;
   bookId: string;
   rating: number;
   review?: string;
@@ -212,4 +212,8 @@ export interface BackupInfo {
 export interface RestoreResult {
   restartRequired: boolean;
   autoRestart: boolean;
+}
+
+export interface CalibreImportResult {
+  imported_count: number;
 }

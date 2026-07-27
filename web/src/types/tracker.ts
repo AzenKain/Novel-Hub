@@ -4,13 +4,13 @@ export interface ConnectTrackerInput {
 }
 
 export interface MapTrackerInput {
-  book_id: number;
+  book_id: string;
   provider: string;
   external_series_id: string;
 }
 
 export interface SyncProgressInput {
-  book_id: number;
+  book_id: string;
   title: string;
   progress: number;
 }

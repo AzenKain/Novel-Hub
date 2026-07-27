@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"novelhub/pkg/apperrors"
 
 	"novelhub/internal/dtos/request"
@@ -91,6 +93,7 @@ func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto
 	txRepo := r.roleRepo.WithTx(tx)
 
 	role, err := txRepo.Create(ctx, sqlc.CreateRoleParams{
+		ID:          uuid.Must(uuid.NewV7()).String(),
 		Name:        name,
 		Description: strings.TrimSpace(dto.Description),
 		IsSystem:    0,
@@ -139,7 +142,7 @@ func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.Up
 	txRepo := r.roleRepo.WithTx(tx)
 
 	autoAssign := dto.AutoAssign
-	if existing.IsBanned || existing.ID == constants.SystemRoleIDGuest || strings.EqualFold(existing.Name, string(constants.RoleTypeGuest)) {
+	if existing.IsBanned || strings.EqualFold(existing.Name, string(constants.RoleTypeGuest)) {
 		autoAssign = false
 	}
 

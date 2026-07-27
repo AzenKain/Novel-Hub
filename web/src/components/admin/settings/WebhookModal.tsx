@@ -99,7 +99,6 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
         is_active: editingWebhook.is_active,
       });
 
-      // Parse custom config from custom_headers JSON if present
       if (editingWebhook.custom_headers) {
         try {
           const parsed = JSON.parse(editingWebhook.custom_headers);
@@ -109,7 +108,6 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
           const savedLabels: Record<string, string> = parsed._field_labels || {};
 
-          // Remove internal config keys for display in HTTP headers text area
           const httpHeadersOnly = { ...parsed };
           delete httpHeadersOnly._embed_color;
           delete httpHeadersOnly._bot_name;
@@ -130,7 +128,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
               customLabel: savedLabels[f.id] || f.defaultLabel,
               enabled: savedFieldIds.includes(f.id),
             }));
-            // Sort by saved order
+
             updated.sort((a, b) => {
               const idxA = savedFieldIds.indexOf(a.id);
               const idxB = savedFieldIds.indexOf(b.id);
@@ -219,7 +217,6 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
       }
     }
 
-    // Embed customizer settings into headers object
     headersObj._embed_color = embedColor;
     headersObj._bot_name = botName;
     headersObj._title_template = titleTemplate;
@@ -244,7 +241,6 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
     onSave(finalInput);
   };
 
-  // Sample data for Live Preview (English Defaults)
   const sampleData = {
     rawTitle: "Re:Zero − Starting Life in Another World, Vol. 9",
     author: "Tappei Nagatsuki",

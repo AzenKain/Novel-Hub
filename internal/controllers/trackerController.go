@@ -72,6 +72,12 @@ func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
 
 	title := c.Query("title")
 	if title == "" {
+		title = c.Query("query")
+	}
+	if title == "" {
+		title = c.Query("q")
+	}
+	if title == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Title query is required"})
 	}
 

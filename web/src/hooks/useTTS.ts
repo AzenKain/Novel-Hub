@@ -40,7 +40,7 @@ export function useTTS(options?: UseTTSOptions) {
   const speak = useCallback((text: string) => {
     if (!isSupported) return;
 
-    window.speechSynthesis.cancel(); // Stop anything currently playing
+    window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     if (selectedVoice) {

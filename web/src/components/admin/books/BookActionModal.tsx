@@ -1,5 +1,5 @@
 import { getMediaUrl } from "@/config/api";
-import { BookOpen, Image as ImageIcon, Settings, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, BookOpen, Image as ImageIcon, Settings, Trash2 } from "lucide-react";
 import React from "react";
 
 import type { Book } from "@/types";
@@ -10,6 +10,7 @@ type BookActionModalProps = {
   onRead: (book: Book) => void;
   onEdit: (book: Book) => void;
   onDelete: (book: Book) => void;
+  onArchive: (book: Book, archived: boolean) => void;
 };
 
 export const BookActionModal: React.FC<BookActionModalProps> = ({
@@ -18,7 +19,10 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
   onRead,
   onEdit,
   onDelete,
-}) => (
+  onArchive,
+}) => {
+  const isArchived = book?.status === "archived";
+  return (
   <dialog className={`modal ${book ? "modal-open" : ""}`}>
     <div className="modal-box max-w-lg overflow-hidden p-0">
       <header className="flex items-start justify-between gap-4 border-b border-base-200 bg-base-200/30 px-5 py-4">
@@ -78,7 +82,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           </div>
         </div>
       </div>
-      <footer className="grid grid-cols-1 gap-2 border-t border-base-200 bg-base-100 px-5 py-4 sm:grid-cols-3">
+      <footer className="grid grid-cols-2 gap-2 border-t border-base-200 bg-base-100 px-5 py-4">
         <button
           type="button"
           className="btn btn-primary gap-2"
@@ -99,6 +103,24 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
         </button>
         <button
           type="button"
+          className="btn btn-outline gap-2"
+          disabled={!book}
+          onClick={() => book && onArchive(book, !isArchived)}
+        >
+          {isArchived ? (
+            <>
+              <ArchiveRestore className="h-4 w-4" />
+              Unarchive
+            </>
+          ) : (
+            <>
+              <Archive className="h-4 w-4" />
+              Archive
+            </>
+          )}
+        </button>
+        <button
+          type="button"
           className="btn btn-error btn-outline gap-2"
           disabled={!book}
           onClick={() => book && onDelete(book)}
@@ -112,4 +134,5 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
       <button onClick={onClose}>close</button>
     </form>
   </dialog>
-);
+  );
+};

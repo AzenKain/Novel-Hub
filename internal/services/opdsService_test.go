@@ -66,8 +66,6 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 	}
 	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
 	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
-
-	// Create test book
 	book := &models.BookEntity{
 		ID:     "test-book-opds-2",
 		Title:  "Test OPDS 2.0 Book Title",
@@ -78,7 +76,7 @@ func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
 	}
 
 	opdsService := NewOPDSService(bookService, permissionCache)
-	claims := &response.JWTClaims{UId: "0", Roles: []constants.RoleType{constants.RoleTypeGuest}, RoleIDs: []int64{constants.SystemRoleIDGuest}}
+	claims := &response.JWTClaims{UId: "0", Roles: []constants.RoleType{constants.RoleTypeGuest}}
 	catalog, err := opdsService.GetOPDS2Catalog(context.Background(), "http://localhost:8080", claims)
 	if err != nil {
 		t.Fatalf("failed to get OPDS 2.0 catalog: %v", err)

@@ -2,6 +2,7 @@ import { api, toQuery } from "@/config/api";
 import type {
   AdminReview,
   AdminSettings,
+  CalibreImportResult,
   CommonResponse,
   CreateRoleRequest,
   CreateUserRequest,
@@ -42,7 +43,7 @@ export const adminService = {
     }
   },
 
-  async updateUser(id: number, data: UpdateProfileRequest): Promise<CommonResponse<User>> {
+  async updateUser(id: string, data: UpdateProfileRequest): Promise<CommonResponse<User>> {
     try {
       const res = await api.put(`/users/${id}`, data);
       return res.data;
@@ -54,7 +55,7 @@ export const adminService = {
     }
   },
 
-  async resetPassword(id: number, newPassword: string): Promise<CommonResponse<unknown>> {
+  async resetPassword(id: string, newPassword: string): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.patch(`/users/${id}/password`, { new_password: newPassword });
       return res.data;
@@ -66,7 +67,7 @@ export const adminService = {
     }
   },
 
-  async changeRoles(id: number, roleIDs: number[]): Promise<CommonResponse<User>> {
+  async changeRoles(id: string, roleIDs: string[]): Promise<CommonResponse<User>> {
     try {
       const res = await api.patch(`/users/${id}/role`, { role_ids: roleIDs });
       return res.data;
@@ -78,7 +79,7 @@ export const adminService = {
     }
   },
 
-  async deleteUser(id: number): Promise<CommonResponse<unknown>> {
+  async deleteUser(id: string): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.delete(`/users/${id}`);
       return res.data;
@@ -90,7 +91,7 @@ export const adminService = {
     }
   },
 
-  async restoreUser(id: number): Promise<CommonResponse<User>> {
+  async restoreUser(id: string): Promise<CommonResponse<User>> {
     try {
       const res = await api.patch(`/users/${id}/restore`);
       return res.data;
@@ -116,18 +117,6 @@ export const adminService = {
     }
   },
 
-  async getRoleById(id: number): Promise<CommonResponse<Role>> {
-    try {
-      const res = await api.get(`/roles/${id}`);
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<Role>;
-      }
-      throw error;
-    }
-  },
-
   async createRole(data: CreateRoleRequest): Promise<CommonResponse<Role>> {
     try {
       const res = await api.post("/roles", data);
@@ -140,7 +129,7 @@ export const adminService = {
     }
   },
 
-  async updateRole(id: number, data: UpdateRoleRequest): Promise<CommonResponse<Role>> {
+  async updateRole(id: string, data: UpdateRoleRequest): Promise<CommonResponse<Role>> {
     try {
       const res = await api.put(`/roles/${id}`, data);
       return res.data;
@@ -152,7 +141,7 @@ export const adminService = {
     }
   },
 
-  async updateRolePermissions(id: number, data: UpdateRolePermissionsRequest): Promise<CommonResponse<Role>> {
+  async updateRolePermissions(id: string, data: UpdateRolePermissionsRequest): Promise<CommonResponse<Role>> {
     try {
       const res = await api.put(`/roles/${id}/permissions`, data);
       return res.data;
@@ -164,7 +153,7 @@ export const adminService = {
     }
   },
 
-  async reorderRoles(roleIDs: number[]): Promise<CommonResponse<unknown>> {
+  async reorderRoles(roleIDs: string[]): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.put("/roles/reorder", { role_ids: roleIDs });
       return res.data;
@@ -176,7 +165,7 @@ export const adminService = {
     }
   },
 
-  async deleteRole(id: number): Promise<CommonResponse<unknown>> {
+  async deleteRole(id: string): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.delete(`/roles/${id}`);
       return res.data;
@@ -240,7 +229,7 @@ export const adminService = {
     }
   },
 
-  async deleteReview(bookId: string, userId: number): Promise<CommonResponse<unknown>> {
+  async deleteReview(bookId: string, userId: string): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.delete(`/admin/reviews/${encodeURIComponent(bookId)}/${userId}`);
       return res.data;
@@ -263,6 +252,18 @@ export const adminService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<{ url: string }>;
+      throw error;
+    }
+  },
+
+  async importCalibre(path: string, libraryId?: string): Promise<CommonResponse<CalibreImportResult>> {
+    try {
+      const res = await api.post("/calibre/import", { path, library_id: libraryId || "" });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<CalibreImportResult>;
+      }
       throw error;
     }
   },

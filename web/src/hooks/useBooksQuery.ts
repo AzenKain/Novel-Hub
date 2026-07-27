@@ -38,7 +38,7 @@ export function useHotBooksQuery(limit = 6) {
       if (!res.status) throw new Error(res.message || "Failed to fetch hot books");
       return res.data || [];
     },
-    staleTime: 1000 * 60, // 1 minute cache for hot books
+    staleTime: 1000 * 60, 
   });
 }
 
@@ -51,7 +51,7 @@ export function useRandomBooksQuery(limit = 6) {
       return res.data || [];
     },
     refetchOnWindowFocus: false,
-    staleTime: 0, // Random books can be refetched on demand
+    staleTime: 0,
   });
 }
 

@@ -28,6 +28,15 @@ export const useHighlights = (bookId: string, chapterId: string | undefined, ena
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, color, note }: { id: string; color: string; note?: string }) => {
+      return await highlightService.updateHighlightNote(id, color, note);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['highlights', chapterId] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await highlightService.deleteHighlight(id);
@@ -46,6 +55,15 @@ export const useHighlights = (bookId: string, chapterId: string | undefined, ena
     }
   };
 
+  const updateHighlight = async (id: string, color: string, note?: string) => {
+    try {
+      return await updateMutation.mutateAsync({ id, color, note });
+    } catch (err) {
+      console.error("Failed to update highlight", err);
+      return null;
+    }
+  };
+
   const removeHighlight = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
@@ -57,7 +75,8 @@ export const useHighlights = (bookId: string, chapterId: string | undefined, ena
   return {
     highlights: highlightsQuery.data || [],
     addHighlight,
+    updateHighlight,
     removeHighlight,
-    loading: highlightsQuery.isLoading || addMutation.isPending || deleteMutation.isPending,
+    loading: highlightsQuery.isLoading || addMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
   };
 };

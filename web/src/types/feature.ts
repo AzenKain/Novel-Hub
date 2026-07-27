@@ -1,5 +1,5 @@
 export interface ReadingHistory {
-  userId: number;
+  userId: string;
   bookId: string;
   fileId?: string;
   chapterId: string;
@@ -30,7 +30,7 @@ export interface BookDownloadStats {
 }
 
 export interface BookReview {
-  userId: number;
+  userId: string;
   bookId: string;
   rating: number;
   review?: string;
@@ -62,7 +62,7 @@ export interface BookEngagementStats {
 }
 
 export interface Bookmark {
-  userId: number;
+  userId: string;
   bookId: string;
   createdAt: string;
 }
@@ -92,7 +92,7 @@ export interface RecordReadingActivityPayload {
 
 export interface ReadingActivityResult {
   progress: {
-    userId: number;
+    userId: string;
     bookId: string;
     fileId?: string;
     chapterId: string;

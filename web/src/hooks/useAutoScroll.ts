@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 export const useAutoScroll = (contentRef: React.RefObject<HTMLElement | null>) => {
   const [isScrolling, setIsScrolling] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(50); // pixels per second
+  const [scrollSpeed, setScrollSpeed] = useState(50);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
 
@@ -48,7 +48,6 @@ export const useAutoScroll = (contentRef: React.RefObject<HTMLElement | null>) =
     };
   }, [isScrolling, scrollSpeed, contentRef]);
 
-  // Pause scrolling if user manually scrolls
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY !== 0 && isScrolling) {

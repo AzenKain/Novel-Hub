@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search } from "lucide-react";
 import React, { useState } from "react";
 import { LanguageSwitcher } from "@/components/ui";
-import type { ReaderTheme, ReadingMode } from "@/stores";
+import type { PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
 
@@ -19,6 +19,9 @@ type ReaderTopBarProps = {
   maxWidth: number;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
+  isVisualContent: boolean;
+  readingDirection: ReadingDirection;
+  pageFit: PageFit;
   onPrev: () => void;
   onNext: () => void;
   setSettingsOpen: (open: boolean) => void;
@@ -27,6 +30,8 @@ type ReaderTopBarProps = {
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
+  setReadingDirection: (direction: ReadingDirection) => void;
+  setPageFit: (fit: PageFit) => void;
   resetSettings: () => void;
   ttsSupported?: boolean;
   ttsPlaying?: boolean;
@@ -57,6 +62,9 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   maxWidth,
   effectiveReadingMode,
   canUseDoubleMode,
+  isVisualContent,
+  readingDirection,
+  pageFit,
   onPrev,
   onNext,
   setSettingsOpen,
@@ -65,6 +73,8 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setFontSize,
   setMaxWidth,
   setReadingMode,
+  setReadingDirection,
+  setPageFit,
   resetSettings,
   ttsSupported,
   ttsPlaying,
@@ -209,11 +219,16 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             maxWidth={maxWidth}
             effectiveReadingMode={effectiveReadingMode}
             canUseDoubleMode={canUseDoubleMode}
+            isVisualContent={isVisualContent}
+            readingDirection={readingDirection}
+            pageFit={pageFit}
             setTheme={setTheme}
             setFontFamily={setFontFamily}
             setFontSize={setFontSize}
             setMaxWidth={setMaxWidth}
             setReadingMode={setReadingMode}
+            setReadingDirection={setReadingDirection}
+            setPageFit={setPageFit}
             resetSettings={resetSettings}
           />
         )}

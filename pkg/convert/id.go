@@ -2,13 +2,15 @@ package convert
 
 import (
 	"fmt"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
-func ParseID(value string) (int64, error) {
-	id, err := strconv.ParseInt(value, 10, 64)
-	if err != nil || id < 1 {
-		return 0, fmt.Errorf("invalid ID: %s", value)
+// ParseID validates a UUID identifier coming from an untrusted source (path
+// param, JWT subject) so malformed values are rejected before reaching SQL.
+func ParseID(value string) (string, error) {
+	if err := uuid.Validate(value); err != nil {
+		return "", fmt.Errorf("invalid ID: %s", value)
 	}
-	return id, nil
+	return value, nil
 }

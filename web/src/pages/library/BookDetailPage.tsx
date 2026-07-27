@@ -28,7 +28,7 @@ import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
-import { InfoLine, ShareDialog, ReviewSection } from "@/components/book-detail";
+import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard } from "@/components/book-detail";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
@@ -438,6 +438,10 @@ export const BookDetailPage: React.FC = () => {
 
 
             {/* Reviews Section */}
+            <div className="pt-2 border-t border-base-200 mt-2">
+              <TrackerMapCard bookId={book.id!} title={book.title} />
+            </div>
+
             {allowReview && (
               <div className="pt-2 border-t border-base-200 mt-2">
                 <ReviewSection bookId={book.id!} userReview={userState?.myReview} />

@@ -14,7 +14,7 @@ SELECT user_id, target_words_per_day, target_books_per_year, created_at, updated
 WHERE user_id = ?
 `
 
-func (q *Queries) GetUserReadingGoal(ctx context.Context, userID int64) (ReadingGoal, error) {
+func (q *Queries) GetUserReadingGoal(ctx context.Context, userID string) (ReadingGoal, error) {
 	row := q.queryRow(ctx, q.getUserReadingGoalStmt, getUserReadingGoal, userID)
 	var i ReadingGoal
 	err := row.Scan(
@@ -41,9 +41,9 @@ RETURNING user_id, target_words_per_day, target_books_per_year, created_at, upda
 `
 
 type UpsertUserReadingGoalParams struct {
-	UserID             int64 `json:"user_id"`
-	TargetWordsPerDay  int64 `json:"target_words_per_day"`
-	TargetBooksPerYear int64 `json:"target_books_per_year"`
+	UserID             string `json:"user_id"`
+	TargetWordsPerDay  int64  `json:"target_words_per_day"`
+	TargetBooksPerYear int64  `json:"target_books_per_year"`
 }
 
 func (q *Queries) UpsertUserReadingGoal(ctx context.Context, arg UpsertUserReadingGoalParams) (ReadingGoal, error) {

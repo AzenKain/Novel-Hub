@@ -5,9 +5,7 @@ import type {
   Chapter,
   CursorPaginatedResponse,
   CommonResponse,
-  DuplicateFileResult,
   DuplicateGroupResult,
-  OnlineMetadataResult,
   SearchBookParams,
   SearchDeepResult,
 } from "@/types";
@@ -62,30 +60,6 @@ export const bookService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<BookFile[]>;
-      throw error;
-    }
-  },
-
-  async uploadFiles(
-    id: string,
-    formData: FormData,
-  ): Promise<
-    CommonResponse<{ uploaded: number; total: number; files: BookFile[] }>
-  > {
-    try {
-      const res = await api.post(`/books/${id}/files`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<{
-          uploaded: number;
-          total: number;
-          files: BookFile[];
-        }>;
       throw error;
     }
   },
@@ -152,22 +126,6 @@ export const bookService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<void>;
-      throw error;
-    }
-  },
-
-  async getOnlineMetadata(
-    id: string,
-    source: string = "fallback",
-  ): Promise<CommonResponse<OnlineMetadataResult[]>> {
-    try {
-      const res = await api.get(
-        `/books/${id}/metadata/online?source=${source}`,
-      );
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<OnlineMetadataResult[]>;
       throw error;
     }
   },

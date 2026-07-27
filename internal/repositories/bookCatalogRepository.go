@@ -291,7 +291,7 @@ type bookSearchFilters struct {
 	TopRated        any
 	Archived        any
 	Bookmarked      any
-	UserID          sql.NullInt64
+	UserID          sql.NullString
 	AuthorID        any
 	SeriesID        any
 	TagID           any

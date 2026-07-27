@@ -125,7 +125,7 @@ export interface BootstrapResponse {
 
 export interface Highlight {
   id: string;
-  userId: number;
+  userId: string;
   bookId: string;
   chapterId: string;
   textContent: string;

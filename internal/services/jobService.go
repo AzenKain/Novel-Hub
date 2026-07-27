@@ -36,6 +36,7 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 		queue: queue,
 		tasks: map[string]string{
 			"maintenance":           "Run full library maintenance",
+			"scan_library_inbox":    "Scan library inbox folders for new files",
 			"clean_empty_book_dirs": "Remove empty managed book directories",
 			"clean_orphan_uploads":  "Remove stale upload chunks",
 			"database_health_check": "Check database connectivity and schema access",

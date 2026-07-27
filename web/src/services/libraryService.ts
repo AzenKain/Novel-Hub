@@ -13,16 +13,6 @@ export const libraryService = {
     }
   },
 
-  async getLibrary(id: string): Promise<CommonResponse<Library>> {
-    try {
-      const res = await api.get(`/libraries/${id}`);
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<Library>;
-      throw error;
-    }
-  },
-
   async createLibrary(data: { name: string }): Promise<CommonResponse<Library>> {
     try {
       const res = await api.post(`/libraries`, data);
@@ -49,20 +39,6 @@ export const libraryService = {
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<null>;
-      throw error;
-    }
-  },
-
-  async uploadFiles(id: string, formData: FormData): Promise<CommonResponse<{uploaded: number}>> {
-    try {
-      const res = await api.post(`/libraries/${id}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<{uploaded: number}>;
       throw error;
     }
   }

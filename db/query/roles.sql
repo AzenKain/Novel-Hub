@@ -1,6 +1,6 @@
 -- name: CreateRole :one
-INSERT INTO roles (name, description, is_system, is_admin, auto_assign)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO roles (id, name, description, is_system, is_admin, auto_assign)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetRoleByName :one
@@ -104,8 +104,8 @@ DELETE FROM role_permissions
 WHERE role_id = ?;
 
 -- name: UpsertRolePermission :exec
-INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
-VALUES (?, ?, ?, ?)
+INSERT INTO role_permissions (id, role_id, permission_key, effect, conditions_json)
+VALUES (?, ?, ?, ?, ?)
 ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = excluded.effect,
     conditions_json = excluded.conditions_json;

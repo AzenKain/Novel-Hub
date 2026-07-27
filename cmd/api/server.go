@@ -27,6 +27,7 @@ import (
 	"novelhub/internal/services"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/bookparser/archivebook"
+	"novelhub/pkg/bookparser/audiobook"
 	"novelhub/pkg/bookparser/comic"
 	docparser "novelhub/pkg/bookparser/doc"
 	"novelhub/pkg/bookparser/docx"
@@ -148,6 +149,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	parserRegistry.Register(comic.NewParser("cbr"), "cbr")
 	parserRegistry.Register(comic.NewParser("cbt"), "cbt")
 	parserRegistry.Register(comic.NewParser("cb7"), "cb7")
+	parserRegistry.Register(audiobook.New(), "mp3", "m4a", "m4b", "flac")
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
@@ -163,7 +165,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
 	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
-	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, permissionCache, jobQueue)
+	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, parserRegistry, permissionCache, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
 	metadataService := services.NewMetadataService(bookRepo)
@@ -248,6 +250,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	})
 	jobQueue.RegisterHandler("database_books_backup", func(ctx context.Context, jobID string, payload string) error {
 		_, err := backupService.Create(ctx, true)
+		return err
+	})
+	jobQueue.RegisterHandler("scan_library_inbox", func(ctx context.Context, jobID string, payload string) error {
+		_, err := libraryService.ScanInbox(ctx)
 		return err
 	})
 

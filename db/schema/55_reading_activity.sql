@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS reading_progress (
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     book_id TEXT NOT NULL,
     file_id TEXT,
     chapter_ref TEXT NOT NULL,

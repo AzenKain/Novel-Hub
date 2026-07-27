@@ -562,34 +562,34 @@ LIMIT ?28
 `
 
 type SearchBookIDsParams struct {
-	CursorCreatedAt       interface{}   `json:"cursor_created_at"`
-	LibraryID             interface{}   `json:"library_id"`
-	Search                interface{}   `json:"search"`
-	FilterMissingMetadata interface{}   `json:"filter_missing_metadata"`
-	FilterNoCover         interface{}   `json:"filter_no_cover"`
-	FilterHasFiles        interface{}   `json:"filter_has_files"`
-	FilterHasAuthor       interface{}   `json:"filter_has_author"`
-	FilterHasSeries       interface{}   `json:"filter_has_series"`
-	FilterHasTags         interface{}   `json:"filter_has_tags"`
-	FilterHasPublishers   interface{}   `json:"filter_has_publishers"`
-	FilterHasLanguages    interface{}   `json:"filter_has_languages"`
-	FilterHasFormats      interface{}   `json:"filter_has_formats"`
-	FilterReading         interface{}   `json:"filter_reading"`
-	FilterRead            interface{}   `json:"filter_read"`
-	FilterUnread          interface{}   `json:"filter_unread"`
-	FilterHot             interface{}   `json:"filter_hot"`
-	FilterTopDownloaded   interface{}   `json:"filter_top_downloaded"`
-	FilterTopRated        interface{}   `json:"filter_top_rated"`
-	FilterArchived        interface{}   `json:"filter_archived"`
-	FilterBookmarked      interface{}   `json:"filter_bookmarked"`
-	UserID                sql.NullInt64 `json:"user_id"`
-	AuthorID              interface{}   `json:"author_id"`
-	SeriesID              interface{}   `json:"series_id"`
-	TagID                 interface{}   `json:"tag_id"`
-	PublisherID           interface{}   `json:"publisher_id"`
-	LanguageID            interface{}   `json:"language_id"`
-	FileFormat            interface{}   `json:"file_format"`
-	Limit                 int64         `json:"limit"`
+	CursorCreatedAt       interface{}    `json:"cursor_created_at"`
+	LibraryID             interface{}    `json:"library_id"`
+	Search                interface{}    `json:"search"`
+	FilterMissingMetadata interface{}    `json:"filter_missing_metadata"`
+	FilterNoCover         interface{}    `json:"filter_no_cover"`
+	FilterHasFiles        interface{}    `json:"filter_has_files"`
+	FilterHasAuthor       interface{}    `json:"filter_has_author"`
+	FilterHasSeries       interface{}    `json:"filter_has_series"`
+	FilterHasTags         interface{}    `json:"filter_has_tags"`
+	FilterHasPublishers   interface{}    `json:"filter_has_publishers"`
+	FilterHasLanguages    interface{}    `json:"filter_has_languages"`
+	FilterHasFormats      interface{}    `json:"filter_has_formats"`
+	FilterReading         interface{}    `json:"filter_reading"`
+	FilterRead            interface{}    `json:"filter_read"`
+	FilterUnread          interface{}    `json:"filter_unread"`
+	FilterHot             interface{}    `json:"filter_hot"`
+	FilterTopDownloaded   interface{}    `json:"filter_top_downloaded"`
+	FilterTopRated        interface{}    `json:"filter_top_rated"`
+	FilterArchived        interface{}    `json:"filter_archived"`
+	FilterBookmarked      interface{}    `json:"filter_bookmarked"`
+	UserID                sql.NullString `json:"user_id"`
+	AuthorID              interface{}    `json:"author_id"`
+	SeriesID              interface{}    `json:"series_id"`
+	TagID                 interface{}    `json:"tag_id"`
+	PublisherID           interface{}    `json:"publisher_id"`
+	LanguageID            interface{}    `json:"language_id"`
+	FileFormat            interface{}    `json:"file_format"`
+	Limit                 int64          `json:"limit"`
 }
 
 func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([]string, error) {

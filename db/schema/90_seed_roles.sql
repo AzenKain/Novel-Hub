@@ -1,9 +1,10 @@
+-- System role IDs are fixed UUIDv7 literals so seeds stay idempotent across restarts.
 INSERT INTO roles (id, name, is_system, is_admin, is_banned, auto_assign, description) VALUES
-    (1, 'USER',   1, 0, 0, 1, 'Default user role'),
-    (2, 'ADMIN',  1, 1, 0, 0, 'Built-in administrator role with full access'),
-    (3, 'MOD',    1, 0, 0, 0, 'Built-in moderator role'),
-    (4, 'BANNED', 1, 0, 1, 0, 'Built-in blocked account role'),
-    (5, 'GUEST',  1, 0, 0, 0, 'Built-in unauthenticated visitor role')
+    ('01920000-0000-7000-8000-000000000001', 'USER',   1, 0, 0, 1, 'Default user role'),
+    ('01920000-0000-7000-8000-000000000002', 'ADMIN',  1, 1, 0, 0, 'Built-in administrator role with full access'),
+    ('01920000-0000-7000-8000-000000000003', 'MOD',    1, 0, 0, 0, 'Built-in moderator role'),
+    ('01920000-0000-7000-8000-000000000004', 'BANNED', 1, 0, 1, 0, 'Built-in blocked account role'),
+    ('01920000-0000-7000-8000-000000000005', 'GUEST',  1, 0, 0, 0, 'Built-in unauthenticated visitor role')
 ON CONFLICT(name) DO UPDATE SET
     is_system = excluded.is_system,
     is_admin = excluded.is_admin,

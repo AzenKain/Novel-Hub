@@ -13,7 +13,7 @@ export interface LibraryStats {
 
 export interface Collection {
   id: string;
-  userId: number;
+  userId: string;
   name: string;
   createdAt: string;
   updatedAt: string;

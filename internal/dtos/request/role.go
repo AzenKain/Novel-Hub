@@ -25,5 +25,5 @@ type UpdateRolePermissionsDto struct {
 }
 
 type ReorderRolesDto struct {
-	RoleIDs []int64 `json:"role_ids" validate:"required,min=1"`
+	RoleIDs []string `json:"role_ids" validate:"required,min=1,dive,uuid"`
 }

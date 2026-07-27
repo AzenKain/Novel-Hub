@@ -1,14 +1,14 @@
 package response
 
 type RoleSimpleResponse struct {
-	ID       int64  `json:"id"`
+	ID       string `json:"id"`
 	Name     string `json:"name"`
 	IsAdmin  bool   `json:"is_admin"`
 	IsBanned bool   `json:"is_banned"`
 }
 
 type RoleResponse struct {
-	ID          int64                     `json:"id"`
+	ID          string                    `json:"id"`
 	Name        string                    `json:"name"`
 	Description string                    `json:"description"`
 	IsSystem    bool                      `json:"is_system"`
@@ -30,8 +30,8 @@ type PermissionResponse struct {
 }
 
 type RolePermissionResponse struct {
-	ID             int64          `json:"id"`
-	RoleID         int64          `json:"role_id"`
+	ID             string         `json:"id"`
+	RoleID         string         `json:"role_id"`
 	PermissionKey  string         `json:"permission_key"`
 	Effect         string         `json:"effect"`
 	ConditionsJSON string         `json:"conditions_json"`

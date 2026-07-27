@@ -53,7 +53,6 @@ func TestSQLiteConcurrency(t *testing.T) {
 				}
 				ReleaseWriteLock()
 
-				// Execute read query
 				rows, err := db.QueryContext(ctx, "SELECT id FROM tags LIMIT 5")
 				if err != nil {
 					t.Errorf("worker %d failed to query: %v", workerID, err)

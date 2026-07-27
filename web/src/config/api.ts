@@ -43,7 +43,6 @@ let isRefreshing = false;
 let authFailed = false;
 let queue: QueueItem[] = [];
 
-// Reset authFailed flag when user performs signin/signup
 api.interceptors.request.use((config) => {
   if (config.url?.includes("/auth/signin") || config.url?.includes("/auth/signup")) {
     authFailed = false;

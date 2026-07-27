@@ -73,7 +73,7 @@ RETURNING id, user_id, name, created_at, updated_at
 
 type CreateCollectionParams struct {
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	Name   string `json:"name"`
 }
 
@@ -96,7 +96,7 @@ WHERE user_id = ? AND book_id = ?
 `
 
 type DeleteBookReviewParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -111,7 +111,7 @@ WHERE user_id = ? AND book_id = ?
 `
 
 type DeleteBookmarkParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -127,7 +127,7 @@ WHERE id = ? AND user_id = ?
 
 type DeleteCollectionParams struct {
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func (q *Queries) DeleteCollection(ctx context.Context, arg DeleteCollectionParams) error {
@@ -143,7 +143,7 @@ WHERE c.user_id = ? AND cb.book_id = ?
 `
 
 type GetBookCollectionIDsParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -269,7 +269,7 @@ LIMIT 1
 `
 
 type GetBookReviewParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -314,7 +314,7 @@ LIMIT 1
 `
 
 type GetBookmarkParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -333,7 +333,7 @@ LIMIT ?3
 `
 
 type GetBookmarkedBookIDsParams struct {
-	UserID          int64       `json:"user_id"`
+	UserID          string      `json:"user_id"`
 	CursorCreatedAt interface{} `json:"cursor_created_at"`
 	Limit           int64       `json:"limit"`
 }
@@ -431,7 +431,7 @@ LIMIT 1
 `
 
 type GetReadingProgressParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -477,13 +477,13 @@ LIMIT ?3
 `
 
 type GetRecentReadingHistoryParams struct {
-	UserID          int64       `json:"user_id"`
+	UserID          string      `json:"user_id"`
 	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
 	Limit           int64       `json:"limit"`
 }
 
 type GetRecentReadingHistoryRow struct {
-	UserID          int64           `json:"user_id"`
+	UserID          string          `json:"user_id"`
 	BookID          string          `json:"book_id"`
 	FileID          sql.NullString  `json:"file_id"`
 	ChapterID       string          `json:"chapter_id"`
@@ -537,7 +537,7 @@ LIMIT ?3
 `
 
 type GetRecentReadingHistoryBookIDsParams struct {
-	UserID          int64       `json:"user_id"`
+	UserID          string      `json:"user_id"`
 	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
 	Limit           int64       `json:"limit"`
 }
@@ -573,7 +573,7 @@ LIMIT ?3
 `
 
 type GetUserCollectionIDsParams struct {
-	UserID          int64       `json:"user_id"`
+	UserID          string      `json:"user_id"`
 	CursorCreatedAt interface{} `json:"cursor_created_at"`
 	Limit           int64       `json:"limit"`
 }
@@ -618,7 +618,7 @@ type ListAllReviewsParams struct {
 }
 
 type ListAllReviewsRow struct {
-	UserID    int64          `json:"user_id"`
+	UserID    string         `json:"user_id"`
 	BookID    string         `json:"book_id"`
 	Rating    int64          `json:"rating"`
 	Review    sql.NullString `json:"review"`
@@ -849,7 +849,7 @@ RETURNING id, user_id, name, created_at, updated_at
 type UpdateCollectionParams struct {
 	Name   string `json:"name"`
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error) {
@@ -940,7 +940,7 @@ RETURNING user_id, book_id, rating, review, created_at, updated_at
 `
 
 type UpsertBookReviewParams struct {
-	UserID int64          `json:"user_id"`
+	UserID string         `json:"user_id"`
 	BookID string         `json:"book_id"`
 	Rating int64          `json:"rating"`
 	Review sql.NullString `json:"review"`
@@ -1018,7 +1018,7 @@ RETURNING user_id, book_id, created_at
 `
 
 type UpsertBookmarkParams struct {
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 	BookID string `json:"book_id"`
 }
 
@@ -1043,7 +1043,7 @@ RETURNING user_id, book_id, chapter_id, progress_percent, updated_at
 `
 
 type UpsertReadingHistoryParams struct {
-	UserID          int64           `json:"user_id"`
+	UserID          string          `json:"user_id"`
 	BookID          string          `json:"book_id"`
 	ChapterID       string          `json:"chapter_id"`
 	ProgressPercent sql.NullFloat64 `json:"progress_percent"`
@@ -1103,7 +1103,7 @@ RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, 
 `
 
 type UpsertReadingProgressParams struct {
-	UserID             int64           `json:"user_id"`
+	UserID             string          `json:"user_id"`
 	BookID             string          `json:"book_id"`
 	FileID             sql.NullString  `json:"file_id"`
 	ChapterRef         string          `json:"chapter_ref"`

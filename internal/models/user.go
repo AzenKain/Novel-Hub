@@ -12,7 +12,7 @@ import (
 var jsonNull = []byte("null")
 
 type UserEntity struct {
-	ID           int64         `json:"id"`
+	ID           string        `json:"id"`
 	Email        string        `json:"email"`
 	PasswordHash string        `json:"-"`
 	FullName     string        `json:"full_name"`

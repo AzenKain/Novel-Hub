@@ -25,7 +25,7 @@ type GetReadingHeatmapRow struct {
 	TotalWords    sql.NullFloat64 `json:"total_words"`
 }
 
-func (q *Queries) GetReadingHeatmap(ctx context.Context, userID int64) ([]GetReadingHeatmapRow, error) {
+func (q *Queries) GetReadingHeatmap(ctx context.Context, userID string) ([]GetReadingHeatmapRow, error) {
 	rows, err := q.query(ctx, q.getReadingHeatmapStmt, getReadingHeatmap, userID)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ RETURNING id, user_id, book_id, duration_seconds, words_read, session_date, crea
 
 type UpsertReadingSessionParams struct {
 	ID              string `json:"id"`
-	UserID          int64  `json:"user_id"`
+	UserID          string `json:"user_id"`
 	BookID          string `json:"book_id"`
 	DurationSeconds int64  `json:"duration_seconds"`
 	WordsRead       int64  `json:"words_read"`

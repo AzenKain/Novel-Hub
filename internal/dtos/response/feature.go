@@ -4,7 +4,7 @@ import "time"
 
 type HighlightResponse struct {
 	ID          string    `json:"id"`
-	UserID      int64     `json:"userId"`
+	UserID      string    `json:"userId"`
 	BookID      string    `json:"bookId"`
 	ChapterID   string    `json:"chapterId"`
 	TextContent string    `json:"textContent"`
@@ -18,7 +18,7 @@ type HighlightResponse struct {
 
 type ReadingSessionResponse struct {
 	ID              string    `json:"id"`
-	UserID          int64     `json:"userId"`
+	UserID          string    `json:"userId"`
 	BookID          string    `json:"bookId"`
 	DurationSeconds int64     `json:"durationSeconds"`
 	WordsRead       int64     `json:"wordsRead"`
@@ -35,7 +35,7 @@ type ReadingHeatmapResponse struct {
 
 type CollectionResponse struct {
 	ID        string    `json:"id"`
-	UserID    int64     `json:"userId"`
+	UserID    string    `json:"userId"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -64,7 +64,7 @@ type BookDownloadStatsResponse struct {
 }
 
 type BookmarkResponse struct {
-	UserID    int64     `json:"userId"`
+	UserID    string    `json:"userId"`
 	BookID    string    `json:"bookId"`
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -92,7 +92,7 @@ type BookEngagementStatsResponse struct {
 }
 
 type BookReviewResponse struct {
-	UserID    int64      `json:"userId"`
+	UserID    string     `json:"userId"`
 	BookID    string     `json:"bookId"`
 	Rating    int64      `json:"rating"`
 	Review    *string    `json:"review,omitempty"`
@@ -115,7 +115,7 @@ type BookUserStateResponse struct {
 }
 
 type ReadingHistoryResponse struct {
-	UserID          int64     `json:"userId"`
+	UserID          string    `json:"userId"`
 	BookID          string    `json:"bookId"`
 	FileID          *string   `json:"fileId,omitempty"`
 	ChapterID       string    `json:"chapterId"`
@@ -130,7 +130,7 @@ type ReadingHistoryResponse struct {
 }
 
 type ReadingProgressResponse struct {
-	UserID             int64      `json:"userId"`
+	UserID             string     `json:"userId"`
 	BookID             string     `json:"bookId"`
 	FileID             *string    `json:"fileId,omitempty"`
 	ChapterID          string     `json:"chapterId"`

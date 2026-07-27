@@ -15,6 +15,7 @@ type BookMetadata struct {
 	CoverData    []byte
 	CoverType    string
 	MetadataJSON string
+	ReadingDirection string
 }
 
 type ChapterData struct {

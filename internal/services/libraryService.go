@@ -19,6 +19,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/bookparser"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/worker"
@@ -33,21 +34,24 @@ type LibraryService interface {
 	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
 	ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error
 	StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error
+	ScanInbox(ctx context.Context) (int, error)
 }
 
 type libraryService struct {
 	libraryRepo repositories.LibraryRepository
 	bookRepo    repositories.BookDBRepository
 	fileRepo    repositories.BookFileRepository
+	parsers     *bookparser.Registry
 	permissions PermissionCache
 	jobQueue    *worker.Queue
 }
 
-func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, permissions PermissionCache, jobQueue *worker.Queue) LibraryService {
+func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, permissions PermissionCache, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
 		libraryRepo: repo,
 		bookRepo:    bookRepo,
 		fileRepo:    fileRepo,
+		parsers:     parsers,
 		permissions: permissions,
 		jobQueue:    jobQueue,
 	}
@@ -308,8 +312,6 @@ func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string,
 			if err != nil {
 				continue
 			}
-
-			// Sanitize filename for ZIP
 			safeTitle := strings.ReplaceAll(book.Title, "/", "-")
 			filename := fmt.Sprintf("%s.%s", safeTitle, f.Format)
 

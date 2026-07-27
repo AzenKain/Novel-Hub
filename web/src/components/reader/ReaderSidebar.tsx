@@ -2,7 +2,8 @@ import type { TFunction } from "i18next";
 import { ArrowLeft, BookOpen, FileText, PanelLeftClose } from "lucide-react";
 import React from "react";
 
-import type { Book, Chapter } from "@/types";
+import type { Book, Chapter, Highlight } from "@/types";
+import { ReaderHighlightsPanel } from "./ReaderHighlightsPanel";
 
 type ReaderSidebarProps = {
   t: TFunction;
@@ -14,6 +15,9 @@ type ReaderSidebarProps = {
   onClose: () => void;
   onBack: () => void;
   onSelectChapter: (chapter: Chapter) => void;
+  highlights?: Highlight[];
+  onUpdateHighlight?: (id: string, color: string, note?: string) => void;
+  onDeleteHighlight?: (id: string) => void;
 };
 
 function getSidebarEntryKind(title: string) {
@@ -49,8 +53,12 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   onClose,
   onBack,
   onSelectChapter,
+  highlights,
+  onUpdateHighlight,
+  onDeleteHighlight,
 }) => {
   const singleChapter = chapters.length <= 1;
+  const showHighlights = Boolean(highlights && onUpdateHighlight && onDeleteHighlight);
 
   return (
     <div className="drawer-side z-50">
@@ -154,6 +162,17 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 );
               })}
             </ul>
+          )}
+
+          {showHighlights && (
+            <div className="mt-4 border-t border-base-content/10 pt-2">
+              <ReaderHighlightsPanel
+                t={t}
+                highlights={highlights || []}
+                onUpdate={onUpdateHighlight!}
+                onDelete={onDeleteHighlight!}
+              />
+            </div>
           )}
         </div>
 

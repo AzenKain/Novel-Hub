@@ -3,6 +3,7 @@ package comic
 import (
 	"encoding/xml"
 	"io"
+	"strings"
 
 	"novelhub/pkg/bookparser"
 )
@@ -19,6 +20,7 @@ type ComicInfo struct {
 	Genre       string   `xml:"Genre"`
 	PageCount   int      `xml:"PageCount"`
 	LanguageISO string   `xml:"LanguageISO"`
+	Manga       string   `xml:"Manga"`
 }
 
 func ParseComicInfoXML(r io.Reader) (*bookparser.BookMetadata, error) {
@@ -41,6 +43,9 @@ func ParseComicInfoXML(r io.Reader) (*bookparser.BookMetadata, error) {
 	}
 	if info.Volume != "" && meta.SeriesIndex == "" {
 		meta.SeriesIndex = info.Volume
+	}
+	if strings.EqualFold(info.Manga, "YesAndRightToLeft") {
+		meta.ReadingDirection = "rtl"
 	}
 
 	return meta, nil

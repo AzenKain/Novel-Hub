@@ -14,7 +14,7 @@ import (
 type permissionContextKey struct{}
 
 type PermissionContext struct {
-	RoleIDs []int64
+	RoleIDs []string
 	Roles   []constants.RoleType
 }
 
@@ -30,8 +30,8 @@ func PermissionContextFrom(ctx context.Context) PermissionContext {
 type PermissionCache interface {
 	Reload(ctx context.Context) error
 	Can(ctx context.Context, userID string, permission string, attrs map[string]any) bool
-	CanRoles(roleIDs []int64, roles []constants.RoleType, permission string, attrs map[string]any) bool
-	IsAdmin(roleIDs []int64, roles []constants.RoleType) bool
+	CanRoles(roleIDs []string, roles []constants.RoleType, permission string, attrs map[string]any) bool
+	IsAdmin(roleIDs []string, roles []constants.RoleType) bool
 	GetGuestPermissions() []string
 }
 
@@ -42,7 +42,7 @@ type cachedRolePermission struct {
 }
 
 type cachedRole struct {
-	ID          int64
+	ID          string
 	Name        string
 	IsAdmin     bool
 	Position    int64
@@ -52,15 +52,15 @@ type cachedRole struct {
 type permissionCache struct {
 	roleRepo repositories.RoleRepository
 	mu       sync.RWMutex
-	roles    map[int64]*cachedRole
-	nameToID map[string]int64
+	roles    map[string]*cachedRole
+	nameToID map[string]string
 }
 
 func NewPermissionCache(roleRepo repositories.RoleRepository) PermissionCache {
 	return &permissionCache{
 		roleRepo: roleRepo,
-		roles:    map[int64]*cachedRole{},
-		nameToID: map[string]int64{},
+		roles:    map[string]*cachedRole{},
+		nameToID: map[string]string{},
 	}
 }
 
@@ -74,8 +74,8 @@ func (p *permissionCache) Reload(ctx context.Context) error {
 		return err
 	}
 
-	nextRoles := make(map[int64]*cachedRole, len(roles))
-	nextNames := make(map[string]int64, len(roles))
+	nextRoles := make(map[string]*cachedRole, len(roles))
+	nextNames := make(map[string]string, len(roles))
 	for _, role := range roles {
 		if role == nil || role.IsDeleted {
 			continue
@@ -116,7 +116,7 @@ func (p *permissionCache) Can(ctx context.Context, userID string, permission str
 	return p.CanRoles(permissionCtx.RoleIDs, permissionCtx.Roles, permission, attrs)
 }
 
-func (p *permissionCache) CanRoles(roleIDs []int64, roles []constants.RoleType, permission string, attrs map[string]any) bool {
+func (p *permissionCache) CanRoles(roleIDs []string, roles []constants.RoleType, permission string, attrs map[string]any) bool {
 	if permission == "" {
 		return false
 	}
@@ -133,7 +133,7 @@ func (p *permissionCache) CanRoles(roleIDs []int64, roles []constants.RoleType, 
 		return true
 	}
 
-	sortedIDs := append([]int64(nil), resolvedRoleIDs...)
+	sortedIDs := append([]string(nil), resolvedRoleIDs...)
 	sort.Slice(sortedIDs, func(i, j int) bool {
 		rI := p.roles[sortedIDs[i]]
 		rJ := p.roles[sortedIDs[j]]
@@ -171,7 +171,7 @@ func (p *permissionCache) CanRoles(roleIDs []int64, roles []constants.RoleType, 
 	return allowed
 }
 
-func (p *permissionCache) IsAdmin(roleIDs []int64, roles []constants.RoleType) bool {
+func (p *permissionCache) IsAdmin(roleIDs []string, roles []constants.RoleType) bool {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -186,7 +186,11 @@ func (p *permissionCache) GetGuestPermissions() []string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	guestRole, ok := p.roles[constants.SystemRoleIDGuest]
+	guestRoleID, ok := p.nameToID[constants.RoleTypeGuest.String()]
+	if !ok {
+		return nil
+	}
+	guestRole, ok := p.roles[guestRoleID]
 	if !ok || guestRole == nil {
 		return nil
 	}
@@ -199,11 +203,8 @@ func (p *permissionCache) GetGuestPermissions() []string {
 	return keys
 }
 
-func (p *permissionCache) hasBanned(roleIDs []int64) bool {
+func (p *permissionCache) hasBanned(roleIDs []string) bool {
 	for _, id := range roleIDs {
-		if id == constants.SystemRoleIDBanned {
-			return true
-		}
 		if role, ok := p.roles[id]; ok && role != nil {
 			if strings.EqualFold(role.Name, string(constants.RoleTypeBanned)) {
 				return true
@@ -213,11 +214,8 @@ func (p *permissionCache) hasBanned(roleIDs []int64) bool {
 	return false
 }
 
-func (p *permissionCache) hasAdmin(roleIDs []int64) bool {
+func (p *permissionCache) hasAdmin(roleIDs []string) bool {
 	for _, id := range roleIDs {
-		if id == constants.SystemRoleIDAdmin {
-			return true
-		}
 		if role, ok := p.roles[id]; ok && role != nil {
 			if role.IsAdmin || strings.EqualFold(role.Name, string(constants.RoleTypeAdmin)) {
 				return true
@@ -227,10 +225,10 @@ func (p *permissionCache) hasAdmin(roleIDs []int64) bool {
 	return false
 }
 
-func (p *permissionCache) resolveRoleIDs(roleIDs []int64, roles []constants.RoleType) []int64 {
-	out := make([]int64, 0, len(roleIDs)+len(roles))
+func (p *permissionCache) resolveRoleIDs(roleIDs []string, roles []constants.RoleType) []string {
+	out := make([]string, 0, len(roleIDs)+len(roles))
 	for _, id := range roleIDs {
-		if id > 0 && !slices.Contains(out, id) {
+		if id != "" && !slices.Contains(out, id) {
 			out = append(out, id)
 		}
 	}

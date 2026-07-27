@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"slices"
-	"strconv"
 
 	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
@@ -12,6 +11,7 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 )
 
 func JwtAccess(userRepo repositories.UserRepository) fiber.Handler {
@@ -36,9 +36,8 @@ func JwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 
 func GuestClaims() *response.JWTClaims {
 	return &response.JWTClaims{
-		UId:     "0",
-		Roles:   []constants.RoleType{constants.RoleTypeGuest},
-		RoleIDs: []int64{constants.SystemRoleIDGuest},
+		UId:   "0",
+		Roles: []constants.RoleType{constants.RoleTypeGuest},
 	}
 }
 
@@ -125,8 +124,9 @@ func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedTyp
 			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "User account is banned"})
 		}
 
-		userID, err := strconv.ParseInt(claims.UId, 10, 64)
-		if err != nil || userID < 1 {
+		// Rejects a malformed subject (including the guest sentinel) before it reaches SQL.
+		userID, err := convert.ParseID(claims.UId)
+		if err != nil {
 			return unauthorized()
 		}
 		tokenVersion, err := userRepo.GetTokenVersion(c.Context(), userID)

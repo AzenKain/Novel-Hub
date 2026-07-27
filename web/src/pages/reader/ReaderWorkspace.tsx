@@ -1,11 +1,11 @@
-import { ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
+import { ComicReader, ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
 import { API_BASE } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
 import type { Chapter } from "@/types";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTTS } from "@/hooks/useTTS";
 import { AudioPlayer } from "@/components/reader/AudioPlayer";
@@ -22,6 +22,7 @@ import { useShallow } from "zustand/react/shallow";
 import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "@/constants";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
+import { isVisualChapter } from "@/utils/readerHtml";
 
 export const ReaderWorkspace = () => {
   const { bookId } = useParams<{ bookId: string }>();
@@ -51,6 +52,8 @@ export const ReaderWorkspace = () => {
     lineHeight,
     maxWidth,
     readingMode,
+    readingDirection,
+    pageFit,
     pageIndex,
     pageFrameWidth,
     setBook,
@@ -66,6 +69,8 @@ export const ReaderWorkspace = () => {
     setLineHeight,
     setMaxWidth,
     setReadingMode,
+    setReadingDirection,
+    setPageFit,
     setPageIndex,
     setPageFrameWidth,
     ttsVoiceName,
@@ -88,6 +93,8 @@ export const ReaderWorkspace = () => {
     lineHeight: state.lineHeight,
     maxWidth: state.maxWidth,
     readingMode: state.readingMode,
+    readingDirection: state.readingDirection,
+    pageFit: state.pageFit,
     pageIndex: state.pageIndex,
     pageFrameWidth: state.pageFrameWidth,
     ttsVoiceName: state.ttsVoiceName,
@@ -105,6 +112,8 @@ export const ReaderWorkspace = () => {
     setLineHeight: state.setLineHeight,
     setMaxWidth: state.setMaxWidth,
     setReadingMode: state.setReadingMode,
+    setReadingDirection: state.setReadingDirection,
+    setPageFit: state.setPageFit,
     setPageIndex: state.setPageIndex,
     setPageFrameWidth: state.setPageFrameWidth,
     setTtsVoiceName: state.setTtsVoiceName,
@@ -120,7 +129,7 @@ export const ReaderWorkspace = () => {
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.libraryId, guestPerms);
   const allowHighlights = hasPermission(user, "book.highlight", book?.libraryId, guestPerms);
-  const { highlights, addHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
+  const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
 
   useEffect(() => {
     return () => {
@@ -139,7 +148,6 @@ export const ReaderWorkspace = () => {
     }
   });
 
-  // Sync stored TTS voice and rate from Zustand store
   useEffect(() => {
     if (ttsRate && ttsRate !== rate) {
       setRate(ttsRate);
@@ -165,15 +173,12 @@ export const ReaderWorkspace = () => {
     setTtsRate(newRate);
   };
 
-  // Clear highlight on unmount or when stopping TTS manually
   useEffect(() => {
     if (!isPlaying && !isPaused) {
       clearHighlight();
     }
   }, [isPlaying, isPaused]);
 
-  
-  // Floating toolbar state
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
 
@@ -221,13 +226,6 @@ export const ReaderWorkspace = () => {
       document.removeEventListener("keyup", handleSelection);
     };
   }, []);
-
-  useEffect(() => {
-    if (!CSS.highlights) return;
-    const highlightRanges = highlights.map((h: any) => {
-      return new Range(); 
-    });
-  }, [highlights]);
 
   const handleHighlight = async (color: string) => {
     if (selectionRange) {
@@ -331,8 +329,11 @@ export const ReaderWorkspace = () => {
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
   const effectiveReadingMode = readingMode === "double" && !canUseDoubleMode ? "single" : readingMode;
+  const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
+  const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
+  const rtlPaging = isVisualContent && readingDirection === "rtl";
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
-  const pageWidth = effectiveReadingMode === "scroll" || pageFrameWidth === 0
+  const pageWidth = scrollLayout || pageFrameWidth === 0
     ? 0
     : Math.max(1, Math.floor((pageFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
 
@@ -352,7 +353,7 @@ export const ReaderWorkspace = () => {
   }, [effectiveReadingMode, maxWidth, fontSize, fontFamily, lineHeight, htmlContent]);
 
   useEffect(() => {
-    if (readingMode === "scroll") {
+    if (scrollLayout) {
       setPageFrameWidth(0);
       return;
     }
@@ -372,7 +373,7 @@ export const ReaderWorkspace = () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updatePageFrameWidth);
     };
-  }, [readingMode, maxWidth]);
+  }, [scrollLayout, maxWidth]);
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -413,7 +414,7 @@ export const ReaderWorkspace = () => {
     const nextIndex = Math.min(Math.max(targetIndex, 0), maxIndex);
 
     container.scrollTo({
-      left: nextIndex * scrollStep,
+      left: nextIndex * scrollStep * (rtlPaging ? -1 : 1),
       behavior: "smooth",
     });
     setPageIndex(nextIndex);
@@ -514,7 +515,6 @@ export const ReaderWorkspace = () => {
 
         if (res.status === "fulfilled" && res.value.status && res.value.data) {
           setBook(res.value.data.book);
-          // Sort chapters by index
           const sorted = [...res.value.data.chapters].sort((a, b) => a.chapterIndex - b.chapterIndex);
           setChapters(sorted);
           if (sorted.length > 0) {
@@ -556,13 +556,11 @@ export const ReaderWorkspace = () => {
   const loadChapter = async (chapter: Chapter) => {
     if (!bookId) return;
     setCurrentChapter(chapter);
-    setHtmlContent(""); // clear while loading
-    stop(); // stop TTS if playing
+    setHtmlContent("");
+    stop();
     try {
       const html = await readerService.getChapterHtml(bookId, chapter.id, fileId);
       setHtmlContent(html);
-      
-      // Scroll to top
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
       }
@@ -622,7 +620,7 @@ export const ReaderWorkspace = () => {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
-    if (!user || effectiveReadingMode !== "scroll" || !contentRef.current || !currentChapter || !bookId) return;
+    if (!user || !scrollLayout || !contentRef.current || !currentChapter || !bookId) return;
     
     const scrollTop = contentRef.current.scrollTop;
     if (scrollTimeoutRef.current) {
@@ -653,7 +651,7 @@ export const ReaderWorkspace = () => {
   };
 
   useEffect(() => {
-    if (!user || effectiveReadingMode === "scroll" || !currentChapter || !bookId) return;
+    if (!user || scrollLayout || !currentChapter || !bookId) return;
 
     const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
     const progressPercent = chapterPosition >= 0
@@ -750,6 +748,9 @@ export const ReaderWorkspace = () => {
           maxWidth={maxWidth}
           effectiveReadingMode={effectiveReadingMode}
           canUseDoubleMode={canUseDoubleMode}
+          isVisualContent={isVisualContent}
+          readingDirection={readingDirection}
+          pageFit={pageFit}
           onPrev={handlePrev}
           onNext={handleNext}
           setSettingsOpen={setSettingsOpen}
@@ -758,6 +759,8 @@ export const ReaderWorkspace = () => {
           setFontSize={setFontSize}
           setMaxWidth={setMaxWidth}
           setReadingMode={setReadingMode}
+          setReadingDirection={setReadingDirection}
+          setPageFit={setPageFit}
           resetSettings={resetSettings}
           ttsSupported={isSupported && allowTTS}
           ttsPlaying={isPlaying}
@@ -791,7 +794,7 @@ export const ReaderWorkspace = () => {
               className={`flex-1 ${
                 isPdf
                   ? 'overflow-hidden flex flex-col pt-14 p-0'
-                  : effectiveReadingMode === 'scroll' 
+                  : scrollLayout
                     ? 'overflow-y-auto pt-20 pb-24 px-4 sm:px-8' 
                     : 'overflow-hidden flex flex-col pt-14 pb-6 px-4 sm:px-20'
               } relative`}
@@ -800,7 +803,7 @@ export const ReaderWorkspace = () => {
             >
               <div 
                 ref={pageFrameRef}
-                className={`w-full mx-auto ${isPdf ? 'h-full flex-1 min-h-0 flex flex-col' : effectiveReadingMode === 'scroll' ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
+                className={`w-full mx-auto ${isPdf ? 'h-full flex-1 min-h-0 flex flex-col' : scrollLayout ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
                 style={{ 
                   maxWidth: isPdf ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
                   fontSize: `${fontSize}px`,
@@ -849,11 +852,18 @@ export const ReaderWorkspace = () => {
                       }}
                     />
                   </div>
+                ) : htmlContent && effectiveReadingMode === "webtoon" ? (
+                  <ComicReader
+                    htmlContent={htmlContent}
+                    onContentClick={handleContentClick}
+                  />
                 ) : htmlContent ? (
                   <ReaderContent
                     htmlContent={htmlContent}
                     proseClass={proseClass}
                     effectiveReadingMode={effectiveReadingMode}
+                    readingDirection={readingDirection}
+                    pageFit={pageFit}
                     pageWidth={pageWidth}
                     columnsRef={columnsRef}
                     onContentClick={handleContentClick}
@@ -864,7 +874,7 @@ export const ReaderWorkspace = () => {
                   </div>
                 )}
                 
-                {!isPdf && effectiveReadingMode === "scroll" && (
+                {!isPdf && scrollLayout && (
                   <ReaderPageControls
                     t={t}
                     mode="footer"
@@ -876,7 +886,7 @@ export const ReaderWorkspace = () => {
                 )}
               </div>
 
-              {!isPdf && effectiveReadingMode !== "scroll" && htmlContent && (
+              {!isPdf && !scrollLayout && htmlContent && (
                 <ReaderPageControls
                   t={t}
                   mode="floating"
@@ -904,6 +914,9 @@ export const ReaderWorkspace = () => {
           void loadChapter(chapter);
           setSidebarOpen(false);
         }}
+        highlights={allowHighlights ? highlights : undefined}
+        onUpdateHighlight={allowHighlights ? (id, color, note) => void updateHighlight(id, color, note) : undefined}
+        onDeleteHighlight={allowHighlights ? (id) => void removeHighlight(id) : undefined}
       />
 
       {selectionRange && (

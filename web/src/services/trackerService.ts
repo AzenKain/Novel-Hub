@@ -1,5 +1,5 @@
 import { api } from "@/config/api";
-import type { CommonResponse } from "@/types";
+import type { CommonResponse, TrackerSearchResult } from "@/types";
 import axios from "axios";
 
 export const trackerService = {
@@ -22,7 +22,7 @@ export const trackerService = {
   },
 
   async mapBookTracker(
-    bookId: number,
+    bookId: string,
     provider: string,
     externalSeriesId: string
   ): Promise<CommonResponse<void>> {
@@ -41,22 +41,20 @@ export const trackerService = {
     }
   },
 
-  async searchAniList(
-    title: string
-  ): Promise<CommonResponse<{ provider: string; external_series_id: string }>> {
+  async searchAniList(title: string): Promise<CommonResponse<TrackerSearchResult>> {
     try {
       const res = await api.get(`/trackers/search?title=${encodeURIComponent(title)}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<{ provider: string; external_series_id: string }>;
+        return error.response.data as CommonResponse<TrackerSearchResult>;
       }
       throw error;
     }
   },
 
   async syncProgress(
-    bookId: number,
+    bookId: string,
     title: string,
     progress: number
   ): Promise<CommonResponse<void>> {

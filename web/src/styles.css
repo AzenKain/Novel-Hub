@@ -710,6 +710,50 @@ textarea {
   margin: 0 !important;
 }
 
+/* Comic page fit — only applies to visual (image-only) chapters */
+.reader-content.reader-content-visual.reader-fit-width :is(img, svg) {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  object-fit: contain !important;
+}
+
+.reader-content.reader-content-visual.reader-fit-height :is(img, svg) {
+  max-height: calc(100vh - 6.5rem) !important;
+  object-fit: contain !important;
+}
+
+.reader-content.reader-content-visual.reader-fit-original {
+  overflow: auto !important;
+}
+
+.reader-content.reader-content-visual.reader-fit-original :is(img, svg) {
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Right-to-left manga: multi-column order reverses natively under direction:rtl,
+   so page order needs no JS reordering (only scrollLeft flips sign). */
+.reader-content.reader-dir-rtl,
+.reader-content.reader-dir-rtl body,
+.reader-content.reader-dir-rtl:not(:has(body)) {
+  direction: rtl !important;
+}
+
+/* Webtoon: one continuous vertical strip, no gaps between pages */
+.webtoon-reader-container :is(img, svg) {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+.webtoon-reader-container :is(p, div, figure) {
+  margin: 0 !important;
+}
+
 /* Neutralize legacy MOBI <font size="..."> tags to use the reader's font size */
 .reader-content font[size] {
   font-size: inherit !important;

@@ -1,5 +1,5 @@
 import { api } from "@/config/api";
-import type { AuthResponse, CommonResponse, UpdateProfileRequest, User } from "@/types";
+import type { AuthResponse, ChangePasswordRequest, CommonResponse, UpdateProfileRequest, User } from "@/types";
 import axios from "axios";
 
 export const authService = {
@@ -46,6 +46,18 @@ export const authService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         return error.response.data as CommonResponse<User>;
+      }
+      throw error;
+    }
+  },
+
+  async changePassword(data: ChangePasswordRequest): Promise<CommonResponse<void>> {
+    try {
+      const response = await api.patch("/users/current/password", data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<void>;
       }
       throw error;
     }

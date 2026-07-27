@@ -16,23 +16,23 @@ import (
 )
 
 type UserRepository interface {
-	GetByID(ctx context.Context, id int64) (*models.UserEntity, error)
-	GetByIDWithoutDeleted(ctx context.Context, id int64) (*models.UserEntity, error)
+	GetByID(ctx context.Context, id string) (*models.UserEntity, error)
+	GetByIDWithoutDeleted(ctx context.Context, id string) (*models.UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (*models.UserEntity, error)
 	GetAuthByEmail(ctx context.Context, email string) (*models.UserEntity, error)
-	GetAuthByID(ctx context.Context, id int64) (*models.UserEntity, error)
+	GetAuthByID(ctx context.Context, id string) (*models.UserEntity, error)
 	Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error)
-	GetByIDs(ctx context.Context, ids []int64) ([]*models.UserEntity, error)
+	GetByIDs(ctx context.Context, ids []string) ([]*models.UserEntity, error)
 	Count(ctx context.Context, params sqlc.CountUsersParams) (int64, error)
 	UpsertUser(ctx context.Context, params sqlc.UpsertUserParams) (*models.UserEntity, error)
-	UpdatePassword(ctx context.Context, id int64, passwordHash string) error
+	UpdatePassword(ctx context.Context, id string, passwordHash string) error
 	UpdateProfile(ctx context.Context, params sqlc.UpdateProfileParams) (*models.UserEntity, error)
-	UpdateRefreshToken(ctx context.Context, id int64, refreshToken *string) error
-	RotateRefreshToken(ctx context.Context, id int64, currentRefreshToken, newRefreshToken string) (bool, error)
-	GetTokenVersion(ctx context.Context, id int64) (int32, error)
-	UpdateTokenVersion(ctx context.Context, id int64, tokenVersion int64) error
-	Delete(ctx context.Context, id int64) error
-	Restore(ctx context.Context, id int64) error
+	UpdateRefreshToken(ctx context.Context, id string, refreshToken *string) error
+	RotateRefreshToken(ctx context.Context, id string, currentRefreshToken, newRefreshToken string) (bool, error)
+	GetTokenVersion(ctx context.Context, id string) (int32, error)
+	UpdateTokenVersion(ctx context.Context, id string, tokenVersion int64) error
+	Delete(ctx context.Context, id string) error
+	Restore(ctx context.Context, id string) error
 	WithTx(tx *sql.Tx) UserRepository
 }
 
@@ -89,7 +89,7 @@ func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEnti
 	return nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.UserEntity, error) {
+func (r *userRepository) GetByID(ctx context.Context, id string) (*models.UserEntity, error) {
 	key := cache.BuildKey("user", "id", id)
 	if r.c != nil {
 		var user models.UserEntity
@@ -118,7 +118,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.UserEnt
 	return v.(*models.UserEntity), nil
 }
 
-func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id int64) (*models.UserEntity, error) {
+func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id string) (*models.UserEntity, error) {
 	row, err := r.q.GetUserByIDWithoutDeleted(ctx, id)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (r *userRepository) GetAuthByEmail(ctx context.Context, email string) (*mod
 	return user, nil
 }
 
-func (r *userRepository) GetAuthByID(ctx context.Context, id int64) (*models.UserEntity, error) {
+func (r *userRepository) GetAuthByID(ctx context.Context, id string) (*models.UserEntity, error) {
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdatePr
 func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error) {
 	key := cache.QueryKey("user:search", params)
 	if r.c != nil {
-		var ids []int64
+		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetByIDs(ctx, ids)
 		}
@@ -232,10 +232,10 @@ func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsPa
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByIDs(ctx, v.([]int64))
+	return r.GetByIDs(ctx, v.([]string))
 }
 
-func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.UserEntity, error) {
+func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.UserEntity, error) {
 	if len(ids) == 0 {
 		return []*models.UserEntity{}, nil
 	}
@@ -245,7 +245,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 	}
 
 	users := make([]*models.UserEntity, 0, len(ids))
-	missingIds := []int64{}
+	missingIds := []string{}
 	missingKeys := []string{}
 
 	if r.c != nil {
@@ -271,7 +271,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[int64]*models.UserEntity)
+		missingMap := make(map[string]*models.UserEntity)
 		for _, row := range rows {
 			u := (&models.UserEntity{}).FromSqlc(row)
 			_ = r.hydrateRoles(ctx, u)
@@ -292,7 +292,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.U
 		}
 	}
 
-	userMap := make(map[int64]*models.UserEntity)
+	userMap := make(map[string]*models.UserEntity)
 	for _, u := range users {
 		userMap[u.ID] = u
 	}
@@ -331,7 +331,7 @@ func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams
 	return v.(int64), nil
 }
 
-func (r *userRepository) Delete(ctx context.Context, id int64) error {
+func (r *userRepository) Delete(ctx context.Context, id string) error {
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -347,7 +347,7 @@ func (r *userRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *userRepository) Restore(ctx context.Context, id int64) error {
+func (r *userRepository) Restore(ctx context.Context, id string) error {
 	if err := r.q.RestoreUser(ctx, id); err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func (r *userRepository) Restore(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *userRepository) RotateRefreshToken(ctx context.Context, id int64, currentRefreshToken, newRefreshToken string) (bool, error) {
+func (r *userRepository) RotateRefreshToken(ctx context.Context, id string, currentRefreshToken, newRefreshToken string) (bool, error) {
 	updated, err := r.q.RotateUserRefreshToken(ctx, sqlc.RotateUserRefreshTokenParams{
 		ID:                  id,
 		CurrentRefreshToken: sql.NullString{String: currentRefreshToken, Valid: true},
@@ -374,7 +374,7 @@ func (r *userRepository) RotateRefreshToken(ctx context.Context, id int64, curre
 	return true, nil
 }
 
-func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, error) {
+func (r *userRepository) GetTokenVersion(ctx context.Context, id string) (int32, error) {
 	if !config.GetBoolConfigWithDefault("TOKEN_VERSION_CACHE", true) || config.GetBoolConfigWithDefault("ENABLE_PREFORK", false) {
 		raw, err := r.q.GetUserTokenVersion(ctx, id)
 		return int32(raw), err // #nosec G115 -- token version is bounded by application updates
@@ -404,7 +404,7 @@ func (r *userRepository) GetTokenVersion(ctx context.Context, id int64) (int32, 
 	return v.(int32), nil
 }
 
-func (r *userRepository) UpdateTokenVersion(ctx context.Context, id int64, tokenVersion int64) error {
+func (r *userRepository) UpdateTokenVersion(ctx context.Context, id string, tokenVersion int64) error {
 	user, _ := r.GetByID(ctx, id)
 	if err := r.q.UpdateUserTokenVersion(ctx, sqlc.UpdateUserTokenVersionParams{ID: id, TokenVersion: tokenVersion}); err != nil {
 		return err
@@ -419,7 +419,7 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id int64, token
 	return nil
 }
 
-func (r *userRepository) UpdatePassword(ctx context.Context, id int64, passwordHash string) error {
+func (r *userRepository) UpdatePassword(ctx context.Context, id string, passwordHash string) error {
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -436,7 +436,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id int64, passwordH
 	return nil
 }
 
-func (r *userRepository) UpdateRefreshToken(ctx context.Context, id int64, refreshToken *string) error {
+func (r *userRepository) UpdateRefreshToken(ctx context.Context, id string, refreshToken *string) error {
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return err

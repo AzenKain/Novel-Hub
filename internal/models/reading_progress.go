@@ -9,7 +9,7 @@ import (
 )
 
 type ReadingHistoryEntity struct {
-	UserID          int64     `json:"userId"`
+	UserID          string    `json:"userId"`
 	BookID          string    `json:"bookId"`
 	FileID          *string   `json:"fileId,omitempty"`
 	ChapterID       string    `json:"chapterId"`
@@ -78,7 +78,7 @@ func ReadingHistoryEntitiesToResponse(entities []*ReadingHistoryEntity) []*respo
 }
 
 type ReadingProgressEntity struct {
-	UserID             int64      `json:"userId"`
+	UserID             string     `json:"userId"`
 	BookID             string     `json:"bookId"`
 	FileID             *string    `json:"fileId,omitempty"`
 	ChapterID          string     `json:"chapterId"`
@@ -137,7 +137,7 @@ func (e *ReadingProgressEntity) ToResponse() *response.ReadingProgressResponse {
 }
 
 type ReadingActivityInput struct {
-	UserID          int64
+	UserID          string
 	BookID          string
 	FileID          *string
 	ChapterID       string

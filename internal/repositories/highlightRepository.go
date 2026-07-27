@@ -16,7 +16,7 @@ import (
 type HighlightRepository interface {
 	WithTx(tx *sql.Tx) HighlightRepository
 	Create(ctx context.Context, arg sqlc.CreateHighlightParams) (*models.HighlightEntity, error)
-	GetByChapter(ctx context.Context, userID int64, chapterID string) ([]*models.HighlightEntity, error)
+	GetByChapter(ctx context.Context, userID string, chapterID string) ([]*models.HighlightEntity, error)
 	GetHighlightsByIDs(ctx context.Context, ids []string) ([]*models.HighlightEntity, error)
 	Delete(ctx context.Context, arg sqlc.DeleteHighlightParams) error
 	UpdateNote(ctx context.Context, arg sqlc.UpdateHighlightNoteParams) (*models.HighlightEntity, error)
@@ -63,7 +63,7 @@ func (r *highlightRepository) Create(ctx context.Context, arg sqlc.CreateHighlig
 	return entity.FromSqlc(res), nil
 }
 
-func (r *highlightRepository) GetByChapter(ctx context.Context, userID int64, chapterID string) ([]*models.HighlightEntity, error) {
+func (r *highlightRepository) GetByChapter(ctx context.Context, userID string, chapterID string) ([]*models.HighlightEntity, error) {
 	key := cache.BuildKey("highlight", "ids", "chapter", userID, chapterID)
 
 	if r.c != nil {

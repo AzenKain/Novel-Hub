@@ -11,7 +11,8 @@ type UserTableProps = {
   onRoles: (user: User) => void;
   onDelete: (user: User) => void;
   onRestore: (user: User) => void;
-  currentUserId?: number;
+  currentUserId?: string;
+  isCallerOwner?: boolean;
 };
 
 export const UserTable: React.FC<UserTableProps> = ({
@@ -23,6 +24,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   onDelete,
   onRestore,
   currentUserId,
+  isCallerOwner = false,
 }) => (
   <div className="card overflow-hidden border border-base-200 bg-base-100 shadow-sm">
     <div className="overflow-x-auto">
@@ -55,10 +57,9 @@ export const UserTable: React.FC<UserTableProps> = ({
             </tr>
           ) : (
             users.map((item) => {
-              const isOwner = item.id === 1;
+              const isOwner = Boolean(item.is_owner);
               const isSelf = item.id === currentUserId;
               const isAdminUser = item.roles?.some(r => Boolean(r.is_admin) || r.name?.toUpperCase() === "ADMIN");
-              const isCallerOwner = currentUserId === 1;
 
               const canDelete = !isOwner && !isSelf && (!isAdminUser || isCallerOwner);
               const canManage = isCallerOwner || isSelf || (!isAdminUser && !isOwner);

@@ -19,9 +19,7 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
 
     timerRef.current = setInterval(() => {
       durationRef.current += 1;
-      wordsRef.current += 2.5; // Average 150wpm
-
-      // Sync every 30 seconds
+      wordsRef.current += 2.5; 
       if (Date.now() - lastSyncTimeRef.current >= 30000) {
         syncStats(bookId);
       }
@@ -29,7 +27,6 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      // Try to sync on unmount
       if (durationRef.current > 0) {
         syncStats(bookId);
       }
@@ -40,13 +37,10 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
     const dur = durationRef.current;
     const wrds = Math.floor(wordsRef.current);
     if (dur === 0) return;
-
-    // Reset lastSyncTimeRef immediately to prevent repeated 1-second spam on error
     lastSyncTimeRef.current = Date.now();
 
     try {
       await readerService.syncReadingSession(bookIdToSync, dur, wrds);
-      // Reset duration & words after successful sync
       durationRef.current = 0;
       wordsRef.current = 0;
     } catch (err) {

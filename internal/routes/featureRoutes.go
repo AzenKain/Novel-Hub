@@ -11,7 +11,6 @@ import (
 )
 
 func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, highlightController *controllers.HighlightController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
-	// Highlights
 	highlightGroup := app.Group("/highlights", middlewares.JwtAccess(userRepo))
 	highlightGroup.Post("/", highlightController.CreateHighlight)
 	highlightGroup.Get("/", highlightController.GetHighlights)
@@ -36,8 +35,24 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	app.Get("/books/:id/reviews", featureController.ListBookReviews)
 	app.Post("/books/:id/share", middlewares.OptionalJwtAccess(userRepo), featureController.RecordBookShare)
 
+	collectionGroup := app.Group("/collections", middlewares.JwtAccess(userRepo))
+	collectionGroup.Get("/", featureController.GetCollections)
+	collectionGroup.Post("/", featureController.CreateCollection)
+	collectionGroup.Put("/:id", featureController.UpdateCollection)
+	collectionGroup.Delete("/:id", featureController.DeleteCollection)
+	collectionGroup.Post("/:id/books", featureController.AddBookToCollection)
+	collectionGroup.Delete("/:id/books/:bookId", featureController.RemoveBookFromCollection)
+
+	bookmarkGroup := app.Group("/bookmarks", middlewares.JwtAccess(userRepo))
+	bookmarkGroup.Get("/books", featureController.GetBookmarkedBooks)
+	bookmarkGroup.Put("/:id", featureController.SetBookmark)
+
+	app.Get("/books/:id/user-state", middlewares.JwtAccess(userRepo), featureController.GetBookUserState)
+	app.Put("/books/:id/review", middlewares.JwtAccess(userRepo), featureController.UpsertBookReview)
+	app.Delete("/books/:id/review", middlewares.JwtAccess(userRepo), featureController.DeleteBookReview)
+
 	adminReviewGroup := app.Group("/admin/reviews", middlewares.JwtAccess(userRepo))
-	adminReviewGroup.Use(middlewares.RequirePermission(permissionCache, "book.review.delete"))
+	adminReviewGroup.Use(middlewares.RequirePermission(permissionCache, constants.PermBookReviewDelete))
 	adminReviewGroup.Get("/", featureController.ListAllReviews)
 	adminReviewGroup.Delete("/:bookId/:userId", featureController.AdminDeleteReview)
 }

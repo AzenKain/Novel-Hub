@@ -1,31 +1,17 @@
 import React, { useMemo } from "react";
 
-import type { ReadingMode } from "@/stores";
-import { sanitizeReaderHtml } from "@/utils/readerHtml";
+import type { PageFit, ReadingDirection, ReadingMode } from "@/stores";
+import { isVisualChapter, sanitizeReaderHtml } from "@/utils/readerHtml";
 
 type ReaderContentProps = {
   htmlContent: string;
   proseClass: string;
   effectiveReadingMode: ReadingMode;
+  readingDirection: ReadingDirection;
+  pageFit: PageFit;
   pageWidth: number;
   columnsRef: React.RefObject<HTMLDivElement | null>;
   onContentClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-};
-
-const isVisualChapter = (html: string) => {
-  const mediaCount = (html.match(/<(?:img|svg|picture|canvas)\b/gi) || [])
-    .length;
-  if (mediaCount === 0) return false;
-
-  const text = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/\s+/g, "")
-    .trim();
-
-  return text.length <= 24;
 };
 
 const isRawReaderContent = (html: string) =>
@@ -35,6 +21,8 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   htmlContent,
   proseClass,
   effectiveReadingMode,
+  readingDirection,
+  pageFit,
   pageWidth,
   columnsRef,
   onContentClick,
@@ -68,7 +56,9 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
           : effectiveReadingMode === "double"
             ? "reader-mode-double"
             : ""
-      } ${effectiveReadingMode !== "scroll" && pageWidth > 0 ? "reader-mode-measured" : ""}`}
+      } ${effectiveReadingMode !== "scroll" && pageWidth > 0 ? "reader-mode-measured" : ""} ${
+        visualChapter && readingDirection === "rtl" ? "reader-dir-rtl" : ""
+      } ${visualChapter ? `reader-fit-${pageFit}` : ""}`}
       dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
     />
   );

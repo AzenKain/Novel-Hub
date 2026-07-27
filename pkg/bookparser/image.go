@@ -112,6 +112,6 @@ func IsSuitablePDFCover(data []byte) bool {
 	if total == 0 {
 		return false
 	}
-	// If image is mostly white background (>85% white), it is a document page canvas, not cover artwork.
+	// If image is mostly white background (>85% white)
 	return float64(nearWhite)/float64(total) < 0.85
 }

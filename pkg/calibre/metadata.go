@@ -22,7 +22,7 @@ type CalibreBookRecord struct {
 	UUID        string            `json:"uuid,omitempty"`
 	ISBN        string            `json:"isbn,omitempty"`
 	LCCN        string            `json:"lccn,omitempty"`
-	Rating      *float64          `json:"rating,omitempty"` // 0.0 - 5.0
+	Rating      *float64          `json:"rating,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Authors     []string          `json:"authors,omitempty"`
 	Series      string            `json:"series,omitempty"`

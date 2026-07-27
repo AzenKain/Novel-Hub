@@ -82,11 +82,15 @@ func (ctrl *KoboController) SyncState(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	var userID int64
+	var userID string
 	if uidRaw := c.Locals("uid"); uidRaw != nil {
 		if uidStr, ok := uidRaw.(string); ok {
 			userID, _ = convert.ParseID(uidStr)
 		}
+	}
+	// SyncState has no guard of its own, so reject an unresolved caller here.
+	if userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Invalid or missing token"})
 	}
 
 	if err := ctrl.koboService.SyncState(ctx, userID, dto.State); err != nil {

@@ -25,7 +25,7 @@ interface UserAdminState {
   modal: ModalMode;
   form: CreateUserRequest;
   newPassword: string;
-  roleIDs: number[];
+  roleIDs: string[];
   userToDelete: User | null;
 
   setUsers: (users: User[]) => void;
@@ -41,7 +41,7 @@ interface UserAdminState {
   setModal: (modal: ModalMode) => void;
   setForm: (form: CreateUserRequest | ((prev: CreateUserRequest) => CreateUserRequest)) => void;
   setNewPassword: (password: string) => void;
-  setRoleIDs: (ids: number[] | ((prev: number[]) => number[])) => void;
+  setRoleIDs: (ids: string[] | ((prev: string[]) => string[])) => void;
   setUserToDelete: (user: User | null) => void;
   reset: () => void;
 }

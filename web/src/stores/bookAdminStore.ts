@@ -107,9 +107,11 @@ interface BookAdminState {
   handleEditSubmit: (e?: React.SyntheticEvent) => Promise<void>;
   handleUploadBookFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleCreateLibrary: (e: React.SyntheticEvent) => Promise<void>;
+  handleRenameLibrary: (id: string, name: string) => Promise<void>;
   handleDeleteLibrary: (id: string) => Promise<void>;
   handleUploadFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
+  archiveBook: (id: string, archived: boolean) => Promise<void>;
 }
 
 export const useBookAdminStore = create<BookAdminState>((set, get) => ({
@@ -423,6 +425,25 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     }
   },
 
+  handleRenameLibrary: async (id, name) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    try {
+      const res = await libraryService.updateLibrary(id, { name: trimmedName });
+      if (!res.status) throw new Error(res.message || "Failed to rename library");
+      toast.success("Library renamed successfully!");
+      set((state) => ({
+        libraries: state.libraries.map((library) =>
+          library.id === id ? { ...library, name: trimmedName } : library
+        )
+      }));
+      void queryClient.invalidateQueries({ queryKey: ["libraries"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename library");
+    }
+  },
+
   handleDeleteLibrary: async (id) => {
     const { selectedLibraryId, uploadLibraryId } = get();
     try {
@@ -500,6 +521,22 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       await get().loadData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete book");
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  archiveBook: async (id, archived) => {
+    set({ loading: true, error: "" });
+    try {
+      const res = await bookService.archiveBook(id, archived);
+      if (!res.status) throw new Error(res.message || "Failed to update archive state");
+      toast.success(archived ? "Book archived" : "Book unarchived");
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+      await get().loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update archive state");
     } finally {
       set({ loading: false });
     }

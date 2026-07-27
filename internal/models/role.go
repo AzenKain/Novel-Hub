@@ -8,7 +8,7 @@ import (
 )
 
 type RoleSimple struct {
-	ID       int64  `json:"id"`
+	ID       string `json:"id"`
 	Name     string `json:"name"`
 	IsAdmin  bool   `json:"is_admin"`
 	IsBanned bool   `json:"is_banned"`
@@ -33,7 +33,7 @@ func RolesToResponse(roles []*RoleSimple) []*response.RoleSimpleResponse {
 }
 
 type RoleEntity struct {
-	ID          int64                   `json:"id"`
+	ID          string                  `json:"id"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
 	IsSystem    bool                    `json:"is_system"`
@@ -99,8 +99,8 @@ func RolesEntityToRoleConstant(roles []*RoleSimple) []constants.RoleType {
 	return out
 }
 
-func RolesEntityToRoleIDs(roles []*RoleSimple) []int64 {
-	out := make([]int64, 0, len(roles))
+func RolesEntityToRoleIDs(roles []*RoleSimple) []string {
+	out := make([]string, 0, len(roles))
 	for _, role := range roles {
 		if role == nil {
 			continue
@@ -118,8 +118,8 @@ type PermissionEntity struct {
 }
 
 type RolePermissionEntity struct {
-	ID             int64          `json:"id"`
-	RoleID         int64          `json:"role_id"`
+	ID             string         `json:"id"`
+	RoleID         string         `json:"role_id"`
 	PermissionKey  string         `json:"permission_key"`
 	Effect         string         `json:"effect"`
 	ConditionsJSON string         `json:"conditions_json"`

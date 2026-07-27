@@ -9,8 +9,8 @@ import (
 )
 
 type UserTrackerEntity struct {
-	ID           int64      `json:"id"`
-	UserID       int64      `json:"userId"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"userId"`
 	Provider     string     `json:"provider"`
 	AccessToken  string     `json:"-"`
 	RefreshToken *string    `json:"-"`
@@ -58,8 +58,8 @@ func (e *UserTrackerEntity) ToResponse() *response.UserTrackerResponse {
 }
 
 type BookTrackerMappingEntity struct {
-	ID               int64     `json:"id"`
-	BookID           int64     `json:"bookId"`
+	ID               string    `json:"id"`
+	BookID           string    `json:"bookId"`
 	Provider         string    `json:"provider"`
 	ExternalSeriesID string    `json:"externalSeriesId"`
 	CreatedAt        time.Time `json:"createdAt"`

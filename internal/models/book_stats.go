@@ -93,7 +93,7 @@ func (e *BookDownloadStatsEntity) ToResponse() *response.BookDownloadStatsRespon
 }
 
 type BookmarkEntity struct {
-	UserID    int64     `json:"userId"`
+	UserID    string    `json:"userId"`
 	BookID    string    `json:"bookId"`
 	CreatedAt time.Time `json:"createdAt"`
 }

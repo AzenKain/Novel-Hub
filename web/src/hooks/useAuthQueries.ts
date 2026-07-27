@@ -1,6 +1,6 @@
 import { authService } from "@/services";
 import { useAuthStore } from "@/stores";
-import type { UpdateProfileRequest, User } from "@/types";
+import type { ChangePasswordRequest, UpdateProfileRequest, User } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useCurrentUserQuery() {
@@ -55,6 +55,24 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: async () => {
       await authService.logout();
+    },
+    onSuccess: () => {
+      setUser(null);
+      queryClient.clear();
+    },
+  });
+}
+
+// Đổi mật khẩu bump token_version ở BE nên mọi session bị thu hồi -> phải đăng nhập lại.
+export function useChangePasswordMutation() {
+  const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ChangePasswordRequest) => {
+      const res = await authService.changePassword(data);
+      if (!res.status) throw new Error(res.message || "Failed to change password");
+      return res;
     },
     onSuccess: () => {
       setUser(null);

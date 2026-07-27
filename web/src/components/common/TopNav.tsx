@@ -29,7 +29,6 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
-    // Navigate back to home if we are searching from another page
     if (window.location.pathname !== "/") {
       navigate("/");
     }
@@ -106,7 +105,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
               </div>
               <ul
                 tabIndex={0}
-                className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 border border-base-200"
+                className="mt-3 z-1 p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 border border-base-200"
               >
                 <li>
                   <span className="font-semibold opacity-60 px-4 py-2 truncate block">

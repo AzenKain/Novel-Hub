@@ -1,7 +1,7 @@
 -- Table for user collections
 CREATE TABLE IF NOT EXISTS collections (
     id TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS collection_books (
 
 -- Table for tracking reading history
 CREATE TABLE IF NOT EXISTS reading_history (
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     book_id TEXT NOT NULL,
     chapter_id TEXT NOT NULL,
     progress_percent REAL DEFAULT 0,
@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_collections_user_id ON collections(user_id);
 CREATE INDEX IF NOT EXISTS idx_reading_history_user_time ON reading_history(user_id, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS bookmarks (
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     book_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, book_id),
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE TABLE IF NOT EXISTS book_reviews (
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     book_id TEXT NOT NULL,
     rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
     review TEXT,

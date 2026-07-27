@@ -170,10 +170,9 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 
 	meta.MetadataJSON, _ = jsonx.MarshalString(normalized)
 
-	// Attempt to extract cover
 	var coverHref string
 	var coverID string
-	// Method 1: from meta tags (name="cover" content="ID")
+
 	for _, m := range pkg.Metadata.Meta {
 		if strings.EqualFold(m.Name, "cover") || strings.EqualFold(m.Property, "cover") {
 			coverID = cleanMetadataText(m.Content)
@@ -184,7 +183,6 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 		}
 	}
 
-	// Find in manifest
 	for _, item := range pkg.Manifest.Items {
 		if coverID != "" && item.ID == coverID && strings.HasPrefix(item.MediaType, "image/") {
 			coverHref = item.Href
@@ -427,12 +425,10 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 
 		chPath := resolveEPUBHref(baseDir, item.Href)
 
-		// Try to extract a proper title from the HTML <title> tag
+		
 		title := extractTitleFromZip(r, chPath)
 		if title == "" {
-			// Fallback: clean up filename
 			base := strings.TrimSuffix(filepath.Base(item.Href), filepath.Ext(item.Href))
-			// Replace underscores/dashes with spaces and capitalize
 			base = strings.ReplaceAll(base, "_", " ")
 			base = strings.ReplaceAll(base, "-", " ")
 			title = base
@@ -451,7 +447,6 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 	return chapters, nil
 }
 
-// extractTitleFromZip reads the <title> tag from an HTML file inside the zip.
 func extractTitleFromZip(r *zip.ReadCloser, path string) string {
 	f, err := getZipFile(r, path)
 	if err != nil {
@@ -463,12 +458,10 @@ func extractTitleFromZip(r *zip.ReadCloser, path string) string {
 	}
 	defer rc.Close()
 
-	// Read first 4KB to find <title> — no need to read entire file
 	buf := make([]byte, 4096)
 	n, _ := rc.Read(buf)
 	html := string(buf[:n])
 
-	// Simple regex-free extraction
 	start := strings.Index(strings.ToLower(html), "<title>")
 	if start == -1 {
 		return ""
@@ -479,7 +472,7 @@ func extractTitleFromZip(r *zip.ReadCloser, path string) string {
 		return ""
 	}
 	title := strings.TrimSpace(html[start : start+end])
-	// Skip empty or generic titles
+
 	if title == "" || strings.ToLower(title) == "untitled" {
 		return ""
 	}
@@ -604,7 +597,6 @@ func findOPFPath(r *zip.ReadCloser) (string, error) {
 }
 
 func getZipFile(r *zip.ReadCloser, name string) (*zip.File, error) {
-	// zip file paths are case-sensitive usually, but let's just do exact match.
 	for _, f := range r.File {
 		if f.Name == name {
 			return f, nil

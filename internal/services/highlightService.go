@@ -15,10 +15,10 @@ import (
 )
 
 type HighlightService interface {
-	CreateHighlight(ctx context.Context, userID int64, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
-	GetHighlights(ctx context.Context, userID int64, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error)
-	UpdateHighlightNote(ctx context.Context, userID int64, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
-	DeleteHighlight(ctx context.Context, userID int64, id string, claims *response.JWTClaims) error
+	CreateHighlight(ctx context.Context, userID string, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
+	GetHighlights(ctx context.Context, userID string, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error)
+	UpdateHighlightNote(ctx context.Context, userID string, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
+	DeleteHighlight(ctx context.Context, userID string, id string, claims *response.JWTClaims) error
 }
 
 type highlightService struct {
@@ -46,7 +46,7 @@ func (s *highlightService) canHighlight(ctx context.Context, bookID, chapterID s
 		s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermBookHighlight, attrs)
 }
 
-func (s *highlightService) CreateHighlight(ctx context.Context, userID int64, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
+func (s *highlightService) CreateHighlight(ctx context.Context, userID string, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
 	if dto.StartIndex >= dto.EndIndex {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid text selection range")
 	}
@@ -73,7 +73,7 @@ func (s *highlightService) CreateHighlight(ctx context.Context, userID int64, dt
 	return h.ToResponse(), nil
 }
 
-func (s *highlightService) GetHighlights(ctx context.Context, userID int64, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error) {
+func (s *highlightService) GetHighlights(ctx context.Context, userID string, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error) {
 	chapter, err := s.bookRepo.GetChapter(ctx, chapterID)
 	if err != nil || chapter == nil || !s.canHighlight(ctx, chapter.BookID, chapterID, claims) {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this chapter")
@@ -86,7 +86,7 @@ func (s *highlightService) GetHighlights(ctx context.Context, userID int64, chap
 	return models.HighlightEntitiesToResponse(highlights), nil
 }
 
-func (s *highlightService) UpdateHighlightNote(ctx context.Context, userID int64, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
+func (s *highlightService) UpdateHighlightNote(ctx context.Context, userID string, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
 	items, err := s.repo.GetHighlightsByIDs(ctx, []string{id})
 	if err != nil || len(items) != 1 || items[0].UserID != userID || !s.canHighlight(ctx, items[0].BookID, items[0].ChapterID, claims) {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Highlight is not accessible")
@@ -104,7 +104,7 @@ func (s *highlightService) UpdateHighlightNote(ctx context.Context, userID int64
 	return h.ToResponse(), nil
 }
 
-func (s *highlightService) DeleteHighlight(ctx context.Context, userID int64, id string, claims *response.JWTClaims) error {
+func (s *highlightService) DeleteHighlight(ctx context.Context, userID string, id string, claims *response.JWTClaims) error {
 	items, err := s.repo.GetHighlightsByIDs(ctx, []string{id})
 	if err != nil || len(items) != 1 || items[0].UserID != userID || !s.canHighlight(ctx, items[0].BookID, items[0].ChapterID, claims) {
 		return apperrors.New(apperrors.ErrForbidden, "Highlight is not accessible")

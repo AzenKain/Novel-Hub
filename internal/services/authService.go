@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -64,7 +63,7 @@ func refreshTokenMatches(stored, token string) bool {
 
 func tokenClaims(user *models.UserEntity, tokenType string, duration time.Duration) *response.JWTClaims {
 	now := time.Now()
-	uid := strconv.FormatInt(user.ID, 10)
+	uid := user.ID
 	return &response.JWTClaims{
 		UId:          uid,
 		Roles:        models.RolesEntityToRoleConstant(user.Roles),
@@ -219,6 +218,7 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 	}
 
 	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
+		ID:           uuid.Must(uuid.NewV7()).String(),
 		Email:        dto.Email,
 		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
@@ -298,6 +298,7 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	}
 
 	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
+		ID:           uuid.Must(uuid.NewV7()).String(),
 		Email:        dto.Email,
 		PasswordHash: convert.StrPtrToNullString(&passwordHash),
 		AuthProvider: constants.LocalProvider.String(),
@@ -330,7 +331,10 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	if err := settingsRepoTx.UpsertSetupState(ctx, "completed", "true"); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to complete setup")
 	}
-	_ = settingsRepoTx.UpsertSetupState(ctx, "root_admin_id", strconv.FormatInt(user.ID, 10))
+	// Root admin identity is derived from this record, so a lost write leaves the install ownerless.
+	if err := settingsRepoTx.UpsertSetupState(ctx, "root_admin_id", user.ID); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to record root admin")
+	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit setup")

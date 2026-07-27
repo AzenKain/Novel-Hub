@@ -58,7 +58,7 @@ SET is_deleted = 1
 WHERE id = ?
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+func (q *Queries) DeleteUser(ctx context.Context, id string) error {
 	_, err := q.exec(ctx, q.deleteUserStmt, deleteUser, id)
 	return err
 }
@@ -94,7 +94,7 @@ FROM users
 WHERE id = ? AND is_deleted = 0
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	row := q.queryRow(ctx, q.getUserByIDStmt, getUserByID, id)
 	var i User
 	err := row.Scan(
@@ -119,7 +119,7 @@ FROM users
 WHERE id = ?
 `
 
-func (q *Queries) GetUserByIDWithoutDeleted(ctx context.Context, id int64) (User, error) {
+func (q *Queries) GetUserByIDWithoutDeleted(ctx context.Context, id string) (User, error) {
 	row := q.queryRow(ctx, q.getUserByIDWithoutDeletedStmt, getUserByIDWithoutDeleted, id)
 	var i User
 	err := row.Scan(
@@ -147,14 +147,14 @@ ORDER BY r.name ASC
 `
 
 type GetUserRolesRow struct {
-	ID        int64  `json:"id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	IsDeleted int64  `json:"is_deleted"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 }
 
-func (q *Queries) GetUserRoles(ctx context.Context, userID int64) ([]GetUserRolesRow, error) {
+func (q *Queries) GetUserRoles(ctx context.Context, userID string) ([]GetUserRolesRow, error) {
 	rows, err := q.query(ctx, q.getUserRolesStmt, getUserRoles, userID)
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ FROM users
 WHERE id = ? AND is_deleted = 0
 `
 
-func (q *Queries) GetUserTokenVersion(ctx context.Context, id int64) (int64, error) {
+func (q *Queries) GetUserTokenVersion(ctx context.Context, id string) (int64, error) {
 	row := q.queryRow(ctx, q.getUserTokenVersionStmt, getUserTokenVersion, id)
 	var token_version int64
 	err := row.Scan(&token_version)
@@ -202,7 +202,7 @@ FROM users
 WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) GetUsersByIDs(ctx context.Context, ids []int64) ([]User, error) {
+func (q *Queries) GetUsersByIDs(ctx context.Context, ids []string) ([]User, error) {
 	query := getUsersByIDs
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -253,7 +253,7 @@ SET is_deleted = 0
 WHERE id = ?
 `
 
-func (q *Queries) RestoreUser(ctx context.Context, id int64) error {
+func (q *Queries) RestoreUser(ctx context.Context, id string) error {
 	_, err := q.exec(ctx, q.restoreUserStmt, restoreUser, id)
 	return err
 }
@@ -268,7 +268,7 @@ WHERE id = ?2
 
 type RotateUserRefreshTokenParams struct {
 	NewRefreshToken     sql.NullString `json:"new_refresh_token"`
-	ID                  int64          `json:"id"`
+	ID                  string         `json:"id"`
 	CurrentRefreshToken sql.NullString `json:"current_refresh_token"`
 }
 
@@ -306,18 +306,18 @@ LIMIT ?9
 `
 
 type SearchUserIDsParams struct {
-	IsDeleted       interface{}   `json:"is_deleted"`
-	RoleID          interface{}   `json:"role_id"`
-	AuthProvider    interface{}   `json:"auth_provider"`
-	CreatedFrom     interface{}   `json:"created_from"`
-	CreatedTo       interface{}   `json:"created_to"`
-	SearchText      interface{}   `json:"search_text"`
-	CursorCreatedAt interface{}   `json:"cursor_created_at"`
-	CursorID        sql.NullInt64 `json:"cursor_id"`
-	Limit           int64         `json:"limit"`
+	IsDeleted       interface{}    `json:"is_deleted"`
+	RoleID          interface{}    `json:"role_id"`
+	AuthProvider    interface{}    `json:"auth_provider"`
+	CreatedFrom     interface{}    `json:"created_from"`
+	CreatedTo       interface{}    `json:"created_to"`
+	SearchText      interface{}    `json:"search_text"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
-func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([]int64, error) {
+func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([]string, error) {
 	rows, err := q.query(ctx, q.searchUserIDsStmt, searchUserIDs,
 		arg.IsDeleted,
 		arg.RoleID,
@@ -333,9 +333,9 @@ func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -362,7 +362,7 @@ RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_del
 type UpdateProfileParams struct {
 	FullName  sql.NullString `json:"full_name"`
 	AvatarUrl sql.NullString `json:"avatar_url"`
-	ID        int64          `json:"id"`
+	ID        string         `json:"id"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (User, error) {
@@ -392,7 +392,7 @@ WHERE id = ? AND is_deleted = 0
 
 type UpdateUserPasswordParams struct {
 	PasswordHash sql.NullString `json:"password_hash"`
-	ID           int64          `json:"id"`
+	ID           string         `json:"id"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
@@ -408,7 +408,7 @@ WHERE id = ? AND is_deleted = 0
 
 type UpdateUserRefreshTokenParams struct {
 	RefreshToken sql.NullString `json:"refresh_token"`
-	ID           int64          `json:"id"`
+	ID           string         `json:"id"`
 }
 
 func (q *Queries) UpdateUserRefreshToken(ctx context.Context, arg UpdateUserRefreshTokenParams) error {
@@ -423,8 +423,8 @@ WHERE id = ? AND is_deleted = 0
 `
 
 type UpdateUserTokenVersionParams struct {
-	TokenVersion int64 `json:"token_version"`
-	ID           int64 `json:"id"`
+	TokenVersion int64  `json:"token_version"`
+	ID           string `json:"id"`
 }
 
 func (q *Queries) UpdateUserTokenVersion(ctx context.Context, arg UpdateUserTokenVersionParams) error {
@@ -434,13 +434,14 @@ func (q *Queries) UpdateUserTokenVersion(ctx context.Context, arg UpdateUserToke
 
 const upsertUser = `-- name: UpsertUser :one
 INSERT INTO users (
+    id,
     email,
     password_hash,
     auth_provider,
     full_name,
     avatar_url
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
 ON CONFLICT(email)
 DO UPDATE SET
@@ -450,6 +451,7 @@ RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_del
 `
 
 type UpsertUserParams struct {
+	ID           string         `json:"id"`
 	Email        string         `json:"email"`
 	PasswordHash sql.NullString `json:"password_hash"`
 	AuthProvider string         `json:"auth_provider"`
@@ -459,6 +461,7 @@ type UpsertUserParams struct {
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
 	row := q.queryRow(ctx, q.upsertUserStmt, upsertUser,
+		arg.ID,
 		arg.Email,
 		arg.PasswordHash,
 		arg.AuthProvider,

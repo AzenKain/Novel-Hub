@@ -15,7 +15,7 @@ DELETE FROM user_roles
 WHERE user_id = ?
 `
 
-func (q *Queries) BulkDeleteRolesFromUser(ctx context.Context, userID int64) error {
+func (q *Queries) BulkDeleteRolesFromUser(ctx context.Context, userID string) error {
 	_, err := q.exec(ctx, q.bulkDeleteRolesFromUserStmt, bulkDeleteRolesFromUser, userID)
 	return err
 }
@@ -25,7 +25,7 @@ DELETE FROM user_roles
 WHERE role_id = ?
 `
 
-func (q *Queries) BulkDeleteUsersFromRole(ctx context.Context, roleID int64) error {
+func (q *Queries) BulkDeleteUsersFromRole(ctx context.Context, roleID string) error {
 	_, err := q.exec(ctx, q.bulkDeleteUsersFromRoleStmt, bulkDeleteUsersFromRole, roleID)
 	return err
 }
@@ -46,12 +46,13 @@ func (q *Queries) CountActiveAdminUsers(ctx context.Context) (int64, error) {
 }
 
 const createRole = `-- name: CreateRole :one
-INSERT INTO roles (name, description, is_system, is_admin, auto_assign)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO roles (id, name, description, is_system, is_admin, auto_assign)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type CreateRoleParams struct {
+	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	IsSystem    int64  `json:"is_system"`
@@ -61,6 +62,7 @@ type CreateRoleParams struct {
 
 func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error) {
 	row := q.queryRow(ctx, q.createRoleStmt, createRole,
+		arg.ID,
 		arg.Name,
 		arg.Description,
 		arg.IsSystem,
@@ -91,8 +93,8 @@ ON CONFLICT DO NOTHING
 `
 
 type CreateUserRoleParams struct {
-	UserID int64 `json:"user_id"`
-	RoleID int64 `json:"role_id"`
+	UserID string `json:"user_id"`
+	RoleID string `json:"role_id"`
 }
 
 func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) error {
@@ -106,7 +108,7 @@ SET is_deleted = 1
 WHERE id = ? AND is_system = 0
 `
 
-func (q *Queries) DeleteRole(ctx context.Context, id int64) error {
+func (q *Queries) DeleteRole(ctx context.Context, id string) error {
 	_, err := q.exec(ctx, q.deleteRoleStmt, deleteRole, id)
 	return err
 }
@@ -116,7 +118,7 @@ DELETE FROM role_permissions
 WHERE role_id = ?
 `
 
-func (q *Queries) DeleteRolePermissions(ctx context.Context, roleID int64) error {
+func (q *Queries) DeleteRolePermissions(ctx context.Context, roleID string) error {
 	_, err := q.exec(ctx, q.deleteRolePermissionsStmt, deleteRolePermissions, roleID)
 	return err
 }
@@ -127,8 +129,8 @@ WHERE user_id = ? AND role_id = ?
 `
 
 type DeleteUserRoleParams struct {
-	UserID int64 `json:"user_id"`
-	RoleID int64 `json:"role_id"`
+	UserID string `json:"user_id"`
+	RoleID string `json:"role_id"`
 }
 
 func (q *Queries) DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error {
@@ -142,15 +144,15 @@ FROM roles
 WHERE is_deleted = 0 AND auto_assign = 1 AND is_admin = 0
 `
 
-func (q *Queries) GetAutoAssignRoleIDs(ctx context.Context) ([]int64, error) {
+func (q *Queries) GetAutoAssignRoleIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.query(ctx, q.getAutoAssignRoleIDsStmt, getAutoAssignRoleIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -213,7 +215,7 @@ FROM roles
 WHERE id = ? AND is_deleted = 0
 `
 
-func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
+func (q *Queries) GetRoleByID(ctx context.Context, id string) (Role, error) {
 	row := q.queryRow(ctx, q.getRoleByIDStmt, getRoleByID, id)
 	var i Role
 	err := row.Scan(
@@ -264,15 +266,15 @@ WHERE is_deleted = 0
 ORDER BY position DESC, name ASC
 `
 
-func (q *Queries) GetRoleIDs(ctx context.Context) ([]int64, error) {
+func (q *Queries) GetRoleIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.query(ctx, q.getRoleIDsStmt, getRoleIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -291,15 +293,15 @@ const getRolePermissionIDs = `-- name: GetRolePermissionIDs :many
 SELECT id FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC
 `
 
-func (q *Queries) GetRolePermissionIDs(ctx context.Context, roleID int64) ([]int64, error) {
+func (q *Queries) GetRolePermissionIDs(ctx context.Context, roleID string) ([]string, error) {
 	rows, err := q.query(ctx, q.getRolePermissionIDsStmt, getRolePermissionIDs, roleID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -321,7 +323,7 @@ WHERE role_id = ?
 ORDER BY permission_key ASC
 `
 
-func (q *Queries) GetRolePermissions(ctx context.Context, roleID int64) ([]RolePermission, error) {
+func (q *Queries) GetRolePermissions(ctx context.Context, roleID string) ([]RolePermission, error) {
 	rows, err := q.query(ctx, q.getRolePermissionsStmt, getRolePermissions, roleID)
 	if err != nil {
 		return nil, err
@@ -356,7 +358,7 @@ const getRolePermissionsByIDs = `-- name: GetRolePermissionsByIDs :many
 SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at FROM role_permissions WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) GetRolePermissionsByIDs(ctx context.Context, ids []int64) ([]RolePermission, error) {
+func (q *Queries) GetRolePermissionsByIDs(ctx context.Context, ids []string) ([]RolePermission, error) {
 	query := getRolePermissionsByIDs
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -402,7 +404,7 @@ SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, posit
 FROM roles WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) GetRolesByIDs(ctx context.Context, ids []int64) ([]Role, error) {
+func (q *Queries) GetRolesByIDs(ctx context.Context, ids []string) ([]Role, error) {
 	query := getRolesByIDs
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -511,15 +513,15 @@ const listRolePermissionIDs = `-- name: ListRolePermissionIDs :many
 SELECT id FROM role_permissions ORDER BY role_id ASC, permission_key ASC
 `
 
-func (q *Queries) ListRolePermissionIDs(ctx context.Context) ([]int64, error) {
+func (q *Queries) ListRolePermissionIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.query(ctx, q.listRolePermissionIDsStmt, listRolePermissionIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []string{}
 	for rows.Next() {
-		var id int64
+		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -577,7 +579,7 @@ SET is_deleted = 0
 WHERE id = ?
 `
 
-func (q *Queries) RestoreRole(ctx context.Context, id int64) error {
+func (q *Queries) RestoreRole(ctx context.Context, id string) error {
 	_, err := q.exec(ctx, q.restoreRoleStmt, restoreRole, id)
 	return err
 }
@@ -593,7 +595,7 @@ type UpdateRoleParams struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	AutoAssign  int64  `json:"auto_assign"`
-	ID          int64  `json:"id"`
+	ID          string `json:"id"`
 }
 
 func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error) {
@@ -627,8 +629,8 @@ WHERE id = ? AND is_deleted = 0
 `
 
 type UpdateRolePositionParams struct {
-	Position int64 `json:"position"`
-	ID       int64 `json:"id"`
+	Position int64  `json:"position"`
+	ID       string `json:"id"`
 }
 
 func (q *Queries) UpdateRolePosition(ctx context.Context, arg UpdateRolePositionParams) error {
@@ -646,7 +648,7 @@ RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, po
 type UpdateSystemRoleDescriptionParams struct {
 	Description string `json:"description"`
 	AutoAssign  int64  `json:"auto_assign"`
-	ID          int64  `json:"id"`
+	ID          string `json:"id"`
 }
 
 func (q *Queries) UpdateSystemRoleDescription(ctx context.Context, arg UpdateSystemRoleDescriptionParams) (Role, error) {
@@ -685,15 +687,16 @@ func (q *Queries) UpsertPermission(ctx context.Context, arg UpsertPermissionPara
 }
 
 const upsertRolePermission = `-- name: UpsertRolePermission :exec
-INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
-VALUES (?, ?, ?, ?)
+INSERT INTO role_permissions (id, role_id, permission_key, effect, conditions_json)
+VALUES (?, ?, ?, ?, ?)
 ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = excluded.effect,
     conditions_json = excluded.conditions_json
 `
 
 type UpsertRolePermissionParams struct {
-	RoleID         int64  `json:"role_id"`
+	ID             string `json:"id"`
+	RoleID         string `json:"role_id"`
 	PermissionKey  string `json:"permission_key"`
 	Effect         string `json:"effect"`
 	ConditionsJson string `json:"conditions_json"`
@@ -701,6 +704,7 @@ type UpsertRolePermissionParams struct {
 
 func (q *Queries) UpsertRolePermission(ctx context.Context, arg UpsertRolePermissionParams) error {
 	_, err := q.exec(ctx, q.upsertRolePermissionStmt, upsertRolePermission,
+		arg.ID,
 		arg.RoleID,
 		arg.PermissionKey,
 		arg.Effect,

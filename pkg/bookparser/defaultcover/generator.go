@@ -15,7 +15,6 @@ var coverGradients = [][2]string{
 	{"#831843", "#be185d"},
 }
 
-// GenerateSVG produces a clean SVG cover image byte slice given title and author.
 func GenerateSVG(title, author string) []byte {
 	if title == "" {
 		title = "Untitled Book"

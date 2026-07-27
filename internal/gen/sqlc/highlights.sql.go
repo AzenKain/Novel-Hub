@@ -21,7 +21,7 @@ INSERT INTO highlights (
 
 type CreateHighlightParams struct {
 	ID          string         `json:"id"`
-	UserID      int64          `json:"user_id"`
+	UserID      string         `json:"user_id"`
 	BookID      string         `json:"book_id"`
 	ChapterID   string         `json:"chapter_id"`
 	TextContent string         `json:"text_content"`
@@ -67,7 +67,7 @@ WHERE id = ? AND user_id = ?
 
 type DeleteHighlightParams struct {
 	ID     string `json:"id"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func (q *Queries) DeleteHighlight(ctx context.Context, arg DeleteHighlightParams) error {
@@ -82,7 +82,7 @@ ORDER BY start_index ASC
 `
 
 type GetHighlightIDsByChapterParams struct {
-	UserID    int64  `json:"user_id"`
+	UserID    string `json:"user_id"`
 	ChapterID string `json:"chapter_id"`
 }
 
@@ -116,7 +116,7 @@ ORDER BY start_index ASC
 `
 
 type GetHighlightsByChapterParams struct {
-	UserID    int64  `json:"user_id"`
+	UserID    string `json:"user_id"`
 	ChapterID string `json:"chapter_id"`
 }
 
@@ -216,7 +216,7 @@ type UpdateHighlightNoteParams struct {
 	Note   sql.NullString `json:"note"`
 	Color  string         `json:"color"`
 	ID     string         `json:"id"`
-	UserID int64          `json:"user_id"`
+	UserID string         `json:"user_id"`
 }
 
 func (q *Queries) UpdateHighlightNote(ctx context.Context, arg UpdateHighlightNoteParams) (Highlight, error) {

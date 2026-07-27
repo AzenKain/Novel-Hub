@@ -81,7 +81,7 @@ type BookReadStat struct {
 }
 
 type BookReview struct {
-	UserID    int64          `json:"user_id"`
+	UserID    string         `json:"user_id"`
 	BookID    string         `json:"book_id"`
 	Rating    int64          `json:"rating"`
 	Review    sql.NullString `json:"review"`
@@ -117,15 +117,15 @@ type BookTag struct {
 }
 
 type BookTrackerMapping struct {
-	ID               int64     `json:"id"`
-	BookID           int64     `json:"book_id"`
+	ID               string    `json:"id"`
+	BookID           string    `json:"book_id"`
 	Provider         string    `json:"provider"`
 	ExternalSeriesID string    `json:"external_series_id"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
 type Bookmark struct {
-	UserID    int64        `json:"user_id"`
+	UserID    string       `json:"user_id"`
 	BookID    string       `json:"book_id"`
 	CreatedAt sql.NullTime `json:"created_at"`
 }
@@ -142,7 +142,7 @@ type Chapter struct {
 
 type Collection struct {
 	ID        string       `json:"id"`
-	UserID    int64        `json:"user_id"`
+	UserID    string       `json:"user_id"`
 	Name      string       `json:"name"`
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
@@ -174,7 +174,7 @@ type FtsMetadatum struct {
 
 type Highlight struct {
 	ID          string         `json:"id"`
-	UserID      int64          `json:"user_id"`
+	UserID      string         `json:"user_id"`
 	BookID      string         `json:"book_id"`
 	ChapterID   string         `json:"chapter_id"`
 	TextContent string         `json:"text_content"`
@@ -239,7 +239,7 @@ type Publisher struct {
 }
 
 type ReadingGoal struct {
-	UserID             int64        `json:"user_id"`
+	UserID             string       `json:"user_id"`
 	TargetWordsPerDay  int64        `json:"target_words_per_day"`
 	TargetBooksPerYear int64        `json:"target_books_per_year"`
 	CreatedAt          sql.NullTime `json:"created_at"`
@@ -247,7 +247,7 @@ type ReadingGoal struct {
 }
 
 type ReadingHistory struct {
-	UserID          int64           `json:"user_id"`
+	UserID          string          `json:"user_id"`
 	BookID          string          `json:"book_id"`
 	ChapterID       string          `json:"chapter_id"`
 	ProgressPercent sql.NullFloat64 `json:"progress_percent"`
@@ -255,7 +255,7 @@ type ReadingHistory struct {
 }
 
 type ReadingProgress struct {
-	UserID             int64           `json:"user_id"`
+	UserID             string          `json:"user_id"`
 	BookID             string          `json:"book_id"`
 	FileID             sql.NullString  `json:"file_id"`
 	ChapterRef         string          `json:"chapter_ref"`
@@ -273,7 +273,7 @@ type ReadingProgress struct {
 
 type ReadingSession struct {
 	ID              string       `json:"id"`
-	UserID          int64        `json:"user_id"`
+	UserID          string       `json:"user_id"`
 	BookID          string       `json:"book_id"`
 	DurationSeconds int64        `json:"duration_seconds"`
 	WordsRead       int64        `json:"words_read"`
@@ -283,7 +283,7 @@ type ReadingSession struct {
 }
 
 type Role struct {
-	ID          int64  `json:"id"`
+	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	IsSystem    int64  `json:"is_system"`
@@ -297,8 +297,8 @@ type Role struct {
 }
 
 type RolePermission struct {
-	ID             int64  `json:"id"`
-	RoleID         int64  `json:"role_id"`
+	ID             string `json:"id"`
+	RoleID         string `json:"role_id"`
 	PermissionKey  string `json:"permission_key"`
 	Effect         string `json:"effect"`
 	ConditionsJson string `json:"conditions_json"`
@@ -320,7 +320,7 @@ type SetupState struct {
 
 type SmartCollection struct {
 	ID        string       `json:"id"`
-	UserID    int64        `json:"user_id"`
+	UserID    string       `json:"user_id"`
 	Name      string       `json:"name"`
 	RuleJson  string       `json:"rule_json"`
 	CreatedAt sql.NullTime `json:"created_at"`
@@ -334,7 +334,7 @@ type Tag struct {
 }
 
 type User struct {
-	ID           int64          `json:"id"`
+	ID           string         `json:"id"`
 	Email        string         `json:"email"`
 	FullName     sql.NullString `json:"full_name"`
 	AvatarUrl    sql.NullString `json:"avatar_url"`
@@ -348,13 +348,13 @@ type User struct {
 }
 
 type UserRole struct {
-	UserID int64 `json:"user_id"`
-	RoleID int64 `json:"role_id"`
+	UserID string `json:"user_id"`
+	RoleID string `json:"role_id"`
 }
 
 type UserTracker struct {
-	ID           int64          `json:"id"`
-	UserID       int64          `json:"user_id"`
+	ID           string         `json:"id"`
+	UserID       string         `json:"user_id"`
 	Provider     string         `json:"provider"`
 	AccessToken  string         `json:"access_token"`
 	RefreshToken sql.NullString `json:"refresh_token"`

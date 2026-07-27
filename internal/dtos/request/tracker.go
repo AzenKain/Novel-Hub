@@ -6,13 +6,13 @@ type ConnectTrackerDto struct {
 }
 
 type MapTrackerDto struct {
-	BookID           int64  `json:"book_id" validate:"required"`
+	BookID           string `json:"book_id" validate:"required,uuid"`
 	Provider         string `json:"provider" validate:"required"`
 	ExternalSeriesID string `json:"external_series_id" validate:"required"`
 }
 
 type SyncProgressDto struct {
-	BookID   int64  `json:"book_id" validate:"required"`
+	BookID   string `json:"book_id" validate:"required,uuid"`
 	Title    string `json:"title" validate:"required"`
 	Progress int    `json:"progress" validate:"required,min=1"`
 }

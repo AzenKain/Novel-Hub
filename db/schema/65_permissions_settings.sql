@@ -6,8 +6,9 @@ CREATE TABLE IF NOT EXISTS permissions (
 );
 
 CREATE TABLE IF NOT EXISTS role_permissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    -- Default generates a valid UUID for SQL seed rows (90/95); app inserts pass an explicit UUIDv7.
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
+    role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     permission_key TEXT NOT NULL REFERENCES permissions(key) ON DELETE CASCADE,
     effect TEXT NOT NULL DEFAULT 'allow',
     conditions_json TEXT NOT NULL DEFAULT '{}',

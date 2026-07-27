@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"novelhub/internal/dtos/response"
@@ -117,18 +118,17 @@ func TestRefreshPrefersRefreshCookieOverAuthorizationHeader(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 	seedEmail := "refresh-test@example.com"
-	result, err := db.Exec(`
-		INSERT INTO users (email, full_name, password_hash, auth_provider, token_version)
-		VALUES (?, 'Admin', ?, 'LOCAL', 1)
-	`, seedEmail, string(hash))
-	if err != nil {
+	userID := uuid.Must(uuid.NewV7()).String()
+	if _, err := db.Exec(`
+		INSERT INTO users (id, email, full_name, password_hash, auth_provider, token_version)
+		VALUES (?, ?, 'Admin', ?, 'LOCAL', 1)
+	`, userID, seedEmail, string(hash)); err != nil {
 		t.Fatalf("failed to seed user: %v", err)
 	}
-	userID, err := result.LastInsertId()
-	if err != nil {
-		t.Fatalf("failed to read seeded user id: %v", err)
-	}
-	if _, err := db.Exec(`INSERT INTO user_roles (user_id, role_id) VALUES (?, 1), (?, 2)`, userID, userID); err != nil {
+	if _, err := db.Exec(`
+		INSERT INTO user_roles (user_id, role_id)
+		SELECT ?, id FROM roles WHERE name IN ('USER', 'ADMIN')
+	`, userID); err != nil {
 		t.Fatalf("failed to seed roles: %v", err)
 	}
 

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import React from "react";
 
-import type { ReaderTheme, ReadingMode } from "@/stores";
+import type { PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
 
 type ReaderSettingsPanelProps = {
   t: TFunction;
@@ -19,11 +19,16 @@ type ReaderSettingsPanelProps = {
   maxWidth: number;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
+  isVisualContent: boolean;
+  readingDirection: ReadingDirection;
+  pageFit: PageFit;
   setTheme: (theme: ReaderTheme) => void;
   setFontFamily: (family: string) => void;
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
+  setReadingDirection: (direction: ReadingDirection) => void;
+  setPageFit: (fit: PageFit) => void;
   resetSettings: () => void;
 };
 
@@ -35,16 +40,21 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   maxWidth,
   effectiveReadingMode,
   canUseDoubleMode,
+  isVisualContent,
+  readingDirection,
+  pageFit,
   setTheme,
   setFontFamily,
   setFontSize,
   setMaxWidth,
   setReadingMode,
+  setReadingDirection,
+  setPageFit,
   resetSettings,
 }) => {
 
   return (
-  <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border p-4 shadow-2xl transition-colors duration-300">
+  <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-72 overflow-y-auto rounded-2xl border p-4 shadow-2xl transition-colors duration-300">
     <h3 className="mb-4 text-xs font-bold uppercase tracking-wider opacity-50">
       {t("reader.settings", "Reader Settings")}
     </h3>
@@ -175,28 +185,88 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           {t("reader.mode", "Reading Mode")}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-2 gap-1">
         <button
           onClick={() => setReadingMode("scroll")}
-          className={`reader-segment-btn btn btn-xs rounded-lg px-0.5 py-1 text-[11px] whitespace-nowrap ${effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""}`}
         >
           {t("reader.mode_scroll", "Scroll")}
         </button>
         <button
           onClick={() => setReadingMode("single")}
-          className={`reader-segment-btn btn btn-xs rounded-lg px-0.5 py-1 text-[11px] whitespace-nowrap ${effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""}`}
         >
           {t("reader.mode_single", "Single Page")}
         </button>
         <button
           disabled={!canUseDoubleMode}
           onClick={() => setReadingMode("double")}
-          className={`reader-segment-btn btn btn-xs rounded-lg px-0.5 py-1 text-[11px] whitespace-nowrap ${effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""} ${!canUseDoubleMode ? "opacity-40" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""} ${!canUseDoubleMode ? "opacity-40" : ""}`}
         >
           {t("reader.mode_double", "Double Page")}
         </button>
+        <button
+          onClick={() => setReadingMode("webtoon")}
+          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "webtoon" ? "reader-segment-btn-active" : ""}`}
+        >
+          {t("reader.mode_webtoon", "Webtoon")}
+        </button>
       </div>
     </div>
+
+    {isVisualContent && (
+      <>
+        <div className="mt-4 border-t border-current/10 pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium opacity-80">
+              {t("reader.direction", "Reading Direction")}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              onClick={() => setReadingDirection("ltr")}
+              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "ltr" ? "reader-segment-btn-active" : ""}`}
+            >
+              {t("reader.direction_ltr", "Left to right")}
+            </button>
+            <button
+              onClick={() => setReadingDirection("rtl")}
+              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "rtl" ? "reader-segment-btn-active" : ""}`}
+            >
+              {t("reader.direction_rtl", "Right to left")}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-current/10 pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium opacity-80">
+              {t("reader.fit", "Page Fit")}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            <button
+              onClick={() => setPageFit("width")}
+              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "width" ? "reader-segment-btn-active" : ""}`}
+            >
+              {t("reader.fit_width", "Width")}
+            </button>
+            <button
+              onClick={() => setPageFit("height")}
+              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "height" ? "reader-segment-btn-active" : ""}`}
+            >
+              {t("reader.fit_height", "Height")}
+            </button>
+            <button
+              onClick={() => setPageFit("original")}
+              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "original" ? "reader-segment-btn-active" : ""}`}
+            >
+              {t("reader.fit_original", "Original")}
+            </button>
+          </div>
+        </div>
+      </>
+    )}
 
     <div className="mt-4 border-t border-current/10 pt-4">
       <button

@@ -48,8 +48,6 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 }
 
 func (p *AudiobookParser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
-	// For basic mp3/m4b, we return a single chapter pointing to the file itself.
-	// Extracting actual chapters from m4b requires a specialized mp4 parser which is beyond basic ID3.
 	return []bookparser.ChapterData{
 		{
 			Title:       "Audiobook",
