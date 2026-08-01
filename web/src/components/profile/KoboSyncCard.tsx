@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Copy, Check, QrCode, Smartphone } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-toastify";
+import { CustomQRCode } from "@/components/common/CustomQRCode";
 
 export const KoboSyncCard: React.FC = () => {
   const { t } = useTranslation();
@@ -70,10 +70,7 @@ export const KoboSyncCard: React.FC = () => {
         </div>
 
         {showQr && (
-          <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-base-200 space-y-2">
-            <QRCodeSVG value={koboEndpointUrl} size={180} level="H" />
-            <p className="text-xs text-gray-600 font-mono">{koboEndpointUrl}</p>
-          </div>
+          <CustomQRCode value={koboEndpointUrl} label={koboEndpointUrl} size={180} />
         )}
 
         <div className="rounded-xl bg-base-200/50 p-4 text-xs space-y-2">

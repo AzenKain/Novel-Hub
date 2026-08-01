@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
@@ -17,22 +18,24 @@ type KoboService interface {
 	GetUserProfile(ctx context.Context) (map[string]any, error)
 	GetSyncList(ctx context.Context, syncToken string, claims *response.JWTClaims) (map[string]any, error)
 	GetBookKePubStream(ctx context.Context, bookID string, claims *response.JWTClaims, out io.Writer) error
-	SyncState(ctx context.Context, userID string, stateData map[string]any) error
+	SyncState(ctx context.Context, userID string, stateData map[string]any, claims *response.JWTClaims) error
 }
 
 type koboService struct {
-	bookRepo    repositories.BookDBRepository
-	diskRepo    repositories.BookFileRepository
-	bookService BookService
-	permissions PermissionCache
+	bookRepo       repositories.BookDBRepository
+	diskRepo       repositories.BookFileRepository
+	bookService    BookService
+	featureService FeatureService
+	permissions    PermissionCache
 }
 
-func NewKoboService(bookRepo repositories.BookDBRepository, diskRepo repositories.BookFileRepository, bookService BookService, permissions PermissionCache) KoboService {
+func NewKoboService(bookRepo repositories.BookDBRepository, diskRepo repositories.BookFileRepository, bookService BookService, featureService FeatureService, permissions PermissionCache) KoboService {
 	return &koboService{
-		bookRepo:    bookRepo,
-		diskRepo:    diskRepo,
-		bookService: bookService,
-		permissions: permissions,
+		bookRepo:       bookRepo,
+		diskRepo:       diskRepo,
+		bookService:    bookService,
+		featureService: featureService,
+		permissions:    permissions,
 	}
 }
 
@@ -126,6 +129,67 @@ func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, cla
 	return nil
 }
 
-func (s *koboService) SyncState(ctx context.Context, userID string, stateData map[string]any) error {
+func (s *koboService) SyncState(ctx context.Context, userID string, stateData map[string]any, claims *response.JWTClaims) error {
+	if userID == "" {
+		return apperrors.New(apperrors.ErrUnauthorized, "User authentication required")
+	}
+	if stateData == nil {
+		return nil
+	}
+	items, ok := stateData["Bookmark"].([]any)
+	if !ok {
+		if stateArr, isArr := stateData["State"].([]any); isArr {
+			items = stateArr
+		}
+	}
+	for _, itemRaw := range items {
+		itemMap, isMap := itemRaw.(map[string]any)
+		if !isMap {
+			continue
+		}
+		bookID, _ := itemMap["EntitlementId"].(string)
+		if bookID == "" {
+			bookID, _ = itemMap["VolumeId"].(string)
+		}
+		if bookID == "" {
+			bookID, _ = itemMap["BookId"].(string)
+		}
+		if bookID == "" {
+			continue
+		}
+
+		book, err := s.bookRepo.GetBook(ctx, bookID)
+		if err != nil || book == nil {
+			continue
+		}
+		resolved := resolveClaims(claims)
+		if !s.bookService.CanReadBook(ctx, book, resolved) || !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermKoboSync, map[string]any{"library_id": book.LibraryID}) {
+			continue
+		}
+
+		progressPercent := float64(0)
+		if pct, ok := itemMap["ProgressPercent"].(float64); ok {
+			progressPercent = pct
+		} else if pct, ok := itemMap["PercentRead"].(float64); ok {
+			progressPercent = pct
+		}
+		cfi := ""
+		if loc, ok := itemMap["LocationCfi"].(string); ok {
+			cfi = loc
+		}
+
+		locType := "kobo"
+		input := models.ReadingActivityInput{
+			UserID:          userID,
+			BookID:          bookID,
+			ChapterID:       bookID,
+			ChapterTitle:    "Kobo Sync",
+			ProgressPercent: &progressPercent,
+			LocationCfi:     &cfi,
+			LocationType:    &locType,
+			EventType:       "kobo_sync",
+		}
+		_, _ = s.featureService.RecordReadingActivity(ctx, input, claims)
+	}
 	return nil
 }

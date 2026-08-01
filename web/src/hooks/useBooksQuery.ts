@@ -145,6 +145,8 @@ export function useBookUserStateQuery(bookId: string, enabled = true) {
       return res.data;
     },
     enabled: !!bookId && enabled,
+    staleTime: 0,
+    refetchOnMount: "always",
     retry: false,
   });
 }

@@ -397,6 +397,13 @@ export const ReaderWorkspace = () => {
     };
   }, [sidebarOpen, setSidebarOpen]);
 
+  const prevModeRef = useRef<string>(effectiveReadingMode);
+  const lastPageIndexRef = useRef<number>(pageIndex);
+
+  useEffect(() => {
+    lastPageIndexRef.current = pageIndex;
+  }, [pageIndex]);
+
   const getPagedScrollContainer = () => {
     const readerContent = columnsRef.current;
     if (!readerContent) return null;
@@ -412,7 +419,7 @@ export const ReaderWorkspace = () => {
     return { container, scrollStep, maxIndex };
   };
 
-  const scrollToPageIndex = (targetIndex: number) => {
+  const scrollToPageIndex = (targetIndex: number, instant = false) => {
     const metrics = getPagedScrollMetrics();
     if (!metrics) return;
 
@@ -421,10 +428,66 @@ export const ReaderWorkspace = () => {
 
     container.scrollTo({
       left: nextIndex * scrollStep * (rtlPaging ? -1 : 1),
-      behavior: "smooth",
+      behavior: instant ? "auto" : "smooth",
     });
     setPageIndex(nextIndex);
   };
+
+  useEffect(() => {
+    const prevMode = prevModeRef.current;
+    if (prevMode === effectiveReadingMode) return;
+
+    const isPrevPaged = prevMode === "single" || prevMode === "double";
+    const isNewPaged = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+
+    if (isPrevPaged && isNewPaged) {
+      const prevIdx = lastPageIndexRef.current;
+      let targetPage = prevIdx;
+
+      if (prevMode === "double" && effectiveReadingMode === "single") {
+        targetPage = prevIdx * 2;
+      } else if (prevMode === "single" && effectiveReadingMode === "double") {
+        targetPage = Math.floor(prevIdx / 2);
+      }
+
+      prevModeRef.current = effectiveReadingMode;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToPageIndex(targetPage, true);
+        });
+      });
+      return;
+    }
+
+    if (isPrevPaged && !isNewPaged) {
+      const fraction = getLocationFraction();
+      prevModeRef.current = effectiveReadingMode;
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          const el = contentRef.current;
+          const maxScroll = el.scrollHeight - el.clientHeight;
+          el.scrollTop = Math.round(fraction * maxScroll);
+        }
+      });
+      return;
+    }
+
+    if (!isPrevPaged && isNewPaged) {
+      const fraction = getLocationFraction();
+      prevModeRef.current = effectiveReadingMode;
+      requestAnimationFrame(() => {
+        const metrics = getPagedScrollMetrics();
+        if (metrics) {
+          const targetIndex = Math.round(fraction * metrics.maxIndex);
+          scrollToPageIndex(targetIndex, true);
+        }
+      });
+      return;
+    }
+
+    prevModeRef.current = effectiveReadingMode;
+  }, [effectiveReadingMode]);
 
   // Fractional location within the current chapter (0–1) for true progress.
   const getLocationFraction = (): number => {
@@ -660,6 +723,8 @@ export const ReaderWorkspace = () => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
+      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
+      void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
     };
   }, []);
 
@@ -678,6 +743,8 @@ export const ReaderWorkspace = () => {
     }).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
+      void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
     }).catch((error) => {
       console.debug("Failed to record reading activity", error);
     });
@@ -709,6 +776,8 @@ export const ReaderWorkspace = () => {
       }).then(() => {
         void queryClient.invalidateQueries({ queryKey: ["reading"] });
         void queryClient.invalidateQueries({ queryKey: ["books"] });
+        void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
+        void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
       }).catch(console.debug);
     }, 2000);
   };
@@ -731,6 +800,8 @@ export const ReaderWorkspace = () => {
     }).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
+      void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
     }).catch(console.debug);
   }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
 

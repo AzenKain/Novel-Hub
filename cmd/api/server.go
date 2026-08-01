@@ -322,9 +322,13 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	opdsController := controllers.NewOPDSController(opdsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
-	koboService := services.NewKoboService(bookRepo, bookFileRepo, bookService, permissionCache)
+	koboService := services.NewKoboService(bookRepo, bookFileRepo, bookService, featureService, permissionCache)
 	koboController := controllers.NewKoboController(koboService)
 	routes.KoboRoutes(s.App, koboController, userRepo, permissionCache)
+
+	syncService := services.NewSyncService(featureService, bookService, permissionCache)
+	syncController := controllers.NewSyncController(syncService)
+	routes.SyncRoutes(api, syncController, userRepo, permissionCache)
 
 	trackerRepo := repositories.NewTrackerRepository(db, ramCache)
 	trackerService := services.NewTrackerService(trackerRepo)

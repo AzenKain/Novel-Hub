@@ -37,6 +37,30 @@ func (c *OPDSController) GetRootCatalog(ctx fiber.Ctx) error {
 	return sendXML(ctx, feed)
 }
 
+func (c *OPDSController) GetOpenSearchDescription(ctx fiber.Ctx) error {
+	serverURL := getBaseURL(ctx)
+	desc := c.opdsService.GetOpenSearchDescription(serverURL)
+	xmlBytes, err := xml.MarshalIndent(desc, "", "  ")
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to marshal OpenSearch XML")
+	}
+	ctx.Set(fiber.HeaderContentType, "application/opensearchdescription+xml; charset=utf-8")
+	return ctx.Send(append([]byte(xml.Header), xmlBytes...))
+}
+
+func (c *OPDSController) SearchCatalog(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := ctx.Query("q", "")
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.SearchBooksOPDS(reqCtx, serverURL, query, 50, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to execute OPDS search")
+	}
+	return sendXML(ctx, feed)
+}
+
 func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -49,6 +73,81 @@ func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS catalog")
 	}
 
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetAuthorsCatalog(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetAuthorsCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate authors OPDS catalog")
+	}
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetAuthorBooks(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	authorName := ctx.Params("name")
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetAuthorBooks(reqCtx, serverURL, authorName, 50, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate author books OPDS catalog")
+	}
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetSeriesCatalog(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetSeriesCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series OPDS catalog")
+	}
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetSeriesBooks(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	seriesName := ctx.Params("name")
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetSeriesBooks(reqCtx, serverURL, seriesName, 50, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series books OPDS catalog")
+	}
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetTagsCatalog(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetTagsCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tags OPDS catalog")
+	}
+	return sendXML(ctx, feed)
+}
+
+func (c *OPDSController) GetTagBooks(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	tagName := ctx.Params("name")
+	serverURL := getBaseURL(ctx)
+	feed, err := c.opdsService.GetTagBooks(reqCtx, serverURL, tagName, 50, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tag books OPDS catalog")
+	}
 	return sendXML(ctx, feed)
 }
 

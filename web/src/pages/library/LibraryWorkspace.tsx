@@ -795,7 +795,7 @@ export const LibraryWorkspace = () => {
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           <div
-            className={`mx-auto grid w-full max-w-375 grid-cols-1 gap-5 ${isCatalogPage || bookId ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
+            className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || bookId ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
           >
             <main className="min-w-0 flex flex-col gap-5">
               {bookId ? (

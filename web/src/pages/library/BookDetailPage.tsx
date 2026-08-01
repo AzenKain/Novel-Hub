@@ -60,11 +60,15 @@ export const BookDetailPage: React.FC = () => {
   const [selectedFileId, setSelectedFileId] = useState<string>("");
 
   React.useEffect(() => {
+    if (bookId) {
+      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress", bookId] });
+      void queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+    }
     return () => {
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
     };
-  }, [queryClient]);
+  }, [bookId, queryClient]);
 
   const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(bookId || "");
   const { data: userState } = useBookUserStateQuery(bookId || "", !!user);
@@ -334,47 +338,100 @@ export const BookDetailPage: React.FC = () => {
 
             {/* Author, Publisher, Language Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 my-4">
-              <InfoLine
-                icon={<User />}
-                label={t("book.author", "Author")}
-                value={
-                  <span 
-                    className="text-primary font-medium cursor-pointer hover:underline"
-                    onClick={() => navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(book.authorName || meta.creator || '')}`)}
-                  >
-                    {book.authorName || meta.creator || t("common.unknown", "Unknown")}
-                  </span>
-                }
-              />
-              <InfoLine
-                icon={<Building />}
-                label={t("book.publisher", "Publisher")}
-                value={
-                  <span 
-                    className="text-primary font-medium cursor-pointer hover:underline"
-                    onClick={() => navigate(`/?nav=publishers&facet=publisher&name=${encodeURIComponent(meta.publisher || '')}`)}
-                  >
-                    {meta.publisher || t("common.unknown", "Unknown")}
-                  </span>
-                }
-              />
-              <InfoLine
-                icon={<Calendar />}
-                label={t("book.date", "Published Date")}
-                value={<span className="font-medium text-base-content/80">{meta.date || t("common.unknown", "Unknown")}</span>}
-              />
-              <InfoLine
-                icon={<Globe />}
-                label={t("book.language", "Language")}
-                value={
-                  <span 
-                    className="text-primary font-medium cursor-pointer hover:underline uppercase"
-                    onClick={() => navigate(`/?nav=languages&facet=language&name=${encodeURIComponent(meta.language || '')}`)}
-                  >
-                    {meta.language || t("common.unknown", "Unknown")}
-                  </span>
-                }
-              />
+              {/* Author */}
+              {(() => {
+                const authorVal = book.authorName || meta.creator;
+                return (
+                  <InfoLine
+                    icon={<User />}
+                    label={t("book.author", "Author")}
+                    value={
+                      authorVal ? (
+                        <span 
+                          className="text-primary font-medium text-sm cursor-pointer hover:underline"
+                          onClick={() => navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(authorVal)}`)}
+                        >
+                          {authorVal}
+                        </span>
+                      ) : (
+                        <span className="text-base-content/60 font-medium text-sm">
+                          {t("common.unknown", "Unknown")}
+                        </span>
+                      )
+                    }
+                  />
+                );
+              })()}
+
+              {/* Publisher */}
+              {(() => {
+                const publisherVal = meta.publisher;
+                return (
+                  <InfoLine
+                    icon={<Building />}
+                    label={t("book.publisher", "Publisher")}
+                    value={
+                      publisherVal ? (
+                        <span 
+                          className="text-primary font-medium text-sm cursor-pointer hover:underline"
+                          onClick={() => navigate(`/?nav=publishers&facet=publisher&name=${encodeURIComponent(publisherVal)}`)}
+                        >
+                          {publisherVal}
+                        </span>
+                      ) : (
+                        <span className="text-base-content/60 font-medium text-sm">
+                          {t("common.unknown", "Unknown")}
+                        </span>
+                      )
+                    }
+                  />
+                );
+              })()}
+
+              {/* Date */}
+              {(() => {
+                const dateVal = meta.date;
+                return (
+                  <InfoLine
+                    icon={<Calendar />}
+                    label={t("book.date", "Published Date")}
+                    value={
+                      dateVal ? (
+                        <span className="text-base-content/90 font-medium text-sm">{dateVal}</span>
+                      ) : (
+                        <span className="text-base-content/60 font-medium text-sm">
+                          {t("common.unknown", "Unknown")}
+                        </span>
+                      )
+                    }
+                  />
+                );
+              })()}
+
+              {/* Language */}
+              {(() => {
+                const langVal = meta.language;
+                return (
+                  <InfoLine
+                    icon={<Globe />}
+                    label={t("book.language", "Language")}
+                    value={
+                      langVal ? (
+                        <span 
+                          className="text-primary font-medium text-sm cursor-pointer hover:underline uppercase"
+                          onClick={() => navigate(`/?nav=languages&facet=language&name=${encodeURIComponent(langVal)}`)}
+                        >
+                          {langVal}
+                        </span>
+                      ) : (
+                        <span className="text-base-content/60 font-medium text-sm">
+                          {t("common.unknown", "Unknown")}
+                        </span>
+                      )
+                    }
+                  />
+                );
+              })()}
             </div>
 
             {/* Quick Actions (Read/Continue Reading/Download) */}
@@ -386,9 +443,10 @@ export const BookDetailPage: React.FC = () => {
               );
 
               return (
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 my-2">
+                <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 my-3 w-full">
+                  {/* File Select Dropdown */}
                   <select
-                    className="select select-bordered select-md w-full sm:max-w-[220px] font-medium text-ellipsis overflow-hidden whitespace-nowrap"
+                    className="select select-bordered select-md w-full xl:w-64 font-medium text-ellipsis overflow-hidden whitespace-nowrap shrink-0"
                     value={selectedFileId || book.files[0].id}
                     onChange={(e) => setSelectedFileId(e.target.value)}
                   >
@@ -405,7 +463,8 @@ export const BookDetailPage: React.FC = () => {
                     })}
                   </select>
 
-                  <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                  {/* Buttons Container */}
+                  <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
                     {allowRead && (
                       <>
                         {hasReadingHistory ? (
@@ -419,15 +478,22 @@ export const BookDetailPage: React.FC = () => {
                                   )}`
                                 )
                               }
-                              className="btn btn-primary btn-md flex-1 sm:flex-none px-5 gap-2"
+                              className="btn btn-primary btn-md flex-1 px-4 gap-2 min-w-0 h-auto py-2.5 overflow-hidden text-left"
                               disabled={!book.files.length}
                             >
                               <Play className="w-4 h-4 fill-current shrink-0" />
-                              <div className="flex flex-col items-start text-left leading-tight">
-                                <span className="font-bold text-sm">
+                              <div className="flex flex-col items-start text-left leading-tight min-w-0 overflow-hidden flex-1">
+                                <span className="font-bold text-sm truncate w-full whitespace-nowrap">
                                   {t("reader.continue_reading", "Continue Reading")}
                                 </span>
-                                <span className="text-[11px] opacity-85 font-normal">
+                                <span
+                                  className="block w-full truncate text-[11px] opacity-85 font-normal whitespace-nowrap"
+                                  title={`${readingProgress?.chapterTitle || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapterIndex || 0) + 1}`}${
+                                    typeof readingProgress?.progressPercent === "number" && readingProgress.progressPercent > 0
+                                      ? ` (${readingProgress.progressPercent}%)`
+                                      : ""
+                                  }`}
+                                >
                                   {readingProgress?.chapterTitle || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapterIndex || 0) + 1}`}
                                   {typeof readingProgress?.progressPercent === "number" && readingProgress.progressPercent > 0
                                     ? ` (${readingProgress.progressPercent}%)`
@@ -445,12 +511,12 @@ export const BookDetailPage: React.FC = () => {
                                   )}&start_over=true`
                                 )
                               }
-                              className="btn btn-outline btn-md flex-1 sm:flex-none gap-1.5"
+                              className="btn btn-outline btn-md sm:w-auto shrink-0 gap-1.5 whitespace-nowrap"
                               disabled={!book.files.length}
                               title={t("reader.read_from_beginning", "Start from Beginning")}
                             >
                               <RotateCcw className="w-4 h-4 shrink-0" />
-                              <span>{t("reader.read_from_beginning", "Start Over")}</span>
+                              <span className="whitespace-nowrap">{t("reader.start_over", "Start Over")}</span>
                             </button>
                           </>
                         ) : (
@@ -463,11 +529,11 @@ export const BookDetailPage: React.FC = () => {
                                 )}`
                               )
                             }
-                            className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap gap-2"
+                            className="btn btn-primary btn-md flex-1 sm:w-auto shrink-0 whitespace-nowrap gap-2"
                             disabled={!book.files.length}
                           >
                             <BookOpen className="w-5 h-5 shrink-0" />
-                            <span>{t("reader.read", "Read")}</span>
+                            <span className="whitespace-nowrap">{t("reader.read", "Read")}</span>
                           </button>
                         )}
                       </>
@@ -476,14 +542,14 @@ export const BookDetailPage: React.FC = () => {
                     {allowDownload && (
                       <a
                         href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
-                        className="btn btn-outline btn-md flex-1 sm:w-[130px] whitespace-nowrap gap-2"
+                        className="btn btn-outline btn-md sm:w-auto shrink-0 whitespace-nowrap gap-2"
                         download
                         onClick={(e) => {
                           if (!book.files?.length) e.preventDefault();
                         }}
                       >
                         <Download className="w-5 h-5 shrink-0" />
-                        <span>{t("common.download", "Download")}</span>
+                        <span className="whitespace-nowrap">{t("common.download", "Download")}</span>
                       </a>
                     )}
                   </div>

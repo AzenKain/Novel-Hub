@@ -333,6 +333,9 @@
     "update_password": "Update Password"
   },
   "reader": {
+    "continue_reading": "Continue Reading",
+    "read_from_beginning": "Start from Beginning",
+    "start_over": "Start Over",
     "book_not_found": "Book not found",
     "go_back": "Go Back",
     "settings": "Reader Settings",
@@ -663,5 +666,29 @@
     "no_search_results": "No AniList matches found",
     "selected_label": "Selected",
     "connect_new_token": "Use new token"
+  },
+  "opds": {
+    "title": "OPDS 2.0 Catalog & Reading Progress Sync",
+    "subtitle": "Connect Moon+ Reader, KOReader, Mihon, Yomu, or any e-reader to download books & sync reading progress 2-way.",
+    "v1_label": "OPDS 1.2 Catalog Feed (Moon+, KOReader, Yomu)",
+    "opensearch_label": "OpenSearch XML Template",
+    "v2_label": "OPDS 2.0 JSON Catalog",
+    "koreader_sync_label": "KOReader 2-Way Progress Sync URL",
+    "show_qr": "Show QR Code",
+    "guide_title": "How to connect Moon+ Reader / KOReader / Mihon:",
+    "step1": "Moon+ Reader: Open Net Library -> Add new catalog -> Enter OPDS Feed URL.",
+    "step2": "KOReader: Open OPDS Catalog -> Add catalog URL or set Kosync Progress Server URL.",
+    "step3": "Authentication: Use your NovelHub account email and password for HTTP Basic Auth."
+  },
+  "kobo": {
+    "title": "Kobo E-Reader Wi-Fi Sync",
+    "subtitle": "Sync books, progress, and covers natively over Wi-Fi on your Kobo Clara, Libra, Forma, or Sage.",
+    "endpoint_label": "Kobo API Endpoint URL",
+    "show_qr": "Show QR Code",
+    "instructions_header": "How to setup your Kobo device:",
+    "step1": "Connect your Kobo e-reader to your computer via USB cable.",
+    "step2": "Open the file .kobo/Kobo/KoboeReader.conf in a text editor.",
+    "step3": "Add or update the [FeatureSettings] section with api_endpoint=",
+    "step4": "Safely eject your Kobo and tap 'Sync' over Wi-Fi!"
   }
 }

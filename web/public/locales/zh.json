@@ -332,6 +332,9 @@
     "update_password": "更新密码"
   },
   "reader": {
+    "continue_reading": "继续阅读",
+    "read_from_beginning": "从头阅读",
+    "start_over": "重新开始",
     "book_not_found": "未找到书籍",
     "go_back": "返回",
     "settings": "阅读器设置",
@@ -628,5 +631,29 @@
     "no_search_results": "未找到匹配的 AniList 作品",
     "selected_label": "已选择",
     "connect_new_token": "使用新令牌"
+  },
+  "opds": {
+    "title": "OPDS 2.0 目录与双向阅读进度同步",
+    "subtitle": "连接 Moon+ Reader、KOReader、Mihon、Yomu 或任何电子书阅读器，下载图书并双向同步阅读进度。",
+    "v1_label": "OPDS 1.2 目录 Feed (Moon+, KOReader, Yomu)",
+    "opensearch_label": "OpenSearch XML 模板",
+    "v2_label": "OPDS 2.0 JSON 目录",
+    "koreader_sync_label": "KOReader 双向进度同步 URL",
+    "show_qr": "显示二维码",
+    "guide_title": "如何连接 Moon+ Reader / KOReader / Mihon：",
+    "step1": "Moon+ Reader：打开网络书库 -> 添加新书库 -> 输入 OPDS Feed URL。",
+    "step2": "KOReader：打开 OPDS 目录 -> 添加目录 URL 或设置 Kosync 进度服务器 URL。",
+    "step3": "身份验证：使用您的 NovelHub 账户邮箱和密码进行 HTTP Basic 认证。"
+  },
+  "kobo": {
+    "title": "Kobo 电子书阅读器 Wi-Fi 同步",
+    "subtitle": "在 Kobo Clara、Libra、Forma 或 Sage 上通过 Wi-Fi 原生同步图书、进度和封面。",
+    "endpoint_label": "Kobo API 端点 URL",
+    "show_qr": "显示二维码",
+    "instructions_header": "如何设置您的 Kobo 设备：",
+    "step1": "使用 USB 线将 Kobo 阅读器连接到电脑。",
+    "step2": "使用文本编辑器打开 .kobo/Kobo/KoboeReader.conf 文件。",
+    "step3": "添加或更新 [FeatureSettings] 部分中的 api_endpoint=",
+    "step4": "安全弹出 USB，并在 Kobo 上通过 Wi-Fi 点击“同步”！"
   }
 }

@@ -1,8 +1,8 @@
 import { Check, Copy, X } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import React from "react";
 
 import type { Book } from "@/types";
+import { CustomQRCode } from "@/components/common/CustomQRCode";
 
 type ShareDialogProps = {
   open: boolean;
@@ -32,8 +32,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />
-      <section className="relative z-10 w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
+      <section className="relative z-10 w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-5 shadow-2xl space-y-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-black">
               {t("library.share_book", "Share book")}
@@ -49,28 +49,15 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
           </button>
         </div>
 
-        <div className="rounded-xl border border-base-200 bg-base-200/35 p-4">
-          <div className="relative mx-auto grid h-64 w-64 place-items-center rounded-2xl bg-white p-4 shadow-sm">
-            <QRCodeSVG
-              value={shareUrl}
-              size={220}
-              level="H"
-              bgColor="#ffffff"
-              fgColor="#111827"
-            />
-            <div className="absolute grid h-14 w-14 place-items-center rounded-xl border-4 border-white bg-primary text-sm font-black text-primary-content shadow">
-              NH
-            </div>
-          </div>
-        </div>
+        <CustomQRCode value={shareUrl} size={200} />
 
-        <div className="mt-4 rounded-xl border border-base-300 bg-base-200/35 p-3">
+        <div className="rounded-xl border border-base-300 bg-base-200/35 p-3">
           <div className="mb-1 text-xs font-bold uppercase tracking-wider text-base-content/45">
             {t("library.share_link", "Share link")}
           </div>
           <div className="flex gap-2">
             <input
-              className="input input-bordered input-sm min-w-0 flex-1 bg-base-100"
+              className="input input-bordered input-sm min-w-0 flex-1 bg-base-100 font-mono text-xs"
               value={shareUrl}
               readOnly
             />

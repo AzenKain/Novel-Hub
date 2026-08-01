@@ -813,6 +813,15 @@ textarea {
   margin: 0 !important;
 }
 
+.reader-content.reader-content-visual.reader-fit-width :is(p, div, figure, section, article, aside):has(> img),
+.reader-content.reader-content-visual.reader-fit-width :is(p, div, figure, section, article, aside):has(> a > img) {
+  height: 100% !important;
+  max-height: calc(100vh - 6.5rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+}
+
 .reader-content.reader-content-visual.reader-fit-width :is(img, svg) {
   width: 100% !important;
   height: auto !important;
@@ -822,11 +831,17 @@ textarea {
 
 .reader-content.reader-content-visual.reader-fit-height :is(img, svg) {
   max-height: calc(100vh - 6.5rem) !important;
+  max-width: 100% !important;
   object-fit: contain !important;
 }
 
-.reader-content.reader-content-visual.reader-fit-original {
+.reader-content.reader-content-visual.reader-fit-original :is(p, div, figure, section, article, aside):has(> img),
+.reader-content.reader-content-visual.reader-fit-original :is(p, div, figure, section, article, aside):has(> a > img) {
+  height: 100% !important;
+  max-height: calc(100vh - 6.5rem) !important;
+  max-width: 100% !important;
   overflow: auto !important;
+  overscroll-behavior: contain !important;
 }
 
 .reader-content.reader-content-visual.reader-fit-original :is(img, svg) {
@@ -834,6 +849,19 @@ textarea {
   max-width: none !important;
   height: auto !important;
   max-height: none !important;
+}
+
+.reader-content-visual.reader-fit-width :is(p, div, figure, section, article, aside)::-webkit-scrollbar,
+.reader-content-visual.reader-fit-original :is(p, div, figure, section, article, aside)::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.reader-content-visual.reader-fit-width :is(p, div, figure, section, article, aside)::-webkit-scrollbar-thumb,
+.reader-content-visual.reader-fit-original :is(p, div, figure, section, article, aside)::-webkit-scrollbar-thumb {
+  background-color: var(--reader-ui-muted, #9ca3af) !important;
+  border-radius: 9999px !important;
 }
 
 .reader-content.reader-dir-rtl,

@@ -39,6 +39,8 @@ export function useTrackerReadingProgressQuery(bookId: string) {
       return res.status ? res.data : null;
     },
     enabled: !!bookId,
+    staleTime: 0,
+    refetchOnMount: "always",
     retry: false,
   });
 }

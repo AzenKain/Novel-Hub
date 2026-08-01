@@ -8,7 +8,6 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/convert"
 	"novelhub/pkg/validator"
 
 	"github.com/gofiber/fiber/v3"
@@ -85,15 +84,14 @@ func (ctrl *KoboController) SyncState(c fiber.Ctx) error {
 	var userID string
 	if uidRaw := c.Locals("uid"); uidRaw != nil {
 		if uidStr, ok := uidRaw.(string); ok {
-			userID, _ = convert.ParseID(uidStr)
+			userID = uidStr
 		}
 	}
-	// SyncState has no guard of its own, so reject an unresolved caller here.
 	if userID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Invalid or missing token"})
 	}
 
-	if err := ctrl.koboService.SyncState(ctx, userID, dto.State); err != nil {
+	if err := ctrl.koboService.SyncState(ctx, userID, dto.State, getOptionalClaims(c)); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(fiber.Map{"status": "ok"})

@@ -332,6 +332,9 @@
     "update_password": "비밀번호 업데이트"
   },
   "reader": {
+    "continue_reading": "이어 읽기",
+    "read_from_beginning": "처음부터 읽기",
+    "start_over": "처음부터 읽기",
     "book_not_found": "책을 찾을 수 없습니다",
     "go_back": "돌아가기",
     "settings": "리더 설정",
@@ -628,5 +631,29 @@
     "no_search_results": "일치하는 AniList 작품을 찾을 수 없습니다",
     "selected_label": "선택됨",
     "connect_new_token": "새 토큰 사용"
+  },
+  "opds": {
+    "title": "OPDS 2.0 카탈로그 및 2방향 독서 진도 동기화",
+    "subtitle": "Moon+ Reader, KOReader, Mihon, Yomu 또는 전자책 리더를 연결하여 도서를 다운로드하고 독서 진도를 2방향으로 동기화하세요.",
+    "v1_label": "OPDS 1.2 카탈로그 피드 (Moon+, KOReader, Yomu)",
+    "opensearch_label": "OpenSearch XML 템플릿",
+    "v2_label": "OPDS 2.0 JSON 카탈로그",
+    "koreader_sync_label": "KOReader 2방향 진도 동기화 URL",
+    "show_qr": "QR 코드 보기",
+    "guide_title": "Moon+ Reader / KOReader / Mihon 연결 방법:",
+    "step1": "Moon+ Reader: 네트워크 서재 열기 -> 새 카탈로그 추가 -> OPDS 피드 URL 입력.",
+    "step2": "KOReader: OPDS 카탈로그 열기 -> 카탈로그 URL 추가 또는 Kosync 진도 서버 URL 설정.",
+    "step3": "인증: HTTP Basic 인증에 NovelHub 계정 이메일과 비밀번호를 사용하세요."
+  },
+  "kobo": {
+    "title": "Kobo 전자책 리더 Wi-Fi 동기화",
+    "subtitle": "Kobo Clara, Libra, Forma, Sage에서 Wi-Fi를 통해 도서, 진도, 표지를 기본 동기화합니다.",
+    "endpoint_label": "Kobo API 엔드포인트 URL",
+    "show_qr": "QR 코드 보기",
+    "instructions_header": "Kobo 기기 설정 방법:",
+    "step1": "USB 케이블로 Kobo 전자책 리더를 컴퓨터에 연결합니다.",
+    "step2": "텍스트 편집기로 .kobo/Kobo/KoboeReader.conf 파일을 엽니다.",
+    "step3": "[FeatureSettings] 섹션을 추가하거나 api_endpoint= 로 업데이트합니다.",
+    "step4": "USB를 안전하게 제거하고 Kobo에서 Wi-Fi로 '동기화'를 누르세요!"
   }
 }

@@ -60,3 +60,18 @@ type Category struct {
 	Term  string `xml:"term,attr"`
 	Label string `xml:"label,attr,omitempty"`
 }
+
+type OpenSearchDescription struct {
+	XMLName        xml.Name        `xml:"OpenSearchDescription"`
+	Xmlns          string          `xml:"xmlns,attr"`
+	ShortName      string          `xml:"ShortName"`
+	Description    string          `xml:"Description"`
+	InputEncoding  string          `xml:"InputEncoding"`
+	OutputEncoding string          `xml:"OutputEncoding"`
+	URL            OpenSearchURL   `xml:"Url"`
+}
+
+type OpenSearchURL struct {
+	Type     string `xml:"type,attr"`
+	Template string `xml:"template,attr"`
+}

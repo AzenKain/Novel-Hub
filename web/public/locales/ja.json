@@ -336,6 +336,9 @@
     "update_password": "パスワードを更新"
   },
   "reader": {
+    "continue_reading": "続きを読む",
+    "read_from_beginning": "最初から読む",
+    "start_over": "最初からやり直す",
     "book_not_found": "本が見つかりません",
     "go_back": "戻る",
     "settings": "リーダー設定",
@@ -632,5 +635,29 @@
     "no_search_results": "AniList の一致は見つかりませんでした",
     "selected_label": "選択中",
     "connect_new_token": "新しいトークンを使用"
+  },
+  "opds": {
+    "title": "OPDS 2.0 カタログ & 2方向読書進捗同期",
+    "subtitle": "Moon+ Reader、KOReader、Mihon、Yomu、または任意の電子書籍リーダーを接続して、書籍のダウンロードと読書進捗の2方向同期を行います。",
+    "v1_label": "OPDS 1.2 カタログフィード (Moon+, KOReader, Yomu)",
+    "opensearch_label": "OpenSearch XML テンプレート",
+    "v2_label": "OPDS 2.0 JSON カタログ",
+    "koreader_sync_label": "KOReader 2方向進捗同期 URL",
+    "show_qr": "QRコードを表示",
+    "guide_title": "Moon+ Reader / KOReader / Mihon の接続方法:",
+    "step1": "Moon+ Reader: ネットライブラリを開く -> 新しいカタログを追加 -> OPDSフィードURLを入力。",
+    "step2": "KOReader: OPDSカタログを開く -> カタログURLを追加、またはKosync進捗サーバーURLを設定。",
+    "step3": "認証: HTTP Basic認証にNovelHubアカウントのメールアドレスとパスワードを使用します。"
+  },
+  "kobo": {
+    "title": "Kobo 電子書籍リーダー Wi-Fi 同期",
+    "subtitle": "Kobo Clara、Libra、Forma、Sage で Wi-Fi 経由で書籍、進捗、カバーをネイティブ同期します。",
+    "endpoint_label": "Kobo API エンドポイント URL",
+    "show_qr": "QRコードを表示",
+    "instructions_header": "Kobo デバイスのセットアップ方法:",
+    "step1": "USBケーブルで Kobo 電子書籍リーダーを PC に接続します。",
+    "step2": "テキストエディタで .kobo/Kobo/KoboeReader.conf ファイルを開きます。",
+    "step3": "[FeatureSettings] セクションを追加または更新し、api_endpoint= を設定します。",
+    "step4": "USBを安全に取り外し、Kobo で Wi-Fi 経由で「同期」をタップします！"
   }
 }
