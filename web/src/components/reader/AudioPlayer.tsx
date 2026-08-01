@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 
@@ -14,10 +15,11 @@ export function AudioPlayer({
   rawUrl,
   initialTime = 0,
   onTimeUpdate,
-  title = "Audiobook",
-  author = "Unknown Author",
+  title,
+  author,
   coverUrl,
 }: AudioPlayerProps) {
+  const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialTime);
@@ -98,7 +100,7 @@ export function AudioPlayer({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full bg-base-100 p-6">
+    <div className="flex flex-col items-center justify-center h-full w-full bg-[var(--reader-ui-surface)] text-[var(--reader-ui-text)] p-6">
       <audio
         ref={audioRef}
         src={rawUrl}
@@ -108,15 +110,15 @@ export function AudioPlayer({
         preload="metadata"
       />
 
-      <div className="card w-full max-w-lg bg-base-200 shadow-xl p-6">
+      <div className="card w-full max-w-lg bg-[var(--reader-ui-surface-strong)] border border-[var(--reader-ui-border)] shadow-xl p-6">
         {coverUrl && (
           <figure className="mb-6">
-            <img src={coverUrl} alt="Cover" className="w-64 h-64 object-cover rounded-xl shadow-lg" />
+            <img src={coverUrl} alt={t("reader.cover_art")} className="w-64 h-64 object-cover rounded-xl shadow-lg" />
           </figure>
         )}
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold line-clamp-2">{title}</h2>
-          <p className="text-base-content/70 mt-2">{author}</p>
+          <h2 className="text-2xl font-bold line-clamp-2">{title || t("reader.audiobook")}</h2>
+          <p className="opacity-70 mt-2">{author || t("common.unknown")}</p>
         </div>
 
         <div className="w-full flex items-center gap-4 text-sm font-medium mb-6">
@@ -133,19 +135,23 @@ export function AudioPlayer({
         </div>
 
         <div className="flex items-center justify-center gap-6 mb-6">
-          <button className="btn btn-circle btn-ghost" onClick={() => skip(-15)} aria-label="Skip Back 15s">
+          <button className="btn btn-circle btn-ghost" onClick={() => skip(-15)} aria-label={t("reader.skip_back_15_seconds")}>
             <SkipBack size={24} />
           </button>
-          <button className="btn btn-circle btn-primary btn-lg" onClick={togglePlay} aria-label="Play/Pause">
+          <button className="btn btn-circle btn-primary btn-lg" onClick={togglePlay} aria-label={t("reader.play_pause")}>
             {isPlaying ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
           </button>
-          <button className="btn btn-circle btn-ghost" onClick={() => skip(15)} aria-label="Skip Forward 15s">
+          <button className="btn btn-circle btn-ghost" onClick={() => skip(15)} aria-label={t("reader.skip_forward_15_seconds")}>
             <SkipForward size={24} />
           </button>
         </div>
 
         <div className="flex items-center gap-4 px-4">
-          <button className="btn btn-circle btn-sm btn-ghost" onClick={toggleMute}>
+          <button
+            className="btn btn-circle btn-sm btn-ghost"
+            onClick={toggleMute}
+            aria-label={isMuted || volume === 0 ? t("reader.unmute") : t("reader.mute")}
+          >
             {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
           <input

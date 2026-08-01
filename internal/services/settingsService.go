@@ -344,6 +344,7 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.GuestAccess = rawPolicy(raw, "guest_access", settings.GuestAccess, availableGuestModes)
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
+	settings.EnableAniListTracking = rawBool(raw, "tracker.anilist_enabled", true)
 	return settings
 }
 
@@ -516,6 +517,7 @@ func allowedSettingKey(key string) bool {
 		"guest_access.library_ids",
 		"reader.enable_in_book_search",
 		"font.enable_custom_font_upload",
+		"tracker.anilist_enabled",
 		"limits.upload_chunk_bytes",
 		"limits.upload_chunks",
 		"limits.upload_sessions",

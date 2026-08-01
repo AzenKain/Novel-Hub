@@ -22,6 +22,7 @@ export function Books() {
     coverTab: state.coverTab, epubImages: state.epubImages, loadingImages: state.loadingImages, linkUrl: state.linkUrl, coverPreview: state.coverPreview,
     searchSource: state.searchSource, searching: state.searching, searchResults: state.searchResults,
     showUploadModal: state.showUploadModal, uploadLibraryId: state.uploadLibraryId, uploading: state.uploading,
+    uploadProgress: state.uploadProgress, uploadSpeed: state.uploadSpeed, uploadCurrentFile: state.uploadCurrentFile, uploadBytesText: state.uploadBytesText, uploadBatchInfo: state.uploadBatchInfo,
     showLibraryModal: state.showLibraryModal, newLibraryName: state.newLibraryName,
     bookToDelete: state.bookToDelete, libraryToDelete: state.libraryToDelete,
     setSearch: state.setSearch, setSelectedLibraryId: state.setSelectedLibraryId, setSearchSource: state.setSearchSource, setCoverTab: state.setCoverTab, setLinkUrl: state.setLinkUrl,
@@ -41,6 +42,7 @@ export function Books() {
     coverTab, epubImages, loadingImages, linkUrl, coverPreview,
     searchSource, searching, searchResults,
     showUploadModal, uploadLibraryId, uploading,
+    uploadProgress, uploadSpeed, uploadCurrentFile, uploadBytesText, uploadBatchInfo,
     showLibraryModal, newLibraryName,
     bookToDelete, libraryToDelete,
     setSearch, setSelectedLibraryId, setSearchSource, setCoverTab, setLinkUrl,
@@ -493,6 +495,11 @@ export function Books() {
         libraries={libraries}
         uploadLibraryId={uploadLibraryId}
         uploading={uploading}
+        uploadProgress={uploadProgress}
+        uploadSpeed={uploadSpeed}
+        uploadCurrentFile={uploadCurrentFile}
+        uploadBytesText={uploadBytesText}
+        uploadBatchInfo={uploadBatchInfo}
         accept={BOOK_FILE_ACCEPT}
         onClose={() => setShowUploadModal(false)}
         onLibraryChange={setUploadLibraryId}

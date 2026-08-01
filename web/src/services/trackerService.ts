@@ -56,14 +56,17 @@ export const trackerService = {
   async syncProgress(
     bookId: string,
     title: string,
-    progress: number
+    progress?: number
   ): Promise<CommonResponse<void>> {
     try {
-      const res = await api.post("/trackers/sync", {
+      const body: { book_id: string; title: string; progress?: number } = {
         book_id: bookId,
         title,
-        progress,
-      });
+      };
+      if (progress !== undefined) {
+        body.progress = progress;
+      }
+      const res = await api.post("/trackers/sync", body);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

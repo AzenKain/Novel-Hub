@@ -16,11 +16,13 @@ import (
 
 type TrackerController struct {
 	trackerService services.TrackerService
+	featureService services.FeatureService
 }
 
-func NewTrackerController(trackerService services.TrackerService) *TrackerController {
+func NewTrackerController(trackerService services.TrackerService, featureService services.FeatureService) *TrackerController {
 	return &TrackerController{
 		trackerService: trackerService,
+		featureService: featureService,
 	}
 }
 
@@ -81,17 +83,24 @@ func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Title query is required"})
 	}
 
-	mediaID, err := ctrl.trackerService.SearchAniListMediaID(ctx, title)
+	results, err := ctrl.trackerService.SearchAniListMedia(ctx, title)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
+	mapped := make([]fiber.Map, len(results))
+	for i, r := range results {
+		mapped[i] = fiber.Map{
+			"external_series_id": r.ExternalSeriesID,
+			"title_english":      r.TitleEnglish,
+			"title_romaji":       r.TitleRomaji,
+			"media_type":         r.MediaType,
+		}
+	}
+
 	return c.JSON(response.CommonResponse{
 		Status: true,
-		Data: fiber.Map{
-			"provider":           "anilist",
-			"external_series_id": mediaID,
-		},
+		Data:   fiber.Map{"results": mapped},
 	})
 }
 
@@ -114,12 +123,26 @@ func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
 	}
 
+	progress := dto.Progress
+	if progress <= 0 {
+		if ctrl.featureService != nil {
+			readingProgress, _ := ctrl.featureService.GetReadingProgress(ctx, userID, dto.BookID)
+			if readingProgress != nil && readingProgress.ChapterIndex >= 0 {
+				progress = int(readingProgress.ChapterIndex) + 1
+			}
+		}
+	}
+
+	if progress <= 0 {
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Progress must be 1 or greater"))
+	}
+
 	mediaID, err := ctrl.trackerService.GetOrMapBookTrackerID(ctx, dto.BookID, dto.Title, "anilist")
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
-	if err := ctrl.trackerService.SyncAniListProgress(ctx, userID, mediaID, dto.Progress); err != nil {
+	if err := ctrl.trackerService.SyncAniListProgress(ctx, userID, mediaID, progress); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 

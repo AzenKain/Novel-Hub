@@ -1,11 +1,11 @@
-import { trackerService } from "@/services";
+import { trackerService, featureService } from "@/services";
 import type {
   ConnectTrackerInput,
   MapTrackerInput,
   SyncProgressInput,
   TrackerSearchResult,
 } from "@/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useConnectTrackerMutation() {
   const queryClient = useQueryClient();
@@ -28,6 +28,18 @@ export function useSearchTrackerMutation() {
       if (!res.status || !res.data) throw new Error(res.message || "No AniList match found");
       return res.data;
     },
+  });
+}
+
+export function useTrackerReadingProgressQuery(bookId: string) {
+  return useQuery({
+    queryKey: ["trackerReadingProgress", bookId],
+    queryFn: async () => {
+      const res = await featureService.getReadingProgress(bookId);
+      return res.status ? res.data : null;
+    },
+    enabled: !!bookId,
+    retry: false,
   });
 }
 

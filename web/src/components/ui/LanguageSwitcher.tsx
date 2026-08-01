@@ -1,6 +1,5 @@
 import { Language, useSettingsStore } from '@/stores';
 import { Globe } from 'lucide-react';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -13,20 +12,14 @@ const LANGUAGES: { code: Language; label: string }[] = [
 ];
 
 export function LanguageSwitcher({ className = 'dropdown-end' }: { className?: string }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { language, setLanguage } = useSettingsStore(
     useShallow((state) => ({ language: state.language, setLanguage: state.setLanguage }))
   );
 
-  useEffect(() => {
-    if (i18n.language !== language) {
-      i18n.changeLanguage(language);
-    }
-  }, [language, i18n]);
-
   return (
     <div className={`dropdown ${className}`}>
-      <div tabIndex={0} role="button" className="btn btn-ghost btn-sm m-1 gap-1" title="Change Language">
+      <div tabIndex={0} role="button" className="btn btn-ghost btn-sm m-1 gap-1" title={t("common.language")}>
         <Globe className="w-4 h-4" />
         <span className="text-xs font-medium uppercase">{language}</span>
       </div>
@@ -36,6 +29,7 @@ export function LanguageSwitcher({ className = 'dropdown-end' }: { className?: s
             <button
               onClick={() => {
                 setLanguage(lang.code);
+                void i18n.changeLanguage(lang.code);
                 (document.activeElement as HTMLElement)?.blur();
               }}
               className={language === lang.code ? 'active' : ''}

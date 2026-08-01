@@ -10,6 +10,7 @@ interface SettingsAdminState {
   guestLibraryIds: string[];
   inBookSearch: boolean;
   customFontUpload: boolean;
+  anilistTracking: boolean;
   limits: RuntimeLimits | null;
   limitBounds: RuntimeLimitBounds | null;
 
@@ -25,6 +26,7 @@ interface SettingsAdminState {
   setRegistration: (enabled: boolean) => void;
   setInBookSearch: (enabled: boolean) => void;
   setCustomFontUpload: (enabled: boolean) => void;
+  setAnilistTracking: (enabled: boolean) => void;
   setLimits: (limits: RuntimeLimits) => void;
   setGuestMode: (mode: string) => void;
   setGuestLibraryIds: (ids: string[] | ((prev: string[]) => string[])) => void;
@@ -51,6 +53,7 @@ const initialState = {
   guestLibraryIds: [],
   inBookSearch: false,
   customFontUpload: false,
+  anilistTracking: true,
   limits: null,
   limitBounds: null,
   savingSection: null,
@@ -69,6 +72,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   setRegistration: (registration) => set({ registration }),
   setInBookSearch: (inBookSearch) => set({ inBookSearch }),
   setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
+  setAnilistTracking: (anilistTracking) => set({ anilistTracking }),
   setLimits: (limits) => set({ limits }),
   setGuestMode: (guestMode) => set({ guestMode }),
   setGuestLibraryIds: (guestLibraryIds) => set((state) => ({ guestLibraryIds: typeof guestLibraryIds === "function" ? guestLibraryIds(state.guestLibraryIds) : guestLibraryIds })),
@@ -87,6 +91,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
       registration: s.registration_enabled,
       inBookSearch: s.enable_in_book_search || false,
       customFontUpload: s.enable_custom_font_upload || false,
+      anilistTracking: s.enable_anilist_tracking ?? true,
       limits: s.limits,
       limitBounds: s.bounds,
       guestMode: s.guest_access?.mode || "all",

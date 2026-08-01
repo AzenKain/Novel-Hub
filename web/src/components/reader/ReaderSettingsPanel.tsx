@@ -16,6 +16,7 @@ type ReaderSettingsPanelProps = {
   theme: ReaderTheme;
   fontFamily: string;
   fontSize: number;
+  lineHeight: number;
   maxWidth: number;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
@@ -25,6 +26,7 @@ type ReaderSettingsPanelProps = {
   setTheme: (theme: ReaderTheme) => void;
   setFontFamily: (family: string) => void;
   setFontSize: (size: number | ((prev: number) => number)) => void;
+  setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
@@ -37,6 +39,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   theme,
   fontFamily,
   fontSize,
+  lineHeight,
   maxWidth,
   effectiveReadingMode,
   canUseDoubleMode,
@@ -46,6 +49,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   setTheme,
   setFontFamily,
   setFontSize,
+  setLineHeight,
   setMaxWidth,
   setReadingMode,
   setReadingDirection,
@@ -162,6 +166,24 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
       </div>
     </div>
 
+    <div className="mb-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-medium opacity-80">
+          {t("reader.line_height", "Line Height")}
+        </span>
+        <span className="font-mono text-xs opacity-50">{lineHeight.toFixed(1)}</span>
+      </div>
+      <input
+        type="range"
+        min="1.2"
+        max="2.5"
+        step="0.1"
+        value={lineHeight}
+        onChange={(event) => setLineHeight(parseFloat(event.target.value))}
+        className="range range-primary range-sm w-full"
+      />
+    </div>
+
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-medium opacity-80">
@@ -201,6 +223,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
         <button
           disabled={!canUseDoubleMode}
           onClick={() => setReadingMode("double")}
+          title={!canUseDoubleMode ? t("reader.double_page_unavailable") : undefined}
           className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""} ${!canUseDoubleMode ? "opacity-40" : ""}`}
         >
           {t("reader.mode_double", "Double Page")}

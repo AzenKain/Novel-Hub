@@ -64,7 +64,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
     <div className="drawer-side z-50">
       <label
         htmlFor="reader-drawer"
-        aria-label="close sidebar"
+        aria-label={t("reader.close_toc", "Close table of contents")}
         className="drawer-overlay"
       />
       <aside
@@ -98,9 +98,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
             <div className="px-4">
               <button
                 onClick={() => chapters[0] && onSelectChapter(chapters[0])}
-                className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-4 text-left text-primary shadow-sm"
+                className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--reader-ui-accent)]/40 bg-[var(--reader-ui-accent-soft)] px-4 py-4 text-left text-[var(--reader-ui-accent)] shadow-sm"
               >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--reader-ui-accent)]/15">
                   {getSidebarEntryKind(
                     chapters[0] ? formatChapterTitle(chapters[0], t) : "",
                   ) === "special" ? (
@@ -113,7 +113,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   <span className="block text-xs font-black uppercase tracking-wider opacity-70">
                     {t("reader.single_entry", "Current file")}
                   </span>
-                  <span className="mt-0.5 block truncate font-bold text-base-content">
+                  <span className="mt-0.5 block truncate font-bold text-[var(--reader-ui-text)]">
                     {chapters[0]
                       ? formatChapterTitle(chapters[0], t)
                       : book.title}

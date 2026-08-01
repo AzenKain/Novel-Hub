@@ -25,6 +25,7 @@ type UpdateSettingsDto struct {
 	GuestAccessLibraryIDs   *[]string               `json:"guest_access.library_ids" validate:"omitempty,max=100"`
 	EnableInBookSearch      *bool                   `json:"reader.enable_in_book_search"`
 	EnableCustomFontUpload  *bool                   `json:"font.enable_custom_font_upload"`
+	EnableAniListTracking   *bool                   `json:"tracker.anilist_enabled"`
 	UploadChunkBytes        *int64                  `json:"limits.upload_chunk_bytes"`
 	UploadChunks            *int                    `json:"limits.upload_chunks"`
 	UploadSessions          *int                    `json:"limits.upload_sessions"`
@@ -86,6 +87,7 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	put("guest_access.library_ids", d.GuestAccessLibraryIDs)
 	put("reader.enable_in_book_search", d.EnableInBookSearch)
 	put("font.enable_custom_font_upload", d.EnableCustomFontUpload)
+	put("tracker.anilist_enabled", d.EnableAniListTracking)
 	put("limits.upload_chunk_bytes", d.UploadChunkBytes)
 	put("limits.upload_chunks", d.UploadChunks)
 	put("limits.upload_sessions", d.UploadSessions)
@@ -102,6 +104,7 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"site.meta_description": true, "sidebar.visible_items": true, "home.sections": true,
 		"auth.registration_enabled": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
+		"tracker.anilist_enabled":   true,
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,

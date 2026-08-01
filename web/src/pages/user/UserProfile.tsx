@@ -1,6 +1,7 @@
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
+import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
@@ -309,6 +310,10 @@ export const UserProfile = () => {
 
             <div className="mt-6 border-t border-base-300 pt-6">
               <ReadingHeatmap />
+            </div>
+
+            <div className="mt-6 border-t border-base-300 pt-6">
+              <TrackerConnectCard />
             </div>
 
           </>

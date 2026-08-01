@@ -364,6 +364,49 @@ export const extractTextFromHtml = (
   return rawText.replace(/\s+/g, " ").trim();
 };
 
+/**
+ * Resolve a character offset (from in-book search) to a DOM range over the
+ * rendered text nodes and scroll it into view. Returns true if resolved.
+ */
+export const scrollToTextOffset = (container: HTMLElement, startChar: number): boolean => {
+  if (!container || startChar <= 0) return false;
+
+  const treeWalker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null
+  );
+  let currentOffset = 0;
+  let startNode: Node | null = null;
+  let startNodeOffset = 0;
+
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    const nodeLength = node.textContent?.length || 0;
+    if (currentOffset + nodeLength > startChar) {
+      startNode = node;
+      startNodeOffset = startChar - currentOffset;
+      break;
+    }
+    currentOffset += nodeLength;
+  }
+
+  if (!startNode) return false;
+
+  try {
+    const range = document.createRange();
+    range.setStart(startNode, startNodeOffset);
+    range.setEnd(startNode, Math.min(startNodeOffset + 1, startNode.textContent?.length || 1));
+    const el = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.startContainer as HTMLElement)
+      : (range.startContainer.parentElement);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const getSelectionInfo = (container: HTMLElement, range: Range) => {
   const selectedText = range.toString().trim();
 

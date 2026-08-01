@@ -393,7 +393,23 @@
     "no_voices": "No voices available",
     "in_book_search": "Search in Book",
     "search_placeholder": "Search text...",
-    "no_results": "No matches found."
+    "no_results": "No matches found.",
+    "line_height": "Line Height",
+    "double_page_unavailable": "Double page requires a wider viewport",
+    "reading": "Reading",
+    "audiobook": "Audiobook",
+    "cover_art": "Cover art",
+    "highlight_yellow": "Highlight Yellow",
+    "highlight_green": "Highlight Green",
+    "highlight_blue": "Highlight Blue",
+    "highlight_purple": "Highlight Purple",
+    "skip_back_15_seconds": "Skip back 15 seconds",
+    "skip_forward_15_seconds": "Skip forward 15 seconds",
+    "play_pause": "Play/Pause",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "open_toc": "Open Table of Contents",
+    "open_settings": "Open Reader Settings"
   },
   "analytics": {
     "title": "Reading Analytics & Stats",
@@ -505,6 +521,8 @@
     "in_book_search_desc": "Allow readers to search text inside open books (On-demand disk scan).",
     "custom_font_upload": "Enable Server Custom Font Uploads",
     "custom_font_upload_desc": "Allow authorized users to upload custom fonts to server (default is local IndexedDB font storage).",
+    "anilist_tracking": "Enable AniList Tracking",
+    "anilist_tracking_desc": "Allow users to connect their AniList account and sync reading progress.",
     "save_reader": "Save Reader Settings",
     "registration_guest": "Registration & Guest Access",
     "registration_guest_desc": "Control who can register and what guests can see.",
@@ -638,6 +656,12 @@
     "map_failed": "Failed to link book",
     "invalid_progress": "Progress must be a whole number of 1 or more",
     "sync_success": "Progress synced to AniList",
-    "sync_failed": "Failed to sync progress"
+    "sync_failed": "Failed to sync progress",
+    "search_results_title": "Search Results",
+    "search_pick_hint": "Click an entry to select it",
+    "select_btn": "Select",
+    "no_search_results": "No AniList matches found",
+    "selected_label": "Selected",
+    "connect_new_token": "Use new token"
   }
 }

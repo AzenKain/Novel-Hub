@@ -16,6 +16,7 @@ type ReaderTopBarProps = {
   theme: ReaderTheme;
   fontFamily: string;
   fontSize: number;
+  lineHeight: number;
   maxWidth: number;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
@@ -28,6 +29,7 @@ type ReaderTopBarProps = {
   setTheme: (theme: ReaderTheme) => void;
   setFontFamily: (family: string) => void;
   setFontSize: (size: number | ((prev: number) => number)) => void;
+  setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
@@ -59,6 +61,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   theme,
   fontFamily,
   fontSize,
+  lineHeight,
   maxWidth,
   effectiveReadingMode,
   canUseDoubleMode,
@@ -71,6 +74,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setTheme,
   setFontFamily,
   setFontSize,
+  setLineHeight,
   setMaxWidth,
   setReadingMode,
   setReadingDirection,
@@ -104,7 +108,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           <Menu className="h-5 w-5" />
         </label>
         <span className="line-clamp-1 hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
-          {title || "Reading"}
+          {title || t("reader.reading", "Reading")}
         </span>
       </div>
 
@@ -137,7 +141,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         )}
 
         {ttsSupported && (
-          <div className="relative flex items-center gap-1 border-r border-base-300 pr-2">
+          <div className="relative flex items-center gap-1 border-r border-[var(--reader-ui-border)] pr-2">
             <button
               onClick={onTtsPlayPause}
               className={`reader-control-btn btn btn-square btn-sm animate-none ${
@@ -206,6 +210,8 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           className={`reader-control-btn btn btn-square btn-sm animate-none ${
             settingsOpen ? "reader-control-btn-active" : ""
           }`}
+          title={t("reader.open_settings")}
+          aria-label={t("reader.open_settings")}
         >
           <Settings className="h-5 w-5" />
         </button>
@@ -216,6 +222,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             theme={theme}
             fontFamily={fontFamily}
             fontSize={fontSize}
+            lineHeight={lineHeight}
             maxWidth={maxWidth}
             effectiveReadingMode={effectiveReadingMode}
             canUseDoubleMode={canUseDoubleMode}
@@ -225,6 +232,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             setTheme={setTheme}
             setFontFamily={setFontFamily}
             setFontSize={setFontSize}
+            setLineHeight={setLineHeight}
             setMaxWidth={setMaxWidth}
             setReadingMode={setReadingMode}
             setReadingDirection={setReadingDirection}

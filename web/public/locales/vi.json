@@ -392,7 +392,23 @@
     "no_voices": "Không có giọng đọc khả dụng",
     "in_book_search": "Tìm trong sách",
     "search_placeholder": "Nhập từ cần tìm...",
-    "no_results": "Không tìm thấy kết quả."
+    "no_results": "Không tìm thấy kết quả.",
+    "line_height": "Giãn dòng",
+    "double_page_unavailable": "Chế độ trang đôi cần màn hình rộng hơn",
+    "reading": "Đang đọc",
+    "audiobook": "Sách nói",
+    "cover_art": "Bìa sách",
+    "highlight_yellow": "Đánh dấu vàng",
+    "highlight_green": "Đánh dấu xanh lá",
+    "highlight_blue": "Đánh dấu xanh dương",
+    "highlight_purple": "Đánh dấu tím",
+    "skip_back_15_seconds": "Lùi 15 giây",
+    "skip_forward_15_seconds": "Tới 15 giây",
+    "play_pause": "Phát/Tạm dừng",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "open_toc": "Mở mục lục",
+    "open_settings": "Mở cài đặt Trình đọc"
   },
   "analytics": {
     "title": "Thống kê & Tiến trình đọc",
@@ -470,6 +486,8 @@
     "in_book_search_desc": "Cho phép người đọc quét tìm kiếm nội dung bên trong cuốn sách đang mở.",
     "custom_font_upload": "Bật Tải Phông chữ Lên Máy chủ",
     "custom_font_upload_desc": "Cho phép tải phông chữ tùy chỉnh lên server (mặc định lưu ở bộ nhớ trình duyệt IndexedDB).",
+    "anilist_tracking": "Bật theo dõi AniList",
+    "anilist_tracking_desc": "Cho phép người dùng liên kết tài khoản AniList và đồng bộ tiến độ đọc.",
     "save_reader": "Lưu Cài đặt Đọc",
     "registration_guest": "Đăng ký & Truy cập Khách",
     "registration_guest_desc": "Kiểm soát ai được đăng ký và những gì khách xem được.",
@@ -603,6 +621,12 @@
     "map_failed": "Liên kết sách thất bại",
     "invalid_progress": "Tiến độ phải là số nguyên từ 1 trở lên",
     "sync_success": "Đã đồng bộ tiến độ lên AniList",
-    "sync_failed": "Đồng bộ tiến độ thất bại"
+    "sync_failed": "Đồng bộ tiến độ thất bại",
+    "search_results_title": "Kết quả tìm kiếm",
+    "search_pick_hint": "Nhấn vào một mục để chọn",
+    "select_btn": "Chọn",
+    "no_search_results": "Không tìm thấy kết quả AniList nào",
+    "selected_label": "Đã chọn",
+    "connect_new_token": "Dùng token mới"
   }
 }

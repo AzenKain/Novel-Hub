@@ -19,9 +19,10 @@ import {
   FolderCheck,
   Check,
   Eye,
-  FileText,
   Globe,
-  Building
+  Building,
+  Play,
+  RotateCcw
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
@@ -37,6 +38,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   useBookQuery,
   useBookUserStateQuery,
+  useTrackerReadingProgressQuery,
   useBookEngagementStatsQuery,
   useToggleBookmarkMutation,
   useAddBookToCollectionMutation,
@@ -66,6 +68,7 @@ export const BookDetailPage: React.FC = () => {
 
   const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(bookId || "");
   const { data: userState } = useBookUserStateQuery(bookId || "", !!user);
+  const { data: readingProgress } = useTrackerReadingProgressQuery(bookId || "");
   const { data: engagementData } = useBookEngagementStatsQuery(bookId || "");
 
   const toggleBookmarkMutation = useToggleBookmarkMutation(bookId || "");
@@ -374,54 +377,119 @@ export const BookDetailPage: React.FC = () => {
               />
             </div>
 
-            {/* Quick Actions (Read/Download) */}
-            {(allowRead || allowDownload) && book.files && book.files.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 my-2">
-                <select
-                  className="select select-bordered select-md w-full sm:max-w-[240px] font-medium text-ellipsis overflow-hidden whitespace-nowrap"
-                  value={selectedFileId || book.files[0].id}
-                  onChange={(e) => setSelectedFileId(e.target.value)}
-                >
-                  {book.files.map((file) => {
-                    const filename = file.path.split('/').pop() || file.path;
-                    const truncated = filename.length > 25 
-                      ? `${filename.slice(0, 18)}...${filename.slice(filename.lastIndexOf('.'))}`
-                      : filename;
-                    return (
-                      <option key={file.id} value={file.id}>
-                        {truncated}
-                      </option>
-                    );
-                  })}
-                </select>
+            {/* Quick Actions (Read/Continue Reading/Download) */}
+            {(allowRead || allowDownload) && book.files && book.files.length > 0 && (() => {
+              const hasReadingHistory = Boolean(
+                user &&
+                readingProgress &&
+                (readingProgress.chapterId || typeof readingProgress.chapterIndex === "number")
+              );
 
-                <div className="flex gap-2 w-full sm:w-auto shrink-0">
-                  {allowRead && (
-                    <button
-                      onClick={() => navigate(`/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(selectedFileId || book.files![0].id)}`)}
-                      className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap"
-                      disabled={!book.files.length}
-                    >
-                      <BookOpen className="w-5 h-5 mr-1 shrink-0" />
-                      {t("reader.read", "Read")}
-                    </button>
-                  )}
-                  {allowDownload && (
-                    <a
-                      href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
-                      className="btn btn-outline btn-md flex-1 sm:w-[140px] whitespace-nowrap"
-                      download
-                      onClick={(e) => {
-                        if (!book.files?.length) e.preventDefault();
-                      }}
-                    >
-                      <Download className="w-5 h-5 mr-1 shrink-0" />
-                      {t("common.download", "Download")}
-                    </a>
-                  )}
+              return (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 my-2">
+                  <select
+                    className="select select-bordered select-md w-full sm:max-w-[220px] font-medium text-ellipsis overflow-hidden whitespace-nowrap"
+                    value={selectedFileId || book.files[0].id}
+                    onChange={(e) => setSelectedFileId(e.target.value)}
+                  >
+                    {book.files.map((file) => {
+                      const filename = file.path.split('/').pop() || file.path;
+                      const truncated = filename.length > 25 
+                        ? `${filename.slice(0, 18)}...${filename.slice(filename.lastIndexOf('.'))}`
+                        : filename;
+                      return (
+                        <option key={file.id} value={file.id}>
+                          {truncated}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                    {allowRead && (
+                      <>
+                        {hasReadingHistory ? (
+                          <>
+                            {/* Continue Reading Button */}
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
+                                    selectedFileId || readingProgress?.fileId || book.files![0].id
+                                  )}`
+                                )
+                              }
+                              className="btn btn-primary btn-md flex-1 sm:flex-none px-5 gap-2"
+                              disabled={!book.files.length}
+                            >
+                              <Play className="w-4 h-4 fill-current shrink-0" />
+                              <div className="flex flex-col items-start text-left leading-tight">
+                                <span className="font-bold text-sm">
+                                  {t("reader.continue_reading", "Continue Reading")}
+                                </span>
+                                <span className="text-[11px] opacity-85 font-normal">
+                                  {readingProgress?.chapterTitle || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapterIndex || 0) + 1}`}
+                                  {typeof readingProgress?.progressPercent === "number" && readingProgress.progressPercent > 0
+                                    ? ` (${readingProgress.progressPercent}%)`
+                                    : ""}
+                                </span>
+                              </div>
+                            </button>
+
+                            {/* Read from Beginning Button */}
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
+                                    selectedFileId || book.files![0].id
+                                  )}&start_over=true`
+                                )
+                              }
+                              className="btn btn-outline btn-md flex-1 sm:flex-none gap-1.5"
+                              disabled={!book.files.length}
+                              title={t("reader.read_from_beginning", "Start from Beginning")}
+                            >
+                              <RotateCcw className="w-4 h-4 shrink-0" />
+                              <span>{t("reader.read_from_beginning", "Start Over")}</span>
+                            </button>
+                          </>
+                        ) : (
+                          /* First time reading: Single Read Button */
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
+                                  selectedFileId || book.files![0].id
+                                )}`
+                              )
+                            }
+                            className="btn btn-primary btn-md flex-1 sm:w-[140px] whitespace-nowrap gap-2"
+                            disabled={!book.files.length}
+                          >
+                            <BookOpen className="w-5 h-5 shrink-0" />
+                            <span>{t("reader.read", "Read")}</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {allowDownload && (
+                      <a
+                        href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
+                        className="btn btn-outline btn-md flex-1 sm:w-[130px] whitespace-nowrap gap-2"
+                        download
+                        onClick={(e) => {
+                          if (!book.files?.length) e.preventDefault();
+                        }}
+                      >
+                        <Download className="w-5 h-5 shrink-0" />
+                        <span>{t("common.download", "Download")}</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Synopsis */}
             <div className="mt-4">

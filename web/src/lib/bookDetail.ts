@@ -84,6 +84,16 @@ export const formatFileSize = (bytes: number) => {
   return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 };
 
+export const formatUploadSpeed = (bytesPerSec: number) => {
+  if (!Number.isFinite(bytesPerSec) || bytesPerSec <= 0) return "0 B/s";
+  const units = ["B/s", "KB/s", "MB/s", "GB/s"];
+  const index = Math.min(
+    Math.floor(Math.log(bytesPerSec) / Math.log(1024)),
+    units.length - 1,
+  );
+  return `${(bytesPerSec / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+};
+
 export const isReadableFile = (file: BookFile) => {
   const format = file.format?.toLowerCase();
   if (format && READABLE_FORMATS.has(format)) return true;

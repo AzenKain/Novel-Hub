@@ -1,7 +1,15 @@
-.PHONY: run sqlc tidy test build web-install web-dev web-build check docker-up docker-down
+.PHONY: run dev sqlc tidy test build web-install web-dev web-build check docker-up docker-down docker-build-multi
+
+ifeq ($(OS),Windows_NT)
+BUN ?= bun
+else
+BUN ?= $(shell command -v bun 2> /dev/null || echo $(HOME)/.bun/bin/bun)
+endif
 
 run: web-build
 	go run ./cmd/api
+
+dev: web-dev
 
 sqlc:
 	sqlc generate
@@ -14,8 +22,6 @@ test:
 
 build: sqlc
 	go build ./cmd/api
-
-BUN := $(shell command -v bun 2> /dev/null || echo $(HOME)/.bun/bin/bun)
 
 web-install:
 	cd web && $(BUN) install
@@ -38,4 +44,5 @@ DOCKER_IMAGE ?= azenkain/novel-hub:latest
 
 docker-build-multi:
 	docker buildx build --platform linux/amd64,linux/arm64 --no-cache -t $(DOCKER_IMAGE) --push .
+
 

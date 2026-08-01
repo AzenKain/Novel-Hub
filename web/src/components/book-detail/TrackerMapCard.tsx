@@ -1,5 +1,5 @@
 import { Link2, RefreshCw, Search } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -7,9 +7,12 @@ import {
   useMapBookTrackerMutation,
   useSearchTrackerMutation,
   useSyncTrackerProgressMutation,
+  useTrackerReadingProgressQuery,
 } from "@/hooks";
 import { useAuthStore } from "@/stores";
+import { usePublicSettings } from "@/hooks";
 import { hasPermission } from "@/utils/permission";
+import type { AniListSearchItem } from "@/types";
 
 type TrackerMapCardProps = {
   bookId: string;
@@ -19,26 +22,45 @@ type TrackerMapCardProps = {
 export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
+  const publicSettings = usePublicSettings();
   const [seriesId, setSeriesId] = useState("");
   const [progress, setProgress] = useState("");
+  const [results, setResults] = useState<AniListSearchItem[]>([]);
 
   const searchMutation = useSearchTrackerMutation();
   const mapMutation = useMapBookTrackerMutation();
   const syncMutation = useSyncTrackerProgressMutation();
+  const { data: readingProgress } = useTrackerReadingProgressQuery(bookId);
+
+  useEffect(() => {
+    if (!progress && readingProgress?.chapterIndex !== undefined) {
+      setProgress(String(readingProgress.chapterIndex + 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readingProgress]);
 
   if (!hasPermission(user, "tracker.sync")) return null;
+  if (publicSettings && publicSettings.enable_anilist_tracking === false) return null;
 
   const handleSearch = () => {
     const query = seriesId.trim() || title;
+    setResults([]);
     searchMutation.mutate(query, {
       onSuccess: (data) => {
-        setSeriesId(data.external_series_id);
-        toast.success(t("trackers.search_success", "Found AniList entry"));
+        if (!data.results.length) {
+          toast.error(t("trackers.search_failed", "No AniList match found"));
+          return;
+        }
+        setResults(data.results);
       },
       onError: (err) => {
         toast.error(err.message || t("trackers.search_failed", "No AniList match found"));
       },
     });
+  };
+
+  const handleSelectResult = (item: AniListSearchItem) => {
+    setSeriesId(item.external_series_id);
   };
 
   const handleMap = (event: React.FormEvent) => {
@@ -129,6 +151,29 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title })
           </button>
         </div>
       </form>
+
+      {results.length > 0 && (
+        <div className="rounded-lg border border-base-300 divide-y divide-base-200 max-h-64 overflow-y-auto">
+          {results.map((item) => (
+            <button
+              type="button"
+              key={`${item.media_type}-${item.external_series_id}`}
+              onClick={() => handleSelectResult(item)}
+              className={`w-full text-left p-2.5 text-sm hover:bg-base-200/60 transition-colors flex items-center justify-between gap-3 ${
+                seriesId === item.external_series_id ? "bg-primary/10" : ""
+              }`}
+            >
+              <span className="truncate">
+                {item.title_english || item.title_romaji || item.external_series_id}
+                {item.title_romaji && item.title_english && item.title_romaji !== item.title_english && (
+                  <span className="text-base-content/50"> ({item.title_romaji})</span>
+                )}
+              </span>
+              <span className="badge badge-ghost badge-sm shrink-0">{item.media_type}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-1 min-w-0 flex-col gap-1.5">

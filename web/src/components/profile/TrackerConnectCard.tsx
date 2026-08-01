@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link2, Key, Check } from "lucide-react";
+import { Link2, Key, Check, Unlink } from "lucide-react";
 import { useConnectTrackerMutation } from "@/hooks";
+import { usePublicSettings } from "@/hooks/useSettings";
 import { toast } from "react-toastify";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
@@ -9,11 +10,13 @@ import { hasPermission } from "@/utils/permission";
 export const TrackerConnectCard: React.FC = () => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
+  const settings = usePublicSettings();
   const [accessToken, setAccessToken] = useState("");
   const [connected, setConnected] = useState(false);
 
   const connectMutation = useConnectTrackerMutation();
 
+  if (!settings?.enable_anilist_tracking) return null;
   if (!hasPermission(user, "tracker.sync")) return null;
 
   const handleConnect = (e: React.FormEvent) => {
@@ -28,6 +31,7 @@ export const TrackerConnectCard: React.FC = () => {
       {
         onSuccess: () => {
           setConnected(true);
+          setAccessToken("");
           toast.success(t("trackers.connect_success", "AniList account connected successfully!"));
         },
         onError: (err: any) => {
@@ -42,7 +46,7 @@ export const TrackerConnectCard: React.FC = () => {
       <div className="flex items-center justify-between border-b border-base-200 pb-3">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-info/10 text-info">
-            <Link2 className="h-5 w-5" />
+            {connected ? <Check className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
           </div>
           <div>
             <h3 className="text-base font-bold flex items-center gap-2">
@@ -58,44 +62,58 @@ export const TrackerConnectCard: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleConnect} className="space-y-3">
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-base-content/70 mb-1">
-            {t("trackers.token_label", "AniList OAuth Access Token")}
-          </label>
-          <div className="relative">
-            <input
-              type="password"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-              placeholder="Paste your token (eyJ0eXAi...)"
-              className="input input-bordered w-full font-mono text-xs pr-10"
-              required
-            />
-            <Key className="absolute right-3 top-3 h-4 w-4 text-base-content/40" />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <a
-            href="https://anilist.co/api/v2/oauth/authorize?client_id=19807&response_type=token"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline flex items-center gap-1"
-          >
-            {t("trackers.get_token_link", "Get AniList Access Token ↗")}
-          </a>
-
+      {connected ? (
+        <div className="flex items-center justify-between rounded-lg bg-success/10 p-3 text-sm">
+          <span>{t("trackers.connect_success", "AniList account connected successfully!")}</span>
           <button
-            type="submit"
-            className="btn btn-primary btn-sm gap-2"
-            disabled={connectMutation.isPending}
+            type="button"
+            className="btn btn-ghost btn-xs gap-1"
+            onClick={() => setConnected(false)}
           >
-            {connectMutation.isPending ? <span className="loading loading-spinner loading-xs" /> : <Check className="h-4 w-4" />}
-            {t("trackers.connect_btn", "Connect AniList")}
+            <Unlink className="h-3.5 w-3.5" />
+            {t("trackers.connect_new_token", "Use new token")}
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={handleConnect} className="space-y-3">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-base-content/70 mb-1">
+              {t("trackers.token_label", "AniList OAuth Access Token")}
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                value={accessToken}
+                onChange={(e) => setAccessToken(e.target.value)}
+                placeholder="Paste your token (eyJ0eXAi...)"
+                className="input input-bordered w-full font-mono text-xs pr-10"
+                required
+              />
+              <Key className="absolute right-3 top-3 h-4 w-4 text-base-content/40" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <a
+              href="https://anilist.co/api/v2/oauth/authorize?client_id=19807&response_type=token"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              {t("trackers.get_token_link", "Get AniList Access Token ↗")}
+            </a>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm gap-2"
+              disabled={connectMutation.isPending}
+            >
+              {connectMutation.isPending ? <span className="loading loading-spinner loading-xs" /> : <Check className="h-4 w-4" />}
+              {t("trackers.connect_btn", "Connect AniList")}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

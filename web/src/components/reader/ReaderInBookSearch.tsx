@@ -42,13 +42,13 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
   };
 
   return (
-    <div className="bg-base-200 border border-base-300 p-4 rounded-xl shadow-lg w-80 max-h-96 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-sm flex items-center gap-1.5">
-          <Search className="h-4 w-4 text-primary" />
+    <div className="reader-settings-panel p-4 rounded-2xl shadow-2xl w-80 max-h-96 flex flex-col gap-3 backdrop-blur-md border transition-colors duration-300">
+      <div className="flex items-center justify-between border-b border-current/10 pb-2">
+        <h3 className="font-bold text-xs uppercase tracking-wider opacity-70 flex items-center gap-1.5">
+          <Search className="h-4 w-4 text-[var(--reader-ui-accent)]" />
           {t('reader.in_book_search', 'Search in Book')}
         </h3>
-        <button type="button" onClick={onClose} className="btn btn-xs btn-ghost btn-circle">
+        <button type="button" onClick={onClose} className="reader-control-btn btn btn-xs btn-ghost btn-circle">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -59,21 +59,22 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('reader.search_placeholder', 'Search text...')}
-          className="input input-bordered input-xs w-full focus:input-primary"
+          autoFocus
+          className="reader-input input input-bordered input-xs w-full text-xs"
         />
-        <button type="submit" disabled={loading} className="btn btn-primary btn-xs">
+        <button type="submit" disabled={loading} className="reader-action-btn btn btn-xs px-3">
           {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : t('common.search', 'Search')}
         </button>
       </form>
 
-      <div className="overflow-y-auto flex-1 flex flex-col gap-2 divide-y divide-base-300 pr-1">
+      <div className="overflow-y-auto flex-1 flex flex-col gap-2 divide-y divide-[var(--reader-ui-border)]/40 pr-1">
         {results.map((res, idx) => (
           <div
             key={idx}
             onClick={() => onSelectResult(res.chapter_id, res.offset)}
-            className="pt-2 cursor-pointer hover:bg-base-300/50 p-2 rounded transition-colors"
+            className="pt-2 cursor-pointer hover:bg-[var(--reader-ui-hover)] p-2 rounded-lg transition-colors"
           >
-            <div className="font-semibold text-xs text-primary">{res.chapter_title}</div>
+            <div className="font-semibold text-xs text-[var(--reader-ui-accent)]">{res.chapter_title}</div>
             <div className="text-xs opacity-80 line-clamp-2 mt-0.5" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(res.snippet) }} />
           </div>
         ))}

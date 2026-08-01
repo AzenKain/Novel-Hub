@@ -63,11 +63,11 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
             return (
               <li
                 key={highlight.id}
-                className="rounded-xl border border-base-content/10 bg-base-100/40 p-3"
+                className="rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] p-3"
               >
                 <div className="flex items-start gap-2">
                   <span
-                    className="mt-1 h-3 w-3 shrink-0 rounded-full border border-base-content/20"
+                    className="mt-1 h-3 w-3 shrink-0 rounded-full border border-current/20"
                     style={{ backgroundColor: highlight.color }}
                     aria-hidden="true"
                   />
@@ -91,8 +91,8 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                           style={{ backgroundColor: color }}
                           className={`h-4 w-4 rounded-full border transition-transform hover:scale-125 ${
                             draftColor === color
-                              ? "border-base-content"
-                              : "border-base-content/20"
+                              ? "border-current"
+                              : "border-current/20"
                           }`}
                           aria-label={t("reader.highlight_color", "Highlight color")}
                         />
@@ -109,7 +109,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                       <button
                         type="button"
                         onClick={stopEditing}
-                        className="btn btn-ghost btn-xs"
+                        className="reader-control-btn btn btn-ghost btn-xs"
                         title={t("common.cancel", "Cancel")}
                         aria-label={t("common.cancel", "Cancel")}
                       >
@@ -118,7 +118,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                       <button
                         type="button"
                         onClick={() => saveEditing(highlight.id)}
-                        className="btn btn-primary btn-xs"
+                        className="reader-action-btn btn btn-xs px-2.5"
                         title={t("common.save", "Save")}
                         aria-label={t("common.save", "Save")}
                       >

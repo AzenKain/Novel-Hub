@@ -123,6 +123,7 @@ export interface PublicSettings {
   guest_permissions?: string[];
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
+  enable_anilist_tracking?: boolean;
   setup_completed: boolean;
   available_sidebar_items: string[];
   available_home_sections: string[];

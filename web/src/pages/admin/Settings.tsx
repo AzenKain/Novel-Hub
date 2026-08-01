@@ -37,6 +37,7 @@ export function Settings() {
     guestLibraryIds, setGuestLibraryIds,
     inBookSearch, setInBookSearch,
     customFontUpload, setCustomFontUpload,
+    anilistTracking, setAnilistTracking,
     savingSection, setSavingSection,
     uploadingLogo, setUploadingLogo,
     uploadingFavicon, setUploadingFavicon,
@@ -52,6 +53,7 @@ export function Settings() {
     guestLibraryIds: state.guestLibraryIds, setGuestLibraryIds: state.setGuestLibraryIds,
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
     customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
+    anilistTracking: state.anilistTracking, setAnilistTracking: state.setAnilistTracking,
     savingSection: state.savingSection, setSavingSection: state.setSavingSection,
     uploadingLogo: state.uploadingLogo, setUploadingLogo: state.setUploadingLogo,
     uploadingFavicon: state.uploadingFavicon, setUploadingFavicon: state.setUploadingFavicon,
@@ -178,6 +180,7 @@ export function Settings() {
     void saveSection("Reader features", {
       "reader.enable_in_book_search": inBookSearch,
       "font.enable_custom_font_upload": customFontUpload,
+      "tracker.anilist_enabled": anilistTracking,
     });
   }
 
@@ -513,6 +516,18 @@ export function Settings() {
                   <div>
                     <span className="text-sm font-medium">{t("settings.custom_font_upload", "Enable Server Custom Font Uploads")}</span>
                     <p className="text-xs text-base-content/50">{t("settings.custom_font_upload_desc", "Allow authorized users to upload custom fonts to server (default is local IndexedDB font storage).")}</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={anilistTracking}
+                    onChange={(e) => setAnilistTracking(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.anilist_tracking", "Enable AniList Tracking")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.anilist_tracking_desc", "Allow users to connect AniList and sync reading progress.")}</p>
                   </div>
                 </label>
               </div>

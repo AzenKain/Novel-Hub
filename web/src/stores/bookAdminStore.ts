@@ -1,5 +1,5 @@
 import { queryClient } from "@/config/queryClient";
-import { getMetaContent, toStringList } from "@/lib/bookDetail";
+import { formatFileSize, formatUploadSpeed, getMetaContent, toStringList } from "@/lib/bookDetail";
 import { bookService, libraryService, metadataService, uploadService } from "@/services";
 import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
 import { toast } from 'react-toastify';
@@ -55,6 +55,11 @@ interface BookAdminState {
   showUploadModal: boolean;
   uploadLibraryId: string;
   uploading: boolean;
+  uploadProgress: number;
+  uploadSpeed: string;
+  uploadCurrentFile: string;
+  uploadBytesText: string;
+  uploadBatchInfo: { current: number; total: number } | null;
 
   // Manage Libraries Modal
   showLibraryModal: boolean;
@@ -109,7 +114,7 @@ interface BookAdminState {
   handleCreateLibrary: (e: React.SyntheticEvent) => Promise<void>;
   handleRenameLibrary: (id: string, name: string) => Promise<void>;
   handleDeleteLibrary: (id: string) => Promise<void>;
-  handleUploadFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleUploadFiles: (filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
   archiveBook: (id: string, archived: boolean) => Promise<void>;
 }
@@ -146,6 +151,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   showUploadModal: false,
   uploadLibraryId: "",
   uploading: false,
+  uploadProgress: 0,
+  uploadSpeed: "0 B/s",
+  uploadCurrentFile: "",
+  uploadBytesText: "",
+  uploadBatchInfo: null,
 
   showLibraryModal: false,
   newLibraryName: "",
@@ -463,29 +473,66 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     }
   },
 
-  handleUploadFiles: async (e) => {
-    const files = e.target.files;
-    const { uploadLibraryId, loadData } = get();
-    if (!files || files.length === 0 || !uploadLibraryId) return;
+  handleUploadFiles: async (filesOrEvent) => {
+    let fileArray: File[] = [];
+    if (Array.isArray(filesOrEvent)) {
+      fileArray = filesOrEvent;
+    } else if ("target" in filesOrEvent && filesOrEvent.target && "files" in filesOrEvent.target && filesOrEvent.target.files) {
+      fileArray = Array.from(filesOrEvent.target.files);
+    } else if (filesOrEvent && "length" in filesOrEvent) {
+      fileArray = Array.from(filesOrEvent as FileList);
+    }
 
-    set({ uploading: true });
-    
+    const { uploadLibraryId } = get();
+    if (!fileArray || fileArray.length === 0 || !uploadLibraryId) return;
+
+    set({
+      uploading: true,
+      uploadProgress: 0,
+      uploadSpeed: "0 B/s",
+      uploadCurrentFile: "",
+      uploadBytesText: "",
+      uploadBatchInfo: { current: 0, total: fileArray.length },
+    });
+
     try {
       let successCount = 0;
-      for (const file of Array.from(files)) {
+      const totalFiles = fileArray.length;
+
+      for (let i = 0; i < totalFiles; i++) {
+        const file = fileArray[i];
+        set({
+          uploadCurrentFile: file.name,
+          uploadBatchInfo: { current: i + 1, total: totalFiles },
+          uploadProgress: 0,
+          uploadSpeed: "0 B/s",
+          uploadBytesText: `0 B / ${formatFileSize(file.size)}`,
+        });
+
         try {
-          await uploadService.uploadFileChunked(file, "library", uploadLibraryId);
+          await uploadService.uploadFileChunked(
+            file,
+            "library",
+            uploadLibraryId,
+            (stats) => {
+              set({
+                uploadProgress: stats.progress,
+                uploadSpeed: formatUploadSpeed(stats.speedBytesPerSec),
+                uploadBytesText: `${formatFileSize(stats.uploadedBytes)} / ${formatFileSize(stats.totalBytes)}`,
+              });
+            }
+          );
           successCount++;
         } catch (fileErr) {
           console.error("Failed to upload file:", file.name, fileErr);
         }
       }
-      
+
       if (successCount === 0) throw new Error("All uploads failed");
 
-      set({ 
+      set({
         showUploadModal: false,
-        page: 1
+        page: 1,
       });
       toast.info(`Uploaded ${successCount} books. Processing metadata...`);
 
@@ -506,7 +553,14 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
       void queryClient.invalidateQueries({ queryKey: ["metadata"] });
-      set({ uploading: false });
+      set({
+        uploading: false,
+        uploadProgress: 0,
+        uploadSpeed: "0 B/s",
+        uploadCurrentFile: "",
+        uploadBytesText: "",
+        uploadBatchInfo: null,
+      });
     }
   },
 

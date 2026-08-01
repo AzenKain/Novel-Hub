@@ -42,7 +42,6 @@ textarea {
   }
 }
 
-/* Theme safety layer: keep common surfaces and actions readable on every DaisyUI theme. */
 .modal-box {
   background-color: var(--color-base-100) !important;
   color: var(--color-base-content) !important;
@@ -99,7 +98,6 @@ textarea {
   color: var(--color-base-100) !important;
 }
 
-/* Reader controls have their own theme system, isolated from DaisyUI app themes. */
 .reader-ui {
   --reader-ui-text: #e5e7eb;
   --reader-ui-muted: #9ca3af;
@@ -178,6 +176,31 @@ textarea {
   --reader-ui-accent-soft: rgba(147, 197, 253, 0.16);
 }
 
+.reader-ui .reader-selection-toolbar {
+  color: var(--reader-ui-text) !important;
+  background-color: var(--reader-ui-surface) !important;
+  border-color: var(--reader-ui-border) !important;
+}
+
+.reader-ui .reader-selection-toolbar-btn {
+  color: var(--reader-ui-text) !important;
+}
+
+.reader-ui .reader-selection-toolbar-btn:hover,
+.reader-ui .reader-selection-toolbar-btn:focus-visible {
+  color: var(--reader-ui-text) !important;
+  background-color: var(--reader-ui-hover) !important;
+}
+
+.reader-ui .reader-selection-toolbar-divider {
+  background-color: var(--reader-ui-border) !important;
+}
+
+/* ponytail: PDF page itself can't be recolored, only the frame chrome adapts to theme */
+.reader-ui .reader-pdf-frame {
+  background-color: var(--reader-ui-surface) !important;
+}
+
 .reader-ui .reader-control-btn {
   color: var(--reader-ui-text) !important;
   background-color: transparent !important;
@@ -207,6 +230,87 @@ textarea {
   border-color: var(--reader-ui-border) !important;
 }
 
+.reader-ui .dropdown-content {
+  background-color: var(--reader-ui-surface-strong) !important;
+  color: var(--reader-ui-text) !important;
+  border: 1px solid var(--reader-ui-border) !important;
+}
+
+.reader-ui .dropdown-content li > button,
+.reader-ui .dropdown-content li > a {
+  color: var(--reader-ui-text) !important;
+}
+
+.reader-ui .dropdown-content li > button:hover,
+.reader-ui .dropdown-content li > a:hover,
+.reader-ui .dropdown-content li > button:focus,
+.reader-ui .dropdown-content li > a:focus {
+  background-color: var(--reader-ui-hover) !important;
+  color: var(--reader-ui-text) !important;
+}
+
+.reader-ui .dropdown-content li > button.active,
+.reader-ui .dropdown-content li > a.active,
+.reader-ui .dropdown-content li > button:active,
+.reader-ui .dropdown-content li > a:active {
+  background-color: var(--reader-ui-accent) !important;
+  color: var(--reader-ui-accent-text) !important;
+}
+
+.reader-ui .input,
+.reader-ui input,
+.reader-ui .reader-input,
+.reader-ui .textarea,
+.reader-ui textarea {
+  background-color: var(--reader-ui-surface-strong) !important;
+  color: var(--reader-ui-text) !important;
+  border-color: var(--reader-ui-border) !important;
+}
+
+.reader-ui .input::placeholder,
+.reader-ui input::placeholder,
+.reader-ui .reader-input::placeholder,
+.reader-ui .textarea::placeholder,
+.reader-ui textarea::placeholder {
+  color: var(--reader-ui-muted) !important;
+  opacity: 0.7 !important;
+}
+
+.reader-ui .input:focus,
+.reader-ui input:focus,
+.reader-ui .reader-input:focus,
+.reader-ui .textarea:focus,
+.reader-ui textarea:focus {
+  border-color: var(--reader-ui-accent) !important;
+  outline-color: color-mix(in oklab, var(--reader-ui-accent) 30%, transparent) !important;
+}
+
+.reader-ui mark,
+.reader-settings-panel mark {
+  background-color: var(--reader-ui-accent-soft) !important;
+  color: var(--reader-ui-accent) !important;
+  border-radius: 0.25rem !important;
+  padding: 0 0.2rem !important;
+  font-weight: 600 !important;
+}
+
+.reader-ui .range {
+  --range-shdw: var(--reader-ui-accent) !important;
+  color: var(--reader-ui-accent) !important;
+}
+
+.reader-ui .range::-webkit-slider-thumb {
+  background-color: var(--reader-ui-accent) !important;
+}
+
+.reader-ui .range::-moz-range-thumb {
+  background-color: var(--reader-ui-accent) !important;
+}
+
+.reader-ui .text-primary {
+  color: var(--reader-ui-accent) !important;
+}
+
 .reader-ui .reader-select {
   background-color: var(--reader-ui-surface-strong) !important;
   color: var(--reader-ui-text) !important;
@@ -217,6 +321,7 @@ textarea {
   background-color: var(--reader-ui-surface-strong);
   color: var(--reader-ui-text);
 }
+
 
 .reader-ui .reader-theme-choice,
 .reader-ui .reader-segment-btn {
@@ -484,7 +589,6 @@ textarea {
   border-color: var(--reader-ui-accent) !important;
 }
 
-/* Custom scrollbar matching firefly-tools */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -503,7 +607,6 @@ textarea {
   display: none; 
 }
 
-/* EPUB content layout fixes */
 .reader-content {
   background-color: transparent !important;
   width: 100% !important;
@@ -518,7 +621,7 @@ textarea {
 }
 
 .reader-content::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Webkit */
+  display: none;
 }
 
 .reader-content html,
@@ -710,7 +813,6 @@ textarea {
   margin: 0 !important;
 }
 
-/* Comic page fit — only applies to visual (image-only) chapters */
 .reader-content.reader-content-visual.reader-fit-width :is(img, svg) {
   width: 100% !important;
   height: auto !important;
@@ -734,15 +836,12 @@ textarea {
   max-height: none !important;
 }
 
-/* Right-to-left manga: multi-column order reverses natively under direction:rtl,
-   so page order needs no JS reordering (only scrollLeft flips sign). */
 .reader-content.reader-dir-rtl,
 .reader-content.reader-dir-rtl body,
 .reader-content.reader-dir-rtl:not(:has(body)) {
   direction: rtl !important;
 }
 
-/* Webtoon: one continuous vertical strip, no gaps between pages */
 .webtoon-reader-container :is(img, svg) {
   display: block !important;
   width: 100% !important;
@@ -754,7 +853,6 @@ textarea {
   margin: 0 !important;
 }
 
-/* Neutralize legacy MOBI <font size="..."> tags to use the reader's font size */
 .reader-content font[size] {
   font-size: inherit !important;
 }
@@ -796,7 +894,6 @@ textarea {
   margin-top: 1em !important;
 }
 
-/* Table of Contents numbering and alignment */
 .reader-content nav[id="toc"] ol,
 .reader-content ol {
   list-style-type: decimal !important;
@@ -830,7 +927,6 @@ textarea {
   color: var(--reader-link-color-hover, #2563eb) !important;
 }
 
-/* Ensure title pages center and render properly */
 .reader-content h1,
 .reader-content h2,
 .reader-content h3 {
@@ -880,7 +976,6 @@ textarea {
   font-weight: 700 !important;
 }
 
-/* Code block styles */
 .reader-content pre {
   background-color: color-mix(in oklab, var(--reader-ui-text) 8%, transparent) !important;
   color: var(--reader-ui-text) !important;
@@ -908,7 +1003,6 @@ textarea {
   font-size: inherit !important;
 }
 
-/* PDF Full-Screen container overrides */
 .reader-ui:has(.novelhub-raw-reader) .flex-1.relative {
   padding: 56px 0 0 0 !important;
 }

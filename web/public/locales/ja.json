@@ -393,7 +393,26 @@
     "no_voices": "利用可能な音声がありません",
     "in_book_search": "本内検索",
     "search_placeholder": "テキストを検索...",
-    "no_results": "一致する結果が見つかりません。"
+    "no_results": "一致する結果が見つかりません。",
+    "line_height": "行の高さ",
+    "double_page_unavailable": "見開きページにはより広いビューポートが必要です",
+    "reading": "読書中",
+    "audiobook": "オーディオブック",
+    "cover_art": "カバー画像",
+    "highlight_yellow": "黄色でハイライト",
+    "highlight_green": "緑でハイライト",
+    "highlight_blue": "青でハイライト",
+    "highlight_purple": "紫でハイライト",
+    "skip_back_15_seconds": "15秒戻る",
+    "skip_forward_15_seconds": "15秒進む",
+    "play_pause": "再生/一時停止",
+    "mute": "ミュート",
+    "unmute": "ミュート解除",
+    "open_toc": "目次を開く",
+    "open_settings": "リーダー設定を開く",
+    "close_toc": "目次を閉じる",
+    "back_to_previous": "前に戻る",
+    "reset_settings": "設定をリセット"
   },
   "analytics": {
     "title": "読書分析と統計",
@@ -471,6 +490,8 @@
     "in_book_search_desc": "読者が開いている本の中のテキストを検索できるようにします。",
     "custom_font_upload": "カスタムフォントのアップロードを有効化",
     "custom_font_upload_desc": "サーバーへのカスタムフォントのアップロードを許可します。",
+    "anilist_tracking": "AniList追跡を有効化",
+    "anilist_tracking_desc": "ユーザーがAniListアカウントを連携し、読書進捗を同期できるようにします。",
     "save_reader": "リーダー設定を保存",
     "registration_guest": "登録とゲストアクセス",
     "registration_guest_desc": "新規登録とゲスト閲覧範囲を制御します。",
@@ -604,6 +625,12 @@
     "map_failed": "本の紐付けに失敗しました",
     "invalid_progress": "進捗は 1 以上の整数で入力してください",
     "sync_success": "進捗を AniList に同期しました",
-    "sync_failed": "進捗の同期に失敗しました"
+    "sync_failed": "進捗の同期に失敗しました",
+    "search_results_title": "検索結果",
+    "search_pick_hint": "エントリーをクリックして選択",
+    "select_btn": "選択",
+    "no_search_results": "AniList の一致は見つかりませんでした",
+    "selected_label": "選択中",
+    "connect_new_token": "新しいトークンを使用"
   }
 }

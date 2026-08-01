@@ -16,10 +16,20 @@ import (
 	"novelhub/pkg/netx"
 )
 
+const anilistUserAgent = "NovelHub/1.0 (+https://github.com/novelhub)"
+
+// TrackerSearchResult is one selectable AniList media candidate returned to the client.
+type TrackerSearchResult struct {
+	ExternalSeriesID string `json:"external_series_id"`
+	TitleEnglish     string `json:"title_english,omitempty"`
+	TitleRomaji      string `json:"title_romaji,omitempty"`
+	MediaType        string `json:"media_type"`
+}
+
 type TrackerService interface {
 	SyncAniListProgress(ctx context.Context, userID string, mediaID string, progress int) error
 	SyncMyAnimeListProgress(ctx context.Context, userID string, mangaID string, chaptersRead int) error
-	SearchAniListMediaID(ctx context.Context, title string) (string, error)
+	SearchAniListMedia(ctx context.Context, title string) ([]TrackerSearchResult, error)
 	GetOrMapBookTrackerID(ctx context.Context, bookID string, title string, provider string) (string, error)
 	SaveUserTracker(ctx context.Context, userID string, provider string, accessToken string) error
 	SaveBookMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) error
@@ -37,88 +47,44 @@ func NewTrackerService(repo repositories.TrackerRepository) TrackerService {
 	}
 }
 
-func (s *trackerService) SearchAniListMediaID(ctx context.Context, title string) (string, error) {
+func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) ([]TrackerSearchResult, error) {
 	cleanTitle := strings.TrimSpace(title)
 	if len(cleanTitle) > 100 {
 		cleanTitle = cleanTitle[:100]
 	}
 	if cleanTitle == "" {
-		return "", fmt.Errorf("title cannot be empty")
+		return nil, fmt.Errorf("title cannot be empty")
 	}
 
 	if id, err := strconv.ParseInt(cleanTitle, 10, 64); err == nil && id > 0 {
-		mediaID, err := s.fetchAniListMediaByID(ctx, id)
-		if err == nil && mediaID != "" {
-			return mediaID, nil
+		if result, err := s.fetchAniListMediaByID(ctx, id); err == nil && result != nil {
+			return []TrackerSearchResult{*result}, nil
 		}
 	}
 
-	return s.fetchAniListMediaBySearch(ctx, cleanTitle)
+	// ponytail: two sequential calls (manga + anime) instead of one aliased query;
+	// AniList has no combined "search across types" field, and this keeps each
+	// GraphQL query simple. Revisit if AniList adds a type-agnostic search.
+	results := make([]TrackerSearchResult, 0, 10)
+	for _, mediaType := range []string{"MANGA", "ANIME"} {
+		found, err := s.fetchAniListMediaBySearch(ctx, cleanTitle, mediaType)
+		if err != nil {
+			continue
+		}
+		results = append(results, found...)
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no AniList entry found for title '%s'", cleanTitle)
+	}
+	return results, nil
 }
 
-func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (string, error) {
+func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (*TrackerSearchResult, error) {
 	query := `query ($id: Int) {
-		Media (id: $id, type: MANGA) {
+		Media (id: $id) {
 			id
-		}
-	}`
-
-	payload := map[string]any{
-		"query": query,
-		"variables": map[string]any{
-			"id": id,
-		},
-	}
-
-	bodyBytes, err := jsonx.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://graphql.anilist.co", bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("AniList ID lookup failed with status %d", resp.StatusCode)
-	}
-
-	var res struct {
-		Data struct {
-			Media struct {
-				ID int64 `json:"id"`
-			} `json:"Media"`
-		} `json:"data"`
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if err := jsonx.Unmarshal(respBody, &res); err != nil {
-		return "", err
-	}
-
-	if res.Data.Media.ID == 0 {
-		return "", fmt.Errorf("no AniList manga entry found for ID %d", id)
-	}
-
-	return fmt.Sprintf("%d", res.Data.Media.ID), nil
-}
-
-func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTitle string) (string, error) {
-	query := `query ($search: String) {
-		Media (search: $search, type: MANGA) {
-			id
+			type
 			title {
 				english
 				romaji
@@ -129,53 +95,126 @@ func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTit
 	payload := map[string]any{
 		"query": query,
 		"variables": map[string]any{
-			"search": cleanTitle,
+			"id": id,
 		},
-	}
-
-	bodyBytes, err := jsonx.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://graphql.anilist.co", bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("AniList search failed with status %d", resp.StatusCode)
 	}
 
 	var res struct {
 		Data struct {
 			Media struct {
-				ID int64 `json:"id"`
+				ID    int64  `json:"id"`
+				Type  string `json:"type"`
+				Title struct {
+					English string `json:"english"`
+					Romaji  string `json:"romaji"`
+				} `json:"title"`
 			} `json:"Media"`
 		} `json:"data"`
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if err := jsonx.Unmarshal(respBody, &res); err != nil {
-		return "", err
+	if err := s.doAniListRequest(ctx, payload, "", &res); err != nil {
+		return nil, err
 	}
 
 	if res.Data.Media.ID == 0 {
-		return "", fmt.Errorf("no AniList manga entry found for title '%s'", cleanTitle)
+		return nil, fmt.Errorf("no AniList entry found for ID %d", id)
 	}
 
-	return fmt.Sprintf("%d", res.Data.Media.ID), nil
+	return &TrackerSearchResult{
+		ExternalSeriesID: fmt.Sprintf("%d", res.Data.Media.ID),
+		TitleEnglish:     res.Data.Media.Title.English,
+		TitleRomaji:      res.Data.Media.Title.Romaji,
+		MediaType:        res.Data.Media.Type,
+	}, nil
+}
+
+func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTitle string, mediaType string) ([]TrackerSearchResult, error) {
+	query := `query ($search: String, $type: MediaType) {
+		Page (perPage: 10) {
+			media (search: $search, type: $type, sort: SEARCH_MATCH) {
+				id
+				type
+				title {
+					english
+					romaji
+				}
+			}
+		}
+	}`
+
+	payload := map[string]any{
+		"query": query,
+		"variables": map[string]any{
+			"search": cleanTitle,
+			"type":   mediaType,
+		},
+	}
+
+	var res struct {
+		Data struct {
+			Page struct {
+				Media []struct {
+					ID    int64  `json:"id"`
+					Type  string `json:"type"`
+					Title struct {
+						English string `json:"english"`
+						Romaji  string `json:"romaji"`
+					} `json:"title"`
+				} `json:"media"`
+			} `json:"Page"`
+		} `json:"data"`
+	}
+
+	if err := s.doAniListRequest(ctx, payload, "", &res); err != nil {
+		return nil, err
+	}
+
+	results := make([]TrackerSearchResult, 0, len(res.Data.Page.Media))
+	for _, m := range res.Data.Page.Media {
+		results = append(results, TrackerSearchResult{
+			ExternalSeriesID: fmt.Sprintf("%d", m.ID),
+			TitleEnglish:     m.Title.English,
+			TitleRomaji:      m.Title.Romaji,
+			MediaType:        m.Type,
+		})
+	}
+	return results, nil
+}
+
+// doAniListRequest posts a GraphQL payload to AniList and decodes the response into out.
+// Pass a non-empty bearerToken to authenticate a mutation.
+func (s *trackerService) doAniListRequest(ctx context.Context, payload map[string]any, bearerToken string, out any) error {
+	bodyBytes, err := jsonx.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://graphql.anilist.co", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", anilistUserAgent)
+	if bearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+bearerToken)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("AniList request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return jsonx.Unmarshal(respBody, out)
 }
 
 func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, bookID string, title string, provider string) (string, error) {
@@ -185,8 +224,12 @@ func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, bookID strin
 	}
 
 	if provider == "anilist" {
-		externalID, err := s.SearchAniListMediaID(ctx, title)
-		if err == nil && externalID != "" {
+		results, searchErr := s.SearchAniListMedia(ctx, title)
+		if searchErr != nil {
+			return "", searchErr
+		}
+		if len(results) > 0 {
+			externalID := results[0].ExternalSeriesID
 			_, _ = s.repo.UpsertBookTrackerMapping(ctx, bookID, provider, externalID)
 			return externalID, nil
 		}
@@ -201,6 +244,13 @@ func (s *trackerService) SyncAniListProgress(ctx context.Context, userID string,
 		return apperrors.New(apperrors.ErrNotFound, "AniList integration not connected for user")
 	}
 
+	// AniList's GraphQL schema expects mediaId as Int; mediaID here is the string form
+	// stored in book_tracker_mappings, so it must be converted before building the payload.
+	mediaIDInt, err := strconv.Atoi(mediaID)
+	if err != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid AniList media ID")
+	}
+
 	query := `mutation ($mediaId: Int, $progress: Int) {
 		SaveMediaListEntry (mediaId: $mediaId, progress: $progress) {
 			id
@@ -209,38 +259,17 @@ func (s *trackerService) SyncAniListProgress(ctx context.Context, userID string,
 		}
 	}`
 
-	variables := map[string]any{
-		"mediaId":  mediaID,
-		"progress": progress,
-	}
-
 	payload := map[string]any{
-		"query":     query,
-		"variables": variables,
+		"query": query,
+		"variables": map[string]any{
+			"mediaId":  mediaIDInt,
+			"progress": progress,
+		},
 	}
 
-	bodyBytes, err := jsonx.Marshal(payload)
-	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, "failed to serialize AniList payload")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://graphql.anilist.co", bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+tracker.AccessToken)
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("AniList request failed: %v", err))
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		respBody, _ := io.ReadAll(resp.Body)
-		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("AniList API returned error status %d: %s", resp.StatusCode, string(respBody)))
+	var res any
+	if err := s.doAniListRequest(ctx, payload, tracker.AccessToken, &res); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("AniList sync failed: %v", err))
 	}
 
 	return nil

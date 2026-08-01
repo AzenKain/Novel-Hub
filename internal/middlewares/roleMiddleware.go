@@ -41,6 +41,19 @@ func RequireAnyRole(required ...constants.RoleType) fiber.Handler {
 
 type PermissionAttrResolver func(c fiber.Ctx) (map[string]any, error)
 
+func RequireAniListTrackingEnabled(settings services.SettingsService) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if settings == nil {
+			return fiber.ErrForbidden
+		}
+		current, err := settings.Public(context.Background())
+		if err != nil || current == nil || !current.EnableAniListTracking {
+			return fiber.ErrForbidden
+		}
+		return c.Next()
+	}
+}
+
 func RequireAnyPermission(permissionCache services.PermissionCache, permissions ...string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if permissionCache == nil {

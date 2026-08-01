@@ -101,6 +101,26 @@ func TestSettingsServiceRuntimeLimitsSnapshot(t *testing.T) {
 	if public.Site.Title == "" {
 		t.Fatal("public settings were not preserved")
 	}
+	if !public.EnableAniListTracking {
+		t.Fatalf("anilist tracking should default to true, got %#v", public)
+	}
+
+	updated, err := service.UpdateSettings(ctx, map[string]any{
+		"tracker.anilist_enabled": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.EnableAniListTracking {
+		t.Fatalf("anilist tracking admin update did not take: %#v", updated)
+	}
+	public2, err := service.Public(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if public2.EnableAniListTracking {
+		t.Fatalf("anilist tracking public read did not reflect update: %#v", public2)
+	}
 
 	before := service.Limits()
 	if _, err := service.UpdateSettings(ctx, map[string]any{

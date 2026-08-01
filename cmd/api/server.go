@@ -328,8 +328,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	trackerRepo := repositories.NewTrackerRepository(db, ramCache)
 	trackerService := services.NewTrackerService(trackerRepo)
-	trackerController := controllers.NewTrackerController(trackerService)
-	routes.TrackerRoutes(v1, trackerController, userRepo, permissionCache)
+	trackerController := controllers.NewTrackerController(trackerService, featureService)
+	routes.TrackerRoutes(v1, trackerController, userRepo, permissionCache, settingsService)
 
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)

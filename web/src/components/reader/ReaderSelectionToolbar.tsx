@@ -32,7 +32,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="fixed z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/95 px-3.5 py-2 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200"
+      className="reader-selection-toolbar fixed z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full border px-3.5 py-2 shadow-2xl backdrop-blur-md transition-all duration-200"
       style={{ top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px` }}
     >
       {onCopyText && (
@@ -44,7 +44,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             e.stopPropagation();
             onCopyText();
           }}
-          className="btn btn-ghost btn-xs gap-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-white"
+          className="reader-selection-toolbar-btn btn btn-ghost btn-xs gap-1.5 text-xs font-medium"
           title={t("reader.copy_text", "Copy Text")}
         >
           <Copy className="h-3.5 w-3.5 text-amber-400 pointer-events-none" />
@@ -62,7 +62,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
               e.stopPropagation();
               onReadSelection();
             }}
-            className="btn btn-ghost btn-xs gap-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-white"
+            className="reader-selection-toolbar-btn btn btn-ghost btn-xs gap-1.5 text-xs font-medium"
             title={t("reader.read_selection", "Read Selection")}
           >
             <Volume2 className="h-3.5 w-3.5 text-sky-400 pointer-events-none" />
@@ -76,7 +76,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
               e.stopPropagation();
               onReadFromHere();
             }}
-            className="btn btn-ghost btn-xs gap-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-white"
+            className="reader-selection-toolbar-btn btn btn-ghost btn-xs gap-1.5 text-xs font-medium"
             title={t("reader.read_from_here", "Read From Here")}
           >
             <Play className="h-3.5 w-3.5 text-emerald-400 pointer-events-none" />
@@ -86,7 +86,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       )}
       {onHighlight && (
         <>
-          <div className="mx-1 h-4 w-px bg-slate-700 pointer-events-none" />
+          <div className="reader-selection-toolbar-divider mx-1 h-4 w-px pointer-events-none" />
 
           <div data-reader-toolbar="true" className="flex items-center gap-1.5 px-1">
         <button
@@ -98,7 +98,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             onHighlight("#fef08a");
           }}
           className="h-4 w-4 rounded-full bg-yellow-400 border border-yellow-200/50 shadow-sm transition-transform hover:scale-125"
-          title="Highlight Yellow"
+          title={t("reader.highlight_yellow")}
         />
         <button
           type="button"
@@ -109,7 +109,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             onHighlight("#bbf7d0");
           }}
           className="h-4 w-4 rounded-full bg-emerald-400 border border-emerald-200/50 shadow-sm transition-transform hover:scale-125"
-          title="Highlight Green"
+          title={t("reader.highlight_green")}
         />
         <button
           type="button"
@@ -120,7 +120,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             onHighlight("#bfdbfe");
           }}
           className="h-4 w-4 rounded-full bg-sky-400 border border-sky-200/50 shadow-sm transition-transform hover:scale-125"
-          title="Highlight Blue"
+          title={t("reader.highlight_blue")}
         />
         <button
           type="button"
@@ -131,7 +131,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             onHighlight("#e9d5ff");
           }}
           className="h-4 w-4 rounded-full bg-purple-400 border border-purple-200/50 shadow-sm transition-transform hover:scale-125"
-          title="Highlight Purple"
+          title={t("reader.highlight_purple")}
         />
           </div>
         </>

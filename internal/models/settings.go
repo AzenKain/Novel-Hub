@@ -36,6 +36,7 @@ type PublicSettings struct {
 	GuestPermissions       []string            `json:"guest_permissions"`
 	EnableInBookSearch     bool                `json:"enable_in_book_search"`
 	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
+	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
 	SetupCompleted         bool                `json:"setup_completed"`
 	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
 	AvailableHomeSections  []string            `json:"available_home_sections"`

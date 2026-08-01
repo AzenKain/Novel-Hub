@@ -48,17 +48,17 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
 
       <div className="flex flex-col gap-3">
         {/* Currently Selected Voice Banner */}
-        <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 p-2.5 min-w-0">
+        <div className="flex items-center justify-between rounded-xl border border-[var(--reader-ui-accent)]/30 bg-[var(--reader-ui-accent-soft)] p-2.5 min-w-0">
           <div className="min-w-0 flex-1 pr-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-primary opacity-80">
-              {t("reader.current_voice", "Active Voice")}
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--reader-ui-accent)] opacity-90">
+              {t("reader.active_voice", "Active Voice")}
             </div>
-            <div className="truncate text-xs font-medium text-base-content min-w-0">
+            <div className="truncate text-xs font-medium min-w-0">
               {ttsSelectedVoice ? ttsSelectedVoice.name : t("reader.default_voice", "Default System Voice")}
             </div>
           </div>
           {ttsSelectedVoice && (
-            <span className="shrink-0 rounded bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary">
+            <span className="shrink-0 rounded bg-[var(--reader-ui-accent)]/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--reader-ui-accent)]">
               {ttsSelectedVoice.lang}
             </span>
           )}
@@ -71,7 +71,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
             <input
               type="text"
               placeholder={t("reader.search_voice_placeholder", "Filter voices by name or language...")}
-              className="input input-sm input-bordered w-full pl-8 pr-8 text-xs"
+              className="reader-input input input-sm input-bordered w-full pl-8 pr-8 text-xs"
               value={voiceSearch}
               onChange={(e) => setVoiceSearch(e.target.value)}
             />
@@ -94,13 +94,13 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
               {t("reader.select_voice", "Select Voice")}
             </span>
             {voiceSearch && (
-              <span className="text-[10px] font-mono text-primary">
+              <span className="text-[10px] font-mono text-[var(--reader-ui-accent)]">
                 {filteredVoices.length} {t("reader.found", "found")}
               </span>
             )}
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded-xl border border-base-300 bg-base-200/50 p-1 divide-y divide-base-300/30">
+          <div className="max-h-52 overflow-y-auto rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] p-1 divide-y divide-[var(--reader-ui-border)]/40">
             {filteredVoices && filteredVoices.length > 0 ? (
               filteredVoices.map((voice) => {
                 const isSelected = ttsSelectedVoice?.name === voice.name;
@@ -111,16 +111,16 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
                     onClick={() => setTtsSelectedVoice && setTtsSelectedVoice(voice)}
                     className={`flex w-full items-center justify-between gap-2 rounded-lg p-2 text-left text-xs transition-colors min-w-0 ${
                       isSelected
-                        ? "bg-primary/20 font-semibold text-primary"
-                        : "hover:bg-base-300/60"
+                        ? "bg-[var(--reader-ui-accent-soft)] font-semibold text-[var(--reader-ui-accent)]"
+                        : "hover:bg-[var(--reader-ui-hover)]"
                     }`}
                   >
                     <span className="min-w-0 flex-1 truncate">{voice.name}</span>
-                    <span className="shrink-0 rounded bg-base-300/80 px-1.5 py-0.5 font-mono text-[10px] opacity-70">
+                    <span className="shrink-0 rounded bg-[var(--reader-ui-surface-strong)] border border-[var(--reader-ui-border)] px-1.5 py-0.5 font-mono text-[10px] opacity-80">
                       {voice.lang}
                     </span>
                     {isSelected && (
-                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                      <Check className="h-4 w-4 shrink-0 text-[var(--reader-ui-accent)]" />
                     )}
                   </button>
                 );
@@ -140,7 +140,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
               <Sliders className="h-3.5 w-3.5 opacity-60" />
               {t("reader.tts_speed", "Reading Speed")}
             </span>
-            <span className="font-mono text-xs font-semibold text-primary">
+            <span className="font-mono text-xs font-semibold text-[var(--reader-ui-accent)]">
               {(ttsRate || 1).toFixed(1)}x
             </span>
           </div>
@@ -151,7 +151,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
             step="0.1"
             value={ttsRate || 1}
             onChange={(e) => setTtsRate && setTtsRate(parseFloat(e.target.value))}
-            className="range range-primary range-xs w-full"
+            className="range range-xs w-full"
           />
           <div className="mt-1 flex justify-between text-[10px] font-mono opacity-40">
             <span>0.5x</span>

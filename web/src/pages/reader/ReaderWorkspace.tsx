@@ -14,7 +14,7 @@ import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReadingStats } from "@/hooks/useReadingStats";
 import { queryClient } from "@/config/queryClient";
-import { clearHighlight, highlightTextRange, highlightTextRangeFromNode, extractTextFromHtml, getSelectionInfo, saveSelection, getTextFromHereFromSaved, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { clearHighlight, highlightTextRange, highlightTextRangeFromNode, extractTextFromHtml, getSelectionInfo, saveSelection, getTextFromHereFromSaved, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -324,6 +324,8 @@ export const ReaderWorkspace = () => {
   const pageFrameRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const pendingFragmentRef = useRef<string | null>(null);
+  const pendingTextOffsetRef = useRef<number | null>(null);
+  const lastFocusedControlRef = useRef<HTMLElement | null>(null);
   const ttsOffsetRef = useRef<number>(0);
 
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
@@ -332,6 +334,10 @@ export const ReaderWorkspace = () => {
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
   const rtlPaging = isVisualContent && readingDirection === "rtl";
+  const activeFile = fileId ? book?.files?.find(f => f.id === fileId) : book?.files?.[0];
+  const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.contentPath?.toLowerCase().endsWith(".pdf"));
+  const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
+  const isPdfAudio = isPdf || isAudio;
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
   const pageWidth = scrollLayout || pageFrameWidth === 0
     ? 0
@@ -350,7 +356,7 @@ export const ReaderWorkspace = () => {
         body.scrollLeft = 0;
       }
     }
-  }, [effectiveReadingMode, maxWidth, fontSize, fontFamily, lineHeight, htmlContent]);
+  }, [htmlContent]);
 
   useEffect(() => {
     if (scrollLayout) {
@@ -419,6 +425,40 @@ export const ReaderWorkspace = () => {
     });
     setPageIndex(nextIndex);
   };
+
+  // Fractional location within the current chapter (0–1) for true progress.
+  const getLocationFraction = (): number => {
+    if (scrollLayout && contentRef.current) {
+      const el = contentRef.current;
+      const max = el.scrollHeight - el.clientHeight;
+      return max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0;
+    }
+    const metrics = getPagedScrollMetrics();
+    if (!metrics || metrics.maxIndex <= 0) return 0;
+    return Math.min(1, Math.max(0, pageIndex / metrics.maxIndex));
+  };
+
+  const computeProgressPercent = (): number => {
+    const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
+    if (chapterPosition < 0 || chapters.length === 0) return 0;
+    const fraction = getLocationFraction();
+    return Math.min(100, Math.round(((chapterPosition + fraction) / chapters.length) * 100));
+  };
+
+  // Sync pageIndex from manual horizontal scroll in paged modes.
+  useEffect(() => {
+    if (scrollLayout) return;
+    const container = getPagedScrollContainer();
+    if (!container) return;
+    const onScroll = () => {
+      const metrics = getPagedScrollMetrics();
+      if (!metrics) return;
+      const idx = Math.round(Math.abs(container.scrollLeft) / metrics.scrollStep);
+      if (idx !== pageIndex) setPageIndex(idx);
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [scrollLayout, htmlContent, pageIndex]);
 
   const handlePageNext = () => {
     const metrics = getPagedScrollMetrics();
@@ -500,7 +540,21 @@ export const ReaderWorkspace = () => {
       : normalized.replace(/["\\.#:[\]>+~()]/g, "\\$&");
     const target = root.querySelector<HTMLElement>(`#${escaped}`);
     if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+    if (scrollLayout) {
+      target.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+      return;
+    }
+    // paged: jump to the page containing the target element
+    const metrics = getPagedScrollMetrics();
+    if (!metrics) return;
+    let left = target.offsetLeft;
+    let parent = target.offsetParent as HTMLElement | null;
+    while (parent && parent !== metrics.container) {
+      left += parent.offsetLeft;
+      parent = parent.offsetParent as HTMLElement | null;
+    }
+    const pageIndex = Math.round(left / metrics.scrollStep);
+    scrollToPageIndex(pageIndex);
   };
 
   useEffect(() => {
@@ -520,8 +574,9 @@ export const ReaderWorkspace = () => {
           if (sorted.length > 0) {
             let targetChapter = sorted[0];
             let locationCfi: string | undefined = undefined;
+            const startOver = searchParams.get("start_over") === "true";
 
-            if (progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
+            if (!startOver && progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
               const progress = progressRes.value.data;
               const found = sorted.find(ch => ch.id === progress.chapterId);
               if (found) {
@@ -586,6 +641,20 @@ export const ReaderWorkspace = () => {
     });
   }, [htmlContent]);
 
+  // Resolve in-book search offset to a DOM range and scroll it into view.
+  useEffect(() => {
+    if (!htmlContent || pendingTextOffsetRef.current == null) return;
+    const offset = pendingTextOffsetRef.current;
+    pendingTextOffsetRef.current = null;
+    requestAnimationFrame(() => {
+      const container = columnsRef.current || contentRef.current;
+      if (container && scrollToTextOffset(container, offset)) return;
+      // ponytail: backend offset is currently always 0 (FTS snippet() only),
+      // so deep-link can't resolve — fall back to chapter top. BE contract gap.
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+    });
+  }, [htmlContent]);
+
   useEffect(() => {
     return () => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
@@ -596,10 +665,7 @@ export const ReaderWorkspace = () => {
 
   useEffect(() => {
     if (!user || !currentChapter || !bookId) return;
-    const chapterPosition = chapters.findIndex((chapter) => chapter.id === currentChapter.id);
-    const progressPercent = chapterPosition >= 0
-      ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
-      : 0;
+    const progressPercent = computeProgressPercent();
 
     void featureService.recordReadingActivity({
       bookId,
@@ -621,17 +687,14 @@ export const ReaderWorkspace = () => {
 
   const handleScroll = () => {
     if (!user || !scrollLayout || !contentRef.current || !currentChapter || !bookId) return;
-    
+
     const scrollTop = contentRef.current.scrollTop;
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-    
+
     scrollTimeoutRef.current = setTimeout(() => {
-      const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
-      const progressPercent = chapterPosition >= 0
-        ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
-        : 0;
+      const progressPercent = computeProgressPercent();
 
       void featureService.recordReadingActivity({
         bookId,
@@ -653,10 +716,7 @@ export const ReaderWorkspace = () => {
   useEffect(() => {
     if (!user || scrollLayout || !currentChapter || !bookId) return;
 
-    const chapterPosition = chapters.findIndex((c) => c.id === currentChapter.id);
-    const progressPercent = chapterPosition >= 0
-      ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
-      : 0;
+    const progressPercent = computeProgressPercent();
 
     void featureService.recordReadingActivity({
       bookId,
@@ -698,6 +758,51 @@ export const ReaderWorkspace = () => {
     navigate("/");
   };
 
+  const restoreFocus = () => {
+    const el = lastFocusedControlRef.current;
+    if (el && document.contains(el)) {
+      el.focus();
+      lastFocusedControlRef.current = null;
+    }
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    restoreFocus();
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+      return;
+    }
+    if (e.key === "Escape") {
+      if (selectionRange) {
+        setSelectionRange(null);
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
+      if (searchOpen) { closeSearch(); return; }
+      if (settingsOpen) { setSettingsOpen(false); restoreFocus(); return; }
+      if (sidebarOpen) { setSidebarOpen(false); restoreFocus(); return; }
+      return;
+    }
+    if (scrollLayout || isPdfAudio) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      rtlPaging ? handlePageNext() : handlePagePrev();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      rtlPaging ? handlePagePrev() : handlePageNext();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+    // ponytail: handler closes over live state; rebind on relevant deps
+  }, [selectionRange, searchOpen, settingsOpen, sidebarOpen, scrollLayout, isPdfAudio, rtlPaging, pageIndex]);
+
   const {
     readerBg,
     proseClass,
@@ -737,7 +842,7 @@ export const ReaderWorkspace = () => {
       <div className="drawer-content flex flex-col h-screen overflow-hidden relative">
         <ReaderTopBar
           t={t}
-          title={currentChapter?.title || "Reading"}
+          title={currentChapter?.title || t("reader.reading", "Reading")}
           headerBg={headerBg}
           canGoPrev={canGoPrev}
           canGoNext={canGoNext}
@@ -745,6 +850,7 @@ export const ReaderWorkspace = () => {
           theme={theme}
           fontFamily={fontFamily}
           fontSize={fontSize}
+          lineHeight={lineHeight}
           maxWidth={maxWidth}
           effectiveReadingMode={effectiveReadingMode}
           canUseDoubleMode={canUseDoubleMode}
@@ -753,10 +859,15 @@ export const ReaderWorkspace = () => {
           pageFit={pageFit}
           onPrev={handlePrev}
           onNext={handleNext}
-          setSettingsOpen={setSettingsOpen}
+          setSettingsOpen={(open) => {
+            if (open) lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
+            setSettingsOpen(open);
+            if (!open) restoreFocus();
+          }}
           setTheme={setTheme}
           setFontFamily={setFontFamily}
           setFontSize={setFontSize}
+          setLineHeight={setLineHeight}
           setMaxWidth={setMaxWidth}
           setReadingMode={setReadingMode}
           setReadingDirection={setReadingDirection}
@@ -774,20 +885,14 @@ export const ReaderWorkspace = () => {
           setTtsRate={handleTtsRateChange}
           autoScrollActive={autoScrollActive}
           onToggleAutoScroll={onToggleAutoScroll}
-          onOpenSearch={() => setSearchOpen(true)}
+          onOpenSearch={() => {
+            lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
+            setSearchOpen(true);
+          }}
         />
 
         {/* Reader Scrollable Area */}
         {(() => {
-          const activeFile = fileId
-            ? book?.files?.find(f => f.id === fileId)
-            : book?.files?.[0];
-          const isPdf = !!(
-            activeFile?.format.match(/^pdf$/i) ||
-            currentChapter?.contentPath?.toLowerCase().endsWith(".pdf")
-          );
-          const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
-
           return (
             <div 
               ref={contentRef}
@@ -821,7 +926,7 @@ export const ReaderWorkspace = () => {
                   <iframe
                     title={book.title}
                     src={`${API_BASE}/reader/${encodeURIComponent(bookId || "")}/file?file_id=${encodeURIComponent(activeFile?.id || fileId || "")}`}
-                    className="w-full h-full flex-1 border-0 bg-white"
+                    className="reader-pdf-frame w-full h-full flex-1 border-0"
                   />
                 ) : isAudio ? (
                   <div className="flex-1 w-full h-full pb-32">
@@ -908,11 +1013,13 @@ export const ReaderWorkspace = () => {
         currentChapter={currentChapter}
         sidebarBg={sidebarBg}
         sidebarRef={sidebarRef}
-        onClose={() => setSidebarOpen(false)}
+        onClose={() => { setSidebarOpen(false); restoreFocus(); }}
         onBack={handleReaderBack}
         onSelectChapter={(chapter) => {
+          pendingTextOffsetRef.current = null;
           void loadChapter(chapter);
           setSidebarOpen(false);
+          restoreFocus();
         }}
         highlights={allowHighlights ? highlights : undefined}
         onUpdateHighlight={allowHighlights ? (id, color, note) => void updateHighlight(id, color, note) : undefined}
@@ -935,13 +1042,14 @@ export const ReaderWorkspace = () => {
         <div className="fixed top-16 right-6 z-50 animate-fade-in">
           <ReaderInBookSearch
             bookId={bookId}
-            onClose={() => setSearchOpen(false)}
-            onSelectResult={(chapterId) => {
+            onClose={closeSearch}
+            onSelectResult={(chapterId, offset) => {
               const ch = chapters.find((c) => c.id === chapterId);
               if (ch) {
+                pendingTextOffsetRef.current = offset > 0 ? offset : null;
                 void loadChapter(ch);
               }
-              setSearchOpen(false);
+              closeSearch();
             }}
           />
         </div>

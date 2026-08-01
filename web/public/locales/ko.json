@@ -389,7 +389,26 @@
     "no_voices": "사용 가능한 음성이 없습니다",
     "in_book_search": "책 내 검색",
     "search_placeholder": "텍스트 검색...",
-    "no_results": "검색 결과가 없습니다."
+    "close_toc": "목차 닫기",
+    "back_to_previous": "이전으로 돌아가기",
+    "reset_settings": "설정 초기화",
+    "no_results": "검색 결과가 없습니다.",
+    "line_height": "줄 간격",
+    "double_page_unavailable": "두 페이지 모드에는 더 넓은 화면이 필요합니다",
+    "reading": "읽는 중",
+    "audiobook": "오디오북",
+    "cover_art": "표지 이미지",
+    "highlight_yellow": "노란색 하이라이트",
+    "highlight_green": "초록색 하이라이트",
+    "highlight_blue": "파란색 하이라이트",
+    "highlight_purple": "보라색 하이라이트",
+    "skip_back_15_seconds": "15초 뒤로",
+    "skip_forward_15_seconds": "15초 앞으로",
+    "play_pause": "재생/일시 정지",
+    "mute": "음소거",
+    "unmute": "음소거 해제",
+    "open_toc": "목차 열기",
+    "open_settings": "리더 설정 열기"
   },
   "analytics": {
     "title": "독서 분석 및 통계",
@@ -467,6 +486,8 @@
     "in_book_search_desc": "열린 도서 내부 텍스트 검색을 허용합니다.",
     "custom_font_upload": "서버 사용자 지정 폰트 업로드 활성화",
     "custom_font_upload_desc": "서버로의 사용자 지정 폰트 업로드를 허용합니다.",
+    "anilist_tracking": "AniList 추적 활성화",
+    "anilist_tracking_desc": "사용자가 AniList 계정을 연결하고 독서 진행률을 동기화할 수 있도록 합니다.",
     "save_reader": "리더 설정 저장",
     "registration_guest": "회원가입 및 게스트 액세스",
     "registration_guest_desc": "회원가입 및 게스트 열람 권한을 제어합니다.",
@@ -600,6 +621,12 @@
     "map_failed": "책 연결에 실패했습니다",
     "invalid_progress": "진행률은 1 이상의 정수여야 합니다",
     "sync_success": "진행률을 AniList에 동기화했습니다",
-    "sync_failed": "진행률 동기화에 실패했습니다"
+    "sync_failed": "진행률 동기화에 실패했습니다",
+    "search_results_title": "검색 결과",
+    "search_pick_hint": "항목을 클릭하여 선택",
+    "select_btn": "선택",
+    "no_search_results": "일치하는 AniList 작품을 찾을 수 없습니다",
+    "selected_label": "선택됨",
+    "connect_new_token": "새 토큰 사용"
   }
 }

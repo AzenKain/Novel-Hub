@@ -14,5 +14,5 @@ type MapTrackerDto struct {
 type SyncProgressDto struct {
 	BookID   string `json:"book_id" validate:"required,uuid"`
 	Title    string `json:"title" validate:"required"`
-	Progress int    `json:"progress" validate:"required,min=1"`
+	Progress int    `json:"progress" validate:"omitempty,min=1"`
 }
