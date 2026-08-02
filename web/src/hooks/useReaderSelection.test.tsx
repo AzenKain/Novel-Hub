@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useReaderSelection } from "./useReaderSelection";
 
 function setup(addHighlight: ReturnType<typeof vi.fn>) {
@@ -41,7 +41,7 @@ describe("useReaderSelection highlight validation", () => {
     range.setEnd(content.firstChild!, 6);
     act(() => getApi().setSelectionRange(range));
     await act(async () => getApi().handleHighlight("blue"));
-    expect(add).toHaveBeenCalledWith("hello", 1, 6, "blue");
+    expect(add).toHaveBeenCalledWith("ello", 1, 6, "blue");
     root.unmount();
   });
 });

@@ -40,7 +40,16 @@ describe("getCharacterOffsetOfRange", () => {
     expect(getCharacterOffsetOfRange(container, single)).toEqual({ start: 1, end: 4 });
   });
 
-  it("rejects whitespace-only, unresolved, and equal-offset ranges", () => {
+  it("maps element boundary containers to document offsets", () => {
+    const container = render("<p>first</p><p>second</p>");
+    const root = container;
+    const range = document.createRange();
+    range.setStart(root, 0);
+    range.setEnd(root, root.childNodes.length);
+    expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 0, end: 11 });
+  });
+
+
     const container = render("   ");
     const whitespace = document.createRange();
     whitespace.selectNodeContents(container);
