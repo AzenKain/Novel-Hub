@@ -33,8 +33,8 @@ export function Reviews() {
         setReviews(pageData);
       } else {
         setReviews((prev) => {
-          const existingKeys = new Set(prev.map(r => `${r.bookId}-${r.userId}`));
-          const uniqueNew = pageData.filter(r => !existingKeys.has(`${r.bookId}-${r.userId}`));
+          const existingKeys = new Set(prev.map(r => `${r.book_id}-${r.user_id}`));
+          const uniqueNew = pageData.filter(r => !existingKeys.has(`${r.book_id}-${r.user_id}`));
           return [...prev, ...uniqueNew];
         });
       }
@@ -54,16 +54,16 @@ export function Reviews() {
 
   function confirmDelete() {
     if (!reviewToDelete) return;
-    const key = `${reviewToDelete.bookId}-${reviewToDelete.userId}`;
+    const key = `${reviewToDelete.book_id}-${reviewToDelete.user_id}`;
     setDeleting(key);
     deleteReviewMutation.mutate(
-      { bookId: reviewToDelete.bookId, userId: reviewToDelete.userId },
+      { book_id: reviewToDelete.book_id, user_id: reviewToDelete.user_id },
       {
         onSuccess: () => {
           toast.success("Review deleted");
           setReviews((prev) =>
             prev.filter(
-              (r) => !(r.bookId === reviewToDelete.bookId && r.userId === reviewToDelete.userId)
+              (r) => !(r.book_id === reviewToDelete.book_id && r.user_id === reviewToDelete.user_id)
             )
           );
           setReviewToDelete(null);
@@ -128,13 +128,13 @@ export function Reviews() {
             <div className="flex flex-col gap-3">
               {reviews.map((review, idx) => (
                 <div
-                  key={`${review.bookId}-${review.userId}-${idx}`}
+                  key={`${review.book_id}-${review.user_id}-${idx}`}
                   className="card bg-base-100 border border-base-200 shadow-sm p-4 sm:p-5"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="font-bold text-sm truncate">{review.bookTitle || review.bookId}</h3>
+                        <h3 className="font-bold text-sm truncate">{review.book_title || review.book_id}</h3>
                         {renderStars(review.rating)}
                         <span className="text-xs text-base-content/40">{review.rating}/5</span>
                       </div>
@@ -147,30 +147,30 @@ export function Reviews() {
                       )}
                       <div className="flex items-center gap-3 mt-3 text-xs text-base-content/50 flex-wrap">
                         <span>
-                          by <strong className="text-base-content/70">{review.userName || "User"}</strong>
-                          {review.userEmail && (
-                            <span className="text-base-content/40"> ({review.userEmail})</span>
+                          by <strong className="text-base-content/70">{review.user_name || "User"}</strong>
+                          {review.user_email && (
+                            <span className="text-base-content/40"> ({review.user_email})</span>
                           )}
                         </span>
                         <span className="text-base-content/30">·</span>
                         <span>
-                          {review.createdAt
-                            ? new Date(review.createdAt).toLocaleDateString()
+                          {review.created_at
+                            ? new Date(review.created_at).toLocaleDateString()
                             : "—"}
                         </span>
                         <span className="text-base-content/30">·</span>
                         <span className="font-mono text-[10px] opacity-40">
-                          Book: {review.bookId}
+                          Book: {review.book_id}
                         </span>
                       </div>
                     </div>
                     <button
                       onClick={() => setReviewToDelete(review)}
-                      disabled={deleting === `${review.bookId}-${review.userId}`}
+                      disabled={deleting === `${review.book_id}-${review.user_id}`}
                       className="btn btn-ghost btn-sm text-error hover:bg-error/10 shrink-0"
                       title="Delete review"
                     >
-                      {deleting === `${review.bookId}-${review.userId}` ? (
+                      {deleting === `${review.book_id}-${review.user_id}` ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Trash2 className="h-4 w-4" />
@@ -212,9 +212,9 @@ export function Reviews() {
               Are you sure you want to delete this review? This action cannot be undone.
             </p>
             <div className="bg-base-200/50 p-3 rounded-lg text-sm">
-              <p className="font-medium">{reviewToDelete?.bookTitle || reviewToDelete?.bookId}</p>
+              <p className="font-medium">{reviewToDelete?.book_title || reviewToDelete?.book_id}</p>
               <p className="text-xs opacity-60 mt-1">
-                by {reviewToDelete?.userName || reviewToDelete?.userEmail || "User"} · Rating: {reviewToDelete?.rating}/5
+                by {reviewToDelete?.user_name || reviewToDelete?.user_email || "User"} · Rating: {reviewToDelete?.rating}/5
               </p>
               {reviewToDelete?.review && (
                 <p className="text-xs opacity-70 mt-2 italic line-clamp-3">"{reviewToDelete.review}"</p>

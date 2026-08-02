@@ -7,8 +7,8 @@ import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin";
 
 type ConfirmState =
-  | { type: "single"; fileId: string; title: string }
-  | { type: "selected"; fileIds: string[] }
+  | { type: "single"; file_id: string; title: string }
+  | { type: "selected"; file_ids: string[] }
   | { type: "keepOne"; keepFileId: string; toDeleteFileIds: string[] }
   | null;
 
@@ -32,15 +32,15 @@ export const Duplicates: React.FC = () => {
   const totalFiles = duplicateGroups.reduce((sum, g) => sum + (g.files?.length || 0), 0);
   const wastedBytes = duplicateGroups.reduce((sum, g) => {
     if (!g.files || g.files.length <= 1) return sum;
-    const singleSize = g.files[0]?.sizeBytes || 0;
+    const singleSize = g.files[0]?.size_bytes || 0;
     return sum + singleSize * (g.files.length - 1);
   }, 0);
 
-  const toggleSelectFile = (fileId: string) => {
+  const toggleSelectFile = (file_id: string) => {
     setSelectedFileIds((prev) => {
       const next = new Set(prev);
-      if (next.has(fileId)) next.delete(fileId);
-      else next.add(fileId);
+      if (next.has(file_id)) next.delete(file_id);
+      else next.add(file_id);
       return next;
     });
   };
@@ -49,7 +49,7 @@ export const Duplicates: React.FC = () => {
     const all = new Set<string>();
     duplicateGroups.forEach((g) => {
       if (g.files && g.files.length > 1) {
-        g.files.slice(1).forEach((f) => all.add(f.fileId));
+        g.files.slice(1).forEach((f) => all.add(f.file_id));
       }
     });
     setSelectedFileIds(all);
@@ -57,17 +57,17 @@ export const Duplicates: React.FC = () => {
 
   const deselectAll = () => setSelectedFileIds(new Set());
 
-  const openDeleteSingle = (fileId: string, title: string) => {
-    setConfirmState({ type: "single", fileId, title });
+  const openDeleteSingle = (file_id: string, title: string) => {
+    setConfirmState({ type: "single", file_id, title });
   };
 
   const openDeleteSelected = () => {
     if (selectedFileIds.size === 0) return;
-    setConfirmState({ type: "selected", fileIds: Array.from(selectedFileIds) });
+    setConfirmState({ type: "selected", file_ids: Array.from(selectedFileIds) });
   };
 
-  const openKeepOneOnly = (keepFileId: string, allFiles: { fileId: string }[]) => {
-    const toDeleteFileIds = allFiles.map((f) => f.fileId).filter((id) => id !== keepFileId);
+  const openKeepOneOnly = (keepFileId: string, allFiles: { file_id: string }[]) => {
+    const toDeleteFileIds = allFiles.map((f) => f.file_id).filter((id) => id !== keepFileId);
     if (toDeleteFileIds.length === 0) return;
     setConfirmState({ type: "keepOne", keepFileId, toDeleteFileIds });
   };
@@ -78,25 +78,25 @@ export const Duplicates: React.FC = () => {
 
     try {
       if (confirmState.type === "single") {
-        setDeletingId(confirmState.fileId);
-        await deleteFileMutation.mutateAsync(confirmState.fileId);
+        setDeletingId(confirmState.file_id);
+        await deleteFileMutation.mutateAsync(confirmState.file_id);
         setSelectedFileIds((prev) => {
           const next = new Set(prev);
-          next.delete(confirmState.fileId);
+          next.delete(confirmState.file_id);
           return next;
         });
         toast.success(t("common.success", "File deleted successfully"));
       } else if (confirmState.type === "selected") {
-        for (const fileId of confirmState.fileIds) {
-          setDeletingId(fileId);
-          await deleteFileMutation.mutateAsync(fileId);
+        for (const file_id of confirmState.file_ids) {
+          setDeletingId(file_id);
+          await deleteFileMutation.mutateAsync(file_id);
         }
         setSelectedFileIds(new Set());
         toast.success(t("common.success", "Selected files deleted successfully"));
       } else if (confirmState.type === "keepOne") {
-        for (const fileId of confirmState.toDeleteFileIds) {
-          setDeletingId(fileId);
-          await deleteFileMutation.mutateAsync(fileId);
+        for (const file_id of confirmState.toDeleteFileIds) {
+          setDeletingId(file_id);
+          await deleteFileMutation.mutateAsync(file_id);
         }
         setSelectedFileIds((prev) => {
           const next = new Set(prev);
@@ -133,7 +133,7 @@ export const Duplicates: React.FC = () => {
         title: t("admin.delete_selected", "Delete Selected Files"),
         message: (
           <span>
-            {t("admin.confirm_delete_selected", `Are you sure you want to delete ${confirmState.fileIds.length} selected file(s)?`)}
+            {t("admin.confirm_delete_selected", `Are you sure you want to delete ${confirmState.file_ids.length} selected file(s)?`)}
           </span>
         ),
       };
@@ -253,12 +253,12 @@ export const Duplicates: React.FC = () => {
                   {/* Duplicate File Cards */}
                   <div className="grid grid-cols-1 gap-3">
                     {group.files?.map((file, idx) => {
-                      const isSelected = selectedFileIds.has(file.fileId);
-                      const isItemDeleting = deletingId === file.fileId;
+                      const isSelected = selectedFileIds.has(file.file_id);
+                      const isItemDeleting = deletingId === file.file_id;
 
                       return (
                         <div
-                          key={file.fileId}
+                          key={file.file_id}
                           className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-4 ${
                             isSelected
                               ? "bg-primary/5 border-primary/40 shadow-sm"
@@ -269,15 +269,15 @@ export const Duplicates: React.FC = () => {
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleSelectFile(file.fileId)}
+                              onChange={() => toggleSelectFile(file.file_id)}
                               className="checkbox checkbox-primary checkbox-sm shrink-0"
                             />
 
                             {/* Cover Thumbnail */}
-                            {file.bookCoverUrl ? (
+                            {file.book_cover_url ? (
                               <img
-                                src={getMediaUrl(file.bookCoverUrl)}
-                                alt={file.bookTitle}
+                                src={getMediaUrl(file.book_cover_url)}
+                                alt={file.book_title}
                                 className="w-12 h-16 object-cover rounded-lg shadow-sm border border-base-300 shrink-0"
                               />
                             ) : (
@@ -290,7 +290,7 @@ export const Duplicates: React.FC = () => {
                             <div className="flex flex-col min-w-0 flex-1 gap-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-sm text-base-content truncate">
-                                  {file.bookTitle || t("common.untitled", "Untitled Book")}
+                                  {file.book_title || t("common.untitled", "Untitled Book")}
                                 </span>
                                 {idx === 0 && (
                                   <span className="badge badge-success badge-xs font-bold text-[10px] gap-1">
@@ -303,7 +303,7 @@ export const Duplicates: React.FC = () => {
                                 {file.path}
                               </div>
                               <div className="flex items-center gap-3 text-[11px] text-base-content/50 mt-0.5">
-                                <span className="font-semibold text-primary">{formatSize(file.sizeBytes)}</span>
+                                <span className="font-semibold text-primary">{formatSize(file.size_bytes)}</span>
                                 <span>•</span>
                                 <span className="uppercase font-bold">{file.format}</span>
                               </div>
@@ -313,7 +313,7 @@ export const Duplicates: React.FC = () => {
                           {/* Action Buttons */}
                           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                             <button
-                              onClick={() => openKeepOneOnly(file.fileId, group.files || [])}
+                              onClick={() => openKeepOneOnly(file.file_id, group.files || [])}
                               disabled={isDeleting || (group.files?.length || 0) <= 1}
                               className="btn btn-outline btn-xs gap-1 font-normal"
                               title={t("admin.confirm_keep_one", "Keep this file and delete duplicate copies?")}
@@ -322,7 +322,7 @@ export const Duplicates: React.FC = () => {
                               {t("admin.keep_this_only", "Keep Only This")}
                             </button>
                             <button
-                              onClick={() => openDeleteSingle(file.fileId, file.bookTitle)}
+                              onClick={() => openDeleteSingle(file.file_id, file.book_title)}
                               disabled={isItemDeleting || isDeleting}
                               className="btn btn-ghost btn-square btn-sm text-error hover:bg-error/10"
                               title={t("common.delete", "Delete")}

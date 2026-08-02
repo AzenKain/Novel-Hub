@@ -76,7 +76,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                     onClick={() => onSelect?.(highlight)}
                     className="line-clamp-3 flex-1 text-left text-xs leading-snug hover:underline"
                   >
-                    {highlight.textContent}
+                    {highlight.text_content}
                   </button>
                 </div>
 

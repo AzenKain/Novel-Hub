@@ -25,23 +25,23 @@ const READABLE_FORMATS = new Set([
   "cb7",
 ]);
 
-export const emptyEngagement = (bookId: string): BookEngagementStats => ({
-  bookId,
-  socialStats: {
-    bookId,
-    bookmarkCount: 0,
-    ratingCount: 0,
-    averageRating: 0,
-    shareCount: 0,
+export const emptyEngagement = (book_id: string): BookEngagementStats => ({
+  book_id,
+  social_stats: {
+    book_id,
+    bookmark_count: 0,
+    rating_count: 0,
+    average_rating: 0,
+    share_count: 0,
   },
-  downloadStats: { bookId, totalDownloadCount: 0 },
-  readStats: { bookId, totalOpenCount: 0, qualifiedReadCount: 0 },
+  download_stats: { book_id, total_download_count: 0 },
+  read_stats: { book_id, total_open_count: 0, qualified_read_count: 0 },
 });
 
-export const parseMetadata = (metadataJson?: string): MetadataJSON => {
-  if (!metadataJson) return {};
+export const parseMetadata = (metadata_json?: string): MetadataJSON => {
+  if (!metadata_json) return {};
   try {
-    return JSON.parse(metadataJson) as MetadataJSON;
+    return JSON.parse(metadata_json) as MetadataJSON;
   } catch {
     return {};
   }
@@ -105,7 +105,7 @@ export const isReadableFile = (file: BookFile) => {
 
 export const fileSelectLabel = (file: BookFile) => {
   const format = (file.format || "file").toUpperCase();
-  return `${format} · ${formatFileSize(file.sizeBytes)} · ${truncateMiddle(
+  return `${format} · ${formatFileSize(file.size_bytes)} · ${truncateMiddle(
     fileNameFromPath(file.path),
     22,
   )}`;

@@ -39,23 +39,23 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
       <div className="flex flex-col gap-1.5 p-3">
         {recent.length > 0 ? (
           recent.map((item) => {
-            const coverUrl = item.bookCoverUrl
-              ? getMediaUrl(item.bookCoverUrl)
+            const cover_url = item.book_cover_url
+              ? getMediaUrl(item.book_cover_url)
               : "";
             const progress = Math.max(
               0,
-              Math.min(100, Math.round(item.progressPercent || 0)),
+              Math.min(100, Math.round(item.progress_percent || 0)),
             );
             return (
               <button
-                key={`${item.bookId}-${item.chapterId}`}
+                key={`${item.book_id}-${item.chapter_id}`}
                 className="group grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl border border-transparent p-2 text-left transition-colors duration-150 hover:border-base-300 hover:bg-base-200/60"
                 onClick={() => onOpen(item)}
               >
                 <span className="relative block aspect-[3/4.12] overflow-hidden rounded-lg bg-base-300 shadow-sm">
-                  {coverUrl ? (
+                  {cover_url ? (
                     <img
-                      src={coverUrl}
+                      src={cover_url}
                       alt="Cover"
                       loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover"
@@ -68,12 +68,12 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold">
-                    {item.bookTitle}
+                    {item.book_title}
                   </span>
                   <span className="mt-0.5 flex items-center gap-1 text-xs text-base-content/55">
                     <Clock3 className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">
-                      {item.chapterTitle || `Chapter ${item.chapterIndex}`}
+                      {item.chapter_title || `Chapter ${item.chapter_index}`}
                     </span>
                   </span>
                   <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-base-300">

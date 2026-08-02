@@ -9,16 +9,16 @@ import (
 )
 
 type ReadingHistoryEntity struct {
-	UserID          string    `json:"userId"`
-	BookID          string    `json:"bookId"`
-	FileID          *string   `json:"fileId,omitempty"`
-	ChapterID       string    `json:"chapterId"`
-	ProgressPercent *float64  `json:"progressPercent"`
-	UpdatedAt       time.Time `json:"updatedAt"`
-	BookTitle       string    `json:"bookTitle"`
-	BookCoverURL    *string   `json:"bookCoverUrl"`
-	ChapterTitle    string    `json:"chapterTitle"`
-	ChapterIndex    int64     `json:"chapterIndex"`
+	UserID          string    `json:"user_id"`
+	BookID          string    `json:"book_id"`
+	FileID          *string   `json:"file_id,omitempty"`
+	ChapterID       string    `json:"chapter_id"`
+	ProgressPercent *float64  `json:"progress_percent"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	BookTitle       string    `json:"book_title"`
+	BookCoverURL    *string   `json:"book_cover_url"`
+	ChapterTitle    string    `json:"chapter_title"`
+	ChapterIndex    int64     `json:"chapter_index"`
 }
 
 func (e *ReadingHistoryEntity) FromSqlc(res sqlc.GetRecentReadingHistoryRow) *ReadingHistoryEntity {
@@ -78,20 +78,20 @@ func ReadingHistoryEntitiesToResponse(entities []*ReadingHistoryEntity) []*respo
 }
 
 type ReadingProgressEntity struct {
-	UserID             string     `json:"userId"`
-	BookID             string     `json:"bookId"`
-	FileID             *string    `json:"fileId,omitempty"`
-	ChapterID          string     `json:"chapterId"`
-	ChapterTitle       string     `json:"chapterTitle"`
-	ChapterIndex       int64      `json:"chapterIndex"`
-	ProgressPercent    *float64   `json:"progressPercent,omitempty"`
-	LocationCfi        *string    `json:"locationCfi,omitempty"`
-	LocationType       *string    `json:"locationType,omitempty"`
-	OpenedCount        int64      `json:"openedCount"`
-	QualifiedReadCount int64      `json:"qualifiedReadCount"`
-	LastOpenedAt       *time.Time `json:"lastOpenedAt,omitempty"`
-	LastCountedAt      *time.Time `json:"lastCountedAt,omitempty"`
-	UpdatedAt          *time.Time `json:"updatedAt,omitempty"`
+	UserID             string     `json:"user_id"`
+	BookID             string     `json:"book_id"`
+	FileID             *string    `json:"file_id,omitempty"`
+	ChapterID          string     `json:"chapter_id"`
+	ChapterTitle       string     `json:"chapter_title"`
+	ChapterIndex       int64      `json:"chapter_index"`
+	ProgressPercent    *float64   `json:"progress_percent,omitempty"`
+	LocationCfi        *string    `json:"location_cfi,omitempty"`
+	LocationType       *string    `json:"location_type,omitempty"`
+	OpenedCount        int64      `json:"opened_count"`
+	QualifiedReadCount int64      `json:"qualified_read_count"`
+	LastOpenedAt       *time.Time `json:"last_opened_at,omitempty"`
+	LastCountedAt      *time.Time `json:"last_counted_at,omitempty"`
+	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 }
 
 func (e *ReadingProgressEntity) FromSqlc(res sqlc.ReadingProgress) *ReadingProgressEntity {
@@ -153,7 +153,7 @@ type ReadingActivityEntity struct {
 	Progress        *ReadingProgressEntity `json:"progress"`
 	Stats           *BookReadStatsEntity   `json:"stats"`
 	Counted         bool                   `json:"counted"`
-	CooldownSeconds int64                  `json:"cooldownSeconds"`
+	CooldownSeconds int64                  `json:"cooldown_seconds"`
 }
 
 func (e *ReadingActivityEntity) ToResponse() *response.ReadingActivityResponse {

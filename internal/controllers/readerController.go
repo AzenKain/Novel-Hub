@@ -43,7 +43,7 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
-	return c.JSON(response.CommonResponse{Status: true, Data: bootstrap})
+	return c.JSON(response.CommonResponse{Status: true, Data: bootstrap.ToResponse()})
 }
 
 func (h *ReaderController) GetChapter(c fiber.Ctx) error {
@@ -112,6 +112,11 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	c.Set("Content-Type", asset.ContentType)
 	c.Set("X-Content-Type-Options", "nosniff")
 	c.Set("Content-Security-Policy", "default-src 'none'")
+
+	// A comic chapter is one <img> per page, so a 200-page volume means 200 hits
+	// here. "private" because access is per-user and a shared proxy must not serve
+	// one reader's asset to another; etag.New() handles revalidation after expiry.
+	c.Set(fiber.HeaderCacheControl, "private, max-age=3600")
 	return c.Send(asset.Data)
 }
 

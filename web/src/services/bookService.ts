@@ -48,8 +48,8 @@ export const bookService = {
     }
   },
 
-  getDownloadUrl(id: string, fileId?: string): string {
-    const query = fileId ? `?file_id=${encodeURIComponent(fileId)}` : "";
+  getDownloadUrl(id: string, file_id?: string): string {
+    const query = file_id ? `?file_id=${encodeURIComponent(file_id)}` : "";
     return `${API_BASE}/books/${id}/download${query}`;
   },
 
@@ -64,9 +64,9 @@ export const bookService = {
     }
   },
 
-  async getChapters(bookId: string): Promise<CommonResponse<Chapter[]>> {
+  async getChapters(book_id: string): Promise<CommonResponse<Chapter[]>> {
     try {
-      const res = await api.get(`/books/${bookId}/chapters`);
+      const res = await api.get(`/books/${book_id}/chapters`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -117,7 +117,7 @@ export const bookService = {
       date?: string;
       subjects?: string[];
       series?: string;
-      seriesIndex?: string;
+      series_index?: string;
     },
   ): Promise<CommonResponse<void>> {
     try {
@@ -130,9 +130,9 @@ export const bookService = {
     }
   },
 
-  async listImages(bookId: string): Promise<CommonResponse<string[]>> {
+  async listImages(book_id: string): Promise<CommonResponse<string[]>> {
     try {
-      const res = await api.get(`/reader/${bookId}/images`);
+      const res = await api.get(`/reader/${book_id}/images`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -142,7 +142,7 @@ export const bookService = {
   },
 
   async updateCover(
-    bookId: string,
+    book_id: string,
     data: { cover?: File; cover_url?: string; epub_image_path?: string },
   ): Promise<CommonResponse<{ cover_url: string }>> {
     const formData = new FormData();
@@ -155,7 +155,7 @@ export const bookService = {
     }
 
     try {
-      const res = await api.post(`/reader/${bookId}/cover`, formData, {
+      const res = await api.post(`/reader/${book_id}/cover`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

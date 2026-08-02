@@ -19,7 +19,7 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			settings, err := settingsService.Public(c.Context())
-			if err != nil || settings.GuestAccess.Mode == "login_required" {
+			if err != nil || settings.GuestLoginRequired {
 				c.Set("WWW-Authenticate", `Basic realm="NovelHub OPDS"`)
 				return apperrors.New(apperrors.ErrUnauthorized, "Authentication required")
 			}
@@ -49,7 +49,7 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 		return c.Next()
 	}
 
-	v1 := app.Group("/opds/v1", auth)
+	v1 := app.Group("/opds/v1", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), auth)
 	v1.Get("/", opdsController.GetRootCatalog)
 	v1.Get("/opensearch.xml", opdsController.GetOpenSearchDescription)
 	v1.Get("/search", opdsController.SearchCatalog)
@@ -61,6 +61,6 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 	v1.Get("/tags", opdsController.GetTagsCatalog)
 	v1.Get("/tags/:name", opdsController.GetTagBooks)
 
-	v2 := app.Group("/opds/v2", auth)
+	v2 := app.Group("/opds/v2", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), auth)
 	v2.Get("/catalog", opdsController.GetOPDS2Catalog)
 }

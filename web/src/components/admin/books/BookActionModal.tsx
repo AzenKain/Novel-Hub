@@ -32,7 +32,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           </p>
           <h3 className="mt-1 truncate text-xl font-black">{book?.title}</h3>
           <p className="mt-1 truncate text-sm text-base-content/60">
-            {book?.authorName || book?.authorId || "Unknown author"}
+            {book?.author_name || book?.author_id || "Unknown author"}
           </p>
         </div>
         <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm">
@@ -41,9 +41,9 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
       </header>
       <div className="grid gap-4 p-5 sm:grid-cols-[120px_1fr]">
         <div className="aspect-[3/4.12] overflow-hidden rounded-lg border border-base-200 bg-base-200 shadow-sm">
-          {book?.coverUrl ? (
+          {book?.cover_url ? (
             <img
-              src={getMediaUrl(book.coverUrl)}
+              src={getMediaUrl(book.cover_url)}
               alt={book.title}
               loading="lazy"
               className="h-full w-full object-cover"

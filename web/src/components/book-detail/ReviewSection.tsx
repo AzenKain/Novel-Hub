@@ -10,11 +10,11 @@ import { hasPermission } from "@/utils/permission";
 import { useShallow } from "zustand/react/shallow";
 
 interface ReviewSectionProps {
-  bookId: string;
+  book_id: string;
   userReview?: BookReview;
 }
 
-export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview }) => {
+export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userReview }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
@@ -30,10 +30,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["bookReviews", bookId],
+    queryKey: ["bookReviews", book_id],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      const res = await featureService.listBookReviews(bookId, pageParam, 10);
+      const res = await featureService.listBookReviews(book_id, pageParam, 10);
       if (!res.status) throw new Error(res.message || "Failed to fetch reviews");
       return res;
     },
@@ -44,13 +44,13 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
 
   const upsertMutation = useMutation({
     mutationFn: async () => {
-      const res = await featureService.upsertBookReview(bookId, rating, reviewText);
+      const res = await featureService.upsertBookReview(book_id, rating, reviewText);
       if (!res.status) throw new Error(res.message || "Failed to submit review");
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookReviews", bookId] });
-      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
       toast.success(t("review.submitted", "Review submitted successfully"));
     },
     onError: (err: any) => {
@@ -60,15 +60,15 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await featureService.deleteBookReview(bookId);
+      const res = await featureService.deleteBookReview(book_id);
       if (!res.status) throw new Error(res.message || "Failed to delete review");
       return res.data;
     },
     onSuccess: () => {
       setRating(0);
       setReviewText("");
-      queryClient.invalidateQueries({ queryKey: ["bookReviews", bookId] });
-      queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
       toast.success(t("review.deleted", "Review deleted successfully"));
     },
     onError: (err: any) => {
@@ -177,7 +177,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
                       <div>
                         <div className="font-bold text-sm">{(rv as any).username || t("common.user", "User")}</div>
                         <div className="text-xs text-base-content/50">
-                          {rv?.updatedAt ? new Date(rv.updatedAt).toLocaleDateString() : ""}
+                          {rv?.updated_at ? new Date(rv.updated_at).toLocaleDateString() : ""}
                         </div>
                       </div>
                     </div>
@@ -190,12 +190,12 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ bookId, userReview
                         <button
                           className="btn btn-ghost btn-xs text-error"
                           onClick={async () => {
-                            if (rv?.userId && window.confirm(t("review.confirm_delete", "Are you sure you want to delete this review?"))) {
+                            if (rv?.user_id && window.confirm(t("review.confirm_delete", "Are you sure you want to delete this review?"))) {
                               try {
-                                await featureService.adminDeleteBookReview(bookId, rv.userId);
+                                await featureService.adminDeleteBookReview(book_id, rv.user_id);
                                 toast.success(t("review.deleted", "Review deleted successfully"));
-                                queryClient.invalidateQueries({ queryKey: ["bookReviews", bookId] });
-                                queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+                                queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
+                                queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
                               } catch (error: any) {
                                 toast.error(error.message || t("error.unknown", "Failed to delete review"));
                               }

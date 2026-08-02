@@ -6,13 +6,13 @@ import { readerService } from '@/services';
 import type { SearchSnippet } from '@/types';
 
 interface ReaderInBookSearchProps {
-  bookId: string;
-  onSelectResult: (chapterId: string, offset: number) => void;
+  book_id: string;
+  onSelectResult: (chapter_id: string, offset: number) => void;
   onClose: () => void;
 }
 
 export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
-  bookId,
+  book_id,
   onSelectResult,
   onClose,
 }) => {
@@ -29,7 +29,7 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
     setLoading(true);
     setSearched(true);
     try {
-      const res = await readerService.searchInBook(bookId, query.trim());
+      const res = await readerService.searchInBook(book_id, query.trim());
       if (res?.status) {
         setResults(res.data || []);
       }

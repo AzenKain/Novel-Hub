@@ -11,12 +11,12 @@ export const ReadingGoalCard: React.FC<{ todayWords: number }> = ({ todayWords }
   const [wordsPerDay, setWordsPerDay] = useState(0);
   const [booksPerYear, setBooksPerYear] = useState(0);
 
-  const target = goal?.targetWordsPerDay ?? 0;
+  const target = goal?.target_words_per_day ?? 0;
   const percent = target > 0 ? Math.min(100, Math.round((todayWords / target) * 100)) : 0;
 
   function openEditor() {
-    setWordsPerDay(goal?.targetWordsPerDay ?? 1000);
-    setBooksPerYear(goal?.targetBooksPerYear ?? 12);
+    setWordsPerDay(goal?.target_words_per_day ?? 1000);
+    setBooksPerYear(goal?.target_books_per_year ?? 12);
     setEditing(true);
   }
 

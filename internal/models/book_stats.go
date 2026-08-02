@@ -9,9 +9,9 @@ import (
 )
 
 type LibraryStatsEntity struct {
-	TotalBooks    int64 `json:"totalBooks"`
-	NeedReview    int64 `json:"needReview"`
-	SeriesTracked int64 `json:"seriesTracked"`
+	TotalBooks    int64 `json:"total_books"`
+	NeedReview    int64 `json:"need_review"`
+	SeriesTracked int64 `json:"series_tracked"`
 }
 
 func (e *LibraryStatsEntity) FromSqlc(res sqlc.GetLibraryStatsRow) *LibraryStatsEntity {
@@ -33,12 +33,12 @@ func (e *LibraryStatsEntity) ToResponse() *response.LibraryStatsResponse {
 }
 
 type BookReadStatsEntity struct {
-	BookID             string     `json:"bookId"`
-	TotalOpenCount     int64      `json:"totalOpenCount"`
-	QualifiedReadCount int64      `json:"qualifiedReadCount"`
-	LastOpenedAt       *time.Time `json:"lastOpenedAt,omitempty"`
-	LastCountedAt      *time.Time `json:"lastCountedAt,omitempty"`
-	UpdatedAt          *time.Time `json:"updatedAt,omitempty"`
+	BookID             string     `json:"book_id"`
+	TotalOpenCount     int64      `json:"total_open_count"`
+	QualifiedReadCount int64      `json:"qualified_read_count"`
+	LastOpenedAt       *time.Time `json:"last_opened_at,omitempty"`
+	LastCountedAt      *time.Time `json:"last_counted_at,omitempty"`
+	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 }
 
 func (e *BookReadStatsEntity) FromSqlc(res sqlc.BookReadStat) *BookReadStatsEntity {
@@ -66,10 +66,10 @@ func (e *BookReadStatsEntity) ToResponse() *response.BookReadStatsResponse {
 }
 
 type BookDownloadStatsEntity struct {
-	BookID             string     `json:"bookId"`
-	TotalDownloadCount int64      `json:"totalDownloadCount"`
-	LastDownloadedAt   *time.Time `json:"lastDownloadedAt,omitempty"`
-	UpdatedAt          *time.Time `json:"updatedAt,omitempty"`
+	BookID             string     `json:"book_id"`
+	TotalDownloadCount int64      `json:"total_download_count"`
+	LastDownloadedAt   *time.Time `json:"last_downloaded_at,omitempty"`
+	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 }
 
 func (e *BookDownloadStatsEntity) FromSqlc(res sqlc.BookDownloadStat) *BookDownloadStatsEntity {
@@ -93,9 +93,9 @@ func (e *BookDownloadStatsEntity) ToResponse() *response.BookDownloadStatsRespon
 }
 
 type BookmarkEntity struct {
-	UserID    string    `json:"userId"`
-	BookID    string    `json:"bookId"`
-	CreatedAt time.Time `json:"createdAt"`
+	UserID    string    `json:"user_id"`
+	BookID    string    `json:"book_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (e *BookmarkEntity) FromSqlc(res sqlc.Bookmark) *BookmarkEntity {
@@ -117,9 +117,9 @@ func (e *BookmarkEntity) ToResponse() *response.BookmarkResponse {
 }
 
 type BookRatingSummaryEntity struct {
-	BookID        string  `json:"bookId"`
-	RatingCount   int64   `json:"ratingCount"`
-	AverageRating float64 `json:"averageRating"`
+	BookID        string  `json:"book_id"`
+	RatingCount   int64   `json:"rating_count"`
+	AverageRating float64 `json:"average_rating"`
 }
 
 func (e *BookRatingSummaryEntity) FromSqlc(res sqlc.GetBookRatingSummaryRow) *BookRatingSummaryEntity {
@@ -141,12 +141,12 @@ func (e *BookRatingSummaryEntity) ToResponse() *response.BookRatingSummaryRespon
 }
 
 type BookSocialStatsEntity struct {
-	BookID        string     `json:"bookId"`
-	BookmarkCount int64      `json:"bookmarkCount"`
-	RatingCount   int64      `json:"ratingCount"`
-	AverageRating float64    `json:"averageRating"`
-	ShareCount    int64      `json:"shareCount"`
-	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
+	BookID        string     `json:"book_id"`
+	BookmarkCount int64      `json:"bookmark_count"`
+	RatingCount   int64      `json:"rating_count"`
+	AverageRating float64    `json:"average_rating"`
+	ShareCount    int64      `json:"share_count"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
 func (e *BookSocialStatsEntity) FromSqlc(res sqlc.BookSocialStat) *BookSocialStatsEntity {
@@ -174,10 +174,10 @@ func (e *BookSocialStatsEntity) ToResponse() *response.BookSocialStatsResponse {
 }
 
 type BookEngagementStatsEntity struct {
-	BookID        string                   `json:"bookId"`
-	SocialStats   *BookSocialStatsEntity   `json:"socialStats"`
-	DownloadStats *BookDownloadStatsEntity `json:"downloadStats"`
-	ReadStats     *BookReadStatsEntity     `json:"readStats"`
+	BookID        string                   `json:"book_id"`
+	SocialStats   *BookSocialStatsEntity   `json:"social_stats"`
+	DownloadStats *BookDownloadStatsEntity `json:"download_stats"`
+	ReadStats     *BookReadStatsEntity     `json:"read_stats"`
 }
 
 func (e *BookEngagementStatsEntity) ToResponse() *response.BookEngagementStatsResponse {
@@ -193,13 +193,13 @@ func (e *BookEngagementStatsEntity) ToResponse() *response.BookEngagementStatsRe
 }
 
 type BookUserStateEntity struct {
-	BookID        string                   `json:"bookId"`
+	BookID        string                   `json:"book_id"`
 	Bookmarked    bool                     `json:"bookmarked"`
-	MyReview      *BookReviewEntity        `json:"myReview,omitempty"`
-	RatingSummary *BookRatingSummaryEntity `json:"ratingSummary"`
-	SocialStats   *BookSocialStatsEntity   `json:"socialStats"`
-	DownloadStats *BookDownloadStatsEntity `json:"downloadStats"`
-	ReadStats     *BookReadStatsEntity     `json:"readStats"`
+	MyReview      *BookReviewEntity        `json:"my_review,omitempty"`
+	RatingSummary *BookRatingSummaryEntity `json:"rating_summary"`
+	SocialStats   *BookSocialStatsEntity   `json:"social_stats"`
+	DownloadStats *BookDownloadStatsEntity `json:"download_stats"`
+	ReadStats     *BookReadStatsEntity     `json:"read_stats"`
 	Collections   []string                 `json:"collections"`
 }
 

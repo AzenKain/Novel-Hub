@@ -136,7 +136,11 @@ func systemMemoryBytes() int64 {
 }
 
 func NewSQLiteDB() (*sql.DB, error) {
-	dbPath := config.GetConfigWithDefault("SQLITE_DB_PATH", "./data/novelhub.db")
+	// Derived from DATA_DIR so the database lands beside books, logs and backups
+	// by default. A hardcoded "./data" would write outside the mounted volume in
+	// Docker, where DATA_DIR is /data — losing the database on every restart.
+	dataDir := config.GetConfigWithDefault("DATA_DIR", "./data")
+	dbPath := config.GetConfigWithDefault("SQLITE_DB_PATH", filepath.Join(dataDir, "novelhub.db"))
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil {
 		return nil, err
 	}

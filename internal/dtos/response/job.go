@@ -8,8 +8,8 @@ type JobResponse struct {
 	Status      *string   `json:"status,omitempty"`
 	Progress    *int64    `json:"progress,omitempty"`
 	Total       *int64    `json:"total,omitempty"`
-	ErrorMsg    *string   `json:"errorMsg,omitempty"`
-	PayloadJSON *string   `json:"payloadJson,omitempty"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ErrorMsg    *string   `json:"error_msg,omitempty"`
+	PayloadJSON *string   `json:"payload_json,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }

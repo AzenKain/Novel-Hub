@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useReadingStats = (bookId: string | undefined, isActive: boolean) => {
+export const useReadingStats = (book_id: string | undefined, isActive: boolean) => {
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const durationRef = useRef(0);
   const wordsRef = useRef(0);
@@ -12,7 +12,7 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!bookId || !isActive || !user) {
+    if (!book_id || !isActive || !user) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -21,17 +21,17 @@ export const useReadingStats = (bookId: string | undefined, isActive: boolean) =
       durationRef.current += 1;
       wordsRef.current += 2.5; 
       if (Date.now() - lastSyncTimeRef.current >= 30000) {
-        syncStats(bookId);
+        syncStats(book_id);
       }
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (durationRef.current > 0) {
-        syncStats(bookId);
+        syncStats(book_id);
       }
     };
-  }, [bookId, isActive]);
+  }, [book_id, isActive]);
 
   const syncStats = async (bookIdToSync: string) => {
     const dur = durationRef.current;

@@ -147,7 +147,13 @@
       "confirm_restore": "このバックアップを復元しますか？現在のデータを退避後、再起動が必要です。",
       "restarting": "復元準備完了。再起動しています。",
       "restart_required": "復元準備完了。NovelHubを再起動してください。",
-      "units": { "bytes": "B", "kib": "KiB", "mib": "MiB", "gib": "GiB" }, "no_backups": "バックアップはありません"
+      "units": {
+        "bytes": "B",
+        "kib": "KiB",
+        "mib": "MiB",
+        "gib": "GiB"
+      },
+      "no_backups": "バックアップはありません"
     }
   },
   "auth": {
@@ -156,7 +162,12 @@
     "password": "パスワード",
     "sign_in": "サインイン",
     "login": "ログイン",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "dont_have_account": "アカウントをお持ちでないですか？",
+    "register_now": "今すぐ登録",
+    "login_title": "ログイン",
+    "login_desc": "ログインしてライブラリにアクセスします。",
+    "back_to_library": "ライブラリに戻る"
   },
   "common": {
     "cancel": "キャンセル",
@@ -311,6 +322,7 @@
     "no_recent_books_hint": "リーダーで開いた本がここに表示されます。",
     "all_books": "すべての本",
     "random_books": "ランダムな本",
+    "random_books_hint": "思いがけない本を見つけたいときは、棚を更新してください。",
     "shuffle_books": "シャッフル",
     "top_books": "トップ本",
     "top_books_hint": "ライブラリで最も読まれている本。"
@@ -431,7 +443,11 @@
     "goal_edit": "読書目標を編集",
     "goal_words_per_day": "1日あたりの語数",
     "goal_books_per_year": "年間の冊数",
-    "activity_grid": "年間読書アクティビティ"
+    "activity_grid": "年間読書アクティビティ",
+    "reading_activity_words": "読書アクティビティ (ワード数)",
+    "activities_in_year": "{{year}} 年に {{count}} 回のアクティビティ",
+    "less": "過少",
+    "more": "過多"
   },
   "review": {
     "submitted": "レビューが正常に送信されました",
@@ -505,7 +521,11 @@
     "registration_guest_desc": "新規登録とゲスト閲覧範囲を制御します。",
     "public_registration": "公開新規登録を有効化",
     "public_registration_desc": "新しいユーザーのアカウント作成を許可します。",
+    "login_required": "ログインを要求",
+    "login_required_desc": "すべてのユーザーにサインインを強制し、コンテンツへのアクセスを制限します。",
     "guest_mode": "ゲストアクセスモード",
+    "guest_mode_all": "すべてのライブラリ",
+    "guest_mode_selected_libraries": "指定されたライブラリ",
     "allowed_libraries": "許可されたライブラリ",
     "save_access": "アクセス設定を保存",
     "download_policy": "ダウンロードポリシー",
@@ -577,33 +597,24 @@
     "runtime_limits": "ランタイム制限",
     "runtime_limits_desc": "アップロード、画像、一時セッションのサイズ制限を管理します。",
     "save_runtime_limits": "制限を保存",
-    "limit_upload_chunk_bytes": "アップロードチャンクサイズ",
+    "limit_upload_chunk_bytes": "アップロードチャンクのファイルサイズ",
     "limit_upload_chunks": "アップロードごとの最大チャンク数",
     "limit_upload_sessions": "ユーザーごとのアップロードセッション数",
-    "limit_upload_bytes": "最大アップロードサイズ",
+    "limit_upload_bytes": "最大アップロードファイルサイズ",
     "limit_upload_session_ttl_seconds": "アップロードセッションの有効期間",
-    "limit_cover_bytes": "最大カバーサイズ",
-    "limit_site_asset_bytes": "最大サイトアセットサイズ",
-    "limit_rate_limit_api": "期間あたりのAPIリクエスト数",
-    "limit_rate_limit_api_window_seconds": "APIレート制限の期間",
-    "limit_rate_limit_auth": "期間あたりのログイン試行回数",
-    "limit_rate_limit_auth_window_seconds": "ログインレート制限の期間",
+    "limit_cover_bytes": "最大カバー画像サイズ",
+    "limit_site_asset_bytes": "最大システム画像サイズ",
+    "limit_rate_limit_auth": "期間あたりのログイン・OPDS試行回数",
+    "limit_rate_limit_auth_window_seconds": "ログイン・OPDSレート制限の期間",
+    "rate_limiting_title": "ログインと OPDS のレート制限",
+    "rate_limit_allow_max": "最大",
+    "rate_limit_every": "回のログイン・OPDS試行を許可、",
+    "rate_limit_per_ip": "秒ごと",
     "unit_seconds": "秒",
     "unit_mib": "MiB",
     "unit_minutes": "分",
     "unit_count": "件",
     "limit_range": "許容範囲: {{min}}～{{max}}"
-  },
-  "kobo": {
-    "title": "Kobo E-Reader Wi-Fi 同期",
-    "subtitle": "Kobo Clara、Libra、Forma、Sage で Wi-Fi 経由で書籍、進捗、カバーを直接同期します。",
-    "endpoint_label": "Kobo API エンドポイント URL",
-    "show_qr": "QR コードを表示",
-    "instructions_header": "Kobo 端末の設定手順:",
-    "step1": "USB ケーブルで Kobo 電子書籍リーダーをコンピューターに接続します。",
-    "step2": "テキストエディタで .kobo/Kobo/KoboeReader.conf を開きます。",
-    "step3": "[FeatureSettings] セクションに api_endpoint= を追加または更新します:",
-    "step4": "Kobo を取り外し、Wi-Fi で「同期」をタップします！"
   },
   "email": {
     "invalid": "有効なメールアドレスを入力してください",
@@ -669,5 +680,31 @@
     "step2": "テキストエディタで .kobo/Kobo/KoboeReader.conf ファイルを開きます。",
     "step3": "[FeatureSettings] セクションを追加または更新し、api_endpoint= を設定します。",
     "step4": "USBを安全に取り外し、Kobo で Wi-Fi 経由で「同期」をタップします！"
+  },
+  "setup": {
+    "title": "NovelHub 初期設定",
+    "subtitle": "ルート管理者アカウントを作成し、初期設定を行います。",
+    "admin_account": "管理者アカウント",
+    "username_placeholder": "ユーザー名",
+    "email_placeholder": "メールアドレス",
+    "password_placeholder": "パスワード（8文字以上）",
+    "site_info": "サイト情報とブランディング",
+    "site_title_placeholder": "サイトタイトル",
+    "site_desc_placeholder": "サイト説明",
+    "logo_url_placeholder": "ロゴ URL（例: /pwa-192x192.png または https://...）",
+    "favicon_url_placeholder": "Favicon URL（例: /favicon.ico または https://...）",
+    "fetch": "取得",
+    "upload_logo": "ロゴをアップロード",
+    "upload_favicon": "Favicon をアップロード",
+    "use_default": "デフォルトを使用",
+    "sidebar_nav": "サイドバーナビゲーション",
+    "sidebar_nav_desc": "ライブラリのサイドバーに表示するナビゲーションリンクを選択します。",
+    "policies": "ポリシーとアクセス制御",
+    "public_registration": "公開登録を有効にする",
+    "login_required": "ライブラリへのアクセスにログインを必須にする",
+    "guest_access": "ゲストアクセス",
+    "complete_setup": "セットアップ完了",
+    "setup_failed": "セットアップに失敗しました",
+    "unexpected_error": "予期しないエラーが発生しました"
   }
 }

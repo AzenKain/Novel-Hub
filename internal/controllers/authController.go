@@ -11,7 +11,6 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
-	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/validator"
 )
@@ -27,24 +26,23 @@ func NewAuthController(svc services.AuthService) *AuthController {
 type authCookieSettings struct {
 	secure   bool
 	sameSite string
-	domain   string
 }
 
-func getAuthCookieSettings() authCookieSettings {
-	secure := config.GetBoolConfigWithDefault("COOKIE_SECURE", false)
-	sameSite := config.GetConfigWithDefault("COOKIE_SAMESITE", "Lax")
-	if sameSite == "" {
-		sameSite = "Lax"
-	}
+// Derived from the request, not configured: c.Scheme() is "https" on TLS or when
+// a trusted proxy says so (TRUST_PROXY), which is exactly when Secure is needed.
+// Domain is never set, so the cookie stays scoped to the host that served it.
+//
+// SameSite=Lax is the only CSRF defence this app has — there is no token or
+// origin check anywhere — so it must not be loosened to None.
+func getAuthCookieSettings(c fiber.Ctx) authCookieSettings {
 	return authCookieSettings{
-		secure:   secure,
-		sameSite: sameSite,
-		domain:   config.GetConfigWithDefault("COOKIE_DOMAIN", ""),
+		secure:   c.Scheme() == "https",
+		sameSite: "Lax",
 	}
 }
 
 func setAuthCookie(c fiber.Ctx, name string, value string, duration time.Duration) {
-	settings := getAuthCookieSettings()
+	settings := getAuthCookieSettings(c)
 	cookie := &fiber.Cookie{
 		Name:     name,
 		Value:    value,
@@ -55,14 +53,11 @@ func setAuthCookie(c fiber.Ctx, name string, value string, duration time.Duratio
 		SameSite: settings.sameSite,
 		Path:     "/",
 	}
-	if settings.domain != "" {
-		cookie.Domain = settings.domain
-	}
 	c.Cookie(cookie)
 }
 
 func clearAuthCookie(c fiber.Ctx, name string) {
-	settings := getAuthCookieSettings()
+	settings := getAuthCookieSettings(c)
 	cookie := &fiber.Cookie{
 		Name:     name,
 		Value:    "",
@@ -72,9 +67,6 @@ func clearAuthCookie(c fiber.Ctx, name string) {
 		Secure:   settings.secure,
 		SameSite: settings.sameSite,
 		Path:     "/",
-	}
-	if settings.domain != "" {
-		cookie.Domain = settings.domain
 	}
 	c.Cookie(cookie)
 }

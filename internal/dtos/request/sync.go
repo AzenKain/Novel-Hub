@@ -1,12 +1,12 @@
 package request
 
 type ProgressSyncDto struct {
-	BookID          string   `json:"bookId" validate:"required"`
-	ProgressPercent *float64 `json:"progressPercent"`
-	LocationCfi     *string  `json:"locationCfi"`
-	LocationType    *string  `json:"locationType"`
-	ChapterTitle    *string  `json:"chapterTitle"`
-	ChapterIndex    *int64   `json:"chapterIndex"`
+	BookID          string   `json:"book_id" validate:"required"`
+	ProgressPercent *float64 `json:"progress_percent"`
+	LocationCfi     *string  `json:"location_cfi"`
+	LocationType    *string  `json:"location_type"`
+	ChapterTitle    *string  `json:"chapter_title"`
+	ChapterIndex    *int64   `json:"chapter_index"`
 	Timestamp       *int64   `json:"timestamp"`
 	Device          *string  `json:"device"`
 }

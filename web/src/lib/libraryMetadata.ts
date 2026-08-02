@@ -60,7 +60,7 @@ export function filterMetadataItems(
     })
     .sort((a, b) => {
       if (sort === "count-desc") {
-        return b.bookCount - a.bookCount || a.name.localeCompare(b.name);
+        return b.book_count - a.book_count || a.name.localeCompare(b.name);
       }
       const result = a.name.localeCompare(b.name, undefined, {
         sensitivity: "base",

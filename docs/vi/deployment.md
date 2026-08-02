@@ -1,0 +1,226 @@
+# Triển khai
+
+Có hai cách chạy NovelHub: Docker, hoặc binary native. Cả hai đều cần ba secret
+giống nhau từ [Cấu hình](configuration.md).
+
+Frontend được biên dịch thẳng vào binary, nên chỉ có một tiến trình, một port và một
+thư mục cần backup. Không web server, không host frontend riêng.
+
+---
+
+## Docker
+
+```bash
+cp .env.example .env
+openssl rand -hex 32   # three times, one per secret
+$EDITOR .env
+docker compose up -d
+```
+
+Mở `http://<host>:3434`. Wizard cài đặt chạy ở lần khởi động đầu tiên và tạo tài
+khoản quản trị gốc.
+
+File compose đặt `SERVER_HOST`, `SERVER_PORT` và `DATA_DIR` cho container. Đừng sửa
+chúng — riêng `SERVER_HOST` phải giữ là `0.0.0.0`, nếu không port đã publish sẽ
+không truy cập được từ host.
+
+### Đằng sau reverse proxy
+
+Thêm vào `.env`:
+
+```bash
+TRUST_PROXY=true
+```
+
+Sau đó cấu hình proxy để chuyển tiếp `X-Forwarded-For` và `X-Forwarded-Proto` — xem
+[Reverse Proxy](reverse-proxy.md).
+
+`TRUST_PROXY` không được bật mặc định trong Docker, dù nhiều bản triển khai Docker có
+proxy. Request đi qua một port đã publish sẽ đến từ Docker bridge (`172.17.0.1`), là
+một địa chỉ *private* — nên `true` cũng sẽ tin cậy y như vậy mọi khách truy cập trực
+tiếp trên một lệnh `docker compose up` thông thường. Những khách đó khi ấy có thể tự
+đặt `X-Forwarded-For` để có một rate-limit bucket mới cho mỗi request, và giả mạo
+`X-Forwarded-Proto: https` để cookie đăng nhập được gắn `Secure` trên HTTP thuần,
+thứ mà trình duyệt âm thầm loại bỏ.
+
+Nếu proxy chạy trên cùng máy, hãy publish vào loopback để không thứ gì khác chạm được
+tới container:
+
+```yaml
+ports:
+  - "127.0.0.1:3434:3434"
+```
+
+### Dữ liệu
+
+Mọi thứ nằm trong volume `novelhub_data`, mount tại `/data`:
+
+```
+/data
+├── novelhub.db      SQLite database
+├── books/           imported books and covers
+├── inbox/           drop files here for automatic import
+├── uploads/         in-progress chunked uploads
+├── logs/            rotating application logs
+└── backups/         database backups
+```
+
+Để dùng một thư mục trên host thay cho named volume:
+
+```yaml
+volumes:
+  - /srv/novelhub:/data
+```
+
+Container chạy bằng root và sẽ tự tạo nội dung bên trong thư mục.
+
+### Cập nhật
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Migration schema được áp dụng tự động lúc khởi động. Hãy backup trước — xem bên dưới.
+
+### Log
+
+```bash
+docker compose logs -f
+```
+
+Cũng được ghi vào `/data/logs/novelhub.log`, rotate ở mốc 10 MB và giữ 5 file.
+
+---
+
+## Native
+
+Yêu cầu Go 1.26+ và [Bun](https://bun.sh).
+
+```bash
+git clone https://github.com/AzenKain/Novel-Hub.git
+cd Novel-Hub
+cp .env.example .env
+openssl rand -hex 32   # three times
+$EDITOR .env
+
+make run
+```
+
+`make run` build frontend và khởi động server. Để tạo binary độc lập:
+
+```bash
+make build
+./novelhub
+```
+
+Binary cần có `db/schema/` nằm cạnh nó — nó áp dụng các file schema lúc khởi động.
+
+### systemd
+
+`/etc/systemd/system/novelhub.service`:
+
+```ini
+[Unit]
+Description=NovelHub
+After=network.target
+
+[Service]
+Type=simple
+User=novelhub
+WorkingDirectory=/opt/novelhub
+EnvironmentFile=/opt/novelhub/.env
+ExecStart=/opt/novelhub/novelhub
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/novelhub/data
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now novelhub
+sudo journalctl -u novelhub -f
+```
+
+`Restart=always` cũng là điều kiện để dùng `RESTORE_AUTO_RESTART=true`, giúp một lần
+restore database hoàn tất mà không cần can thiệp thủ công.
+
+---
+
+## Backup
+
+**Admin → Operations → Backups** tạo snapshot SQLite nhất quán ngay khi server đang
+chạy, có thể chỉ database hoặc database kèm file sách. Lên lịch tại
+**Operations → Schedules**.
+
+Bản restore được chuẩn bị (stage) và kiểm tra trước, sau đó áp dụng ở lần khởi động
+kế tiếp. Với `RESTORE_AUTO_RESTART=true` (mặc định của Docker), NovelHub tự thoát để
+supervisor khởi động lại nó tự động. Nếu không, hãy tự khởi động lại khi giao diện
+admin báo bản restore đã sẵn sàng.
+
+Backup từ bên ngoài: dừng server rồi copy `DATA_DIR`. Copy `novelhub.db` khi server
+đang chạy có thể chụp phải một lần ghi dở dang — hãy dùng chức năng backup trong
+admin, nó xử lý việc này đúng cách.
+
+---
+
+## Nhập sách
+
+Ba đường:
+
+| Đường | Cách làm |
+|---|---|
+| Upload | **Admin → Books → Upload**, chia chunk để file lớn vẫn qua được kết nối không ổn định |
+| Inbox | Thả file vào `data/inbox/<libraryID>/`, rồi chạy **Operations → Jobs → Scan inbox**. Thư mục lồng nhau được quét sâu tới 5 cấp; file đã nhập sẽ bị xóa và thư mục rỗng được dọn sạch |
+| Calibre | **Admin → Library → Import from Calibre**, trỏ vào thư mục chứa `metadata.db` |
+
+Quá trình quét inbox chờ 10 giây sau khi một file ngừng thay đổi mới nhập, nên không
+bao giờ nhặt phải bản copy dở dang.
+
+---
+
+## Ứng dụng đọc sách
+
+| Giao thức | Endpoint | Xác thực |
+|---|---|---|
+| OPDS 1.2 | `/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
+| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/v1` | Bearer token |
+
+Hoạt động với KOReader, Calibre, Moon+ Reader, Thorium và các client OPDS khác.
+
+OPDS chỉ bị rate limit khi xác thực *thất bại*, nên việc poll bình thường không bao
+giờ bị chặn. Nếu link catalog trỏ sai host — chẳng hạn khi nằm sau proxy có rewrite
+path — hãy đặt `SERVER_URL` thành base URL tuyệt đối đúng.
+
+---
+
+## Xử lý sự cố
+
+**Không truy cập được server trong Docker.** `SERVER_HOST` phải là `0.0.0.0` bên
+trong container. Nếu `.env` đặt `127.0.0.1`, hãy xóa dòng đó; file compose đã đặt
+giá trị đúng.
+
+**Cookie đăng nhập không có cờ `Secure` dù chạy HTTPS.** `TRUST_PROXY` chưa được
+đặt, không bao phủ địa chỉ của proxy, hoặc proxy không gửi `X-Forwarded-Proto`. Xem
+[Reverse Proxy](reverse-proxy.md#bước-3--kiểm-tra).
+
+**Mọi người dùng chung một rate-limit bucket.** Cùng nguyên nhân. Không có
+`TRUST_PROXY`, mọi request trông như đều đến từ proxy.
+
+**Lỗi `413` khi upload.** Do giới hạn body của proxy, không phải của NovelHub. nginx
+mặc định 1 MB; hãy đặt `client_max_body_size 0`.
+
+**Mất database sau khi khởi động lại.** `SQLITE_DB_PATH` hoặc `DATA_DIR` trỏ ra ngoài
+volume đã mount. Trong Docker cả hai đều được file compose đặt đúng — hãy kiểm tra
+xem `.env` có ghi đè chúng không.
+
+**Bị khóa sau một lần sai mật khẩu.** Đã sửa ở các phiên bản hiện tại. Các bản build
+cũ cache một password hash rỗng sau một lần thử thất bại, khiến mật khẩu đúng cũng bị
+từ chối cho tới khi cache hết hạn. Hãy cập nhật.

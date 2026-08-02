@@ -31,7 +31,7 @@ async function searchGoogleBooks(query: string): Promise<OnlineMetadataResult[]>
       publisher: vol.publisher,
       language: vol.language,
       description: vol.description,
-      coverImage: cover,
+      cover_image: cover,
     } as OnlineMetadataResult;
   });
 }
@@ -52,7 +52,7 @@ async function searchOpenLibrary(query: string): Promise<OnlineMetadataResult[]>
       creator: doc.author_name ? doc.author_name.join(", ") : "",
       publisher: doc.publisher ? doc.publisher[0] : "",
       language: doc.language ? doc.language[0] : "",
-      coverImage: cover,
+      cover_image: cover,
     } as OnlineMetadataResult;
   });
 }
@@ -70,7 +70,7 @@ async function searchAniList(query: string): Promise<OnlineMetadataResult[]> {
         format
         countryOfOrigin
         description
-        coverImage {
+        cover_image {
           large
         }
         staff {
@@ -112,7 +112,7 @@ async function searchAniList(query: string): Promise<OnlineMetadataResult[]> {
       title,
       creator: author,
       description: m.description ? m.description.replace(/<[^>]*>?/gm, '') : "",
-      coverImage: m.coverImage?.large || "",
+      cover_image: m.cover_image?.large || "",
       language: m.countryOfOrigin,
       subject: m.genres ? m.genres.join(", ") : "",
     } as OnlineMetadataResult;

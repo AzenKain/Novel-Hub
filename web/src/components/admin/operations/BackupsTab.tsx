@@ -93,8 +93,8 @@ export function BackupsTab() {
                     ? t("admin.operations.db_and_books")
                     : t("admin.operations.database_only")}
                 </td>
-                <td>{formatBytes(item.sizeBytes, t)}</td>
-                <td>{new Date(item.createdAt).toLocaleString()}</td>
+                <td>{formatBytes(item.size_bytes, t)}</td>
+                <td>{new Date(item.created_at).toLocaleString()}</td>
                 <td className="flex justify-end gap-1">
                   <a
                     className="btn btn-xs"

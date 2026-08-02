@@ -147,7 +147,12 @@
       "confirm_restore": "Restore this backup? Current data will be safety-backed up and NovelHub must restart.",
       "restarting": "Restore staged. NovelHub is restarting.",
       "restart_required": "Restore staged. Restart NovelHub to apply it.",
-      "units": { "bytes": "B", "kib": "KiB", "mib": "MiB", "gib": "GiB" },
+      "units": {
+        "bytes": "B",
+        "kib": "KiB",
+        "mib": "MiB",
+        "gib": "GiB"
+      },
       "no_backups": "No backups found"
     }
   },
@@ -157,7 +162,12 @@
     "password": "Password",
     "sign_in": "Sign in",
     "login": "Login",
-    "logout": "Logout"
+    "logout": "Logout",
+    "dont_have_account": "Don't have an account?",
+    "register_now": "Register now",
+    "login_title": "Sign In",
+    "login_desc": "Sign in to access the library.",
+    "back_to_library": "Back to library"
   },
   "common": {
     "cancel": "Cancel",
@@ -312,6 +322,7 @@
     "no_recent_books_hint": "Books you open in the reader will appear here.",
     "all_books": "All books",
     "random_books": "Random books",
+    "random_books_hint": "Refresh the shelf when you want something unexpected.",
     "shuffle_books": "Shuffle",
     "top_books": "Top books",
     "top_books_hint": "Most read books in your library."
@@ -432,7 +443,11 @@
     "goal_edit": "Edit reading goal",
     "goal_words_per_day": "Words per day",
     "goal_books_per_year": "Books per year",
-    "activity_grid": "Annual Reading Activity"
+    "activity_grid": "Annual Reading Activity",
+    "reading_activity_words": "Reading Activity (Words)",
+    "activities_in_year": "{{count}} activities in {{year}}",
+    "less": "Less",
+    "more": "More"
   },
   "review": {
     "submitted": "Review submitted successfully",
@@ -506,7 +521,11 @@
     "registration_guest_desc": "Control who can register and what guests can see.",
     "public_registration": "Enable Public Registration",
     "public_registration_desc": "Allow new users to create accounts.",
+    "login_required": "Require Login",
+    "login_required_desc": "Force all users to sign in to access any content.",
     "guest_mode": "Guest Access Mode",
+    "guest_mode_all": "All Libraries",
+    "guest_mode_selected_libraries": "Selected Libraries",
     "allowed_libraries": "Allowed Libraries",
     "save_access": "Save Access",
     "download_policy": "Download Policy",
@@ -578,33 +597,24 @@
     "runtime_limits": "Runtime Limits",
     "runtime_limits_desc": "Control upload, image, and temporary session size limits.",
     "save_runtime_limits": "Save Limits",
-    "limit_upload_chunk_bytes": "Upload Chunk Size",
+    "limit_upload_chunk_bytes": "Upload Chunk File Size",
     "limit_upload_chunks": "Maximum Chunks per Upload",
     "limit_upload_sessions": "Upload Sessions per User",
-    "limit_upload_bytes": "Maximum Upload Size",
+    "limit_upload_bytes": "Maximum Upload File Size",
     "limit_upload_session_ttl_seconds": "Upload Session Lifetime",
-    "limit_cover_bytes": "Maximum Cover Size",
-    "limit_site_asset_bytes": "Maximum Site Asset Size",
-    "limit_rate_limit_api": "API Requests per Window",
-    "limit_rate_limit_api_window_seconds": "API Rate Limit Window",
-    "limit_rate_limit_auth": "Sign-in Attempts per Window",
-    "limit_rate_limit_auth_window_seconds": "Sign-in Rate Limit Window",
+    "limit_cover_bytes": "Maximum Cover Image Size",
+    "limit_site_asset_bytes": "Maximum System Image Size",
+    "limit_rate_limit_auth": "Sign-in & OPDS Attempts per Window",
+    "limit_rate_limit_auth_window_seconds": "Sign-in & OPDS Rate Limit Window",
+    "rate_limiting_title": "Sign-in & OPDS Rate Limiting",
+    "rate_limit_allow_max": "Allow a maximum of",
+    "rate_limit_every": "sign-in & OPDS attempts within",
+    "rate_limit_per_ip": "seconds",
     "unit_seconds": "seconds",
     "unit_mib": "MiB",
     "unit_minutes": "minutes",
     "unit_count": "count",
     "limit_range": "Allowed: {{min}}–{{max}}"
-  },
-  "kobo": {
-    "title": "Kobo E-Reader Wi-Fi Sync",
-    "subtitle": "Sync books, progress, and covers natively over Wi-Fi on your Kobo Clara, Libra, Forma, or Sage.",
-    "endpoint_label": "Kobo API Endpoint URL",
-    "show_qr": "Show QR Code",
-    "instructions_header": "How to setup your Kobo device:",
-    "step1": "Connect your Kobo e-reader to your computer via USB cable.",
-    "step2": "Open the file .kobo/Kobo/KoboeReader.conf in a text editor.",
-    "step3": "Add or update the [FeatureSettings] section with api_endpoint=",
-    "step4": "Safely eject your Kobo and tap 'Sync' over Wi-Fi!"
   },
   "email": {
     "invalid": "Please enter a valid email address",
@@ -670,5 +680,31 @@
     "step2": "Open the file .kobo/Kobo/KoboeReader.conf in a text editor.",
     "step3": "Add or update the [FeatureSettings] section with api_endpoint=",
     "step4": "Safely eject your Kobo and tap 'Sync' over Wi-Fi!"
+  },
+  "setup": {
+    "title": "NovelHub Setup",
+    "subtitle": "Create your root administrator account and configure initial settings.",
+    "admin_account": "Admin Account",
+    "username_placeholder": "Username",
+    "email_placeholder": "Email",
+    "password_placeholder": "Password (min 8 characters)",
+    "site_info": "Site Info & Branding",
+    "site_title_placeholder": "Site title",
+    "site_desc_placeholder": "Site description",
+    "logo_url_placeholder": "Logo URL (e.g. /pwa-192x192.png or https://...)",
+    "favicon_url_placeholder": "Favicon URL (e.g. /favicon.ico or https://...)",
+    "fetch": "Fetch",
+    "upload_logo": "Upload Logo",
+    "upload_favicon": "Upload Favicon",
+    "use_default": "Use Default",
+    "sidebar_nav": "Sidebar Navigation",
+    "sidebar_nav_desc": "Select which navigation links are visible on the library sidebar.",
+    "policies": "Policies & Access Control",
+    "public_registration": "Enable public registration",
+    "login_required": "Require login to access library",
+    "guest_access": "Guest access",
+    "complete_setup": "Complete Setup",
+    "setup_failed": "Setup failed",
+    "unexpected_error": "An unexpected error occurred"
   }
 }

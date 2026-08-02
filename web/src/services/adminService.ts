@@ -229,9 +229,9 @@ export const adminService = {
     }
   },
 
-  async deleteReview(bookId: string, userId: string): Promise<CommonResponse<unknown>> {
+  async deleteReview(book_id: string, user_id: string): Promise<CommonResponse<unknown>> {
     try {
-      const res = await api.delete(`/admin/reviews/${encodeURIComponent(bookId)}/${userId}`);
+      const res = await api.delete(`/admin/reviews/${encodeURIComponent(book_id)}/${user_id}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -256,9 +256,9 @@ export const adminService = {
     }
   },
 
-  async importCalibre(path: string, libraryId?: string): Promise<CommonResponse<CalibreImportResult>> {
+  async importCalibre(path: string, library_id?: string): Promise<CommonResponse<CalibreImportResult>> {
     try {
-      const res = await api.post("/calibre/import", { path, library_id: libraryId || "" });
+      const res = await api.post("/calibre/import", { path, library_id: library_id || "" });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -268,9 +268,9 @@ export const adminService = {
     }
   },
 
-  async deleteBookFile(fileId: string): Promise<CommonResponse<unknown>> {
+  async deleteBookFile(file_id: string): Promise<CommonResponse<unknown>> {
     try {
-      const res = await api.delete(`/books/files/${encodeURIComponent(fileId)}`);
+      const res = await api.delete(`/books/files/${encodeURIComponent(file_id)}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

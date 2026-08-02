@@ -8,11 +8,11 @@ import (
 )
 
 type ReadingGoalEntity struct {
-	UserID             string    `json:"userId"`
-	TargetWordsPerDay  int64     `json:"targetWordsPerDay"`
-	TargetBooksPerYear int64     `json:"targetBooksPerYear"`
-	CreatedAt          time.Time `json:"createdAt"`
-	UpdatedAt          time.Time `json:"updatedAt"`
+	UserID             string    `json:"user_id"`
+	TargetWordsPerDay  int64     `json:"target_words_per_day"`
+	TargetBooksPerYear int64     `json:"target_books_per_year"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 func (e *ReadingGoalEntity) FromSqlc(res sqlc.ReadingGoal) *ReadingGoalEntity {

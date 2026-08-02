@@ -15,11 +15,11 @@ import { hasPermission } from "@/utils/permission";
 import type { AniListSearchItem } from "@/types";
 
 type TrackerMapCardProps = {
-  bookId: string;
+  book_id: string;
   title: string;
 };
 
-export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title }) => {
+export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const publicSettings = usePublicSettings();
@@ -30,11 +30,11 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title })
   const searchMutation = useSearchTrackerMutation();
   const mapMutation = useMapBookTrackerMutation();
   const syncMutation = useSyncTrackerProgressMutation();
-  const { data: readingProgress } = useTrackerReadingProgressQuery(bookId);
+  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id);
 
   useEffect(() => {
-    if (!progress && readingProgress?.chapterIndex !== undefined) {
-      setProgress(String(readingProgress.chapterIndex + 1));
+    if (!progress && readingProgress?.chapter_index !== undefined) {
+      setProgress(String(readingProgress.chapter_index + 1));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readingProgress]);
@@ -71,7 +71,7 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title })
       return;
     }
     mapMutation.mutate(
-      { book_id: bookId, provider: "anilist", external_series_id: trimmed },
+      { book_id: book_id, provider: "anilist", external_series_id: trimmed },
       {
         onSuccess: () => toast.success(t("trackers.map_success", "Book linked to AniList")),
         onError: (err) =>
@@ -87,7 +87,7 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ bookId, title })
       return;
     }
     syncMutation.mutate(
-      { book_id: bookId, title, progress: value },
+      { book_id: book_id, title, progress: value },
       {
         onSuccess: () => toast.success(t("trackers.sync_success", "Progress synced to AniList")),
         onError: (err) =>

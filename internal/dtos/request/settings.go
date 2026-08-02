@@ -21,7 +21,8 @@ type UpdateSettingsDto struct {
 	SidebarVisibleItems     *[]string               `json:"sidebar.visible_items" validate:"omitempty,max=100"`
 	HomeSections            *HomeSectionSettingsDto `json:"home.sections"`
 	RegistrationEnabled     *bool                   `json:"auth.registration_enabled"`
-	GuestAccessMode         *string                 `json:"guest_access.mode" validate:"omitempty,oneof=all selected_libraries login_required"`
+	LoginRequired           *bool                   `json:"auth.login_required"`
+	GuestAccessMode         *string                 `json:"guest_access.mode" validate:"omitempty,oneof=all selected_libraries"`
 	GuestAccessLibraryIDs   *[]string               `json:"guest_access.library_ids" validate:"omitempty,max=100"`
 	EnableInBookSearch      *bool                   `json:"reader.enable_in_book_search"`
 	EnableCustomFontUpload  *bool                   `json:"font.enable_custom_font_upload"`
@@ -34,8 +35,6 @@ type UpdateSettingsDto struct {
 	CoverBytes              *int64                  `json:"limits.cover_bytes"`
 	SiteAssetBytes          *int64                  `json:"limits.site_asset_bytes"`
 
-	RateLimitAPI               *int   `json:"limits.rate_limit_api"`
-	RateLimitAPIWindowSeconds  *int64 `json:"limits.rate_limit_api_window_seconds"`
 	RateLimitAuth              *int   `json:"limits.rate_limit_auth"`
 	RateLimitAuthWindowSeconds *int64 `json:"limits.rate_limit_auth_window_seconds"`
 
@@ -89,6 +88,7 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 		values["home.sections"] = sections
 	}
 	putPtr(values, "auth.registration_enabled", d.RegistrationEnabled)
+	putPtr(values, "auth.login_required", d.LoginRequired)
 	putPtr(values, "guest_access.mode", d.GuestAccessMode)
 	putPtr(values, "guest_access.library_ids", d.GuestAccessLibraryIDs)
 	putPtr(values, "reader.enable_in_book_search", d.EnableInBookSearch)
@@ -101,8 +101,6 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "limits.upload_session_ttl_seconds", d.UploadSessionTTLSeconds)
 	putPtr(values, "limits.cover_bytes", d.CoverBytes)
 	putPtr(values, "limits.site_asset_bytes", d.SiteAssetBytes)
-	putPtr(values, "limits.rate_limit_api", d.RateLimitAPI)
-	putPtr(values, "limits.rate_limit_api_window_seconds", d.RateLimitAPIWindowSeconds)
 	putPtr(values, "limits.rate_limit_auth", d.RateLimitAuth)
 	putPtr(values, "limits.rate_limit_auth_window_seconds", d.RateLimitAuthWindowSeconds)
 	return values
@@ -112,13 +110,12 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 	known := map[string]bool{
 		"site.title": true, "site.description": true, "site.favicon": true, "site.logo": true,
 		"site.meta_description": true, "sidebar.visible_items": true, "home.sections": true,
-		"auth.registration_enabled": true, "guest_access.mode": true, "guest_access.library_ids": true,
+		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
 		"tracker.anilist_enabled":   true,
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,
-		"limits.rate_limit_api": true, "limits.rate_limit_api_window_seconds": true,
 		"limits.rate_limit_auth": true, "limits.rate_limit_auth_window_seconds": true,
 	}
 	unknown := make([]string, 0)

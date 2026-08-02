@@ -6,6 +6,7 @@ interface SettingsAdminState {
   sidebarItems: string[];
   homeSections: { random_books: boolean; top_books: boolean };
   registration: boolean;
+  loginRequired: boolean;
   guestMode: string;
   guestLibraryIds: string[];
   inBookSearch: boolean;
@@ -24,6 +25,7 @@ interface SettingsAdminState {
   setSidebarItems: (items: string[] | ((prev: string[]) => string[])) => void;
   setHomeSections: (sections: { random_books: boolean; top_books: boolean } | ((prev: any) => any)) => void;
   setRegistration: (enabled: boolean) => void;
+  setLoginRequired: (enabled: boolean) => void;
   setInBookSearch: (enabled: boolean) => void;
   setCustomFontUpload: (enabled: boolean) => void;
   setAnilistTracking: (enabled: boolean) => void;
@@ -49,6 +51,7 @@ const initialState = {
   sidebarItems: [],
   homeSections: initialHomeSections,
   registration: true,
+  loginRequired: false,
   guestMode: "all",
   guestLibraryIds: [],
   inBookSearch: false,
@@ -70,6 +73,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   setSidebarItems: (sidebarItems) => set((state) => ({ sidebarItems: typeof sidebarItems === "function" ? sidebarItems(state.sidebarItems) : sidebarItems })),
   setHomeSections: (homeSections) => set((state) => ({ homeSections: typeof homeSections === "function" ? homeSections(state.homeSections) : homeSections })),
   setRegistration: (registration) => set({ registration }),
+  setLoginRequired: (loginRequired) => set({ loginRequired }),
   setInBookSearch: (inBookSearch) => set({ inBookSearch }),
   setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
   setAnilistTracking: (anilistTracking) => set({ anilistTracking }),
@@ -89,6 +93,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
       sidebarItems: s.sidebar_visible_items || [],
       homeSections: s.home_sections || initialHomeSections,
       registration: s.registration_enabled,
+      loginRequired: s.guest_login_required || false,
       inBookSearch: s.enable_in_book_search || false,
       customFontUpload: s.enable_custom_font_upload || false,
       anilistTracking: s.enable_anilist_tracking ?? true,

@@ -160,11 +160,17 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	return v.(*models.UserEntity), nil
 }
 
+// GetAuthByEmail and GetAuthByID deliberately bypass the cache used by GetByEmail
+// and GetByID. The RAM cache serialises entities as JSON, and UserEntity tags
+// PasswordHash and RefreshToken as `json:"-"` so credentials never leak into a
+// response — which means a cached entity comes back with both fields empty. Any
+// caller that compares a password or a refresh token must read the row itself.
 func (r *userRepository) GetAuthByEmail(ctx context.Context, email string) (*models.UserEntity, error) {
-	user, err := r.GetByEmail(ctx, email)
+	row, err := r.q.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
+	user := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, user); err != nil {
 		return nil, err
 	}
@@ -172,10 +178,11 @@ func (r *userRepository) GetAuthByEmail(ctx context.Context, email string) (*mod
 }
 
 func (r *userRepository) GetAuthByID(ctx context.Context, id string) (*models.UserEntity, error) {
-	user, err := r.GetByID(ctx, id)
+	row, err := r.q.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+	user := (&models.UserEntity{}).FromSqlc(row)
 	if err := r.hydrateRoles(ctx, user); err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 type SeriesEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (e *SeriesEntity) FromSqlc(res sqlc.Series) *SeriesEntity {
@@ -57,7 +57,7 @@ func SeriesEntitiesToResponse(entities []*SeriesEntity) []*response.SeriesRespon
 type PublisherEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (e *PublisherEntity) FromSqlc(res sqlc.Publisher) *PublisherEntity {
@@ -103,7 +103,7 @@ func PublisherEntitiesToResponse(entities []*PublisherEntity) []*response.Publis
 type LanguageEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (e *LanguageEntity) FromSqlc(res sqlc.Language) *LanguageEntity {
@@ -149,8 +149,8 @@ func LanguageEntitiesToResponse(entities []*LanguageEntity) []*response.Language
 type MetadataCountEntity struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
-	BookCount int64  `json:"bookCount"`
-	CoverURL  string `json:"coverUrl,omitempty"`
+	BookCount int64  `json:"book_count"`
+	CoverURL  string `json:"cover_url,omitempty"`
 }
 
 func (e *MetadataCountEntity) ToResponse() *response.MetadataCountResponse {
@@ -180,8 +180,8 @@ type AuthorEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Bio       *string   `json:"bio"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (e *AuthorEntity) FromSqlc(res sqlc.Author) *AuthorEntity {
@@ -231,7 +231,7 @@ func AuthorEntitiesToResponse(entities []*AuthorEntity) []*response.AuthorRespon
 type TagEntity struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (e *TagEntity) FromSqlc(res sqlc.Tag) *TagEntity {

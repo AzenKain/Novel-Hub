@@ -54,7 +54,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
       ) : isSeries ? (
         <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 items-start">
           {filteredItems.map((item) => {
-            const coverUrl = item.coverUrl ? getMediaUrl(item.coverUrl) : "";
+            const cover_url = item.cover_url ? getMediaUrl(item.cover_url) : "";
             return (
               <button
                 key={item.id}
@@ -62,10 +62,10 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
                 onClick={() => onFacetClick(section.type, item, section.nav)}
               >
                 <span className="relative block aspect-[3/4.18] overflow-hidden rounded-lg bg-base-300 shadow-sm ring-1 ring-base-300 transition-[box-shadow,outline-color] duration-200 ease-out group-hover:shadow-md group-hover:ring-primary/35 group-focus-visible:ring-2 group-focus-visible:ring-primary/45">
-                  {coverUrl ? (
+                  {cover_url ? (
                     <>
                       <img
-                        src={coverUrl}
+                        src={cover_url}
                         alt={item.name}
                         loading="lazy"
                         className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105"
@@ -78,7 +78,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
                     </span>
                   )}
                   <span className="absolute left-2 top-2 rounded-full bg-base-100/95 px-2 py-0.5 text-xs font-black text-base-content shadow">
-                    {item.bookCount}
+                    {item.book_count}
                   </span>
                 </span>
                 <span className="mt-3 block line-clamp-3 text-sm font-black leading-snug transition group-hover:text-primary sm:text-base">
@@ -97,7 +97,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
               onClick={() => onFacetClick(section.type, item, section.nav)}
             >
               <span className="badge badge-neutral badge-sm min-w-8">
-                {item.bookCount}
+                {item.book_count}
               </span>
               <span className="truncate text-sm font-semibold text-primary group-hover:underline sm:text-base">
                 {item.name}

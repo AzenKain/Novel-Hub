@@ -71,7 +71,7 @@ function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
 export const LibraryWorkspace = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { bookId } = useParams<{ bookId: string }>();
+  const { book_id } = useParams<{ book_id: string }>();
   const { t } = useTranslation();
   const { user, setLoginModalOpen, setProfileModalOpen, logout } = useAuthStore(useShallow((state) => ({ user: state.user, setLoginModalOpen: state.setLoginModalOpen, setProfileModalOpen: state.setProfileModalOpen, logout: state.logout })));
   const {
@@ -180,7 +180,7 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
-    if (bookId) navigate("/");
+    if (book_id) navigate("/");
   };
 
   const handleCollectionClick = (collection: string) => {
@@ -190,7 +190,7 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
-    if (bookId) navigate("/");
+    if (book_id) navigate("/");
   };
 
   // Filters live in the Zustand store, not the URL, so a saved rule is applied by
@@ -203,14 +203,14 @@ export const LibraryWorkspace = () => {
     setActiveFacet(rule.facet && rule.facet_id ? { type: rule.facet, id: rule.facet_id, name: rule.facet_id } : null);
     setMetadataQuery("");
     setMetadataAlpha("All");
-    if (bookId) navigate("/");
+    if (book_id) navigate("/");
   };
 
   const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {    setActiveNav(nav);
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
-    if (bookId) navigate("/");
+    if (book_id) navigate("/");
   };
 
   const queryClient = useQueryClient();
@@ -621,7 +621,7 @@ export const LibraryWorkspace = () => {
                     {t("library.books_indexed", "books indexed")}
                   </div>
                   <div className="mt-1.5 text-2xl font-black">
-                    {stats.totalBooks || 0}
+                    {stats.total_books || 0}
                   </div>
                 </div>
                 <div className="border-t border-base-200 p-3.5 sm:border-l sm:border-t-0 sm:p-4">
@@ -629,7 +629,7 @@ export const LibraryWorkspace = () => {
                     {t("library.series_tracked", "series tracked")}
                   </div>
                   <div className="mt-1.5 text-2xl font-black">
-                    {stats.seriesTracked || 0}
+                    {stats.series_tracked || 0}
                   </div>
                 </div>
                 <div className="border-t border-base-200 p-3.5 sm:border-l sm:border-t-0 sm:p-4">
@@ -637,7 +637,7 @@ export const LibraryWorkspace = () => {
                     {t("library.need_review", "need review")}
                   </div>
                   <div className="mt-1.5 text-2xl font-black text-secondary">
-                    {stats.needReview || 0}
+                    {stats.need_review || 0}
                   </div>
                 </div>
               </div>
@@ -833,24 +833,24 @@ export const LibraryWorkspace = () => {
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           <div
-            className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || bookId ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
+            className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || book_id ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
           >
             <main className="min-w-0 flex flex-col gap-5">
-              {bookId ? (
+              {book_id ? (
                 <BookDetailPage />
               ) : (
                 isMetadataIndex ? renderMetadataIndex() : renderBookList()
               )}
             </main>
 
-            {!isCatalogPage && !bookId && (
+            {!isCatalogPage && !book_id && (
               <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start flex flex-col gap-5">
                 <RecentlyReadPanel
                   className="mt-0"
                   items={recentReading}
                   onOpen={(item) =>
                     navigate(
-                      `/reader/${item.bookId}${item.fileId ? `?file_id=${encodeURIComponent(item.fileId)}` : ""}`,
+                      `/reader/${item.book_id}${item.file_id ? `?file_id=${encodeURIComponent(item.file_id)}` : ""}`,
                     )
                   }
                   t={t}

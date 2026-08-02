@@ -74,7 +74,7 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{
 		"status":      true,
-		"data":        filtered,
+		"data":        models.BookEntitiesToResponse(filtered),
 		"next_cursor": nextCursor,
 	})
 }
@@ -91,7 +91,7 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: book})
+	return c.JSON(response.CommonResponse{Status: true, Data: book.ToResponse()})
 }
 
 func (h *BookController) DownloadBook(c fiber.Ctx) error {
@@ -135,7 +135,7 @@ func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book files not found"})
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: files})
+	return c.JSON(response.CommonResponse{Status: true, Data: models.BookFileEntitiesToResponse(files)})
 }
 
 func (h *BookController) UploadBookFiles(c fiber.Ctx) error {
@@ -154,7 +154,7 @@ func (h *BookController) UploadBookFiles(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
 	}
-	return c.JSON(response.CommonResponse{Status: true, Message: "Files uploaded successfully", Data: result})
+	return c.JSON(response.CommonResponse{Status: true, Message: "Files uploaded successfully", Data: result.ToResponse()})
 }
 
 func (h *BookController) ListChapters(c fiber.Ctx) error {
@@ -173,7 +173,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: chapters})
+	return c.JSON(response.CommonResponse{Status: true, Data: models.ChapterEntitiesToResponse(chapters)})
 }
 
 func (h *BookController) SearchDeep(c fiber.Ctx) error {
@@ -192,7 +192,7 @@ func (h *BookController) SearchDeep(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	return c.JSON(response.CommonResponse{Status: true, Data: results})
+	return c.JSON(response.CommonResponse{Status: true, Data: models.FTSResultEntitiesToResponse(results)})
 }
 
 func (h *BookController) GetDuplicates(c fiber.Ctx) error {

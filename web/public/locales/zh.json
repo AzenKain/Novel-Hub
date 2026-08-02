@@ -147,7 +147,13 @@
       "confirm_restore": "恢复此备份？当前数据将先安全备份，随后需重启NovelHub。",
       "restarting": "恢复已准备，NovelHub正在重启。",
       "restart_required": "恢复已准备，请重启NovelHub以应用。",
-      "units": { "bytes": "B", "kib": "KiB", "mib": "MiB", "gib": "GiB" }, "no_backups": "没有备份"
+      "units": {
+        "bytes": "B",
+        "kib": "KiB",
+        "mib": "MiB",
+        "gib": "GiB"
+      },
+      "no_backups": "没有备份"
     }
   },
   "auth": {
@@ -156,7 +162,12 @@
     "password": "密码",
     "sign_in": "登录",
     "login": "登录",
-    "logout": "登出"
+    "logout": "登出",
+    "dont_have_account": "还没有账户吗？",
+    "register_now": "立即注册",
+    "login_title": "登录",
+    "login_desc": "登录以访问书库。",
+    "back_to_library": "返回书库"
   },
   "common": {
     "cancel": "取消",
@@ -311,6 +322,7 @@
     "no_recent_books_hint": "您在阅读器中打开的书会显示在这里。",
     "all_books": "所有书籍",
     "random_books": "随机书籍",
+    "random_books_hint": "当你想看到一些意想不到的书籍时，请刷新此栏。",
     "shuffle_books": "洗牌",
     "top_books": "热门书籍",
     "top_books_hint": "库中阅读量最高的书籍。"
@@ -431,7 +443,11 @@
     "goal_edit": "编辑阅读目标",
     "goal_words_per_day": "每日字数",
     "goal_books_per_year": "每年书籍数",
-    "activity_grid": "年度阅读活动"
+    "activity_grid": "年度阅读活动",
+    "reading_activity_words": "阅读活动 (字数)",
+    "activities_in_year": "在 {{year}} 年有 {{count}} 次活动",
+    "less": "较少",
+    "more": "较多"
   },
   "review": {
     "submitted": "评论提交成功",
@@ -505,7 +521,11 @@
     "registration_guest_desc": "控制用户注册与访客可见范围。",
     "public_registration": "启用公开注册",
     "public_registration_desc": "允许新用户创建账号。",
+    "login_required": "强制登录",
+    "login_required_desc": "要求所有用户登录以访问任何内容。",
     "guest_mode": "访客访问模式",
+    "guest_mode_all": "所有藏书库",
+    "guest_mode_selected_libraries": "指定的藏书库",
     "allowed_libraries": "允许的藏书库",
     "save_access": "保存权限设置",
     "download_policy": "下载策略",
@@ -577,33 +597,24 @@
     "runtime_limits": "运行时限制",
     "runtime_limits_desc": "管理上传、图片和临时会话的大小限制。",
     "save_runtime_limits": "保存限制",
-    "limit_upload_chunk_bytes": "上传分块大小",
+    "limit_upload_chunk_bytes": "上传分块文件大小",
     "limit_upload_chunks": "每次上传最大分块数",
     "limit_upload_sessions": "每位用户的上传会话数",
-    "limit_upload_bytes": "最大上传大小",
+    "limit_upload_bytes": "最大上传文件大小",
     "limit_upload_session_ttl_seconds": "上传会话有效期",
-    "limit_cover_bytes": "最大封面大小",
-    "limit_site_asset_bytes": "最大站点资源大小",
-    "limit_rate_limit_api": "每个周期的 API 请求数",
-    "limit_rate_limit_api_window_seconds": "API 速率限制周期",
-    "limit_rate_limit_auth": "每个周期的登录尝试次数",
-    "limit_rate_limit_auth_window_seconds": "登录速率限制周期",
+    "limit_cover_bytes": "最大封面图片大小",
+    "limit_site_asset_bytes": "最大系统图片大小",
+    "limit_rate_limit_auth": "每个周期的登录与 OPDS 尝试次数",
+    "limit_rate_limit_auth_window_seconds": "登录与 OPDS 速率限制周期",
+    "rate_limiting_title": "登录与 OPDS 频率限制",
+    "rate_limit_allow_max": "允许最多",
+    "rate_limit_every": "次登录与 OPDS 尝试，在",
+    "rate_limit_per_ip": "秒内",
     "unit_seconds": "秒",
     "unit_mib": "MiB",
     "unit_minutes": "分钟",
     "unit_count": "个",
     "limit_range": "允许范围：{{min}}–{{max}}"
-  },
-  "kobo": {
-    "title": "Kobo 电纸书 Wi-Fi 原生同步",
-    "subtitle": "在 Kobo Clara、Libra、Forma、Sage 等设备上通过 Wi-Fi 原生同步书籍、进度与封面。",
-    "endpoint_label": "Kobo API Endpoint URL",
-    "show_qr": "显示二维码",
-    "instructions_header": "Kobo 设备设置步骤：",
-    "step1": "使用 USB 数据线将 Kobo 电纸书连接至电脑。",
-    "step2": "使用文本编辑器打开 .kobo/Kobo/KoboeReader.conf 文件。",
-    "step3": "添加或更新 [FeatureSettings] 节下的 api_endpoint=：",
-    "step4": "安全弹出 Kobo 并通过 Wi-Fi 点击“同步”！"
   },
   "email": {
     "invalid": "请输入有效的邮箱地址",
@@ -669,5 +680,31 @@
     "step2": "使用文本编辑器打开 .kobo/Kobo/KoboeReader.conf 文件。",
     "step3": "添加或更新 [FeatureSettings] 部分中的 api_endpoint=",
     "step4": "安全弹出 USB，并在 Kobo 上通过 Wi-Fi 点击“同步”！"
+  },
+  "setup": {
+    "title": "NovelHub 初始设置",
+    "subtitle": "创建您的根管理员账户并配置初始设置。",
+    "admin_account": "管理员账户",
+    "username_placeholder": "用户名",
+    "email_placeholder": "邮箱",
+    "password_placeholder": "密码（至少8个字符）",
+    "site_info": "站点信息与品牌",
+    "site_title_placeholder": "站点标题",
+    "site_desc_placeholder": "站点描述",
+    "logo_url_placeholder": "Logo URL（例如 /pwa-192x192.png 或 https://...）",
+    "favicon_url_placeholder": "Favicon URL（例如 /favicon.ico 或 https://...）",
+    "fetch": "获取",
+    "upload_logo": "上传 Logo",
+    "upload_favicon": "上传 Favicon",
+    "use_default": "使用默认",
+    "sidebar_nav": "侧边栏导航",
+    "sidebar_nav_desc": "选择在图书馆侧边栏中显示哪些导航链接。",
+    "policies": "策略与访问控制",
+    "public_registration": "启用公开注册",
+    "login_required": "需要登录才能访问图书馆",
+    "guest_access": "访客访问",
+    "complete_setup": "完成设置",
+    "setup_failed": "设置失败",
+    "unexpected_error": "发生意外错误"
   }
 }

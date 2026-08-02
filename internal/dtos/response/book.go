@@ -4,15 +4,15 @@ import "time"
 
 type BookFileResponse struct {
 	ID        string    `json:"id"`
-	BookID    string    `json:"bookId"`
+	BookID    string    `json:"book_id"`
 	Path      string    `json:"path"`
 	Format    string    `json:"format"`
-	SizeBytes int64     `json:"sizeBytes"`
-	ModTime   time.Time `json:"modTime"`
+	SizeBytes int64     `json:"size_bytes"`
+	ModTime   time.Time `json:"mod_time"`
 	Hash      *string   `json:"hash,omitempty"`
 	State     *string   `json:"state,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type BookFileUploadResultResponse struct {
@@ -24,61 +24,61 @@ type BookFileUploadResultResponse struct {
 type FileRefResponse struct {
 	ID     string `json:"id"`
 	Path   string `json:"path"`
-	BookID string `json:"bookId"`
+	BookID string `json:"book_id"`
 }
 
 type DuplicateFileResponse struct {
 	Hash           *string `json:"hash,omitempty"`
-	DuplicateCount int64   `json:"duplicateCount"`
-	FileIDs        string  `json:"fileIds"`
+	DuplicateCount int64   `json:"duplicate_count"`
+	FileIDs        string  `json:"file_ids"`
 }
 
 type DuplicateFileDetailResponse struct {
-	FileID       string  `json:"fileId"`
-	BookID       string  `json:"bookId"`
-	BookTitle    string  `json:"bookTitle"`
-	BookCoverURL *string `json:"bookCoverUrl,omitempty"`
-	LibraryID    string  `json:"libraryId"`
+	FileID       string  `json:"file_id"`
+	BookID       string  `json:"book_id"`
+	BookTitle    string  `json:"book_title"`
+	BookCoverURL *string `json:"book_cover_url,omitempty"`
+	LibraryID    string  `json:"library_id"`
 	Format       string  `json:"format"`
-	SizeBytes    int64   `json:"sizeBytes"`
+	SizeBytes    int64   `json:"size_bytes"`
 	Path         string  `json:"path"`
-	CreatedAt    string  `json:"createdAt"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 type DuplicateGroupResponse struct {
 	Hash           string                         `json:"hash"`
-	DuplicateCount int                            `json:"duplicateCount"`
+	DuplicateCount int                            `json:"duplicate_count"`
 	Files          []*DuplicateFileDetailResponse `json:"files"`
 }
 
 type ChapterResponse struct {
 	ID           string    `json:"id"`
-	BookID       string    `json:"bookId"`
+	BookID       string    `json:"book_id"`
 	Title        string    `json:"title"`
-	ContentPath  *string   `json:"contentPath,omitempty"`
-	ChapterIndex int64     `json:"chapterIndex"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ContentPath  *string   `json:"content_path,omitempty"`
+	ChapterIndex int64     `json:"chapter_index"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type BookResponse struct {
 	ID           string              `json:"id"`
-	LibraryID    string              `json:"libraryId"`
+	LibraryID    string              `json:"library_id"`
 	Title        string              `json:"title"`
-	AuthorID     *string             `json:"authorId,omitempty"`
-	AuthorName   *string             `json:"authorName,omitempty"`
+	AuthorID     *string             `json:"author_id,omitempty"`
+	AuthorName   *string             `json:"author_name,omitempty"`
 	Description  *string             `json:"description,omitempty"`
-	CoverURL     *string             `json:"coverUrl,omitempty"`
+	CoverURL     *string             `json:"cover_url,omitempty"`
 	Status       string              `json:"status"`
-	MetadataJSON *string             `json:"metadataJson,omitempty"`
+	MetadataJSON *string             `json:"metadata_json,omitempty"`
 	Files        []*BookFileResponse `json:"files,omitempty"`
-	CreatedAt    time.Time           `json:"createdAt"`
-	UpdatedAt    time.Time           `json:"updatedAt"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt    time.Time           `json:"updated_at"`
 }
 
 type FTSResultResponse struct {
-	BookID    string `json:"bookId"`
-	ChapterID string `json:"chapterId"`
+	BookID    string `json:"book_id"`
+	ChapterID string `json:"chapter_id"`
 	Title     string `json:"title"`
 }
 
@@ -88,5 +88,5 @@ type ReaderBootstrapResponse struct {
 }
 
 type ReaderAssetResponse struct {
-	ContentType string `json:"contentType"`
+	ContentType string `json:"content_type"`
 }

@@ -10,12 +10,12 @@ import (
 
 type ChapterEntity struct {
 	ID           string    `json:"id"`
-	BookID       string    `json:"bookId"`
+	BookID       string    `json:"book_id"`
 	Title        string    `json:"title"`
-	ContentPath  *string   `json:"contentPath"`
-	ChapterIndex int64     `json:"chapterIndex"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ContentPath  *string   `json:"content_path"`
+	ChapterIndex int64     `json:"chapter_index"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 func (e *ChapterEntity) FromSqlc(res sqlc.Chapter) *ChapterEntity {

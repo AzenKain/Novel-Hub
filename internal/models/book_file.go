@@ -10,15 +10,15 @@ import (
 
 type BookFileEntity struct {
 	ID        string    `json:"id"`
-	BookID    string    `json:"bookId"`
+	BookID    string    `json:"book_id"`
 	Path      string    `json:"path"`
 	Format    string    `json:"format"`
-	SizeBytes int64     `json:"sizeBytes"`
-	ModTime   time.Time `json:"modTime"`
+	SizeBytes int64     `json:"size_bytes"`
+	ModTime   time.Time `json:"mod_time"`
 	Hash      *string   `json:"hash"`
 	State     *string   `json:"state"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (e *BookFileEntity) FromSqlc(res sqlc.BookFile) *BookFileEntity {
@@ -99,7 +99,7 @@ func (r *BookFileUploadResult) ToResponse() *response.BookFileUploadResultRespon
 type FileRefEntity struct {
 	ID     string `json:"id"`
 	Path   string `json:"path"`
-	BookID string `json:"bookId"`
+	BookID string `json:"book_id"`
 }
 
 func (e *FileRefEntity) FromSqlc(res sqlc.ListAllFilesRow) *FileRefEntity {
@@ -144,8 +144,8 @@ func FileRefEntitiesToResponse(entities []*FileRefEntity) []*response.FileRefRes
 
 type DuplicateFileEntity struct {
 	Hash           *string `json:"hash"`
-	DuplicateCount int64   `json:"duplicateCount"`
-	FileIDs        string  `json:"fileIds"`
+	DuplicateCount int64   `json:"duplicate_count"`
+	FileIDs        string  `json:"file_ids"`
 }
 
 func (e *DuplicateFileEntity) FromSqlc(res sqlc.GetDuplicateFilesRow) *DuplicateFileEntity {

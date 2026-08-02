@@ -13,7 +13,7 @@ export function isBannedUser(user: User | null | undefined): boolean {
 export function hasPermission(
   user: User | null | undefined,
   permissionKey: string,
-  libraryId?: string,
+  library_id?: string,
   guestPermissions?: string[]
 ): boolean {
   if (typeof permissionKey !== "string" || !permissionKey) return false;
@@ -54,7 +54,7 @@ export function hasPermission(
           if ("library_ids" in conditions) {
             const libraryIds = conditions.library_ids;
             if (!Array.isArray(libraryIds) || libraryIds.some((id) => typeof id !== "string")) return false;
-            if (libraryIds.length > 0 && (!libraryId || !libraryIds.includes(libraryId))) continue;
+            if (libraryIds.length > 0 && (!library_id || !libraryIds.includes(library_id))) continue;
           }
         }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -38,6 +39,52 @@ func setupTestAppWithDB(t *testing.T) (*fiber.App, *sql.DB, error) {
 	server.SetupServer(db, ramCache)
 
 	return server.App, db, nil
+}
+
+// TRUST_PROXY decides whether X-Forwarded-Proto is believed, which decides
+// whether the login cookie gets Secure. Reading it wrong either strips the flag
+// over HTTPS or lets an unproxied client spoof it, so each accepted spelling is
+// pinned here.
+func TestParseTrustProxy(t *testing.T) {
+	tests := []struct {
+		raw       string
+		enabled   bool
+		ranges    bool
+		allowlist []string
+	}{
+		{raw: "false", enabled: false},
+		{raw: "", enabled: false},
+		{raw: "  ", enabled: false},
+		{raw: "FALSE", enabled: false},
+		// Only separators: an empty allowlist trusts nothing, so treat it as off
+		// rather than leaving proxy trust nominally "on".
+		{raw: " , , ", enabled: false},
+		{raw: "true", enabled: true, ranges: true},
+		{raw: "True", enabled: true, ranges: true},
+		{raw: "173.245.48.0/20", enabled: true, allowlist: []string{"173.245.48.0/20"}},
+		{raw: " 10.0.0.5 , 172.16.0.0/12 ", enabled: true, allowlist: []string{"10.0.0.5", "172.16.0.0/12"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.raw, func(t *testing.T) {
+			enabled, cfg := parseTrustProxy(test.raw)
+			if enabled != test.enabled {
+				t.Fatalf("enabled = %v, want %v", enabled, test.enabled)
+			}
+			gotRanges := cfg.Loopback || cfg.Private || cfg.LinkLocal
+			if gotRanges != test.ranges {
+				t.Errorf("built-in ranges = %v, want %v", gotRanges, test.ranges)
+			}
+			if len(cfg.Proxies) != len(test.allowlist) {
+				t.Fatalf("proxies = %#v, want %#v", cfg.Proxies, test.allowlist)
+			}
+			for i, want := range test.allowlist {
+				if cfg.Proxies[i] != want {
+					t.Errorf("proxies[%d] = %q, want %q", i, cfg.Proxies[i], want)
+				}
+			}
+		})
+	}
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -179,9 +226,65 @@ func TestRefreshPrefersRefreshCookieOverAuthorizationHeader(t *testing.T) {
 	}
 }
 
+// Mistyping a password once must not lock a user out. It used to: the failed
+// attempt populated the RAM cache with a JSON-serialised UserEntity, and
+// PasswordHash is tagged `json:"-"` so it came back empty — every later
+// CompareHashAndPassword ran against "" and failed until the entry expired. The
+// same erasure hit RefreshToken, so token refresh broke the same way.
+func TestSigninWorksAfterAFailedAttempt(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-access-secret")
+	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
+
+	app, db, err := setupTestAppWithDB(t)
+	if err != nil {
+		t.Fatalf("failed to setup app: %v", err)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+	userID := uuid.Must(uuid.NewV7()).String()
+	if _, err := db.Exec(`
+		INSERT INTO users (id, email, full_name, password_hash, auth_provider, token_version)
+		VALUES (?, 'typo@example.com', 'Typo', ?, 'LOCAL', 1)
+	`, userID, string(hash)); err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = 'USER'
+	`, userID); err != nil {
+		t.Fatalf("failed to seed roles: %v", err)
+	}
+
+	signin := func(password string) int {
+		body := []byte(`{"email":"typo@example.com","password":"` + password + `"}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("signin request failed: %v", err)
+		}
+		return resp.StatusCode
+	}
+
+	if code := signin("wrong-password"); code != http.StatusUnauthorized {
+		t.Fatalf("wrong password: expected 401, got %d", code)
+	}
+	if code := signin("password123"); code != http.StatusOK {
+		t.Fatalf("correct password after a typo: expected 200, got %d", code)
+	}
+}
+
 // The point of routing the rate limit through RuntimeLimits is that an admin
 // change applies to the very next request, with no restart. This drives that
 // path the way an operator would: sign in, PUT the setting, then get 429'd.
+//
+// It deliberately hammers /auth/signin rather than a plain API route. There is no
+// general API limiter any more — a comic chapter is one request per page, so
+// throttling /api throttled the reader, not an attacker. What is left guards
+// bcrypt, which is the only genuinely expensive thing an unauthenticated caller
+// can reach.
 func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -228,49 +331,55 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 	}
 	token := signinData.Data.AccessToken
 
-	health := func() int {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	putLimit := func(max int, window int) {
+		body := []byte(fmt.Sprintf(`{"limits.rate_limit_auth":%d,"limits.rate_limit_auth_window_seconds":%d}`, max, window))
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/settings/", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp, err := app.Test(req)
 		if err != nil {
-			t.Fatalf("health request failed: %v", err)
+			t.Fatalf("settings request failed: %v", err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			respBody, _ := io.ReadAll(resp.Body)
+			t.Fatalf("expected settings status 200, got %d: %s", resp.StatusCode, string(respBody))
+		}
+	}
+
+	// A wrong password: rejected on credentials, but still consumes budget, which is
+	// the whole point of limiting this endpoint.
+	attemptSignin := func() int {
+		body := []byte(`{"email":"ratelimit-admin@example.com","password":"wrong-password"}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("signin attempt failed: %v", err)
 		}
 		return resp.StatusCode
 	}
 
-	// Default budget is roomy, so a handful of calls must all succeed.
+	// Roomy budget first, so the calls below fail on the password rather than the
+	// limiter — otherwise the tightening step below would prove nothing.
+	putLimit(1000, 3600)
 	for i := range 5 {
-		if code := health(); code != http.StatusOK {
-			t.Fatalf("request %d before tightening: expected 200, got %d", i, code)
+		if code := attemptSignin(); code == http.StatusTooManyRequests {
+			t.Fatalf("attempt %d was rate limited while the budget was still 1000", i)
 		}
 	}
 
-	settingsBody := []byte(`{"limits.rate_limit_api":10,"limits.rate_limit_api_window_seconds":3600}`)
-	settingsReq := httptest.NewRequest(http.MethodPut, "/api/v1/settings/", bytes.NewReader(settingsBody))
-	settingsReq.Header.Set("Content-Type", "application/json")
-	settingsReq.Header.Set("Authorization", "Bearer "+token)
-	settingsResp, err := app.Test(settingsReq)
-	if err != nil {
-		t.Fatalf("settings request failed: %v", err)
-	}
-	if settingsResp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(settingsResp.Body)
-		t.Fatalf("expected settings status 200, got %d: %s", settingsResp.StatusCode, string(body))
-	}
+	// No restart between the PUT below and the calls after it.
+	putLimit(1, 3600)
 
-	// No restart between the PUT above and the calls below.
 	sawTooMany := false
-	for i := range 40 {
-		if health() == http.StatusTooManyRequests {
+	for range 40 {
+		if attemptSignin() == http.StatusTooManyRequests {
 			sawTooMany = true
 			break
 		}
-		if i == 39 {
-			t.Fatal("rate limit never engaged after lowering it to 10/hour")
-		}
 	}
 	if !sawTooMany {
-		t.Fatal("expected a 429 once the tightened limit took effect")
+		t.Fatal("expected a 429 once the sign-in budget was lowered to 1/hour")
 	}
 }
 

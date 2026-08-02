@@ -92,10 +92,10 @@ export const featureService = {
   },
 
   getReadingProgress: async (
-    bookId: string,
+    book_id: string,
   ): Promise<CommonResponse<ReadingHistory>> => {
     try {
-      const res = await api.get(`/reader/history/progress/${bookId}`);
+      const res = await api.get(`/reader/history/progress/${book_id}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -105,11 +105,11 @@ export const featureService = {
   },
 
   getBookEngagementStats: async (
-    bookId: string,
+    book_id: string,
   ): Promise<CommonResponse<BookEngagementStats>> => {
     try {
       const res = await api.get(
-        `/books/${encodeURIComponent(bookId)}/engagement`,
+        `/books/${encodeURIComponent(book_id)}/engagement`,
       );
       return res.data;
     } catch (error) {
@@ -120,7 +120,7 @@ export const featureService = {
   },
 
   listBookReviews: async (
-    bookId: string,
+    book_id: string,
     cursor?: string,
     limit = 20,
   ): Promise<CursorPaginatedResponse<BookReview>> => {
@@ -128,7 +128,7 @@ export const featureService = {
       const params = new URLSearchParams({ limit: limit.toString() });
       if (cursor) params.append("cursor", cursor);
       const res = await api.get(
-        `/books/${encodeURIComponent(bookId)}/reviews?${params.toString()}`,
+        `/books/${encodeURIComponent(book_id)}/reviews?${params.toString()}`,
       );
       return res.data;
     } catch (error) {
@@ -139,11 +139,11 @@ export const featureService = {
   },
 
   getBookUserState: async (
-    bookId: string,
+    book_id: string,
   ): Promise<CommonResponse<BookUserState>> => {
     try {
       const res = await api.get(
-        `/books/${encodeURIComponent(bookId)}/user-state`,
+        `/books/${encodeURIComponent(book_id)}/user-state`,
       );
       return res.data;
     } catch (error) {
@@ -154,11 +154,11 @@ export const featureService = {
   },
 
   setBookmark: async (
-    bookId: string,
+    book_id: string,
     bookmarked: boolean,
   ): Promise<CommonResponse<Bookmark | null>> => {
     try {
-      const res = await api.put(`/bookmarks/${encodeURIComponent(bookId)}`, {
+      const res = await api.put(`/bookmarks/${encodeURIComponent(book_id)}`, {
         bookmarked,
       });
       return res.data;
@@ -188,12 +188,12 @@ export const featureService = {
   },
 
   upsertBookReview: async (
-    bookId: string,
+    book_id: string,
     rating: number,
     review: string,
   ): Promise<CommonResponse<BookReview>> => {
     try {
-      const res = await api.put(`/books/${encodeURIComponent(bookId)}/review`, {
+      const res = await api.put(`/books/${encodeURIComponent(book_id)}/review`, {
         rating,
         review,
       });
@@ -205,10 +205,10 @@ export const featureService = {
     }
   },
 
-  deleteBookReview: async (bookId: string): Promise<CommonResponse<void>> => {
+  deleteBookReview: async (book_id: string): Promise<CommonResponse<void>> => {
     try {
       const res = await api.delete(
-        `/books/${encodeURIComponent(bookId)}/review`,
+        `/books/${encodeURIComponent(book_id)}/review`,
       );
       return res.data;
     } catch (error) {
@@ -219,12 +219,12 @@ export const featureService = {
   },
 
   adminDeleteBookReview: async (
-    bookId: string,
-    userId: string,
+    book_id: string,
+    user_id: string,
   ): Promise<CommonResponse<void>> => {
     try {
       const res = await api.delete(
-        `/admin/reviews/${encodeURIComponent(bookId)}/${userId}`,
+        `/admin/reviews/${encodeURIComponent(book_id)}/${user_id}`,
       );
       return res.data;
     } catch (error) {
@@ -312,11 +312,11 @@ export const featureService = {
 
   addBookToCollection: async (
     collectionId: string,
-    bookId: string,
+    book_id: string,
   ): Promise<CommonResponse<void>> => {
     try {
       const res = await api.post(`/collections/${encodeURIComponent(collectionId)}/books`, {
-        bookId,
+        book_id,
       });
       return res.data;
     } catch (error) {
@@ -328,11 +328,11 @@ export const featureService = {
 
   removeBookFromCollection: async (
     collectionId: string,
-    bookId: string,
+    book_id: string,
   ): Promise<CommonResponse<void>> => {
     try {
       const res = await api.delete(
-        `/collections/${encodeURIComponent(collectionId)}/books/${encodeURIComponent(bookId)}`,
+        `/collections/${encodeURIComponent(collectionId)}/books/${encodeURIComponent(book_id)}`,
       );
       return res.data;
     } catch (error) {

@@ -11,15 +11,15 @@ import (
 type JobScheduleEntity struct {
 	ID              string     `json:"id"`
 	Name            string     `json:"name"`
-	TaskType        string     `json:"taskType"`
-	PayloadJSON     *string    `json:"payloadJson"`
-	IntervalMinutes int64      `json:"intervalMinutes"`
+	TaskType        string     `json:"task_type"`
+	PayloadJSON     *string    `json:"payload_json"`
+	IntervalMinutes int64      `json:"interval_minutes"`
 	Enabled         bool       `json:"enabled"`
-	NextRunAt       time.Time  `json:"nextRunAt"`
-	LastRunAt       *time.Time `json:"lastRunAt"`
-	LastJobID       *string    `json:"lastJobId"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
+	NextRunAt       time.Time  `json:"next_run_at"`
+	LastRunAt       *time.Time `json:"last_run_at"`
+	LastJobID       *string    `json:"last_job_id"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 func (e *JobScheduleEntity) FromSqlc(res sqlc.JobSchedule) *JobScheduleEntity {

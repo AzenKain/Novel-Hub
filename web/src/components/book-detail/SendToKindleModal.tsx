@@ -37,7 +37,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
     setSuccessMsg(null);
 
     sendEmailMutation.mutate(
-      { bookId: book.id, recipientEmail: email },
+      { book_id: book.id, recipientEmail: email },
       {
         onSuccess: () => {
           setSuccessMsg(t("email.sent_success", "Book successfully dispatched to your email!"));

@@ -114,6 +114,7 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('sidebar.visible_items', '["books","hot_books","downloaded_books","top_rated_books","bookmarked_books","read_books","unread_books","subjects","series","authors","publishers","languages","file_formats","ratings","archived_books","collections"]'),
     ('home.sections', '{"random_books":true,"top_books":true}'),
     ('auth.registration_enabled', 'true'),
+    ('auth.login_required', 'false'),
     ('tracker.anilist_enabled', 'true'),
     ('guest_access.mode', '"all"'),
     ('guest_access.library_ids', '[]'),

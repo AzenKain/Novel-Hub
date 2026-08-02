@@ -55,9 +55,9 @@ export function useUploadAdminLogoMutation() {
 // Calibre
 export function useCalibreImportMutation() {
   const queryClient = useQueryClient();
-  return useMutation<CalibreImportResult, Error, { path: string; libraryId?: string }>({
-    mutationFn: async ({ path, libraryId }) => {
-      const res = await adminService.importCalibre(path, libraryId);
+  return useMutation<CalibreImportResult, Error, { path: string; library_id?: string }>({
+    mutationFn: async ({ path, library_id }) => {
+      const res = await adminService.importCalibre(path, library_id);
       if (!res.status) throw new Error(res.message || "Failed to import Calibre library");
       return res.data ?? { imported_count: 0 };
     },
@@ -254,8 +254,8 @@ export function useReviewsQuery(page: number, limit = 20) {
 export function useDeleteReviewMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ bookId, userId }: { bookId: string; userId: string }) => {
-      const res = await adminService.deleteReview(bookId, userId);
+    mutationFn: async ({ book_id, user_id }: { book_id: string; user_id: string }) => {
+      const res = await adminService.deleteReview(book_id, user_id);
       if (!res.status) throw new Error(res.message || "Failed to delete review");
       return res;
     },

@@ -80,7 +80,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   activeCollection: "",
   activeChip: "All",
   activeFacet: null,
-  stats: { totalBooks: 0, seriesTracked: 0, needReview: 0 },
+  stats: { total_books: 0, series_tracked: 0, need_review: 0 },
   metadataFacets: {
     authors: [],
     series: [],

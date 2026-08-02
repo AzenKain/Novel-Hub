@@ -59,26 +59,38 @@ type FiberServer struct {
 	Restart   chan struct{}
 }
 
-func NewHTTPServer() *FiberServer {
-	// Behind a reverse proxy, c.IP() returns the proxy's address unless we trust it,
-	// which would put every visitor in one rate-limit bucket. Off by default: trusting
-	// X-Forwarded-For when not actually behind a proxy lets anyone spoof their IP.
-	trustProxy := config.GetBoolConfigWithDefault("TRUST_PROXY", false)
-	trustProxyConfig := fiber.TrustProxyConfig{}
-	if trustProxy {
-		if proxies := config.GetConfigWithDefault("TRUSTED_PROXIES", ""); proxies != "" {
-			for _, proxy := range strings.Split(proxies, ",") {
-				if proxy = strings.TrimSpace(proxy); proxy != "" {
-					trustProxyConfig.Proxies = append(trustProxyConfig.Proxies, proxy)
-				}
-			}
-		} else {
-			// No explicit allowlist: trust the usual local/private reverse-proxy ranges.
-			trustProxyConfig.Loopback = true
-			trustProxyConfig.Private = true
-			trustProxyConfig.LinkLocal = true
+// parseTrustProxy reads TRUST_PROXY: "false"/empty disables it, "true" trusts
+// loopback/private/link-local proxies, anything else is a comma-separated
+// allowlist of proxy IPs or CIDRs. See docs/configuration.md.
+//
+// Stays an env var rather than an admin setting because fiber freezes it at
+// New(), before the database opens, and c.Scheme() reads it to decide whether
+// the auth cookie gets Secure — you would have to sign in to fix the setting
+// that breaks signing in.
+func parseTrustProxy(raw string) (bool, fiber.TrustProxyConfig) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || strings.EqualFold(raw, "false") {
+		return false, fiber.TrustProxyConfig{}
+	}
+	if strings.EqualFold(raw, "true") {
+		return true, fiber.TrustProxyConfig{Loopback: true, Private: true, LinkLocal: true}
+	}
+	config := fiber.TrustProxyConfig{}
+	for _, proxy := range strings.Split(raw, ",") {
+		if proxy = strings.TrimSpace(proxy); proxy != "" {
+			config.Proxies = append(config.Proxies, proxy)
 		}
 	}
+	// A value of only separators would otherwise enable proxy trust with an empty
+	// allowlist, which trusts nothing but still reads as "on".
+	if len(config.Proxies) == 0 {
+		return false, fiber.TrustProxyConfig{}
+	}
+	return true, config
+}
+
+func NewHTTPServer() *FiberServer {
+	trustProxy, trustProxyConfig := parseTrustProxy(config.GetConfigWithDefault("TRUST_PROXY", "false"))
 
 	app := fiber.New(fiber.Config{
 		ServerHeader:       "novelhub-api",
@@ -92,11 +104,11 @@ func NewHTTPServer() *FiberServer {
 		JSONDecoder:        jsonx.Unmarshal,
 		TrustProxy:         trustProxy,
 		TrustProxyConfig:   trustProxyConfig,
-		ProxyHeader:        config.GetConfigWithDefault("PROXY_HEADER", fiber.HeaderXForwardedFor),
+		ProxyHeader:        fiber.HeaderXForwardedFor,
 		EnableIPValidation: trustProxy,
 	})
 
-	if !config.GetBoolConfigWithDefault("DISABLE_REQUEST_LOG", false) {
+	if !config.GetBoolConfigWithDefault("DISABLE_REQUEST_LOG", true) {
 		app.Use(middleware.New(middleware.Config{Logger: &log.Logger}))
 	}
 
@@ -113,10 +125,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		}
 		return c.Status(fiber.StatusServiceUnavailable).JSON(response.CommonResponse{Status: false, Message: "restore pending; restart NovelHub to continue"})
 	})
-	frontendURL := config.GetConfigWithDefault("FRONTEND_URL", "http://localhost:5173")
+	// The production build is embedded here and calls "/api/v1" relatively, so the
+	// page and API are always same-origin and CORS never applies. Only the vite dev
+	// server is a genuinely different origin.
 	s.App.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
-			frontendURL,
 			"http://localhost:5173",
 			"http://127.0.0.1:5173",
 		},
@@ -320,7 +333,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return c.SendFile(safePath)
 	})
 
-	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService), middlewares.RateLimit(settingsService, middlewares.RateLimitAPI))
+	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService))
 	v1 := api.Group("/v1")
 
 	v1.Get("/health", func(c fiber.Ctx) error {

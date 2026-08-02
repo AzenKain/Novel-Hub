@@ -31,7 +31,7 @@ func (s *bookService) FilterReadableBooks(ctx context.Context, books []*models.B
 	c := resolveClaims(claims)
 	if isGuestClaims(c) {
 		settings, err := s.settings.Public(ctx)
-		if err == nil && settings.GuestAccess.Mode == "login_required" {
+		if err == nil && settings.GuestLoginRequired {
 			return nil, false
 		}
 	}

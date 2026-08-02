@@ -10,17 +10,17 @@ import (
 
 type BookEntity struct {
 	ID           string            `json:"id"`
-	LibraryID    string            `json:"libraryId"`
+	LibraryID    string            `json:"library_id"`
 	Title        string            `json:"title"`
-	AuthorID     *string           `json:"authorId"`
-	AuthorName   *string           `json:"authorName,omitempty"`
+	AuthorID     *string           `json:"author_id"`
+	AuthorName   *string           `json:"author_name,omitempty"`
 	Description  *string           `json:"description"`
-	CoverURL     *string           `json:"coverUrl"`
+	CoverURL     *string           `json:"cover_url"`
 	Status       string            `json:"status"`
-	MetadataJSON *string           `json:"metadataJson"`
+	MetadataJSON *string           `json:"metadata_json"`
 	Files        []*BookFileEntity `json:"files,omitempty"`
-	CreatedAt    time.Time         `json:"createdAt"`
-	UpdatedAt    time.Time         `json:"updatedAt"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
 }
 
 func (e *BookEntity) FromSqlc(res sqlc.Book) *BookEntity {
@@ -88,8 +88,8 @@ func BookEntitiesToResponse(entities []*BookEntity) []*response.BookResponse {
 }
 
 type FTSResultEntity struct {
-	BookID    string `json:"bookId"`
-	ChapterID string `json:"chapterId"`
+	BookID    string `json:"book_id"`
+	ChapterID string `json:"chapter_id"`
 	Title     string `json:"title"`
 }
 

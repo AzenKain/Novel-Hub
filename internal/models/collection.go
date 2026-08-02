@@ -9,10 +9,10 @@ import (
 
 type CollectionEntity struct {
 	ID        string    `json:"id"`
-	UserID    string    `json:"userId"`
+	UserID    string    `json:"user_id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (e *CollectionEntity) FromSqlc(res sqlc.Collection) *CollectionEntity {

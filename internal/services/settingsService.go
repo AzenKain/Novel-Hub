@@ -46,7 +46,7 @@ var (
 		"collections",
 	}
 	availableHomeSections = []string{"random_books", "top_books"}
-	availableGuestModes   = []string{"all", "selected_libraries", "login_required"}
+	availableGuestModes   = []string{"all", "selected_libraries"}
 )
 
 type SettingsService interface {
@@ -96,8 +96,6 @@ func defaultRuntimeLimits() models.RuntimeLimits {
 		CoverBytes:              constants.MaxCoverBytes,
 		SiteAssetBytes:          constants.MaxSiteAssetBytes,
 
-		RateLimitAPI:               constants.MaxRateLimitAPI,
-		RateLimitAPIWindowSeconds:  constants.MaxRateLimitAPIWindowSeconds,
 		RateLimitAuth:              constants.MaxRateLimitAuth,
 		RateLimitAuthWindowSeconds: constants.MaxRateLimitAuthWindowSeconds,
 	}
@@ -114,8 +112,6 @@ func runtimeLimitBounds() models.RuntimeLimitBounds {
 			CoverBytes:              constants.MinRuntimeCoverBytes,
 			SiteAssetBytes:          constants.MinRuntimeSiteAssetBytes,
 
-			RateLimitAPI:               constants.MinRuntimeRateLimitAPI,
-			RateLimitAPIWindowSeconds:  constants.MinRuntimeRateLimitAPIWindowSeconds,
 			RateLimitAuth:              constants.MinRuntimeRateLimitAuth,
 			RateLimitAuthWindowSeconds: constants.MinRuntimeRateLimitAuthWindowSeconds,
 		},
@@ -128,8 +124,6 @@ func runtimeLimitBounds() models.RuntimeLimitBounds {
 			CoverBytes:              constants.HardMaxCoverBytes,
 			SiteAssetBytes:          constants.HardMaxSiteAssetBytes,
 
-			RateLimitAPI:               constants.HardMaxRateLimitAPI,
-			RateLimitAPIWindowSeconds:  constants.HardMaxRateLimitAPIWindowSeconds,
 			RateLimitAuth:              constants.HardMaxRateLimitAuth,
 			RateLimitAuthWindowSeconds: constants.HardMaxRateLimitAuthWindowSeconds,
 		},
@@ -146,6 +140,7 @@ func defaultPublicSettings() *models.PublicSettings {
 		SidebarVisibleItems:   append([]string(nil), availableSidebarItems...),
 		HomeSections:          models.HomeSectionSettings{RandomBooks: true, TopBooks: true},
 		RegistrationEnabled:   true,
+		GuestLoginRequired:    false,
 		GuestAccess:           models.LibraryPolicy{Mode: "all", LibraryIDs: []string{}},
 		GuestPermissions:      constants.GetDefaultPermissionsForRole(constants.RoleTypeGuest),
 		SetupCompleted:        true,
@@ -303,9 +298,10 @@ func (s *settingsService) GuestAllows(libraryID string) bool {
 	if current == nil {
 		current = defaultPublicSettings()
 	}
-	switch current.GuestAccess.Mode {
-	case "login_required":
+	if current.GuestLoginRequired {
 		return false
+	}
+	switch current.GuestAccess.Mode {
 	case "selected_libraries":
 		return libraryID != "" && slices.Contains(current.GuestAccess.LibraryIDs, libraryID)
 	default:
@@ -356,6 +352,7 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.SidebarVisibleItems = filterKnown(rawStringSlice(raw, "sidebar.visible_items", settings.SidebarVisibleItems), availableSidebarItems)
 	settings.HomeSections = rawHomeSections(raw, settings.HomeSections)
 	settings.RegistrationEnabled = rawBool(raw, "auth.registration_enabled", settings.RegistrationEnabled)
+	settings.GuestLoginRequired = rawBool(raw, "auth.login_required", false)
 	settings.GuestAccess = rawPolicy(raw, "guest_access", settings.GuestAccess, availableGuestModes)
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
@@ -379,8 +376,6 @@ func runtimeLimitsFromRaw(raw map[string]any) (models.RuntimeLimits, error) {
 		{"limits.upload_session_ttl_seconds", limits.UploadSessionTTLSeconds, int64(constants.MinRuntimeUploadSessionTTL / time.Second), int64(constants.HardMaxUploadSessionTTL / time.Second), func(value int64) { limits.UploadSessionTTLSeconds = value }},
 		{"limits.cover_bytes", limits.CoverBytes, constants.MinRuntimeCoverBytes, constants.HardMaxCoverBytes, func(value int64) { limits.CoverBytes = value }},
 		{"limits.site_asset_bytes", limits.SiteAssetBytes, constants.MinRuntimeSiteAssetBytes, constants.HardMaxSiteAssetBytes, func(value int64) { limits.SiteAssetBytes = value }},
-		{"limits.rate_limit_api", int64(limits.RateLimitAPI), constants.MinRuntimeRateLimitAPI, constants.HardMaxRateLimitAPI, func(value int64) { limits.RateLimitAPI = int(value) }},
-		{"limits.rate_limit_api_window_seconds", limits.RateLimitAPIWindowSeconds, constants.MinRuntimeRateLimitAPIWindowSeconds, constants.HardMaxRateLimitAPIWindowSeconds, func(value int64) { limits.RateLimitAPIWindowSeconds = value }},
 		{"limits.rate_limit_auth", int64(limits.RateLimitAuth), constants.MinRuntimeRateLimitAuth, constants.HardMaxRateLimitAuth, func(value int64) { limits.RateLimitAuth = int(value) }},
 		{"limits.rate_limit_auth_window_seconds", limits.RateLimitAuthWindowSeconds, constants.MinRuntimeRateLimitAuthWindowSeconds, constants.HardMaxRateLimitAuthWindowSeconds, func(value int64) { limits.RateLimitAuthWindowSeconds = value }},
 	}
@@ -550,6 +545,7 @@ func allowedSettingKey(key string) bool {
 		"sidebar.visible_items",
 		"home.sections",
 		"auth.registration_enabled",
+		"auth.login_required",
 		"guest_access.mode",
 		"guest_access.library_ids",
 		"reader.enable_in_book_search",

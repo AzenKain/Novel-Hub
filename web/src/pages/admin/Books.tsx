@@ -186,10 +186,10 @@ export function Books() {
         book={actionBook}
         onClose={() => setActionBook(null)}
         onRead={(book) => {
-          const fileId = book.files?.[0]?.id;
+          const file_id = book.files?.[0]?.id;
           setActionBook(null);
           navigate(
-            `/reader/${book.id}${fileId ? `?file_id=${encodeURIComponent(fileId)}` : ""}`,
+            `/reader/${book.id}${file_id ? `?file_id=${encodeURIComponent(file_id)}` : ""}`,
           );
         }}
         onEdit={(book) => {
@@ -333,7 +333,7 @@ export function Books() {
                           <FileText className="h-4 w-4 shrink-0 text-base-content/45" />
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-[11px] font-semibold">{fileNameFromPath(file.path)}</div>
-                            <div className="text-[10px] uppercase text-base-content/45">{file.format || "file"} · {formatFileSize(file.sizeBytes)}</div>
+                            <div className="text-[10px] uppercase text-base-content/45">{file.format || "file"} · {formatFileSize(file.size_bytes)}</div>
                           </div>
                         </div>
                       ))
@@ -387,8 +387,8 @@ export function Books() {
                           onClick={() => handleSelectResult(res)}
                           className="flex gap-3 p-2 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors"
                         >
-                          {res.coverImage ? (
-                            <img src={res.coverImage} loading="lazy" className="w-9 h-12 object-cover rounded bg-base-200 border border-base-200 shrink-0" referrerPolicy="no-referrer" />
+                          {res.cover_image ? (
+                            <img src={res.cover_image} loading="lazy" className="w-9 h-12 object-cover rounded bg-base-200 border border-base-200 shrink-0" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="w-9 h-12 rounded bg-base-200 border border-base-200 flex items-center justify-center text-[8px] text-base-content/40 font-bold shrink-0">—</div>
                           )}
@@ -422,7 +422,7 @@ export function Books() {
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
                       <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Series ID</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.seriesIndex} onChange={e => setFormData({ ...formData, seriesIndex: e.target.value })} />
+                      <input type="text" className="input input-bordered w-full" value={formData.series_index} onChange={e => setFormData({ ...formData, series_index: e.target.value })} />
                     </div>
                   </div>
 
@@ -453,13 +453,13 @@ export function Books() {
                     <textarea rows={6} className="textarea textarea-bordered w-full leading-relaxed resize-y" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                   </div>
 
-                  {editingBook?.metadataJson && (
+                  {editingBook?.metadata_json && (
                     <div className="flex flex-col gap-1.5 w-full mt-4">
                       <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Nhận diện (Identifiers)</label>
                       <div className="bg-base-200/50 p-3 rounded-lg text-xs font-mono break-all max-h-32 overflow-y-auto">
                         {(() => {
                           try {
-                            const meta = JSON.parse(editingBook.metadataJson);
+                            const meta = JSON.parse(editingBook.metadata_json);
                             return meta.identifier ? JSON.stringify(meta.identifier, null, 2) : "No identifiers found";
                           } catch (e) {
                             return "Invalid JSON";
@@ -512,9 +512,9 @@ export function Books() {
           libraries={libraries}
           importing={calibreImportMutation.isPending}
           onClose={() => setShowCalibreModal(false)}
-          onImport={(path, libraryId) => {
+          onImport={(path, library_id) => {
             calibreImportMutation.mutate(
-              { path, libraryId: libraryId || undefined },
+              { path, library_id: library_id || undefined },
               {
                 onSuccess: (data) => {
                   toast.success(t("admin.calibre_import_success", { count: data.imported_count }));

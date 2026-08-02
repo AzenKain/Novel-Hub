@@ -19,7 +19,7 @@ export function useLibraryStatsQuery() {
     queryFn: async () => {
       const res = await featureService.getLibraryStats();
       if (!res.status) throw new Error(res.message || "Failed to fetch library stats");
-      return res.data || { totalBooks: 0, needReview: 0, seriesTracked: 0 };
+      return res.data || { total_books: 0, need_review: 0, series_tracked: 0 };
     },
   });
 }
@@ -34,7 +34,7 @@ export function useCollectionsQuery(enabled = true) {
       if (!res.status) throw new Error(res.message || "Failed to fetch collections");
       
       const collections = res.data || [];
-      const nextCursor = collections.length === 50 ? collections[collections.length - 1].createdAt : null;
+      const nextCursor = collections.length === 50 ? collections[collections.length - 1].created_at : null;
       
       return { data: collections, nextCursor };
     },
@@ -111,8 +111,8 @@ export function useDuplicatesQuery() {
 export function useDeleteBookFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (fileId: string) => {
-      const res = await adminService.deleteBookFile(fileId);
+    mutationFn: async (file_id: string) => {
+      const res = await adminService.deleteBookFile(file_id);
       if (!res.status) throw new Error(res.message || "Failed to delete file");
       return res;
     },

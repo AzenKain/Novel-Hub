@@ -15,26 +15,26 @@ func TestValuesOmitsAbsentFields(t *testing.T) {
 func TestValuesUnwrapsPresentFields(t *testing.T) {
 	title := "NovelHub"
 	registration := false
-	apiMax := 42
+	authMax := 42
 	window := int64(90)
 	libraries := []string{"lib-1"}
 	randomBooks := true
 
 	dto := &UpdateSettingsDto{
-		SiteTitle:                 &title,
-		RegistrationEnabled:       &registration,
-		RateLimitAPI:              &apiMax,
-		RateLimitAPIWindowSeconds: &window,
-		GuestAccessLibraryIDs:     &libraries,
-		HomeSections:              &HomeSectionSettingsDto{RandomBooks: &randomBooks},
+		SiteTitle:                  &title,
+		RegistrationEnabled:        &registration,
+		RateLimitAuth:              &authMax,
+		RateLimitAuthWindowSeconds: &window,
+		GuestAccessLibraryIDs:      &libraries,
+		HomeSections:               &HomeSectionSettingsDto{RandomBooks: &randomBooks},
 	}
 
 	values := dto.Values()
 	for key, want := range map[string]any{
-		"site.title":                           title,
-		"auth.registration_enabled":            registration,
-		"limits.rate_limit_api":                apiMax,
-		"limits.rate_limit_api_window_seconds": window,
+		"site.title":                            title,
+		"auth.registration_enabled":             registration,
+		"limits.rate_limit_auth":                authMax,
+		"limits.rate_limit_auth_window_seconds": window,
 	} {
 		if got := values[key]; got != want {
 			t.Errorf("%s = %#v, want %#v", key, got, want)

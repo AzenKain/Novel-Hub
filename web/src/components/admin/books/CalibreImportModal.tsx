@@ -9,7 +9,7 @@ type CalibreImportModalProps = {
   libraries: Library[];
   importing: boolean;
   onClose: () => void;
-  onImport: (path: string, libraryId: string) => void;
+  onImport: (path: string, library_id: string) => void;
 };
 
 export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
@@ -21,12 +21,12 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [path, setPath] = useState("");
-  const [libraryId, setLibraryId] = useState("");
+  const [library_id, setLibraryId] = useState("");
 
   const submit = (event: React.SyntheticEvent) => {
     event.preventDefault();
     if (!path.trim() || importing) return;
-    onImport(path.trim(), libraryId);
+    onImport(path.trim(), library_id);
   };
 
   return (
@@ -71,7 +71,7 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
             <select
               id="calibre-library"
               className="select select-bordered focus:select-primary"
-              value={libraryId}
+              value={library_id}
               onChange={(event) => setLibraryId(event.target.value)}
               disabled={importing}
             >

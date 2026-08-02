@@ -8,7 +8,7 @@ interface AudioPlayerProps {
   onTimeUpdate?: (time: number) => void;
   title?: string;
   author?: string;
-  coverUrl?: string;
+  cover_url?: string;
 }
 
 export function AudioPlayer({
@@ -17,7 +17,7 @@ export function AudioPlayer({
   onTimeUpdate,
   title,
   author,
-  coverUrl,
+  cover_url,
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -111,9 +111,9 @@ export function AudioPlayer({
       />
 
       <div className="card w-full max-w-lg bg-[var(--reader-ui-surface-strong)] border border-[var(--reader-ui-border)] shadow-xl p-6">
-        {coverUrl && (
+        {cover_url && (
           <figure className="mb-6">
-            <img src={coverUrl} alt={t("reader.cover_art")} className="w-64 h-64 object-cover rounded-xl shadow-lg" />
+            <img src={cover_url} alt={t("reader.cover_art")} className="w-64 h-64 object-cover rounded-xl shadow-lg" />
           </figure>
         )}
         <div className="text-center mb-8">

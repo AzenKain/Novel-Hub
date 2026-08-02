@@ -10,16 +10,16 @@ import (
 
 type HighlightEntity struct {
 	ID          string     `json:"id"`
-	UserID      string     `json:"userId"`
-	BookID      string     `json:"bookId"`
-	ChapterID   string     `json:"chapterId"`
-	TextContent string     `json:"textContent"`
-	StartIndex  int64      `json:"startIndex"`
-	EndIndex    int64      `json:"endIndex"`
+	UserID      string     `json:"user_id"`
+	BookID      string     `json:"book_id"`
+	ChapterID   string     `json:"chapter_id"`
+	TextContent string     `json:"text_content"`
+	StartIndex  int64      `json:"start_index"`
+	EndIndex    int64      `json:"end_index"`
 	Color       string     `json:"color"`
 	Note        *string    `json:"note,omitempty"`
-	CreatedAt   *time.Time `json:"createdAt"`
-	UpdatedAt   *time.Time `json:"updatedAt"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }
 
 func (e *HighlightEntity) FromSqlc(res sqlc.Highlight) *HighlightEntity {

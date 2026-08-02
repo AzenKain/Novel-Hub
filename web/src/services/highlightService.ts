@@ -3,28 +3,28 @@ import type { Highlight } from "@/types";
 
 export const highlightService = {
   async createHighlight(
-    bookId: string,
-    chapterId: string,
-    textContent: string,
-    startIndex: number,
-    endIndex: number,
+    book_id: string,
+    chapter_id: string,
+    text_content: string,
+    start_index: number,
+    end_index: number,
     color: string,
     note?: string
   ): Promise<Highlight> {
     const { data } = await api.post("/highlights", {
-      bookId,
-      chapterId,
-      textContent,
-      startIndex,
-      endIndex,
+      book_id,
+      chapter_id,
+      text_content,
+      start_index,
+      end_index,
       color,
       note,
     });
     return data.data;
   },
 
-  async getHighlights(chapterId: string): Promise<Highlight[]> {
-    const { data } = await api.get(`/highlights?chapterId=${chapterId}`);
+  async getHighlights(chapter_id: string): Promise<Highlight[]> {
+    const { data } = await api.get(`/highlights?chapter_id=${chapter_id}`);
     return data.data;
   },
 

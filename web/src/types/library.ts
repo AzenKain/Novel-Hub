@@ -6,29 +6,26 @@ export interface Library {
 }
 
 export interface LibraryStats {
-  totalBooks: number;
-  needReview: number;
-  seriesTracked: number;
+  total_books: number;
+  need_review: number;
+  series_tracked: number;
 }
 
 export interface Collection {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ReadingGoal {
-  userId: string;
-  targetWordsPerDay: number;
-  targetBooksPerYear: number;
-  updatedAt: string;
+  user_id: string;
+  target_words_per_day: number;
+  target_books_per_year: number;
+  updated_at: string;
 }
 
-// Mirrors the backend SmartCollectionRuleDto — the subset of search params a
-// saved filter can replay. Keys are snake_case because they go straight into the
-// /library query string.
 export interface SmartCollectionRule {
   search?: string;
   library_id?: string;
@@ -41,9 +38,9 @@ export interface SmartCollectionRule {
 
 export interface SmartCollection {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
   rule: SmartCollectionRule;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }

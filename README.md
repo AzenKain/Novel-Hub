@@ -2,6 +2,8 @@
 
 Self-hosted, local-first digital book library manager. Organize, read, and manage your entire digital book collection — EPUB, MOBI, PDF, DOCX, FB2, and more — from a single, high-performance web interface.
 
+**Docs:** [English](docs/en/configuration.md) · [Tiếng Việt](docs/vi/configuration.md) · [日本語](docs/ja/configuration.md) · [한국어](docs/ko/configuration.md) · [简体中文](docs/zh/configuration.md)
+
 ---
 
 ## Features
@@ -32,6 +34,14 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 
 ## Quick Start
 
+### Docker
+
+```bash
+cp .env.example .env
+openssl rand -hex 32   # three times — one per secret in .env
+docker compose up -d
+```
+
 ### Run Locally
 
 ```bash
@@ -39,13 +49,12 @@ cp .env.example .env
 make run
 ```
 
-Access the UI at `http://127.0.0.1:3434`. On first launch, the Setup Wizard (`/setup`) will guide you through creating the root administrator account and configuring initial policies.
+Open `http://127.0.0.1:3434`. The Setup Wizard (`/setup`) runs on first launch
+and creates the root administrator.
 
-### Docker
-
-```bash
-docker compose up -d
-```
+Behind a reverse proxy, add `TRUST_PROXY=true` to `.env` and forward
+`X-Forwarded-For` and `X-Forwarded-Proto` — see
+[Reverse Proxy](docs/en/reverse-proxy.md).
 
 ---
 
@@ -106,32 +115,34 @@ novelhub/
 
 ---
 
-## Environment Variables
+## Configuration
 
-| Variable | Default | Description |
-|---|---|---|
-| `SERVER_HOST` | `127.0.0.1` | Server bind IP address |
-| `SERVER_PORT` | `3434` | Server listening port |
-| `FRONTEND_URL` | `http://your-domain.com` | Allowed frontend origin URL for CORS and auth redirects |
-| `DATA_DIR` | `./data` | Root directory for uploaded books, covers, and media files |
-| `SQLITE_DB_PATH` | `./data/novelhub.db` | SQLite database file path |
-| `JWT_SECRET` | — | Required secret key for access token signing |
-| `JWT_REFRESH_SECRET` | — | Required secret key for refresh token signing |
-| `DB_ENCRYPTION_KEY` | — | Required 32-byte hex key for AES-256-GCM envelope encryption |
-| `TOKEN_VERSION_CACHE` | `true` | Cache token versions in RAM for single-instance deployments |
-| `SQLITE_CACHE_SIZE_KB` | `262144` | Total SQLite page-cache budget in KB (256 MB) |
-| `SQLITE_MMAP_SIZE_BYTES` | `536870912` | Memory-mapped I/O ceiling in bytes (512 MB) |
-| `COOKIE_SECURE` | `false` | Enable Secure flag on authentication cookies (requires HTTPS) |
-| `COOKIE_DOMAIN` | — | Domain attribute for session cookies (leave empty for host-only) |
-| `DISABLE_REQUEST_LOG` | `true` | Disable per-request console logging for maximum throughput |
-| `DISABLE_RESPONSE_COMPRESSION` | `false` | Disable Fiber response gzip/brotli compression |
-| `ENABLE_PREFORK` | `false` | Enable multi-process worker preforking across CPU cores |
-| `DISABLE_STARTUP_MESSAGE` | `false` | Disable Fiber startup ASCII banner |
-| `LOG_MAX_SIZE_MB` | `10` | Maximum size in MB of active log file before rolling rotation |
-| `LOG_MAX_FILES` | `5` | Maximum number of rotated log backup files retained |
-| `RESTORE_AUTO_RESTART` | `false` | Gracefully exit process after staging database restore for container supervisor restart |
+Four environment variables matter — three secrets and one proxy setting.
+Everything else auto-tunes or is configured in the admin UI.
 
-Database restores are validated and staged first. With `RESTORE_AUTO_RESTART=true`, NovelHub exits gracefully so the process supervisor (Docker/systemd) can restart it and apply the staged restore before opening SQLite. Otherwise, restart NovelHub manually after the admin UI reports that the restore is ready.
+```bash
+cp .env.example .env
+openssl rand -hex 32   # run three times, one per secret
+```
+
+| Variable | Description |
+|---|---|
+| `JWT_SECRET` | **Required.** Signs access tokens |
+| `JWT_REFRESH_SECRET` | **Required.** Signs refresh tokens |
+| `DB_ENCRYPTION_KEY` | **Required.** Encrypts third-party tokens stored in the database |
+| `TRUST_PROXY` | `false` (default), `true`, or a list of proxy IPs/CIDRs. Set when behind nginx/Caddy/Cloudflare |
+
+Site identity, registration, guest access, permissions, upload limits and rate
+limits are all set in the setup wizard and admin Settings — not in `.env`.
+
+Full reference: **[Configuration](docs/en/configuration.md)** ·
+**[Deployment](docs/en/deployment.md)** ·
+**[Reverse Proxy](docs/en/reverse-proxy.md)**
+
+Other languages: [Tiếng Việt](docs/vi/configuration.md) ·
+[日本語](docs/ja/configuration.md) ·
+[한국어](docs/ko/configuration.md) ·
+[简体中文](docs/zh/configuration.md)
 
 ---
 

@@ -26,9 +26,9 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
   const gradientClass = GRADIENTS[charCode % 6];
   const format = (book.files?.[0]?.format || "BOOK").toUpperCase();
   
-  const meta = book.metadataJson ? parseMetadata(book.metadataJson) : {};
+  const meta = book.metadata_json ? parseMetadata(book.metadata_json) : {};
   const series = meta.series;
-  const authorName = book.authorName || book.authorId || t('library.unknown_author', 'Unknown');
+  const author_name = book.author_name || book.author_id || t('library.unknown_author', 'Unknown');
 
   return (
     <article 
@@ -43,9 +43,9 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
       }}
     >
       <figure className={`relative aspect-[3/4.12] w-full text-white flex flex-col justify-between p-4 bg-linear-to-br ${gradientClass}`}>
-        {book.coverUrl ? (
+        {book.cover_url ? (
           <>
-            <img src={getMediaUrl(book.coverUrl)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
+            <img src={getMediaUrl(book.cover_url)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
             <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
           </>
         ) : (
@@ -61,13 +61,13 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
         <strong className="text-base line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary" title={book.title}>{book.title}</strong>
         <p 
           className="text-sm text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer"
-          title={authorName}
+          title={author_name}
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(authorName)}`);
+            navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(author_name)}`);
           }}
         >
-          {authorName}
+          {author_name}
         </p>
         {series && (
           <p 

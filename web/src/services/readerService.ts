@@ -3,10 +3,10 @@ import type { BootstrapResponse, CommonResponse, ReadingGoal, SearchSnippet } fr
 import axios from "axios";
 
 export const readerService = {
-  async getBootstrap(bookId: string, fileId?: string): Promise<CommonResponse<BootstrapResponse>> {
-    const query = fileId ? `?file_id=${encodeURIComponent(fileId)}` : "";
+  async getBootstrap(book_id: string, file_id?: string): Promise<CommonResponse<BootstrapResponse>> {
+    const query = file_id ? `?file_id=${encodeURIComponent(file_id)}` : "";
     try {
-      const res = await api.get(`/reader/${bookId}/bootstrap${query}`);
+      const res = await api.get(`/reader/${book_id}/bootstrap${query}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<BootstrapResponse>;
@@ -14,10 +14,10 @@ export const readerService = {
     }
   },
 
-  async getChapterHtml(bookId: string, chapterId: string, fileId?: string): Promise<string> {
-    const query = fileId ? `?file_id=${encodeURIComponent(fileId)}` : "";
+  async getChapterHtml(book_id: string, chapter_id: string, file_id?: string): Promise<string> {
+    const query = file_id ? `?file_id=${encodeURIComponent(file_id)}` : "";
     try {
-      const res = await api.get(`/reader/${bookId}/chapter/${encodeURIComponent(chapterId)}${query}`, {
+      const res = await api.get(`/reader/${book_id}/chapter/${encodeURIComponent(chapter_id)}${query}`, {
         responseType: 'text'
       });
       return res.data;
@@ -27,9 +27,9 @@ export const readerService = {
     }
   },
 
-  async searchInBook(bookId: string, query: string): Promise<CommonResponse<SearchSnippet[]>> {
+  async searchInBook(book_id: string, query: string): Promise<CommonResponse<SearchSnippet[]>> {
     try {
-      const res = await api.get(`/books/${bookId}/search`, {
+      const res = await api.get(`/books/${book_id}/search`, {
         params: { q: query },
       });
       return res.data;
@@ -39,9 +39,9 @@ export const readerService = {
     }
   },
 
-  async syncReadingSession(bookId: string, duration: number, words: number): Promise<void> {
+  async syncReadingSession(book_id: string, duration: number, words: number): Promise<void> {
     await api.post('/reader/stats/session', {
-      bookId,
+      book_id,
       duration,
       words,
     });
@@ -57,8 +57,8 @@ export const readerService = {
     return data.data;
   },
 
-  async upsertReadingGoal(targetWordsPerDay: number, targetBooksPerYear: number): Promise<ReadingGoal> {
-    const { data } = await api.put('/reader/goals/', { targetWordsPerDay, targetBooksPerYear });
+  async upsertReadingGoal(target_words_per_day: number, target_books_per_year: number): Promise<ReadingGoal> {
+    const { data } = await api.put('/reader/goals/', { target_words_per_day, target_books_per_year });
     return data.data;
   }
 };

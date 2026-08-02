@@ -2,6 +2,8 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/etag"
+
 	"novelhub/internal/controllers"
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
@@ -17,5 +19,7 @@ func SetupReaderRoutes(router fiber.Router, controller *controllers.ReaderContro
 	reader.Get("/:id/file", middlewares.OptionalJwtAccess(userRepo), controller.GetFile)
 	reader.Get("/:id/images", middlewares.OptionalJwtAccess(userRepo), controller.ListImages)
 	reader.Post("/:id/cover", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), controller.UpdateCover)
-	reader.Get("/:id/asset/*", middlewares.OptionalJwtAccess(userRepo), controller.GetAsset)
+	// Assets are one request per comic page — a 200-page volume is 200 hits that
+	// each re-open the archive. The ETag lets a re-read return 304 instead.
+	reader.Get("/:id/asset/*", etag.New(), middlewares.OptionalJwtAccess(userRepo), controller.GetAsset)
 }

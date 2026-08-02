@@ -14,10 +14,10 @@ type JobEntity struct {
 	Status      *string   `json:"status"`
 	Progress    *int64    `json:"progress"`
 	Total       *int64    `json:"total"`
-	ErrorMsg    *string   `json:"errorMsg"`
-	PayloadJSON *string   `json:"payloadJson"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ErrorMsg    *string   `json:"error_msg"`
+	PayloadJSON *string   `json:"payload_json"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (e *JobEntity) FromSqlc(res sqlc.Job) *JobEntity {

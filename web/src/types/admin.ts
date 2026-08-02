@@ -64,15 +64,15 @@ export type UpdateRolePermissionsRequest = {
 export type UpdateSettingsRequest = Record<string, unknown>;
 
 export interface AdminReview {
-  userId: string;
-  bookId: string;
+  user_id: string;
+  book_id: string;
   rating: number;
   review?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  userName?: string;
-  userEmail?: string;
-  bookTitle?: string;
+  created_at?: string;
+  updated_at?: string;
+  user_name?: string;
+  user_email?: string;
+  book_title?: string;
 }
 
 export interface SiteSettings {
@@ -102,8 +102,6 @@ export interface RuntimeLimits {
   upload_session_ttl_seconds: number;
   cover_bytes: number;
   site_asset_bytes: number;
-  rate_limit_api: number;
-  rate_limit_api_window_seconds: number;
   rate_limit_auth: number;
   rate_limit_auth_window_seconds: number;
 }
@@ -123,6 +121,7 @@ export interface PublicSettings {
   sidebar_visible_items: string[];
   home_sections: HomeSectionSettings;
   registration_enabled: boolean;
+  guest_login_required: boolean;
   guest_access: LibraryPolicy;
   guest_permissions?: string[];
   enable_in_book_search?: boolean;
@@ -165,8 +164,8 @@ export interface BackgroundJob {
   total?: number;
   errorMsg?: string;
   payloadJson?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface JobTask {
@@ -184,8 +183,8 @@ export interface JobSchedule {
   nextRunAt: string;
   lastRunAt?: string;
   lastJobId?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UpsertJobScheduleInput {
@@ -198,8 +197,8 @@ export interface UpsertJobScheduleInput {
 
 export interface LogFileInfo {
   name: string;
-  sizeBytes: number;
-  updatedAt: string;
+  size_bytes: number;
+  updated_at: string;
 }
 
 export interface LogTail {
@@ -209,8 +208,8 @@ export interface LogTail {
 
 export interface BackupInfo {
   name: string;
-  sizeBytes: number;
-  createdAt: string;
+  size_bytes: number;
+  created_at: string;
   includeBooks: boolean;
 }
 

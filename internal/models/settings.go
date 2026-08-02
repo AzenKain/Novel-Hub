@@ -32,6 +32,7 @@ type PublicSettings struct {
 	SidebarVisibleItems    []string            `json:"sidebar_visible_items"`
 	HomeSections           HomeSectionSettings `json:"home_sections"`
 	RegistrationEnabled    bool                `json:"registration_enabled"`
+	GuestLoginRequired     bool                `json:"guest_login_required"`
 	GuestAccess            LibraryPolicy       `json:"guest_access"`
 	GuestPermissions       []string            `json:"guest_permissions"`
 	EnableInBookSearch     bool                `json:"enable_in_book_search"`
@@ -52,8 +53,9 @@ type RuntimeLimits struct {
 	CoverBytes              int64 `json:"cover_bytes"`
 	SiteAssetBytes          int64 `json:"site_asset_bytes"`
 
-	RateLimitAPI               int   `json:"rate_limit_api"`
-	RateLimitAPIWindowSeconds  int64 `json:"rate_limit_api_window_seconds"`
+	// Guards the bcrypt-backed endpoints (sign-in and OPDS Basic auth). There is
+	// deliberately no general API limit: a self-hosted reader legitimately fires
+	// hundreds of asset requests per comic chapter.
 	RateLimitAuth              int   `json:"rate_limit_auth"`
 	RateLimitAuthWindowSeconds int64 `json:"rate_limit_auth_window_seconds"`
 }

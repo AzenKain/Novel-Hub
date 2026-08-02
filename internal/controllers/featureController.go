@@ -453,7 +453,7 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 	}
 	return ctx.JSON(fiber.Map{
 		"status":      true,
-		"data":        books,
+		"data":        models.BookEntitiesToResponse(books),
 		"next_cursor": nextCursor,
 	})
 }

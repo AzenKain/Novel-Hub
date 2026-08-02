@@ -23,7 +23,7 @@ func (e *ReaderBootstrapEntity) ToResponse() *response.ReaderBootstrapResponse {
 
 type ReaderAssetEntity struct {
 	Data        []byte `json:"-"`
-	ContentType string `json:"contentType"`
+	ContentType string `json:"content_type"`
 }
 
 func (e *ReaderAssetEntity) ToResponse() *response.ReaderAssetResponse {

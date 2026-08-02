@@ -13,46 +13,46 @@ export interface MetadataJSON {
   identifier?: { id: string; value: string }[];
   meta?: { name?: string; content?: string; Name?: string; Content?: string }[];
   series?: string;
-  seriesIndex?: string;
+  series_index?: string;
 }
 
 export interface BookFile {
   id: string;
-  bookId: string;
+  book_id: string;
   path: string;
   format: string;
-  sizeBytes: number;
-  modTime: string;
+  size_bytes: number;
+  mod_time: string;
   hash?: string;
   state?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Book {
   id: string;
-  libraryId?: string;
+  library_id?: string;
   title: string;
-  authorId?: string;
-  authorName?: string;
+  author_id?: string;
+  author_name?: string;
   description?: string;
-  coverUrl?: string;
-  filePath?: string;
+  cover_url?: string;
+  file_path?: string;
   status: string;
-  metadataJson?: string;
+  metadata_json?: string;
   files?: BookFile[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Chapter {
   id: string;
-  bookId: string;
+  book_id: string;
   title: string;
-  contentPath?: string;
-  chapterIndex: number;
-  createdAt: string;
-  updatedAt: string;
+  content_path?: string;
+  chapter_index: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SearchBookParams {
@@ -74,28 +74,26 @@ export interface SearchDeepResult {
 }
 
 export interface DuplicateFileDetail {
-  fileId: string;
-  bookId: string;
-  bookTitle: string;
-  bookCoverUrl?: string;
-  libraryId: string;
+  file_id: string;
+  book_id: string;
+  book_title: string;
+  book_cover_url?: string;
+  library_id: string;
   format: string;
-  sizeBytes: number;
+  size_bytes: number;
   path: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface DuplicateGroupResult {
   hash: string;
-  duplicateCount: number;
+  duplicate_count: number;
   files: DuplicateFileDetail[];
 }
 
 export interface DuplicateFileResult {
   hash: string;
-  duplicateCount?: number;
   duplicate_count?: number;
-  fileIds?: string;
   file_ids?: string;
 }
 
@@ -106,16 +104,16 @@ export interface OnlineMetadataResult {
   language?: string;
   description?: string;
   subject?: string;
-  coverImage?: string;
+  cover_image?: string;
   series?: string;
-  seriesIndex?: string;
+  series_index?: string;
 }
 
 export interface MetadataCount {
   id: string;
   name: string;
-  bookCount: number;
-  coverUrl?: string;
+  book_count: number;
+  cover_url?: string;
 }
 
 export interface BootstrapResponse {
@@ -125,16 +123,16 @@ export interface BootstrapResponse {
 
 export interface Highlight {
   id: string;
-  userId: string;
-  bookId: string;
-  chapterId: string;
-  textContent: string;
-  startIndex: number;
-  endIndex: number;
+  user_id: string;
+  book_id: string;
+  chapter_id: string;
+  text_content: string;
+  start_index: number;
+  end_index: number;
   color: string;
   note?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SearchSnippet {

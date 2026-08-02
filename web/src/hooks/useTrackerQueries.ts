@@ -31,14 +31,14 @@ export function useSearchTrackerMutation() {
   });
 }
 
-export function useTrackerReadingProgressQuery(bookId: string) {
+export function useTrackerReadingProgressQuery(book_id: string) {
   return useQuery({
-    queryKey: ["trackerReadingProgress", bookId],
+    queryKey: ["trackerReadingProgress", book_id],
     queryFn: async () => {
-      const res = await featureService.getReadingProgress(bookId);
+      const res = await featureService.getReadingProgress(book_id);
       return res.status ? res.data : null;
     },
-    enabled: !!bookId,
+    enabled: !!book_id,
     staleTime: 0,
     refetchOnMount: "always",
     retry: false,

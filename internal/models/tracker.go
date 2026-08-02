@@ -10,13 +10,13 @@ import (
 
 type UserTrackerEntity struct {
 	ID           string     `json:"id"`
-	UserID       string     `json:"userId"`
+	UserID       string     `json:"user_id"`
 	Provider     string     `json:"provider"`
 	AccessToken  string     `json:"-"`
 	RefreshToken *string    `json:"-"`
-	ExpiresAt    *time.Time `json:"expiresAt"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	ExpiresAt    *time.Time `json:"expires_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 func (e *UserTrackerEntity) FromSqlc(res sqlc.UserTracker) (*UserTrackerEntity, error) {
@@ -59,10 +59,10 @@ func (e *UserTrackerEntity) ToResponse() *response.UserTrackerResponse {
 
 type BookTrackerMappingEntity struct {
 	ID               string    `json:"id"`
-	BookID           string    `json:"bookId"`
+	BookID           string    `json:"book_id"`
 	Provider         string    `json:"provider"`
-	ExternalSeriesID string    `json:"externalSeriesId"`
-	CreatedAt        time.Time `json:"createdAt"`
+	ExternalSeriesID string    `json:"external_series_id"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 func (e *BookTrackerMappingEntity) FromSqlc(res sqlc.BookTrackerMapping) *BookTrackerMappingEntity {

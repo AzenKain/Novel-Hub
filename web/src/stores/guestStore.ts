@@ -2,26 +2,26 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface GuestBookmark {
-  bookId: string;
-  createdAt: string;
+  book_id: string;
+  created_at: string;
 }
 
 export interface GuestProgress {
-  bookId: string;
-  chapterId: string;
-  progressPercent: number;
-  updatedAt: string;
+  book_id: string;
+  chapter_id: string;
+  progress_percent: number;
+  updated_at: string;
 }
 
 interface GuestState {
   bookmarks: GuestBookmark[];
   progressMap: Record<string, GuestProgress>;
 
-  addBookmark: (bookId: string) => void;
-  removeBookmark: (bookId: string) => void;
-  isBookmarked: (bookId: string) => boolean;
-  saveProgress: (bookId: string, chapterId: string, progressPercent: number) => void;
-  getProgress: (bookId: string) => GuestProgress | null;
+  addBookmark: (book_id: string) => void;
+  removeBookmark: (book_id: string) => void;
+  isBookmarked: (book_id: string) => boolean;
+  saveProgress: (book_id: string, chapter_id: string, progress_percent: number) => void;
+  getProgress: (book_id: string) => GuestProgress | null;
   clearGuestData: () => void;
 }
 
@@ -31,32 +31,32 @@ export const useGuestStore = create<GuestState>()(
       bookmarks: [],
       progressMap: {},
 
-      addBookmark: (bookId) => {
+      addBookmark: (book_id) => {
         const { bookmarks } = get();
-        if (!bookmarks.some((b) => b.bookId === bookId)) {
-          set({ bookmarks: [...bookmarks, { bookId, createdAt: new Date().toISOString() }] });
+        if (!bookmarks.some((b) => b.book_id === book_id)) {
+          set({ bookmarks: [...bookmarks, { book_id, created_at: new Date().toISOString() }] });
         }
       },
 
-      removeBookmark: (bookId) => {
-        set({ bookmarks: get().bookmarks.filter((b) => b.bookId !== bookId) });
+      removeBookmark: (book_id) => {
+        set({ bookmarks: get().bookmarks.filter((b) => b.book_id !== book_id) });
       },
 
-      isBookmarked: (bookId) => {
-        return get().bookmarks.some((b) => b.bookId === bookId);
+      isBookmarked: (book_id) => {
+        return get().bookmarks.some((b) => b.book_id === book_id);
       },
 
-      saveProgress: (bookId, chapterId, progressPercent) => {
+      saveProgress: (book_id, chapter_id, progress_percent) => {
         set({
           progressMap: {
             ...get().progressMap,
-            [bookId]: { bookId, chapterId, progressPercent, updatedAt: new Date().toISOString() },
+            [book_id]: { book_id, chapter_id, progress_percent, updated_at: new Date().toISOString() },
           },
         });
       },
 
-      getProgress: (bookId) => {
-        return get().progressMap[bookId] || null;
+      getProgress: (book_id) => {
+        return get().progressMap[book_id] || null;
       },
 
       clearGuestData: () => {

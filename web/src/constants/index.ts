@@ -1,32 +1,31 @@
 export const POLICY_MODES = [
-  { value: "all", label: "All" },
-  { value: "disabled", label: "Disabled" },
-  { value: "selected_libraries", label: "Selected Libraries" },
+  { value: "all", labelKey: "settings.policy_mode_all" },
+  { value: "disabled", labelKey: "settings.policy_mode_disabled" },
+  { value: "selected_libraries", labelKey: "settings.policy_mode_selected_libraries" },
 ];
 
 export const GUEST_MODES = [
-  { value: "all", label: "All Libraries" },
-  { value: "selected_libraries", label: "Selected Libraries" },
-  { value: "login_required", label: "Login Required" },
+  { value: "all", labelKey: "settings.guest_mode_all" },
+  { value: "selected_libraries", labelKey: "settings.guest_mode_selected_libraries" },
 ];
 
 export const SIDEBAR_LABELS: Record<string, string> = {
-  books: "All Books",
-  hot_books: "Hot Books",
-  downloaded_books: "Downloaded Books",
-  top_rated_books: "Top Rated Books",
-  bookmarked_books: "Bookmarked Books",
-  read_books: "Read Books",
-  unread_books: "Unread Books",
-  subjects: "Subjects",
-  series: "Series",
-  authors: "Authors",
-  publishers: "Publishers",
-  languages: "Languages",
-  file_formats: "File Formats",
-  ratings: "Ratings",
-  archived_books: "Archived Books",
-  collections: "Collections",
+  books: "library.books",
+  hot_books: "library.hot_books",
+  downloaded_books: "library.downloaded_books",
+  top_rated_books: "library.top_rated_books",
+  bookmarked_books: "library.bookmarked_books",
+  read_books: "library.read_books",
+  unread_books: "library.unread_books",
+  subjects: "library.subjects",
+  series: "library.series",
+  authors: "library.authors",
+  publishers: "library.publishers",
+  languages: "library.languages",
+  file_formats: "library.file_formats",
+  ratings: "library.ratings",
+  archived_books: "library.archived_books",
+  collections: "library.collections",
 };
 
 export const BOOK_FILE_ACCEPT =

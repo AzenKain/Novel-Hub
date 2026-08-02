@@ -147,7 +147,13 @@
       "confirm_restore": "이 백업을 복원하시겠습니까? 현재 데이터는 안전 백업 후 NovelHub를 다시 시작해야 합니다.",
       "restarting": "복원 준비 완료. NovelHub를 다시 시작합니다.",
       "restart_required": "복원 준비 완료. NovelHub를 다시 시작하세요.",
-      "units": { "bytes": "B", "kib": "KiB", "mib": "MiB", "gib": "GiB" }, "no_backups": "백업 없음"
+      "units": {
+        "bytes": "B",
+        "kib": "KiB",
+        "mib": "MiB",
+        "gib": "GiB"
+      },
+      "no_backups": "백업 없음"
     }
   },
   "auth": {
@@ -156,7 +162,12 @@
     "password": "비밀번호",
     "sign_in": "로그인",
     "login": "로그인",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "dont_have_account": "계정이 없으신가요?",
+    "register_now": "지금 등록",
+    "login_title": "로그인",
+    "login_desc": "라이브러리에 액세스하려면 로그인하세요.",
+    "back_to_library": "라이브러리로 돌아가기"
   },
   "common": {
     "cancel": "취소",
@@ -311,6 +322,7 @@
     "no_recent_books_hint": "리더에서 연 책이 여기에 표시됩니다.",
     "all_books": "모든 책",
     "random_books": "랜덤 책",
+    "random_books_hint": "의외의 책을 만나고 싶을 때 책장을 새로고침하세요.",
     "shuffle_books": "셔플",
     "top_books": "인기 책",
     "top_books_hint": "라이브러리에서 가장 많이 읽은 책입니다."
@@ -431,7 +443,11 @@
     "goal_edit": "독서 목표 수정",
     "goal_words_per_day": "하루 단어 수",
     "goal_books_per_year": "연간 책 수",
-    "activity_grid": "연간 독서 활동"
+    "activity_grid": "연간 독서 활동",
+    "reading_activity_words": "독서 활동 (단어 수)",
+    "activities_in_year": "{{year}}년에 {{count}}개 활동",
+    "less": "적음",
+    "more": "많음"
   },
   "review": {
     "submitted": "리뷰가 성공적으로 제출되었습니다",
@@ -505,7 +521,11 @@
     "registration_guest_desc": "회원가입 및 게스트 열람 권한을 제어합니다.",
     "public_registration": "공개 회원가입 활성화",
     "public_registration_desc": "새로운 사용자 계정 생성을 허용합니다.",
+    "login_required": "로그인 필수",
+    "login_required_desc": "콘텐츠에 액세스하려면 모든 사용자가 로그인하도록 강제합니다.",
     "guest_mode": "게스트 액세스 모드",
+    "guest_mode_all": "모든 라이브러리",
+    "guest_mode_selected_libraries": "선택된 라이브러리",
     "allowed_libraries": "허용된 라이브러리",
     "save_access": "액세스 설정 저장",
     "download_policy": "다운로드 정책",
@@ -577,33 +597,24 @@
     "runtime_limits": "런타임 제한",
     "runtime_limits_desc": "업로드, 이미지 및 임시 세션의 크기 제한을 관리합니다.",
     "save_runtime_limits": "제한 저장",
-    "limit_upload_chunk_bytes": "업로드 청크 크기",
+    "limit_upload_chunk_bytes": "업로드 청크 파일 크기",
     "limit_upload_chunks": "업로드당 최대 청크 수",
     "limit_upload_sessions": "사용자당 업로드 세션 수",
-    "limit_upload_bytes": "최대 업로드 크기",
+    "limit_upload_bytes": "최대 업로드 파일 크기",
     "limit_upload_session_ttl_seconds": "업로드 세션 유효 시간",
-    "limit_cover_bytes": "최대 표지 크기",
-    "limit_site_asset_bytes": "최대 사이트 자산 크기",
-    "limit_rate_limit_api": "기간당 API 요청 수",
-    "limit_rate_limit_api_window_seconds": "API 속도 제한 기간",
-    "limit_rate_limit_auth": "기간당 로그인 시도 횟수",
-    "limit_rate_limit_auth_window_seconds": "로그인 속도 제한 기간",
+    "limit_cover_bytes": "최대 표지 이미지 크기",
+    "limit_site_asset_bytes": "최대 시스템 이미지 크기",
+    "limit_rate_limit_auth": "기간당 로그인·OPDS 시도 횟수",
+    "limit_rate_limit_auth_window_seconds": "로그인·OPDS 속도 제한 기간",
+    "rate_limiting_title": "로그인 및 OPDS 속도 제한",
+    "rate_limit_allow_max": "최대",
+    "rate_limit_every": "회의 로그인 & OPDS 시도를",
+    "rate_limit_per_ip": "초 이내에 허용",
     "unit_seconds": "초",
     "unit_mib": "MiB",
     "unit_minutes": "분",
     "unit_count": "개",
     "limit_range": "허용 범위: {{min}}–{{max}}"
-  },
-  "kobo": {
-    "title": "Kobo 전자책 Wi-Fi 동기화",
-    "subtitle": "Kobo Clara, Libra, Forma, Sage 기기에서 Wi-Fi를 통해 도서, 독서 진도 및 표지를 동기화합니다.",
-    "endpoint_label": "Kobo API 엔드포인트 URL",
-    "show_qr": "QR 코드 보기",
-    "instructions_header": "Kobo 기기 설정 방법:",
-    "step1": "USB 케이블로 Kobo 전자책 단말기를 컴퓨터에 연결합니다.",
-    "step2": "텍스트 편집기로 .kobo/Kobo/KoboeReader.conf 파일을 엽니다.",
-    "step3": "[FeatureSettings] 섹션에 api_endpoint= 항목을 추가하거나 수정합니다:",
-    "step4": "Kobo 연결을 안전하게 해제한 후 Wi-Fi로 '동기화'를 누르세요!"
   },
   "email": {
     "invalid": "유효한 이메일 주소를 입력해 주세요",
@@ -669,5 +680,31 @@
     "step2": "텍스트 편집기로 .kobo/Kobo/KoboeReader.conf 파일을 엽니다.",
     "step3": "[FeatureSettings] 섹션을 추가하거나 api_endpoint= 로 업데이트합니다.",
     "step4": "USB를 안전하게 제거하고 Kobo에서 Wi-Fi로 '동기화'를 누르세요!"
+  },
+  "setup": {
+    "title": "NovelHub 초기 설정",
+    "subtitle": "루트 관리자 계정을 생성하고 초기 설정을 구성합니다.",
+    "admin_account": "관리자 계정",
+    "username_placeholder": "사용자 이름",
+    "email_placeholder": "이메일",
+    "password_placeholder": "비밀번호 (최소 8자)",
+    "site_info": "사이트 정보 및 브랜딩",
+    "site_title_placeholder": "사이트 제목",
+    "site_desc_placeholder": "사이트 설명",
+    "logo_url_placeholder": "로고 URL (예: /pwa-192x192.png 또는 https://...)",
+    "favicon_url_placeholder": "파비콘 URL (예: /favicon.ico 또는 https://...)",
+    "fetch": "가져오기",
+    "upload_logo": "로고 업로드",
+    "upload_favicon": "파비콘 업로드",
+    "use_default": "기본값 사용",
+    "sidebar_nav": "사이드바 내비게이션",
+    "sidebar_nav_desc": "라이브러리 사이드바에 표시할 내비게이션 링크를 선택합니다.",
+    "policies": "정책 및 접근 제어",
+    "public_registration": "공개 등록 활성화",
+    "login_required": "라이브러리 접근 시 로그인 필수",
+    "guest_access": "게스트 접근",
+    "complete_setup": "설정 완료",
+    "setup_failed": "설정에 실패했습니다",
+    "unexpected_error": "예기치 않은 오류가 발생했습니다"
   }
 }

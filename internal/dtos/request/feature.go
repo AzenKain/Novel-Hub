@@ -9,19 +9,19 @@ type UpdateCollectionDto struct {
 }
 
 type RecordReadingActivityDto struct {
-	BookID          string   `json:"bookId" validate:"required"`
-	FileID          string   `json:"fileId"`
-	ChapterID       string   `json:"chapterId" validate:"required"`
-	ChapterTitle    string   `json:"chapterTitle"`
-	ChapterIndex    int64    `json:"chapterIndex"`
-	ProgressPercent *float64 `json:"progressPercent"`
-	LocationCfi     *string  `json:"locationCfi"`
-	LocationType    *string  `json:"locationType"`
-	EventType       string   `json:"eventType"`
+	BookID          string   `json:"book_id" validate:"required"`
+	FileID          string   `json:"file_id"`
+	ChapterID       string   `json:"chapter_id" validate:"required"`
+	ChapterTitle    string   `json:"chapter_title"`
+	ChapterIndex    int64    `json:"chapter_index"`
+	ProgressPercent *float64 `json:"progress_percent"`
+	LocationCfi     *string  `json:"location_cfi"`
+	LocationType    *string  `json:"location_type"`
+	EventType       string   `json:"event_type"`
 }
 
 type RecordShareDto struct {
-	ClientID string `json:"clientId"`
+	ClientID string `json:"client_id"`
 }
 
 type SetBookmarkDto struct {
@@ -34,15 +34,15 @@ type UpsertBookReviewDto struct {
 }
 
 type CollectionBookDto struct {
-	BookID string `json:"bookId" validate:"required"`
+	BookID string `json:"book_id" validate:"required"`
 }
 
 type CreateHighlightDto struct {
-	BookID      string  `json:"bookId" validate:"required"`
-	ChapterID   string  `json:"chapterId" validate:"required"`
-	TextContent string  `json:"textContent" validate:"required"`
-	StartIndex  int     `json:"startIndex" validate:"required,min=0"`
-	EndIndex    int     `json:"endIndex" validate:"required,gtfield=StartIndex"`
+	BookID      string  `json:"book_id" validate:"required"`
+	ChapterID   string  `json:"chapter_id" validate:"required"`
+	TextContent string  `json:"text_content" validate:"required"`
+	StartIndex  int     `json:"start_index" validate:"required,min=0"`
+	EndIndex    int     `json:"end_index" validate:"required,gtfield=StartIndex"`
 	Color       string  `json:"color" validate:"required"`
 	Note        *string `json:"note,omitempty"`
 }
@@ -53,14 +53,14 @@ type UpdateHighlightNoteDto struct {
 }
 
 type RecordReadingSessionDto struct {
-	BookID   string `json:"bookId" validate:"required"`
+	BookID   string `json:"book_id" validate:"required"`
 	Duration int64  `json:"duration" validate:"required,min=1"`
 	Words    int64  `json:"words" validate:"min=0"`
 }
 
 type UpsertReadingGoalDto struct {
-	TargetWordsPerDay  int64 `json:"targetWordsPerDay" validate:"required,min=1,max=1000000"`
-	TargetBooksPerYear int64 `json:"targetBooksPerYear" validate:"required,min=1,max=10000"`
+	TargetWordsPerDay  int64 `json:"target_words_per_day" validate:"required,min=1,max=1000000"`
+	TargetBooksPerYear int64 `json:"target_books_per_year" validate:"required,min=1,max=10000"`
 }
 
 // SmartCollectionRuleDto mirrors the filter fields of SearchBookDto. It is a

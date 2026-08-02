@@ -20,6 +20,7 @@ type SetupDto struct {
 	Favicon         string                 `json:"favicon"`
 	Logo            string                 `json:"logo"`
 	Registration    bool                   `json:"registration"`
+	LoginRequired   bool                   `json:"login_required"`
 	GuestMode       string                 `json:"guest_mode"`
 	GuestLibraryIDs []string               `json:"guest_library_ids"`
 	DownloadMode    string                 `json:"download_mode"`

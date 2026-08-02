@@ -14,7 +14,6 @@ const BYTE_FIELDS: (keyof RuntimeLimits)[] = [
   "site_asset_bytes",
 ];
 const SECOND_FIELDS: (keyof RuntimeLimits)[] = [
-  "rate_limit_api_window_seconds",
   "rate_limit_auth_window_seconds",
 ];
 const LIMIT_FIELDS: (keyof RuntimeLimits)[] = [
@@ -25,8 +24,6 @@ const LIMIT_FIELDS: (keyof RuntimeLimits)[] = [
   "upload_session_ttl_seconds",
   "cover_bytes",
   "site_asset_bytes",
-  "rate_limit_api",
-  "rate_limit_api_window_seconds",
   "rate_limit_auth",
   "rate_limit_auth_window_seconds",
 ];
@@ -38,8 +35,6 @@ const SETTING_KEYS: Record<keyof RuntimeLimits, string> = {
   upload_session_ttl_seconds: "limits.upload_session_ttl_seconds",
   cover_bytes: "limits.cover_bytes",
   site_asset_bytes: "limits.site_asset_bytes",
-  rate_limit_api: "limits.rate_limit_api",
-  rate_limit_api_window_seconds: "limits.rate_limit_api_window_seconds",
   rate_limit_auth: "limits.rate_limit_auth",
   rate_limit_auth_window_seconds: "limits.rate_limit_auth_window_seconds",
 };
@@ -89,7 +84,9 @@ export function RuntimeLimitsCard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {LIMIT_FIELDS.map((key) => {
+          {LIMIT_FIELDS.filter(
+            (key) => key !== "rate_limit_auth" && key !== "rate_limit_auth_window_seconds"
+          ).map((key) => {
             const byteField = isBytes(key);
             return (
               <label key={key} className="flex flex-col gap-1.5">
@@ -120,6 +117,55 @@ export function RuntimeLimitsCard() {
               </label>
             );
           })}
+
+          <div className="col-span-full border-t border-base-200 mt-2 pt-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">
+                {t("settings.rate_limiting_title")}
+              </span>
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/40 border border-base-300/50 rounded-xl text-sm font-medium text-base-content/85">
+                <span>{t("settings.rate_limit_allow_max")}</span>
+                <input
+                  type="number"
+                  className="input input-bordered input-sm w-20 text-center focus:outline-none"
+                  min={limitBounds.min.rate_limit_auth}
+                  max={limitBounds.max.rate_limit_auth}
+                  value={limits.rate_limit_auth}
+                  onChange={(event) => {
+                    const value = event.currentTarget.valueAsNumber;
+                    if (Number.isFinite(value)) setLimits({ ...limits, rate_limit_auth: value });
+                  }}
+                />
+                <span>{t("settings.rate_limit_every")}</span>
+                <input
+                  type="number"
+                  className="input input-bordered input-sm w-24 text-center focus:outline-none"
+                  min={limitBounds.min.rate_limit_auth_window_seconds}
+                  max={limitBounds.max.rate_limit_auth_window_seconds}
+                  value={limits.rate_limit_auth_window_seconds}
+                  onChange={(event) => {
+                    const value = event.currentTarget.valueAsNumber;
+                    if (Number.isFinite(value)) setLimits({ ...limits, rate_limit_auth_window_seconds: value });
+                  }}
+                />
+                <span>{t("settings.rate_limit_per_ip")}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-1 mt-1 text-[11px] text-base-content/50">
+                <div>
+                  • {t("settings.limit_rate_limit_auth")}: {t("settings.limit_range", {
+                    min: limitBounds.min.rate_limit_auth.toLocaleString(),
+                    max: limitBounds.max.rate_limit_auth.toLocaleString(),
+                  })}
+                </div>
+                <div>
+                  • {t("settings.limit_rate_limit_auth_window_seconds")}: {t("settings.limit_range", {
+                    min: limitBounds.min.rate_limit_auth_window_seconds.toLocaleString(),
+                    max: limitBounds.max.rate_limit_auth_window_seconds.toLocaleString(),
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

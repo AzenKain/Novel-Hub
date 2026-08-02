@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "../books/DeleteConfirmModal";
 
 type ConfirmState =
-  | { type: "single"; fileId: string; title: string }
+  | { type: "single"; file_id: string; title: string }
   | { type: "keepOne"; keepFileId: string; toDeleteFileIds: string[] }
   | null;
 
@@ -27,12 +27,12 @@ export const DuplicatesTab: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const openDeleteSingle = (fileId: string, title: string) => {
-    setConfirmState({ type: "single", fileId, title });
+  const openDeleteSingle = (file_id: string, title: string) => {
+    setConfirmState({ type: "single", file_id, title });
   };
 
-  const openKeepOnlyOne = (keepFileId: string, groupFiles: { fileId: string }[]) => {
-    const toDelete = groupFiles.filter((f) => f.fileId !== keepFileId).map((f) => f.fileId);
+  const openKeepOnlyOne = (keepFileId: string, groupFiles: { file_id: string }[]) => {
+    const toDelete = groupFiles.filter((f) => f.file_id !== keepFileId).map((f) => f.file_id);
     if (toDelete.length === 0) return;
     setConfirmState({ type: "keepOne", keepFileId, toDeleteFileIds: toDelete });
   };
@@ -42,8 +42,8 @@ export const DuplicatesTab: React.FC = () => {
     setIsDeleting(true);
     try {
       if (confirmState.type === "single") {
-        setDeletingId(confirmState.fileId);
-        await deleteFileMutation.mutateAsync(confirmState.fileId);
+        setDeletingId(confirmState.file_id);
+        await deleteFileMutation.mutateAsync(confirmState.file_id);
         toast.success(t("common.success", "File deleted successfully"));
       } else if (confirmState.type === "keepOne") {
         for (const id of confirmState.toDeleteFileIds) {
@@ -128,14 +128,14 @@ export const DuplicatesTab: React.FC = () => {
               <div className="flex flex-col gap-2">
                 {group.files?.map((file, idx) => (
                   <div
-                    key={file.fileId}
+                    key={file.file_id}
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-base-100 rounded-lg border border-base-300 gap-3"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {file.bookCoverUrl ? (
+                      {file.book_cover_url ? (
                         <img
-                          src={getMediaUrl(file.bookCoverUrl)}
-                          alt={file.bookTitle}
+                          src={getMediaUrl(file.book_cover_url)}
+                          alt={file.book_title}
                           className="w-10 h-14 object-cover rounded shadow-sm border border-base-300 shrink-0"
                         />
                       ) : (
@@ -145,7 +145,7 @@ export const DuplicatesTab: React.FC = () => {
                       )}
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm truncate">{file.bookTitle}</span>
+                          <span className="font-semibold text-sm truncate">{file.book_title}</span>
                           {idx === 0 && (
                             <span className="badge badge-success badge-xs font-bold text-[10px]">
                               {t("admin.primary_copy", "Primary Copy")}
@@ -154,24 +154,24 @@ export const DuplicatesTab: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-base-content/60 flex-wrap font-mono">
                           <span className="badge badge-outline text-[10px]">{file.format}</span>
-                          <span>{formatSize(file.sizeBytes)}</span>
+                          <span>{formatSize(file.size_bytes)}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <button
-                        onClick={() => openKeepOnlyOne(file.fileId, group.files)}
+                        onClick={() => openKeepOnlyOne(file.file_id, group.files)}
                         className="btn btn-ghost btn-xs text-primary"
                       >
                         {t("admin.keep_this_only", "Keep Only This")}
                       </button>
                       <button
-                        onClick={() => openDeleteSingle(file.fileId, file.bookTitle)}
-                        disabled={deletingId === file.fileId || isDeleting}
+                        onClick={() => openDeleteSingle(file.file_id, file.book_title)}
+                        disabled={deletingId === file.file_id || isDeleting}
                         className="btn btn-ghost btn-square btn-xs text-error"
                       >
-                        {deletingId === file.fileId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        {deletingId === file.file_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>

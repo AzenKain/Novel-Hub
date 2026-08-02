@@ -33,6 +33,7 @@ export function Settings() {
     sidebarItems, setSidebarItems,
     homeSections, setHomeSections,
     registration, setRegistration,
+    loginRequired, setLoginRequired,
     guestMode, setGuestMode,
     guestLibraryIds, setGuestLibraryIds,
     inBookSearch, setInBookSearch,
@@ -49,6 +50,7 @@ export function Settings() {
     sidebarItems: state.sidebarItems, setSidebarItems: state.setSidebarItems,
     homeSections: state.homeSections, setHomeSections: state.setHomeSections,
     registration: state.registration, setRegistration: state.setRegistration,
+    loginRequired: state.loginRequired, setLoginRequired: state.setLoginRequired,
     guestMode: state.guestMode, setGuestMode: state.setGuestMode,
     guestLibraryIds: state.guestLibraryIds, setGuestLibraryIds: state.setGuestLibraryIds,
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
@@ -187,6 +189,7 @@ export function Settings() {
   function handleRegistrationSave() {
     void saveSection("Registration & Guest", {
       "auth.registration_enabled": registration,
+      "auth.login_required": loginRequired,
       "guest_access.mode": guestMode,
       "guest_access.library_ids": guestMode === "selected_libraries" ? guestLibraryIds : [],
     });
@@ -415,7 +418,7 @@ export function Settings() {
                         )
                       }
                     />
-                    <span className="text-xs font-medium">{SIDEBAR_LABELS[key] || key}</span>
+                    <span className="text-xs font-medium">{t(SIDEBAR_LABELS[key]) || key}</span>
                   </label>
                 ))}
               </div>
@@ -568,6 +571,20 @@ export function Settings() {
                     <p className="text-xs text-base-content/50">{t("settings.public_registration_desc", "Allow new users to create accounts.")}</p>
                   </div>
                 </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={loginRequired}
+                    onChange={(e) => setLoginRequired(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.login_required", "Require Login")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.login_required_desc", "Force all users to sign in to access any content.")}</p>
+                  </div>
+                </label>
+
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1 flex items-center gap-1">
                     <Eye className="h-3 w-3" /> {t("settings.guest_mode", "Guest Access Mode")}
@@ -576,9 +593,10 @@ export function Settings() {
                     className="select select-bordered w-full"
                     value={guestMode}
                     onChange={(e) => setGuestMode(e.target.value)}
+                    disabled={loginRequired}
                   >
                     {GUEST_MODES.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                      <option key={m.value} value={m.value}>{t(m.labelKey)}</option>
                     ))}
                   </select>
                 </div>

@@ -15,7 +15,7 @@ type UploadBooksModalProps = {
   uploadBatchInfo?: { current: number; total: number } | null;
   accept: string;
   onClose: () => void;
-  onLibraryChange: (libraryId: string) => void;
+  onLibraryChange: (library_id: string) => void;
   onUploadFiles: (filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>) => void;
 };
 

@@ -9,15 +9,15 @@ import (
 )
 
 type BookReviewEntity struct {
-	UserID    string     `json:"userId"`
-	BookID    string     `json:"bookId"`
+	UserID    string     `json:"user_id"`
+	BookID    string     `json:"book_id"`
 	Rating    int64      `json:"rating"`
 	Review    *string    `json:"review,omitempty"`
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-	UserName  string     `json:"userName,omitempty"`
-	UserEmail string     `json:"userEmail,omitempty"`
-	BookTitle string     `json:"bookTitle,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	UserName  string     `json:"user_name,omitempty"`
+	UserEmail string     `json:"user_email,omitempty"`
+	BookTitle string     `json:"book_title,omitempty"`
 }
 
 func (e *BookReviewEntity) FromSqlc(res sqlc.BookReview) *BookReviewEntity {

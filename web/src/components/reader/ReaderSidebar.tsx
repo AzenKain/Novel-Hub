@@ -31,7 +31,7 @@ function getSidebarEntryKind(title: string) {
 
 function formatChapterTitle(chapter: Chapter, t: TFunction) {
   let displayTitle =
-    chapter.title || `${t("reader.chapter", "Chapter")} ${chapter.chapterIndex + 1}`;
+    chapter.title || `${t("reader.chapter", "Chapter")} ${chapter.chapter_index + 1}`;
   if (displayTitle.match(/\.(x)?html$/i)) {
     displayTitle = displayTitle
       .replace(/\.(x)?html$/i, "")
@@ -151,7 +151,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                           className="reader-sidebar-index"
                           aria-hidden="true"
                         >
-                          {String(chapter.chapterIndex + 1).padStart(2, "0")}
+                          {String(chapter.chapter_index + 1).padStart(2, "0")}
                         </span>
                       )}
                       <span className="line-clamp-2 text-sm leading-tight">

@@ -10,13 +10,13 @@ import (
 
 type ReadingSessionEntity struct {
 	ID              string     `json:"id"`
-	UserID          string     `json:"userId"`
-	BookID          string     `json:"bookId"`
-	DurationSeconds int64      `json:"durationSeconds"`
-	WordsRead       int64      `json:"wordsRead"`
+	UserID          string     `json:"user_id"`
+	BookID          string     `json:"book_id"`
+	DurationSeconds int64      `json:"duration_seconds"`
+	WordsRead       int64      `json:"words_read"`
 	Date            time.Time  `json:"date"`
-	CreatedAt       *time.Time `json:"createdAt"`
-	UpdatedAt       *time.Time `json:"updatedAt"`
+	CreatedAt       *time.Time `json:"created_at"`
+	UpdatedAt       *time.Time `json:"updated_at"`
 }
 
 func (e *ReadingSessionEntity) FromSqlc(res sqlc.ReadingSession) *ReadingSessionEntity {
@@ -56,8 +56,8 @@ func (e *ReadingSessionEntity) ToResponse() *response.ReadingSessionResponse {
 
 type ReadingHeatmapEntity struct {
 	Date            time.Time `json:"date"`
-	DurationSeconds int64     `json:"durationSeconds"`
-	WordsRead       int64     `json:"wordsRead"`
+	DurationSeconds int64     `json:"duration_seconds"`
+	WordsRead       int64     `json:"words_read"`
 }
 
 func (e *ReadingHeatmapEntity) FromSqlc(res sqlc.GetReadingHeatmapRow) *ReadingHeatmapEntity {

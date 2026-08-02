@@ -48,7 +48,7 @@ import {
 export const BookDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { bookId } = useParams<{ bookId: string }>();
+  const { book_id } = useParams<{ book_id: string }>();
   const queryClient = useQueryClient();
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const publicSettings = usePublicSettings();
@@ -60,36 +60,36 @@ export const BookDetailPage: React.FC = () => {
   const [selectedFileId, setSelectedFileId] = useState<string>("");
 
   React.useEffect(() => {
-    if (bookId) {
-      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress", bookId] });
-      void queryClient.invalidateQueries({ queryKey: ["bookUserState", bookId] });
+    if (book_id) {
+      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress", book_id] });
+      void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
     }
     return () => {
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
     };
-  }, [bookId, queryClient]);
+  }, [book_id, queryClient]);
 
-  const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(bookId || "");
-  const { data: userState } = useBookUserStateQuery(bookId || "", !!user);
-  const { data: readingProgress } = useTrackerReadingProgressQuery(bookId || "");
-  const { data: engagementData } = useBookEngagementStatsQuery(bookId || "");
+  const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(book_id || "");
+  const { data: userState } = useBookUserStateQuery(book_id || "", !!user);
+  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id || "");
+  const { data: engagementData } = useBookEngagementStatsQuery(book_id || "");
 
-  const toggleBookmarkMutation = useToggleBookmarkMutation(bookId || "");
-  const addBookToColMutation = useAddBookToCollectionMutation(bookId || "");
-  const removeBookFromColMutation = useRemoveBookFromCollectionMutation(bookId || "");
+  const toggleBookmarkMutation = useToggleBookmarkMutation(book_id || "");
+  const addBookToColMutation = useAddBookToCollectionMutation(book_id || "");
+  const removeBookFromColMutation = useRemoveBookFromCollectionMutation(book_id || "");
 
-  const meta = book ? parseMetadata(book.metadataJson) : {};
+  const meta = book ? parseMetadata(book.metadata_json) : {};
   const tags = toStringList(meta.subject);
 
   const guestPerms = publicSettings?.guest_permissions;
-  const allowCollection = hasPermission(user, "book.collection", book?.libraryId, guestPerms);
-  const allowBookmark = hasPermission(user, "book.bookmark", book?.libraryId, guestPerms);
-  const allowShare = hasPermission(user, "book.share", book?.libraryId, guestPerms);
-  const allowDownload = hasPermission(user, "book.download", book?.libraryId, guestPerms);
-  const allowReview = hasPermission(user, "book.review.create", book?.libraryId, guestPerms);
-  const allowRead = hasPermission(user, "book.read", book?.libraryId, guestPerms);
-  const allowStats = hasPermission(user, "user.stats.read", book?.libraryId, guestPerms);
+  const allowCollection = hasPermission(user, "book.collection", book?.library_id, guestPerms);
+  const allowBookmark = hasPermission(user, "book.bookmark", book?.library_id, guestPerms);
+  const allowShare = hasPermission(user, "book.share", book?.library_id, guestPerms);
+  const allowDownload = hasPermission(user, "book.download", book?.library_id, guestPerms);
+  const allowReview = hasPermission(user, "book.review.create", book?.library_id, guestPerms);
+  const allowRead = hasPermission(user, "book.read", book?.library_id, guestPerms);
+  const allowStats = hasPermission(user, "user.stats.read", book?.library_id, guestPerms);
 
   const showReads = allowStats && allowRead;
   const showDownloads = allowStats && allowDownload;
@@ -100,13 +100,13 @@ export const BookDetailPage: React.FC = () => {
 
   const hasAnyStatToShow = showReads || showDownloads || showBookmarks || showCollections || showRating || showShares;
 
-  const readStats = userState?.readStats || engagementData?.readStats;
-  const downloadStats = userState?.downloadStats || engagementData?.downloadStats;
-  const socialStats = userState?.socialStats || engagementData?.socialStats;
-  const ratingSummary = userState?.ratingSummary || (engagementData?.socialStats ? {
-    bookId: bookId || "",
-    ratingCount: engagementData.socialStats.ratingCount,
-    averageRating: engagementData.socialStats.averageRating,
+  const read_stats = userState?.read_stats || engagementData?.read_stats;
+  const download_stats = userState?.download_stats || engagementData?.download_stats;
+  const social_stats = userState?.social_stats || engagementData?.social_stats;
+  const rating_summary = userState?.rating_summary || (engagementData?.social_stats ? {
+    book_id: book_id || "",
+    rating_count: engagementData.social_stats.rating_count,
+    average_rating: engagementData.social_stats.average_rating,
   } : undefined);
 
   const shareUrl = window.location.href;
@@ -238,9 +238,9 @@ export const BookDetailPage: React.FC = () => {
           {/* Left Pane - Cover & Stats */}
           <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col items-center gap-6">
             <div className="w-48 md:w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
-              {book.coverUrl && !imgError ? (
+              {book.cover_url && !imgError ? (
                 <img
-                  src={getMediaUrl(book.coverUrl)}
+                  src={getMediaUrl(book.cover_url)}
                   alt={book.title}
                   onError={() => setImgError(true)}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -259,44 +259,44 @@ export const BookDetailPage: React.FC = () => {
                 {showReads && (
                   <div className="flex flex-col items-center p-1">
                     <Eye className="w-4 h-4 text-primary mb-1" />
-                    <span className="font-bold text-base">{readStats?.totalOpenCount || 0}</span>
+                    <span className="font-bold text-base">{read_stats?.total_open_count || 0}</span>
                     <span className="text-[11px] text-base-content/60">{t("book.reads", "Reads")}</span>
                   </div>
                 )}
                 {showDownloads && (
                   <div className="flex flex-col items-center p-1">
                     <Download className="w-4 h-4 text-secondary mb-1" />
-                    <span className="font-bold text-base">{downloadStats?.totalDownloadCount || 0}</span>
+                    <span className="font-bold text-base">{download_stats?.total_download_count || 0}</span>
                     <span className="text-[11px] text-base-content/60">{t("book.downloads", "Downloads")}</span>
                   </div>
                 )}
                 {showBookmarks && (
                   <div className="flex flex-col items-center p-1">
                     <Bookmark className="w-4 h-4 text-accent mb-1" />
-                    <span className="font-bold text-base">{socialStats?.bookmarkCount || 0}</span>
+                    <span className="font-bold text-base">{social_stats?.bookmark_count || 0}</span>
                     <span className="text-[11px] text-base-content/60">{t("book.bookmarks", "Bookmarks")}</span>
                   </div>
                 )}
                 {showCollections && (
                   <div className="flex flex-col items-center p-1">
                     <FolderPlus className="w-4 h-4 text-success mb-1" />
-                    <span className="font-bold text-base">{socialStats?.collectionCount ?? userState?.collections?.length ?? 0}</span>
+                    <span className="font-bold text-base">{social_stats?.collection_count ?? userState?.collections?.length ?? 0}</span>
                     <span className="text-[11px] text-base-content/60">{t("book.collections", "Collections")}</span>
                   </div>
                 )}
                 {showRating && (
                   <div className="flex flex-col items-center p-1">
                     <Star className="w-4 h-4 text-warning mb-1" />
-                    <span className="font-bold text-base">{ratingSummary?.averageRating ? ratingSummary.averageRating.toFixed(1) : "0.0"}</span>
+                    <span className="font-bold text-base">{rating_summary?.average_rating ? rating_summary.average_rating.toFixed(1) : "0.0"}</span>
                     <span className="text-[11px] text-base-content/60">
-                      {ratingSummary?.ratingCount ? `(${ratingSummary.ratingCount})` : t("book.rating", "Rating")}
+                      {rating_summary?.rating_count ? `(${rating_summary.rating_count})` : t("book.rating", "Rating")}
                     </span>
                   </div>
                 )}
                 {showShares && (
                   <div className="flex flex-col items-center p-1">
                     <Share2 className="w-4 h-4 text-info mb-1" />
-                    <span className="font-bold text-base">{socialStats?.shareCount || 0}</span>
+                    <span className="font-bold text-base">{social_stats?.share_count || 0}</span>
                     <span className="text-[11px] text-base-content/60">{t("common.share", "Shares")}</span>
                   </div>
                 )}
@@ -315,7 +315,7 @@ export const BookDetailPage: React.FC = () => {
                   className="badge badge-primary badge-outline mt-1 mb-2 text-sm px-3 py-1 h-auto text-left whitespace-normal leading-tight cursor-pointer hover:bg-primary hover:text-primary-content"
                   onClick={() => navigate(`/?nav=series&facet=series&name=${encodeURIComponent(meta.series || '')}`)}
                 >
-                  {meta.series} {meta.seriesIndex ? `#${meta.seriesIndex}` : ""}
+                  {meta.series} {meta.series_index ? `#${meta.series_index}` : ""}
                 </div>
               )}
             </div>
@@ -340,7 +340,7 @@ export const BookDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 my-4">
               {/* Author */}
               {(() => {
-                const authorVal = book.authorName || meta.creator;
+                const authorVal = book.author_name || meta.creator;
                 return (
                   <InfoLine
                     icon={<User />}
@@ -439,7 +439,7 @@ export const BookDetailPage: React.FC = () => {
               const hasReadingHistory = Boolean(
                 user &&
                 readingProgress &&
-                (readingProgress.chapterId || typeof readingProgress.chapterIndex === "number")
+                (readingProgress.chapter_id || typeof readingProgress.chapter_index === "number")
               );
 
               return (
@@ -474,7 +474,7 @@ export const BookDetailPage: React.FC = () => {
                               onClick={() =>
                                 navigate(
                                   `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                                    selectedFileId || readingProgress?.fileId || book.files![0].id
+                                    selectedFileId || readingProgress?.file_id || book.files![0].id
                                   )}`
                                 )
                               }
@@ -488,15 +488,15 @@ export const BookDetailPage: React.FC = () => {
                                 </span>
                                 <span
                                   className="block w-full truncate text-[11px] opacity-85 font-normal whitespace-nowrap"
-                                  title={`${readingProgress?.chapterTitle || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapterIndex || 0) + 1}`}${
-                                    typeof readingProgress?.progressPercent === "number" && readingProgress.progressPercent > 0
-                                      ? ` (${readingProgress.progressPercent}%)`
+                                  title={`${readingProgress?.chapter_title || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapter_index || 0) + 1}`}${
+                                    typeof readingProgress?.progress_percent === "number" && readingProgress.progress_percent > 0
+                                      ? ` (${readingProgress.progress_percent}%)`
                                       : ""
                                   }`}
                                 >
-                                  {readingProgress?.chapterTitle || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapterIndex || 0) + 1}`}
-                                  {typeof readingProgress?.progressPercent === "number" && readingProgress.progressPercent > 0
-                                    ? ` (${readingProgress.progressPercent}%)`
+                                  {readingProgress?.chapter_title || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapter_index || 0) + 1}`}
+                                  {typeof readingProgress?.progress_percent === "number" && readingProgress.progress_percent > 0
+                                    ? ` (${readingProgress.progress_percent}%)`
                                     : ""}
                                 </span>
                               </div>
@@ -573,12 +573,12 @@ export const BookDetailPage: React.FC = () => {
 
             {/* Reviews Section */}
             <div className="pt-2 border-t border-base-200 mt-2">
-              <TrackerMapCard bookId={book.id!} title={book.title} />
+              <TrackerMapCard book_id={book.id!} title={book.title} />
             </div>
 
             {allowReview && (
               <div className="pt-2 border-t border-base-200 mt-2">
-                <ReviewSection bookId={book.id!} userReview={userState?.myReview} />
+                <ReviewSection book_id={book.id!} userReview={userState?.my_review} />
               </div>
             )}
           </div>

@@ -22,13 +22,13 @@ export const trackerService = {
   },
 
   async mapBookTracker(
-    bookId: string,
+    book_id: string,
     provider: string,
     externalSeriesId: string
   ): Promise<CommonResponse<void>> {
     try {
       const res = await api.post("/trackers/map", {
-        book_id: bookId,
+        book_id: book_id,
         provider,
         external_series_id: externalSeriesId,
       });
@@ -54,13 +54,13 @@ export const trackerService = {
   },
 
   async syncProgress(
-    bookId: string,
+    book_id: string,
     title: string,
     progress?: number
   ): Promise<CommonResponse<void>> {
     try {
       const body: { book_id: string; title: string; progress?: number } = {
-        book_id: bookId,
+        book_id: book_id,
         title,
       };
       if (progress !== undefined) {

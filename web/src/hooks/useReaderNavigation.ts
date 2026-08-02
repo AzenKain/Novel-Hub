@@ -70,7 +70,7 @@ export function useReaderNavigation({
         if (href.startsWith("section:")) {
           e.preventDefault();
           const [sectionPath, fragment = ""] = href.split("#");
-          const found = chapters.find(ch => ch.contentPath === sectionPath);
+          const found = chapters.find(ch => ch.content_path === sectionPath);
           if (found) {
             pendingFragmentRef.current = fragment || null;
             void loadChapter(found);
@@ -96,7 +96,7 @@ export function useReaderNavigation({
             const resolvedPath = decodeURIComponent(parts[1].split("#")[0].split("?")[0]);
             const targetPath = resolvedPath.toLowerCase().replace(/^\/+/, "");
             const found = chapters.find(ch => {
-              const chPath = ch.contentPath?.toLowerCase().replace(/^\/+/, "");
+              const chPath = ch.content_path?.toLowerCase().replace(/^\/+/, "");
               return chPath === targetPath || (chPath && targetPath.endsWith(chPath)) || (chPath && chPath.endsWith(targetPath));
             });
             if (found) {

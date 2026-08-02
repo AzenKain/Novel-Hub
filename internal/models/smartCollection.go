@@ -11,11 +11,11 @@ import (
 // from the validated rule DTO. Nothing reads it as a raw string past that.
 type SmartCollectionEntity struct {
 	ID        string    `json:"id"`
-	UserID    string    `json:"userId"`
+	UserID    string    `json:"user_id"`
 	Name      string    `json:"name"`
-	RuleJson  string    `json:"ruleJson"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	RuleJson  string    `json:"rule_json"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (e *SmartCollectionEntity) FromSqlc(res sqlc.SmartCollection) *SmartCollectionEntity {

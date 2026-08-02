@@ -28,10 +28,10 @@ import { hasPermission } from "@/utils/permission";
 import { isVisualChapter } from "@/utils/readerHtml";
 
 export const ReaderWorkspace = () => {
-  const { bookId } = useParams<{ bookId: string }>();
+  const { book_id } = useParams<{ book_id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fileId = searchParams.get("file_id") || undefined;
+  const file_id = searchParams.get("file_id") || undefined;
   
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -141,8 +141,8 @@ export const ReaderWorkspace = () => {
 
   const publicSettings = usePublicSettings();
   const guestPerms = publicSettings?.guest_permissions;
-  const allowTTS = hasPermission(user, "book.tts", book?.libraryId, guestPerms);
-  const allowHighlights = hasPermission(user, "book.highlight", book?.libraryId, guestPerms);
+  const allowTTS = hasPermission(user, "book.tts", book?.library_id, guestPerms);
+  const allowHighlights = hasPermission(user, "book.highlight", book?.library_id, guestPerms);
   const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
 
   useEffect(() => {
@@ -228,14 +228,14 @@ export const ReaderWorkspace = () => {
   const [ambientColor, setAmbientColor] = useState<string>("transparent");
 
   useEffect(() => {
-    if (!book || !book.coverUrl) {
+    if (!book || !book.cover_url) {
       setAmbientColor("transparent");
       return;
     }
     const fac = new FastAverageColor();
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    img.src = book.coverUrl;
+    img.src = book.cover_url;
     img.onload = () => {
       try {
         const color = fac.getColor(img);
@@ -259,8 +259,8 @@ export const ReaderWorkspace = () => {
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
   const rtlPaging = isVisualContent && readingDirection === "rtl";
-  const activeFile = fileId ? book?.files?.find(f => f.id === fileId) : book?.files?.[0];
-  const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.contentPath?.toLowerCase().endsWith(".pdf"));
+  const activeFile = file_id ? book?.files?.find(f => f.id === file_id) : book?.files?.[0];
+  const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.content_path?.toLowerCase().endsWith(".pdf"));
   const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
   const isPdfAudio = isPdf || isAudio;
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
@@ -325,43 +325,43 @@ export const ReaderWorkspace = () => {
   });
 
   useEffect(() => {
-    if (!bookId) return;
+    if (!book_id) return;
     
     const bootstrap = async () => {
       try {
         const [res, progressRes] = await Promise.allSettled([
-          readerService.getBootstrap(bookId, fileId),
-          user ? featureService.getReadingProgress(bookId) : Promise.reject("guest"),
+          readerService.getBootstrap(book_id, file_id),
+          user ? featureService.getReadingProgress(book_id) : Promise.reject("guest"),
         ]);
 
         if (res.status === "fulfilled" && res.value.status && res.value.data) {
           setBook(res.value.data.book);
-          const sorted = [...res.value.data.chapters].sort((a, b) => a.chapterIndex - b.chapterIndex);
+          const sorted = [...res.value.data.chapters].sort((a, b) => a.chapter_index - b.chapter_index);
           setChapters(sorted);
           if (sorted.length > 0) {
             let targetChapter = sorted[0];
-            let locationCfi: string | undefined = undefined;
+            let location_cfi: string | undefined = undefined;
             const startOver = searchParams.get("start_over") === "true";
 
             if (!startOver && progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
               const progress = progressRes.value.data;
-              const found = sorted.find(ch => ch.id === progress.chapterId);
+              const found = sorted.find(ch => ch.id === progress.chapter_id);
               if (found) {
                 targetChapter = found;
-                if (progress.locationType === "scroll" && progress.locationCfi) {
-                  locationCfi = `scroll:${progress.locationCfi}`;
-                } else if (progress.locationType === "page" && progress.locationCfi) {
-                  locationCfi = `page:${progress.locationCfi}`;
-                } else if (progress.locationType === "audio" && progress.locationCfi) {
-                  locationCfi = `audio:${progress.locationCfi}`;
-                } else if (progress.locationCfi) {
-                  locationCfi = progress.locationCfi;
+                if (progress.location_type === "scroll" && progress.location_cfi) {
+                  location_cfi = `scroll:${progress.location_cfi}`;
+                } else if (progress.location_type === "page" && progress.location_cfi) {
+                  location_cfi = `page:${progress.location_cfi}`;
+                } else if (progress.location_type === "audio" && progress.location_cfi) {
+                  location_cfi = `audio:${progress.location_cfi}`;
+                } else if (progress.location_cfi) {
+                  location_cfi = progress.location_cfi;
                 }
               }
             }
 
-            if (locationCfi) {
-              pendingFragmentRef.current = locationCfi;
+            if (location_cfi) {
+              pendingFragmentRef.current = location_cfi;
             }
             loadChapter(targetChapter);
           }
@@ -373,15 +373,15 @@ export const ReaderWorkspace = () => {
       }
     };
     bootstrap();
-  }, [bookId, fileId]);
+  }, [book_id, file_id]);
 
   const loadChapter = async (chapter: Chapter) => {
-    if (!bookId) return;
+    if (!book_id) return;
     setCurrentChapter(chapter);
     setHtmlContent("");
     stop();
     try {
-      const html = await readerService.getChapterHtml(bookId, chapter.id, fileId);
+      const html = await readerService.getChapterHtml(book_id, chapter.id, file_id);
       setHtmlContent(html);
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
@@ -433,17 +433,17 @@ export const ReaderWorkspace = () => {
   }, []);
 
   useEffect(() => {
-    if (!user || !currentChapter || !bookId) return;
-    const progressPercent = computeProgressPercent();
+    if (!user || !currentChapter || !book_id) return;
+    const progress_percent = computeProgressPercent();
 
     void featureService.recordReadingActivity({
-      bookId,
-      fileId,
-      chapterId: currentChapter.id,
-      chapterTitle: currentChapter.title,
-      chapterIndex: currentChapter.chapterIndex,
-      progressPercent,
-      eventType: "chapter_open",
+      book_id,
+      file_id,
+      chapter_id: currentChapter.id,
+      chapter_title: currentChapter.title,
+      chapter_index: currentChapter.chapter_index,
+      progress_percent,
+      event_type: "chapter_open",
     }).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
@@ -452,12 +452,12 @@ export const ReaderWorkspace = () => {
     }).catch((error) => {
       console.debug("Failed to record reading activity", error);
     });
-  }, [user, bookId, fileId, currentChapter?.id, chapters.length]);
+  }, [user, book_id, file_id, currentChapter?.id, chapters.length]);
 
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
-    if (!user || !scrollLayout || !contentRef.current || !currentChapter || !bookId) return;
+    if (!user || !scrollLayout || !contentRef.current || !currentChapter || !book_id) return;
 
     const scrollTop = contentRef.current.scrollTop;
     if (scrollTimeoutRef.current) {
@@ -465,18 +465,18 @@ export const ReaderWorkspace = () => {
     }
 
     scrollTimeoutRef.current = setTimeout(() => {
-      const progressPercent = computeProgressPercent();
+      const progress_percent = computeProgressPercent();
 
       void featureService.recordReadingActivity({
-        bookId,
-        fileId,
-        chapterId: currentChapter.id,
-        chapterTitle: currentChapter.title,
-        chapterIndex: currentChapter.chapterIndex,
-        progressPercent,
-        locationCfi: String(scrollTop),
-        locationType: "scroll",
-        eventType: "progress_update",
+        book_id,
+        file_id,
+        chapter_id: currentChapter.id,
+        chapter_title: currentChapter.title,
+        chapter_index: currentChapter.chapter_index,
+        progress_percent,
+        location_cfi: String(scrollTop),
+        location_type: "scroll",
+        event_type: "progress_update",
       }).then(() => {
         void queryClient.invalidateQueries({ queryKey: ["reading"] });
         void queryClient.invalidateQueries({ queryKey: ["books"] });
@@ -487,27 +487,27 @@ export const ReaderWorkspace = () => {
   };
 
   useEffect(() => {
-    if (!user || scrollLayout || !currentChapter || !bookId) return;
+    if (!user || scrollLayout || !currentChapter || !book_id) return;
 
-    const progressPercent = computeProgressPercent();
+    const progress_percent = computeProgressPercent();
 
     void featureService.recordReadingActivity({
-      bookId,
-      fileId,
-      chapterId: currentChapter.id,
-      chapterTitle: currentChapter.title,
-      chapterIndex: currentChapter.chapterIndex,
-      progressPercent,
-      locationCfi: String(pageIndex),
-      locationType: "page",
-      eventType: "progress_update",
+      book_id,
+      file_id,
+      chapter_id: currentChapter.id,
+      chapter_title: currentChapter.title,
+      chapter_index: currentChapter.chapter_index,
+      progress_percent,
+      location_cfi: String(pageIndex),
+      location_type: "page",
+      event_type: "progress_update",
     }).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
       void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
     }).catch(console.debug);
-  }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, bookId, chapters.length]);
+  }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length]);
 
   const handleNext = () => {
     if (!currentChapter) return;
@@ -700,34 +700,34 @@ export const ReaderWorkspace = () => {
                 {isPdf ? (
                   <iframe
                     title={book.title}
-                    src={`${API_BASE}/reader/${encodeURIComponent(bookId || "")}/file?file_id=${encodeURIComponent(activeFile?.id || fileId || "")}`}
+                    src={`${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`}
                     className="reader-pdf-frame w-full h-full flex-1 border-0"
                   />
                 ) : isAudio ? (
                   <div className="flex-1 w-full h-full pb-32">
                     <AudioPlayer 
-                      rawUrl={`${API_BASE}/reader/${encodeURIComponent(bookId || "")}/file?file_id=${encodeURIComponent(activeFile?.id || fileId || "")}`}
+                      rawUrl={`${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`}
                       title={book.title}
-                      author={book.authorName || "Unknown"}
-                      coverUrl={book.coverUrl || `/api/v1/books/${book.id}/cover`}
+                      author={book.author_name || "Unknown"}
+                      cover_url={book.cover_url || `/api/v1/books/${book.id}/cover`}
                       initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
                       onTimeUpdate={(time) => {
                         pendingFragmentRef.current = `audio:${time}`;
                         const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
-                        const progressPercent = chapterPosition >= 0
+                        const progress_percent = chapterPosition >= 0
                           ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
                           : 0;
                   
                         void featureService.recordReadingActivity({
-                          bookId: bookId || '',
-                          fileId: fileId || '',
-                          chapterId: currentChapter?.id || '',
-                          chapterTitle: currentChapter?.title || '',
-                          chapterIndex: currentChapter?.chapterIndex || 0,
-                          progressPercent,
-                          locationCfi: String(time),
-                          locationType: "audio",
-                          eventType: "progress_update",
+                          book_id: book_id || '',
+                          file_id: file_id || '',
+                          chapter_id: currentChapter?.id || '',
+                          chapter_title: currentChapter?.title || '',
+                          chapter_index: currentChapter?.chapter_index || 0,
+                          progress_percent,
+                          location_cfi: String(time),
+                          location_type: "audio",
+                          event_type: "progress_update",
                         }).catch(() => {});
                       }}
                     />
@@ -813,13 +813,13 @@ export const ReaderWorkspace = () => {
         />
       )}
 
-      {searchOpen && bookId && (
+      {searchOpen && book_id && (
         <div className="fixed top-16 right-6 z-50 animate-fade-in">
           <ReaderInBookSearch
-            bookId={bookId}
+            book_id={book_id}
             onClose={closeSearch}
-            onSelectResult={(chapterId, offset) => {
-              const ch = chapters.find((c) => c.id === chapterId);
+            onSelectResult={(chapter_id, offset) => {
+              const ch = chapters.find((c) => c.id === chapter_id);
               if (ch) {
                 pendingTextOffsetRef.current = offset > 0 ? offset : null;
                 void loadChapter(ch);

@@ -32,7 +32,7 @@ interface BookAdminState {
     date: string;
     subjects: string;
     series: string;
-    seriesIndex: string;
+    series_index: string;
   };
   submitting: boolean;
   bookFiles: BookFile[];
@@ -84,7 +84,7 @@ interface BookAdminState {
     date: string;
     subjects: string;
     series: string;
-    seriesIndex: string;
+    series_index: string;
   }>) => void;
   setShowUploadModal: (show: boolean) => void;
   setUploadLibraryId: (id: string) => void;
@@ -132,7 +132,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   libraries: [],
 
   editingBook: null,
-  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: "", series: "", seriesIndex: "" },
+  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: "", series: "", series_index: "" },
   submitting: false,
   bookFiles: [],
   uploadingBookFiles: false,
@@ -223,19 +223,19 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     let date = "";
     let subjects = "";
     let series = "";
-    let seriesIndex = "";
+    let series_index = "";
 
-    if (book.metadataJson) {
+    if (book.metadata_json) {
       try {
-        const meta = JSON.parse(book.metadataJson) as MetadataJSON;
+        const meta = JSON.parse(book.metadata_json) as MetadataJSON;
         publisher = meta.publisher || meta.publishers?.join(", ") || "";
         language = meta.language || meta.languages?.join(", ") || "";
         date = meta.date || meta.dates?.[0] || "";
         subjects = toStringList(meta.subject).join(", ");
         series = meta.series || getMetaContent(meta, "calibre:series");
-        seriesIndex = meta.seriesIndex || getMetaContent(meta, "calibre:series_index");
+        series_index = meta.series_index || getMetaContent(meta, "calibre:series_index");
       } catch (e) {
-        console.error("Failed to parse metadataJson", e);
+        console.error("Failed to parse metadata_json", e);
       }
     }
 
@@ -243,20 +243,20 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       editingBook: book,
       formData: {
         title: book.title || "",
-        author: book.authorName || book.authorId || "",
+        author: book.author_name || book.author_id || "",
         description: book.description || "",
         publisher,
         language,
         date,
         subjects,
         series,
-        seriesIndex
+        series_index
       },
       coverTab: "book",
       epubImages: [],
       bookFiles: book.files || [],
       linkUrl: "",
-      coverPreview: book.coverUrl || null,
+      coverPreview: book.cover_url || null,
       pendingCover: null,
       loadingImages: true
     });
@@ -303,15 +303,15 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         language: result.language || formData.language,
         subjects: result.subject || formData.subjects,
         series: result.series || formData.series,
-        seriesIndex: result.seriesIndex || formData.seriesIndex
+        series_index: result.series_index || formData.series_index
       },
       searchResults: []
     });
     
-    if (result.coverImage && editingBook) {
+    if (result.cover_image && editingBook) {
       set({ 
-        coverPreview: result.coverImage, 
-        pendingCover: { type: 'url', value: result.coverImage } 
+        coverPreview: result.cover_image, 
+        pendingCover: { type: 'url', value: result.cover_image } 
       });
     }
   },

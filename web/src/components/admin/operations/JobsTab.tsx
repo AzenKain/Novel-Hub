@@ -103,7 +103,7 @@ export function JobsTab() {
                     {t(`admin.operations.statuses.${job.status || "pending"}`)}
                   </span>
                 </td>
-                <td>{new Date(job.createdAt).toLocaleString()}</td>
+                <td>{new Date(job.created_at).toLocaleString()}</td>
                 <td className="max-w-xs truncate text-error">
                   {job.errorMsg || "—"}
                 </td>
