@@ -63,7 +63,12 @@ export function useReaderSelection({
               savedSelectionRef.current = saved;
               setSelectionRange(range.cloneRange());
               const rect = range.getBoundingClientRect();
-              setToolbarPos({ top: Math.max(10, rect.top - 40), left: rect.left + rect.width / 2 });
+              const margin = 8;
+              const left = Math.min(
+                Math.max(rect.left + rect.width / 2, margin),
+                Math.max(margin, window.innerWidth - margin),
+              );
+              setToolbarPos({ top: Math.max(10, rect.top - 40), left });
               return;
             }
           }
