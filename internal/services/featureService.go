@@ -619,10 +619,17 @@ func (s *featureService) ShareActorKey(clientID string, ip string, userAgent str
 	return hex.EncodeToString(sum[:])
 }
 
+func readingSessionBookAccessible(book *models.BookEntity, err error, permissions PermissionCache, claims *response.JWTClaims) bool {
+	if err != nil || book == nil || permissions == nil {
+		return false
+	}
+	return permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID})
+}
+
 func (s *featureService) RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, claims *response.JWTClaims) error {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	resolved := resolveClaims(claims)
-	if err != nil || book == nil || !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID}) {
+	if !readingSessionBookAccessible(book, err, s.permissions, resolved) {
 		return apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
 	}
 	_, err = s.repo.UpsertReadingSession(ctx, sqlc.UpsertReadingSessionParams{
@@ -634,7 +641,7 @@ func (s *featureService) RecordReadingSession(ctx context.Context, userID string
 	})
 	if err != nil {
 		log.Error().Err(err).Str("user_id", userID).Str("book_id", bookID).Msg("failed to record reading session")
-		return apperrors.New(apperrors.ErrInternalError, "Failed to record reading session")
+		return apperrors.New(errors.Join(apperrors.ErrInternalError, err), "Failed to record reading session")
 	}
 	return nil
 }
