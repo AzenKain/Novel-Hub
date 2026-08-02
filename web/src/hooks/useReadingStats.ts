@@ -10,6 +10,7 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
   const wordsRef = useRef(0);
   const lastSyncTimeRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const syncInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!book_id || !isActive || !user) {
@@ -34,17 +35,20 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
   }, [book_id, isActive]);
 
   const syncStats = async (bookIdToSync: string) => {
-    const dur = durationRef.current;
-    const wrds = Math.floor(wordsRef.current);
-    if (dur === 0) return;
+    const snapshotDuration = durationRef.current;
+    const snapshotWords = Math.floor(wordsRef.current);
+    if (snapshotDuration < 1 || syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     lastSyncTimeRef.current = Date.now();
 
     try {
-      await readerService.syncReadingSession(bookIdToSync, dur, wrds);
-      durationRef.current = 0;
-      wordsRef.current = 0;
+      await readerService.syncReadingSession(bookIdToSync, snapshotDuration, snapshotWords);
+      durationRef.current = Math.max(0, durationRef.current - snapshotDuration);
+      wordsRef.current = Math.max(0, wordsRef.current - snapshotWords);
     } catch (err) {
       console.error("Failed to sync reading stats", err);
+    } finally {
+      syncInFlightRef.current = false;
     }
   };
 };

@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/rs/zerolog/log"
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
@@ -625,12 +626,14 @@ func (s *featureService) RecordReadingSession(ctx context.Context, userID string
 		return apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
 	}
 	_, err = s.repo.UpsertReadingSession(ctx, sqlc.UpsertReadingSessionParams{
+		ID:              uuid.Must(uuid.NewV7()).String(),
 		UserID:          userID,
 		BookID:          bookID,
 		DurationSeconds: duration,
 		WordsRead:       words,
 	})
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userID).Str("book_id", bookID).Msg("failed to record reading session")
 		return apperrors.New(apperrors.ErrInternalError, "Failed to record reading session")
 	}
 	return nil
