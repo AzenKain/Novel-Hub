@@ -12,15 +12,11 @@ type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
 
 export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
   const margin = 8;
-  const center = rect.left + rect.width / 2;
-  // Narrow layouts remove the horizontal transform so the max-width toolbar
-  // starts at the viewport margin and cannot extend past the right edge.
-  if (viewportWidth < 640) {
-    return { top: Math.max(10, rect.top - 40), left: margin };
-  }
+  // The toolbar is left-anchored (no horizontal transform). Starting at the
+  // viewport margin guarantees its max-width remains inside the viewport.
   return {
     top: Math.max(10, rect.top - 40),
-    left: Math.min(Math.max(center, margin), Math.max(margin, viewportWidth - margin)),
+    left: margin,
   };
 }
 

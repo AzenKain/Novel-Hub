@@ -2,21 +2,14 @@ import { describe, expect, it } from "vitest";
 import { getToolbarPosition } from "./useReaderSelection";
 
 describe("getToolbarPosition", () => {
-  it("keeps the transformed desktop toolbar inside viewport margins", () => {
-    expect(getToolbarPosition({ left: 2, width: 4, top: 100 }, 800)).toEqual({
-      top: 60,
-      left: 8,
-    });
-    expect(getToolbarPosition({ left: 790, width: 20, top: 100 }, 800)).toEqual({
-      top: 60,
-      left: 792,
-    });
-  });
+  it("clamps the left edge to viewport margins at every width", () => {
+    const narrow = getToolbarPosition({ left: 200, width: 20, top: 50 }, 360);
+    expect(narrow).toEqual({ top: 10, left: 8 });
+    expect(narrow.left).toBeGreaterThanOrEqual(8);
+    expect(narrow.left + (360 - 16)).toBeLessThanOrEqual(360);
 
-  it("anchors narrow toolbars to the viewport margin", () => {
-    expect(getToolbarPosition({ left: 200, width: 20, top: 50 }, 360)).toEqual({
-      top: 10,
-      left: 8,
-    });
+    const edge = getToolbarPosition({ left: 790, width: 20, top: 100 }, 800);
+    expect(edge).toEqual({ top: 60, left: 792 });
+    expect(edge.left).toBeLessThanOrEqual(792);
   });
 });
