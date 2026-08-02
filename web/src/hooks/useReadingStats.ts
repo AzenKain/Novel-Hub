@@ -49,8 +49,6 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
       void syncStats(book_id);
     };
   }, [book_id, isActive, user]);
-};
-};
 
 export function useReadingHeatmapQuery() {
   return useQuery({ queryKey: ["reader", "heatmap"], queryFn: () => readerService.getReadingHeatmap() });

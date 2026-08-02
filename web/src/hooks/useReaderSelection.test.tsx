@@ -33,7 +33,7 @@ describe("useReaderSelection highlight validation", () => {
     root.unmount();
   });
 
-  it("submits trimmed text with document-relative offsets", async () => {
+  it("submits exact selected text with document-relative offsets", async () => {
     const add = vi.fn().mockResolvedValue(undefined);
     const { root, content, getApi } = setup(add);
     const range = document.createRange();
@@ -41,7 +41,7 @@ describe("useReaderSelection highlight validation", () => {
     range.setEnd(content.firstChild!, 6);
     act(() => getApi().setSelectionRange(range));
     await act(async () => getApi().handleHighlight("blue"));
-    expect(add).toHaveBeenCalledWith("ello", 1, 6, "blue");
+    expect(add).toHaveBeenCalledWith("ello ", 1, 6, "blue");
     root.unmount();
   });
 });
