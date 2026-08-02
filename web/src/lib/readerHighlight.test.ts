@@ -48,8 +48,7 @@ describe("getCharacterOffsetOfRange", () => {
     range.setEnd(root, root.childNodes.length);
     expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 0, end: 11 });
   });
-
-
+  it("handles whitespace, equal, and unresolved ranges", () => {
     const container = render("   ");
     const whitespace = document.createRange();
     whitespace.selectNodeContents(container);
