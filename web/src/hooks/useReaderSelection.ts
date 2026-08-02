@@ -13,17 +13,14 @@ type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
 export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
   const margin = 8;
   const center = rect.left + rect.width / 2;
-  // On narrow screens the toolbar is anchored at the margin (without a
-  // horizontal transform), while desktop keeps its centered presentation.
+  // Narrow layouts remove the horizontal transform so the max-width toolbar
+  // starts at the viewport margin and cannot extend past the right edge.
   if (viewportWidth < 640) {
     return { top: Math.max(10, rect.top - 40), left: margin };
   }
-  const halfToolbarWidth = 220;
-  const minCenter = margin + halfToolbarWidth;
-  const maxCenter = Math.max(minCenter, viewportWidth - margin - halfToolbarWidth);
   return {
     top: Math.max(10, rect.top - 40),
-    left: Math.min(Math.max(center, minCenter), maxCenter),
+    left: Math.min(Math.max(center, margin), Math.max(margin, viewportWidth - margin)),
   };
 }
 

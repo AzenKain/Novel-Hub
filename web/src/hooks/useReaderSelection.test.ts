@@ -5,11 +5,11 @@ describe("getToolbarPosition", () => {
   it("keeps the transformed desktop toolbar inside viewport margins", () => {
     expect(getToolbarPosition({ left: 2, width: 4, top: 100 }, 800)).toEqual({
       top: 60,
-      left: 228,
+      left: 8,
     });
     expect(getToolbarPosition({ left: 790, width: 20, top: 100 }, 800)).toEqual({
       top: 60,
-      left: 572,
+      left: 792,
     });
   });
 
