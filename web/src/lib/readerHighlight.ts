@@ -47,38 +47,22 @@ export const getCharacterOffsetOfRange = (
   range: Range
 ): { start: number; end: number } | null => {
   if (!container || !range) return null;
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-  const textNodes: Node[] = [];
-  while (walker.nextNode()) textNodes.push(walker.currentNode);
-  if (!textNodes.length) return null;
-  const resolve = (node: Node, offset: number, startSide: boolean) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const length = node.textContent?.length ?? 0;
-      return container.contains(node) && offset >= 0 && offset <= length ? { node, offset } : null;
+  const isWithin = (node: Node) => node === container || container.contains(node);
+  if (!isWithin(range.startContainer) || !isWithin(range.endContainer)) return null;
+
+  const boundaryOffset = (node: Node, offset: number): number | null => {
+    try {
+      const before = document.createRange();
+      before.selectNodeContents(container);
+      before.setEnd(node, offset);
+      return before.toString().length;
+    } catch {
+      return null;
     }
-    if (node.nodeType !== Node.ELEMENT_NODE || (node !== container && !container.contains(node))) return null;
-    const el = node as Element;
-    const descendants = textNodes.filter((text) => el.contains(text));
-    if (descendants.length) {
-      const child = el.childNodes[offset];
-      const nested = child && textNodes.find((text) => child.contains(text));
-      if (nested) return { node: nested, offset: startSide ? 0 : 0 };
-      const selected = startSide ? descendants[0] : descendants[descendants.length - 1];
-      return { node: selected, offset: startSide ? 0 : selected.textContent?.length ?? 0 };
-    }
-    return null;
   };
-  const startBoundary = resolve(range.startContainer, range.startOffset, true);
-  const endBoundary = resolve(range.endContainer, range.endOffset, false);
-  if (!startBoundary || !endBoundary) return null;
-  let cursor = 0;
-  let start: number | null = null;
-  let end: number | null = null;
-  for (const node of textNodes) {
-    if (node === startBoundary.node) start = cursor + startBoundary.offset;
-    if (node === endBoundary.node) end = cursor + endBoundary.offset;
-    cursor += node.textContent?.length ?? 0;
-  }
+
+  const start = boundaryOffset(range.startContainer, range.startOffset);
+  const end = boundaryOffset(range.endContainer, range.endOffset);
   return start !== null && end !== null && end > start ? { start, end } : null;
 };
 
