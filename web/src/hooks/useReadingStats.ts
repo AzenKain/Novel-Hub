@@ -8,12 +8,17 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
   const statsRef = useRef(new Map<string, { duration: number; words: number }>());
   const syncInFlightRef = useRef(new Set<string>());
+  const pendingSyncRef = useRef(new Set<string>());
   const lastSyncTimeRef = useRef(new Map<string, number>());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const syncStats = async (bookIdToSync: string) => {
     const stats = statsRef.current.get(bookIdToSync);
-    if (!stats || stats.duration < 1 || syncInFlightRef.current.has(bookIdToSync)) return;
+    if (!stats || stats.duration < 1) return;
+    if (syncInFlightRef.current.has(bookIdToSync)) {
+      pendingSyncRef.current.add(bookIdToSync);
+      return;
+    }
     syncInFlightRef.current.add(bookIdToSync);
     lastSyncTimeRef.current.set(bookIdToSync, Date.now());
     const snapshot = { ...stats, words: Math.floor(stats.words) };
@@ -28,6 +33,7 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
       console.error("Failed to sync reading stats", err);
     } finally {
       syncInFlightRef.current.delete(bookIdToSync);
+      if (pendingSyncRef.current.delete(bookIdToSync)) void syncStats(bookIdToSync);
     }
   };
 
