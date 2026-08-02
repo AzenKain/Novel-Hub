@@ -8,7 +8,25 @@ import {
   type TtsStartPoint,
 } from "@/lib/readerHighlight";
 
-type UseReaderSelectionArgs = {
+type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
+
+export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
+  const margin = 8;
+  const center = rect.left + rect.width / 2;
+  // On narrow screens the toolbar is anchored at the margin (without a
+  // horizontal transform), while desktop keeps its centered presentation.
+  if (viewportWidth < 640) {
+    return { top: Math.max(10, rect.top - 40), left: margin };
+  }
+  const halfToolbarWidth = 220;
+  const minCenter = margin + halfToolbarWidth;
+  const maxCenter = Math.max(minCenter, viewportWidth - margin - halfToolbarWidth);
+  return {
+    top: Math.max(10, rect.top - 40),
+    left: Math.min(Math.max(center, minCenter), maxCenter),
+  };
+}
+
   columnsRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
   savedSelectionRef: RefObject<SavedSelection | null>;
@@ -63,12 +81,7 @@ export function useReaderSelection({
               savedSelectionRef.current = saved;
               setSelectionRange(range.cloneRange());
               const rect = range.getBoundingClientRect();
-              const margin = 8;
-              const left = Math.min(
-                Math.max(rect.left + rect.width / 2, margin),
-                Math.max(margin, window.innerWidth - margin),
-              );
-              setToolbarPos({ top: Math.max(10, rect.top - 40), left });
+              setToolbarPos(getToolbarPosition(rect, window.innerWidth));
               return;
             }
           }

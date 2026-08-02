@@ -89,50 +89,50 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           <div className="reader-selection-toolbar-divider mx-1 h-4 w-px pointer-events-none" />
 
           <div data-reader-toolbar="true" className="flex shrink-0 flex-wrap items-center gap-1.5 px-1">
-        <button
-          type="button"
-          data-reader-toolbar="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onHighlight("#fef08a");
-          }}
-          className="h-4 w-4 shrink-0 rounded-full bg-yellow-400 border border-yellow-200/50 shadow-sm transition-transform hover:scale-125"
-          title={t("reader.highlight_yellow")}
-        />
-        <button
-          type="button"
-          data-reader-toolbar="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onHighlight("#bbf7d0");
-          }}
-          className="h-4 w-4 shrink-0 rounded-full bg-emerald-400 border border-emerald-200/50 shadow-sm transition-transform hover:scale-125"
-          title={t("reader.highlight_green")}
-        />
-        <button
-          type="button"
-          data-reader-toolbar="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onHighlight("#bfdbfe");
-          }}
-          className="h-4 w-4 shrink-0 rounded-full bg-sky-400 border border-sky-200/50 shadow-sm transition-transform hover:scale-125"
-          title={t("reader.highlight_blue")}
-        />
-        <button
-          type="button"
-          data-reader-toolbar="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onHighlight("#e9d5ff");
-          }}
-          className="h-4 w-4 shrink-0 rounded-full bg-purple-400 border border-purple-200/50 shadow-sm transition-transform hover:scale-125"
-          title={t("reader.highlight_purple")}
-        />
+            <button
+              type="button"
+              data-reader-toolbar="true"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onHighlight("#fef08a");
+              }}
+              className="h-4 w-4 shrink-0 rounded-full border border-yellow-200/50 bg-yellow-400 shadow-sm transition-transform hover:scale-125"
+              title={t("reader.highlight_yellow")}
+            />
+            <button
+              type="button"
+              data-reader-toolbar="true"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onHighlight("#bbf7d0");
+              }}
+              className="h-4 w-4 shrink-0 rounded-full border border-emerald-200/50 bg-emerald-400 shadow-sm transition-transform hover:scale-125"
+              title={t("reader.highlight_green")}
+            />
+            <button
+              type="button"
+              data-reader-toolbar="true"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onHighlight("#bfdbfe");
+              }}
+              className="h-4 w-4 shrink-0 rounded-full border border-sky-200/50 bg-sky-400 shadow-sm transition-transform hover:scale-125"
+              title={t("reader.highlight_blue")}
+            />
+            <button
+              type="button"
+              data-reader-toolbar="true"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onHighlight("#e9d5ff");
+              }}
+              className="h-4 w-4 shrink-0 rounded-full border border-purple-200/50 bg-purple-400 shadow-sm transition-transform hover:scale-125"
+              title={t("reader.highlight_purple")}
+            />
           </div>
         </>
       )}
