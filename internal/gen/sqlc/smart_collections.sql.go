@@ -118,3 +118,36 @@ func (q *Queries) ListSmartCollectionsByUser(ctx context.Context, userID string)
 	}
 	return items, nil
 }
+
+const updateSmartCollection = `-- name: UpdateSmartCollection :one
+UPDATE smart_collections
+SET name = ?, rule_json = ?, updated_at = CURRENT_TIMESTAMP
+WHERE id = ? AND user_id = ?
+RETURNING id, user_id, name, rule_json, created_at, updated_at
+`
+
+type UpdateSmartCollectionParams struct {
+	Name     string `json:"name"`
+	RuleJson string `json:"rule_json"`
+	ID       string `json:"id"`
+	UserID   string `json:"user_id"`
+}
+
+func (q *Queries) UpdateSmartCollection(ctx context.Context, arg UpdateSmartCollectionParams) (SmartCollection, error) {
+	row := q.queryRow(ctx, q.updateSmartCollectionStmt, updateSmartCollection,
+		arg.Name,
+		arg.RuleJson,
+		arg.ID,
+		arg.UserID,
+	)
+	var i SmartCollection
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.RuleJson,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

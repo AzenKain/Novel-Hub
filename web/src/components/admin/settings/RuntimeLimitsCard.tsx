@@ -13,6 +13,10 @@ const BYTE_FIELDS: (keyof RuntimeLimits)[] = [
   "cover_bytes",
   "site_asset_bytes",
 ];
+const SECOND_FIELDS: (keyof RuntimeLimits)[] = [
+  "rate_limit_api_window_seconds",
+  "rate_limit_auth_window_seconds",
+];
 const LIMIT_FIELDS: (keyof RuntimeLimits)[] = [
   "upload_chunk_bytes",
   "upload_chunks",
@@ -21,6 +25,10 @@ const LIMIT_FIELDS: (keyof RuntimeLimits)[] = [
   "upload_session_ttl_seconds",
   "cover_bytes",
   "site_asset_bytes",
+  "rate_limit_api",
+  "rate_limit_api_window_seconds",
+  "rate_limit_auth",
+  "rate_limit_auth_window_seconds",
 ];
 const SETTING_KEYS: Record<keyof RuntimeLimits, string> = {
   upload_chunk_bytes: "limits.upload_chunk_bytes",
@@ -30,6 +38,10 @@ const SETTING_KEYS: Record<keyof RuntimeLimits, string> = {
   upload_session_ttl_seconds: "limits.upload_session_ttl_seconds",
   cover_bytes: "limits.cover_bytes",
   site_asset_bytes: "limits.site_asset_bytes",
+  rate_limit_api: "limits.rate_limit_api",
+  rate_limit_api_window_seconds: "limits.rate_limit_api_window_seconds",
+  rate_limit_auth: "limits.rate_limit_auth",
+  rate_limit_auth_window_seconds: "limits.rate_limit_auth_window_seconds",
 };
 
 export function RuntimeLimitsCard() {
@@ -45,6 +57,7 @@ export function RuntimeLimitsCard() {
 
   const isBytes = (key: keyof RuntimeLimits) => BYTE_FIELDS.includes(key);
   const isTTL = (key: keyof RuntimeLimits) => key === "upload_session_ttl_seconds";
+  const isSeconds = (key: keyof RuntimeLimits) => SECOND_FIELDS.includes(key);
   const displayValue = (key: keyof RuntimeLimits, value: number) => isBytes(key) ? value / MEBIBYTE : isTTL(key) ? value / 60 : value;
   const backendValue = (key: keyof RuntimeLimits, value: number) => Math.round(isBytes(key) ? value * MEBIBYTE : isTTL(key) ? value * 60 : value);
   const valid = LIMIT_FIELDS.every((key) => limits[key] >= limitBounds.min[key] && limits[key] <= limitBounds.max[key]);
@@ -95,7 +108,7 @@ export function RuntimeLimitsCard() {
                     }}
                   />
                   <span className="join-item flex items-center border border-base-300 bg-base-200 px-3 text-sm">
-                    {t(byteField ? "settings.unit_mib" : isTTL(key) ? "settings.unit_minutes" : "settings.unit_count")}
+                    {t(byteField ? "settings.unit_mib" : isTTL(key) ? "settings.unit_minutes" : isSeconds(key) ? "settings.unit_seconds" : "settings.unit_count")}
                   </span>
                 </div>
                 <span className="text-xs text-base-content/50 pl-1">

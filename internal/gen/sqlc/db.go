@@ -582,6 +582,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateRolePositionStmt, err = db.PrepareContext(ctx, updateRolePosition); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateRolePosition: %w", err)
 	}
+	if q.updateSmartCollectionStmt, err = db.PrepareContext(ctx, updateSmartCollection); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateSmartCollection: %w", err)
+	}
 	if q.updateSystemRoleDescriptionStmt, err = db.PrepareContext(ctx, updateSystemRoleDescription); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateSystemRoleDescription: %w", err)
 	}
@@ -1583,6 +1586,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateRolePositionStmt: %w", cerr)
 		}
 	}
+	if q.updateSmartCollectionStmt != nil {
+		if cerr := q.updateSmartCollectionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateSmartCollectionStmt: %w", cerr)
+		}
+	}
 	if q.updateSystemRoleDescriptionStmt != nil {
 		if cerr := q.updateSystemRoleDescriptionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateSystemRoleDescriptionStmt: %w", cerr)
@@ -1918,6 +1926,7 @@ type Queries struct {
 	updateProfileStmt                  *sql.Stmt
 	updateRoleStmt                     *sql.Stmt
 	updateRolePositionStmt             *sql.Stmt
+	updateSmartCollectionStmt          *sql.Stmt
 	updateSystemRoleDescriptionStmt    *sql.Stmt
 	updateUserPasswordStmt             *sql.Stmt
 	updateUserRefreshTokenStmt         *sql.Stmt
@@ -2132,6 +2141,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateProfileStmt:                  q.updateProfileStmt,
 		updateRoleStmt:                     q.updateRoleStmt,
 		updateRolePositionStmt:             q.updateRolePositionStmt,
+		updateSmartCollectionStmt:          q.updateSmartCollectionStmt,
 		updateSystemRoleDescriptionStmt:    q.updateSystemRoleDescriptionStmt,
 		updateUserPasswordStmt:             q.updateUserPasswordStmt,
 		updateUserRefreshTokenStmt:         q.updateUserRefreshTokenStmt,

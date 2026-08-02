@@ -1,27 +1,33 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Clock, BookOpen, Flame, Target, ArrowLeft } from 'lucide-react';
+import { Clock, BookOpen, Flame, ArrowLeft } from 'lucide-react';
 import { TopNav } from '@/components/common/TopNav';
 import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
+import { ReadingGoalCard } from '@/components/profile/ReadingGoalCard';
 import { useReadingHeatmapQuery } from '@/hooks/useReadingStats';
 
 export const ReadingAnalyticsPage: React.FC = () => {
   const { t } = useTranslation();
   const { data: heatmapData } = useReadingHeatmapQuery();
 
-  const { totalWords, activeDays } = useMemo(() => {
+  const { totalWords, activeDays, todayWords } = useMemo(() => {
     let words = 0;
     let days = 0;
+    let today = 0;
     if (heatmapData && typeof heatmapData === 'object' && !Array.isArray(heatmapData)) {
-      Object.values(heatmapData).forEach((item: any) => {
+      // Local date, matching the heatmap cell the user sees — toISOString() would
+      // shift to UTC and read yesterday's cell for anyone west of Greenwich.
+      const todayKey = new Date().toLocaleDateString('sv-SE');
+      Object.entries(heatmapData).forEach(([date, item]: [string, any]) => {
         if (item && item.words > 0) {
           words += item.words;
           days += 1;
+          if (date === todayKey) today = item.words;
         }
       });
     }
-    return { totalWords: words, activeDays: days };
+    return { totalWords: words, activeDays: days, todayWords: today };
   }, [heatmapData]);
 
   return (
@@ -72,15 +78,7 @@ export const ReadingAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-base-100 border border-base-200 p-4 rounded-2xl shadow-sm flex items-center gap-3">
-            <div className="p-3 bg-success/10 text-success rounded-xl">
-              <Target className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-black">85%</div>
-              <div className="text-xs text-base-content/60">{t('analytics.goal_progress', 'Daily Goal Progress')}</div>
-            </div>
-          </div>
+          <ReadingGoalCard todayWords={todayWords} />
         </div>
 
         {/* Activity Heatmap */}

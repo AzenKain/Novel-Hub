@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
@@ -20,6 +21,7 @@ import (
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
+	"novelhub/pkg/jsonx"
 )
 
 type FeatureService interface {
@@ -54,6 +56,12 @@ type FeatureService interface {
 	ShareActorKey(clientID string, ip string, userAgent string) string
 	RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, claims *response.JWTClaims) error
 	GetReadingHeatmap(ctx context.Context, userID string) (map[string]map[string]int64, error)
+	GetReadingGoal(ctx context.Context, userID string) (*response.ReadingGoalResponse, error)
+	UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*response.ReadingGoalResponse, error)
+	ListSmartCollections(ctx context.Context, userID string) ([]*response.SmartCollectionResponse, error)
+	CreateSmartCollection(ctx context.Context, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
+	UpdateSmartCollection(ctx context.Context, id string, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
+	DeleteSmartCollection(ctx context.Context, id string, userID string) error
 }
 
 type featureService struct {
@@ -643,4 +651,98 @@ func (s *featureService) GetReadingHeatmap(ctx context.Context, userID string) (
 		}
 	}
 	return result, nil
+}
+
+// Defaults mirror the reading_goals table (db/schema/58_reading_goals.sql). A user
+// who never set a goal is a normal state, not a 404 — the analytics page always
+// needs something to divide by.
+const (
+	defaultTargetWordsPerDay  = 1000
+	defaultTargetBooksPerYear = 12
+)
+
+func (s *featureService) GetReadingGoal(ctx context.Context, userID string) (*response.ReadingGoalResponse, error) {
+	goal, err := s.repo.GetReadingGoal(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return &response.ReadingGoalResponse{
+				UserID:             userID,
+				TargetWordsPerDay:  defaultTargetWordsPerDay,
+				TargetBooksPerYear: defaultTargetBooksPerYear,
+			}, nil
+		}
+		return nil, err
+	}
+	return goal.ToResponse(), nil
+}
+
+func (s *featureService) UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*response.ReadingGoalResponse, error) {
+	goal, err := s.repo.UpsertReadingGoal(ctx, userID, wordsPerDay, booksPerYear)
+	if err != nil {
+		return nil, err
+	}
+	return goal.ToResponse(), nil
+}
+
+// smartCollectionToResponse parses the stored rule back into the validated DTO.
+// A row whose JSON is unreadable (hand-edited DB, older schema) degrades to an
+// empty rule instead of failing the whole list — the collection still opens, it
+// just filters nothing.
+func smartCollectionToResponse(entity *models.SmartCollectionEntity) *response.SmartCollectionResponse {
+	res := entity.ToResponse()
+	if res == nil {
+		return nil
+	}
+	var rule request.SmartCollectionRuleDto
+	if err := jsonx.Unmarshal([]byte(entity.RuleJson), &rule); err == nil {
+		res.Rule = rule
+	}
+	return res
+}
+
+func (s *featureService) ListSmartCollections(ctx context.Context, userID string) ([]*response.SmartCollectionResponse, error) {
+	entities, err := s.repo.ListSmartCollections(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*response.SmartCollectionResponse, 0, len(entities))
+	for _, entity := range entities {
+		if entity == nil {
+			continue
+		}
+		out = append(out, smartCollectionToResponse(entity))
+	}
+	return out, nil
+}
+
+func (s *featureService) CreateSmartCollection(ctx context.Context, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error) {
+	ruleJson, err := jsonx.Marshal(dto.Rule)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid smart collection rule")
+	}
+	id := uuid.Must(uuid.NewV7()).String()
+	entity, err := s.repo.CreateSmartCollection(ctx, id, userID, dto.Name, string(ruleJson))
+	if err != nil {
+		return nil, err
+	}
+	return smartCollectionToResponse(entity), nil
+}
+
+func (s *featureService) UpdateSmartCollection(ctx context.Context, id string, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error) {
+	ruleJson, err := jsonx.Marshal(dto.Rule)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid smart collection rule")
+	}
+	entity, err := s.repo.UpdateSmartCollection(ctx, id, userID, dto.Name, string(ruleJson))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart collection not found")
+		}
+		return nil, err
+	}
+	return smartCollectionToResponse(entity), nil
+}
+
+func (s *featureService) DeleteSmartCollection(ctx context.Context, id string, userID string) error {
+	return s.repo.DeleteSmartCollection(ctx, id, userID)
 }

@@ -1,6 +1,10 @@
 package response
 
-import "time"
+import (
+	"time"
+
+	"novelhub/internal/dtos/request"
+)
 
 type HighlightResponse struct {
 	ID          string    `json:"id"`
@@ -25,6 +29,25 @@ type ReadingSessionResponse struct {
 	Date            time.Time `json:"date"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+type ReadingGoalResponse struct {
+	UserID             string    `json:"userId"`
+	TargetWordsPerDay  int64     `json:"targetWordsPerDay"`
+	TargetBooksPerYear int64     `json:"targetBooksPerYear"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+}
+
+// Rule is the parsed rule, never the stored JSON string — clients build a library
+// URL straight from these fields. Reusing the request DTO keeps the shape defined
+// in exactly one place; request imports nothing from here, so there is no cycle.
+type SmartCollectionResponse struct {
+	ID        string                         `json:"id"`
+	UserID    string                         `json:"userId"`
+	Name      string                         `json:"name"`
+	Rule      request.SmartCollectionRuleDto `json:"rule"`
+	CreatedAt time.Time                      `json:"createdAt"`
+	UpdatedAt time.Time                      `json:"updatedAt"`
 }
 
 type ReadingHeatmapResponse struct {

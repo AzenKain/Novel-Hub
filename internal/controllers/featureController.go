@@ -755,3 +755,141 @@ func (c *FeatureController) GetReadingHeatmap(ctx fiber.Ctx) error {
 
 	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
 }
+
+func (c *FeatureController) GetReadingGoal(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	goal, err := c.service.GetReadingGoal(reqCtx, userID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true, Data: goal})
+}
+
+func (c *FeatureController) UpsertReadingGoal(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	dto := &request.UpsertReadingGoalDto{}
+	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	goal, err := c.service.UpsertReadingGoal(reqCtx, userID, dto.TargetWordsPerDay, dto.TargetBooksPerYear)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true, Data: goal})
+}
+
+func (c *FeatureController) ListSmartCollections(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	items, err := c.service.ListSmartCollections(reqCtx, userID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true, Data: items})
+}
+
+func (c *FeatureController) CreateSmartCollection(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	dto := &request.UpsertSmartCollectionDto{}
+	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	item, err := c.service.CreateSmartCollection(reqCtx, userID, *dto)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true, Data: item})
+}
+
+func (c *FeatureController) UpdateSmartCollection(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	id := strings.TrimSpace(ctx.Params("id"))
+	if id == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "id is required"})
+	}
+
+	dto := &request.UpsertSmartCollectionDto{}
+	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	item, err := c.service.UpdateSmartCollection(reqCtx, id, userID, *dto)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true, Data: item})
+}
+
+func (c *FeatureController) DeleteSmartCollection(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	id := strings.TrimSpace(ctx.Params("id"))
+	if id == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "id is required"})
+	}
+
+	if err := c.service.DeleteSmartCollection(reqCtx, id, userID); err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+	return ctx.JSON(response.CommonResponse{Status: true})
+}

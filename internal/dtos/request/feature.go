@@ -58,3 +58,27 @@ type RecordReadingSessionDto struct {
 	Words    int64  `json:"words" validate:"min=0"`
 }
 
+type UpsertReadingGoalDto struct {
+	TargetWordsPerDay  int64 `json:"targetWordsPerDay" validate:"required,min=1,max=1000000"`
+	TargetBooksPerYear int64 `json:"targetBooksPerYear" validate:"required,min=1,max=10000"`
+}
+
+// SmartCollectionRuleDto mirrors the filter fields of SearchBookDto. It is a
+// closed struct on purpose: rule_json is read back out and replayed into a
+// library URL, so this is a trust boundary — free-form JSON must not survive a
+// round trip through the database.
+type SmartCollectionRuleDto struct {
+	Search     string `json:"search,omitempty" validate:"omitempty,max=200"`
+	LibraryID  string `json:"library_id,omitempty" validate:"omitempty,max=200"`
+	Nav        string `json:"nav,omitempty" validate:"omitempty,max=200"`
+	Collection string `json:"collection,omitempty" validate:"omitempty,max=200"`
+	Chip       string `json:"chip,omitempty" validate:"omitempty,max=200"`
+	Facet      string `json:"facet,omitempty" validate:"omitempty,max=200"`
+	FacetID    string `json:"facet_id,omitempty" validate:"omitempty,max=200"`
+}
+
+type UpsertSmartCollectionDto struct {
+	Name string                 `json:"name" validate:"required,min=1,max=100"`
+	Rule SmartCollectionRuleDto `json:"rule"`
+}
+

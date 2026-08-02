@@ -28,6 +28,10 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	statsGroup.Post("/session", featureController.RecordReadingSession)
 	statsGroup.Get("/heatmap", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingHeatmap)
 
+	goalGroup := app.Group("/reader/goals", middlewares.JwtAccess(userRepo))
+	goalGroup.Get("/", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingGoal)
+	goalGroup.Put("/", featureController.UpsertReadingGoal)
+
 	app.Get("/reader/stats/:id", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookReadStats)
 	app.Get("/books/:id/download-stats", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookDownloadStats)
 	app.Get("/books/:id/engagement", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookEngagementStats)
@@ -42,6 +46,13 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	collectionGroup.Delete("/:id", featureController.DeleteCollection)
 	collectionGroup.Post("/:id/books", featureController.AddBookToCollection)
 	collectionGroup.Delete("/:id/books/:bookId", featureController.RemoveBookFromCollection)
+
+	smartCollectionGroup := app.Group("/smart-collections", middlewares.JwtAccess(userRepo))
+	smartCollectionGroup.Use(middlewares.RequirePermission(permissionCache, constants.PermBookCollection))
+	smartCollectionGroup.Get("/", featureController.ListSmartCollections)
+	smartCollectionGroup.Post("/", featureController.CreateSmartCollection)
+	smartCollectionGroup.Put("/:id", featureController.UpdateSmartCollection)
+	smartCollectionGroup.Delete("/:id", featureController.DeleteSmartCollection)
 
 	bookmarkGroup := app.Group("/bookmarks", middlewares.JwtAccess(userRepo))
 	bookmarkGroup.Get("/books", featureController.GetBookmarkedBooks)

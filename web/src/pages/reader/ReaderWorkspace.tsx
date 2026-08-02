@@ -13,8 +13,11 @@ import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReadingStats } from "@/hooks/useReadingStats";
+import { useReaderNavigation } from "@/hooks/useReaderNavigation";
+import { useReaderPaging } from "@/hooks/useReaderPaging";
+import { useReaderSelection } from "@/hooks/useReaderSelection";
 import { queryClient } from "@/config/queryClient";
-import { clearHighlight, highlightTextRange, highlightTextRangeFromNode, extractTextFromHtml, getSelectionInfo, saveSelection, getTextFromHereFromSaved, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -35,6 +38,17 @@ export const ReaderWorkspace = () => {
 
   const ttsStartPointRef = useRef<TtsStartPoint | null>(null);
   const savedSelectionRef = useRef<SavedSelection | null>(null);
+
+  // Declared up here because the TTS boundary callback and the extracted reader
+  // hooks below all close over them.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const pageFrameRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const pendingFragmentRef = useRef<string | null>(null);
+  const pendingTextOffsetRef = useRef<number | null>(null);
+  const lastFocusedControlRef = useRef<HTMLElement | null>(null);
+  const ttsOffsetRef = useRef<number>(0);
 
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
 
@@ -173,108 +187,6 @@ export const ReaderWorkspace = () => {
     setTtsRate(newRate);
   };
 
-  useEffect(() => {
-    if (!isPlaying && !isPaused) {
-      clearHighlight();
-    }
-  }, [isPlaying, isPaused]);
-
-  const [selectionRange, setSelectionRange] = useState<Range | null>(null);
-  const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    const handleSelection = (e: Event) => {
-      const targetNode = e.target as Node | null;
-      const targetElem = targetNode?.nodeType === Node.ELEMENT_NODE
-        ? (targetNode as HTMLElement)
-        : targetNode?.parentElement;
-      const isToolbar = !!targetElem?.closest?.('[data-reader-toolbar="true"]');
-
-      if (isToolbar) {
-        return;
-      }
-
-      setTimeout(() => {
-        const selection = window.getSelection();
-
-        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-          const range = selection.getRangeAt(0);
-          const container = columnsRef.current || contentRef.current;
-          const commonNode = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-            ? range.commonAncestorContainer.parentNode
-            : range.commonAncestorContainer;
-          if (container && commonNode && container.contains(commonNode)) {
-            const saved = saveSelection(container, range);
-            if (saved) {
-              savedSelectionRef.current = saved;
-              setSelectionRange(range.cloneRange());
-              const rect = range.getBoundingClientRect();
-              setToolbarPos({ top: Math.max(10, rect.top - 40), left: rect.left + rect.width / 2 });
-              return;
-            }
-          }
-        }
-        savedSelectionRef.current = null;
-        setSelectionRange(null);
-      }, 20);
-    };
-
-    document.addEventListener("mouseup", handleSelection);
-    document.addEventListener("keyup", handleSelection);
-    return () => {
-      document.removeEventListener("mouseup", handleSelection);
-      document.removeEventListener("keyup", handleSelection);
-    };
-  }, []);
-
-  const handleHighlight = async (color: string) => {
-    if (selectionRange) {
-      const text = selectionRange.toString();
-      await addHighlight(text, 0, text.length, color);
-      window.getSelection()?.removeAllRanges();
-      savedSelectionRef.current = null;
-      setSelectionRange(null);
-    }
-  };
-
-  const handleReadSelection = () => {
-    const container = columnsRef.current || contentRef.current;
-    const saved = savedSelectionRef.current;
-    if (container && saved && saved.selectedText) {
-      ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
-      stop();
-      speak(saved.selectedText);
-      savedSelectionRef.current = null;
-      setSelectionRange(null);
-    }
-  };
-
-  const handleReadFromHere = () => {
-    const container = columnsRef.current || contentRef.current;
-    const saved = savedSelectionRef.current;
-    if (container && saved) {
-      const textFromHere = getTextFromHereFromSaved(container, saved);
-      if (textFromHere) {
-        ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
-        stop();
-        speak(textFromHere);
-      }
-      savedSelectionRef.current = null;
-      setSelectionRange(null);
-    }
-  };
-
-  const handleCopyText = () => {
-    const saved = savedSelectionRef.current;
-    const textToCopy = saved?.selectedText || selectionRange?.toString();
-    if (textToCopy) {
-      void navigator.clipboard.writeText(textToCopy);
-      window.getSelection()?.removeAllRanges();
-      savedSelectionRef.current = null;
-      setSelectionRange(null);
-    }
-  };
-
   const handleTtsPlayPause = () => {
     if (isPlaying) {
       pause();
@@ -289,7 +201,31 @@ export const ReaderWorkspace = () => {
     }
   };
 
-    const [ambientColor, setAmbientColor] = useState<string>("transparent");
+  useEffect(() => {
+    if (!isPlaying && !isPaused) {
+      clearHighlight();
+    }
+  }, [isPlaying, isPaused]);
+
+  const {
+    selectionRange,
+    setSelectionRange,
+    toolbarPos,
+    handleHighlight,
+    handleReadSelection,
+    handleReadFromHere,
+    handleCopyText,
+  } = useReaderSelection({
+    columnsRef,
+    contentRef,
+    savedSelectionRef,
+    ttsStartPointRef,
+    addHighlight,
+    speak,
+    stop,
+  });
+
+  const [ambientColor, setAmbientColor] = useState<string>("transparent");
 
   useEffect(() => {
     if (!book || !book.coverUrl) {
@@ -315,18 +251,7 @@ export const ReaderWorkspace = () => {
 
   
 
-  const contentRef = useRef<HTMLDivElement>(null);
   const { isScrolling: autoScrollActive, toggleScroll: onToggleAutoScroll, updateSpeed } = useAutoScroll(contentRef);
-
-
-
-  const columnsRef = useRef<HTMLDivElement>(null);
-  const pageFrameRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
-  const pendingFragmentRef = useRef<string | null>(null);
-  const pendingTextOffsetRef = useRef<number | null>(null);
-  const lastFocusedControlRef = useRef<HTMLElement | null>(null);
-  const ttsOffsetRef = useRef<number>(0);
 
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
@@ -343,43 +268,27 @@ export const ReaderWorkspace = () => {
     ? 0
     : Math.max(1, Math.floor((pageFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
 
-  useEffect(() => {
-    setPageIndex(0);
-    if (contentRef.current) {
-      contentRef.current.scrollLeft = 0;
-      contentRef.current.scrollTop = 0;
-    }
-    if (columnsRef.current) {
-      columnsRef.current.scrollLeft = 0;
-      const body = columnsRef.current.querySelector("body");
-      if (body) {
-        body.scrollLeft = 0;
-      }
-    }
-  }, [htmlContent]);
-
-  useEffect(() => {
-    if (scrollLayout) {
-      setPageFrameWidth(0);
-      return;
-    }
-
-    const frame = pageFrameRef.current;
-    if (!frame) return;
-
-    const updatePageFrameWidth = () => setPageFrameWidth(frame.clientWidth);
-
-    updatePageFrameWidth();
-
-    const resizeObserver = new ResizeObserver(updatePageFrameWidth);
-    resizeObserver.observe(frame);
-    window.addEventListener("resize", updatePageFrameWidth);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updatePageFrameWidth);
-    };
-  }, [scrollLayout, maxWidth]);
+  const {
+    getPagedScrollMetrics,
+    scrollToPageIndex,
+    getLocationFraction,
+    handlePageNext,
+    handlePagePrev,
+  } = useReaderPaging({
+    contentRef,
+    columnsRef,
+    pageFrameRef,
+    htmlContent,
+    maxWidth,
+    scrollLayout,
+    effectiveReadingMode,
+    rtlPaging,
+    pageIndex,
+    setPageIndex,
+    setPageFrameWidth,
+    onChapterNext: () => handleNext(),
+    onChapterPrev: () => handlePrev(),
+  });
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -397,110 +306,6 @@ export const ReaderWorkspace = () => {
     };
   }, [sidebarOpen, setSidebarOpen]);
 
-  const prevModeRef = useRef<string>(effectiveReadingMode);
-  const lastPageIndexRef = useRef<number>(pageIndex);
-
-  useEffect(() => {
-    lastPageIndexRef.current = pageIndex;
-  }, [pageIndex]);
-
-  const getPagedScrollContainer = () => {
-    const readerContent = columnsRef.current;
-    if (!readerContent) return null;
-    return readerContent.querySelector("body") || readerContent;
-  };
-
-  const getPagedScrollMetrics = () => {
-    const container = getPagedScrollContainer();
-    if (!container) return;
-
-    const scrollStep = container.clientWidth + READER_PAGE_GAP;
-    const maxIndex = Math.max(0, Math.ceil((container.scrollWidth - container.clientWidth) / scrollStep));
-    return { container, scrollStep, maxIndex };
-  };
-
-  const scrollToPageIndex = (targetIndex: number, instant = false) => {
-    const metrics = getPagedScrollMetrics();
-    if (!metrics) return;
-
-    const { container, scrollStep, maxIndex } = metrics;
-    const nextIndex = Math.min(Math.max(targetIndex, 0), maxIndex);
-
-    container.scrollTo({
-      left: nextIndex * scrollStep * (rtlPaging ? -1 : 1),
-      behavior: instant ? "auto" : "smooth",
-    });
-    setPageIndex(nextIndex);
-  };
-
-  useEffect(() => {
-    const prevMode = prevModeRef.current;
-    if (prevMode === effectiveReadingMode) return;
-
-    const isPrevPaged = prevMode === "single" || prevMode === "double";
-    const isNewPaged = effectiveReadingMode === "single" || effectiveReadingMode === "double";
-
-    if (isPrevPaged && isNewPaged) {
-      const prevIdx = lastPageIndexRef.current;
-      let targetPage = prevIdx;
-
-      if (prevMode === "double" && effectiveReadingMode === "single") {
-        targetPage = prevIdx * 2;
-      } else if (prevMode === "single" && effectiveReadingMode === "double") {
-        targetPage = Math.floor(prevIdx / 2);
-      }
-
-      prevModeRef.current = effectiveReadingMode;
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToPageIndex(targetPage, true);
-        });
-      });
-      return;
-    }
-
-    if (isPrevPaged && !isNewPaged) {
-      const fraction = getLocationFraction();
-      prevModeRef.current = effectiveReadingMode;
-      requestAnimationFrame(() => {
-        if (contentRef.current) {
-          const el = contentRef.current;
-          const maxScroll = el.scrollHeight - el.clientHeight;
-          el.scrollTop = Math.round(fraction * maxScroll);
-        }
-      });
-      return;
-    }
-
-    if (!isPrevPaged && isNewPaged) {
-      const fraction = getLocationFraction();
-      prevModeRef.current = effectiveReadingMode;
-      requestAnimationFrame(() => {
-        const metrics = getPagedScrollMetrics();
-        if (metrics) {
-          const targetIndex = Math.round(fraction * metrics.maxIndex);
-          scrollToPageIndex(targetIndex, true);
-        }
-      });
-      return;
-    }
-
-    prevModeRef.current = effectiveReadingMode;
-  }, [effectiveReadingMode]);
-
-  // Fractional location within the current chapter (0–1) for true progress.
-  const getLocationFraction = (): number => {
-    if (scrollLayout && contentRef.current) {
-      const el = contentRef.current;
-      const max = el.scrollHeight - el.clientHeight;
-      return max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0;
-    }
-    const metrics = getPagedScrollMetrics();
-    if (!metrics || metrics.maxIndex <= 0) return 0;
-    return Math.min(1, Math.max(0, pageIndex / metrics.maxIndex));
-  };
-
   const computeProgressPercent = (): number => {
     const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
     if (chapterPosition < 0 || chapters.length === 0) return 0;
@@ -508,117 +313,16 @@ export const ReaderWorkspace = () => {
     return Math.min(100, Math.round(((chapterPosition + fraction) / chapters.length) * 100));
   };
 
-  // Sync pageIndex from manual horizontal scroll in paged modes.
-  useEffect(() => {
-    if (scrollLayout) return;
-    const container = getPagedScrollContainer();
-    if (!container) return;
-    const onScroll = () => {
-      const metrics = getPagedScrollMetrics();
-      if (!metrics) return;
-      const idx = Math.round(Math.abs(container.scrollLeft) / metrics.scrollStep);
-      if (idx !== pageIndex) setPageIndex(idx);
-    };
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [scrollLayout, htmlContent, pageIndex]);
 
-  const handlePageNext = () => {
-    const metrics = getPagedScrollMetrics();
-    if (metrics && pageIndex >= metrics.maxIndex) {
-      handleNext();
-      return;
-    }
-    scrollToPageIndex(pageIndex + 1);
-  };
-
-  const handlePagePrev = () => {
-    if (pageIndex <= 0) {
-      handlePrev();
-      return;
-    }
-    scrollToPageIndex(pageIndex - 1);
-  };
-
-  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    const anchor = target.closest("a");
-    if (anchor) {
-      const href = anchor.getAttribute("href");
-      if (href) {
-        if (href.startsWith("#")) {
-          e.preventDefault();
-          scrollToFragment(href.slice(1));
-          return;
-        }
-        if (href.startsWith("section:")) {
-          e.preventDefault();
-          const [sectionPath, fragment = ""] = href.split("#");
-          const found = chapters.find(ch => ch.contentPath === sectionPath);
-          if (found) {
-            pendingFragmentRef.current = fragment || null;
-            void loadChapter(found);
-            return;
-          }
-        }
-        if (href.includes("/api/v1/reader/") && href.includes("/chapter/")) {
-          e.preventDefault();
-          const parts = href.split("/chapter/");
-          if (parts.length > 1) {
-            const chId = parts[1].split("#")[0];
-            const found = chapters.find(ch => ch.id === chId);
-            if (found) {
-              void loadChapter(found);
-              return;
-            }
-          }
-        }
-        if (href.includes("/api/v1/reader/") && href.includes("/asset/")) {
-          e.preventDefault();
-          const parts = href.split("/asset/");
-          if (parts.length > 1) {
-            const resolvedPath = decodeURIComponent(parts[1].split("#")[0].split("?")[0]);
-            const targetPath = resolvedPath.toLowerCase().replace(/^\/+/, "");
-            const found = chapters.find(ch => {
-              const chPath = ch.contentPath?.toLowerCase().replace(/^\/+/, "");
-              return chPath === targetPath || (chPath && targetPath.endsWith(chPath)) || (chPath && chPath.endsWith(targetPath));
-            });
-            if (found) {
-              void loadChapter(found);
-              return;
-            }
-          }
-        }
-      }
-    }
-  };
-
-  const scrollToFragment = (fragment: string) => {
-    const normalized = fragment.trim();
-    if (!normalized) return;
-    const root = columnsRef.current;
-    if (!root) return;
-    const escaped = typeof CSS !== "undefined" && typeof CSS.escape === "function"
-      ? CSS.escape(normalized)
-      : normalized.replace(/["\\.#:[\]>+~()]/g, "\\$&");
-    const target = root.querySelector<HTMLElement>(`#${escaped}`);
-    if (!target) return;
-    if (scrollLayout) {
-      target.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
-      return;
-    }
-    // paged: jump to the page containing the target element
-    const metrics = getPagedScrollMetrics();
-    if (!metrics) return;
-    let left = target.offsetLeft;
-    let parent = target.offsetParent as HTMLElement | null;
-    while (parent && parent !== metrics.container) {
-      left += parent.offsetLeft;
-      parent = parent.offsetParent as HTMLElement | null;
-    }
-    const pageIndex = Math.round(left / metrics.scrollStep);
-    scrollToPageIndex(pageIndex);
-  };
+  const { handleContentClick, scrollToFragment } = useReaderNavigation({
+    columnsRef,
+    pendingFragmentRef,
+    chapters,
+    scrollLayout,
+    loadChapter: (chapter) => loadChapter(chapter),
+    getPagedScrollMetrics,
+    scrollToPageIndex,
+  });
 
   useEffect(() => {
     if (!bookId) return;

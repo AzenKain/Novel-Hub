@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -12,6 +13,11 @@ import (
 )
 
 const inboxSettleDelay = 10 * time.Second
+
+// inboxMaxDepth bounds recursion below data/inbox/<libraryID>/ so a symlink loop
+// or a pathological tree cannot stall the job.
+// ponytail: fixed depth, make it a runtime limit if anyone actually nests deeper
+const inboxMaxDepth = 5
 
 func (s *libraryService) ScanInbox(ctx context.Context) (int, error) {
 	inboxRoot, err := localfs.SafeJoin(config.GetConfigWithDefault("DATA_DIR", "./data"), "inbox")
@@ -51,36 +57,12 @@ func (s *libraryService) ScanInbox(ctx context.Context) (int, error) {
 }
 
 func (s *libraryService) scanInboxLibrary(ctx context.Context, libraryID string, libraryPath string) int {
-	entries, err := os.ReadDir(libraryPath)
-	if err != nil {
-		log.Error().Err(err).Str("library_id", libraryID).Msg("failed to read inbox folder")
-		return 0
-	}
-
 	imported := 0
-	for _, entry := range entries {
+	for _, filePath := range collectInboxFiles(libraryPath, 0, s.parsers.HasPath) {
 		if err := ctx.Err(); err != nil {
 			return imported
 		}
-		if entry.IsDir() {
-			continue
-		}
-		filename := entry.Name()
-		if !s.parsers.HasPath(filename) {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		if time.Since(info.ModTime()) < inboxSettleDelay {
-			continue
-		}
-		filePath, err := localfs.SafeJoin(libraryPath, filename)
-		if err != nil {
-			continue
-		}
-
+		filename := filepath.Base(filePath)
 		if err := s.ProcessSingleLocalFile(ctx, libraryID, filename, filePath); err != nil {
 			log.Error().Err(err).Str("library_id", libraryID).Str("file", filename).Msg("failed to import inbox file")
 			continue
@@ -92,5 +74,80 @@ func (s *libraryService) scanInboxLibrary(ctx context.Context, libraryID string,
 		log.Info().Str("library_id", libraryID).Str("file", filename).Msg("imported file from inbox")
 	}
 
+	// Drop folders the user emptied by way of import. libraryPath itself is their
+	// drop point and is never removed.
+	pruneEmptyInboxDirs(libraryPath, 0)
 	return imported
+}
+
+// collectInboxFiles walks dirPath up to inboxMaxDepth and returns the files that
+// are ready to import: parsable, settled, and not a symlink. Directories that are
+// nested deeper are skipped with a warning rather than silently ignored.
+func collectInboxFiles(dirPath string, depth int, isParsable func(string) bool) []string {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		log.Error().Err(err).Str("dir", dirPath).Msg("failed to read inbox folder")
+		return nil
+	}
+
+	var files []string
+	for _, entry := range entries {
+		name := entry.Name()
+		// A symlink can point outside the inbox; SafeJoin only guards the path string.
+		if entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		entryPath, err := localfs.SafeJoin(dirPath, name)
+		if err != nil {
+			continue
+		}
+
+		if entry.IsDir() {
+			if depth >= inboxMaxDepth {
+				log.Warn().Str("dir", entryPath).Int("max_depth", inboxMaxDepth).Msg("inbox folder nested too deep, skipping")
+				continue
+			}
+			files = append(files, collectInboxFiles(entryPath, depth+1, isParsable)...)
+			continue
+		}
+
+		if !isParsable(name) {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		// Still being copied into place.
+		if time.Since(info.ModTime()) < inboxSettleDelay {
+			continue
+		}
+		files = append(files, entryPath)
+	}
+
+	return files
+}
+
+// pruneEmptyInboxDirs removes empty subdirectories bottom-up. dirPath itself
+// (depth 0) is always kept.
+func pruneEmptyInboxDirs(dirPath string, depth int) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		childPath, err := localfs.SafeJoin(dirPath, entry.Name())
+		if err != nil {
+			continue
+		}
+		pruneEmptyInboxDirs(childPath, depth+1)
+	}
+	if depth == 0 {
+		return
+	}
+	// Fails harmlessly when the directory still holds files the scan skipped.
+	_ = os.Remove(dirPath)
 }

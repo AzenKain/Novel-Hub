@@ -1,0 +1,224 @@
+import { useEffect, useRef, type RefObject } from "react";
+
+import { READER_PAGE_GAP } from "@/constants";
+
+type UseReaderPagingArgs = {
+  contentRef: RefObject<HTMLDivElement | null>;
+  columnsRef: RefObject<HTMLDivElement | null>;
+  pageFrameRef: RefObject<HTMLDivElement | null>;
+  htmlContent: string;
+  maxWidth: number;
+  scrollLayout: boolean;
+  effectiveReadingMode: string;
+  rtlPaging: boolean;
+  pageIndex: number;
+  setPageIndex: (index: number) => void;
+  setPageFrameWidth: (width: number) => void;
+  onChapterNext: () => void;
+  onChapterPrev: () => void;
+};
+
+/**
+ * Owns everything about *where in the chapter the reader is*: the page frame
+ * width, the current page index, scrolling to a page, and keeping the index in
+ * sync when the user scrolls or switches between scroll/single/double modes.
+ *
+ * Extracted verbatim from ReaderWorkspace — behaviour is unchanged.
+ */
+export function useReaderPaging({
+  contentRef,
+  columnsRef,
+  pageFrameRef,
+  htmlContent,
+  maxWidth,
+  scrollLayout,
+  effectiveReadingMode,
+  rtlPaging,
+  pageIndex,
+  setPageIndex,
+  setPageFrameWidth,
+  onChapterNext,
+  onChapterPrev,
+}: UseReaderPagingArgs) {
+  const prevModeRef = useRef<string>(effectiveReadingMode);
+  const lastPageIndexRef = useRef<number>(pageIndex);
+
+  useEffect(() => {
+    setPageIndex(0);
+    if (contentRef.current) {
+      contentRef.current.scrollLeft = 0;
+      contentRef.current.scrollTop = 0;
+    }
+    if (columnsRef.current) {
+      columnsRef.current.scrollLeft = 0;
+      const body = columnsRef.current.querySelector("body");
+      if (body) {
+        body.scrollLeft = 0;
+      }
+    }
+  }, [htmlContent]);
+
+  useEffect(() => {
+    if (scrollLayout) {
+      setPageFrameWidth(0);
+      return;
+    }
+
+    const frame = pageFrameRef.current;
+    if (!frame) return;
+
+    const updatePageFrameWidth = () => setPageFrameWidth(frame.clientWidth);
+
+    updatePageFrameWidth();
+
+    const resizeObserver = new ResizeObserver(updatePageFrameWidth);
+    resizeObserver.observe(frame);
+    window.addEventListener("resize", updatePageFrameWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updatePageFrameWidth);
+    };
+  }, [scrollLayout, maxWidth]);
+
+  useEffect(() => {
+    lastPageIndexRef.current = pageIndex;
+  }, [pageIndex]);
+
+  const getPagedScrollContainer = () => {
+    const readerContent = columnsRef.current;
+    if (!readerContent) return null;
+    return readerContent.querySelector("body") || readerContent;
+  };
+
+  const getPagedScrollMetrics = () => {
+    const container = getPagedScrollContainer();
+    if (!container) return;
+
+    const scrollStep = container.clientWidth + READER_PAGE_GAP;
+    const maxIndex = Math.max(0, Math.ceil((container.scrollWidth - container.clientWidth) / scrollStep));
+    return { container, scrollStep, maxIndex };
+  };
+
+  const scrollToPageIndex = (targetIndex: number, instant = false) => {
+    const metrics = getPagedScrollMetrics();
+    if (!metrics) return;
+
+    const { container, scrollStep, maxIndex } = metrics;
+    const nextIndex = Math.min(Math.max(targetIndex, 0), maxIndex);
+
+    container.scrollTo({
+      left: nextIndex * scrollStep * (rtlPaging ? -1 : 1),
+      behavior: instant ? "auto" : "smooth",
+    });
+    setPageIndex(nextIndex);
+  };
+
+  // Fractional location within the current chapter (0–1) for true progress.
+  const getLocationFraction = (): number => {
+    if (scrollLayout && contentRef.current) {
+      const el = contentRef.current;
+      const max = el.scrollHeight - el.clientHeight;
+      return max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0;
+    }
+    const metrics = getPagedScrollMetrics();
+    if (!metrics || metrics.maxIndex <= 0) return 0;
+    return Math.min(1, Math.max(0, pageIndex / metrics.maxIndex));
+  };
+
+  useEffect(() => {
+    const prevMode = prevModeRef.current;
+    if (prevMode === effectiveReadingMode) return;
+
+    const isPrevPaged = prevMode === "single" || prevMode === "double";
+    const isNewPaged = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+
+    if (isPrevPaged && isNewPaged) {
+      const prevIdx = lastPageIndexRef.current;
+      let targetPage = prevIdx;
+
+      if (prevMode === "double" && effectiveReadingMode === "single") {
+        targetPage = prevIdx * 2;
+      } else if (prevMode === "single" && effectiveReadingMode === "double") {
+        targetPage = Math.floor(prevIdx / 2);
+      }
+
+      prevModeRef.current = effectiveReadingMode;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToPageIndex(targetPage, true);
+        });
+      });
+      return;
+    }
+
+    if (isPrevPaged && !isNewPaged) {
+      const fraction = getLocationFraction();
+      prevModeRef.current = effectiveReadingMode;
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          const el = contentRef.current;
+          const maxScroll = el.scrollHeight - el.clientHeight;
+          el.scrollTop = Math.round(fraction * maxScroll);
+        }
+      });
+      return;
+    }
+
+    if (!isPrevPaged && isNewPaged) {
+      const fraction = getLocationFraction();
+      prevModeRef.current = effectiveReadingMode;
+      requestAnimationFrame(() => {
+        const metrics = getPagedScrollMetrics();
+        if (metrics) {
+          const targetIndex = Math.round(fraction * metrics.maxIndex);
+          scrollToPageIndex(targetIndex, true);
+        }
+      });
+      return;
+    }
+
+    prevModeRef.current = effectiveReadingMode;
+  }, [effectiveReadingMode]);
+
+  // Sync pageIndex from manual horizontal scroll in paged modes.
+  useEffect(() => {
+    if (scrollLayout) return;
+    const container = getPagedScrollContainer();
+    if (!container) return;
+    const onScroll = () => {
+      const metrics = getPagedScrollMetrics();
+      if (!metrics) return;
+      const idx = Math.round(Math.abs(container.scrollLeft) / metrics.scrollStep);
+      if (idx !== pageIndex) setPageIndex(idx);
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [scrollLayout, htmlContent, pageIndex]);
+
+  const handlePageNext = () => {
+    const metrics = getPagedScrollMetrics();
+    if (metrics && pageIndex >= metrics.maxIndex) {
+      onChapterNext();
+      return;
+    }
+    scrollToPageIndex(pageIndex + 1);
+  };
+
+  const handlePagePrev = () => {
+    if (pageIndex <= 0) {
+      onChapterPrev();
+      return;
+    }
+    scrollToPageIndex(pageIndex - 1);
+  };
+
+  return {
+    getPagedScrollMetrics,
+    scrollToPageIndex,
+    getLocationFraction,
+    handlePageNext,
+    handlePagePrev,
+  };
+}

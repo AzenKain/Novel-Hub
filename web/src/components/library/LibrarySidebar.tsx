@@ -1,10 +1,10 @@
-import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Plus, MoreVertical, Edit2, Filter, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { featureService } from "@/services";
 
 import { usePublicSettings } from "@/hooks/useSettings";
-import type { Collection, User } from "@/types";
+import type { Collection, SmartCollection, SmartCollectionRule, User } from "@/types";
 import type { MetadataFacetSection } from "./MetadataIndexView";
 
 export type LibraryNavItem = {
@@ -29,6 +29,9 @@ type LibrarySidebarProps = {
   hasMoreCollections?: boolean;
   onLoadMoreCollections?: () => void;
   isFetchingMoreCollections?: boolean;
+  smartCollections?: SmartCollection[];
+  onSmartCollectionClick?: (rule: SmartCollectionRule) => void;
+  onDeleteSmartCollection?: (id: string) => void;
 };
 
 export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
@@ -47,6 +50,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   hasMoreCollections,
   onLoadMoreCollections,
   isFetchingMoreCollections,
+  smartCollections = [],
+  onSmartCollectionClick,
+  onDeleteSmartCollection,
 }) => {
   const queryClient = useQueryClient();
   const settings = usePublicSettings();
@@ -226,8 +232,8 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           
           {hasMoreCollections && (
             <div className="px-2 mt-2">
-              <button 
-                className="btn btn-ghost btn-sm w-full text-xs" 
+              <button
+                className="btn btn-ghost btn-sm w-full text-xs"
                 onClick={onLoadMoreCollections}
                 disabled={isFetchingMoreCollections}
               >
@@ -236,6 +242,43 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             </div>
           )}
         </div>
+
+        {user && smartCollections.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 px-2 pb-2">
+              <Filter className="h-3.5 w-3.5 text-base-content/40" />
+              <span className="menu-title !p-0 text-xs font-bold uppercase tracking-wider text-base-content/40">
+                {t("library.smart_collections", "Smart Collections")}
+              </span>
+            </div>
+            <ul className="menu menu-md w-full gap-1 p-0">
+              {smartCollections.map((smart) => (
+                <li key={smart.id}>
+                  <div className="group flex items-center justify-between !p-0">
+                    <button
+                      className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
+                      onClick={() => onSmartCollectionClick?.(smart.rule)}
+                    >
+                      <Filter className="h-4 w-4 shrink-0 text-base-content/50" />
+                      <span className="truncate">{smart.name}</span>
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity mr-1 text-error"
+                      title={t("common.delete", "Delete")}
+                      onClick={() => {
+                        if (window.confirm(t("library.confirm_delete_smart_collection", "Delete this smart collection?"))) {
+                          onDeleteSmartCollection?.(smart.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

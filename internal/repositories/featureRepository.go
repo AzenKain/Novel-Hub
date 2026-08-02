@@ -48,6 +48,13 @@ type FeatureRepository interface {
 	GetBookCollectionIDs(ctx context.Context, userID string, bookID string) ([]string, error)
 	UpsertReadingSession(ctx context.Context, arg sqlc.UpsertReadingSessionParams) (*models.ReadingSessionEntity, error)
 	GetReadingHeatmap(ctx context.Context, userID string) ([]*models.ReadingHeatmapEntity, error)
+	GetReadingGoal(ctx context.Context, userID string) (*models.ReadingGoalEntity, error)
+	UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*models.ReadingGoalEntity, error)
+	ListSmartCollections(ctx context.Context, userID string) ([]*models.SmartCollectionEntity, error)
+	GetSmartCollection(ctx context.Context, id string, userID string) (*models.SmartCollectionEntity, error)
+	CreateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error)
+	UpdateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error)
+	DeleteSmartCollection(ctx context.Context, id string, userID string) error
 	WithTx(tx *sql.Tx) FeatureRepository
 }
 
@@ -1038,4 +1045,130 @@ func (r *featureRepository) GetReadingHeatmap(ctx context.Context, userID string
 		return nil, err
 	}
 	return v.([]*models.ReadingHeatmapEntity), nil
+}
+
+func (r *featureRepository) GetReadingGoal(ctx context.Context, userID string) (*models.ReadingGoalEntity, error) {
+	key := cache.BuildKey("reading_goal", "user", userID)
+	if r.c != nil {
+		var goal models.ReadingGoalEntity
+		if err := r.c.Get(ctx, key, &goal); err == nil {
+			return &goal, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetUserReadingGoal(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.ReadingGoalEntity{}).FromSqlc(row)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*models.ReadingGoalEntity), nil
+}
+
+func (r *featureRepository) UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*models.ReadingGoalEntity, error) {
+	row, err := r.queries.UpsertUserReadingGoal(ctx, sqlc.UpsertUserReadingGoalParams{
+		UserID:             userID,
+		TargetWordsPerDay:  wordsPerDay,
+		TargetBooksPerYear: booksPerYear,
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := (&models.ReadingGoalEntity{}).FromSqlc(row)
+	if r.c != nil {
+		_ = r.c.Set(ctx, cache.BuildKey("reading_goal", "user", userID), result, constants.NormalCacheDuration)
+	}
+	return result, nil
+}
+
+// ponytail: one cache entry holds the whole list — a user's smart collections are
+// a handful of rows and the query has no cursor. Move to the Cache-by-IDs pattern
+// if anyone ever accumulates enough of these to want pagination.
+func smartCollectionCacheKey(userID string) string {
+	return cache.BuildKey("smart_collection", "user", userID)
+}
+
+func (r *featureRepository) ListSmartCollections(ctx context.Context, userID string) ([]*models.SmartCollectionEntity, error) {
+	key := smartCollectionCacheKey(userID)
+	if r.c != nil {
+		var cached []*models.SmartCollectionEntity
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return cached, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.ListSmartCollectionsByUser(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		entities := models.SmartCollectionEntities{}
+		result := entities.FromSqlc(rows)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]*models.SmartCollectionEntity), nil
+}
+
+func (r *featureRepository) GetSmartCollection(ctx context.Context, id string, userID string) (*models.SmartCollectionEntity, error) {
+	row, err := r.queries.GetSmartCollection(ctx, sqlc.GetSmartCollectionParams{ID: id, UserID: userID})
+	if err != nil {
+		return nil, err
+	}
+	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) CreateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error) {
+	row, err := r.queries.CreateSmartCollection(ctx, sqlc.CreateSmartCollectionParams{
+		ID:       id,
+		UserID:   userID,
+		Name:     name,
+		RuleJson: ruleJson,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	}
+	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) UpdateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error) {
+	row, err := r.queries.UpdateSmartCollection(ctx, sqlc.UpdateSmartCollectionParams{
+		ID:       id,
+		UserID:   userID,
+		Name:     name,
+		RuleJson: ruleJson,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	}
+	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) DeleteSmartCollection(ctx context.Context, id string, userID string) error {
+	if err := r.queries.DeleteSmartCollection(ctx, sqlc.DeleteSmartCollectionParams{ID: id, UserID: userID}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	}
+	return nil
 }

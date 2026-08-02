@@ -60,16 +60,40 @@ type FiberServer struct {
 }
 
 func NewHTTPServer() *FiberServer {
+	// Behind a reverse proxy, c.IP() returns the proxy's address unless we trust it,
+	// which would put every visitor in one rate-limit bucket. Off by default: trusting
+	// X-Forwarded-For when not actually behind a proxy lets anyone spoof their IP.
+	trustProxy := config.GetBoolConfigWithDefault("TRUST_PROXY", false)
+	trustProxyConfig := fiber.TrustProxyConfig{}
+	if trustProxy {
+		if proxies := config.GetConfigWithDefault("TRUSTED_PROXIES", ""); proxies != "" {
+			for _, proxy := range strings.Split(proxies, ",") {
+				if proxy = strings.TrimSpace(proxy); proxy != "" {
+					trustProxyConfig.Proxies = append(trustProxyConfig.Proxies, proxy)
+				}
+			}
+		} else {
+			// No explicit allowlist: trust the usual local/private reverse-proxy ranges.
+			trustProxyConfig.Loopback = true
+			trustProxyConfig.Private = true
+			trustProxyConfig.LinkLocal = true
+		}
+	}
+
 	app := fiber.New(fiber.Config{
-		ServerHeader:      "novelhub-api",
-		AppName:           "NovelHub API",
-		BodyLimit:         constants.HardMaxUploadChunkBytes + constants.MultipartBodyOverhead,
-		Concurrency:       config.GetIntConfigWithDefault("FIBER_CONCURRENCY", 0),
-		ReadBufferSize:    config.GetIntConfigWithDefault("FIBER_READ_BUFFER_SIZE", 0),
-		WriteBufferSize:   config.GetIntConfigWithDefault("FIBER_WRITE_BUFFER_SIZE", 0),
-		ReduceMemoryUsage: true,
-		JSONEncoder:       jsonx.Marshal,
-		JSONDecoder:       jsonx.Unmarshal,
+		ServerHeader:       "novelhub-api",
+		AppName:            "NovelHub API",
+		BodyLimit:          constants.HardMaxUploadChunkBytes + constants.MultipartBodyOverhead,
+		Concurrency:        config.GetIntConfigWithDefault("FIBER_CONCURRENCY", 0),
+		ReadBufferSize:     config.GetIntConfigWithDefault("FIBER_READ_BUFFER_SIZE", 0),
+		WriteBufferSize:    config.GetIntConfigWithDefault("FIBER_WRITE_BUFFER_SIZE", 0),
+		ReduceMemoryUsage:  true,
+		JSONEncoder:        jsonx.Marshal,
+		JSONDecoder:        jsonx.Unmarshal,
+		TrustProxy:         trustProxy,
+		TrustProxyConfig:   trustProxyConfig,
+		ProxyHeader:        config.GetConfigWithDefault("PROXY_HEADER", fiber.HeaderXForwardedFor),
+		EnableIPValidation: trustProxy,
 	})
 
 	if !config.GetBoolConfigWithDefault("DISABLE_REQUEST_LOG", false) {
@@ -296,14 +320,14 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return c.SendFile(safePath)
 	})
 
-	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService))
+	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService), middlewares.RateLimit(settingsService, middlewares.RateLimitAPI))
 	v1 := api.Group("/v1")
 
 	v1.Get("/health", func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "ok"})
 	})
 
-	routes.AuthRoutes(v1, authController, userRepo)
+	routes.AuthRoutes(v1, authController, userRepo, settingsService)
 	routes.UserRoutes(v1, userController, userRepo, permissionCache)
 	routes.RoleRoutes(v1, roleController, userRepo, permissionCache)
 	routes.BookRoutes(v1, bookController, userRepo, bookRepo, permissionCache)

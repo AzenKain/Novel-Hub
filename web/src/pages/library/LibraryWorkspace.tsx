@@ -7,9 +7,9 @@ import { BulkActionToolbar, BulkDeleteModal, BulkMoveModal, BulkTagModal } from 
 import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
-import type { Book, MetadataCount } from "@/types";
+import type { Book, MetadataCount, SmartCollectionRule } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -19,13 +19,16 @@ import {
   useBookmarkedBooksQuery,
   useBooksQuery,
   useCollectionsQuery,
+  useCreateSmartCollectionMutation,
   useDebounce,
+  useDeleteSmartCollectionMutation,
   useHotBooksQuery,
   useLibraryStatsQuery,
   useMetadataFacetQuery,
   usePublicSettings,
   useRandomBooksQuery,
   useReadingHistoryQuery,
+  useSmartCollectionsQuery,
 } from "@/hooks";
 import {
   alphabetFilters,
@@ -41,6 +44,7 @@ import {
   ArrowDownAZ,
   ArrowUpAZ,
   Bookmark,
+  BookmarkPlus,
   BookOpen,
   Building2,
   Download,
@@ -189,8 +193,20 @@ export const LibraryWorkspace = () => {
     if (bookId) navigate("/");
   };
 
-  const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {
-    setActiveNav(nav);
+  // Filters live in the Zustand store, not the URL, so a saved rule is applied by
+  // writing the store back — same path the sidebar and chips already take.
+  const handleSmartCollectionClick = (rule: SmartCollectionRule) => {
+    setSearch(rule.search || "");
+    setActiveNav(rule.nav || "");
+    setActiveCollection(rule.collection || "");
+    setActiveChip(rule.chip || "All");
+    setActiveFacet(rule.facet && rule.facet_id ? { type: rule.facet, id: rule.facet_id, name: rule.facet_id } : null);
+    setMetadataQuery("");
+    setMetadataAlpha("All");
+    if (bookId) navigate("/");
+  };
+
+  const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {    setActiveNav(nav);
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
@@ -199,6 +215,12 @@ export const LibraryWorkspace = () => {
 
   const queryClient = useQueryClient();
   const isMetadataNav = metadataNavIds.includes(activeNav) && !activeFacet;
+
+  const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
+  const [smartCollectionName, setSmartCollectionName] = useState("");
+  const { data: smartCollections = [] } = useSmartCollectionsQuery(!!user);
+  const createSmartCollection = useCreateSmartCollectionMutation();
+  const deleteSmartCollection = useDeleteSmartCollectionMutation();
 
   const searchParams = useMemo(() => ({
     search: debouncedSearch,
@@ -718,11 +740,27 @@ export const LibraryWorkspace = () => {
           ))}
         </div>
 
-        <select className="select select-bordered select-sm w-full sm:w-auto bg-base-100">
-          <option>{t("library.recently_added", "Recently added")}</option>
-          <option>{t("library.title_az", "Title A-Z")}</option>
-          <option>{t("library.series_order", "Series order")}</option>
-        </select>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {user && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline gap-1 shrink-0"
+              onClick={() => {
+                setSmartCollectionName(search || activeCollection || activeNav || "");
+                setShowSaveSearchModal(true);
+              }}
+              title={t("library.save_search", "Save current search")}
+            >
+              <BookmarkPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("library.save_search", "Save current search")}</span>
+            </button>
+          )}
+          <select className="select select-bordered select-sm w-full sm:w-auto bg-base-100">
+            <option>{t("library.recently_added", "Recently added")}</option>
+            <option>{t("library.title_az", "Title A-Z")}</option>
+            <option>{t("library.series_order", "Series order")}</option>
+          </select>
+        </div>
       </div>
 
       <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
@@ -860,6 +898,9 @@ export const LibraryWorkspace = () => {
         hasMoreCollections={hasMoreCollections}
         onLoadMoreCollections={() => fetchNextCollections()}
         isFetchingMoreCollections={isFetchingMoreCollections}
+        smartCollections={smartCollections}
+        onSmartCollectionClick={handleSmartCollectionClick}
+        onDeleteSmartCollection={(id) => deleteSmartCollection.mutate(id)}
       />
 
       <LoginView />
@@ -919,6 +960,59 @@ export const LibraryWorkspace = () => {
           <button onClick={() => setShowNewCollectionModal(false)}>
             close
           </button>
+        </form>
+      </dialog>
+
+      {/* Save current search as a smart collection */}
+      <dialog className={`modal ${showSaveSearchModal ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
+            {t("library.save_search", "Save current search")}
+          </h3>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const name = smartCollectionName.trim();
+              if (!name) return;
+              createSmartCollection.mutate(
+                { name, rule: searchParams as SmartCollectionRule },
+                { onSuccess: () => setShowSaveSearchModal(false) },
+              );
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium pl-1">
+                {t("library.smart_collection_name", "Smart collection name")}
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={smartCollectionName}
+                onChange={(e) => setSmartCollectionName(e.target.value)}
+                required
+                autoFocus
+              />
+              <span className="text-xs text-base-content/50 pl-1">
+                {t("library.save_search_desc", "Saves the current filters so you can reopen this exact view later.")}
+              </span>
+            </div>
+            <div className="modal-action">
+              <button type="button" onClick={() => setShowSaveSearchModal(false)} className="btn btn-ghost">
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!smartCollectionName.trim() || createSmartCollection.isPending}
+              >
+                {t("common.save", "Save")}
+              </button>
+            </div>
+          </form>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={() => setShowSaveSearchModal(false)}>close</button>
         </form>
       </dialog>
 

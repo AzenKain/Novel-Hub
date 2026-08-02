@@ -1,23 +1,18 @@
 package routes
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/limiter"
 
 	"novelhub/internal/controllers"
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
+	"novelhub/internal/services"
 )
 
-func AuthRoutes(app fiber.Router, controller *controllers.AuthController, userRepo repositories.UserRepository) {
+func AuthRoutes(app fiber.Router, controller *controllers.AuthController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
 	route := app.Group("/auth")
-	
-	authLimiter := limiter.New(limiter.Config{
-		Max:        5,
-		Expiration: 1 * time.Minute,
-	})
+
+	authLimiter := middlewares.RateLimit(settingsService, middlewares.RateLimitAuth)
 
 	route.Post("/signin", authLimiter, controller.Signin)
 	route.Post("/register", authLimiter, controller.Register)

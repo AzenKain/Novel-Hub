@@ -1,5 +1,5 @@
 import { adminService, bookService, featureService, libraryService } from "@/services";
-import type { Collection, DuplicateGroupResult, Library, LibraryStats, ReadingHistory } from "@/types";
+import type { Collection, DuplicateGroupResult, Library, LibraryStats, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useLibrariesQuery() {
@@ -43,8 +43,47 @@ export function useCollectionsQuery(enabled = true) {
   });
 }
 
-export function useReadingHistoryQuery(enabled = true) {
-  return useInfiniteQuery({
+export function useSmartCollectionsQuery(enabled = true) {
+  return useQuery<SmartCollection[]>({
+    queryKey: ["smart-collections"],
+    queryFn: async () => {
+      const res = await featureService.getSmartCollections();
+      if (!res.status) throw new Error(res.message || "Failed to fetch smart collections");
+      return res.data || [];
+    },
+    enabled,
+  });
+}
+
+export function useCreateSmartCollectionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ name, rule }: { name: string; rule: SmartCollectionRule }) => {
+      const res = await featureService.createSmartCollection(name, rule);
+      if (!res.status) throw new Error(res.message || "Failed to create smart collection");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["smart-collections"] });
+    },
+  });
+}
+
+export function useDeleteSmartCollectionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await featureService.deleteSmartCollection(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete smart collection");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["smart-collections"] });
+    },
+  });
+}
+
+export function useReadingHistoryQuery(enabled = true) {  return useInfiniteQuery({
     queryKey: ["reading", "history"],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {

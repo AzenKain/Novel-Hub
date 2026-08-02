@@ -18,3 +18,9 @@ RETURNING *;
 -- name: DeleteSmartCollection :exec
 DELETE FROM smart_collections
 WHERE id = ? AND user_id = ?;
+
+-- name: UpdateSmartCollection :one
+UPDATE smart_collections
+SET name = ?, rule_json = ?, updated_at = CURRENT_TIMESTAMP
+WHERE id = ? AND user_id = ?
+RETURNING *;

@@ -12,6 +12,8 @@ import type {
   ReadingActivityResult,
   ReadingHistory,
   RecordReadingActivityPayload,
+  SmartCollection,
+  SmartCollectionRule,
 } from "@/types";
 import axios from "axios";
 
@@ -249,6 +251,57 @@ export const featureService = {
   deleteCollection: async (id: string): Promise<CommonResponse<null>> => {
     try {
       const res = await api.delete(`/collections/${id}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<null>;
+      throw error;
+    }
+  },
+
+  getSmartCollections: async (): Promise<CommonResponse<SmartCollection[]>> => {
+    try {
+      const res = await api.get("/smart-collections/");
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<SmartCollection[]>;
+      throw error;
+    }
+  },
+
+  createSmartCollection: async (
+    name: string,
+    rule: SmartCollectionRule,
+  ): Promise<CommonResponse<SmartCollection>> => {
+    try {
+      const res = await api.post("/smart-collections/", { name, rule });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<SmartCollection>;
+      throw error;
+    }
+  },
+
+  updateSmartCollection: async (
+    id: string,
+    name: string,
+    rule: SmartCollectionRule,
+  ): Promise<CommonResponse<SmartCollection>> => {
+    try {
+      const res = await api.put(`/smart-collections/${encodeURIComponent(id)}`, { name, rule });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<SmartCollection>;
+      throw error;
+    }
+  },
+
+  deleteSmartCollection: async (id: string): Promise<CommonResponse<null>> => {
+    try {
+      const res = await api.delete(`/smart-collections/${encodeURIComponent(id)}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)

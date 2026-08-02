@@ -33,7 +33,13 @@ type UpdateSettingsDto struct {
 	UploadSessionTTLSeconds *int64                  `json:"limits.upload_session_ttl_seconds"`
 	CoverBytes              *int64                  `json:"limits.cover_bytes"`
 	SiteAssetBytes          *int64                  `json:"limits.site_asset_bytes"`
-	present                 map[string]bool
+
+	RateLimitAPI               *int   `json:"limits.rate_limit_api"`
+	RateLimitAPIWindowSeconds  *int64 `json:"limits.rate_limit_api_window_seconds"`
+	RateLimitAuth              *int   `json:"limits.rate_limit_auth"`
+	RateLimitAuthWindowSeconds *int64 `json:"limits.rate_limit_auth_window_seconds"`
+
+	present map[string]bool
 }
 
 func (d *UpdateSettingsDto) UnmarshalJSON(data []byte) error {
@@ -58,43 +64,47 @@ func (d *UpdateSettingsDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// putPtr stores the pointed-to value, or nothing when the field was absent from
+// the request body. It is generic on purpose: a `func(string, any)` helper would
+// box a typed nil (*string)(nil) into a non-nil interface, so every unset field
+// would be forwarded downstream and dereferenced into a panic.
+func putPtr[T any](values map[string]any, key string, value *T) {
+	if value != nil {
+		values[key] = *value
+	}
+}
+
 func (d *UpdateSettingsDto) Values() map[string]any {
 	values := make(map[string]any)
-	put := func(key string, value any) {
-		if value != nil {
-			values[key] = value
-		}
-	}
-	put("site.title", d.SiteTitle)
-	put("site.description", d.SiteDescription)
-	put("site.favicon", d.SiteFavicon)
-	put("site.logo", d.SiteLogo)
-	put("site.meta_description", d.SiteMetaDescription)
-	put("sidebar.visible_items", d.SidebarVisibleItems)
+	putPtr(values, "site.title", d.SiteTitle)
+	putPtr(values, "site.description", d.SiteDescription)
+	putPtr(values, "site.favicon", d.SiteFavicon)
+	putPtr(values, "site.logo", d.SiteLogo)
+	putPtr(values, "site.meta_description", d.SiteMetaDescription)
+	putPtr(values, "sidebar.visible_items", d.SidebarVisibleItems)
 	if d.HomeSections != nil {
 		sections := make(map[string]any, 2)
-		putSection := func(key string, value *bool) {
-			if value != nil {
-				sections[key] = *value
-			}
-		}
-		putSection("random_books", d.HomeSections.RandomBooks)
-		putSection("top_books", d.HomeSections.TopBooks)
+		putPtr(sections, "random_books", d.HomeSections.RandomBooks)
+		putPtr(sections, "top_books", d.HomeSections.TopBooks)
 		values["home.sections"] = sections
 	}
-	put("auth.registration_enabled", d.RegistrationEnabled)
-	put("guest_access.mode", d.GuestAccessMode)
-	put("guest_access.library_ids", d.GuestAccessLibraryIDs)
-	put("reader.enable_in_book_search", d.EnableInBookSearch)
-	put("font.enable_custom_font_upload", d.EnableCustomFontUpload)
-	put("tracker.anilist_enabled", d.EnableAniListTracking)
-	put("limits.upload_chunk_bytes", d.UploadChunkBytes)
-	put("limits.upload_chunks", d.UploadChunks)
-	put("limits.upload_sessions", d.UploadSessions)
-	put("limits.upload_bytes", d.UploadBytes)
-	put("limits.upload_session_ttl_seconds", d.UploadSessionTTLSeconds)
-	put("limits.cover_bytes", d.CoverBytes)
-	put("limits.site_asset_bytes", d.SiteAssetBytes)
+	putPtr(values, "auth.registration_enabled", d.RegistrationEnabled)
+	putPtr(values, "guest_access.mode", d.GuestAccessMode)
+	putPtr(values, "guest_access.library_ids", d.GuestAccessLibraryIDs)
+	putPtr(values, "reader.enable_in_book_search", d.EnableInBookSearch)
+	putPtr(values, "font.enable_custom_font_upload", d.EnableCustomFontUpload)
+	putPtr(values, "tracker.anilist_enabled", d.EnableAniListTracking)
+	putPtr(values, "limits.upload_chunk_bytes", d.UploadChunkBytes)
+	putPtr(values, "limits.upload_chunks", d.UploadChunks)
+	putPtr(values, "limits.upload_sessions", d.UploadSessions)
+	putPtr(values, "limits.upload_bytes", d.UploadBytes)
+	putPtr(values, "limits.upload_session_ttl_seconds", d.UploadSessionTTLSeconds)
+	putPtr(values, "limits.cover_bytes", d.CoverBytes)
+	putPtr(values, "limits.site_asset_bytes", d.SiteAssetBytes)
+	putPtr(values, "limits.rate_limit_api", d.RateLimitAPI)
+	putPtr(values, "limits.rate_limit_api_window_seconds", d.RateLimitAPIWindowSeconds)
+	putPtr(values, "limits.rate_limit_auth", d.RateLimitAuth)
+	putPtr(values, "limits.rate_limit_auth_window_seconds", d.RateLimitAuthWindowSeconds)
 	return values
 }
 
@@ -108,6 +118,8 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,
+		"limits.rate_limit_api": true, "limits.rate_limit_api_window_seconds": true,
+		"limits.rate_limit_auth": true, "limits.rate_limit_auth_window_seconds": true,
 	}
 	unknown := make([]string, 0)
 	for key := range d.present {

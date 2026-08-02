@@ -34,4 +34,19 @@ const (
 
 	MaxDefaultRequestBody = 16 << 20
 	MultipartBodyOverhead = 1 << 20
+
+	MaxRateLimitAPI               = 300
+	MaxRateLimitAPIWindowSeconds  = 60
+	MaxRateLimitAuth              = 5
+	MaxRateLimitAuthWindowSeconds = 60
+
+	MinRuntimeRateLimitAPI               = 10
+	MinRuntimeRateLimitAPIWindowSeconds  = 1
+	MinRuntimeRateLimitAuth              = 1
+	MinRuntimeRateLimitAuthWindowSeconds = 1
+
+	HardMaxRateLimitAPI               = 100000
+	HardMaxRateLimitAPIWindowSeconds  = 3600
+	HardMaxRateLimitAuth              = 1000
+	HardMaxRateLimitAuthWindowSeconds = 3600
 )

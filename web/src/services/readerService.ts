@@ -1,5 +1,5 @@
 import { api } from "@/config/api";
-import type { BootstrapResponse, CommonResponse, SearchSnippet } from "@/types";
+import type { BootstrapResponse, CommonResponse, ReadingGoal, SearchSnippet } from "@/types";
 import axios from "axios";
 
 export const readerService = {
@@ -49,6 +49,16 @@ export const readerService = {
 
   async getReadingHeatmap(): Promise<any> {
     const { data } = await api.get('/reader/stats/heatmap');
+    return data.data;
+  },
+
+  async getReadingGoal(): Promise<ReadingGoal> {
+    const { data } = await api.get('/reader/goals/');
+    return data.data;
+  },
+
+  async upsertReadingGoal(targetWordsPerDay: number, targetBooksPerYear: number): Promise<ReadingGoal> {
+    const { data } = await api.put('/reader/goals/', { targetWordsPerDay, targetBooksPerYear });
     return data.data;
   }
 };

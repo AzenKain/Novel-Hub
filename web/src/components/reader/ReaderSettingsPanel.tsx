@@ -210,13 +210,13 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
       <div className="grid grid-cols-2 gap-1">
         <button
           onClick={() => setReadingMode("scroll")}
-          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""}`}
         >
           {t("reader.mode_scroll", "Scroll")}
         </button>
         <button
           onClick={() => setReadingMode("single")}
-          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""}`}
         >
           {t("reader.mode_single", "Single Page")}
         </button>
@@ -224,13 +224,13 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           disabled={!canUseDoubleMode}
           onClick={() => setReadingMode("double")}
           title={!canUseDoubleMode ? t("reader.double_page_unavailable") : undefined}
-          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""} ${!canUseDoubleMode ? "opacity-40" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""} ${!canUseDoubleMode ? "opacity-40" : ""}`}
         >
           {t("reader.mode_double", "Double Page")}
         </button>
         <button
           onClick={() => setReadingMode("webtoon")}
-          className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "webtoon" ? "reader-segment-btn-active" : ""}`}
+          className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${effectiveReadingMode === "webtoon" ? "reader-segment-btn-active" : ""}`}
         >
           {t("reader.mode_webtoon", "Webtoon")}
         </button>
@@ -248,13 +248,13 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           <div className="grid grid-cols-2 gap-1">
             <button
               onClick={() => setReadingDirection("ltr")}
-              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "ltr" ? "reader-segment-btn-active" : ""}`}
+              className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "ltr" ? "reader-segment-btn-active" : ""}`}
             >
               {t("reader.direction_ltr", "Left to right")}
             </button>
             <button
               onClick={() => setReadingDirection("rtl")}
-              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "rtl" ? "reader-segment-btn-active" : ""}`}
+              className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${readingDirection === "rtl" ? "reader-segment-btn-active" : ""}`}
             >
               {t("reader.direction_rtl", "Right to left")}
             </button>
@@ -270,19 +270,19 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           <div className="grid grid-cols-3 gap-1">
             <button
               onClick={() => setPageFit("width")}
-              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "width" ? "reader-segment-btn-active" : ""}`}
+              className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "width" ? "reader-segment-btn-active" : ""}`}
             >
               {t("reader.fit_width", "Width")}
             </button>
             <button
               onClick={() => setPageFit("height")}
-              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "height" ? "reader-segment-btn-active" : ""}`}
+              className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "height" ? "reader-segment-btn-active" : ""}`}
             >
               {t("reader.fit_height", "Height")}
             </button>
             <button
               onClick={() => setPageFit("original")}
-              className={`reader-segment-btn btn h-auto min-h-[30px] flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "original" ? "reader-segment-btn-active" : ""}`}
+              className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageFit === "original" ? "reader-segment-btn-active" : ""}`}
             >
               {t("reader.fit_original", "Original")}
             </button>
