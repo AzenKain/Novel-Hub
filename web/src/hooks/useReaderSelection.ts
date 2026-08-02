@@ -24,8 +24,7 @@ export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
     left,
   };
 }
-
-  columnsRef: RefObject<HTMLDivElement | null>;
+type UseReaderSelectionArgs = {  columnsRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
   savedSelectionRef: RefObject<SavedSelection | null>;
   ttsStartPointRef: RefObject<TtsStartPoint | null>;
@@ -99,11 +98,12 @@ export function useReaderSelection({
 
   const handleHighlight = async (color: string) => {
     if (!selectionRange) return;
-    const text = selectionRange.toString().trim();
+    const selectedText = selectionRange.toString();
+    const text = selectedText.trim();
     const container = columnsRef.current || contentRef.current;
     const offset = container ? getCharacterOffsetOfRange(container, selectionRange) : null;
     if (!text || !offset || offset.end <= offset.start) return;
-    await addHighlight(text, offset.start, offset.end, color);
+    await addHighlight(selectedText, offset.start, offset.end, color);
     window.getSelection()?.removeAllRanges();
     savedSelectionRef.current = null;
     setSelectionRange(null);
