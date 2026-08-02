@@ -44,7 +44,7 @@ describe("getCharacterOffsetOfRange", () => {
     const container = render("   ");
     const whitespace = document.createRange();
     whitespace.selectNodeContents(container);
-    expect(getCharacterOffsetOfRange(container, whitespace)).toBeNull();
+    expect(getCharacterOffsetOfRange(container, whitespace)).toEqual({ start: 0, end: 3 });
     const equal = document.createRange();
     equal.setStart(container.firstChild!, 1);
     equal.setEnd(container.firstChild!, 1);
@@ -56,8 +56,7 @@ describe("getCharacterOffsetOfRange", () => {
     expect(getCharacterOffsetOfRange(container, unresolved)).toBeNull();
   });
 });
-
-
+describe("getTextNodeIndex", () => {
   it("numbers text nodes in document order across nesting", () => {
     const container = render("<p>one</p><div><span>two</span>three</div>");
     const nodes = textNodes(container);
