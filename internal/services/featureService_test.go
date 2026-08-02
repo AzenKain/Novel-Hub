@@ -3,18 +3,18 @@ package services
 import (
 	"context"
 	"errors"
-	"testing"
-
 	"novelhub/internal/dtos/response"
-	"novelhub/pkg/constants"
-
+	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
+	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
+	"testing"
 )
 
 type sessionPermissionStub struct{ allowed bool }
 
-func (p sessionPermissionStub) Reload(_ context.Context) error { return nil }
+func (p sessionPermissionStub) Reload(context.Context) error { return nil }
 func (p sessionPermissionStub) Can(context.Context, string, string, map[string]any) bool {
 	return p.allowed
 }
@@ -24,24 +24,56 @@ func (p sessionPermissionStub) CanRoles([]string, []constants.RoleType, string, 
 func (p sessionPermissionStub) IsAdmin([]string, []constants.RoleType) bool { return false }
 func (p sessionPermissionStub) GetGuestPermissions() []string               { return nil }
 
-func TestReadingSessionBookAccessibleForbidden(t *testing.T) {
-	book := &models.BookEntity{LibraryID: "library"}
-	claims := &response.JWTClaims{}
-	if readingSessionBookAccessible(nil, nil, sessionPermissionStub{allowed: true}, claims) {
-		t.Fatal("nil book must be forbidden")
+type sessionBookRepo struct {
+	repositories.BookDBRepository
+	book *models.BookEntity
+	err  error
+}
+
+func (r sessionBookRepo) GetBook(context.Context, string) (*models.BookEntity, error) {
+	return r.book, r.err
+}
+
+type sessionFeatureRepo struct {
+	repositories.FeatureRepository
+	err error
+	got sqlc.UpsertReadingSessionParams
+}
+
+func (r *sessionFeatureRepo) UpsertReadingSession(_ context.Context, a sqlc.UpsertReadingSessionParams) (*models.ReadingSessionEntity, error) {
+	r.got = a
+	return nil, r.err
+}
+func newSessionService(r *sessionFeatureRepo, b *models.BookEntity, be error, a bool) *featureService {
+	return &featureService{repo: r, bookRepo: sessionBookRepo{book: b, err: be}, permissions: sessionPermissionStub{allowed: a}}
+}
+func TestRecordReadingSessionGeneratesID(t *testing.T) {
+	r := &sessionFeatureRepo{}
+	if e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 3, 7, &response.JWTClaims{}); e != nil {
+		t.Fatal(e)
 	}
-	if readingSessionBookAccessible(book, errors.New("missing"), sessionPermissionStub{allowed: true}, claims) {
-		t.Fatal("book lookup errors must be forbidden")
+	if r.got.ID == "" {
+		t.Fatal("missing ID")
 	}
-	if readingSessionBookAccessible(book, nil, sessionPermissionStub{}, claims) {
-		t.Fatal("denied permission must be forbidden")
+}
+func TestRecordReadingSessionInaccessibleBook(t *testing.T) {
+	r := &sessionFeatureRepo{}
+	e := newSessionService(r, nil, errors.New("missing"), true).RecordReadingSession(context.Background(), "u", "b", 1, 0, &response.JWTClaims{})
+	if !errors.Is(e, apperrors.ErrForbidden) {
+		t.Fatal(e)
+	}
+	if r.got.ID != "" {
+		t.Fatal("called repository")
+	}
+}
+func TestRecordReadingSessionRepositoryFailurePreservesCause(t *testing.T) {
+	c := errors.New("NOT NULL constraint failed: reading_sessions.id")
+	r := &sessionFeatureRepo{err: c}
+	e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 1, 0, &response.JWTClaims{})
+	if !errors.Is(e, apperrors.ErrInternalError) || !errors.Is(e, c) {
+		t.Fatalf("causes not preserved: %v", e)
 	}
 }
 
-func TestReadingSessionRepositoryErrorPreservesInternalCause(t *testing.T) {
-	cause := errors.New("NOT NULL constraint failed: reading_sessions.id")
-	err := apperrors.New(errors.Join(apperrors.ErrInternalError, cause), "Failed to record reading session")
-	if !errors.Is(err, apperrors.ErrInternalError) || !errors.Is(err, cause) {
-		t.Fatalf("error does not preserve causes: %v", err)
-	}
-}
+var _ repositories.BookDBRepository = sessionBookRepo{}
+var _ repositories.FeatureRepository = (*sessionFeatureRepo)(nil)
