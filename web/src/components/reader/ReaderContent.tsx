@@ -48,7 +48,7 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
       onClick={onContentClick}
       className={`reader-content ${visualChapter ? "reader-content-visual" : ""} ${proseClass} max-w-none w-full ${
         rawReader
-          ? "flex-1 min-h-0 h-[calc(100vh-5rem)]"
+          ? "flex-1 min-h-0 h-full"
           : effectiveReadingMode === "scroll" ? "h-auto" : "flex-1 min-h-0"
       } [&>body]:m-0 [&>body]:p-0 [&>body]:display-block [&_img]:max-w-full [&_img]:h-auto ${
         effectiveReadingMode === "single"

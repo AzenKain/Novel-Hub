@@ -427,7 +427,7 @@ func (a *authService) Logout(ctx context.Context, userID string) error {
 	}()
 
 	userRepoTx := a.userRepo.WithTx(tx)
-	user, err := a.userRepo.GetByID(ctx, id)
+	user, err := userRepoTx.GetByID(ctx, id)
 	if err != nil || user == nil {
 		return apperrors.New(apperrors.ErrNotFound, "User not found")
 	}

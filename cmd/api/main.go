@@ -81,7 +81,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect SQLite")
 	}
-	defer db.Close()
+	defer func() {
+		if err := database.CheckpointWALAndClose(db); err != nil {
+			log.Error().Err(err).Msg("failed to checkpoint and close database")
+		}
+	}()
 
 	if err := database.ApplySchema(db, "db/schema"); err != nil {
 		log.Fatal().Err(err).Msg("failed to apply schema")

@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"strings"
 
 	"golang.org/x/sync/singleflight"
 
@@ -152,23 +154,34 @@ func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string)
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.queries.GetLibrariesByIDs(ctx, missingIds)
+		sort.Strings(missingIds)
+		sfgKey := "libraries:ids:" + strings.Join(missingIds, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.queries.GetLibrariesByIDs(ctx, missingIds)
+			if err != nil {
+				return nil, err
+			}
+			missingMap := make(map[string]*models.LibraryEntity)
+			for _, row := range rows {
+				lib := (&models.LibraryEntity{}).FromSqlc(row)
+				missingMap[lib.ID] = lib
+			}
+			return missingMap, nil
+		})
 		if err != nil {
 			return nil, err
 		}
+		missingMap := v.(map[string]*models.LibraryEntity)
 
-		missingMap := make(map[string]*models.LibraryEntity)
-		for _, row := range rows {
-			lib := (&models.LibraryEntity{}).FromSqlc(row)
-			missingMap[lib.ID] = lib
+		for _, lib := range missingMap {
 			libraries = append(libraries, lib)
 		}
 
 		if r.c != nil {
 			missingToCache := make(map[string]any)
-			for i, missingId := range missingIds {
+			for _, missingId := range missingIds {
 				if l, ok := missingMap[missingId]; ok {
-					missingToCache[missingKeys[i]] = l
+					missingToCache[cache.BuildKey("library", "id", missingId)] = l
 				}
 			}
 			if len(missingToCache) > 0 {

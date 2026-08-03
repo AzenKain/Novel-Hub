@@ -12,8 +12,9 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
     queryKey: ['highlights', chapter_id],
     queryFn: async () => {
       if (!chapter_id) return [];
-      const data = await highlightService.getHighlights(chapter_id);
-      return Array.isArray(data) ? data : [];
+      const res = await highlightService.getHighlights(chapter_id);
+      if (!res.status) throw new Error(res.message || "Failed to fetch highlights");
+      return Array.isArray(res.data) ? res.data : [];
     },
     enabled: Boolean(enabled && chapter_id && user),
   });
@@ -21,7 +22,9 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
   const addMutation = useMutation({
     mutationFn: async ({ text_content, start_index, end_index, color }: { text_content: string; start_index: number; end_index: number; color: string }) => {
       if (!chapter_id || !book_id) throw new Error("Missing chapter_id or book_id");
-      return await highlightService.createHighlight(book_id, chapter_id, text_content, start_index, end_index, color);
+      const res = await highlightService.createHighlight(book_id, chapter_id, text_content, start_index, end_index, color);
+      if (!res.status) throw new Error(res.message || "Failed to create highlight");
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights', chapter_id] });
@@ -30,7 +33,9 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, color, note }: { id: string; color: string; note?: string }) => {
-      return await highlightService.updateHighlightNote(id, color, note);
+      const res = await highlightService.updateHighlightNote(id, color, note);
+      if (!res.status) throw new Error(res.message || "Failed to update highlight");
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights', chapter_id] });
@@ -39,7 +44,8 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await highlightService.deleteHighlight(id);
+      const res = await highlightService.deleteHighlight(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete highlight");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights', chapter_id] });

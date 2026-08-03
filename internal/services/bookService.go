@@ -211,6 +211,9 @@ func (s *bookService) ListChapters(ctx context.Context, bookID string) ([]*model
 }
 
 func (s *bookService) preferReadableFile(files []*models.BookFileEntity) *models.BookFileEntity {
+	if len(files) == 0 {
+		return nil
+	}
 	for _, file := range files {
 		if s.isReadableFile(file) && strings.EqualFold(file.Format, "epub") {
 			return file

@@ -40,7 +40,8 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
     lastSyncTimeRef.current = Date.now();
 
     try {
-      await readerService.syncReadingSession(bookIdToSync, dur, wrds);
+      const res = await readerService.syncReadingSession(bookIdToSync, dur, wrds);
+      if (!res.status) throw new Error(res.message || "Failed to sync session");
       durationRef.current = 0;
       wordsRef.current = 0;
     } catch (err) {
@@ -52,22 +53,33 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
 export function useReadingHeatmapQuery() {
   return useQuery({
     queryKey: ["reader", "heatmap"],
-    queryFn: () => readerService.getReadingHeatmap(),
+    queryFn: async () => {
+      const res = await readerService.getReadingHeatmap();
+      if (!res.status) throw new Error(res.message || "Failed to fetch heatmap");
+      return res.data;
+    },
   });
 }
 
 export function useReadingGoalQuery() {
   return useQuery({
     queryKey: ["reader", "goal"],
-    queryFn: () => readerService.getReadingGoal(),
+    queryFn: async () => {
+      const res = await readerService.getReadingGoal();
+      if (!res.status) throw new Error(res.message || "Failed to fetch goal");
+      return res.data;
+    },
   });
 }
 
 export function useUpsertReadingGoalMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ wordsPerDay, booksPerYear }: { wordsPerDay: number; booksPerYear: number }) =>
-      readerService.upsertReadingGoal(wordsPerDay, booksPerYear),
+    mutationFn: async ({ wordsPerDay, booksPerYear }: { wordsPerDay: number; booksPerYear: number }) => {
+      const res = await readerService.upsertReadingGoal(wordsPerDay, booksPerYear);
+      if (!res.status) throw new Error(res.message || "Failed to update goal");
+      return res.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reader", "goal"] });
     },

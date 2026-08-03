@@ -406,7 +406,10 @@ func extractBackup(ctx context.Context, source, destination string) (*backupMani
 		if files > 1_000_000 || total > 1<<40 {
 			return nil, fmt.Errorf("backup exceeds restore limits")
 		}
-		target := filepath.Join(destination, filepath.FromSlash(header.Name))
+		target, err := localfs.SafeJoin(destination, filepath.FromSlash(header.Name))
+		if err != nil {
+			return nil, err
+		}
 		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
 			return nil, err
 		}

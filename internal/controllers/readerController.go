@@ -147,7 +147,7 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 }
 
 func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	bookID := c.Params("id")

@@ -17,7 +17,7 @@ import { useReaderNavigation } from "@/hooks/useReaderNavigation";
 import { useReaderPaging } from "@/hooks/useReaderPaging";
 import { useReaderSelection } from "@/hooks/useReaderSelection";
 import { queryClient } from "@/config/queryClient";
-import { clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { applyUserHighlights, clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -256,6 +256,16 @@ export const ReaderWorkspace = () => {
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
   const effectiveReadingMode = readingMode === "double" && !canUseDoubleMode ? "single" : readingMode;
+
+  useEffect(() => {
+    const container = columnsRef.current || contentRef.current;
+    if (container && highlights) {
+      const timer = setTimeout(() => {
+        applyUserHighlights(columnsRef.current || contentRef.current, highlights);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [highlights, htmlContent, effectiveReadingMode]);
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
   const rtlPaging = isVisualContent && readingDirection === "rtl";
@@ -671,12 +681,12 @@ export const ReaderWorkspace = () => {
           return (
             <div 
               ref={contentRef}
-              className={`flex-1 ${
+              className={`flex-1 min-h-0 ${
                 isPdf
-                  ? 'overflow-hidden flex flex-col pt-14 p-0'
+                  ? 'overflow-hidden flex flex-col p-0'
                   : scrollLayout
-                    ? 'overflow-y-auto pt-20 pb-24 px-4 sm:px-8' 
-                    : 'overflow-hidden flex flex-col pt-14 pb-6 px-4 sm:px-20'
+                    ? 'overflow-y-auto pt-6 pb-24 px-4 sm:px-8' 
+                    : 'overflow-hidden flex flex-col pt-4 pb-6 px-4 sm:px-20'
               } relative`}
               onClick={() => setSettingsOpen(false)}
               onScroll={handleScroll}

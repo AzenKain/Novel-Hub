@@ -607,7 +607,7 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrInternalError, "Failed to read downloaded asset")
 		}
-		ext, err := bookparser.ValidateImage(data, constants.MaxSiteAssetBytes)
+		ext, err := bookparser.ValidateImage(data, limit)
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Downloaded asset is not a valid image")
 		}

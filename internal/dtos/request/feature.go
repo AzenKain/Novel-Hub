@@ -41,8 +41,8 @@ type CreateHighlightDto struct {
 	BookID      string  `json:"book_id" validate:"required"`
 	ChapterID   string  `json:"chapter_id" validate:"required"`
 	TextContent string  `json:"text_content" validate:"required"`
-	StartIndex  int     `json:"start_index" validate:"required,min=0"`
-	EndIndex    int     `json:"end_index" validate:"required,gtfield=StartIndex"`
+	StartIndex  int     `json:"start_index" validate:"gte=0"`
+	EndIndex    int     `json:"end_index" validate:"gtfield=StartIndex"`
 	Color       string  `json:"color" validate:"required"`
 	Note        *string `json:"note,omitempty"`
 }

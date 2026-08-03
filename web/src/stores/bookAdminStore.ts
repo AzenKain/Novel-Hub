@@ -391,7 +391,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       let successCount = 0;
       for (const file of Array.from(files)) {
         try {
-          await uploadService.uploadFileChunked(file, "book", editingBook.id);
+          const res = await uploadService.uploadFileChunked(file, "book", editingBook.id);
+          if (!res.status) throw new Error(res.message || "Upload failed");
           successCount++;
         } catch (fileErr) {
           console.error("Failed to upload book file:", file.name, fileErr);
@@ -510,7 +511,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         });
 
         try {
-          await uploadService.uploadFileChunked(
+          const res = await uploadService.uploadFileChunked(
             file,
             "library",
             uploadLibraryId,
@@ -522,6 +523,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
               });
             }
           );
+          if (!res.status) throw new Error(res.message || "Upload failed");
           successCount++;
         } catch (fileErr) {
           console.error("Failed to upload file:", file.name, fileErr);

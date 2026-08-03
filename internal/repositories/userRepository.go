@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"strings"
 
 	"golang.org/x/sync/singleflight"
 
@@ -274,23 +276,35 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.q.GetUsersByIDs(ctx, missingIds)
+		sort.Strings(missingIds)
+		sfgKey := "users:ids:" + strings.Join(missingIds, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.q.GetUsersByIDs(ctx, missingIds)
+			if err != nil {
+				return nil, err
+			}
+			missingMap := make(map[string]*models.UserEntity)
+			for _, row := range rows {
+				u := (&models.UserEntity{}).FromSqlc(row)
+				_ = r.hydrateRoles(ctx, u)
+				missingMap[u.ID] = u
+			}
+			return missingMap, nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[string]*models.UserEntity)
-		for _, row := range rows {
-			u := (&models.UserEntity{}).FromSqlc(row)
-			_ = r.hydrateRoles(ctx, u)
-			missingMap[u.ID] = u
+		missingMap := v.(map[string]*models.UserEntity)
+
+		for _, u := range missingMap {
 			users = append(users, u)
 		}
 
 		if r.c != nil {
 			missingToCache := make(map[string]any)
-			for i, missingId := range missingIds {
+			for _, missingId := range missingIds {
 				if u, ok := missingMap[missingId]; ok {
-					missingToCache[missingKeys[i]] = u
+					missingToCache[cache.BuildKey("user", "id", missingId)] = u
 				}
 			}
 			if len(missingToCache) > 0 {

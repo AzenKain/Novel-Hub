@@ -1,8 +1,10 @@
 package controllers
 
 import (
-	"github.com/gofiber/fiber/v3"
 	"novelhub/internal/dtos/response"
+	"novelhub/pkg/convert"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 func getOptionalClaims(c fiber.Ctx) *response.JWTClaims {
@@ -19,4 +21,20 @@ func getUserClaims(c fiber.Ctx) (*response.JWTClaims, bool) {
 		return nil, false
 	}
 	return claims, true
+}
+
+func getUserIdFromLocals(ctx fiber.Ctx) (string, bool) {
+	uidRaw := ctx.Locals("uid")
+	if uidRaw == nil {
+		return "", false
+	}
+	uidStr, ok := uidRaw.(string)
+	if !ok {
+		return "", false
+	}
+	userID, err := convert.ParseID(uidStr)
+	if err != nil {
+		return "", false
+	}
+	return userID, true
 }

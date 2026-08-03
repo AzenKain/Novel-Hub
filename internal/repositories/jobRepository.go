@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"strings"
 
 	"golang.org/x/sync/singleflight"
 
@@ -108,22 +110,34 @@ func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*mode
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.queries.GetJobsByIDs(ctx, missingIds)
+		sort.Strings(missingIds)
+		sfgKey := "jobs:ids:" + strings.Join(missingIds, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.queries.GetJobsByIDs(ctx, missingIds)
+			if err != nil {
+				return nil, err
+			}
+			missingMap := make(map[string]*models.JobEntity)
+			for _, row := range rows {
+				j := (&models.JobEntity{}).FromSqlc(row)
+				missingMap[j.ID] = j
+			}
+			return missingMap, nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[string]*models.JobEntity)
-		for _, row := range rows {
-			j := (&models.JobEntity{}).FromSqlc(row)
-			missingMap[j.ID] = j
+		missingMap := v.(map[string]*models.JobEntity)
+
+		for _, j := range missingMap {
 			jobs = append(jobs, j)
 		}
 
 		if r.c != nil {
 			missingToCache := make(map[string]any)
-			for i, missingId := range missingIds {
+			for _, missingId := range missingIds {
 				if j, ok := missingMap[missingId]; ok {
-					missingToCache[missingKeys[i]] = j
+					missingToCache[cache.BuildKey("job", "id", missingId)] = j
 				}
 			}
 			if len(missingToCache) > 0 {

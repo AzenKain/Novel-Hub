@@ -39,26 +39,47 @@ export const readerService = {
     }
   },
 
-  async syncReadingSession(book_id: string, duration: number, words: number): Promise<void> {
-    await api.post('/reader/stats/session', {
-      book_id,
-      duration,
-      words,
-    });
+  async syncReadingSession(book_id: string, duration: number, words: number): Promise<CommonResponse<void>> {
+    try {
+      const res = await api.post('/reader/stats/session', {
+        book_id,
+        duration,
+        words,
+      });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<void>;
+      throw error;
+    }
   },
 
-  async getReadingHeatmap(): Promise<any> {
-    const { data } = await api.get('/reader/stats/heatmap');
-    return data.data;
+  async getReadingHeatmap(): Promise<CommonResponse<any>> {
+    try {
+      const res = await api.get('/reader/stats/heatmap');
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<any>;
+      throw error;
+    }
   },
 
-  async getReadingGoal(): Promise<ReadingGoal> {
-    const { data } = await api.get('/reader/goals/');
-    return data.data;
+  async getReadingGoal(): Promise<CommonResponse<ReadingGoal>> {
+    try {
+      const res = await api.get('/reader/goals/');
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<ReadingGoal>;
+      throw error;
+    }
   },
 
-  async upsertReadingGoal(target_words_per_day: number, target_books_per_year: number): Promise<ReadingGoal> {
-    const { data } = await api.put('/reader/goals/', { target_words_per_day, target_books_per_year });
-    return data.data;
+  async upsertReadingGoal(target_words_per_day: number, target_books_per_year: number): Promise<CommonResponse<ReadingGoal>> {
+    try {
+      const res = await api.put('/reader/goals/', { target_words_per_day, target_books_per_year });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<ReadingGoal>;
+      throw error;
+    }
   }
 };

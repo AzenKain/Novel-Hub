@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -99,6 +100,14 @@ func (q *Queue) Start() {
 }
 
 func (q *Queue) process(job Job) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Interface("panic", r).Str("job_id", job.ID).Msg("Worker job panicked")
+			if q.lifecycle != nil {
+				_ = q.lifecycle.Failed(q.ctx, job, fmt.Errorf("panic: %v", r))
+			}
+		}
+	}()
 	handler, ok := q.handler[job.Type]
 	if !ok {
 		err := errors.New("no handler found for job type")

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -100,7 +101,7 @@ func (h *LibraryController) DeleteLibrary(c fiber.Ctx) error {
 }
 
 func (h *LibraryController) UploadFiles(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	id := c.Params("id")
@@ -144,9 +145,13 @@ func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
 
 	pr, pw := io.Pipe()
 
-	reqCtx := c.Context()
 	go func() {
-		streamCtx, cancelStream := context.WithTimeout(reqCtx, 15*time.Minute)
+		defer func() {
+			if r := recover(); r != nil {
+				pw.CloseWithError(fmt.Errorf("panic: %v", r))
+			}
+		}()
+		streamCtx, cancelStream := context.WithTimeout(context.Background(), 15*time.Minute)
 		defer cancelStream()
 		err := h.libraryService.StreamLibraryZip(streamCtx, libraryID, pw)
 		pw.CloseWithError(err)

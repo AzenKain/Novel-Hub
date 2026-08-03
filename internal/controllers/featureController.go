@@ -44,21 +44,7 @@ func (c *FeatureController) GetLibraryStats(ctx fiber.Ctx) error {
 	})
 }
 
-func getUserIdFromLocals(ctx fiber.Ctx) (string, bool) {
-	uidRaw := ctx.Locals("uid")
-	if uidRaw == nil {
-		return "", false
-	}
-	uidStr, ok := uidRaw.(string)
-	if !ok {
-		return "", false
-	}
-	userID, err := convert.ParseID(uidStr)
-	if err != nil {
-		return "", false
-	}
-	return userID, true
-}
+
 
 func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -75,6 +61,9 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 	limit := int64(50)
 	if l, err := strconv.ParseInt(ctx.Query("limit"), 10, 64); err == nil && l > 0 {
 		limit = l
+	}
+	if limit > 100 {
+		limit = 100
 	}
 	var cursorCreatedAt *time.Time
 	cursorStr := ctx.Query("cursor")
@@ -294,7 +283,7 @@ func (h *FeatureController) GetReadingProgress(c fiber.Ctx) error {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "No reading progress found"})
 		}
-		return err
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: progress})
 }

@@ -98,7 +98,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
 
   return (
     <header
-      className={`absolute left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
+      className={`relative z-10 flex h-14 w-full flex-none items-center justify-between border-b px-4 ${headerBg} backdrop-blur-md`}
     >
       <div className="flex items-center gap-2">
         <label

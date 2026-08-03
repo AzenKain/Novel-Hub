@@ -74,7 +74,7 @@ func (h *SettingsController) SetupStatus(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	if !h.service.SetupRequired(ctx) {
@@ -85,7 +85,7 @@ func (h *SettingsController) UploadSetupLogo(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) UploadAdminLogo(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	return h.handleAssetUpload(ctx, c)

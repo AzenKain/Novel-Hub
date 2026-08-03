@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"context"
 	"encoding/base64"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -18,7 +20,9 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 	auth := func(c fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			settings, err := settingsService.Public(c.Context())
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			settings, err := settingsService.Public(ctx)
 			if err != nil || settings.GuestLoginRequired {
 				c.Set("WWW-Authenticate", `Basic realm="NovelHub OPDS"`)
 				return apperrors.New(apperrors.ErrUnauthorized, "Authentication required")
@@ -39,7 +43,9 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 		if len(parts) != 2 {
 			return apperrors.New(apperrors.ErrUnauthorized, "Invalid credentials")
 		}
-		claims, err := authService.ValidateCredentials(c.Context(), &request.SignInDto{Email: parts[0], Password: parts[1]})
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		claims, err := authService.ValidateCredentials(ctx, &request.SignInDto{Email: parts[0], Password: parts[1]})
 		if err != nil {
 			c.Set("WWW-Authenticate", `Basic realm="NovelHub OPDS"`)
 			return apperrors.New(apperrors.ErrUnauthorized, "Invalid credentials")

@@ -1,6 +1,7 @@
 import { useEffect, useState, type RefObject } from "react";
 
 import {
+  getCharacterOffsetOfRange,
   getTextFromHereFromSaved,
   saveSelection,
   type SavedSelection,
@@ -83,7 +84,19 @@ export function useReaderSelection({
   const handleHighlight = async (color: string) => {
     if (selectionRange) {
       const text = selectionRange.toString();
-      await addHighlight(text, 0, text.length, color);
+      const container = columnsRef.current || contentRef.current;
+      let startOffset = 0;
+      let endOffset = text.length;
+
+      if (container) {
+        const offset = getCharacterOffsetOfRange(container, selectionRange);
+        if (offset) {
+          startOffset = offset.start;
+          endOffset = offset.end;
+        }
+      }
+
+      await addHighlight(text, startOffset, endOffset, color);
       window.getSelection()?.removeAllRanges();
       savedSelectionRef.current = null;
       setSelectionRange(null);

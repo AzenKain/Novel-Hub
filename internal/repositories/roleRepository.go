@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"strings"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
@@ -82,22 +84,34 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.q.GetRolesByIDs(ctx, missingIds)
+		sort.Strings(missingIds)
+		sfgKey := "roles:ids:" + strings.Join(missingIds, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.q.GetRolesByIDs(ctx, missingIds)
+			if err != nil {
+				return nil, err
+			}
+			missingMap := make(map[string]*models.RoleEntity)
+			for _, row := range rows {
+				result := (&models.RoleEntity{}).FromSqlc(row)
+				missingMap[result.ID] = result
+			}
+			return missingMap, nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[string]*models.RoleEntity)
-		for _, row := range rows {
-			result := (&models.RoleEntity{}).FromSqlc(row)
-			missingMap[result.ID] = result
+		missingMap := v.(map[string]*models.RoleEntity)
+
+		for _, result := range missingMap {
 			roles = append(roles, result)
 		}
 
 		if r.c != nil {
 			missingToCache := make(map[string]any)
-			for i, missingId := range missingIds {
-				if r, ok := missingMap[missingId]; ok {
-					missingToCache[missingKeys[i]] = r
+			for _, missingId := range missingIds {
+				if role, ok := missingMap[missingId]; ok {
+					missingToCache[cache.BuildKey("role", "id", missingId)] = role
 				}
 			}
 			if len(missingToCache) > 0 {

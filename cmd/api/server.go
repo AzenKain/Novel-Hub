@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	static "github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/rs/zerolog/log"
 
@@ -107,6 +109,8 @@ func NewHTTPServer() *FiberServer {
 		ProxyHeader:        fiber.HeaderXForwardedFor,
 		EnableIPValidation: trustProxy,
 	})
+
+	app.Use(recover.New())
 
 	if !config.GetBoolConfigWithDefault("DISABLE_REQUEST_LOG", true) {
 		app.Use(middleware.New(middleware.Config{Logger: &log.Logger}))
@@ -311,9 +315,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	s.App.Use("/public", static.New(publicDir))
 	s.App.Get("/storage/books/:bookID/:filename", middlewares.OptionalJwtAccess(userRepo), func(c fiber.Ctx) error {
-		book, err := bookService.GetBook(c.Context(), c.Params("bookID"))
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		book, err := bookService.GetBook(ctx, c.Params("bookID"))
 		claims, _ := c.Locals("user_claims").(*response.JWTClaims)
-		if err != nil || book == nil || !bookService.CanReadBook(c.Context(), book, claims) {
+		if err != nil || book == nil || !bookService.CanReadBook(ctx, book, claims) {
 			return fiber.ErrForbidden
 		}
 		if book.CoverURL == nil || filepath.Base(*book.CoverURL) != c.Params("filename") {

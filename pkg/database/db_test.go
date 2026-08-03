@@ -31,7 +31,7 @@ func TestSQLiteConcurrency(t *testing.T) {
 		wg.Go(func() {
 			ctx := context.Background()
 			for j := range iterations {
-				tx, err := BeginImmediateTx(ctx, db)
+				tx, err := db.BeginTx(ctx, nil)
 				if err != nil {
 					t.Errorf("worker %d failed to begin tx: %v", workerID, err)
 					return
@@ -42,16 +42,13 @@ func TestSQLiteConcurrency(t *testing.T) {
 				)
 				if err != nil {
 					_ = tx.Rollback()
-					ReleaseWriteLock()
 					t.Errorf("worker %d failed to insert: %v", workerID, err)
 					return
 				}
 				if err := tx.Commit(); err != nil {
-					ReleaseWriteLock()
 					t.Errorf("worker %d failed to commit: %v", workerID, err)
 					return
 				}
-				ReleaseWriteLock()
 
 				rows, err := db.QueryContext(ctx, "SELECT id FROM tags LIMIT 5")
 				if err != nil {

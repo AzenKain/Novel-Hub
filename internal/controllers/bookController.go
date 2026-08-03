@@ -139,7 +139,7 @@ func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 }
 
 func (h *BookController) UploadBookFiles(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	form, err := c.MultipartForm()
@@ -152,7 +152,7 @@ func (h *BookController) UploadBookFiles(c fiber.Ctx) error {
 	}
 	result, err := h.bookService.UploadBookFiles(ctx, c.Params("id"), files)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Message: "Files uploaded successfully", Data: result.ToResponse()})
 }

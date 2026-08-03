@@ -17,6 +17,31 @@ const ensureHighlightStyle = () => {
         text-underline-offset: 4px !important;
         border-radius: 4px !important;
       }
+      ::highlight(user-highlight-yellow), ::highlight(user-highlight-default) {
+        background-color: rgba(254, 240, 138, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #eab308 !important;
+      }
+      ::highlight(user-highlight-green) {
+        background-color: rgba(187, 247, 208, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #22c55e !important;
+      }
+      ::highlight(user-highlight-blue) {
+        background-color: rgba(191, 219, 254, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #3b82f6 !important;
+      }
+      ::highlight(user-highlight-pink) {
+        background-color: rgba(251, 207, 232, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #ec4899 !important;
+      }
+      ::highlight(user-highlight-purple) {
+        background-color: rgba(233, 213, 255, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #a855f7 !important;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -439,4 +464,148 @@ export const getSelectionInfo = (container: HTMLElement, range: Range) => {
       offset: textOffset,
     } as TtsStartPoint,
   };
+};
+
+export const getCharacterOffsetOfRange = (container: HTMLElement, range: Range): { start: number; end: number } | null => {
+  if (!container || !range) return null;
+  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let currentOffset = 0;
+  let start: number | null = null;
+  let end: number | null = null;
+
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    const nodeLen = node.textContent?.length || 0;
+
+    if (start === null && (node === range.startContainer || node.contains(range.startContainer))) {
+      start = currentOffset + range.startOffset;
+    }
+    if (end === null && (node === range.endContainer || node.contains(range.endContainer))) {
+      end = currentOffset + range.endOffset;
+    }
+
+    if (start !== null && end !== null) break;
+    currentOffset += nodeLen;
+  }
+
+  if (start !== null && end !== null) {
+    return { start, end };
+  }
+  return null;
+};
+
+export const createRangeFromCharOffset = (container: HTMLElement, startChar: number, endChar: number): Range | null => {
+  if (!container || startChar < 0 || endChar <= startChar) return null;
+  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let currentOffset = 0;
+  let startNode: Node | null = null;
+  let startNodeOffset = 0;
+  let endNode: Node | null = null;
+  let endNodeOffset = 0;
+
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    const nodeLen = node.textContent?.length || 0;
+
+    if (!startNode && currentOffset + nodeLen > startChar) {
+      startNode = node;
+      startNodeOffset = startChar - currentOffset;
+    }
+    if (!endNode && currentOffset + nodeLen >= endChar) {
+      endNode = node;
+      endNodeOffset = endChar - currentOffset;
+      break;
+    }
+    currentOffset += nodeLen;
+  }
+
+  if (startNode && endNode) {
+    try {
+      const range = document.createRange();
+      range.setStart(startNode, startNodeOffset);
+      range.setEnd(endNode, endNodeOffset);
+      return range;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+export interface HighlightEntity {
+  id: string;
+  text_content: string;
+  start_index: number;
+  end_index: number;
+  color: string;
+}
+
+export const applyUserHighlights = (
+  container: HTMLElement | null,
+  highlights: HighlightEntity[]
+) => {
+  if (typeof document === "undefined" || !container) return;
+  ensureHighlightStyle();
+
+  const colorGroups: Record<string, Range[]> = {
+    yellow: [],
+    green: [],
+    blue: [],
+    pink: [],
+    purple: [],
+    default: [],
+  };
+
+  if (typeof CSS !== "undefined" && "highlights" in CSS) {
+    for (const key of Object.keys(colorGroups)) {
+      try {
+        // @ts-ignore
+        CSS.highlights.delete(`user-highlight-${key}`);
+      } catch (e) {}
+    }
+  }
+
+  if (!highlights || highlights.length === 0) return;
+
+  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let fullText = "";
+  while (treeWalker.nextNode()) {
+    fullText += treeWalker.currentNode.textContent || "";
+  }
+
+  for (const h of highlights) {
+    if (!h.text_content || !h.text_content.trim()) continue;
+    let range: Range | null = null;
+
+    if (h.start_index >= 0 && h.end_index > h.start_index) {
+      range = createRangeFromCharOffset(container, h.start_index, h.end_index);
+      if (range && range.toString().trim() !== h.text_content.trim()) {
+        range = null;
+      }
+    }
+
+    if (!range) {
+      const targetText = h.text_content.trim();
+      const idx = fullText.indexOf(targetText);
+      if (idx !== -1) {
+        range = createRangeFromCharOffset(container, idx, idx + targetText.length);
+      }
+    }
+
+    if (range) {
+      const c = h.color && colorGroups[h.color] ? h.color : "yellow";
+      colorGroups[c].push(range);
+    }
+  }
+
+  if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
+    for (const [color, ranges] of Object.entries(colorGroups)) {
+      if (ranges.length > 0) {
+        try {
+          // @ts-ignore
+          CSS.highlights.set(`user-highlight-${color}`, new Highlight(...ranges));
+        } catch (e) {}
+      }
+    }
+  }
 };

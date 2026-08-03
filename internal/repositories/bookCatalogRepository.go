@@ -471,22 +471,34 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 	}
 
 	if len(missingIDs) > 0 {
-		rows, err := r.queries.GetBooksByIDs(ctx, missingIDs)
+		sort.Strings(missingIDs)
+		sfgKey := "books:ids:" + strings.Join(missingIDs, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.queries.GetBooksByIDs(ctx, missingIDs)
+			if err != nil {
+				return nil, err
+			}
+			missingMap := make(map[string]*models.BookEntity, len(rows))
+			for _, row := range rows {
+				book := (&models.BookEntity{}).FromSqlc(row)
+				missingMap[book.ID] = book
+			}
+			return missingMap, nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		missingMap := make(map[string]*models.BookEntity, len(rows))
-		for _, row := range rows {
-			book := (&models.BookEntity{}).FromSqlc(row)
+		missingMap := v.(map[string]*models.BookEntity)
+
+		for _, book := range missingMap {
 			booksByID[book.ID] = book
-			missingMap[book.ID] = book
 		}
 
 		if r.c != nil && !r.inTx {
 			missingToCache := make(map[string]any, len(missingMap))
-			for i, missingID := range missingIDs {
-				if book, ok := missingMap[missingID]; ok {
-					missingToCache[missingKeys[i]] = book
+			for _, id := range missingIDs {
+				if book, ok := missingMap[id]; ok {
+					missingToCache[cache.BuildKey("book", "id", id)] = book
 				}
 			}
 			if len(missingToCache) > 0 {

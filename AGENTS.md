@@ -138,7 +138,7 @@ All utility logic must be centralized within the `pkg/` directory:
   - All log file downloads and tail operations MUST enforce `localfs.SafeJoin` and check `os.Lstat` for regular file types to eliminate path traversal vulnerabilities.
   - Database backups MUST use the SQLite Online Backup API (`sqliteSnapshot`) to prevent database file locking.
   - Staged restores MUST verify SHA-256 database hashes and run `DatabaseHealthCheck` before enabling restore flags (`RESTORE_AUTO_RESTART`).
-  - **Library Inbox**: the `scan_library_inbox` job imports files dropped into `DATA_DIR/inbox/<libraryID>/` (flat, non-recursive), copies them into managed storage via the normal upload flow, then deletes the source file. Files newer than 10s are skipped (still copying). Libraries never reference arbitrary paths on disk: `bookFileRepository` is `os.Root`-sandboxed to `DATA_DIR/books` and `maintenance` deletes DB records for files it cannot see.
+  - **Library Inbox**: the `scan_library_inbox` job imports files dropped into `DATA_DIR/inbox/<libraryID>/`, copies them into managed storage via the normal upload flow, then deletes the source file. Files newer than 10s are skipped (still copying). Libraries never reference arbitrary paths on disk: `bookFileRepository` is `os.Root`-sandboxed to `DATA_DIR/books` and `maintenance` deletes DB records for files it cannot see.
 - **Authentication**: JWT authentication uses token versioning (`token_version`). Validating token version in middleware guarantees instant logout across all devices.
 
 ---

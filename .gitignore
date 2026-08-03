@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 vendor/
-
+*.txt
 # Build outputs
 /api
 /cmd/api/dist/

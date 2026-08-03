@@ -216,6 +216,13 @@ func (s *webhookService) sendHTTPRequest(ctx context.Context, wh *models.Webhook
 		var headers map[string]string
 		if err := jsonx.UnmarshalString(*wh.CustomHeaders, &headers); err == nil {
 			for k, v := range headers {
+				kl := strings.ToLower(strings.TrimSpace(k))
+				if kl == "host" || kl == "content-type" || kl == "user-agent" ||
+					kl == "x-novelhub-event" || kl == "x-novelhub-signature" ||
+					kl == "authorization" || kl == "cookie" || kl == "content-length" ||
+					kl == "connection" || kl == "accept-encoding" {
+					continue
+				}
 				req.Header.Set(k, v)
 			}
 		}

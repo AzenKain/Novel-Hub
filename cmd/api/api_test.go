@@ -457,7 +457,7 @@ func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 		t.Fatalf("expected defaults 1000/12 for a user with no goal, got %d/%d", goal.TargetWordsPerDay, goal.TargetBooksPerYear)
 	}
 
-	putBody := []byte(`{"targetWordsPerDay":2500,"targetBooksPerYear":40}`)
+	putBody := []byte(`{"target_words_per_day":2500,"target_books_per_year":40}`)
 	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/reader/goals/", bytes.NewReader(putBody))
 	putReq.Header.Set("Content-Type", "application/json")
 	putReq.Header.Set("Authorization", "Bearer "+token)
@@ -475,7 +475,7 @@ func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 	}
 
 	// Zero must be rejected: a 0 words/day target would divide by zero on the client.
-	badReq := httptest.NewRequest(http.MethodPut, "/api/v1/reader/goals/", bytes.NewReader([]byte(`{"targetWordsPerDay":0,"targetBooksPerYear":40}`)))
+	badReq := httptest.NewRequest(http.MethodPut, "/api/v1/reader/goals/", bytes.NewReader([]byte(`{"target_words_per_day":0,"target_books_per_year":40}`)))
 	badReq.Header.Set("Content-Type", "application/json")
 	badReq.Header.Set("Authorization", "Bearer "+token)
 	badResp, err := app.Test(badReq)

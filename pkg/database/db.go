@@ -10,9 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
-	"sync"
 
 	_ "modernc.org/sqlite"
 
@@ -116,24 +114,6 @@ func autoSQLiteMmapSize() int64 {
 	return mmap
 }
 
-func systemMemoryBytes() int64 {
-	data, err := os.ReadFile("/proc/meminfo")
-	if err != nil {
-		return 0
-	}
-	for _, line := range strings.Split(string(data), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-		kib, err := strconv.ParseInt(fields[1], 10, 64)
-		if err != nil {
-			return 0
-		}
-		return kib * 1024
-	}
-	return 0
-}
 
 func NewSQLiteDB() (*sql.DB, error) {
 	// Derived from DATA_DIR so the database lands beside books, logs and backups
@@ -187,18 +167,13 @@ func sqliteDSN(dbPath string, cacheKB int, mmapBytes int64) string {
 	return dbPath + separator + values.Encode()
 }
 
-var globalWriteMutex sync.Mutex
 
-func BeginImmediateTx(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
-	globalWriteMutex.Lock()
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		globalWriteMutex.Unlock()
-		return nil, err
+func CheckpointWALAndClose(db *sql.DB) error {
+	if db == nil {
+		return nil
 	}
-	return tx, nil
-}
-
-func ReleaseWriteLock() {
-	globalWriteMutex.Unlock()
+	if _, err := db.ExecContext(context.Background(), `PRAGMA wal_checkpoint(TRUNCATE)`); err != nil {
+		log.Printf("Warning: WAL checkpoint failed: %v", err)
+	}
+	return db.Close()
 }

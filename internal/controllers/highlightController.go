@@ -60,11 +60,11 @@ func (c *HighlightController) GetHighlights(ctx fiber.Ctx) error {
 		})
 	}
 
-	chapterID := ctx.Query("chapterId")
+	chapterID := ctx.Query("chapter_id")
 	if chapterID == "" {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
-			Message: "chapterId query parameter is required",
+			Message: "chapter_id query parameter is required",
 		})
 	}
 
