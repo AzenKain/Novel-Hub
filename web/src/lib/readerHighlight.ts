@@ -490,34 +490,6 @@ export const getSelectionInfo = (container: HTMLElement, range: Range) => {
   };
 };
 
-export const getCharacterOffsetOfRange = (container: HTMLElement, range: Range): { start: number; end: number } | null => {
-  if (!container || !range) return null;
-  const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-  let currentOffset = 0;
-  let start: number | null = null;
-  let end: number | null = null;
-
-  while (treeWalker.nextNode()) {
-    const node = treeWalker.currentNode;
-    const nodeLen = node.textContent?.length || 0;
-
-    if (start === null && (node === range.startContainer || node.contains(range.startContainer))) {
-      start = currentOffset + range.startOffset;
-    }
-    if (end === null && (node === range.endContainer || node.contains(range.endContainer))) {
-      end = currentOffset + range.endOffset;
-    }
-
-    if (start !== null && end !== null) break;
-    currentOffset += nodeLen;
-  }
-
-  if (start !== null && end !== null) {
-    return { start, end };
-  }
-  return null;
-};
-
 export const createRangeFromCharOffset = (container: HTMLElement, startChar: number, endChar: number): Range | null => {
   if (!container || startChar < 0 || endChar <= startChar) return null;
   const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
