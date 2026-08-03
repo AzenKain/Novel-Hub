@@ -60,7 +60,8 @@ func (q *Queries) DeleteSmartCollection(ctx context.Context, arg DeleteSmartColl
 }
 
 const getSmartCollection = `-- name: GetSmartCollection :one
-SELECT id, user_id, name, rule_json, created_at, updated_at FROM smart_collections
+SELECT id, user_id, name, rule_json, created_at, updated_at
+FROM smart_collections
 WHERE id = ? AND user_id = ?
 `
 
@@ -84,7 +85,8 @@ func (q *Queries) GetSmartCollection(ctx context.Context, arg GetSmartCollection
 }
 
 const listSmartCollectionsByUser = `-- name: ListSmartCollectionsByUser :many
-SELECT id, user_id, name, rule_json, created_at, updated_at FROM smart_collections
+SELECT id, user_id, name, rule_json, created_at, updated_at
+FROM smart_collections
 WHERE user_id = ?
 ORDER BY created_at DESC
 `

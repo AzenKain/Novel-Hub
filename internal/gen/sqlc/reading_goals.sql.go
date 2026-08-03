@@ -10,7 +10,8 @@ import (
 )
 
 const getUserReadingGoal = `-- name: GetUserReadingGoal :one
-SELECT user_id, target_words_per_day, target_books_per_year, created_at, updated_at FROM reading_goals
+SELECT user_id, target_words_per_day, target_books_per_year, created_at, updated_at
+FROM reading_goals
 WHERE user_id = ?
 `
 

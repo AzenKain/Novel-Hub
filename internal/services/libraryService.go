@@ -289,7 +289,7 @@ func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string,
 		return err
 	}
 
-	books, err := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", nil, 1000000)
+	books, err := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", nil, "", 1000000)
 	if err != nil {
 		return err
 	}

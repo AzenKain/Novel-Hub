@@ -298,8 +298,8 @@ WHERE
     )
     AND (
         ?7 IS NULL OR
-        u.created_at < ?7 OR
-        (u.created_at = ?7 AND u.id > ?8)
+        datetime(u.created_at) < datetime(?7) OR
+        (datetime(u.created_at) = datetime(?7) AND u.id > ?8)
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT ?9

@@ -12,8 +12,11 @@ WHERE id = ? LIMIT 1;
 
 -- name: ListBookIDs :many
 SELECT id FROM books
-WHERE (sqlc.narg('cursor_created_at') IS NULL OR datetime(created_at) < datetime(sqlc.narg('cursor_created_at')))
-ORDER BY created_at DESC
+WHERE
+    (sqlc.narg('cursor_created_at') IS NULL OR
+     datetime(created_at) < datetime(sqlc.narg('cursor_created_at')) OR
+     (datetime(created_at) = datetime(sqlc.narg('cursor_created_at')) AND id < sqlc.narg('cursor_id')))
+ORDER BY created_at DESC, id DESC
 LIMIT sqlc.arg('limit');
 
 -- name: UpdateBook :one
@@ -91,7 +94,9 @@ INSERT INTO book_tags (
 -- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (sqlc.narg('cursor_created_at') IS NULL OR datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at'))) AND
+    (sqlc.narg('cursor_created_at') IS NULL OR
+     datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
+     (datetime(b.created_at) = datetime(sqlc.narg('cursor_created_at')) AND b.id < sqlc.narg('cursor_id'))) AND
     (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
     (
         sqlc.narg('search') IS NULL OR
@@ -121,7 +126,7 @@ WHERE
     (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
 ORDER BY
-    b.created_at DESC
+    b.created_at DESC, b.id DESC
 LIMIT sqlc.arg('limit');
 
 -- name: GetBooksByIDs :many

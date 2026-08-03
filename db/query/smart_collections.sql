@@ -1,9 +1,11 @@
 -- name: GetSmartCollection :one
-SELECT * FROM smart_collections
+SELECT id, user_id, name, rule_json, created_at, updated_at
+FROM smart_collections
 WHERE id = ? AND user_id = ?;
 
 -- name: ListSmartCollectionsByUser :many
-SELECT * FROM smart_collections
+SELECT id, user_id, name, rule_json, created_at, updated_at
+FROM smart_collections
 WHERE user_id = ?
 ORDER BY created_at DESC;
 

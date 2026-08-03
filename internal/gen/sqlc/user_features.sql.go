@@ -29,6 +29,25 @@ func (q *Queries) AddBookToCollection(ctx context.Context, arg AddBookToCollecti
 	return err
 }
 
+const collectionOwnedByUser = `-- name: CollectionOwnedByUser :one
+SELECT EXISTS(
+    SELECT 1 FROM collections
+    WHERE id = ? AND user_id = ?
+)
+`
+
+type CollectionOwnedByUserParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"user_id"`
+}
+
+func (q *Queries) CollectionOwnedByUser(ctx context.Context, arg CollectionOwnedByUserParams) (bool, error) {
+	row := q.queryRow(ctx, q.collectionOwnedByUserStmt, collectionOwnedByUser, arg.ID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createBookShareEvent = `-- name: CreateBookShareEvent :one
 INSERT INTO book_share_events (
     book_id,
@@ -325,32 +344,46 @@ func (q *Queries) GetBookmark(ctx context.Context, arg GetBookmarkParams) (Bookm
 	return i, err
 }
 
-const getBookmarkedBookIDs = `-- name: GetBookmarkedBookIDs :many
-SELECT book_id FROM bookmarks
-WHERE user_id = ?1 AND (?2 IS NULL OR datetime(created_at) < datetime(?2))
-ORDER BY created_at DESC
-LIMIT ?3
+const getBookmarkedBooks = `-- name: GetBookmarkedBooks :many
+SELECT book_id, created_at FROM bookmarks
+WHERE user_id = ?1 AND
+    (?2 IS NULL OR
+     datetime(created_at) < datetime(?2) OR
+     (datetime(created_at) = datetime(?2) AND book_id < ?3))
+ORDER BY created_at DESC, book_id DESC
+LIMIT ?4
 `
 
-type GetBookmarkedBookIDsParams struct {
-	UserID          string      `json:"user_id"`
-	CursorCreatedAt interface{} `json:"cursor_created_at"`
-	Limit           int64       `json:"limit"`
+type GetBookmarkedBooksParams struct {
+	UserID          string         `json:"user_id"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
-func (q *Queries) GetBookmarkedBookIDs(ctx context.Context, arg GetBookmarkedBookIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getBookmarkedBookIDsStmt, getBookmarkedBookIDs, arg.UserID, arg.CursorCreatedAt, arg.Limit)
+type GetBookmarkedBooksRow struct {
+	BookID    string       `json:"book_id"`
+	CreatedAt sql.NullTime `json:"created_at"`
+}
+
+func (q *Queries) GetBookmarkedBooks(ctx context.Context, arg GetBookmarkedBooksParams) ([]GetBookmarkedBooksRow, error) {
+	rows, err := q.query(ctx, q.getBookmarkedBooksStmt, getBookmarkedBooks,
+		arg.UserID,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []string{}
+	items := []GetBookmarkedBooksRow{}
 	for rows.Next() {
-		var book_id string
-		if err := rows.Scan(&book_id); err != nil {
+		var i GetBookmarkedBooksRow
+		if err := rows.Scan(&i.BookID, &i.CreatedAt); err != nil {
 			return nil, err
 		}
-		items = append(items, book_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -425,7 +458,8 @@ func (q *Queries) GetLibraryStats(ctx context.Context) (GetLibraryStatsRow, erro
 }
 
 const getReadingProgress = `-- name: GetReadingProgress :one
-SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM reading_progress
+SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at
+FROM reading_progress
 WHERE user_id = ? AND book_id = ?
 LIMIT 1
 `
@@ -471,15 +505,19 @@ SELECT
     rp.chapter_index
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
-WHERE rp.user_id = ?1 AND (?2 IS NULL OR datetime(rp.updated_at) < datetime(?2))
-ORDER BY rp.updated_at DESC
-LIMIT ?3
+WHERE rp.user_id = ?1 AND
+    (?2 IS NULL OR
+     datetime(rp.updated_at) < datetime(?2) OR
+     (datetime(rp.updated_at) = datetime(?2) AND rp.book_id < ?3))
+ORDER BY rp.updated_at DESC, rp.book_id DESC
+LIMIT ?4
 `
 
 type GetRecentReadingHistoryParams struct {
-	UserID          string      `json:"user_id"`
-	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
-	Limit           int64       `json:"limit"`
+	UserID          string         `json:"user_id"`
+	CursorUpdatedAt interface{}    `json:"cursor_updated_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 type GetRecentReadingHistoryRow struct {
@@ -496,7 +534,12 @@ type GetRecentReadingHistoryRow struct {
 }
 
 func (q *Queries) GetRecentReadingHistory(ctx context.Context, arg GetRecentReadingHistoryParams) ([]GetRecentReadingHistoryRow, error) {
-	rows, err := q.query(ctx, q.getRecentReadingHistoryStmt, getRecentReadingHistory, arg.UserID, arg.CursorUpdatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.getRecentReadingHistoryStmt, getRecentReadingHistory,
+		arg.UserID,
+		arg.CursorUpdatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -531,19 +574,28 @@ func (q *Queries) GetRecentReadingHistory(ctx context.Context, arg GetRecentRead
 
 const getRecentReadingHistoryBookIDs = `-- name: GetRecentReadingHistoryBookIDs :many
 SELECT rp.book_id FROM reading_progress rp
-WHERE rp.user_id = ? AND (?2 IS NULL OR rp.updated_at < ?2)
-ORDER BY rp.updated_at DESC
-LIMIT ?3
+WHERE rp.user_id = ? AND
+    (?2 IS NULL OR
+     datetime(rp.updated_at) < datetime(?2) OR
+     (datetime(rp.updated_at) = datetime(?2) AND rp.book_id < ?3))
+ORDER BY rp.updated_at DESC, rp.book_id DESC
+LIMIT ?4
 `
 
 type GetRecentReadingHistoryBookIDsParams struct {
-	UserID          string      `json:"user_id"`
-	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
-	Limit           int64       `json:"limit"`
+	UserID          string         `json:"user_id"`
+	CursorUpdatedAt interface{}    `json:"cursor_updated_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 func (q *Queries) GetRecentReadingHistoryBookIDs(ctx context.Context, arg GetRecentReadingHistoryBookIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getRecentReadingHistoryBookIDsStmt, getRecentReadingHistoryBookIDs, arg.UserID, arg.CursorUpdatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.getRecentReadingHistoryBookIDsStmt, getRecentReadingHistoryBookIDs,
+		arg.UserID,
+		arg.CursorUpdatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -567,19 +619,28 @@ func (q *Queries) GetRecentReadingHistoryBookIDs(ctx context.Context, arg GetRec
 
 const getUserCollectionIDs = `-- name: GetUserCollectionIDs :many
 SELECT id FROM collections
-WHERE user_id = ?1 AND (?2 IS NULL OR datetime(created_at) < datetime(?2))
-ORDER BY created_at DESC
-LIMIT ?3
+WHERE user_id = ?1 AND
+    (?2 IS NULL OR
+     datetime(created_at) < datetime(?2) OR
+     (datetime(created_at) = datetime(?2) AND id < ?3))
+ORDER BY created_at DESC, id DESC
+LIMIT ?4
 `
 
 type GetUserCollectionIDsParams struct {
-	UserID          string      `json:"user_id"`
-	CursorCreatedAt interface{} `json:"cursor_created_at"`
-	Limit           int64       `json:"limit"`
+	UserID          string         `json:"user_id"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 func (q *Queries) GetUserCollectionIDs(ctx context.Context, arg GetUserCollectionIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getUserCollectionIDsStmt, getUserCollectionIDs, arg.UserID, arg.CursorCreatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.getUserCollectionIDsStmt, getUserCollectionIDs,
+		arg.UserID,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -664,19 +725,28 @@ func (q *Queries) ListAllReviews(ctx context.Context, arg ListAllReviewsParams) 
 
 const listBookReviewCompositeKeys = `-- name: ListBookReviewCompositeKeys :many
 SELECT CAST(user_id AS TEXT) || ':' || book_id as composite_key FROM book_reviews
-WHERE book_id = ? AND (?2 IS NULL OR updated_at < ?2)
-ORDER BY updated_at DESC
-LIMIT ?3
+WHERE book_id = ? AND
+    (?2 IS NULL OR
+     datetime(updated_at) < datetime(?2) OR
+     (datetime(updated_at) = datetime(?2) AND user_id < ?3))
+ORDER BY updated_at DESC, user_id DESC
+LIMIT ?4
 `
 
 type ListBookReviewCompositeKeysParams struct {
-	BookID          string      `json:"book_id"`
-	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
-	Limit           int64       `json:"limit"`
+	BookID          string         `json:"book_id"`
+	CursorUpdatedAt interface{}    `json:"cursor_updated_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 func (q *Queries) ListBookReviewCompositeKeys(ctx context.Context, arg ListBookReviewCompositeKeysParams) ([]interface{}, error) {
-	rows, err := q.query(ctx, q.listBookReviewCompositeKeysStmt, listBookReviewCompositeKeys, arg.BookID, arg.CursorUpdatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.listBookReviewCompositeKeysStmt, listBookReviewCompositeKeys,
+		arg.BookID,
+		arg.CursorUpdatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -700,19 +770,28 @@ func (q *Queries) ListBookReviewCompositeKeys(ctx context.Context, arg ListBookR
 
 const listBookReviews = `-- name: ListBookReviews :many
 SELECT user_id, book_id, rating, review, created_at, updated_at FROM book_reviews
-WHERE book_id = ?1 AND (?2 IS NULL OR updated_at < ?2)
-ORDER BY updated_at DESC
-LIMIT ?3
+WHERE book_id = ?1 AND
+    (?2 IS NULL OR
+     datetime(updated_at) < datetime(?2) OR
+     (datetime(updated_at) = datetime(?2) AND user_id < ?3))
+ORDER BY updated_at DESC, user_id DESC
+LIMIT ?4
 `
 
 type ListBookReviewsParams struct {
-	BookID          string      `json:"book_id"`
-	CursorUpdatedAt interface{} `json:"cursor_updated_at"`
-	Limit           int64       `json:"limit"`
+	BookID          string         `json:"book_id"`
+	CursorUpdatedAt interface{}    `json:"cursor_updated_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 func (q *Queries) ListBookReviews(ctx context.Context, arg ListBookReviewsParams) ([]BookReview, error) {
-	rows, err := q.query(ctx, q.listBookReviewsStmt, listBookReviews, arg.BookID, arg.CursorUpdatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.listBookReviewsStmt, listBookReviews,
+		arg.BookID,
+		arg.CursorUpdatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1026,44 +1105,6 @@ func (q *Queries) UpsertBookmark(ctx context.Context, arg UpsertBookmarkParams) 
 	row := q.queryRow(ctx, q.upsertBookmarkStmt, upsertBookmark, arg.UserID, arg.BookID)
 	var i Bookmark
 	err := row.Scan(&i.UserID, &i.BookID, &i.CreatedAt)
-	return i, err
-}
-
-const upsertReadingHistory = `-- name: UpsertReadingHistory :one
-INSERT INTO reading_history (
-    user_id, book_id, chapter_id, progress_percent, updated_at
-) VALUES (
-    ?, ?, ?, ?, CURRENT_TIMESTAMP
-)
-ON CONFLICT(user_id, book_id) DO UPDATE SET
-    chapter_id = excluded.chapter_id,
-    progress_percent = excluded.progress_percent,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING user_id, book_id, chapter_id, progress_percent, updated_at
-`
-
-type UpsertReadingHistoryParams struct {
-	UserID          string          `json:"user_id"`
-	BookID          string          `json:"book_id"`
-	ChapterID       string          `json:"chapter_id"`
-	ProgressPercent sql.NullFloat64 `json:"progress_percent"`
-}
-
-func (q *Queries) UpsertReadingHistory(ctx context.Context, arg UpsertReadingHistoryParams) (ReadingHistory, error) {
-	row := q.queryRow(ctx, q.upsertReadingHistoryStmt, upsertReadingHistory,
-		arg.UserID,
-		arg.BookID,
-		arg.ChapterID,
-		arg.ProgressPercent,
-	)
-	var i ReadingHistory
-	err := row.Scan(
-		&i.UserID,
-		&i.BookID,
-		&i.ChapterID,
-		&i.ProgressPercent,
-		&i.UpdatedAt,
-	)
 	return i, err
 }
 

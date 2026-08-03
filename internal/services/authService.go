@@ -441,5 +441,6 @@ func (a *authService) Logout(ctx context.Context, userID string) error {
 	if err := tx.Commit(); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to commit logout")
 	}
+	a.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
 }

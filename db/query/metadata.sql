@@ -37,9 +37,6 @@ INSERT OR IGNORE INTO book_languages (book_id, language_id) VALUES (?, ?);
 -- name: ClearBookLanguages :exec
 DELETE FROM book_languages WHERE book_id = ?;
 
--- name: LinkBookTag :exec
-INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?);
-
 -- name: ClearBookTags :exec
 DELETE FROM book_tags WHERE book_id = ?;
 

@@ -1,8 +1,3 @@
--- name: ListAppSettings :many
-SELECT key, value_json, updated_at
-FROM app_settings
-ORDER BY key ASC;
-
 -- name: GetAppSetting :one
 SELECT key, value_json, updated_at
 FROM app_settings

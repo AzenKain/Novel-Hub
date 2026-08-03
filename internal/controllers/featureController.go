@@ -44,8 +44,6 @@ func (c *FeatureController) GetLibraryStats(ctx fiber.Ctx) error {
 	})
 }
 
-
-
 func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -66,21 +64,33 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 		limit = 100
 	}
 	var cursorCreatedAt *time.Time
-	cursorStr := ctx.Query("cursor")
-	if cursorStr != "" {
-		if t, err := time.Parse(time.RFC3339, cursorStr); err == nil {
+	var cursorID string
+	if cursorStr := ctx.Query("cursor"); cursorStr != "" {
+		if parts := strings.SplitN(cursorStr, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorCreatedAt = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, cursorStr); err == nil {
 			cursorCreatedAt = &t
 		}
 	}
 
-	collections, err := c.service.GetUserCollections(reqCtx, userID, cursorCreatedAt, limit)
+	collections, err := c.service.GetUserCollections(reqCtx, userID, cursorCreatedAt, cursorID, limit)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
 
-	return ctx.JSON(response.CommonResponse{
-		Status: true,
-		Data:   collections,
+	var nextCursor *string
+	if len(collections) >= int(limit) && len(collections) > 0 {
+		last := collections[len(collections)-1]
+		next := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
+		nextCursor = &next
+	}
+	return ctx.JSON(fiber.Map{
+		"status":      true,
+		"data":        collections,
+		"next_cursor": nextCursor,
 	})
 }
 
@@ -194,20 +204,27 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 	}
 
 	var cursorTime *time.Time
+	var cursorID string
 	if dto.Cursor != "" {
-		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+		if parts := strings.SplitN(dto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
 			cursorTime = &t
 		}
 	}
 
-	history, err := c.service.GetRecentReadingHistory(reqCtx, userID, cursorTime, int64(dto.Limit))
+	history, err := c.service.GetRecentReadingHistory(reqCtx, userID, cursorTime, cursorID, int64(dto.Limit))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
 
 	var nextCursor *string
 	if len(history) >= int(dto.Limit) && len(history) > 0 {
-		c := history[len(history)-1].UpdatedAt.Format(time.RFC3339Nano)
+		last := history[len(history)-1]
+		c := last.UpdatedAt.Format(time.RFC3339Nano) + "|" + last.BookID
 		nextCursor = &c
 	}
 	return ctx.JSON(fiber.Map{
@@ -425,24 +442,29 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 	}
 
 	var cursorTime *time.Time
+	var cursorID string
 	if dto.Cursor != "" {
-		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+		if parts := strings.SplitN(dto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
 			cursorTime = &t
 		}
 	}
-	books, err := c.service.GetBookmarkedBooks(reqCtx, userID, cursorTime, int64(dto.Limit))
+	page, err := c.service.GetBookmarkedBooks(reqCtx, userID, cursorTime, cursorID, int64(dto.Limit))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
 
 	var nextCursor *string
-	if len(books) >= int(dto.Limit) && len(books) > 0 {
-		c := books[len(books)-1].CreatedAt.Format(time.RFC3339Nano)
-		nextCursor = &c
+	if page.NextCursor != "" {
+		nextCursor = &page.NextCursor
 	}
 	return ctx.JSON(fiber.Map{
 		"status":      true,
-		"data":        models.BookEntitiesToResponse(books),
+		"data":        models.BookEntitiesToResponse(page.Books),
 		"next_cursor": nextCursor,
 	})
 }
@@ -596,13 +618,19 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 	}
 
 	var cursorTime *time.Time
+	var cursorID string
 	if dto.Cursor != "" {
-		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+		if parts := strings.SplitN(dto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
 			cursorTime = &t
 		}
 	}
 
-	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), cursorTime, int64(dto.Limit))
+	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), cursorTime, cursorID, int64(dto.Limit))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
 			Status:  false,
@@ -611,9 +639,12 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 	}
 
 	var nextCursor *string
-	if len(reviews) > 0 {
-		c := reviews[len(reviews)-1].UpdatedAt.Format(time.RFC3339Nano)
-		nextCursor = &c
+	if len(reviews) >= int(dto.Limit) && len(reviews) > 0 {
+		last := reviews[len(reviews)-1]
+		if last.UpdatedAt != nil {
+			c := last.UpdatedAt.Format(time.RFC3339Nano) + "|" + last.UserID
+			nextCursor = &c
+		}
 	}
 	return ctx.JSON(fiber.Map{
 		"status":      true,

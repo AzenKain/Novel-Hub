@@ -565,36 +565,6 @@ func (q *Queries) ListUnfinishedJobs(ctx context.Context, arg ListUnfinishedJobs
 	return items, nil
 }
 
-const updateJobProgress = `-- name: UpdateJobProgress :one
-UPDATE jobs
-SET progress = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ?
-RETURNING id, type, status, progress, total, error_msg, payload_json, created_at, updated_at
-`
-
-type UpdateJobProgressParams struct {
-	Progress sql.NullInt64  `json:"progress"`
-	Status   sql.NullString `json:"status"`
-	ID       string         `json:"id"`
-}
-
-func (q *Queries) UpdateJobProgress(ctx context.Context, arg UpdateJobProgressParams) (Job, error) {
-	row := q.queryRow(ctx, q.updateJobProgressStmt, updateJobProgress, arg.Progress, arg.Status, arg.ID)
-	var i Job
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.Status,
-		&i.Progress,
-		&i.Total,
-		&i.ErrorMsg,
-		&i.PayloadJson,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const updateJobStatus = `-- name: UpdateJobStatus :one
 UPDATE jobs
 SET status = ?, error_msg = ?, updated_at = CURRENT_TIMESTAMP

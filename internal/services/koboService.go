@@ -62,7 +62,7 @@ func (s *koboService) GetUserProfile(ctx context.Context) (map[string]any, error
 }
 
 func (s *koboService) GetSyncList(ctx context.Context, syncToken string, claims *response.JWTClaims) (map[string]any, error) {
-	books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", nil, 100)
+	books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", nil, "", 100)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "failed to query books for kobo sync")
 	}

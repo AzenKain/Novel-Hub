@@ -75,40 +75,6 @@ func (q *Queries) DeleteHighlight(ctx context.Context, arg DeleteHighlightParams
 	return err
 }
 
-const getHighlightIDsByChapter = `-- name: GetHighlightIDsByChapter :many
-SELECT id FROM highlights
-WHERE user_id = ? AND chapter_id = ?
-ORDER BY start_index ASC
-`
-
-type GetHighlightIDsByChapterParams struct {
-	UserID    string `json:"user_id"`
-	ChapterID string `json:"chapter_id"`
-}
-
-func (q *Queries) GetHighlightIDsByChapter(ctx context.Context, arg GetHighlightIDsByChapterParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getHighlightIDsByChapterStmt, getHighlightIDsByChapter, arg.UserID, arg.ChapterID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getHighlightsByChapter = `-- name: GetHighlightsByChapter :many
 SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at FROM highlights
 WHERE user_id = ? AND chapter_id = ?

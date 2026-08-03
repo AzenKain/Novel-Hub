@@ -27,6 +27,8 @@ func (r *bookDBRepository) CreateChapter(ctx context.Context, chapter *models.Ch
 	chapter.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", chapter.ID), cache.BuildKey("chapter", "book", chapter.BookID))
+		// SearchFTSInBook joins chapters for chapter_title/chapter_index.
+		_ = r.c.DelByPattern(context.Background(), "fts:book-search*")
 	}
 	return nil
 }
@@ -115,7 +117,9 @@ func (r *bookDBRepository) GetChaptersByIDs(ctx context.Context, ids []string) (
 	}
 
 	if len(missingIDs) > 0 {
-		rows, err := r.queries.GetChaptersByIDs(ctx, missingIDs)
+		rows, err := queryInChunks(missingIDs, func(chunk []string) ([]sqlc.Chapter, error) {
+			return r.queries.GetChaptersByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -149,17 +153,20 @@ func (r *bookDBRepository) GetChaptersByIDs(ctx context.Context, ids []string) (
 }
 
 func (r *bookDBRepository) DeleteChapter(ctx context.Context, id string) error {
-	chapter, _ := r.GetChapter(ctx, id)
+	// Read through the query, not GetChapter: the latter caches chapter:id:<id> on a miss,
+	// populating a key for the row we are about to delete.
+	chapter, preErr := r.queries.GetChapter(ctx, id)
 	if err := r.queries.DeleteChapter(ctx, id); err != nil {
 		return err
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", id))
-		if chapter != nil {
+		if preErr == nil {
 			_ = r.c.Del(ctx, cache.BuildKey("chapter", "book", chapter.BookID))
 		} else {
 			_ = r.c.DelByPattern(context.Background(), "chapter:book:*")
 		}
+		_ = r.c.DelByPattern(context.Background(), "fts:book-search*")
 	}
 	return nil
 }

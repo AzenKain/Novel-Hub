@@ -30,8 +30,8 @@ type FeatureService interface {
 	CreateCollection(ctx context.Context, name string, userID string) (*response.CollectionResponse, error)
 	UpdateCollection(ctx context.Context, id, name string, userID string) (*response.CollectionResponse, error)
 	DeleteCollection(ctx context.Context, id string, userID string) error
-	GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error)
-	GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error)
+	GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, cursorID string, limit int64) ([]*response.CollectionResponse, error)
+	GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]*response.ReadingHistoryResponse, error)
 	GetReadingProgress(ctx context.Context, userID string, bookID string) (*response.ReadingProgressResponse, error)
 	RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput, claims *response.JWTClaims) (*response.ReadingActivityResponse, error)
 	GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error)
@@ -41,12 +41,12 @@ type FeatureService interface {
 	GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error)
 	RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error)
 	SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*response.BookmarkResponse, error)
-	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
+	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error)
 	GetBookUserState(ctx context.Context, userID string, bookID string) (*response.BookUserStateResponse, error)
 	UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review string) (*response.BookReviewResponse, error)
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
 	DeleteReviewByAdmin(ctx context.Context, targetUserID string, bookID string) error
-	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*response.BookReviewResponse, error)
+	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*response.BookReviewResponse, error)
 	ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*response.BookRatingSummaryResponse, error)
 	AddBookToCollection(ctx context.Context, userID string, collectionID string, bookID string) error
@@ -112,22 +112,22 @@ func (s *featureService) DeleteCollection(ctx context.Context, id string, userID
 	return s.repo.DeleteCollection(ctx, id, userID)
 }
 
-func (s *featureService) GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, limit int64) ([]*response.CollectionResponse, error) {
+func (s *featureService) GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, cursorID string, limit int64) ([]*response.CollectionResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	cols, err := s.repo.GetUserCollections(ctx, userID, cursorCreatedAt, limit)
+	cols, err := s.repo.GetUserCollections(ctx, userID, cursorCreatedAt, cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
 	return models.CollectionEntitiesToResponse(cols), nil
 }
 
-func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*response.ReadingHistoryResponse, error) {
+func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]*response.ReadingHistoryResponse, error) {
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
-	history, err := s.repo.GetRecentReadingHistory(ctx, userID, cursor, limit)
+	history, err := s.repo.GetRecentReadingHistory(ctx, userID, cursor, cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -355,16 +355,25 @@ func (s *featureService) SetBookmark(ctx context.Context, userID string, bookID 
 	return bm.ToResponse(), nil
 }
 
-func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
+type BookmarkedBooksPage struct {
+	Books      []*models.BookEntity
+	NextCursor string
+}
+
+func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error) {
 	if userID == "" {
 		return nil, fmt.Errorf("userId is required")
 	}
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
-	ids, err := s.repo.GetBookmarkedBookIDs(ctx, userID, cursor, limit)
+	bookmarkRows, err := s.repo.GetBookmarkedBooks(ctx, userID, cursor, cursorID, limit)
 	if err != nil {
 		return nil, err
+	}
+	ids := make([]string, len(bookmarkRows))
+	for i, row := range bookmarkRows {
+		ids[i] = row.BookID
 	}
 	books, err := s.bookRepo.GetBooksByIDs(ctx, ids)
 	if err != nil {
@@ -385,7 +394,12 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, 
 			book.Files = filesByBookID[book.ID]
 		}
 	}
-	return books, nil
+	result := &BookmarkedBooksPage{Books: books}
+	if len(bookmarkRows) >= int(limit) && len(bookmarkRows) > 0 {
+		last := bookmarkRows[len(bookmarkRows)-1]
+		result.NextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.BookID
+	}
+	return result, nil
 }
 
 func (s *featureService) GetBookUserState(ctx context.Context, userID string, bookID string) (*response.BookUserStateResponse, error) {
@@ -488,14 +502,14 @@ func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64
 	return models.BookReviewEntitiesToResponse(reviews), nil
 }
 
-func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*response.BookReviewResponse, error) {
+func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*response.BookReviewResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
 		return nil, fmt.Errorf("bookId is required")
 	}
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
-	reviews, err := s.repo.ListBookReviews(ctx, bookID, cursor, limit)
+	reviews, err := s.repo.ListBookReviews(ctx, bookID, cursor, cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -547,37 +561,23 @@ func cleanStringPtr(value *string) *string {
 }
 
 func (s *featureService) AddBookToCollection(ctx context.Context, userID string, collectionID string, bookID string) error {
-	cols, err := s.repo.GetUserCollections(ctx, userID, nil, 1000)
+	owned, err := s.repo.CollectionOwnedByUser(ctx, collectionID, userID)
 	if err != nil {
 		return err
 	}
-	found := false
-	for _, c := range cols {
-		if c.ID == collectionID {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return fmt.Errorf("collection not found or does not belong to user")
+	if !owned {
+		return apperrors.New(apperrors.ErrForbidden, "Collection permission denied")
 	}
 	return s.repo.AddBookToCollection(ctx, collectionID, bookID)
 }
 
 func (s *featureService) RemoveBookFromCollection(ctx context.Context, userID string, collectionID string, bookID string) error {
-	cols, err := s.repo.GetUserCollections(ctx, userID, nil, 1000)
+	owned, err := s.repo.CollectionOwnedByUser(ctx, collectionID, userID)
 	if err != nil {
 		return err
 	}
-	found := false
-	for _, c := range cols {
-		if c.ID == collectionID {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return fmt.Errorf("collection not found or does not belong to user")
+	if !owned {
+		return apperrors.New(apperrors.ErrForbidden, "Collection permission denied")
 	}
 	return s.repo.RemoveBookFromCollection(ctx, collectionID, bookID)
 }
@@ -694,10 +694,6 @@ func (s *featureService) UpsertReadingGoal(ctx context.Context, userID string, w
 	return goal.ToResponse(), nil
 }
 
-// smartCollectionToResponse parses the stored rule back into the validated DTO.
-// A row whose JSON is unreadable (hand-edited DB, older schema) degrades to an
-// empty rule instead of failing the whole list — the collection still opens, it
-// just filters nothing.
 func smartCollectionToResponse(entity *models.SmartCollectionEntity) *response.SmartCollectionResponse {
 	res := entity.ToResponse()
 	if res == nil {

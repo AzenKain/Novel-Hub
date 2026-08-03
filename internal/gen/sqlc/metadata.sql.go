@@ -171,20 +171,6 @@ func (q *Queries) LinkBookSeries(ctx context.Context, arg LinkBookSeriesParams) 
 	return err
 }
 
-const linkBookTag = `-- name: LinkBookTag :exec
-INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)
-`
-
-type LinkBookTagParams struct {
-	BookID string `json:"book_id"`
-	TagID  string `json:"tag_id"`
-}
-
-func (q *Queries) LinkBookTag(ctx context.Context, arg LinkBookTagParams) error {
-	_, err := q.exec(ctx, q.linkBookTagStmt, linkBookTag, arg.BookID, arg.TagID)
-	return err
-}
-
 const listAuthorsWithCount = `-- name: ListAuthorsWithCount :many
 SELECT a.id, a.name, COUNT(b.id) as book_count
 FROM authors a

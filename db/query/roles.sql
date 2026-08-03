@@ -50,43 +50,25 @@ UPDATE roles
 SET is_deleted = 1
 WHERE id = ? AND is_system = 0;
 
--- name: RestoreRole :exec
-UPDATE roles
-SET is_deleted = 0
-WHERE id = ?;
-
 -- name: CreateUserRole :exec
 INSERT INTO user_roles (user_id, role_id)
 VALUES (?, ?)
 ON CONFLICT DO NOTHING;
-
--- name: DeleteUserRole :exec
-DELETE FROM user_roles
-WHERE user_id = ? AND role_id = ?;
 
 -- name: CountActiveAdminUsers :one
 SELECT COUNT(DISTINCT u.id)
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
 JOIN roles r ON ur.role_id = r.id
-WHERE u.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin = 1);
+WHERE u.is_deleted = 0 AND r.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin = 1);
 
 -- name: BulkDeleteRolesFromUser :exec
 DELETE FROM user_roles
 WHERE user_id = ?;
 
--- name: BulkDeleteUsersFromRole :exec
-DELETE FROM user_roles
-WHERE role_id = ?;
-
 -- name: ListPermissions :many
 SELECT key, description, created_at, updated_at FROM permissions
 ORDER BY key ASC;
-
--- name: UpsertPermission :exec
-INSERT INTO permissions (key, description)
-VALUES (?, ?)
-ON CONFLICT(key) DO UPDATE SET description = excluded.description;
 
 -- name: ListRolePermissions :many
 SELECT id, role_id, permission_key, effect, conditions_json, created_at, updated_at

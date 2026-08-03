@@ -25,9 +25,10 @@ type SettingsRepository interface {
 }
 
 type settingsRepository struct {
-	q   *sqlc.Queries
-	c   cache.Cache
-	sfg *singleflight.Group
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sfg  *singleflight.Group
 }
 
 func NewSettingsRepository(db sqlc.DBTX, c cache.Cache) SettingsRepository {
@@ -40,9 +41,10 @@ func NewSettingsRepository(db sqlc.DBTX, c cache.Cache) SettingsRepository {
 
 func (r *settingsRepository) WithTx(tx *sql.Tx) SettingsRepository {
 	return &settingsRepository{
-		q:   r.q.WithTx(tx),
-		c:   r.c,
-		sfg: r.sfg,
+		q:    r.q.WithTx(tx),
+		c:    r.c,
+		inTx: true,
+		sfg:  r.sfg,
 	}
 }
 
@@ -218,8 +220,8 @@ func (r *settingsRepository) UpsertSetupState(ctx context.Context, key string, v
 }
 
 func (r *settingsRepository) CountAdminUsers(ctx context.Context) (int64, error) {
-	key := cache.BuildKey("settings", "admin_count")
-	if r.c != nil {
+	key := constants.CacheKeySettingsAdminCount
+	if r.c != nil && !r.inTx {
 		var count int64
 		if err := r.c.Get(ctx, key, &count); err == nil {
 			return count, nil
@@ -231,7 +233,7 @@ func (r *settingsRepository) CountAdminUsers(ctx context.Context) (int64, error)
 		if err != nil {
 			return int64(0), err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, count, constants.NormalCacheDuration)
 		}
 		return count, nil

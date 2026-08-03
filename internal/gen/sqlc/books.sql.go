@@ -462,18 +462,22 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 
 const listBookIDs = `-- name: ListBookIDs :many
 SELECT id FROM books
-WHERE (?1 IS NULL OR datetime(created_at) < datetime(?1))
-ORDER BY created_at DESC
-LIMIT ?2
+WHERE
+    (?1 IS NULL OR
+     datetime(created_at) < datetime(?1) OR
+     (datetime(created_at) = datetime(?1) AND id < ?2))
+ORDER BY created_at DESC, id DESC
+LIMIT ?3
 `
 
 type ListBookIDsParams struct {
-	CursorCreatedAt interface{} `json:"cursor_created_at"`
-	Limit           int64       `json:"limit"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
 }
 
 func (q *Queries) ListBookIDs(ctx context.Context, arg ListBookIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.listBookIDsStmt, listBookIDs, arg.CursorCreatedAt, arg.Limit)
+	rows, err := q.query(ctx, q.listBookIDsStmt, listBookIDs, arg.CursorCreatedAt, arg.CursorID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -527,42 +531,45 @@ func (q *Queries) ListChapterIDsByBook(ctx context.Context, bookID string) ([]st
 const searchBookIDs = `-- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (?1 IS NULL OR datetime(b.created_at) < datetime(?1)) AND
-    (?2 IS NULL OR b.library_id = ?2) AND
+    (?1 IS NULL OR
+     datetime(b.created_at) < datetime(?1) OR
+     (datetime(b.created_at) = datetime(?1) AND b.id < ?2)) AND
+    (?3 IS NULL OR b.library_id = ?3) AND
     (
-        ?3 IS NULL OR
-        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH ?3 ORDER BY rank)
+        ?4 IS NULL OR
+        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH ?4 ORDER BY rank)
     ) AND
-    (?4 IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
-    (?5 IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
-    (?6 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?7 IS NULL OR b.author_id IS NOT NULL) AND
-    (?8 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
-    (?9 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
-    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
-    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
-    (?12 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?13 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?15 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?16 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
-    (?17 IS NULL OR b.download_count > 0) AND
-    (?18 IS NULL OR b.rating_count > 0) AND
-    (?19 IS NULL OR b.status = 'archived') AND
-    (?20 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?21)) AND
-    (?22 IS NULL OR b.author_id = ?22) AND
-    (?23 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?23)) AND
-    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?24)) AND
-    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?25)) AND
-    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?26)) AND
-    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?27)))
+    (?5 IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
+    (?6 IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
+    (?7 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?8 IS NULL OR b.author_id IS NOT NULL) AND
+    (?9 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
+    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
+    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
+    (?12 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
+    (?13 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (?16 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (?17 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?18 IS NULL OR b.download_count > 0) AND
+    (?19 IS NULL OR b.rating_count > 0) AND
+    (?20 IS NULL OR b.status = 'archived') AND
+    (?21 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?22)) AND
+    (?23 IS NULL OR b.author_id = ?23) AND
+    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?24)) AND
+    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?25)) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?26)) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?27)) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28)))
 ORDER BY
-    b.created_at DESC
-LIMIT ?28
+    b.created_at DESC, b.id DESC
+LIMIT ?29
 `
 
 type SearchBookIDsParams struct {
 	CursorCreatedAt       interface{}    `json:"cursor_created_at"`
+	CursorID              sql.NullString `json:"cursor_id"`
 	LibraryID             interface{}    `json:"library_id"`
 	Search                interface{}    `json:"search"`
 	FilterMissingMetadata interface{}    `json:"filter_missing_metadata"`
@@ -595,6 +602,7 @@ type SearchBookIDsParams struct {
 func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([]string, error) {
 	rows, err := q.query(ctx, q.searchBookIDsStmt, searchBookIDs,
 		arg.CursorCreatedAt,
+		arg.CursorID,
 		arg.LibraryID,
 		arg.Search,
 		arg.FilterMissingMetadata,

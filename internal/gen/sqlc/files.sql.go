@@ -170,7 +170,11 @@ func (q *Queries) GetDuplicateFiles(ctx context.Context, arg GetDuplicateFilesPa
 }
 
 const getFilesByBookIDs = `-- name: GetFilesByBookIDs :many
-SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE book_id IN (/*SLICE:book_ids*/?)
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
+WHERE book_id IN (/*SLICE:book_ids*/?)
+ORDER BY
+    CASE WHEN LOWER(format) = 'epub' THEN 0 ELSE 1 END,
+    created_at ASC
 `
 
 func (q *Queries) GetFilesByBookIDs(ctx context.Context, bookIds []string) ([]BookFile, error) {

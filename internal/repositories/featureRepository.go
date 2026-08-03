@@ -22,9 +22,10 @@ type FeatureRepository interface {
 	CreateCollection(ctx context.Context, id, name string, userID string) (*models.CollectionEntity, error)
 	UpdateCollection(ctx context.Context, id, name string, userID string) (*models.CollectionEntity, error)
 	DeleteCollection(ctx context.Context, id string, userID string) error
-	GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error)
+	CollectionOwnedByUser(ctx context.Context, collectionID, userID string) (bool, error)
+	GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, cursorID string, limit int64) ([]*models.CollectionEntity, error)
 	GetCollectionsByIDs(ctx context.Context, ids []string) ([]*models.CollectionEntity, error)
-	GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error)
+	GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]*models.ReadingHistoryEntity, error)
 	GetReadingProgress(ctx context.Context, userID string, bookID string) (*models.ReadingProgressEntity, error)
 	UpsertReadingProgress(ctx context.Context, progress *models.ReadingProgressEntity) (*models.ReadingProgressEntity, error)
 	UpsertBookReadStats(ctx context.Context, bookID string, openDelta int64, qualifiedDelta int64, lastCountedAt *time.Time) error
@@ -33,11 +34,11 @@ type FeatureRepository interface {
 	GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error)
 	GetBookmark(ctx context.Context, userID string, bookID string) (*models.BookmarkEntity, error)
 	SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*models.BookmarkEntity, error)
-	GetBookmarkedBookIDs(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]string, error)
+	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]BookmarkedBookPage, error)
 	UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review *string) (*models.BookReviewEntity, error)
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
 	GetBookReview(ctx context.Context, userID string, bookID string) (*models.BookReviewEntity, error)
-	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error)
+	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookReviewEntity, error)
 	ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error)
 	GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error)
@@ -124,6 +125,7 @@ func (r *featureRepository) CreateCollection(ctx context.Context, id, name strin
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
@@ -141,6 +143,7 @@ func (r *featureRepository) UpdateCollection(ctx context.Context, id, name strin
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
@@ -156,12 +159,41 @@ func (r *featureRepository) DeleteCollection(ctx context.Context, id string, use
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
+		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "id", id))
 	}
 	return nil
 }
 
-func (r *featureRepository) GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, limit int64) ([]*models.CollectionEntity, error) {
+func (r *featureRepository) CollectionOwnedByUser(ctx context.Context, collectionID, userID string) (bool, error) {
+	key := cache.BuildKey("collection", "owned", userID, collectionID)
+	if r.c != nil {
+		var owned bool
+		if err := r.c.Get(ctx, key, &owned); err == nil {
+			return owned, nil
+		}
+	}
+
+	value, err, _ := r.sfg.Do(key, func() (any, error) {
+		owned, err := r.queries.CollectionOwnedByUser(ctx, sqlc.CollectionOwnedByUserParams{
+			ID:     collectionID,
+			UserID: userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, owned, constants.NormalCacheDuration)
+		}
+		return owned, nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return value.(bool), nil
+}
+
+func (r *featureRepository) GetUserCollections(ctx context.Context, userID string, cursorCreatedAt *time.Time, cursorID string, limit int64) ([]*models.CollectionEntity, error) {
 	var key string
 	if cursorCreatedAt == nil {
 		key = cache.BuildKey("collection", "user", userID, "limit", limit)
@@ -176,16 +208,15 @@ func (r *featureRepository) GetUserCollections(ctx context.Context, userID strin
 
 	sfKey := key
 	if sfKey == "" {
-		sfKey = fmt.Sprintf("collection:user:%s:cursor:%v:limit:%d", userID, cursorCreatedAt, limit)
+		sfKey = fmt.Sprintf("collection:user:%s:cursor:%v:%s:limit:%d", userID, cursorCreatedAt, cursorID, limit)
 	}
 
 	v, err, _ := r.sfg.Do(sfKey, func() (any, error) {
 		params := sqlc.GetUserCollectionIDsParams{
-			UserID: userID,
-			Limit:  limit,
-		}
-		if cursorCreatedAt != nil {
-			params.CursorCreatedAt = cursorCreatedAt
+			UserID:          userID,
+			CursorCreatedAt: cursorTimeArg(cursorCreatedAt),
+			CursorID:        convert.StrPtrToNullString(&cursorID),
+			Limit:           limit,
 		}
 
 		ids, err := r.queries.GetUserCollectionIDs(ctx, params)
@@ -204,16 +235,12 @@ func (r *featureRepository) GetUserCollections(ctx context.Context, userID strin
 	return r.GetCollectionsByIDs(ctx, v.([]string))
 }
 
-func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]*models.ReadingHistoryEntity, error) {
+func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]*models.ReadingHistoryEntity, error) {
 	params := sqlc.GetRecentReadingHistoryBookIDsParams{
-		UserID: userID,
-		Limit:  limit,
-		CursorUpdatedAt: func(t *time.Time) sql.NullTime {
-			if t == nil {
-				return sql.NullTime{}
-			}
-			return sql.NullTime{Time: *t, Valid: true}
-		}(cursor),
+		UserID:          userID,
+		Limit:           limit,
+		CursorUpdatedAt: cursorTimeArg(cursor),
+		CursorID:        convert.StrPtrToNullString(&cursorID),
 	}
 	key := cache.QueryKeyParts(params, "feature", "reading_history", "user", userID)
 
@@ -240,14 +267,10 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 		}
 
 		fullParams := sqlc.GetRecentReadingHistoryParams{
-			UserID: userID,
-			Limit:  limit,
-			CursorUpdatedAt: func(t *time.Time) sql.NullTime {
-				if t == nil {
-					return sql.NullTime{}
-				}
-				return sql.NullTime{Time: *t, Valid: true}
-			}(cursor),
+			UserID:          userID,
+			Limit:           limit,
+			CursorUpdatedAt: cursorTimeArg(cursor),
+			CursorID:        convert.StrPtrToNullString(&cursorID),
 		}
 		rows, err := r.queries.GetRecentReadingHistory(ctx, fullParams)
 		if err != nil {
@@ -522,35 +545,44 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID string, book
 	return result, nil
 }
 
-func (r *featureRepository) GetBookmarkedBookIDs(ctx context.Context, userID string, cursor *time.Time, limit int64) ([]string, error) {
-	params := sqlc.GetBookmarkedBookIDsParams{UserID: userID, Limit: limit, CursorCreatedAt: func(t *time.Time) sql.NullTime {
-		if t == nil {
-			return sql.NullTime{}
-		}
-		return sql.NullTime{Time: *t, Valid: true}
-	}(cursor)}
+type BookmarkedBookPage struct {
+	BookID    string
+	CreatedAt time.Time
+}
+
+func (r *featureRepository) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) ([]BookmarkedBookPage, error) {
+	params := sqlc.GetBookmarkedBooksParams{
+		UserID:          userID,
+		Limit:           limit,
+		CursorCreatedAt: cursorTimeArg(cursor),
+		CursorID:        convert.StrPtrToNullString(&cursorID),
+	}
 	key := cache.QueryKeyParts(params, "bookmark", "user", userID, "ids")
 	if r.c != nil {
-		var ids []string
-		if err := r.c.Get(ctx, key, &ids); err == nil {
-			return ids, nil
+		var rows []BookmarkedBookPage
+		if err := r.c.Get(ctx, key, &rows); err == nil {
+			return rows, nil
 		}
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		ids, err := r.queries.GetBookmarkedBookIDs(ctx, params)
+		rows, err := r.queries.GetBookmarkedBooks(ctx, params)
 		if err != nil {
 			return nil, err
 		}
-		if r.c != nil {
-			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+		result := make([]BookmarkedBookPage, len(rows))
+		for i, row := range rows {
+			result[i] = BookmarkedBookPage{BookID: row.BookID, CreatedAt: row.CreatedAt.Time}
 		}
-		return ids, nil
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		}
+		return result, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return v.([]string), nil
+	return v.([]BookmarkedBookPage), nil
 }
 
 func (r *featureRepository) UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review *string) (*models.BookReviewEntity, error) {
@@ -726,13 +758,13 @@ func (r *featureRepository) refreshBookRatingStats(ctx context.Context, bookID s
 	return nil
 }
 
-func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, limit int64) ([]*models.BookReviewEntity, error) {
-	params := sqlc.ListBookReviewCompositeKeysParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime {
-		if t == nil {
-			return sql.NullTime{}
-		}
-		return sql.NullTime{Time: *t, Valid: true}
-	}(cursor)}
+func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookReviewEntity, error) {
+	params := sqlc.ListBookReviewCompositeKeysParams{
+		BookID:          bookID,
+		Limit:           limit,
+		CursorUpdatedAt: cursorTimeArg(cursor),
+		CursorID:        convert.StrPtrToNullString(&cursorID),
+	}
 	key := cache.QueryKeyParts(params, "review", "book", bookID)
 
 	if r.c != nil {
@@ -757,12 +789,12 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 			return []*models.BookReviewEntity{}, nil
 		}
 
-		fullParams := sqlc.ListBookReviewsParams{BookID: bookID, Limit: limit, CursorUpdatedAt: func(t *time.Time) sql.NullTime {
-			if t == nil {
-				return sql.NullTime{}
-			}
-			return sql.NullTime{Time: *t, Valid: true}
-		}(cursor)}
+		fullParams := sqlc.ListBookReviewsParams{
+			BookID:          bookID,
+			Limit:           limit,
+			CursorUpdatedAt: cursorTimeArg(cursor),
+			CursorID:        convert.StrPtrToNullString(&cursorID),
+		}
 		rows, err := r.queries.ListBookReviews(ctx, fullParams)
 		if err != nil {
 			return nil, err

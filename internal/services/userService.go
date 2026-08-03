@@ -241,6 +241,7 @@ func (u *userService) ChangePassword(ctx context.Context, userID string, dto *re
 	if err := tx.Commit(); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to commit password change")
 	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
 }
 
@@ -289,6 +290,7 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, cla
 	if err := tx.Commit(); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to commit password reset")
 	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
 }
 func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ChangeRoleDto) (*response.UserResponse, error) {
@@ -377,6 +379,7 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 	if err := tx.Commit(); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit role change")
 	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 
 	res := user.ToResponse()
 	u.markOwner(ctx, res)
@@ -404,9 +407,31 @@ func (u *userService) DeleteUser(ctx context.Context, userID string, claims *res
 		return apperrors.New(apperrors.ErrForbidden, "Only the owner can delete other admin accounts")
 	}
 
-	if err := u.userRepo.Delete(ctx, id); err != nil {
+	// Soft-deleting a user hides the row from GetUserTokenVersion (which filters
+	// is_deleted = 0), so the attacker's captured JWT/refresh token fail. But the row keeps
+	// the same token_version and refresh_token — a Restore flips is_deleted back to 0 and
+	// resurrects every credential captured before the deletion. Bump token_version and
+	// clear refresh_token on the way down so a future restore cannot un-revoke them.
+	tx, err := u.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	userRepoTx := u.userRepo.WithTx(tx)
+
+	if err := userRepoTx.UpdateTokenVersion(ctx, id, int64(user.TokenVersion+1)); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to revoke sessions")
+	}
+	if err := userRepoTx.UpdateRefreshToken(ctx, id, nil); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to clear refresh token")
+	}
+	if err := userRepoTx.Delete(ctx, id); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to delete user")
 	}
+	if err := tx.Commit(); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to commit deletion")
+	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
 }
 
@@ -422,10 +447,36 @@ func (u *userService) RestoreUser(ctx context.Context, userID string) (*response
 	if user == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "User not found")
 	}
-	if err := u.userRepo.Restore(ctx, id); err != nil {
+
+	// Restore flips is_deleted back to 0 with the SAME token_version and refresh_token.
+	// DeleteUser now bumps token_version and clears refresh_token on the way down, so the
+	// restored row already carries revoked credentials. To stay safe even against a
+	// deletion made before that guard existed, bump again here: any JWT captured before
+	// this restore is rejected, and the cleared refresh_token stops rotation.
+	tx, err := u.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	userRepoTx := u.userRepo.WithTx(tx)
+
+	if err := userRepoTx.Restore(ctx, id); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to restore user")
 	}
+	if err := userRepoTx.UpdateTokenVersion(ctx, id, int64(user.TokenVersion+1)); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to revoke sessions")
+	}
+	if err := userRepoTx.UpdateRefreshToken(ctx, id, nil); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to clear refresh token")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit restore")
+	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
+
 	user.IsDeleted = false
+	user.TokenVersion++
+	user.RefreshToken = ""
 	return user.ToResponse(), nil
 }
 

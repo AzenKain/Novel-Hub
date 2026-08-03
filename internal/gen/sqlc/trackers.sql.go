@@ -51,35 +51,6 @@ func (q *Queries) GetBookTrackerMapping(ctx context.Context, arg GetBookTrackerM
 	return i, err
 }
 
-const getBookTrackerMappingIDsByBook = `-- name: GetBookTrackerMappingIDsByBook :many
-SELECT id
-FROM book_tracker_mappings
-WHERE book_id = ?
-`
-
-func (q *Queries) GetBookTrackerMappingIDsByBook(ctx context.Context, bookID string) ([]string, error) {
-	rows, err := q.query(ctx, q.getBookTrackerMappingIDsByBookStmt, getBookTrackerMappingIDsByBook, bookID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getBookTrackerMappingsByIDs = `-- name: GetBookTrackerMappingsByIDs :many
 SELECT id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
@@ -151,35 +122,6 @@ func (q *Queries) GetUserTracker(ctx context.Context, arg GetUserTrackerParams) 
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getUserTrackerIDsByUser = `-- name: GetUserTrackerIDsByUser :many
-SELECT id
-FROM user_trackers
-WHERE user_id = ?
-`
-
-func (q *Queries) GetUserTrackerIDsByUser(ctx context.Context, userID string) ([]string, error) {
-	rows, err := q.query(ctx, q.getUserTrackerIDsByUserStmt, getUserTrackerIDsByUser, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getUserTrackersByIDs = `-- name: GetUserTrackersByIDs :many

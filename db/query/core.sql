@@ -69,12 +69,6 @@ INSERT INTO jobs (
 )
 RETURNING *;
 
--- name: UpdateJobProgress :one
-UPDATE jobs
-SET progress = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ?
-RETURNING *;
-
 -- name: UpdateJobStatus :one
 UPDATE jobs
 SET status = ?, error_msg = ?, updated_at = CURRENT_TIMESTAMP

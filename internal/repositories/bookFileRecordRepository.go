@@ -26,6 +26,11 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 		)
 		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
 		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		// Format facets (ListFormatsWithCount) read book_files exclusively, and
+		// SearchBookIDs filters on it via filter_has_files/filter_has_formats/file_format.
+		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
+		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
@@ -45,6 +50,9 @@ func (r *bookDBRepository) UpsertBookFile(ctx context.Context, params sqlc.Upser
 		)
 		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
 		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
+		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }
@@ -73,24 +81,28 @@ func (r *bookDBRepository) GetFilesByBookId(ctx context.Context, bookID string) 
 			return []*models.BookFileEntity{}, nil
 		}
 
-		rows, err := r.queries.GetBookFilesByIDs(ctx, idRows)
+		rows, err := queryInChunks(idRows, func(chunk []string) ([]sqlc.BookFile, error) {
+			return r.queries.GetBookFilesByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
 
 		out := (&models.BookFileEntities{}).FromSqlc(rows)
 
-		ids := make([]string, len(out))
 		fileMap := make(map[string]*models.BookFileEntity, len(out))
 		for _, entity := range out {
 			fileMap[entity.ID] = entity
 		}
 
+		// ponytail: append instead of indexing by idRows position — a file deleted
+		// between ListFileIDsByBookId and GetBookFilesByIDs makes out shorter than idRows
 		ordered := make([]*models.BookFileEntity, 0, len(idRows))
-		for i, id := range idRows {
+		ids := make([]string, 0, len(idRows))
+		for _, id := range idRows {
 			if entity, ok := fileMap[id]; ok {
 				ordered = append(ordered, entity)
-				ids[i] = id
+				ids = append(ids, id)
 			}
 		}
 
@@ -140,8 +152,9 @@ func (r *bookDBRepository) GetFilesByBookIDs(ctx context.Context, bookIDs []stri
 	}
 
 	if len(missingIds) > 0 {
-		// Because there is no ListFileIDsByBookIDs query, we fetch full entities for missing books
-		rows, err := r.queries.GetFilesByBookIDs(ctx, missingIds)
+		rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.BookFile, error) {
+			return r.queries.GetFilesByBookIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -269,7 +282,7 @@ func (r *bookDBRepository) GetBookFileById(ctx context.Context, id string) (*mod
 }
 
 func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, hash string) error {
-	file, _ := r.queries.GetBookFileById(ctx, id)
+	file, preErr := r.queries.GetBookFileById(ctx, id)
 	if err := r.queries.UpdateFileHash(ctx, sqlc.UpdateFileHashParams{
 		Hash: sql.NullString{String: hash, Valid: hash != ""},
 		ID:   id,
@@ -277,7 +290,7 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 		return err
 	}
 	if r.c != nil {
-		if file.ID != "" {
+		if preErr == nil && file.ID != "" {
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
@@ -286,7 +299,7 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
-			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id))
+			_ = r.c.DelByPattern(context.Background(), "book_file:*")
 		}
 		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
 		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
@@ -345,12 +358,12 @@ func (r *bookDBRepository) ListAllFiles(ctx context.Context, limit, offset int64
 }
 
 func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
-	file, _ := r.queries.GetBookFileById(ctx, id)
+	file, preErr := r.queries.GetBookFileById(ctx, id)
 	if err := r.queries.DeleteFile(ctx, id); err != nil {
 		return err
 	}
 	if r.c != nil {
-		if file.ID != "" {
+		if preErr == nil && file.ID != "" {
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
@@ -359,10 +372,15 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
-			_ = r.c.Del(ctx, cache.BuildKey("book_file", "id", id))
+			// The pre-read failed, so the path/book/count keys are unknown — sweep the
+			// domain rather than leaving book_file:path:<path> pointing at a deleted row.
+			_ = r.c.DelByPattern(context.Background(), "book_file:*")
 		}
 		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
 		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		_ = r.c.DelByPattern(context.Background(), "metadata:*")
+		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
+		_ = r.c.DelByPattern(context.Background(), "book:search*")
 	}
 	return nil
 }

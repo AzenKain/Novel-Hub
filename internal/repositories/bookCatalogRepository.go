@@ -76,8 +76,8 @@ func (r *bookDBRepository) CreateBookWithFile(ctx context.Context, book *models.
 	return nil
 }
 
-func (r *bookDBRepository) ListBookIDs(ctx context.Context, cursor *time.Time, limit int64) ([]string, error) {
-	cacheKey := cache.BuildKey("book_ids", cursor, limit)
+func (r *bookDBRepository) ListBookIDs(ctx context.Context, cursor *time.Time, cursorID string, limit int64) ([]string, error) {
+	cacheKey := cache.BuildKey("book_ids", cursor, cursorID, limit)
 	if r.c != nil && !r.inTx {
 		var cachedIDs []string
 		if err := r.c.Get(ctx, cacheKey, &cachedIDs); err == nil {
@@ -87,13 +87,9 @@ func (r *bookDBRepository) ListBookIDs(ctx context.Context, cursor *time.Time, l
 
 	v, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
 		ids, err := r.queries.ListBookIDs(ctx, sqlc.ListBookIDsParams{
-			CursorCreatedAt: func(t *time.Time) sql.NullTime {
-				if t == nil {
-					return sql.NullTime{}
-				}
-				return sql.NullTime{Time: *t, Valid: true}
-			}(cursor),
-			Limit: limit,
+			CursorCreatedAt: cursorTimeArg(cursor),
+			CursorID:        convert.StrPtrToNullString(&cursorID),
+			Limit:           limit,
 		})
 		if err != nil {
 			return nil, err
@@ -136,7 +132,7 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 	return v.(*models.BookEntity), nil
 }
 
-func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
+func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
 	if nav == "random" {
 		var libID any
 		libStr := ""
@@ -246,13 +242,9 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		PublisherID:           filters.PublisherID,
 		LanguageID:            filters.LanguageID,
 		FileFormat:            filters.FileFormat,
-		CursorCreatedAt: func(t *time.Time) sql.NullTime {
-			if t == nil {
-				return sql.NullTime{}
-			}
-			return sql.NullTime{Time: *t, Valid: true}
-		}(cursor),
-		Limit: limit,
+		CursorCreatedAt:       cursorTimeArg(cursor),
+		CursorID:              convert.StrPtrToNullString(&cursorID),
+		Limit:                 limit,
 	}
 	queryKey := cache.QueryKey("book:search:cursor", params)
 	if r.c != nil && !r.inTx {
@@ -424,8 +416,6 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 				cache.BuildKey("book_file", "path", file.Path),
 				cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
-				"book_file:all",
-				"book_file:duplicates",
 			)
 		}
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
@@ -434,6 +424,7 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
 		_ = r.c.DelByPattern(context.Background(), "metadata:*")
 		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
+		_ = r.c.DelByPattern(context.Background(), "book_tracker_mapping*")
 	}
 	return nil
 }
@@ -474,7 +465,9 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 		sort.Strings(missingIDs)
 		sfgKey := "books:ids:" + strings.Join(missingIDs, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
-			rows, err := r.queries.GetBooksByIDs(ctx, missingIDs)
+			rows, err := queryInChunks(missingIDs, func(chunk []string) ([]sqlc.Book, error) {
+				return r.queries.GetBooksByIDs(ctx, chunk)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -571,6 +564,9 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 		_ = r.c.DelByPattern(context.Background(), "book_ids*")
 		_ = r.c.DelByPattern(context.Background(), "chapter*")
 		_ = r.c.DelByPattern(context.Background(), "book_file*")
+		// book_tracker_mappings.book_id is ON DELETE CASCADE; a stale mapping would make
+		// tracker sync push progress for a book that no longer exists.
+		_ = r.c.DelByPattern(context.Background(), "book_tracker_mapping*")
 	}
 	return nil
 }

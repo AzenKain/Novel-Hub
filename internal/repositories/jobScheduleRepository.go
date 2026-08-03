@@ -58,7 +58,9 @@ func (r *jobScheduleRepository) Get(ctx context.Context, id string) (*models.Job
 			return nil, err
 		}
 		entity := (&models.JobScheduleEntity{}).FromSqlc(row)
-		_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
+		}
 		return entity, nil
 	})
 	if err != nil {
@@ -154,7 +156,9 @@ func (r *jobScheduleRepository) List(ctx context.Context) ([]*models.JobSchedule
 		if dbIds == nil {
 			dbIds = []string{}
 		}
-		_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
+		if r.c != nil {
+			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
+		}
 		return dbIds, nil
 	})
 	if err != nil {

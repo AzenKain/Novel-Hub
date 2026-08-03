@@ -51,13 +51,23 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 		searchStr = &dto.Search
 	}
 
+	// Cursor is "<rfc3339>|<id>": the id tiebreaker disambiguates books sharing a
+	// created_at timestamp (SQLite CURRENT_TIMESTAMP has second resolution), so pages no
+	// longer drop books inserted in the same second. A bare timestamp still works for
+	// older clients — we fall back to no tiebreaker.
 	var cursorTime *time.Time
+	var cursorID string
 	if dto.Cursor != "" {
-		if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
+		if parts := strings.SplitN(dto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
 			cursorTime = &t
 		}
 	}
-	books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, cursorTime, int64(dto.Limit))
+	books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, cursorTime, cursorID, int64(dto.Limit))
 
 	if err != nil {
 		return apperrors.HandleError(c, err)
@@ -69,8 +79,9 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 	}
 	var nextCursor *string
 	if len(filtered) >= int(dto.Limit) && len(filtered) > 0 {
-		c := filtered[len(filtered)-1].CreatedAt.Format(time.RFC3339Nano)
-		nextCursor = &c
+		last := filtered[len(filtered)-1]
+		nc := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
+		nextCursor = &nc
 	}
 	return c.JSON(fiber.Map{
 		"status":      true,

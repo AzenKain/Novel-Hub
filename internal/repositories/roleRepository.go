@@ -393,18 +393,28 @@ func (r *roleRepository) Create(ctx context.Context, params sqlc.CreateRoleParam
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRoleAll)
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, constants.CacheKeyRoleAutoAssignIDs)
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
 
 func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParams) (*models.RoleEntity, error) {
+	// Read the old name first: row.Name below is the NEW one, so role:name:<old> would
+	// otherwise survive and keep resolving to the stale entity.
+	old, oldErr := r.q.GetRoleByID(ctx, params.ID)
 	row, err := r.q.UpdateRole(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
+		delKeys := []string{constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name), constants.CacheKeyRoleAutoAssignIDs}
+		if oldErr == nil && old.Name != row.Name {
+			delKeys = append(delKeys, cache.BuildKey("role", "name", old.Name))
+			// Role name is an authorization input (IsAdmin matches r.Name == "ADMIN"),
+			// and hydrateRoles caches RoleSimple{ID, Name} per user.
+			_ = r.c.DelByPattern(context.Background(), "user:*")
+		}
+		_ = r.c.Del(ctx, delKeys...)
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
@@ -415,17 +425,25 @@ func (r *roleRepository) UpdateSystemRoleDescription(ctx context.Context, params
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name))
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name), constants.CacheKeyRoleAutoAssignIDs)
 	}
 	return (&models.RoleEntity{}).FromSqlc(row), nil
 }
 
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
+	// Pre-read for the name: GetRoleByName filters is_deleted = 0, so a surviving
+	// role:name:<name> key hands out a role that no longer exists.
+	old, oldErr := r.q.GetRoleByID(ctx, id)
 	if err := r.q.DeleteRole(ctx, id); err != nil {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", id))
+		_ = r.c.Del(ctx, constants.CacheKeyRoleAll, cache.BuildKey("role", "id", id), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount, constants.CacheKeyRoleAutoAssignIDs)
+		if oldErr == nil {
+			_ = r.c.Del(ctx, cache.BuildKey("role", "name", old.Name))
+		} else {
+			_ = r.c.DelByPattern(context.Background(), "role:name:*")
+		}
 		_ = r.c.DelByPattern(context.Background(), "user:*")
 	}
 	return nil
@@ -471,7 +489,7 @@ func (r *roleRepository) ReplaceRolePermissions(ctx context.Context, roleID stri
 
 func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.RoleEntity, error) {
 	key := cache.BuildKey("role", "name", name)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var role models.RoleEntity
 		if err := r.c.Get(ctx, key, &role); err == nil {
 			return &role, nil
@@ -484,7 +502,7 @@ func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.Ro
 			return nil, err
 		}
 		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 		}
 		return rolePtr, nil
@@ -527,7 +545,7 @@ func (r *roleRepository) CreateUserRole(ctx context.Context, userID, roleID stri
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers)
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -539,7 +557,7 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID str
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers)
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -608,7 +626,14 @@ func (r *roleRepository) UpdateRolePositions(ctx context.Context, roleIDs []stri
 		}
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRoleAll)
+		// Position is a cached field on the role entity and drives allow/deny precedence,
+		// so the per-entity keys must go too — GetByIDs would otherwise MGet the old order.
+		delKeys := make([]string, 0, len(roleIDs)+1)
+		delKeys = append(delKeys, constants.CacheKeyRoleAll)
+		for _, id := range roleIDs {
+			delKeys = append(delKeys, cache.BuildKey("role", "id", id))
+		}
+		_ = r.c.Del(ctx, delKeys...)
 	}
 	return nil
 }

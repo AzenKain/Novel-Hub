@@ -148,25 +148,40 @@ func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
 		return err
 	}
 
-	bookID := fileRecord.BookID
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
 
-	if fileRecord.Path != "" {
+	txBookRepo := s.bookRepo.WithTx(tx)
+	if err := txBookRepo.DeleteFile(ctx, fileID); err != nil {
+		return err
+	}
+
+	remaining, err := txBookRepo.CountFilesForBook(ctx, fileRecord.BookID)
+	if err != nil {
+		return err
+	}
+	if remaining == 0 {
+		if err := txBookRepo.DeleteBook(ctx, fileRecord.BookID); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Filesystem cleanup happens after the DB commit: a failed transaction must not
+	// destroy the only copy of a file whose row is still live.
+	if remaining == 0 {
+		if err := s.fileRepo.RemoveBookDir(ctx, fileRecord.BookID); err != nil {
+			log.Warn().Err(err).Str("book_id", fileRecord.BookID).Msg("failed to remove book files")
+		}
+	} else if fileRecord.Path != "" {
 		if err := os.Remove(fileRecord.Path); err != nil && !os.IsNotExist(err) {
 			log.Warn().Err(err).Str("path", fileRecord.Path).Msg("failed to remove physical book file")
 		}
 	}
-
-	if err := s.bookRepo.DeleteFile(ctx, fileID); err != nil {
-		return err
-	}
-
-	count, err := s.bookRepo.CountFilesForBook(ctx, bookID)
-	if err == nil && count == 0 {
-		log.Info().Str("book_id", bookID).Msg("book has no remaining files, deleting book entity and folder")
-		if err := s.DeleteBook(ctx, bookID); err != nil {
-			log.Error().Err(err).Str("book_id", bookID).Msg("failed to delete book entity after removing last file")
-		}
-	}
-
 	return nil
 }

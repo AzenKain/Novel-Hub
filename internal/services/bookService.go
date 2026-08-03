@@ -28,7 +28,7 @@ var styleBlockRegex = regexp.MustCompile(`(?i)(<style[^>]*>)([\s\S]*?)(</style>)
 
 type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
 
 	ListChapters(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetBookFilePath(ctx context.Context, bookID string) (string, error)
@@ -114,11 +114,11 @@ func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntit
 	return book, nil
 }
 
-func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error) {
+func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, cursor, limit)
+	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, cursor, cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -838,13 +838,34 @@ func (s *bookService) ArchiveBook(ctx context.Context, id string, archived bool)
 
 func (s *bookService) DeleteBook(ctx context.Context, id string) error {
 	book, _ := s.GetBook(ctx, id)
+
+	// fts_chapters has no ON DELETE CASCADE and no trigger; a stale FTS row would keep a
+	// deleted book discoverable. Wrap the FTS delete with the book delete in one tx and
+	// propagate the FTS error instead of swallowing it — a half-deleted book (book row gone,
+	// FTS row left) is worse than a reported failure the caller can retry.
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	txRepo := s.bookRepo.WithTx(tx)
+	if err := txRepo.DeleteFTSBook(ctx, id); err != nil {
+		return err
+	}
+	if err := txRepo.DeleteBook(ctx, id); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Filesystem cleanup after commit: a rolled-back delete must not destroy book files.
 	if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
 		log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book files")
 	}
-	_ = s.bookRepo.DeleteFTSBook(ctx, id)
-	err := s.bookRepo.DeleteBook(ctx, id)
-	if err == nil && book != nil && s.webhookService != nil {
+	if book != nil && s.webhookService != nil {
 		s.webhookService.DispatchEvent(ctx, "book.deleted", BuildBookWebhookPayload(book))
 	}
-	return err
+	return nil
 }

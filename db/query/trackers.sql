@@ -9,11 +9,6 @@ SELECT id, user_id, provider, access_token, refresh_token, expires_at, created_a
 FROM user_trackers
 WHERE id IN (sqlc.slice('ids'));
 
--- name: GetUserTrackerIDsByUser :many
-SELECT id
-FROM user_trackers
-WHERE user_id = ?;
-
 -- name: UpsertUserTracker :one
 INSERT INTO user_trackers (id, user_id, provider, access_token, refresh_token, expires_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -38,11 +33,6 @@ LIMIT 1;
 SELECT id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
 WHERE id IN (sqlc.slice('ids'));
-
--- name: GetBookTrackerMappingIDsByBook :many
-SELECT id
-FROM book_tracker_mappings
-WHERE book_id = ?;
 
 -- name: UpsertBookTrackerMapping :one
 INSERT INTO book_tracker_mappings (id, book_id, provider, external_series_id)

@@ -35,13 +35,15 @@ type UserRepository interface {
 	UpdateTokenVersion(ctx context.Context, id string, tokenVersion int64) error
 	Delete(ctx context.Context, id string) error
 	Restore(ctx context.Context, id string) error
+	InvalidateUserCache(ctx context.Context, id, email string)
 	WithTx(tx *sql.Tx) UserRepository
 }
 
 type userRepository struct {
-	q   *sqlc.Queries
-	c   cache.Cache
-	sfg *singleflight.Group
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sfg  *singleflight.Group
 }
 
 func NewUserRepository(db sqlc.DBTX, c cache.Cache) UserRepository {
@@ -54,15 +56,16 @@ func NewUserRepository(db sqlc.DBTX, c cache.Cache) UserRepository {
 
 func (r *userRepository) WithTx(tx *sql.Tx) UserRepository {
 	return &userRepository{
-		q:   r.q.WithTx(tx),
-		c:   r.c,
-		sfg: r.sfg,
+		q:    r.q.WithTx(tx),
+		c:    r.c,
+		inTx: true,
+		sfg:  r.sfg,
 	}
 }
 
 func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEntity) error {
 	key := cache.BuildKey("user", "roles", user.ID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var roles []*models.RoleSimple
 		if err := r.c.Get(ctx, key, &roles); err == nil {
 			user.Roles = roles
@@ -79,7 +82,7 @@ func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEnti
 		for _, row := range rows {
 			userRoles = append(userRoles, &models.RoleSimple{ID: row.ID, Name: row.Name})
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, userRoles, constants.NormalCacheDuration)
 		}
 		return userRoles, nil
@@ -93,7 +96,7 @@ func (r *userRepository) hydrateRoles(ctx context.Context, user *models.UserEnti
 
 func (r *userRepository) GetByID(ctx context.Context, id string) (*models.UserEntity, error) {
 	key := cache.BuildKey("user", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var user models.UserEntity
 		if err := r.c.Get(ctx, key, &user); err == nil {
 			return &user, nil
@@ -109,7 +112,7 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*models.UserEn
 		if err := r.hydrateRoles(ctx, userPtr); err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
 		}
 		return userPtr, nil
@@ -134,7 +137,7 @@ func (r *userRepository) GetByIDWithoutDeleted(ctx context.Context, id string) (
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.UserEntity, error) {
 	key := cache.BuildKey("user", "email", email)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var user models.UserEntity
 		if err := r.c.Get(ctx, key, &user); err == nil {
 			return &user, nil
@@ -150,7 +153,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		if err := r.hydrateRoles(ctx, userPtr); err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, userPtr, constants.NormalCacheDuration)
 			_ = r.c.Set(ctx, cache.BuildKey("user", "id", userPtr.ID), userPtr, constants.NormalCacheDuration)
 		}
@@ -198,6 +201,15 @@ func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserP
 	}
 	user := (&models.UserEntity{}).FromSqlc(row)
 	if r.c != nil {
+		// ON CONFLICT(email) updates full_name/avatar_url of an existing row, so the
+		// entity keys are stale too — not just the list keys. row.ID is the surviving
+		// row's id, which is not params.ID on the conflict path.
+		_ = r.c.Del(
+			ctx,
+			cache.BuildKey("user", "id", user.ID),
+			cache.BuildKey("user", "email", user.Email),
+			cache.BuildKey("user", "roles", user.ID),
+		)
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -215,13 +227,16 @@ func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdatePr
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID))
+		// SearchUserIDs and CountUsers both match search_text against full_name.
+		_ = r.c.DelByPattern(context.Background(), "user:search*")
+		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
 	return user, nil
 }
 
 func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error) {
 	key := cache.QueryKey("user:search", params)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetByIDs(ctx, ids)
@@ -233,7 +248,7 @@ func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsPa
 		if err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
 		}
 		return dbIds, nil
@@ -257,7 +272,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -279,7 +294,9 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 		sort.Strings(missingIds)
 		sfgKey := "users:ids:" + strings.Join(missingIds, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
-			rows, err := r.q.GetUsersByIDs(ctx, missingIds)
+			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.User, error) {
+				return r.q.GetUsersByIDs(ctx, chunk)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -300,10 +317,13 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 			users = append(users, u)
 		}
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			missingToCache := make(map[string]any)
 			for _, missingId := range missingIds {
-				if u, ok := missingMap[missingId]; ok {
+				// GetUsersByIDs has no is_deleted filter (admin listings need soft-deleted
+				// rows), but user:id:<id> is the key GetByID reads — caching a deleted row
+				// there resurrects the user for a full TTL. Return it, don't cache it.
+				if u, ok := missingMap[missingId]; ok && !u.IsDeleted {
 					missingToCache[cache.BuildKey("user", "id", missingId)] = u
 				}
 			}
@@ -329,7 +349,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 
 func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams) (int64, error) {
 	key := cache.QueryKey("user:count", params)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var count int64
 		if err := r.c.Get(ctx, key, &count); err == nil {
 			return count, nil
@@ -341,7 +361,7 @@ func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams
 		if err != nil {
 			return int64(0), err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
 		}
 		return count, nil
@@ -361,7 +381,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "token", user.ID))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "token", user.ID), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -373,7 +393,7 @@ func (r *userRepository) Restore(ctx context.Context, id string) error {
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), "user:search*")
 		_ = r.c.DelByPattern(context.Background(), "user:count*")
 	}
@@ -401,7 +421,7 @@ func (r *userRepository) GetTokenVersion(ctx context.Context, id string) (int32,
 		return int32(raw), err // #nosec G115 -- token version is bounded by application updates
 	}
 	key := cache.BuildKey("user", "token", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var version int32
 		if err := r.c.Get(ctx, key, &version); err == nil {
 			return version, nil
@@ -414,7 +434,7 @@ func (r *userRepository) GetTokenVersion(ctx context.Context, id string) (int32,
 			return int32(0), err
 		}
 		version := int32(raw)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, version, constants.NormalCacheDuration)
 		}
 		return version, nil
@@ -430,7 +450,10 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id string, toke
 	if err := r.q.UpdateUserTokenVersion(ctx, sqlc.UpdateUserTokenVersionParams{ID: id, TokenVersion: tokenVersion}); err != nil {
 		return err
 	}
-	if r.c != nil {
+	// Inside a transaction the row is not committed yet: a concurrent reader that misses
+	// would re-cache the OLD version and keep the revoked JWT valid for the full TTL.
+	// Callers must invalidate after Commit via InvalidateUserCache.
+	if r.c != nil && !r.inTx {
 		keys := []string{cache.BuildKey("user", "token", id), cache.BuildKey("user", "id", id)}
 		if user != nil && user.Email != "" {
 			keys = append(keys, cache.BuildKey("user", "email", user.Email))
@@ -438,6 +461,29 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id string, toke
 		_ = r.c.Del(ctx, keys...)
 	}
 	return nil
+}
+
+// InvalidateUserCache drops every cached view of a user. Call it after tx.Commit() for
+// mutations made through WithTx, whose own invalidation is deferred to avoid re-caching
+// uncommitted state.
+//
+// email is passed in rather than looked up: every caller already holds the entity, a
+// read through GetByID would re-populate the very keys being dropped, and a post-commit
+// DB read would return the NEW email when the key that needs clearing is the old one.
+// Pass "" when unknown — the id-keyed entries still go.
+func (r *userRepository) InvalidateUserCache(ctx context.Context, id, email string) {
+	if r.c == nil {
+		return
+	}
+	keys := []string{
+		cache.BuildKey("user", "token", id),
+		cache.BuildKey("user", "id", id),
+		cache.BuildKey("user", "roles", id),
+	}
+	if email != "" {
+		keys = append(keys, cache.BuildKey("user", "email", email))
+	}
+	_ = r.c.Del(ctx, keys...)
 }
 
 func (r *userRepository) UpdatePassword(ctx context.Context, id string, passwordHash string) error {
@@ -451,7 +497,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id string, password
 	}); err != nil {
 		return err
 	}
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "token", user.ID))
 	}
 	return nil
@@ -468,7 +514,7 @@ func (r *userRepository) UpdateRefreshToken(ctx context.Context, id string, refr
 	}); err != nil {
 		return err
 	}
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "token", user.ID))
 	}
 	return nil

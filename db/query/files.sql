@@ -51,4 +51,8 @@ SELECT COUNT(*) FROM book_files WHERE book_id = ?;
 SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE id = ? LIMIT 1;
 
 -- name: GetFilesByBookIDs :many
-SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files WHERE book_id IN (sqlc.slice('book_ids'));
+SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
+WHERE book_id IN (sqlc.slice('book_ids'))
+ORDER BY
+    CASE WHEN LOWER(format) = 'epub' THEN 0 ELSE 1 END,
+    created_at ASC;

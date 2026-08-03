@@ -93,8 +93,8 @@ WHERE
     )
     AND (
         sqlc.narg('cursor_created_at') IS NULL OR
-        u.created_at < sqlc.narg('cursor_created_at') OR
-        (u.created_at = sqlc.narg('cursor_created_at') AND u.id > sqlc.narg('cursor_id'))
+        datetime(u.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
+        (datetime(u.created_at) = datetime(sqlc.narg('cursor_created_at')) AND u.id > sqlc.narg('cursor_id'))
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT sqlc.arg('limit');

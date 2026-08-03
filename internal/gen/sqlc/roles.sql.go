@@ -20,22 +20,12 @@ func (q *Queries) BulkDeleteRolesFromUser(ctx context.Context, userID string) er
 	return err
 }
 
-const bulkDeleteUsersFromRole = `-- name: BulkDeleteUsersFromRole :exec
-DELETE FROM user_roles
-WHERE role_id = ?
-`
-
-func (q *Queries) BulkDeleteUsersFromRole(ctx context.Context, roleID string) error {
-	_, err := q.exec(ctx, q.bulkDeleteUsersFromRoleStmt, bulkDeleteUsersFromRole, roleID)
-	return err
-}
-
 const countActiveAdminUsers = `-- name: CountActiveAdminUsers :one
 SELECT COUNT(DISTINCT u.id)
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
 JOIN roles r ON ur.role_id = r.id
-WHERE u.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin = 1)
+WHERE u.is_deleted = 0 AND r.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin = 1)
 `
 
 func (q *Queries) CountActiveAdminUsers(ctx context.Context) (int64, error) {
@@ -120,21 +110,6 @@ WHERE role_id = ?
 
 func (q *Queries) DeleteRolePermissions(ctx context.Context, roleID string) error {
 	_, err := q.exec(ctx, q.deleteRolePermissionsStmt, deleteRolePermissions, roleID)
-	return err
-}
-
-const deleteUserRole = `-- name: DeleteUserRole :exec
-DELETE FROM user_roles
-WHERE user_id = ? AND role_id = ?
-`
-
-type DeleteUserRoleParams struct {
-	UserID string `json:"user_id"`
-	RoleID string `json:"role_id"`
-}
-
-func (q *Queries) DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error {
-	_, err := q.exec(ctx, q.deleteUserRoleStmt, deleteUserRole, arg.UserID, arg.RoleID)
 	return err
 }
 
@@ -573,17 +548,6 @@ func (q *Queries) ListRolePermissions(ctx context.Context) ([]RolePermission, er
 	return items, nil
 }
 
-const restoreRole = `-- name: RestoreRole :exec
-UPDATE roles
-SET is_deleted = 0
-WHERE id = ?
-`
-
-func (q *Queries) RestoreRole(ctx context.Context, id string) error {
-	_, err := q.exec(ctx, q.restoreRoleStmt, restoreRole, id)
-	return err
-}
-
 const updateRole = `-- name: UpdateRole :one
 UPDATE roles
 SET name = ?, description = ?, auto_assign = ?
@@ -668,22 +632,6 @@ func (q *Queries) UpdateSystemRoleDescription(ctx context.Context, arg UpdateSys
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const upsertPermission = `-- name: UpsertPermission :exec
-INSERT INTO permissions (key, description)
-VALUES (?, ?)
-ON CONFLICT(key) DO UPDATE SET description = excluded.description
-`
-
-type UpsertPermissionParams struct {
-	Key         string `json:"key"`
-	Description string `json:"description"`
-}
-
-func (q *Queries) UpsertPermission(ctx context.Context, arg UpsertPermissionParams) error {
-	_, err := q.exec(ctx, q.upsertPermissionStmt, upsertPermission, arg.Key, arg.Description)
-	return err
 }
 
 const upsertRolePermission = `-- name: UpsertRolePermission :exec

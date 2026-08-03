@@ -15,12 +15,12 @@ import (
 type BookCatalogRepository interface {
 	CreateBook(ctx context.Context, book *models.BookEntity) error
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
 	UpdateBook(ctx context.Context, book *models.BookEntity) error
 	DeleteBook(ctx context.Context, id string) error
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
 	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *sqlc.CreateBookFileParams) error
-	ListBookIDs(ctx context.Context, cursor *time.Time, limit int64) ([]string, error)
+	ListBookIDs(ctx context.Context, cursor *time.Time, cursorID string, limit int64) ([]string, error)
 	BulkUpdateBookLibrary(ctx context.Context, bookIDs []string, libraryID string) error
 	BulkDeleteBooks(ctx context.Context, bookIDs []string) error
 	WithTx(tx *sql.Tx) BookDBRepository
