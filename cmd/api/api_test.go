@@ -37,6 +37,9 @@ func setupTestAppWithDB(t *testing.T) (*fiber.App, *sql.DB, error) {
 
 	server := NewHTTPServer()
 	server.SetupServer(db, ramCache)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
 
 	return server.App, db, nil
 }
@@ -457,7 +460,7 @@ func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 		t.Fatalf("expected defaults 1000/12 for a user with no goal, got %d/%d", goal.TargetWordsPerDay, goal.TargetBooksPerYear)
 	}
 
-	putBody := []byte(`{"targetWordsPerDay":2500,"targetBooksPerYear":40}`)
+	putBody := []byte(`{"target_words_per_day":2500,"target_books_per_year":40}`)
 	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/reader/goals/", bytes.NewReader(putBody))
 	putReq.Header.Set("Content-Type", "application/json")
 	putReq.Header.Set("Authorization", "Bearer "+token)
