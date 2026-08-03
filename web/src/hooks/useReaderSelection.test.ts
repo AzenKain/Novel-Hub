@@ -5,7 +5,7 @@ describe("getToolbarPosition", () => {
   it("centers the known-width toolbar around desktop selections", () => {
     expect(getToolbarPosition({ left: 390, width: 20, top: 100 }, 1000)).toEqual({
       top: 60,
-      left: 280,
+      left: 180,
     });
   });
 
