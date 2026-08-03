@@ -4,7 +4,7 @@ import { API_BASE } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
-import type { Chapter } from "@/types";
+import type { Chapter, Highlight } from "@/types";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTTS } from "@/hooks/useTTS";
@@ -136,13 +136,21 @@ export const ReaderWorkspace = () => {
     reset: state.reset,
   })));
 
+  const {
+    readerBg,
+    proseClass,
+    sidebarBg,
+    headerBg,
+    linkColor,
+    linkColorHover,
+  } = getReaderThemeClasses(theme);
 
   useReadingStats(book?.id, !settingsOpen);
 
   const publicSettings = usePublicSettings();
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.library_id, guestPerms);
-  const allowHighlights = hasPermission(user, "book.highlight", book?.library_id, guestPerms);
+  const allowHighlights = Boolean(user && hasPermission(user, "book.highlight", book?.library_id, guestPerms));
   const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
 
   useEffect(() => {
@@ -225,6 +233,15 @@ export const ReaderWorkspace = () => {
     stop,
   });
 
+  const handleSelectHighlight = (highlight: Highlight) => {
+    const container = columnsRef.current || contentRef.current;
+    if (container && highlight.start_index >= 0) {
+      scrollToTextOffset(container, highlight.start_index);
+      setSidebarOpen(false);
+      restoreFocus();
+    }
+  };
+
   const [ambientColor, setAmbientColor] = useState<string>("transparent");
 
   useEffect(() => {
@@ -257,15 +274,6 @@ export const ReaderWorkspace = () => {
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
   const effectiveReadingMode = readingMode === "double" && !canUseDoubleMode ? "single" : readingMode;
 
-  useEffect(() => {
-    const container = columnsRef.current || contentRef.current;
-    if (container && highlights) {
-      const timer = setTimeout(() => {
-        applyUserHighlights(columnsRef.current || contentRef.current, highlights);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [highlights, htmlContent, effectiveReadingMode]);
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
   const rtlPaging = isVisualContent && readingDirection === "rtl";
@@ -278,6 +286,48 @@ export const ReaderWorkspace = () => {
     ? 0
     : Math.max(1, Math.floor((pageFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
 
+  useEffect(() => {
+    const container = columnsRef.current || contentRef.current;
+    if (!container || !highlights) return;
+
+    let rafId: number;
+    const reapply = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const target = columnsRef.current || contentRef.current;
+        if (target) {
+          applyUserHighlights(target, highlights);
+        }
+      });
+    };
+
+    reapply();
+
+    const observer = new ResizeObserver(() => {
+      reapply();
+    });
+
+    observer.observe(container);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, [
+    highlights,
+    htmlContent,
+    effectiveReadingMode,
+    pageWidth,
+    fontSize,
+    lineHeight,
+    fontFamily,
+    proseClass,
+    readingDirection,
+    pageFit,
+    maxWidth,
+    sidebarOpen,
+    selectionRange,
+  ]);
   const {
     getPagedScrollMetrics,
     scrollToPageIndex,
@@ -588,14 +638,6 @@ export const ReaderWorkspace = () => {
     // ponytail: handler closes over live state; rebind on relevant deps
   }, [selectionRange, searchOpen, settingsOpen, sidebarOpen, scrollLayout, isPdfAudio, rtlPaging, pageIndex]);
 
-  const {
-    readerBg,
-    proseClass,
-    sidebarBg,
-    headerBg,
-    linkColor,
-    linkColorHover,
-  } = getReaderThemeClasses(theme);
   const currentChapterIndex = chapters.findIndex(
     (chapter) => chapter.id === currentChapter?.id,
   );
@@ -809,6 +851,7 @@ export const ReaderWorkspace = () => {
         highlights={allowHighlights ? highlights : undefined}
         onUpdateHighlight={allowHighlights ? (id, color, note) => void updateHighlight(id, color, note) : undefined}
         onDeleteHighlight={allowHighlights ? (id) => void removeHighlight(id) : undefined}
+        onSelectHighlight={handleSelectHighlight}
       />
 
       {selectionRange && (

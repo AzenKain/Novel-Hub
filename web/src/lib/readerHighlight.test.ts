@@ -124,7 +124,23 @@ describe("saveSelection", () => {
       selectedText: "beta",
       textNodeIndex: 1,
       offset: 0,
+      startIndex: 5,
+      endIndex: 13,
     });
+  });
+
+  it("captures document-relative char offsets so highlighting survives a later DOM rebuild", () => {
+    const container = render("<p>alpha</p><p>  beta  </p>");
+    const target = textNodes(container)[1];
+
+    const range = document.createRange();
+    range.setStart(target, 0);
+    range.setEnd(target, target.textContent!.length);
+
+    const saved = saveSelection(container, range);
+    expect(saved?.startIndex).toBe(5);
+    expect(saved?.endIndex).toBe(13);
+    expect(saved?.endIndex).toBeGreaterThan(saved!.startIndex);
   });
 
   it("returns null when the range starts outside the container", () => {

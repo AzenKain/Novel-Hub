@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"novelhub/pkg/config"
 )
 
 
@@ -34,4 +36,37 @@ func IsValidFile(path string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+
+func ResolveBookFilePath(bookID string, rawPath string) string {
+	if strings.TrimSpace(rawPath) == "" {
+		return rawPath
+	}
+
+	normalizedRaw := rawPath
+	if filepath.Separator == '/' {
+		normalizedRaw = strings.ReplaceAll(rawPath, "\\", "/")
+	} else {
+		normalizedRaw = strings.ReplaceAll(rawPath, "/", "\\")
+	}
+
+	if _, err := os.Stat(normalizedRaw); err == nil {
+		return normalizedRaw
+	}
+
+	slashNormalized := strings.ReplaceAll(rawPath, "\\", "/")
+	parts := strings.Split(slashNormalized, "/")
+	filename := parts[len(parts)-1]
+	if filename == "" || filename == "." {
+		return rawPath
+	}
+
+	booksDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "books")
+	absBooksDir, err := filepath.Abs(booksDir)
+	if err != nil {
+		absBooksDir = booksDir
+	}
+
+	return filepath.Join(absBooksDir, bookID, filename)
 }

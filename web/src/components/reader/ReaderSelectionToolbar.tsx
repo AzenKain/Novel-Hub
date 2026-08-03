@@ -29,7 +29,6 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
         e.stopPropagation();
       }}
       onMouseUp={(e) => {
-        e.preventDefault();
         e.stopPropagation();
       }}
       className="reader-selection-toolbar fixed z-50 flex max-w-[calc(100vw-1rem)] flex-wrap -translate-y-full items-center gap-1.5 rounded-full border px-3.5 py-2 shadow-2xl backdrop-blur-md transition-all duration-200"

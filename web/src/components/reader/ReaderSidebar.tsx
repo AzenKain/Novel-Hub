@@ -18,6 +18,7 @@ type ReaderSidebarProps = {
   highlights?: Highlight[];
   onUpdateHighlight?: (id: string, color: string, note?: string) => void;
   onDeleteHighlight?: (id: string) => void;
+  onSelectHighlight?: (highlight: Highlight) => void;
 };
 
 function getSidebarEntryKind(title: string) {
@@ -56,6 +57,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   highlights,
   onUpdateHighlight,
   onDeleteHighlight,
+  onSelectHighlight,
 }) => {
   const singleChapter = chapters.length <= 1;
   const showHighlights = Boolean(highlights && onUpdateHighlight && onDeleteHighlight);
@@ -165,13 +167,16 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           )}
 
           {showHighlights && (
-            <div className="mt-4 border-t border-base-content/10 pt-2">
-              <ReaderHighlightsPanel
-                t={t}
-                highlights={highlights || []}
-                onUpdate={onUpdateHighlight!}
-                onDelete={onDeleteHighlight!}
-              />
+            <div className="reader-sidebar-highlights border-t border-base-content/10">
+              <div className="reader-sidebar-highlights-scroll">
+                <ReaderHighlightsPanel
+                  t={t}
+                  highlights={highlights || []}
+                  onUpdate={onUpdateHighlight!}
+                  onDelete={onDeleteHighlight!}
+                  onSelect={onSelectHighlight}
+                />
+              </div>
             </div>
           )}
         </div>

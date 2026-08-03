@@ -454,9 +454,10 @@ textarea {
 
 .reader-ui .reader-sidebar-list {
   display: block !important;
+  flex: 1 1 auto !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  min-height: 0 !important;
+  min-height: 8rem !important;
   width: 100% !important;
   padding: 0.25rem 0.5rem 0.75rem !important;
   overscroll-behavior: contain !important;
@@ -465,6 +466,27 @@ textarea {
 
 .reader-ui .reader-sidebar-list li {
   display: block !important;
+}
+
+.reader-ui .reader-sidebar-highlights {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  max-height: 45% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.reader-ui .reader-sidebar-highlights > .reader-sidebar-list-title {
+  flex: 0 0 auto !important;
+}
+
+.reader-ui .reader-sidebar-highlights-scroll {
+  flex: 0 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 .reader-ui .reader-sidebar-list-row + .reader-sidebar-list-row {

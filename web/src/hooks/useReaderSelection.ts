@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import {
   getCharacterOffsetOfRange,
@@ -75,6 +75,10 @@ export function useReaderSelection({
           if (container && commonNode && container.contains(commonNode)) {
             const saved = saveSelection(container, range);
             if (saved) {
+              // saveSelection captures document-relative char offsets (startIndex/
+              // endIndex) while the range is still live, so the highlight can be
+              // created later even if the reader DOM is rebuilt (which would
+              // invalidate this cloned Range).
               savedSelectionRef.current = saved;
               setSelectionRange(range.cloneRange());
               const rect = range.getBoundingClientRect();
@@ -97,13 +101,47 @@ export function useReaderSelection({
   }, []);
 
   const handleHighlight = async (color: string) => {
-    if (!selectionRange) return;
-    const selectedText = selectionRange.toString();
-    const text = selectedText.trim();
+    const saved = savedSelectionRef.current;
     const container = columnsRef.current || contentRef.current;
-    const offset = container ? getCharacterOffsetOfRange(container, selectionRange) : null;
-    if (!text || !offset || offset.end <= offset.start) return;
-    await addHighlight(selectedText, offset.start, offset.end, color);
+
+    // Prefer the selection captured at selection time (text + document-relative
+    // char offsets). The cloned Range in `selectionRange` state can be
+    // invalidated if the reader DOM is rebuilt between selecting text and
+    // clicking a color — its boundaries then collapse and toString() returns
+    // "". The saved snapshot is taken while the range is still live, so it is
+    // the reliable source of truth for the highlight.
+    let selectedText: string;
+    let start: number;
+    let end: number;
+
+    if (saved && saved.endIndex > saved.startIndex && saved.selectedText.trim()) {
+      selectedText = saved.selectedText;
+      start = saved.startIndex;
+      end = saved.endIndex;
+    } else {
+      if (!selectionRange) {
+        return;
+      }
+      const rangeText = selectionRange.toString();
+      const offset = container ? getCharacterOffsetOfRange(container, selectionRange) : null;
+      if (!rangeText.trim() || !offset || offset.end <= offset.start) {
+        // Surface why a highlight was dropped so a "nothing happens, no
+        // request, no error" failure stays diagnosable instead of silent.
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.warn("[reader] highlight dropped", {
+            hasText: Boolean(rangeText.trim()),
+            hasOffset: Boolean(offset),
+          });
+        }
+        return;
+      }
+      selectedText = rangeText;
+      start = offset.start;
+      end = offset.end;
+    }
+
+    await addHighlight(selectedText, start, end, color);
     window.getSelection()?.removeAllRanges();
     savedSelectionRef.current = null;
     setSelectionRange(null);

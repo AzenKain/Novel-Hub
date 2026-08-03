@@ -4,7 +4,6 @@ import React, { useState } from "react";
 
 import type { Highlight } from "@/types";
 
-// Cùng bộ màu với ReaderSelectionToolbar.
 export const HIGHLIGHT_COLORS = ["#fef08a", "#bbf7d0", "#bfdbfe", "#e9d5ff"];
 
 type ReaderHighlightsPanelProps = {
@@ -63,7 +62,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
             return (
               <li
                 key={highlight.id}
-                className="rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] p-3"
+                className="rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) p-3"
               >
                 <div className="flex items-start gap-2">
                   <span

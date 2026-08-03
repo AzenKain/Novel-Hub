@@ -1,12 +1,14 @@
 import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
+import { BulkDeleteModal } from "@/components/library";
+import { getMediaUrl } from "@/config/api";
 import { BOOK_FILE_ACCEPT } from "@/constants";
 import { useCalibreImportMutation } from "@/hooks";
-import { fileNameFromPath, formatFileSize } from "@/lib/bookDetail";
+import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetail";
 import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, DatabaseBackup, FilePlus2, FileText, Globe, Image as ImageIcon, Link as LinkIcon, Loader2, RefreshCw, Save, Search, Upload } from "lucide-react";
+import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +36,9 @@ export function Books() {
     handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleRenameLibrary: state.handleRenameLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadData: state.loadData, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook, archiveBook: state.archiveBook
   })));
   const [actionBook, setActionBook] = useState<Book | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   const {
     books, loading, error, notice, page, search, selectedLibraryId, hasMore,
@@ -61,12 +66,30 @@ export function Books() {
   const calibreImportMutation = useCalibreImportMutation();
 
   useEffect(() => {
+    setSelectedBookIds([]);
     void store.loadData();
   }, [page, search, selectedLibraryId]);
 
   useEffect(() => {
     void store.loadLibraries();
   }, []);
+
+  const isAllSelected = books.length > 0 && books.every(b => selectedBookIds.includes(b.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedBookIds([]);
+    } else {
+      setSelectedBookIds(books.map(b => b.id));
+    }
+  };
+
+  const toggleSelectBook = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedBookIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
 
   const getImageAssetUrl = (imagePath: string) => {
     if (!editingBook) return "";
@@ -101,6 +124,22 @@ export function Books() {
               <option key={lib.id} value={lib.id}>{lib.name}</option>
             ))}
           </select>
+          <div className="join border border-base-300 rounded-lg p-0.5 bg-base-200">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-active btn-primary' : 'btn-ghost'}`}
+              title={t('admin.grid_view', 'Grid view')}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-active btn-primary' : 'btn-ghost'}`}
+              title={t('admin.table_view', 'Table view')}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
           <button
             onClick={() => void loadData()}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
@@ -134,9 +173,32 @@ export function Books() {
         </div>
       </header>
 
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        {selectedBookIds.length > 0 && (
+          <div className="mb-4 p-3 bg-base-200/80 rounded-xl border border-primary/20 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-sm">
+                {t("admin.selected_books", "Selected {{count}} books", { count: selectedBookIds.length })}
+              </span>
+              <button
+                onClick={() => setSelectedBookIds([])}
+                className="btn btn-ghost btn-xs text-xs opacity-70 hover:opacity-100"
+              >
+                {t("common.deselect_all", "Clear selection")}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="btn btn-error btn-sm gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                {t("admin.delete_selected", "Delete selected")}
+              </button>
+            </div>
+          </div>
+        )}
 
-
-      <div className="flex-1 overflow-auto p-8">
         {loading && books.length === 0 ? (
           <div className="flex items-center justify-center py-20 opacity-50">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
@@ -150,11 +212,111 @@ export function Books() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
-              {books.map((book) => (
-                <BookCard key={book.id} book={book} onClick={() => setActionBook(book)} />
-              ))}
-            </div>
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
+                {books.map((book) => (
+                  <BookCard key={book.id} book={book} onClick={() => setActionBook(book)} />
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-base-200 rounded-2xl bg-base-100 shadow-xs mb-8">
+                <table className="table table-zebra w-full">
+                  <thead>
+                    <tr className="bg-base-200/50 text-base-content/70">
+                      <th className="w-12 text-center">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm checkbox-primary"
+                          checked={isAllSelected}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
+                      <th>{t("admin.books", "Books")}</th>
+                      <th>{t("admin.author", "Author")}</th>
+                      <th>{t("admin.series", "Series")}</th>
+                      <th className="text-right">{t("admin.actions", "Actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {books.map((book) => {
+                      const isSelected = selectedBookIds.includes(book.id);
+                      const meta = book.metadata_json ? parseMetadata(book.metadata_json) : {};
+                      const seriesName = meta.series ? (meta.series_index ? `${meta.series} #${meta.series_index}` : meta.series) : "-";
+                      const authorName = book.author_name || book.author_id || t('library.unknown_author', 'Unknown');
+                      const file_id = book.files?.[0]?.id;
+
+                      return (
+                        <tr key={book.id} className={`hover ${isSelected ? "bg-primary/5" : ""}`}>
+                          <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-sm checkbox-primary"
+                              checked={isSelected}
+                              onChange={() => toggleSelectBook(book.id)}
+                            />
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActionBook(book)}>
+                              <div className="w-10 h-14 bg-base-300 rounded shadow-xs overflow-hidden shrink-0 relative flex items-center justify-center">
+                                {book.cover_url ? (
+                                  <img
+                                    src={getMediaUrl(book.cover_url)}
+                                    alt={book.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-[9px] font-bold opacity-40 text-center px-1">NOVEL</span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-sm text-base-content line-clamp-1 hover:text-primary transition-colors">
+                                  {book.title}
+                                </div>
+                                {book.files && book.files.length > 0 && (
+                                  <div className="text-xs opacity-50 flex items-center gap-1.5 mt-0.5">
+                                    <span className="badge badge-ghost badge-xs uppercase font-mono">{book.files[0].format}</span>
+                                    <span>{formatFileSize(book.files[0].size_bytes)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="text-sm opacity-80">{authorName}</td>
+                          <td className="text-sm opacity-80">{seriesName}</td>
+                          <td className="text-right">
+                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => {
+                                  navigate(`/reader/${book.id}${file_id ? `?file_id=${encodeURIComponent(file_id)}` : ""}`);
+                                }}
+                                className="btn btn-ghost btn-xs btn-square"
+                                title={t("reader.read", "Read")}
+                              >
+                                <Eye className="w-4 h-4 text-primary" />
+                              </button>
+                              <button
+                                onClick={() => openEditModal(book)}
+                                className="btn btn-ghost btn-xs btn-square"
+                                title={t("admin.edit", "Edit")}
+                              >
+                                <Edit3 className="w-4 h-4 text-base-content/70" />
+                              </button>
+                              <button
+                                onClick={() => setBookToDelete(book)}
+                                className="btn btn-ghost btn-xs btn-square text-error"
+                                title={t("admin.delete", "Delete")}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Pagination */}
             {books.length > 0 && (
@@ -577,6 +739,16 @@ export function Books() {
             void handleDeleteLibrary(libraryToDelete.id);
             setLibraryToDelete(null);
           }
+        }}
+      />
+
+      <BulkDeleteModal
+        isOpen={showBulkDeleteModal}
+        bookIds={selectedBookIds}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onSuccess={() => {
+          setSelectedBookIds([]);
+          void store.loadData();
         }}
       />
     </div>

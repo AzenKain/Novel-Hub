@@ -6,6 +6,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/localfs"
 )
 
 type BookFileEntity struct {
@@ -24,7 +25,7 @@ type BookFileEntity struct {
 func (e *BookFileEntity) FromSqlc(res sqlc.BookFile) *BookFileEntity {
 	e.ID = res.ID
 	e.BookID = res.BookID
-	e.Path = res.Path
+	e.Path = localfs.ResolveBookFilePath(res.BookID, res.Path)
 	e.Format = res.Format
 	e.SizeBytes = res.SizeBytes
 	e.ModTime = res.ModTime
@@ -104,7 +105,7 @@ type FileRefEntity struct {
 
 func (e *FileRefEntity) FromSqlc(res sqlc.ListAllFilesRow) *FileRefEntity {
 	e.ID = res.ID
-	e.Path = res.Path
+	e.Path = localfs.ResolveBookFilePath(res.BookID, res.Path)
 	e.BookID = res.BookID
 	return e
 }
@@ -211,7 +212,7 @@ func (e *DuplicateFileDetailEntity) FromSqlc(res sqlc.GetDuplicateFileDetailsRow
 		LibraryID:    res.LibraryID,
 		Format:       res.Format,
 		SizeBytes:    res.SizeBytes,
-		Path:         res.Path,
+		Path:         localfs.ResolveBookFilePath(res.BookID, res.Path),
 		Hash:         hashStr,
 		CreatedAt:    createdAtStr,
 	}

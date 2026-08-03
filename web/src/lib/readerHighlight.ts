@@ -65,6 +65,13 @@ export interface SavedSelection {
   selectedText: string;
   textNodeIndex: number;
   offset: number;
+  /**
+   * Document-relative character offsets captured at selection time, so the
+   * highlight can be created even if the reader DOM is rebuilt (and the
+   * cloned Range invalidated) between selecting text and clicking a color.
+   */
+  startIndex: number;
+  endIndex: number;
 }
 
 export const getCharacterOffsetOfRange = (
@@ -73,7 +80,17 @@ export const getCharacterOffsetOfRange = (
 ): { start: number; end: number } | null => {
   if (!container || !range) return null;
   const isWithin = (node: Node) => node === container || container.contains(node);
-  if (!isWithin(range.startContainer) || !isWithin(range.endContainer)) return null;
+
+  // A range covering the full container text; reused for the spanning check and
+  // to compute the container's total text length (clamp ceiling).
+  let fullRange: Range;
+  try {
+    fullRange = document.createRange();
+    fullRange.selectNodeContents(container);
+  } catch {
+    return null;
+  }
+  const total = fullRange.toString().length;
 
   const boundaryOffset = (node: Node, offset: number): number | null => {
     try {
@@ -86,9 +103,61 @@ export const getCharacterOffsetOfRange = (
     }
   };
 
-  const start = boundaryOffset(range.startContainer, range.startOffset);
-  const end = boundaryOffset(range.endContainer, range.endOffset);
-  return start !== null && end !== null && end > start ? { start, end } : null;
+  // Clamp boundaries that fall outside the reader container to the container's
+  // text bounds. A selection released near the floating toolbar can extend
+  // beyond the reader; rejecting it outright would make the toolbar appear but
+  // leave highlighting silently doing nothing (no request, no error). Clamp so
+  // the in-reader portion is still highlighted — but only when the selection
+  // actually overlaps the reader. A selection entirely outside the reader
+  // still resolves to null so we never highlight the wrong text.
+  const startIn = isWithin(range.startContainer);
+  const endIn = isWithin(range.endContainer);
+
+  if (!startIn && !endIn) {
+    // Both boundaries are outside; only act if the range actually spans the
+    // container (start before it, end after it). Otherwise the selection does
+    // not touch the reader at all and must stay unresolved. compareBoundaryPoints
+    // can throw when the range lives in a different tree (e.g. a detached node),
+    // which we treat as "no overlap".
+    let spansContainer = false;
+    try {
+      spansContainer =
+        range.compareBoundaryPoints(Range.START_TO_START, fullRange) < 0 &&
+        range.compareBoundaryPoints(Range.END_TO_END, fullRange) > 0;
+    } catch {
+      spansContainer = false;
+    }
+    if (!spansContainer) return null;
+    return { start: 0, end: total };
+  }
+
+  let startNode = range.startContainer;
+  let startOffset = range.startOffset;
+  let endNode = range.endContainer;
+  let endOffset = range.endOffset;
+
+  if (!startIn) {
+    // Selection starts before the reader → clamp to the very beginning.
+    startNode = container;
+    startOffset = 0;
+  }
+  if (!endIn) {
+    // Selection ends after the reader → clamp to the very end.
+    endNode = container;
+    endOffset = container.childNodes.length;
+  }
+
+  const start = boundaryOffset(startNode, startOffset);
+  const end = boundaryOffset(endNode, endOffset);
+
+  if (start === null || end === null) return null;
+  if (end <= start) return null;
+  // Guard against a clamped end overshooting the container's true text length.
+  if (total >= 0 && end > total) {
+    if (start >= total) return null;
+    return { start, end: total };
+  }
+  return { start, end };
 };
 
 export const getTextNodeIndex = (container: HTMLElement, targetNode: Node): number => {
@@ -173,10 +242,18 @@ export const saveSelection = (container: HTMLElement, range: Range): SavedSelect
   const textNodeIndex = getTextNodeIndex(container, textNode);
   if (textNodeIndex < 0) return null;
 
+  // Capture document-relative char offsets now, while the range still points
+  // at live text nodes. The caller stores this and can reuse it later even if
+  // the reader DOM gets rebuilt (which would invalidate a cloned Range).
+  const offsets = getCharacterOffsetOfRange(container, range);
+  if (!offsets || offsets.end <= offsets.start) return null;
+
   return {
     selectedText,
     textNodeIndex,
     offset: textOffset,
+    startIndex: offsets.start,
+    endIndex: offsets.end,
   };
 };
 
@@ -552,16 +629,7 @@ export const applyUserHighlights = (
     default: [],
   };
 
-  if (typeof CSS !== "undefined" && "highlights" in CSS) {
-    for (const key of Object.keys(colorGroups)) {
-      try {
-        // @ts-ignore
-        CSS.highlights.delete(`user-highlight-${key}`);
-      } catch (e) {}
-    }
-  }
-
-  if (!highlights || highlights.length === 0) return;
+  if (!highlights) return;
 
   const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let fullText = "";
@@ -575,33 +643,57 @@ export const applyUserHighlights = (
 
     if (h.start_index >= 0 && h.end_index > h.start_index) {
       range = createRangeFromCharOffset(container, h.start_index, h.end_index);
-      if (range && range.toString().trim() !== h.text_content.trim()) {
-        range = null;
+      if (range) {
+        const normRange = range.toString().replace(/\s+/g, " ").trim();
+        const normTarget = h.text_content.replace(/\s+/g, " ").trim();
+        if (normRange !== normTarget && !normRange.includes(normTarget) && !normTarget.includes(normRange)) {
+          range = null;
+        }
       }
     }
 
     if (!range) {
       const targetText = h.text_content.trim();
-      const idx = fullText.indexOf(targetText);
-      if (idx !== -1) {
+      let idx = fullText.indexOf(targetText);
+      if (idx === -1) {
+        try {
+          const regexPattern = targetText
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/\s+/g, "\\s+");
+          const match = new RegExp(regexPattern).exec(fullText);
+          if (match) {
+            idx = match.index;
+            range = createRangeFromCharOffset(container, idx, idx + match[0].length);
+          }
+        } catch (e) {}
+      } else {
         range = createRangeFromCharOffset(container, idx, idx + targetText.length);
       }
     }
 
     if (range) {
-      const c = h.color && colorGroups[h.color] ? h.color : "yellow";
+      let colorKey = h.color;
+      if (colorKey === "#fef08a") colorKey = "yellow";
+      else if (colorKey === "#bbf7d0") colorKey = "green";
+      else if (colorKey === "#bfdbfe") colorKey = "blue";
+      else if (colorKey === "#e9d5ff") colorKey = "purple";
+
+      const c = colorKey && colorGroups[colorKey] ? colorKey : "yellow";
       colorGroups[c].push(range);
     }
   }
 
   if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
     for (const [color, ranges] of Object.entries(colorGroups)) {
-      if (ranges.length > 0) {
-        try {
+      try {
+        if (ranges.length > 0) {
           // @ts-ignore
           CSS.highlights.set(`user-highlight-${color}`, new Highlight(...ranges));
-        } catch (e) {}
-      }
+        } else {
+          // @ts-ignore
+          CSS.highlights.delete(`user-highlight-${color}`);
+        }
+      } catch (e) {}
     }
   }
 };
