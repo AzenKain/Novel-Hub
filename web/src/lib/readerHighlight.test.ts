@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   extractTextFromHtml,
+  getCharacterOffsetOfRange,
   getTextNodeIndex,
   resolveToTextNode,
   saveSelection,
@@ -25,6 +26,44 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
+describe("getCharacterOffsetOfRange", () => {
+  it("maps single- and multi-node selections", () => {
+    const container = render("hello <b>world</b>!");
+    const range = document.createRange();
+    range.setStart(container.firstChild!, 1);
+    range.setEnd(container.querySelector("b")!.firstChild!, 3);
+    expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 1, end: 9 });
+
+    const single = document.createRange();
+    single.setStart(container.firstChild!, 1);
+    single.setEnd(container.firstChild!, 4);
+    expect(getCharacterOffsetOfRange(container, single)).toEqual({ start: 1, end: 4 });
+  });
+
+  it("maps element boundary containers to document offsets", () => {
+    const container = render("<p>first</p><p>second</p>");
+    const root = container;
+    const range = document.createRange();
+    range.setStart(root, 0);
+    range.setEnd(root, root.childNodes.length);
+    expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 0, end: 11 });
+  });
+  it("handles whitespace, equal, and unresolved ranges", () => {
+    const container = render("   ");
+    const whitespace = document.createRange();
+    whitespace.selectNodeContents(container);
+    expect(getCharacterOffsetOfRange(container, whitespace)).toEqual({ start: 0, end: 3 });
+    const equal = document.createRange();
+    equal.setStart(container.firstChild!, 1);
+    equal.setEnd(container.firstChild!, 1);
+    expect(getCharacterOffsetOfRange(container, equal)).toBeNull();
+    const outside = document.createTextNode("outside");
+    const unresolved = document.createRange();
+    unresolved.setStart(outside, 0);
+    unresolved.setEnd(outside, 2);
+    expect(getCharacterOffsetOfRange(container, unresolved)).toBeNull();
+  });
+});
 describe("getTextNodeIndex", () => {
   it("numbers text nodes in document order across nesting", () => {
     const container = render("<p>one</p><div><span>two</span>three</div>");

@@ -53,7 +53,7 @@ type UpdateHighlightNoteDto struct {
 }
 
 type RecordReadingSessionDto struct {
-	BookID   string `json:"book_id" validate:"required"`
+	BookID   string `json:"book_id" validate:"required,uuid"`
 	Duration int64  `json:"duration" validate:"required,min=1"`
 	Words    int64  `json:"words" validate:"min=0"`
 }
@@ -81,4 +81,3 @@ type UpsertSmartCollectionDto struct {
 	Name string                 `json:"name" validate:"required,min=1,max=100"`
 	Rule SmartCollectionRuleDto `json:"rule"`
 }
-

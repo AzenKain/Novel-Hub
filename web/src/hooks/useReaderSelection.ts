@@ -8,8 +8,23 @@ import {
   type TtsStartPoint,
 } from "@/lib/readerHighlight";
 
-type UseReaderSelectionArgs = {
-  columnsRef: RefObject<HTMLDivElement | null>;
+type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
+
+export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
+  const margin = 8;
+  const availableWidth = Math.min(440, Math.max(0, viewportWidth - margin * 2));
+  const center = rect.left + rect.width / 2;
+  const maxLeft = Math.max(margin, viewportWidth - margin - availableWidth);
+  const left = Math.min(
+    Math.max(center - availableWidth / 2, margin),
+    maxLeft,
+  );
+  return {
+    top: Math.max(10, rect.top - 40),
+    left,
+  };
+}
+type UseReaderSelectionArgs = {  columnsRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
   savedSelectionRef: RefObject<SavedSelection | null>;
   ttsStartPointRef: RefObject<TtsStartPoint | null>;
@@ -63,7 +78,7 @@ export function useReaderSelection({
               savedSelectionRef.current = saved;
               setSelectionRange(range.cloneRange());
               const rect = range.getBoundingClientRect();
-              setToolbarPos({ top: Math.max(10, rect.top - 40), left: rect.left + rect.width / 2 });
+              setToolbarPos(getToolbarPosition(rect, window.innerWidth));
               return;
             }
           }
@@ -82,25 +97,16 @@ export function useReaderSelection({
   }, []);
 
   const handleHighlight = async (color: string) => {
-    if (selectionRange) {
-      const text = selectionRange.toString();
-      const container = columnsRef.current || contentRef.current;
-      let startOffset = 0;
-      let endOffset = text.length;
-
-      if (container) {
-        const offset = getCharacterOffsetOfRange(container, selectionRange);
-        if (offset) {
-          startOffset = offset.start;
-          endOffset = offset.end;
-        }
-      }
-
-      await addHighlight(text, startOffset, endOffset, color);
-      window.getSelection()?.removeAllRanges();
-      savedSelectionRef.current = null;
-      setSelectionRange(null);
-    }
+    if (!selectionRange) return;
+    const selectedText = selectionRange.toString();
+    const text = selectedText.trim();
+    const container = columnsRef.current || contentRef.current;
+    const offset = container ? getCharacterOffsetOfRange(container, selectionRange) : null;
+    if (!text || !offset || offset.end <= offset.start) return;
+    await addHighlight(selectedText, offset.start, offset.end, color);
+    window.getSelection()?.removeAllRanges();
+    savedSelectionRef.current = null;
+    setSelectionRange(null);
   };
 
   const handleReadSelection = () => {

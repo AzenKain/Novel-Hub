@@ -67,6 +67,30 @@ export interface SavedSelection {
   offset: number;
 }
 
+export const getCharacterOffsetOfRange = (
+  container: HTMLElement,
+  range: Range
+): { start: number; end: number } | null => {
+  if (!container || !range) return null;
+  const isWithin = (node: Node) => node === container || container.contains(node);
+  if (!isWithin(range.startContainer) || !isWithin(range.endContainer)) return null;
+
+  const boundaryOffset = (node: Node, offset: number): number | null => {
+    try {
+      const before = document.createRange();
+      before.selectNodeContents(container);
+      before.setEnd(node, offset);
+      return before.toString().length;
+    } catch {
+      return null;
+    }
+  };
+
+  const start = boundaryOffset(range.startContainer, range.startOffset);
+  const end = boundaryOffset(range.endContainer, range.endOffset);
+  return start !== null && end !== null && end > start ? { start, end } : null;
+};
+
 export const getTextNodeIndex = (container: HTMLElement, targetNode: Node): number => {
   const treeWalker = document.createTreeWalker(
     container,

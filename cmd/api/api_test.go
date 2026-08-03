@@ -37,6 +37,9 @@ func setupTestAppWithDB(t *testing.T) (*fiber.App, *sql.DB, error) {
 
 	server := NewHTTPServer()
 	server.SetupServer(db, ramCache)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
 
 	return server.App, db, nil
 }
