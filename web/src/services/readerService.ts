@@ -53,7 +53,7 @@ export const readerService = {
     }
   },
 
-  async getReadingHeatmap(): Promise<CommonResponse<any>> {
+  async getReadingHeatmap(): Promise<CommonResponse<Record<string, { duration: number; words: number }>>> {
     try {
       const res = await api.get('/reader/stats/heatmap');
       return res.data;

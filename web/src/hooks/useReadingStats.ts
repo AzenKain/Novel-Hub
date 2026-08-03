@@ -3,6 +3,7 @@ import { readerService } from "@/services";
 import { useAuthStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReadingGoal } from "@/types";
 
 export const useReadingStats = (book_id: string | undefined, isActive: boolean) => {
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
@@ -58,10 +59,16 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
 };
 
 export function useReadingHeatmapQuery() {
-  return useQuery({ queryKey: ["reader", "heatmap"], queryFn: () => readerService.getReadingHeatmap() });
+  return useQuery<Record<string, { duration: number; words: number }>>({
+    queryKey: ["reader", "heatmap"],
+    queryFn: async () => (await readerService.getReadingHeatmap()).data ?? {},
+  });
 }
 export function useReadingGoalQuery() {
-  return useQuery({ queryKey: ["reader", "goal"], queryFn: () => readerService.getReadingGoal() });
+  return useQuery<ReadingGoal | undefined>({
+    queryKey: ["reader", "goal"],
+    queryFn: async () => (await readerService.getReadingGoal()).data,
+  });
 }
 export function useUpsertReadingGoalMutation() {
   const queryClient = useQueryClient();
