@@ -555,15 +555,22 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 	if err != nil {
 		return err
 	}
-	if r.c != nil && !r.inTx {
-		delKeys := make([]string, 0, len(bookIDs)+1)
+	if r.c != nil {
+		delKeys := make([]string, 0, len(bookIDs)*4+1)
 		delKeys = append(delKeys, "feature:library_stats")
 		for _, id := range bookIDs {
-			delKeys = append(delKeys, cache.BuildKey("book", "id", id))
+			delKeys = append(delKeys,
+				cache.BuildKey("book", "id", id),
+				cache.BuildKey("chapter", "book", id),
+				cache.BuildKey("book_file", "book", id),
+				cache.BuildKey("book_file", "count", id),
+			)
 		}
 		_ = r.c.Del(ctx, delKeys...)
 		_ = r.c.DelByPattern(context.Background(), "book:search*")
 		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+		_ = r.c.DelByPattern(context.Background(), "chapter*")
+		_ = r.c.DelByPattern(context.Background(), "book_file*")
 	}
 	return nil
 }

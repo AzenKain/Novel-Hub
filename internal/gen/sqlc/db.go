@@ -1710,6 +1710,8 @@ func (q *Queries) exec(ctx context.Context, stmt *sql.Stmt, query string, args .
 		return q.tx.StmtContext(ctx, stmt).ExecContext(ctx, args...)
 	case stmt != nil:
 		return stmt.ExecContext(ctx, args...)
+	case q.tx != nil:
+		return q.tx.ExecContext(ctx, query, args...)
 	default:
 		return q.db.ExecContext(ctx, query, args...)
 	}
@@ -1721,6 +1723,8 @@ func (q *Queries) query(ctx context.Context, stmt *sql.Stmt, query string, args 
 		return q.tx.StmtContext(ctx, stmt).QueryContext(ctx, args...)
 	case stmt != nil:
 		return stmt.QueryContext(ctx, args...)
+	case q.tx != nil:
+		return q.tx.QueryContext(ctx, query, args...)
 	default:
 		return q.db.QueryContext(ctx, query, args...)
 	}
@@ -1732,6 +1736,8 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 		return q.tx.StmtContext(ctx, stmt).QueryRowContext(ctx, args...)
 	case stmt != nil:
 		return stmt.QueryRowContext(ctx, args...)
+	case q.tx != nil:
+		return q.tx.QueryRowContext(ctx, query, args...)
 	default:
 		return q.db.QueryRowContext(ctx, query, args...)
 	}
