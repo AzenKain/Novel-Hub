@@ -72,12 +72,12 @@ type BookMetadataRepository interface {
 	LinkBookLanguage(ctx context.Context, bookID, languageID string) error
 	ClearBookLanguages(ctx context.Context, bookID string) error
 	ClearBookTags(ctx context.Context, bookID string) error
-	ListAuthorsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
-	ListSeriesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
-	ListPublishersWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
-	ListLanguagesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
-	ListTagsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
-	ListFormatsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error)
+	ListAuthorsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListSeriesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListPublishersWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListLanguagesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListTagsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListFormatsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	WithTx(tx *sql.Tx) BookDBRepository
 }
 

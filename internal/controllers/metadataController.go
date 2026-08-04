@@ -3,13 +3,14 @@ package controllers
 import (
 	"context"
 	"time"
-	"strconv"
 
 	"github.com/gofiber/fiber/v3"
-	"novelhub/pkg/apperrors"
 
-
+	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
+	"novelhub/pkg/apperrors"
+	"novelhub/pkg/validator"
 )
 
 type MetadataController struct {
@@ -22,92 +23,47 @@ func NewMetadataController(service services.MetadataService) *MetadataController
 	}
 }
 
-func (h *MetadataController) ListAuthors(c fiber.Ctx) error {
+func (h *MetadataController) listFacet(c fiber.Ctx, fetch func(context.Context, services.MetadataFacetQuery) (*response.PaginatedResponse, error)) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListAuthors(ctx, cursor, int64(limit))
+	dto := &request.MetadataFacetDto{Limit: 20}
+	if errs := validator.ValidateQueryDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
+	}
+
+	res, err := fetch(ctx, services.MetadataFacetQuery{
+		Cursor: dto.Cursor,
+		Limit:  int64(dto.Limit),
+		Search: dto.Search,
+		Alpha:  dto.Alpha,
+	})
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(res)
+}
+
+func (h *MetadataController) ListAuthors(c fiber.Ctx) error {
+	return h.listFacet(c, h.service.ListAuthors)
 }
 
 func (h *MetadataController) ListSeries(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListSeries(ctx, cursor, int64(limit))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	return c.JSON(res)
+	return h.listFacet(c, h.service.ListSeries)
 }
 
 func (h *MetadataController) ListPublishers(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListPublishers(ctx, cursor, int64(limit))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	return c.JSON(res)
+	return h.listFacet(c, h.service.ListPublishers)
 }
 
 func (h *MetadataController) ListLanguages(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListLanguages(ctx, cursor, int64(limit))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	return c.JSON(res)
+	return h.listFacet(c, h.service.ListLanguages)
 }
 
 func (h *MetadataController) ListTags(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListTags(ctx, cursor, int64(limit))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	return c.JSON(res)
+	return h.listFacet(c, h.service.ListTags)
 }
 
 func (h *MetadataController) ListFormats(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor := c.Query("cursor", "")
-	limitStr := c.Query("limit", "20")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 { limit = 20 }
-	res, err := h.service.ListFormats(ctx, cursor, int64(limit))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	return c.JSON(res)
+	return h.listFacet(c, h.service.ListFormats)
 }

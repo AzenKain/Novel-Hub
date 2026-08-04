@@ -521,16 +521,16 @@ type GetRecentReadingHistoryParams struct {
 }
 
 type GetRecentReadingHistoryRow struct {
-	UserID          string          `json:"user_id"`
-	BookID          string          `json:"book_id"`
-	FileID          sql.NullString  `json:"file_id"`
-	ChapterID       string          `json:"chapter_id"`
-	ProgressPercent sql.NullFloat64 `json:"progress_percent"`
-	UpdatedAt       sql.NullTime    `json:"updated_at"`
-	BookTitle       string          `json:"book_title"`
-	BookCoverUrl    sql.NullString  `json:"book_cover_url"`
-	ChapterTitle    string          `json:"chapter_title"`
-	ChapterIndex    int64           `json:"chapter_index"`
+	UserID          string         `json:"user_id"`
+	BookID          string         `json:"book_id"`
+	FileID          sql.NullString `json:"file_id"`
+	ChapterID       string         `json:"chapter_id"`
+	ProgressPercent float64        `json:"progress_percent"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+	BookTitle       string         `json:"book_title"`
+	BookCoverUrl    sql.NullString `json:"book_cover_url"`
+	ChapterTitle    string         `json:"chapter_title"`
+	ChapterIndex    int64          `json:"chapter_index"`
 }
 
 func (q *Queries) GetRecentReadingHistory(ctx context.Context, arg GetRecentReadingHistoryParams) ([]GetRecentReadingHistoryRow, error) {
@@ -1135,8 +1135,8 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     progress_percent = excluded.progress_percent,
     location_cfi = excluded.location_cfi,
     location_type = excluded.location_type,
-    opened_count = excluded.opened_count,
-    qualified_read_count = excluded.qualified_read_count,
+    opened_count = reading_progress.opened_count + excluded.opened_count,
+    qualified_read_count = reading_progress.qualified_read_count + excluded.qualified_read_count,
     last_opened_at = CURRENT_TIMESTAMP,
     last_counted_at = COALESCE(excluded.last_counted_at, reading_progress.last_counted_at),
     updated_at = CURRENT_TIMESTAMP
@@ -1144,18 +1144,18 @@ RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, 
 `
 
 type UpsertReadingProgressParams struct {
-	UserID             string          `json:"user_id"`
-	BookID             string          `json:"book_id"`
-	FileID             sql.NullString  `json:"file_id"`
-	ChapterRef         string          `json:"chapter_ref"`
-	ChapterTitle       string          `json:"chapter_title"`
-	ChapterIndex       int64           `json:"chapter_index"`
-	ProgressPercent    sql.NullFloat64 `json:"progress_percent"`
-	LocationCfi        sql.NullString  `json:"location_cfi"`
-	LocationType       sql.NullString  `json:"location_type"`
-	OpenedCount        int64           `json:"opened_count"`
-	QualifiedReadCount int64           `json:"qualified_read_count"`
-	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
+	UserID             string         `json:"user_id"`
+	BookID             string         `json:"book_id"`
+	FileID             sql.NullString `json:"file_id"`
+	ChapterRef         string         `json:"chapter_ref"`
+	ChapterTitle       string         `json:"chapter_title"`
+	ChapterIndex       int64          `json:"chapter_index"`
+	ProgressPercent    float64        `json:"progress_percent"`
+	LocationCfi        sql.NullString `json:"location_cfi"`
+	LocationType       sql.NullString `json:"location_type"`
+	OpenedCount        int64          `json:"opened_count"`
+	QualifiedReadCount int64          `json:"qualified_read_count"`
+	LastCountedAt      sql.NullTime   `json:"last_counted_at"`
 }
 
 func (q *Queries) UpsertReadingProgress(ctx context.Context, arg UpsertReadingProgressParams) (ReadingProgress, error) {

@@ -3,6 +3,8 @@ package services
 import (
 	"archive/zip"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -19,6 +21,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
@@ -81,7 +84,7 @@ func (s *libraryService) GetLibrary(ctx context.Context, id string, claims *resp
 }
 
 func (s *libraryService) ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]*response.LibraryResponse, error) {
-	libs, err := s.libraryRepo.ListLibraries(ctx, 1000, 0)
+	libs, err := s.libraryRepo.ListLibraries(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -115,10 +118,13 @@ func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
 
 func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error) {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Library not found")
+		}
 		return nil, err
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no files provided")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "no files provided")
 	}
 
 	successCount := 0
@@ -284,46 +290,65 @@ func (s *libraryService) ProcessSingleLocalFile(ctx context.Context, libraryID s
 	return nil
 }
 
-func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error {
+func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) (err error) {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
 		return err
 	}
 
-	books, err := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", nil, "", 1000000)
-	if err != nil {
-		return err
-	}
-
 	zw := zip.NewWriter(w)
-	defer zw.Close()
+	defer func() {
+		if closeErr := zw.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close ZIP archive: %w", closeErr)
+		}
+	}()
 
-	for _, book := range books {
-		files, err := s.bookRepo.GetFilesByBookId(ctx, book.ID)
-		if err != nil || len(files) == 0 {
-			continue
+	var cursor *time.Time
+	cursorID := ""
+	for {
+		books, searchErr := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", cursor, cursorID, 100)
+		if searchErr != nil {
+			return searchErr
+		}
+		if len(books) == 0 {
+			return nil
 		}
 
-		for _, f := range files {
-			if f.State != nil && *f.State == "deleted" {
-				continue
+		for _, book := range books {
+			files, filesErr := s.bookRepo.GetFilesByBookId(ctx, book.ID)
+			if filesErr != nil {
+				return fmt.Errorf("get files for book %s: %w", book.ID, filesErr)
 			}
+			for _, f := range files {
+				if f.State != nil && *f.State == "deleted" {
+					continue
+				}
 
-			src, err := os.Open(f.Path)
-			if err != nil {
-				continue
+				src, openErr := os.Open(f.Path)
+				if openErr != nil {
+					return fmt.Errorf("open book file %s: %w", f.ID, openErr)
+				}
+				safeTitle := strings.ReplaceAll(book.Title, "/", "-")
+				filename := fmt.Sprintf("%s.%s", safeTitle, f.Format)
+				fw, createErr := zw.Create(filename)
+				if createErr != nil {
+					_ = src.Close()
+					return fmt.Errorf("create ZIP entry %q: %w", filename, createErr)
+				}
+				if _, copyErr := io.Copy(fw, src); copyErr != nil {
+					_ = src.Close()
+					return fmt.Errorf("copy book file %s to ZIP: %w", f.ID, copyErr)
+				}
+				if closeErr := src.Close(); closeErr != nil {
+					return fmt.Errorf("close book file %s: %w", f.ID, closeErr)
+				}
 			}
-			safeTitle := strings.ReplaceAll(book.Title, "/", "-")
-			filename := fmt.Sprintf("%s.%s", safeTitle, f.Format)
-
-			fw, err := zw.Create(filename)
-			if err != nil {
-				src.Close()
-				continue
-			}
-			io.Copy(fw, src)
-			src.Close()
 		}
+
+		if len(books) < 100 {
+			return nil
+		}
+		last := books[len(books)-1]
+		cursor = &last.CreatedAt
+		cursorID = last.ID
 	}
-
-	return nil
 }

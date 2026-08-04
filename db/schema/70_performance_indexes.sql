@@ -19,7 +19,6 @@ CREATE INDEX IF NOT EXISTS idx_book_reviews_book_updated ON book_reviews(book_id
 CREATE INDEX IF NOT EXISTS idx_book_reviews_user ON book_reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_book_share_events_book ON book_share_events(book_id);
 CREATE INDEX IF NOT EXISTS idx_highlights_user_book ON highlights(user_id, book_id);
-CREATE INDEX IF NOT EXISTS idx_book_files_hash ON book_files(file_hash);
 CREATE INDEX IF NOT EXISTS idx_book_files_book ON book_files(book_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_book_index ON chapters(book_id, chapter_index ASC);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role_id);

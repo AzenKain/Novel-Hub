@@ -32,7 +32,7 @@ import {
 } from "@/hooks";
 import {
   alphabetFilters,
-  filterMetadataItems,
+  sortMetadataItems,
   metadataNavIds,
 } from "@/lib/libraryMetadata";
 import { useAuthStore, useLibraryStore } from "@/stores";
@@ -265,12 +265,17 @@ export const LibraryWorkspace = () => {
   const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
   const historyData = useMemo(() => (historyRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").ReadingHistory[], [historyRaw]);
 
-  const { data: authorsFacet } = useMetadataFacetQuery("authors");
-  const { data: seriesFacet } = useMetadataFacetQuery("series");
-  const { data: tagsFacet } = useMetadataFacetQuery("tags");
-  const { data: publishersFacet } = useMetadataFacetQuery("publishers");
-  const { data: languagesFacet } = useMetadataFacetQuery("languages");
-  const { data: formatsFacet } = useMetadataFacetQuery("formats");
+  const activeFacetNav = (["authors", "series", "tags", "publishers", "languages", "formats"] as const)
+    .find((nav) => nav === activeNav);
+  const {
+    items: activeFacetItems,
+    fetchNextPage: fetchNextFacetPage,
+    hasNextPage: hasMoreFacetItems,
+    isFetchingNextPage: isFetchingMoreFacetItems,
+  } = useMetadataFacetQuery(activeFacetNav ?? "authors", {
+    search: metadataQuery,
+    alpha: metadataAlpha,
+  });
 
   useEffect(() => {
     if (isMetadataNav) {
@@ -316,15 +321,9 @@ export const LibraryWorkspace = () => {
   }, [historyData, setRecentHistory]);
 
   useEffect(() => {
-    setMetadataFacets({
-      authors: authorsFacet || [],
-      series: seriesFacet || [],
-      tags: tagsFacet || [],
-      publishers: publishersFacet || [],
-      languages: languagesFacet || [],
-      formats: formatsFacet || [],
-    });
-  }, [authorsFacet, seriesFacet, tagsFacet, publishersFacet, languagesFacet, formatsFacet, setMetadataFacets]);
+    if (!activeFacetNav) return;
+    setMetadataFacets({ [activeFacetNav]: activeFacetItems });
+  }, [activeFacetNav, activeFacetItems, setMetadataFacets]);
 
   const handleCreateCollection = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
@@ -465,15 +464,10 @@ export const LibraryWorkspace = () => {
   const bookListTitle = activeFacet
     ? `${currentFacetSection?.label || activeNavLabel}: ${activeFacet.name}`
     : activeNavLabel || t("library.all_books", "All books");
-  const filteredMetadataItems = useMemo(() => {
-    const items = currentFacetSection?.items || [];
-    return filterMetadataItems(
-      items,
-      metadataQuery,
-      metadataAlpha,
-      metadataSort,
-    );
-  }, [currentFacetSection, metadataAlpha, metadataQuery, metadataSort]);
+  const filteredMetadataItems = useMemo(
+    () => sortMetadataItems(currentFacetSection?.items || [], metadataSort),
+    [currentFacetSection, metadataSort],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -568,6 +562,9 @@ export const LibraryWorkspace = () => {
         controls={metadataControls}
         t={t}
         onFacetClick={handleFacetClick}
+        hasMore={hasMoreFacetItems}
+        loadingMore={isFetchingMoreFacetItems}
+        onLoadMore={() => void fetchNextFacetPage()}
       />
     );
   };

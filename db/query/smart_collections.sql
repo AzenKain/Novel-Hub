@@ -15,7 +15,7 @@ INSERT INTO smart_collections (
 ) VALUES (
     ?, ?, ?, ?
 )
-RETURNING *;
+RETURNING id, user_id, name, rule_json, created_at, updated_at;
 
 -- name: DeleteSmartCollection :exec
 DELETE FROM smart_collections
@@ -25,4 +25,4 @@ WHERE id = ? AND user_id = ?;
 UPDATE smart_collections
 SET name = ?, rule_json = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?
-RETURNING *;
+RETURNING id, user_id, name, rule_json, created_at, updated_at;

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"os"
-	"strings"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/jsonx"
+	"os"
+	"strings"
 )
 
 type Parser struct{}

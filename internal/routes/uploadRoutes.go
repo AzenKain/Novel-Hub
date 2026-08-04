@@ -9,7 +9,7 @@ import (
 
 func SetupUploadRoutes(router fiber.Router, controller *controllers.UploadController, userRepo repositories.UserRepository) {
 	uploadGroup := router.Group("/upload", middlewares.JwtAccess(userRepo))
-	
+
 	uploadGroup.Post("/init", controller.InitUpload)
 	uploadGroup.Post("/:uploadId/chunk", controller.UploadChunk)
 	uploadGroup.Post("/:uploadId/commit", controller.CommitUpload)

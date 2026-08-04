@@ -11,3 +11,10 @@ type PaginationDto struct {
 type LimitDto struct {
 	Limit int `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
 }
+
+type MetadataFacetDto struct {
+	Limit  int    `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
+	Cursor string `json:"cursor,omitempty" query:"cursor" validate:"omitempty"`
+	Search string `json:"search,omitempty" query:"search" validate:"omitempty,max=200"`
+	Alpha  string `json:"alpha,omitempty" query:"alpha" validate:"omitempty,max=8"`
+}

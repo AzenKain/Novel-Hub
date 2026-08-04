@@ -175,16 +175,30 @@ const listAuthorsWithCount = `-- name: ListAuthorsWithCount :many
 SELECT a.id, a.name, COUNT(b.id) as book_count
 FROM authors a
 JOIN books b ON a.id = b.author_id
-WHERE (?1 IS NULL OR a.name > ?1 OR (a.name = ?1 AND a.id > ?2))
+WHERE (?1 IS NULL OR a.name LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(a.name), 1, 1)) = ?2
+       OR SUBSTR(TRIM(a.name), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(a.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(a.name), 1, 1) <> ?5
+           AND SUBSTR(TRIM(a.name), 1, 1) <> ?6))
+  AND (?7 IS NULL OR a.name > ?7 OR (a.name = ?7 AND a.id > ?8))
 GROUP BY a.id, a.name
 ORDER BY a.name ASC, a.id ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListAuthorsWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListAuthorsWithCountRow struct {
@@ -194,7 +208,17 @@ type ListAuthorsWithCountRow struct {
 }
 
 func (q *Queries) ListAuthorsWithCount(ctx context.Context, arg ListAuthorsWithCountParams) ([]ListAuthorsWithCountRow, error) {
-	rows, err := q.query(ctx, q.listAuthorsWithCountStmt, listAuthorsWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listAuthorsWithCountStmt, listAuthorsWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -219,16 +243,30 @@ func (q *Queries) ListAuthorsWithCount(ctx context.Context, arg ListAuthorsWithC
 const listFormatsWithCount = `-- name: ListFormatsWithCount :many
 SELECT LOWER(format) as id, UPPER(format) as name, COUNT(DISTINCT book_id) as book_count
 FROM book_files
-WHERE (?1 IS NULL OR UPPER(format) > ?1 OR (UPPER(format) = ?1 AND LOWER(format) > ?2))
+WHERE (?1 IS NULL OR format LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(format), 1, 1)) = ?2
+       OR SUBSTR(TRIM(format), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(format), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(format), 1, 1) <> ?5
+           AND SUBSTR(TRIM(format), 1, 1) <> ?6))
+  AND (?7 IS NULL OR UPPER(format) > ?7 OR (UPPER(format) = ?7 AND LOWER(format) > ?8))
 GROUP BY LOWER(format)
 ORDER BY LOWER(format) ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListFormatsWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListFormatsWithCountRow struct {
@@ -238,7 +276,17 @@ type ListFormatsWithCountRow struct {
 }
 
 func (q *Queries) ListFormatsWithCount(ctx context.Context, arg ListFormatsWithCountParams) ([]ListFormatsWithCountRow, error) {
-	rows, err := q.query(ctx, q.listFormatsWithCountStmt, listFormatsWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listFormatsWithCountStmt, listFormatsWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -264,16 +312,30 @@ const listLanguagesWithCount = `-- name: ListLanguagesWithCount :many
 SELECT l.id, l.name, COUNT(bl.book_id) as book_count
 FROM languages l
 JOIN book_languages bl ON l.id = bl.language_id
-WHERE (?1 IS NULL OR l.name > ?1 OR (l.name = ?1 AND l.id > ?2))
+WHERE (?1 IS NULL OR l.name LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(l.name), 1, 1)) = ?2
+       OR SUBSTR(TRIM(l.name), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(l.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(l.name), 1, 1) <> ?5
+           AND SUBSTR(TRIM(l.name), 1, 1) <> ?6))
+  AND (?7 IS NULL OR l.name > ?7 OR (l.name = ?7 AND l.id > ?8))
 GROUP BY l.id, l.name
 ORDER BY l.name ASC, l.id ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListLanguagesWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListLanguagesWithCountRow struct {
@@ -283,7 +345,17 @@ type ListLanguagesWithCountRow struct {
 }
 
 func (q *Queries) ListLanguagesWithCount(ctx context.Context, arg ListLanguagesWithCountParams) ([]ListLanguagesWithCountRow, error) {
-	rows, err := q.query(ctx, q.listLanguagesWithCountStmt, listLanguagesWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listLanguagesWithCountStmt, listLanguagesWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -309,16 +381,30 @@ const listPublishersWithCount = `-- name: ListPublishersWithCount :many
 SELECT p.id, p.name, COUNT(bp.book_id) as book_count
 FROM publishers p
 JOIN book_publishers bp ON p.id = bp.publisher_id
-WHERE (?1 IS NULL OR p.name > ?1 OR (p.name = ?1 AND p.id > ?2))
+WHERE (?1 IS NULL OR p.name LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(p.name), 1, 1)) = ?2
+       OR SUBSTR(TRIM(p.name), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(p.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(p.name), 1, 1) <> ?5
+           AND SUBSTR(TRIM(p.name), 1, 1) <> ?6))
+  AND (?7 IS NULL OR p.name > ?7 OR (p.name = ?7 AND p.id > ?8))
 GROUP BY p.id, p.name
 ORDER BY p.name ASC, p.id ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListPublishersWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListPublishersWithCountRow struct {
@@ -328,7 +414,17 @@ type ListPublishersWithCountRow struct {
 }
 
 func (q *Queries) ListPublishersWithCount(ctx context.Context, arg ListPublishersWithCountParams) ([]ListPublishersWithCountRow, error) {
-	rows, err := q.query(ctx, q.listPublishersWithCountStmt, listPublishersWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listPublishersWithCountStmt, listPublishersWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -366,16 +462,30 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
 ) as cover_url
 FROM series s
 JOIN book_series bs ON s.id = bs.series_id
-WHERE (?1 IS NULL OR s.name > ?1 OR (s.name = ?1 AND s.id > ?2))
+WHERE (?1 IS NULL OR s.name LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(s.name), 1, 1)) = ?2
+       OR SUBSTR(TRIM(s.name), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(s.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(s.name), 1, 1) <> ?5
+           AND SUBSTR(TRIM(s.name), 1, 1) <> ?6))
+  AND (?7 IS NULL OR s.name > ?7 OR (s.name = ?7 AND s.id > ?8))
 GROUP BY s.id, s.name
 ORDER BY s.name ASC, s.id ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListSeriesWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListSeriesWithCountRow struct {
@@ -386,7 +496,17 @@ type ListSeriesWithCountRow struct {
 }
 
 func (q *Queries) ListSeriesWithCount(ctx context.Context, arg ListSeriesWithCountParams) ([]ListSeriesWithCountRow, error) {
-	rows, err := q.query(ctx, q.listSeriesWithCountStmt, listSeriesWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listSeriesWithCountStmt, listSeriesWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -417,16 +537,30 @@ const listTagsWithCount = `-- name: ListTagsWithCount :many
 SELECT t.id, t.name, COUNT(bt.book_id) as book_count
 FROM tags t
 JOIN book_tags bt ON t.id = bt.tag_id
-WHERE (?1 IS NULL OR t.name > ?1 OR (t.name = ?1 AND t.id > ?2))
+WHERE (?1 IS NULL OR t.name LIKE '%' || ?1 || '%')
+  AND (?2 IS NULL
+       OR UPPER(SUBSTR(TRIM(t.name), 1, 1)) = ?2
+       OR SUBSTR(TRIM(t.name), 1, 1) = ?3)
+  AND (?4 IS NULL
+       OR (UPPER(SUBSTR(TRIM(t.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(t.name), 1, 1) <> ?5
+           AND SUBSTR(TRIM(t.name), 1, 1) <> ?6))
+  AND (?7 IS NULL OR t.name > ?7 OR (t.name = ?7 AND t.id > ?8))
 GROUP BY t.id, t.name
 ORDER BY t.name ASC, t.id ASC
-LIMIT ?3
+LIMIT ?9
 `
 
 type ListTagsWithCountParams struct {
-	CursorName interface{}    `json:"cursor_name"`
-	CursorID   sql.NullString `json:"cursor_id"`
-	Limit      int64          `json:"limit"`
+	Search       interface{}    `json:"search"`
+	AlphaUpper   interface{}    `json:"alpha_upper"`
+	AlphaLower   sql.NullString `json:"alpha_lower"`
+	AlphaOther   interface{}    `json:"alpha_other"`
+	DstrokeUpper sql.NullString `json:"dstroke_upper"`
+	DstrokeLower sql.NullString `json:"dstroke_lower"`
+	CursorName   interface{}    `json:"cursor_name"`
+	CursorID     sql.NullString `json:"cursor_id"`
+	Limit        int64          `json:"limit"`
 }
 
 type ListTagsWithCountRow struct {
@@ -436,7 +570,17 @@ type ListTagsWithCountRow struct {
 }
 
 func (q *Queries) ListTagsWithCount(ctx context.Context, arg ListTagsWithCountParams) ([]ListTagsWithCountRow, error) {
-	rows, err := q.query(ctx, q.listTagsWithCountStmt, listTagsWithCount, arg.CursorName, arg.CursorID, arg.Limit)
+	rows, err := q.query(ctx, q.listTagsWithCountStmt, listTagsWithCount,
+		arg.Search,
+		arg.AlphaUpper,
+		arg.AlphaLower,
+		arg.AlphaOther,
+		arg.DstrokeUpper,
+		arg.DstrokeLower,
+		arg.CursorName,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

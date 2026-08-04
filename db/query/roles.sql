@@ -1,7 +1,7 @@
 -- name: CreateRole :one
 INSERT INTO roles (id, name, description, is_system, is_admin, auto_assign)
 VALUES (?, ?, ?, ?, ?, ?)
-RETURNING *;
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at;
 
 -- name: GetRoleByName :one
 SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
@@ -37,13 +37,13 @@ FROM roles WHERE id IN (sqlc.slice('ids'));
 UPDATE roles
 SET name = ?, description = ?, auto_assign = ?
 WHERE id = ? AND is_deleted = 0 AND is_system = 0
-RETURNING *;
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at;
 
 -- name: UpdateSystemRoleDescription :one
 UPDATE roles
 SET description = ?, auto_assign = ?
 WHERE id = ? AND is_deleted = 0 AND is_system = 1 AND is_admin = 0
-RETURNING *;
+RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at;
 
 -- name: DeleteRole :exec
 UPDATE roles

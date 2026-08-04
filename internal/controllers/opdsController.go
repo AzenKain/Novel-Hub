@@ -4,18 +4,33 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/config"
+	"novelhub/pkg/constants"
 
 	"github.com/gofiber/fiber/v3"
 )
 
 type OPDSController struct {
 	opdsService services.OPDSService
+}
+
+func opdsPageQuery(ctx fiber.Ctx) services.OPDSPageQuery {
+	limit := int64(constants.OPDSDefaultPageSize)
+	if raw := strings.TrimSpace(ctx.Query("limit")); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if limit > constants.MaxPaginationLimit {
+		limit = constants.MaxPaginationLimit
+	}
+	return services.OPDSPageQuery{Cursor: strings.TrimSpace(ctx.Query("cursor")), Limit: limit}
 }
 
 func NewOPDSController(opdsService services.OPDSService) *OPDSController {
@@ -54,7 +69,7 @@ func (c *OPDSController) SearchCatalog(ctx fiber.Ctx) error {
 
 	query := ctx.Query("q", "")
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.SearchBooksOPDS(reqCtx, serverURL, query, 50, getOptionalClaims(ctx))
+	feed, err := c.opdsService.SearchBooksOPDS(reqCtx, serverURL, query, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to execute OPDS search")
 	}
@@ -66,9 +81,8 @@ func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	limit := int64(50)
 
-	feed, err := c.opdsService.GetRecentBooks(reqCtx, serverURL, limit, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetRecentBooks(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS catalog")
 	}
@@ -81,7 +95,7 @@ func (c *OPDSController) GetAuthorsCatalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetAuthorsCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetAuthorsCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate authors OPDS catalog")
 	}
@@ -94,7 +108,7 @@ func (c *OPDSController) GetAuthorBooks(ctx fiber.Ctx) error {
 
 	authorName := ctx.Params("name")
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetAuthorBooks(reqCtx, serverURL, authorName, 50, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetAuthorBooks(reqCtx, serverURL, authorName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate author books OPDS catalog")
 	}
@@ -106,7 +120,7 @@ func (c *OPDSController) GetSeriesCatalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetSeriesCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetSeriesCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series OPDS catalog")
 	}
@@ -119,7 +133,7 @@ func (c *OPDSController) GetSeriesBooks(ctx fiber.Ctx) error {
 
 	seriesName := ctx.Params("name")
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetSeriesBooks(reqCtx, serverURL, seriesName, 50, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetSeriesBooks(reqCtx, serverURL, seriesName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series books OPDS catalog")
 	}
@@ -131,7 +145,7 @@ func (c *OPDSController) GetTagsCatalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetTagsCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetTagsCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tags OPDS catalog")
 	}
@@ -144,7 +158,7 @@ func (c *OPDSController) GetTagBooks(ctx fiber.Ctx) error {
 
 	tagName := ctx.Params("name")
 	serverURL := getBaseURL(ctx)
-	feed, err := c.opdsService.GetTagBooks(reqCtx, serverURL, tagName, 50, getOptionalClaims(ctx))
+	feed, err := c.opdsService.GetTagBooks(reqCtx, serverURL, tagName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tag books OPDS catalog")
 	}
@@ -166,7 +180,7 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 }
 
 func getBaseURL(ctx fiber.Ctx) string {
-	if serverURL := config.GetConfigWithDefault("SERVER_URL", ""); serverURL != "" {
+	if serverURL := strings.TrimSpace(config.GetConfigWithDefault("SERVER_URL", "")); serverURL != "" {
 		return strings.TrimSuffix(serverURL, "/")
 	}
 	scheme := "http"

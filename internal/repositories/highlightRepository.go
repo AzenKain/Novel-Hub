@@ -26,6 +26,7 @@ type highlightRepository struct {
 	queries *sqlc.Queries
 	db      *sql.DB
 	c       cache.Cache
+	inTx    bool
 	sfg     *singleflight.Group
 }
 
@@ -46,6 +47,7 @@ func (r *highlightRepository) WithTx(tx *sql.Tx) HighlightRepository {
 		queries: sqlc.New(tx),
 		db:      r.db,
 		c:       r.c,
+		inTx:    true,
 		sfg:     r.sfg,
 	}
 }
@@ -66,7 +68,7 @@ func (r *highlightRepository) Create(ctx context.Context, arg sqlc.CreateHighlig
 func (r *highlightRepository) GetByChapter(ctx context.Context, userID string, chapterID string) ([]*models.HighlightEntity, error) {
 	key := cache.BuildKey("highlight", "ids", "chapter", userID, chapterID)
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			result, err := r.GetHighlightsByIDs(ctx, ids)
@@ -125,7 +127,7 @@ func (r *highlightRepository) GetHighlightsByIDs(ctx context.Context, ids []stri
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -144,7 +146,9 @@ func (r *highlightRepository) GetHighlightsByIDs(ctx context.Context, ids []stri
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.queries.GetHighlightsByIDs(ctx, missingIds)
+		rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Highlight, error) {
+			return r.queries.GetHighlightsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}

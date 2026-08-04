@@ -65,7 +65,7 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -87,7 +87,9 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 		sort.Strings(missingIds)
 		sfgKey := "roles:ids:" + strings.Join(missingIds, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
-			rows, err := r.q.GetRolesByIDs(ctx, missingIds)
+			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Role, error) {
+				return r.q.GetRolesByIDs(ctx, chunk)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -136,7 +138,7 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 
 func (r *roleRepository) GetByID(ctx context.Context, id string) (*models.RoleEntity, error) {
 	key := cache.BuildKey("role", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var role models.RoleEntity
 		if err := r.c.Get(ctx, key, &role); err == nil {
 			return &role, nil
@@ -184,7 +186,9 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 			return []*models.PermissionEntity{}, nil
 		}
 
-		rows, err := r.q.GetPermissionsByKeys(ctx, keyRows)
+		rows, err := queryInChunks(keyRows, func(chunk []string) ([]sqlc.Permission, error) {
+			return r.q.GetPermissionsByKeys(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +215,7 @@ func (r *roleRepository) ListPermissions(ctx context.Context) ([]*models.Permiss
 
 func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.RolePermissionEntity, error) {
 	key := constants.CacheKeyRolePermAll
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			if result, ok := r.getRolePermissionsByIDs(ctx, ids); ok {
@@ -233,7 +237,9 @@ func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.Rol
 			return []*models.RolePermissionEntity{}, nil
 		}
 
-		rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		rows, err := queryInChunks(idRows, func(chunk []string) ([]sqlc.RolePermission, error) {
+			return r.q.GetRolePermissionsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +265,7 @@ func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.Rol
 
 func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID string) ([]*models.RolePermissionEntity, error) {
 	key := cache.BuildKey("role", "permissions", roleID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			if result, ok := r.getRolePermissionsByIDs(ctx, ids); ok {
@@ -281,7 +287,9 @@ func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID string) 
 			return []*models.RolePermissionEntity{}, nil
 		}
 
-		rows, err := r.q.GetRolePermissionsByIDs(ctx, idRows)
+		rows, err := queryInChunks(idRows, func(chunk []string) ([]sqlc.RolePermission, error) {
+			return r.q.GetRolePermissionsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -412,7 +420,7 @@ func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParam
 			delKeys = append(delKeys, cache.BuildKey("role", "name", old.Name))
 			// Role name is an authorization input (IsAdmin matches r.Name == "ADMIN"),
 			// and hydrateRoles caches RoleSimple{ID, Name} per user.
-			_ = r.c.DelByPattern(context.Background(), "user:*")
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserAllPattern)
 		}
 		_ = r.c.Del(ctx, delKeys...)
 	}
@@ -442,9 +450,9 @@ func (r *roleRepository) Delete(ctx context.Context, id string) error {
 		if oldErr == nil {
 			_ = r.c.Del(ctx, cache.BuildKey("role", "name", old.Name))
 		} else {
-			_ = r.c.DelByPattern(context.Background(), "role:name:*")
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyRoleNamePattern)
 		}
-		_ = r.c.DelByPattern(context.Background(), "user:*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserAllPattern)
 	}
 	return nil
 }

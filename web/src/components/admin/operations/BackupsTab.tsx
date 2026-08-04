@@ -114,7 +114,10 @@ export function BackupsTab() {
                     disabled={remove.isPending}
                     onClick={() => {
                       if (window.confirm(t("admin.operations.confirm_delete")))
-                        remove.mutate(item.name);
+                        remove.mutate(item.name, {
+                          onError: () =>
+                            toast.error(t("admin.operations.action_failed")),
+                        });
                     }}
                   >
                     {t("common.delete")}

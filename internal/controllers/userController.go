@@ -9,8 +9,8 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
-	"novelhub/pkg/validator"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/validator"
 )
 
 type UserController struct {
@@ -189,7 +189,12 @@ func (h *UserController) RestoreUser(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	res, err := h.service.RestoreUser(ctx, c.Params("id"))
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	res, err := h.service.RestoreUser(ctx, c.Params("id"), claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

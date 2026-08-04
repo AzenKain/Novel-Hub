@@ -11,7 +11,7 @@ INSERT INTO collections (
 ) VALUES (
     ?, ?, ?
 )
-RETURNING *;
+RETURNING id, user_id, name, created_at, updated_at;
 
 -- name: GetUserCollectionIDs :many
 SELECT id FROM collections
@@ -39,7 +39,7 @@ WHERE id = ? AND user_id = ?;
 UPDATE collections
 SET name = ?
 WHERE id = ? AND user_id = ?
-RETURNING *;
+RETURNING id, user_id, name, created_at, updated_at;
 
 -- name: AddBookToCollection :exec
 INSERT INTO collection_books (
@@ -92,12 +92,12 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     progress_percent = excluded.progress_percent,
     location_cfi = excluded.location_cfi,
     location_type = excluded.location_type,
-    opened_count = excluded.opened_count,
-    qualified_read_count = excluded.qualified_read_count,
+    opened_count = reading_progress.opened_count + excluded.opened_count,
+    qualified_read_count = reading_progress.qualified_read_count + excluded.qualified_read_count,
     last_opened_at = CURRENT_TIMESTAMP,
     last_counted_at = COALESCE(excluded.last_counted_at, reading_progress.last_counted_at),
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at;
 
 -- name: GetBookReadStats :one
 SELECT book_id, total_open_count, qualified_read_count, last_opened_at, last_counted_at, updated_at FROM book_read_stats
@@ -175,7 +175,7 @@ INSERT INTO bookmarks (
 )
 ON CONFLICT(user_id, book_id) DO UPDATE SET
     created_at = bookmarks.created_at
-RETURNING *;
+RETURNING user_id, book_id, created_at;
 
 -- name: DeleteBookmark :exec
 DELETE FROM bookmarks
@@ -221,7 +221,7 @@ ON CONFLICT(user_id, book_id) DO UPDATE SET
     rating = excluded.rating,
     review = excluded.review,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING user_id, book_id, rating, review, created_at, updated_at;
 
 -- name: DeleteBookReview :exec
 DELETE FROM book_reviews
@@ -287,7 +287,7 @@ INSERT INTO book_share_events (
     ?, ?, ?, CURRENT_TIMESTAMP
 )
 ON CONFLICT(book_id, actor_key, window_bucket) DO NOTHING
-RETURNING *;
+RETURNING book_id, actor_key, window_bucket, created_at;
 
 -- name: UpsertBookShareStats :exec
 INSERT INTO book_social_stats (
@@ -315,7 +315,6 @@ SELECT cb.collection_id
 FROM collection_books cb
 JOIN collections c ON c.id = cb.collection_id
 WHERE c.user_id = ? AND cb.book_id = ?;
-
 
 -- name: ListAllReviews :many
 SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,

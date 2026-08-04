@@ -218,22 +218,6 @@ export const featureService = {
     }
   },
 
-  adminDeleteBookReview: async (
-    book_id: string,
-    user_id: string,
-  ): Promise<CommonResponse<void>> => {
-    try {
-      const res = await api.delete(
-        `/admin/reviews/${encodeURIComponent(book_id)}/${user_id}`,
-      );
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<void>;
-      throw error;
-    }
-  },
-
   updateCollection: async (
     id: string,
     name: string,

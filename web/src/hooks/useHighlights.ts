@@ -1,7 +1,9 @@
 import { highlightService } from '@/services';
 import type { Highlight } from '@/types';
+import i18n from '@/i18n';
 import { useAuthStore } from '@/stores';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { useShallow } from 'zustand/react/shallow';
 
 export const useHighlights = (book_id: string, chapter_id: string | undefined, enabled = true) => {
@@ -56,6 +58,7 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
     try {
       return await addMutation.mutateAsync({ text_content, start_index, end_index, color });
     } catch (err) {
+      toast.error(i18n.t('reader.highlight_create_failed', 'Could not save the highlight'));
       console.error("Failed to create highlight", err);
       return null;
     }
@@ -65,6 +68,7 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
     try {
       return await updateMutation.mutateAsync({ id, color, note });
     } catch (err) {
+      toast.error(i18n.t('reader.highlight_update_failed', 'Could not update the highlight'));
       console.error("Failed to update highlight", err);
       return null;
     }
@@ -74,6 +78,7 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
     try {
       await deleteMutation.mutateAsync(id);
     } catch (err) {
+      toast.error(i18n.t('reader.highlight_delete_failed', 'Could not delete the highlight'));
       console.error("Failed to delete highlight", err);
     }
   };

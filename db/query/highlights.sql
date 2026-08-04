@@ -3,7 +3,7 @@ INSERT INTO highlights (
     id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?, ?
-) RETURNING *;
+) RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at;
 
 -- name: GetHighlightsByIDs :many
 SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at FROM highlights
@@ -17,7 +17,7 @@ WHERE id = ? AND user_id = ?;
 UPDATE highlights
 SET note = ?, color = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?
-RETURNING *;
+RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at;
 
 -- name: GetHighlightsByChapter :many
 SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at FROM highlights

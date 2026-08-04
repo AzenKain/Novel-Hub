@@ -63,10 +63,6 @@ type UpsertReadingGoalDto struct {
 	TargetBooksPerYear int64 `json:"target_books_per_year" validate:"required,min=1,max=10000"`
 }
 
-// SmartCollectionRuleDto mirrors the filter fields of SearchBookDto. It is a
-// closed struct on purpose: rule_json is read back out and replayed into a
-// library URL, so this is a trust boundary — free-form JSON must not survive a
-// round trip through the database.
 type SmartCollectionRuleDto struct {
 	Search     string `json:"search,omitempty" validate:"omitempty,max=200"`
 	LibraryID  string `json:"library_id,omitempty" validate:"omitempty,max=200"`

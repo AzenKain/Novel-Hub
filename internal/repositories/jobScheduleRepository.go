@@ -28,9 +28,10 @@ type JobScheduleRepository interface {
 }
 
 type jobScheduleRepository struct {
-	q   *sqlc.Queries
-	c   cache.Cache
-	sfg *singleflight.Group
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sfg  *singleflight.Group
 }
 
 func NewJobScheduleRepository(db sqlc.DBTX, c cache.Cache) JobScheduleRepository {
@@ -41,12 +42,12 @@ func (r *jobScheduleRepository) WithTx(tx *sql.Tx) JobScheduleRepository {
 	if tx == nil {
 		return r
 	}
-	return &jobScheduleRepository{q: r.q.WithTx(tx), c: r.c, sfg: r.sfg}
+	return &jobScheduleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: r.sfg}
 }
 
 func (r *jobScheduleRepository) Get(ctx context.Context, id string) (*models.JobScheduleEntity, error) {
 	key := cache.BuildKey("job_schedule", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var entity models.JobScheduleEntity
 		if err := r.c.Get(ctx, key, &entity); err == nil {
 			return &entity, nil
@@ -82,7 +83,7 @@ func (r *jobScheduleRepository) GetByIDs(ctx context.Context, ids []string) ([]*
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -101,7 +102,9 @@ func (r *jobScheduleRepository) GetByIDs(ctx context.Context, ids []string) ([]*
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.q.GetJobSchedulesByIDs(ctx, missingIds)
+		rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.JobSchedule, error) {
+			return r.q.GetJobSchedulesByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +144,7 @@ func (r *jobScheduleRepository) GetByIDs(ctx context.Context, ids []string) ([]*
 
 func (r *jobScheduleRepository) List(ctx context.Context) ([]*models.JobScheduleEntity, error) {
 	key := constants.CacheKeyJobScheduleList
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetByIDs(ctx, ids)

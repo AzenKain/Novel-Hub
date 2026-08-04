@@ -1,6 +1,8 @@
 import { adminService, bookService, featureService, libraryService } from "@/services";
 import type { Collection, DuplicateGroupResult, Library, LibraryStats, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
+import i18n from "@/i18n";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 export function useLibrariesQuery() {
   return useQuery<Library[]>({
@@ -66,6 +68,9 @@ export function useCreateSmartCollectionMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["smart-collections"] });
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_collection_create_failed", "Could not save the smart collection"));
+    },
   });
 }
 
@@ -79,6 +84,9 @@ export function useDeleteSmartCollectionMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["smart-collections"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_collection_delete_failed", "Could not delete the smart collection"));
     },
   });
 }

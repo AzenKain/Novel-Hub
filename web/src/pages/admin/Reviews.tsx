@@ -2,10 +2,12 @@ import { useDeleteReviewMutation, useReviewsQuery } from "@/hooks";
 import { useReviewAdminStore } from "@/stores";
 import { AlertCircle, Loader2, MessageSquareText, RefreshCw, Star, Trash2 } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 
 export function Reviews() {
+  const { t } = useTranslation();
   const {
     reviews, setReviews,
     loading, setLoading,
@@ -60,7 +62,7 @@ export function Reviews() {
       { book_id: reviewToDelete.book_id, user_id: reviewToDelete.user_id },
       {
         onSuccess: () => {
-          toast.success("Review deleted");
+          toast.success(t("admin.review_deleted", "Review deleted"));
           setReviews((prev) =>
             prev.filter(
               (r) => !(r.book_id === reviewToDelete.book_id && r.user_id === reviewToDelete.user_id)
@@ -95,8 +97,8 @@ export function Reviews() {
       {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Review Moderation</h1>
-          <p className="text-sm text-base-content/60 mt-1">View and manage all user reviews</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("admin.review_moderation", "Review Moderation")}</h1>
+          <p className="text-sm text-base-content/60 mt-1">{t("admin.review_moderation_desc", "View and manage all user reviews")}</p>
         </div>
         <button
           onClick={() => {
@@ -104,7 +106,7 @@ export function Reviews() {
             void refetch();
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
-          title="Refresh"
+          title={t("admin.operations.refresh", "Refresh")}
         >
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -168,7 +170,7 @@ export function Reviews() {
                       onClick={() => setReviewToDelete(review)}
                       disabled={deleting === `${review.book_id}-${review.user_id}`}
                       className="btn btn-ghost btn-sm text-error hover:bg-error/10 shrink-0"
-                      title="Delete review"
+                      title={t("admin.review_delete", "Delete review")}
                     >
                       {deleting === `${review.book_id}-${review.user_id}` ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -190,7 +192,7 @@ export function Reviews() {
                     {loading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      "Load More"
+                      t("common.load_more", "Load More")
                     )}
                   </button>
                 </div>
@@ -205,16 +207,19 @@ export function Reviews() {
         <div className="modal-box">
           <h3 className="font-bold text-lg text-error flex items-center gap-2">
             <AlertCircle className="w-6 h-6" />
-            Delete Review
+            {t("admin.review_delete_title", "Delete Review")}
           </h3>
           <div className="py-4">
             <p className="text-sm opacity-80 mb-3">
-              Are you sure you want to delete this review? This action cannot be undone.
+              {t("admin.review_delete_confirm", "Are you sure you want to delete this review? This action cannot be undone.")}
             </p>
             <div className="bg-base-200/50 p-3 rounded-lg text-sm">
               <p className="font-medium">{reviewToDelete?.book_title || reviewToDelete?.book_id}</p>
               <p className="text-xs opacity-60 mt-1">
-                by {reviewToDelete?.user_name || reviewToDelete?.user_email || "User"} · Rating: {reviewToDelete?.rating}/5
+                {t("admin.review_by_rating", "by {{name}} · Rating: {{rating}}/5", {
+                  name: reviewToDelete?.user_name || reviewToDelete?.user_email || t("common.user", "User"),
+                  rating: reviewToDelete?.rating,
+                })}
               </p>
               {reviewToDelete?.review && (
                 <p className="text-xs opacity-70 mt-2 italic line-clamp-3">"{reviewToDelete.review}"</p>
@@ -223,7 +228,7 @@ export function Reviews() {
           </div>
           <div className="modal-action">
             <button onClick={() => setReviewToDelete(null)} className="btn btn-ghost">
-              Cancel
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               onClick={confirmDelete}
@@ -233,7 +238,7 @@ export function Reviews() {
               {deleting !== null ? (
                 <span className="loading loading-spinner loading-xs"></span>
               ) : (
-                "Delete Review"
+                t("admin.review_delete_title", "Delete Review")
               )}
             </button>
           </div>

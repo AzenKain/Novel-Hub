@@ -425,7 +425,6 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 
 		chPath := resolveEPUBHref(baseDir, item.Href)
 
-		
 		title := extractTitleFromZip(r, chPath)
 		if title == "" {
 			base := strings.TrimSuffix(filepath.Base(item.Href), filepath.Ext(item.Href))

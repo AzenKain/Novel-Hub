@@ -25,17 +25,21 @@ type WebhookRepository interface {
 }
 
 type webhookRepository struct {
-	q  *sqlc.Queries
-	c  cache.Cache
-	sf singleflight.Group
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sf   *singleflight.Group
 }
 
 func NewWebhookRepository(db sqlc.DBTX, c cache.Cache) WebhookRepository {
-	return &webhookRepository{q: sqlc.New(db), c: c}
+	return &webhookRepository{q: sqlc.New(db), c: c, sf: &singleflight.Group{}}
 }
 
 func (r *webhookRepository) WithTx(tx *sql.Tx) WebhookRepository {
-	return &webhookRepository{q: r.q.WithTx(tx), c: r.c}
+	if tx == nil {
+		return r
+	}
+	return &webhookRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sf: r.sf}
 }
 
 func (r *webhookRepository) Create(ctx context.Context, entity *models.WebhookEntity) (*models.WebhookEntity, error) {
@@ -69,7 +73,7 @@ func (r *webhookRepository) Create(ctx context.Context, entity *models.WebhookEn
 
 func (r *webhookRepository) GetByID(ctx context.Context, id string) (*models.WebhookEntity, error) {
 	cacheKey := cache.BuildKey("webhook", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var entity models.WebhookEntity
 		if err := r.c.Get(ctx, cacheKey, &entity); err == nil {
 			return &entity, nil
@@ -96,7 +100,7 @@ func (r *webhookRepository) GetByID(ctx context.Context, id string) (*models.Web
 
 func (r *webhookRepository) ListAll(ctx context.Context) ([]*models.WebhookEntity, error) {
 	key := constants.CacheKeyWebhookAll
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var cached []*models.WebhookEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
 			return cached, nil
@@ -125,7 +129,7 @@ func (r *webhookRepository) ListAll(ctx context.Context) ([]*models.WebhookEntit
 
 func (r *webhookRepository) ListActive(ctx context.Context) ([]*models.WebhookEntity, error) {
 	key := constants.CacheKeyWebhookActive
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var cached []*models.WebhookEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
 			return cached, nil

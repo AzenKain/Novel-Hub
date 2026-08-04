@@ -12,6 +12,10 @@ export function useBooksQuery(params: SearchBookParams, enabled = true) {
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
+    refetchInterval: (query) =>
+      query.state.data?.pages.some((page) => page.data?.some((book) => book.status === "processing"))
+        ? 3000
+        : false,
     enabled,
   });
 }

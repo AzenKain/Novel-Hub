@@ -9,7 +9,7 @@ SET
     duration_seconds = reading_sessions.duration_seconds + excluded.duration_seconds,
     words_read = reading_sessions.words_read + excluded.words_read,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, book_id, duration_seconds, words_read, session_date, created_at, updated_at;
 
 -- name: GetReadingHeatmap :many
 SELECT session_date, SUM(duration_seconds) as total_duration, SUM(words_read) as total_words

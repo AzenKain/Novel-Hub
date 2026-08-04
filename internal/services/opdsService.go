@@ -3,27 +3,34 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/opds"
 )
 
+type OPDSPageQuery struct {
+	Cursor string
+	Limit  int64
+}
+
 type OPDSService interface {
 	GetRootCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetRecentBooks(ctx context.Context, serverURL string, limit int64, claims *response.JWTClaims) (*opds.Feed, error)
+	GetRecentBooks(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
 	GetOpenSearchDescription(serverURL string) *opds.OpenSearchDescription
-	SearchBooksOPDS(ctx context.Context, serverURL string, query string, limit int64, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorsCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorBooks(ctx context.Context, serverURL string, authorName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagsCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagBooks(ctx context.Context, serverURL string, tagName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error)
+	SearchBooksOPDS(ctx context.Context, serverURL string, query string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagBooks(ctx context.Context, serverURL string, tagName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
 	GetOPDS2Catalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (map[string]any, error)
 }
 
@@ -108,23 +115,64 @@ func (s *opdsService) GetOpenSearchDescription(serverURL string) *opds.OpenSearc
 	}
 }
 
-func (s *opdsService) visibleBooks(ctx context.Context, limit int64, claims *response.JWTClaims) ([]*models.BookEntity, error) {
-	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", nil, "", limit)
-	if err != nil {
-		return nil, err
-	}
+type visiblePage struct {
+	Books      []*models.BookEntity
+	NextCursor string
+}
+
+func (s *opdsService) filterVisible(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) []*models.BookEntity {
 	readable, allowed := s.books.FilterReadableBooks(ctx, books, claims)
 	if !allowed {
-		return []*models.BookEntity{}, nil
+		return []*models.BookEntity{}
 	}
-	visible := readable[:0]
+	visible := make([]*models.BookEntity, 0, len(readable))
 	for _, book := range readable {
 		if s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSRead, map[string]any{"library_id": book.LibraryID}) {
 			visible = append(visible, book)
 		}
 	}
-	return visible, nil
+	return visible
+}
+
+func nextCursor(rows []*models.BookEntity, limit int64) string {
+	if int64(len(rows)) < limit || len(rows) == 0 {
+		return ""
+	}
+	last := rows[len(rows)-1]
+	return convert.EncodeCursor(last.CreatedAt, last.ID)
+}
+
+func decodeBookCursor(cursor string) (*time.Time, string) {
+	if cursor == "" {
+		return nil, ""
+	}
+	parts := convert.DecodeCursor(cursor)
+	if len(parts) != 2 {
+		return nil, ""
+	}
+	t, err := time.Parse(time.RFC3339Nano, parts[0])
+	if err != nil {
+		return nil, ""
+	}
+	return &t, parts[1]
+}
+
+func (s *opdsService) visibleBooks(ctx context.Context, limit int64, claims *response.JWTClaims) ([]*models.BookEntity, error) {
+	page, err := s.visibleBooksPage(ctx, OPDSPageQuery{Limit: limit}, claims)
+	if err != nil {
+		return nil, err
+	}
+	return page.Books, nil
+}
+
+func (s *opdsService) visibleBooksPage(ctx context.Context, q OPDSPageQuery, claims *response.JWTClaims) (visiblePage, error) {
+	claims = resolveClaims(claims)
+	cursorTime, cursorID := decodeBookCursor(q.Cursor)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", cursorTime, cursorID, q.Limit)
+	if err != nil {
+		return visiblePage{}, err
+	}
+	return visiblePage{Books: s.filterVisible(ctx, books, claims), NextCursor: nextCursor(books, q.Limit)}, nil
 }
 
 func (s *opdsService) canAcquire(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
@@ -132,8 +180,23 @@ func (s *opdsService) canAcquire(ctx context.Context, book *models.BookEntity, c
 	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSDownload, map[string]any{"library_id": book.LibraryID}) && s.books.CanDownloadBook(ctx, book, claims)
 }
 
-func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, limit int64, claims *response.JWTClaims) (*opds.Feed, error) {
-	books, err := s.visibleBooks(ctx, limit, claims)
+func appendNextLink(feed *opds.Feed, serverURL, selfPath, cursor string) {
+	if cursor == "" {
+		return
+	}
+	separator := "?"
+	if strings.Contains(selfPath, "?") {
+		separator = "&"
+	}
+	feed.Links = append(feed.Links, opds.Link{
+		Rel:  "next",
+		Href: serverURL + selfPath + separator + "cursor=" + url.QueryEscape(cursor),
+		Type: "application/atom+xml;profile=opds-catalog;kind=acquisition",
+	})
+}
+
+func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
 	}
@@ -141,58 +204,55 @@ func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, limi
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:recent", Title: "Recent Additions", Updated: now,
+		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
 			{Rel: "self", Href: serverURL + "/api/opds/v1/recent", Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
 			{Rel: "search", Href: serverURL + "/api/opds/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
 		},
 	}
-	for _, book := range books {
+	for _, book := range page.Books {
 		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
 	}
+	appendNextLink(feed, serverURL, "/api/opds/v1/recent", page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, limit int64, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, query, "", "", "", "", nil, "", limit)
+	cursorTime, cursorID := decodeBookCursor(q.Cursor)
+	books, err := s.books.SearchBooks(ctx, nil, nil, query, "", "", "", "", cursorTime, cursorID, q.Limit)
 	if err != nil {
 		return nil, err
 	}
-	readable, allowed := s.books.FilterReadableBooks(ctx, books, claims)
-	if !allowed {
-		readable = []*models.BookEntity{}
-	}
-	visible := readable[:0]
-	for _, book := range readable {
-		if s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSRead, map[string]any{"library_id": book.LibraryID}) {
-			visible = append(visible, book)
-		}
-	}
+	visible := s.filterVisible(ctx, books, claims)
 
 	now := time.Now()
+	selfPath := "/api/opds/v1/search?q=" + url.QueryEscape(query)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:search:" + query, Title: "Search Results for " + query, Updated: now,
+		ItemsPerPage: int(q.Limit),
 		TotalResults: len(visible),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/search?q=" + query, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
 		},
 	}
 	for _, book := range visible {
 		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
 	}
+	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error) {
-	books, err := s.visibleBooks(ctx, 200, claims)
+func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
 	}
 	authorsMap := make(map[string]int)
-	for _, b := range books {
+	for _, b := range page.Books {
 		if b.AuthorName != nil && *b.AuthorName != "" {
 			authorsMap[*b.AuthorName]++
 		}
@@ -213,51 +273,47 @@ func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, c
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/authors/" + author, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + "/api/opds/v1/authors/" + url.PathEscape(author), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			},
 		})
 	}
+	appendNextLink(feed, serverURL, "/api/opds/v1/authors", page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", authorName, "", "", "", nil, "", limit)
+	cursorTime, cursorID := decodeBookCursor(q.Cursor)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", authorName, "", "", "", cursorTime, cursorID, q.Limit)
 	if err != nil {
 		return nil, err
 	}
-	readable, allowed := s.books.FilterReadableBooks(ctx, books, claims)
-	if !allowed {
-		readable = []*models.BookEntity{}
-	}
-	visible := readable[:0]
-	for _, book := range readable {
-		if s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSRead, map[string]any{"library_id": book.LibraryID}) {
-			visible = append(visible, book)
-		}
-	}
+	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
+	selfPath := "/api/opds/v1/authors/" + url.PathEscape(authorName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:author:" + authorName, Title: "Books by " + authorName, Updated: now,
+		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/authors/" + authorName, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
 		},
 	}
 	for _, book := range visible {
 		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
 	}
+	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error) {
-	books, err := s.visibleBooks(ctx, 200, claims)
+func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
 	}
 	seriesMap := make(map[string]int)
-	for _, b := range books {
+	for _, b := range page.Books {
 		series := getBookSeries(b)
 		if series != "" {
 			seriesMap[series]++
@@ -279,51 +335,47 @@ func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, cl
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/series/" + series, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + "/api/opds/v1/series/" + url.PathEscape(series), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			},
 		})
 	}
+	appendNextLink(feed, serverURL, "/api/opds/v1/series", page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", seriesName, "", "", nil, "", limit)
+	cursorTime, cursorID := decodeBookCursor(q.Cursor)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", seriesName, "", "", cursorTime, cursorID, q.Limit)
 	if err != nil {
 		return nil, err
 	}
-	readable, allowed := s.books.FilterReadableBooks(ctx, books, claims)
-	if !allowed {
-		readable = []*models.BookEntity{}
-	}
-	visible := readable[:0]
-	for _, book := range readable {
-		if s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSRead, map[string]any{"library_id": book.LibraryID}) {
-			visible = append(visible, book)
-		}
-	}
+	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
+	selfPath := "/api/opds/v1/series/" + url.PathEscape(seriesName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:series:" + seriesName, Title: "Series: " + seriesName, Updated: now,
+		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/series/" + seriesName, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
 		},
 	}
 	for _, book := range visible {
 		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
 	}
+	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error) {
-	books, err := s.visibleBooks(ctx, 200, claims)
+func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
 	}
 	tagsMap := make(map[string]int)
-	for _, b := range books {
+	for _, b := range page.Books {
 		for _, tag := range getBookTags(b) {
 			if tag != "" {
 				tagsMap[tag]++
@@ -346,41 +398,37 @@ func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, clai
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/tags/" + tag, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + "/api/opds/v1/tags/" + url.PathEscape(tag), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			},
 		})
 	}
+	appendNextLink(feed, serverURL, "/api/opds/v1/tags", page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, limit int64, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", tagName, "", nil, "", limit)
+	cursorTime, cursorID := decodeBookCursor(q.Cursor)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", tagName, "", cursorTime, cursorID, q.Limit)
 	if err != nil {
 		return nil, err
 	}
-	readable, allowed := s.books.FilterReadableBooks(ctx, books, claims)
-	if !allowed {
-		readable = []*models.BookEntity{}
-	}
-	visible := readable[:0]
-	for _, book := range readable {
-		if s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSRead, map[string]any{"library_id": book.LibraryID}) {
-			visible = append(visible, book)
-		}
-	}
+	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
+	selfPath := "/api/opds/v1/tags/" + url.PathEscape(tagName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:tag:" + tagName, Title: "Tag: " + tagName, Updated: now,
+		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/tags/" + tagName, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
 		},
 	}
 	for _, book := range visible {
 		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
 	}
+	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 

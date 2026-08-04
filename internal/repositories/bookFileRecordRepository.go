@@ -24,13 +24,13 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
 		// Format facets (ListFormatsWithCount) read book_files exclusively, and
 		// SearchBookIDs filters on it via filter_has_files/filter_has_formats/file_format.
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -48,11 +48,11 @@ func (r *bookDBRepository) UpsertBookFile(ctx context.Context, params sqlc.Upser
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
 		)
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -299,10 +299,10 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
-			_ = r.c.DelByPattern(context.Background(), "book_file:*")
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileNamespacePattern)
 		}
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
 	}
 	return nil
 }
@@ -374,13 +374,13 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 		} else {
 			// The pre-read failed, so the path/book/count keys are unknown — sweep the
 			// domain rather than leaving book_file:path:<path> pointing at a deleted row.
-			_ = r.c.DelByPattern(context.Background(), "book_file:*")
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileNamespacePattern)
 		}
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }

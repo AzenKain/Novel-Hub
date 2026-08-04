@@ -1,36 +1,38 @@
 import { metadataService } from "@/services";
-import type { MetadataCount } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import type { MetadataCount, MetadataFacetParams } from "@/types";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
-export function useMetadataFacetQuery(facet: "authors" | "series" | "tags" | "publishers" | "languages" | "formats") {
-  return useQuery<MetadataCount[]>({
-    queryKey: ["metadata", facet],
-    queryFn: async () => {
-      let res;
-      switch (facet) {
-        case "authors":
-          res = await metadataService.listAuthors();
-          break;
-        case "series":
-          res = await metadataService.listSeries();
-          break;
-        case "tags":
-          res = await metadataService.listTags();
-          break;
-        case "publishers":
-          res = await metadataService.listPublishers();
-          break;
-        case "languages":
-          res = await metadataService.listLanguages();
-          break;
-        case "formats":
-          res = await metadataService.listFormats();
-          break;
-        default:
-          throw new Error("Invalid facet type");
-      }
+export type MetadataFacet = "authors" | "series" | "tags" | "publishers" | "languages" | "formats";
+
+const fetchers: Record<MetadataFacet, (params: MetadataFacetParams) => ReturnType<typeof metadataService.listAuthors>> = {
+  authors: (params) => metadataService.listAuthors(params),
+  series: (params) => metadataService.listSeries(params),
+  tags: (params) => metadataService.listTags(params),
+  publishers: (params) => metadataService.listPublishers(params),
+  languages: (params) => metadataService.listLanguages(params),
+  formats: (params) => metadataService.listFormats(params),
+};
+
+export function useMetadataFacetQuery(
+  facet: MetadataFacet,
+  filters: { search?: string; alpha?: string } = {},
+) {
+  const search = filters.search?.trim() || undefined;
+  const alpha = filters.alpha && filters.alpha !== "All" ? filters.alpha : undefined;
+
+  const query = useInfiniteQuery({
+    queryKey: ["metadata", facet, { search, alpha }],
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const fetch = fetchers[facet];
+      if (!fetch) throw new Error("Invalid facet type");
+      const res = await fetch({ cursor: pageParam, limit: 50, search, alpha });
       if (!res.status) throw new Error(res.message || `Failed to fetch metadata ${facet}`);
-      return res.data || [];
+      return res;
     },
+    getNextPageParam: (lastPage) => lastPage.pagination?.next_cursor || undefined,
   });
+
+  const items: MetadataCount[] = query.data?.pages.flatMap((page) => page.data || []) ?? [];
+  return { ...query, items };
 }

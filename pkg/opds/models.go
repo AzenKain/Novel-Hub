@@ -62,13 +62,13 @@ type Category struct {
 }
 
 type OpenSearchDescription struct {
-	XMLName        xml.Name        `xml:"OpenSearchDescription"`
-	Xmlns          string          `xml:"xmlns,attr"`
-	ShortName      string          `xml:"ShortName"`
-	Description    string          `xml:"Description"`
-	InputEncoding  string          `xml:"InputEncoding"`
-	OutputEncoding string          `xml:"OutputEncoding"`
-	URL            OpenSearchURL   `xml:"Url"`
+	XMLName        xml.Name      `xml:"OpenSearchDescription"`
+	Xmlns          string        `xml:"xmlns,attr"`
+	ShortName      string        `xml:"ShortName"`
+	Description    string        `xml:"Description"`
+	InputEncoding  string        `xml:"InputEncoding"`
+	OutputEncoding string        `xml:"OutputEncoding"`
+	URL            OpenSearchURL `xml:"Url"`
 }
 
 type OpenSearchURL struct {

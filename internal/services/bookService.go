@@ -351,65 +351,81 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		return err
 	}
 
-	s.syncParsedMetadata(ctx, txRepo, book.ID, meta)
+	if err := s.syncParsedMetadata(ctx, txRepo, book.ID, meta); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
 
-func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.BookDBRepository, bookID string, meta *bookparser.BookMetadata) {
+func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.BookDBRepository, bookID string, meta *bookparser.BookMetadata) error {
 	if meta == nil {
-		return
+		return nil
 	}
-	_ = repo.ClearBookSeries(ctx, bookID)
+	if err := repo.ClearBookSeries(ctx, bookID); err != nil {
+		return err
+	}
 	if meta.Series != "" {
 		series, err := repo.GetSeriesByName(ctx, meta.Series)
 		if err != nil {
-			series = &models.SeriesEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: meta.Series,
+			series = &models.SeriesEntity{ID: uuid.Must(uuid.NewV7()).String(), Name: meta.Series}
+			if err := repo.CreateSeries(ctx, series); err != nil {
+				return err
 			}
-			_ = repo.CreateSeries(ctx, series)
 		}
-		if series != nil && series.ID != "" {
-			var index *string
-			if meta.SeriesIndex != "" {
-				index = &meta.SeriesIndex
-			}
-			_ = repo.LinkBookSeries(ctx, bookID, series.ID, index)
+		if series == nil || series.ID == "" {
+			return fmt.Errorf("resolved series has no ID")
+		}
+		var index *string
+		if meta.SeriesIndex != "" {
+			index = &meta.SeriesIndex
+		}
+		if err := repo.LinkBookSeries(ctx, bookID, series.ID, index); err != nil {
+			return err
 		}
 	}
 
-	_ = repo.ClearBookPublishers(ctx, bookID)
+	if err := repo.ClearBookPublishers(ctx, bookID); err != nil {
+		return err
+	}
 	if meta.Publisher != "" {
 		publisher, err := repo.GetPublisherByName(ctx, meta.Publisher)
 		if err != nil {
-			publisher = &models.PublisherEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: meta.Publisher,
+			publisher = &models.PublisherEntity{ID: uuid.Must(uuid.NewV7()).String(), Name: meta.Publisher}
+			if err := repo.CreatePublisher(ctx, publisher); err != nil {
+				return err
 			}
-			_ = repo.CreatePublisher(ctx, publisher)
 		}
-		if publisher != nil && publisher.ID != "" {
-			_ = repo.LinkBookPublisher(ctx, bookID, publisher.ID)
+		if publisher == nil || publisher.ID == "" {
+			return fmt.Errorf("resolved publisher has no ID")
+		}
+		if err := repo.LinkBookPublisher(ctx, bookID, publisher.ID); err != nil {
+			return err
 		}
 	}
 
-	_ = repo.ClearBookLanguages(ctx, bookID)
+	if err := repo.ClearBookLanguages(ctx, bookID); err != nil {
+		return err
+	}
 	if meta.Language != "" {
 		language, err := repo.GetLanguageByName(ctx, meta.Language)
 		if err != nil {
-			language = &models.LanguageEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: meta.Language,
+			language = &models.LanguageEntity{ID: uuid.Must(uuid.NewV7()).String(), Name: meta.Language}
+			if err := repo.CreateLanguage(ctx, language); err != nil {
+				return err
 			}
-			_ = repo.CreateLanguage(ctx, language)
 		}
-		if language != nil && language.ID != "" {
-			_ = repo.LinkBookLanguage(ctx, bookID, language.ID)
+		if language == nil || language.ID == "" {
+			return fmt.Errorf("resolved language has no ID")
+		}
+		if err := repo.LinkBookLanguage(ctx, bookID, language.ID); err != nil {
+			return err
 		}
 	}
 
-	_ = repo.ClearBookTags(ctx, bookID)
+	if err := repo.ClearBookTags(ctx, bookID); err != nil {
+		return err
+	}
 	for _, tagName := range meta.Subjects {
 		tagName = strings.TrimSpace(tagName)
 		if tagName == "" {
@@ -417,15 +433,19 @@ func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.
 		}
 		tag, err := repo.GetTagByName(ctx, tagName)
 		if err != nil {
-			newTagID := uuid.Must(uuid.NewV7()).String()
-			if err := repo.CreateTag(ctx, &models.TagEntity{ID: newTagID, Name: tagName}); err == nil {
-				tag = &models.TagEntity{ID: newTagID, Name: tagName}
+			tag = &models.TagEntity{ID: uuid.Must(uuid.NewV7()).String(), Name: tagName}
+			if err := repo.CreateTag(ctx, tag); err != nil {
+				return err
 			}
 		}
-		if tag != nil && tag.ID != "" {
-			_ = repo.AddBookTag(ctx, bookID, tag.ID)
+		if tag == nil || tag.ID == "" {
+			return fmt.Errorf("resolved tag has no ID")
+		}
+		if err := repo.AddBookTag(ctx, bookID, tag.ID); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*models.FTSResultEntity, error) {
@@ -556,88 +576,18 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		return err
 	}
 
-	_ = txRepo.ClearBookSeries(ctx, book.ID)
-	if req.Series != "" {
-		series, err := txRepo.GetSeriesByName(ctx, req.Series)
-		if err != nil {
-			series = &models.SeriesEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: req.Series,
-			}
-			_ = txRepo.CreateSeries(ctx, series)
-		}
-		if series != nil && series.ID != "" {
-			var seriesIndex *string
-			if req.SeriesIndex != "" {
-				seriesIndex = &req.SeriesIndex
-			}
-			_ = txRepo.LinkBookSeries(ctx, book.ID, series.ID, seriesIndex)
-		}
-	}
-
-	_ = txRepo.ClearBookPublishers(ctx, book.ID)
-	if req.Publisher != "" {
-		publisher, err := txRepo.GetPublisherByName(ctx, req.Publisher)
-		if err != nil {
-			publisher = &models.PublisherEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: req.Publisher,
-			}
-			_ = txRepo.CreatePublisher(ctx, publisher)
-		}
-		if publisher != nil && publisher.ID != "" {
-			_ = txRepo.LinkBookPublisher(ctx, book.ID, publisher.ID)
-		}
-	}
-
-	_ = txRepo.ClearBookLanguages(ctx, book.ID)
-	if req.Language != "" {
-		language, err := txRepo.GetLanguageByName(ctx, req.Language)
-		if err != nil {
-			language = &models.LanguageEntity{
-				ID:   uuid.Must(uuid.NewV7()).String(),
-				Name: req.Language,
-			}
-			_ = txRepo.CreateLanguage(ctx, language)
-		}
-		if language != nil && language.ID != "" {
-			_ = txRepo.LinkBookLanguage(ctx, book.ID, language.ID)
-		}
-	}
-
-	_ = txRepo.ClearBookTags(ctx, book.ID)
-	for _, tagName := range req.Subjects {
-		if tagName == "" {
-			continue
-		}
-		tag, err := txRepo.GetTagByName(ctx, tagName)
-		if err != nil {
-			newTagID := uuid.Must(uuid.NewV7()).String()
-			err = txRepo.CreateTag(ctx, &models.TagEntity{
-				ID:   newTagID,
-				Name: tagName,
-			})
-			if err == nil {
-				tag = &models.TagEntity{ID: newTagID, Name: tagName}
-			}
-		}
-		if tag != nil && tag.ID != "" {
-			_ = txRepo.AddBookTag(ctx, book.ID, tag.ID)
-		}
+	if err := s.syncParsedMetadata(ctx, txRepo, book.ID, &bookparser.BookMetadata{
+		Series:      req.Series,
+		SeriesIndex: req.SeriesIndex,
+		Publisher:   req.Publisher,
+		Language:    req.Language,
+		Subjects:    req.Subjects,
+	}); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return err
-	}
-
-	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
-	if err != nil || len(files) == 0 {
-		return nil
-	}
-	file := s.preferReadableFile(files)
-	parser, err := s.parserForFile(file)
-	if err != nil {
-		return nil
 	}
 
 	meta := &bookparser.BookMetadata{
@@ -645,9 +595,17 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		Author:      req.Author,
 		Description: req.Description,
 	}
-
-	if err := parser.SaveOriginalMetadataAndFix(file.Path, meta); err != nil {
-		fmt.Printf("Failed to update source metadata for %s: %v\n", bookID, err)
+	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
+	if err != nil {
+		log.Warn().Err(err).Str("book_id", bookID).Msg("metadata source synchronization skipped: list files failed")
+	} else if len(files) > 0 {
+		file := s.preferReadableFile(files)
+		parser, parserErr := s.parserForFile(file)
+		if parserErr != nil {
+			log.Warn().Err(parserErr).Str("book_id", bookID).Str("path", file.Path).Msg("metadata source synchronization skipped: unsupported file")
+		} else if saveErr := parser.SaveOriginalMetadataAndFix(file.Path, meta); saveErr != nil {
+			log.Error().Err(saveErr).Str("book_id", bookID).Str("path", file.Path).Msg("metadata source synchronization failed")
+		}
 	}
 
 	if s.webhookService != nil {

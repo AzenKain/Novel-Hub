@@ -3,10 +3,10 @@ package request
 import "time"
 
 type CreateUserDto struct {
-	Email     string  `json:"email" validate:"required,min=5,max=255,email"`
-	Password  string  `json:"password" validate:"required,min=8,max=64"`
-	FullName  string  `json:"full_name" validate:"required,min=2,max=100"`
-	AvatarUrl string  `json:"avatar_url,omitempty" validate:"omitempty,image_url"`
+	Email     string   `json:"email" validate:"required,min=5,max=255,email"`
+	Password  string   `json:"password" validate:"required,min=8,max=64"`
+	FullName  string   `json:"full_name" validate:"required,min=2,max=100"`
+	AvatarUrl string   `json:"avatar_url,omitempty" validate:"omitempty,image_url"`
 	RoleIDs   []string `json:"role_ids,omitempty" validate:"omitempty,dive,uuid"`
 }
 

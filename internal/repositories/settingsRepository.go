@@ -49,8 +49,8 @@ func (r *settingsRepository) WithTx(tx *sql.Tx) SettingsRepository {
 }
 
 func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEntity, error) {
-	key := "settings:all"
-	if r.c != nil {
+	key := constants.CacheKeySettingsAll
+	if r.c != nil && !r.inTx {
 		var keys []string
 		if err := r.c.Get(ctx, key, &keys); err == nil {
 			if result, ok := r.getSettingsByKeys(ctx, keys); ok {
@@ -72,7 +72,9 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 			return []*models.AppSettingEntity{}, nil
 		}
 
-		rows, err := r.q.GetAppSettingsByKeys(ctx, keyRows)
+		rows, err := queryInChunks(keyRows, func(chunk []string) ([]sqlc.AppSetting, error) {
+			return r.q.GetAppSettingsByKeys(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +141,7 @@ func (r *settingsRepository) cacheSettingEntities(ctx context.Context, entities 
 
 func (r *settingsRepository) Get(ctx context.Context, key string) (*models.AppSettingEntity, error) {
 	cacheKey := cache.BuildKey("settings", "key", key)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var setting models.AppSettingEntity
 		if err := r.c.Get(ctx, cacheKey, &setting); err == nil {
 			return &setting, nil
@@ -168,14 +170,14 @@ func (r *settingsRepository) Upsert(ctx context.Context, key string, valueJSON s
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "settings:all", cache.BuildKey("settings", "key", key))
+		_ = r.c.Del(ctx, constants.CacheKeySettingsAll, cache.BuildKey("settings", "key", key))
 	}
 	return nil
 }
 
 func (r *settingsRepository) GetSetupState(ctx context.Context, key string) (string, error) {
 	cacheKey := cache.BuildKey("setup_state", "key", key)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var state string
 		if err := r.c.Get(ctx, cacheKey, &state); err == nil {
 			return state, nil

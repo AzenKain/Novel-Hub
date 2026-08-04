@@ -57,6 +57,17 @@ func (q *Queries) CountJobs(ctx context.Context, arg CountJobsParams) (int64, er
 	return count, err
 }
 
+const countUnfinishedJobs = `-- name: CountUnfinishedJobs :one
+SELECT COUNT(*) FROM jobs WHERE status IN ('pending', 'running')
+`
+
+func (q *Queries) CountUnfinishedJobs(ctx context.Context) (int64, error) {
+	row := q.queryRow(ctx, q.countUnfinishedJobsStmt, countUnfinishedJobs)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createJobSchedule = `-- name: CreateJobSchedule :one
 INSERT INTO job_schedules (
     id, name, task_type, payload_json, interval_minutes, enabled, next_run_at

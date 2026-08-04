@@ -1,4 +1,5 @@
 // go:build windows
+//go:build windows
 // +build windows
 
 package database

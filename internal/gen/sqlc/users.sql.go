@@ -12,12 +12,14 @@ import (
 )
 
 const countUsers = `-- name: CountUsers :one
-SELECT count(DISTINCT u.id)
+SELECT count(*)
 FROM users u
-LEFT JOIN user_roles ur ON ur.user_id = u.id
 WHERE
     (?1 IS NULL OR u.is_deleted = ?1)
-    AND (?2 IS NULL OR ur.role_id = ?2)
+    AND (?2 IS NULL OR EXISTS (
+        SELECT 1 FROM user_roles ur
+        WHERE ur.user_id = u.id AND ur.role_id = ?2
+    ))
     AND (?3 IS NULL OR u.auth_provider = ?3)
     AND (?4 IS NULL OR u.created_at >= ?4)
     AND (?5 IS NULL OR u.created_at <= ?5)
@@ -46,6 +48,43 @@ func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, 
 		arg.CreatedFrom,
 		arg.CreatedTo,
 		arg.SearchText,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUsersFTS = `-- name: CountUsersFTS :one
+SELECT count(*)
+FROM users u
+WHERE u.id IN (SELECT user_id FROM fts_users WHERE haystack MATCH ?1)
+    AND (?2 IS NULL OR u.is_deleted = ?2)
+    AND (?3 IS NULL OR EXISTS (
+        SELECT 1 FROM user_roles ur
+        WHERE ur.user_id = u.id AND ur.role_id = ?3
+    ))
+    AND (?4 IS NULL OR u.auth_provider = ?4)
+    AND (?5 IS NULL OR u.created_at >= ?5)
+    AND (?6 IS NULL OR u.created_at <= ?6)
+`
+
+type CountUsersFTSParams struct {
+	MatchQuery   string      `json:"match_query"`
+	IsDeleted    interface{} `json:"is_deleted"`
+	RoleID       interface{} `json:"role_id"`
+	AuthProvider interface{} `json:"auth_provider"`
+	CreatedFrom  interface{} `json:"created_from"`
+	CreatedTo    interface{} `json:"created_to"`
+}
+
+func (q *Queries) CountUsersFTS(ctx context.Context, arg CountUsersFTSParams) (int64, error) {
+	row := q.queryRow(ctx, q.countUsersFTSStmt, countUsersFTS,
+		arg.MatchQuery,
+		arg.IsDeleted,
+		arg.RoleID,
+		arg.AuthProvider,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -247,6 +286,26 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, ids []string) ([]User, erro
 	return items, nil
 }
 
+const probeUserSearchMatches = `-- name: ProbeUserSearchMatches :one
+SELECT count(*) FROM (
+    SELECT user_id FROM fts_users
+    WHERE haystack MATCH ?1
+    LIMIT ?2
+)
+`
+
+type ProbeUserSearchMatchesParams struct {
+	MatchQuery string `json:"match_query"`
+	Cap        int64  `json:"cap"`
+}
+
+func (q *Queries) ProbeUserSearchMatches(ctx context.Context, arg ProbeUserSearchMatchesParams) (int64, error) {
+	row := q.queryRow(ctx, q.probeUserSearchMatchesStmt, probeUserSearchMatches, arg.MatchQuery, arg.Cap)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const restoreUser = `-- name: RestoreUser :exec
 UPDATE users
 SET is_deleted = 0
@@ -281,12 +340,14 @@ func (q *Queries) RotateUserRefreshToken(ctx context.Context, arg RotateUserRefr
 }
 
 const searchUserIDs = `-- name: SearchUserIDs :many
-SELECT DISTINCT u.id
+SELECT u.id
 FROM users u
-LEFT JOIN user_roles ur ON ur.user_id = u.id
 WHERE
     (?1 IS NULL OR u.is_deleted = ?1)
-    AND (?2 IS NULL OR ur.role_id = ?2)
+    AND (?2 IS NULL OR EXISTS (
+        SELECT 1 FROM user_roles ur
+        WHERE ur.user_id = u.id AND ur.role_id = ?2
+    ))
     AND (?3 IS NULL OR u.auth_provider = ?3)
     AND (?4 IS NULL OR u.created_at >= ?4)
     AND (?5 IS NULL OR u.created_at <= ?5)
@@ -325,6 +386,72 @@ func (q *Queries) SearchUserIDs(ctx context.Context, arg SearchUserIDsParams) ([
 		arg.CreatedFrom,
 		arg.CreatedTo,
 		arg.SearchText,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchUserIDsFTS = `-- name: SearchUserIDsFTS :many
+SELECT u.id
+FROM users u
+WHERE u.id IN (SELECT user_id FROM fts_users WHERE haystack MATCH ?1)
+    AND (?2 IS NULL OR u.is_deleted = ?2)
+    AND (?3 IS NULL OR EXISTS (
+        SELECT 1 FROM user_roles ur
+        WHERE ur.user_id = u.id AND ur.role_id = ?3
+    ))
+    AND (?4 IS NULL OR u.auth_provider = ?4)
+    AND (?5 IS NULL OR u.created_at >= ?5)
+    AND (?6 IS NULL OR u.created_at <= ?6)
+    AND (
+        ?7 IS NULL OR
+        datetime(u.created_at) < datetime(?7) OR
+        (datetime(u.created_at) = datetime(?7) AND u.id > ?8)
+    )
+ORDER BY u.created_at DESC, u.id ASC
+LIMIT ?9
+`
+
+type SearchUserIDsFTSParams struct {
+	MatchQuery      string         `json:"match_query"`
+	IsDeleted       interface{}    `json:"is_deleted"`
+	RoleID          interface{}    `json:"role_id"`
+	AuthProvider    interface{}    `json:"auth_provider"`
+	CreatedFrom     interface{}    `json:"created_from"`
+	CreatedTo       interface{}    `json:"created_to"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
+}
+
+func (q *Queries) SearchUserIDsFTS(ctx context.Context, arg SearchUserIDsFTSParams) ([]string, error) {
+	rows, err := q.query(ctx, q.searchUserIDsFTSStmt, searchUserIDsFTS,
+		arg.MatchQuery,
+		arg.IsDeleted,
+		arg.RoleID,
+		arg.AuthProvider,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 		arg.CursorCreatedAt,
 		arg.CursorID,
 		arg.Limit,

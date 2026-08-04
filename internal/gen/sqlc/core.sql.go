@@ -454,16 +454,10 @@ func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, erro
 const listLibraryIDs = `-- name: ListLibraryIDs :many
 SELECT id FROM libraries
 ORDER BY created_at DESC
-LIMIT ?2 OFFSET ?1
 `
 
-type ListLibraryIDsParams struct {
-	Offset int64 `json:"offset"`
-	Limit  int64 `json:"limit"`
-}
-
-func (q *Queries) ListLibraryIDs(ctx context.Context, arg ListLibraryIDsParams) ([]string, error) {
-	rows, err := q.query(ctx, q.listLibraryIDsStmt, listLibraryIDs, arg.Offset, arg.Limit)
+func (q *Queries) ListLibraryIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.query(ctx, q.listLibraryIDsStmt, listLibraryIDs)
 	if err != nil {
 		return nil, err
 	}

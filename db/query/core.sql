@@ -4,7 +4,7 @@ INSERT INTO libraries (
 ) VALUES (
     ?, ?
 )
-RETURNING *;
+RETURNING id, name, created_at, updated_at;
 
 -- name: GetLibrary :one
 SELECT id, name, created_at, updated_at FROM libraries
@@ -12,8 +12,7 @@ WHERE id = ? LIMIT 1;
 
 -- name: ListLibraryIDs :many
 SELECT id FROM libraries
-ORDER BY created_at DESC
-LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+ORDER BY created_at DESC;
 
 -- name: GetLibrariesByIDs :many
 SELECT id, name, created_at, updated_at FROM libraries WHERE id IN (sqlc.slice('ids'));
@@ -22,7 +21,7 @@ SELECT id, name, created_at, updated_at FROM libraries WHERE id IN (sqlc.slice('
 UPDATE libraries
 SET name = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ?
-RETURNING *;
+RETURNING id, name, created_at, updated_at;
 
 -- name: DeleteLibrary :exec
 DELETE FROM libraries
@@ -34,7 +33,7 @@ INSERT INTO book_files (
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING *;
+RETURNING id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at;
 
 -- name: UpsertBookFile :one
 INSERT INTO book_files (
@@ -48,7 +47,7 @@ ON CONFLICT(path) DO UPDATE SET
     hash = excluded.hash,
     state = excluded.state,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at;
 
 -- name: GetBookFileByPath :one
 SELECT id, book_id, path, format, size_bytes, mod_time, hash, state, created_at, updated_at FROM book_files
@@ -67,13 +66,13 @@ INSERT INTO jobs (
 ) VALUES (
     ?, ?, ?, ?, ?
 )
-RETURNING *;
+RETURNING id, type, status, progress, total, error_msg, payload_json, created_at, updated_at;
 
 -- name: UpdateJobStatus :one
 UPDATE jobs
 SET status = ?, error_msg = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ?
-RETURNING *;
+RETURNING id, type, status, progress, total, error_msg, payload_json, created_at, updated_at;
 
 -- name: GetJob :one
 SELECT id, type, status, progress, total, error_msg, payload_json, created_at, updated_at FROM jobs

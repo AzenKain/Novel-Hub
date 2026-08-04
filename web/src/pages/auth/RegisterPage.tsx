@@ -1,11 +1,13 @@
 import { settingsService } from "@/services";
 import { BookOpen, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { PasswordStrength } from "@/components/common";
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,10 +34,10 @@ export function RegisterPage() {
       if (res.status) {
         navigate("/", { replace: true });
       } else {
-        setError(res.message || "Registration failed");
+        setError(res.message || t("auth.register_failed", "Registration failed"));
       }
     } catch {
-      setError("An unexpected error occurred");
+      setError(t("auth.unexpected_error", "An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -47,11 +49,11 @@ export function RegisterPage() {
         <div className="card w-full max-w-md bg-base-100 shadow-xl text-center">
           <div className="card-body items-center gap-4">
             <BookOpen size={40} className="text-base-content/30" />
-            <h2 className="text-xl font-bold">Registration Disabled</h2>
+            <h2 className="text-xl font-bold">{t("auth.registration_disabled", "Registration Disabled")}</h2>
             <p className="text-sm text-base-content/60">
-              Public registration is currently disabled by the administrator.
+              {t("auth.registration_disabled_desc", "Public registration is currently disabled by the administrator.")}
             </p>
-            <Link to="/" className="btn btn-primary btn-sm">Go Home</Link>
+            <Link to="/" className="btn btn-primary btn-sm">{t("auth.go_home", "Go Home")}</Link>
           </div>
         </div>
       </div>
@@ -66,15 +68,15 @@ export function RegisterPage() {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
               <BookOpen size={28} className="text-primary" />
             </div>
-            <h2 className="text-2xl font-bold">Create Account</h2>
+            <h2 className="text-2xl font-bold">{t("auth.create_account", "Create Account")}</h2>
             <p className="text-sm text-base-content/60">
-              Register to access the library features.
+              {t("auth.register_desc", "Register to access the library features.")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">Email</span></label>
+              <label className="label"><span className="label-text font-semibold">{t("auth.email", "Email")}</span></label>
               <input
                 type="email"
                 placeholder="account@example.com"
@@ -86,20 +88,20 @@ export function RegisterPage() {
               />
             </div>
             <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">Full Name</span></label>
+              <label className="label"><span className="label-text font-semibold">{t("auth.full_name", "Full Name")}</span></label>
               <input
                 type="text"
-                placeholder="(optional)"
+                placeholder={t("auth.optional", "(optional)")}
                 className="input input-bordered w-full"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">Password</span></label>
+              <label className="label"><span className="label-text font-semibold">{t("auth.password", "Password")}</span></label>
               <input
                 type="password"
-                placeholder="Minimum 8 characters"
+                placeholder={t("auth.password_min", "Minimum 8 characters")}
                 className="input input-bordered w-full"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -116,12 +118,12 @@ export function RegisterPage() {
 
             <button className="btn btn-primary mt-2" disabled={loading}>
               {loading ? <Loader2 className="animate-spin" size={20} /> : null}
-              Register
+              {t("auth.register", "Register")}
             </button>
           </form>
 
           <div className="text-center mt-2">
-            <Link to="/" className="text-sm link link-hover">Back to library</Link>
+            <Link to="/" className="text-sm link link-hover">{t("auth.back_to_library", "Back to library")}</Link>
           </div>
         </div>
       </div>

@@ -114,7 +114,6 @@ func autoSQLiteMmapSize() int64 {
 	return mmap
 }
 
-
 func NewSQLiteDB() (*sql.DB, error) {
 	// Derived from DATA_DIR so the database lands beside books, logs and backups
 	// by default. A hardcoded "./data" would write outside the mounted volume in
@@ -151,6 +150,7 @@ func NewSQLiteDB() (*sql.DB, error) {
 
 func sqliteDSN(dbPath string, cacheKB int, mmapBytes int64) string {
 	values := url.Values{}
+	values.Add("_txlock", "immediate")
 	values.Add("_pragma", "busy_timeout=10000")
 	values.Add("_pragma", "foreign_keys(ON)")
 	values.Add("_pragma", "trusted_schema(OFF)")
@@ -166,7 +166,6 @@ func sqliteDSN(dbPath string, cacheKB int, mmapBytes int64) string {
 	}
 	return dbPath + separator + values.Encode()
 }
-
 
 func CheckpointWALAndClose(db *sql.DB) error {
 	if db == nil {

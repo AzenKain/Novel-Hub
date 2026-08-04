@@ -37,7 +37,7 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	bootstrap, err := h.bookService.GetReaderBootstrap(ctx, bookID, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanReadBook(ctx, bootstrap.Book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
@@ -79,7 +79,7 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 	}
 	file, err := h.bookService.GetBookFile(ctx, bookID, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "File not found"})
+		return apperrors.HandleError(c, err)
 	}
 
 	contentType := rawFileContentType(file.Path)
@@ -106,7 +106,7 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 
 	asset, err := h.bookService.GetAsset(ctx, bookID, assetPath, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Asset not found"})
+		return apperrors.HandleError(c, err)
 	}
 
 	c.Set("Content-Type", asset.ContentType)
@@ -175,7 +175,7 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 
 	coverURLPath, err := h.bookService.UpdateCover(ctx, bookID, input)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "An internal error occurred"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Cover updated successfully", Data: fiber.Map{"cover_url": coverURLPath}})

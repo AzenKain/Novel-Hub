@@ -75,5 +75,13 @@ func TestRecordReadingSessionRepositoryFailurePreservesCause(t *testing.T) {
 	}
 }
 
+func TestGetBookUserStateRequiresBookAccess(t *testing.T) {
+	svc := newSessionService(&sessionFeatureRepo{}, &models.BookEntity{ID: "b", LibraryID: "l"}, nil, false)
+	_, err := svc.GetBookUserState(context.Background(), "u", "b", &response.JWTClaims{UId: "u"})
+	if !errors.Is(err, apperrors.ErrForbidden) {
+		t.Fatalf("book the user cannot read must be forbidden, got %v", err)
+	}
+}
+
 var _ repositories.BookDBRepository = sessionBookRepo{}
 var _ repositories.FeatureRepository = (*sessionFeatureRepo)(nil)

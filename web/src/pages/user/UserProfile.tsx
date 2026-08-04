@@ -8,6 +8,7 @@ import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 import { X, User, Key } from "lucide-react";
 
@@ -78,6 +79,9 @@ export const UserProfile = () => {
           setSuccess(true);
           setTimeout(() => setSuccess(false), 3000);
         },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+        },
       }
     );
   };
@@ -94,6 +98,9 @@ export const UserProfile = () => {
       {
         onSuccess: () => {
           setProfileModalOpen(false);
+        },
+        onError: (err) => {
+          setPasswordError(err instanceof Error ? err.message : t('user.password_change_failed', 'Could not change your password'));
         },
       }
     );

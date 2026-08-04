@@ -51,16 +51,19 @@ export function SchedulesTab() {
     );
 
   const toggle = (item: JobSchedule) =>
-    save.mutate({
-      id: item.id,
-      input: {
-        name: item.name,
-        task_type: item.taskType,
-        payload_json: item.payloadJson,
-        interval_minutes: item.intervalMinutes,
-        enabled: !item.enabled,
+    save.mutate(
+      {
+        id: item.id,
+        input: {
+          name: item.name,
+          task_type: item.taskType,
+          payload_json: item.payloadJson,
+          interval_minutes: item.intervalMinutes,
+          enabled: !item.enabled,
+        },
       },
-    });
+      { onError: () => toast.error(t("admin.operations.action_failed")) },
+    );
 
   return (
     <div className="space-y-4">
@@ -156,7 +159,12 @@ export function SchedulesTab() {
                       </button>
                       <button
                         className="btn btn-xs"
-                        onClick={() => run.mutate(item.id)}
+                        onClick={() =>
+                          run.mutate(item.id, {
+                            onError: () =>
+                              toast.error(t("admin.operations.action_failed")),
+                          })
+                        }
                       >
                         {t("admin.operations.run_now")}
                       </button>
@@ -166,7 +174,10 @@ export function SchedulesTab() {
                           if (
                             window.confirm(t("admin.operations.confirm_delete"))
                           )
-                            remove.mutate(item.id);
+                            remove.mutate(item.id, {
+                              onError: () =>
+                                toast.error(t("admin.operations.action_failed")),
+                            });
                         }}
                       >
                         {t("common.delete")}

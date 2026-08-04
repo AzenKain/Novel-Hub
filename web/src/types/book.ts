@@ -116,6 +116,13 @@ export interface MetadataCount {
   cover_url?: string;
 }
 
+export interface MetadataFacetParams {
+  cursor?: string;
+  limit?: number;
+  search?: string;
+  alpha?: string;
+}
+
 export interface BootstrapResponse {
   book: Book;
   chapters: Chapter[];

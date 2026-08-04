@@ -30,9 +30,10 @@ type TrackerRepository interface {
 }
 
 type trackerRepository struct {
-	q   *sqlc.Queries
-	c   cache.Cache
-	sfg *singleflight.Group
+	q    *sqlc.Queries
+	c    cache.Cache
+	inTx bool
+	sfg  *singleflight.Group
 }
 
 func NewTrackerRepository(db sqlc.DBTX, c cache.Cache) TrackerRepository {
@@ -44,10 +45,14 @@ func NewTrackerRepository(db sqlc.DBTX, c cache.Cache) TrackerRepository {
 }
 
 func (r *trackerRepository) WithTx(tx *sql.Tx) TrackerRepository {
+	if tx == nil {
+		return r
+	}
 	return &trackerRepository{
-		q:   r.q.WithTx(tx),
-		c:   r.c,
-		sfg: r.sfg,
+		q:    r.q.WithTx(tx),
+		c:    r.c,
+		inTx: true,
+		sfg:  r.sfg,
 	}
 }
 
@@ -70,7 +75,9 @@ func (r *trackerRepository) GetUserTrackersByIDs(ctx context.Context, ids []stri
 	if len(ids) == 0 {
 		return []*models.UserTrackerEntity{}, nil
 	}
-	rows, err := r.q.GetUserTrackersByIDs(ctx, ids)
+	rows, err := queryInChunks(ids, func(chunk []string) ([]sqlc.UserTracker, error) {
+		return r.q.GetUserTrackersByIDs(ctx, chunk)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +156,7 @@ func (r *trackerRepository) DeleteUserTracker(ctx context.Context, userID string
 
 func (r *trackerRepository) GetMappingByID(ctx context.Context, id string) (*models.BookTrackerMappingEntity, error) {
 	key := cache.BuildKey("book_tracker_mapping", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var entity models.BookTrackerMappingEntity
 		if err := r.c.Get(ctx, key, &entity); err == nil {
 			return &entity, nil
@@ -187,7 +194,7 @@ func (r *trackerRepository) GetBookTrackerMappingsByIDs(ctx context.Context, ids
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -206,7 +213,9 @@ func (r *trackerRepository) GetBookTrackerMappingsByIDs(ctx context.Context, ids
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.q.GetBookTrackerMappingsByIDs(ctx, missingIds)
+		rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.BookTrackerMapping, error) {
+			return r.q.GetBookTrackerMappingsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +255,7 @@ func (r *trackerRepository) GetBookTrackerMappingsByIDs(ctx context.Context, ids
 
 func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, bookID string, provider string) (*models.BookTrackerMappingEntity, error) {
 	key := cache.BuildKey("book_tracker_mapping", "book_provider", bookID, provider)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var entity models.BookTrackerMappingEntity
 		if err := r.c.Get(ctx, key, &entity); err == nil {
 			return &entity, nil

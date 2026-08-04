@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -13,6 +14,29 @@ import (
 	"novelhub/pkg/cache"
 	"novelhub/pkg/database"
 )
+
+func TestResolveCalibreDirContainsCallerPath(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CALIBRE_IMPORT_DIR", root)
+
+	inside, err := resolveCalibreDir("my-library")
+	if err != nil {
+		t.Fatalf("a relative path inside the root must be accepted: %v", err)
+	}
+	if !strings.HasPrefix(inside, root) {
+		t.Fatalf("resolved %q outside root %q", inside, root)
+	}
+
+	if _, err := resolveCalibreDir(filepath.Join(root, "my-library")); err != nil {
+		t.Fatalf("an absolute path inside the root must be accepted: %v", err)
+	}
+
+	for _, escape := range []string{"/etc", "../..", filepath.Join(root, "..", "elsewhere")} {
+		if got, err := resolveCalibreDir(escape); err == nil {
+			t.Errorf("resolveCalibreDir(%q) escaped the root to %q", escape, got)
+		}
+	}
+}
 
 func TestCalibreSyncService_ImportCalibreLibrary(t *testing.T) {
 	calibreDbPath := "/run/media/kain344/Work/Backup/Work_Code/Project/NovelHub/metadata.db"
@@ -77,15 +101,16 @@ func TestCalibreSyncService_ImportCalibreLibrary(t *testing.T) {
 
 	// Verify imported metadata entities
 	ctx := context.Background()
-	authors, err := bookRepo.ListAuthorsWithCount(ctx, "", 10)
+	facet := repositories.MetadataFacetFilter{Limit: 10}
+	authors, err := bookRepo.ListAuthorsWithCount(ctx, facet)
 	if err == nil {
 		t.Logf("Imported %d authors", len(authors))
 	}
-	tags, err := bookRepo.ListTagsWithCount(ctx, "", 10)
+	tags, err := bookRepo.ListTagsWithCount(ctx, facet)
 	if err == nil {
 		t.Logf("Imported %d tags", len(tags))
 	}
-	seriesList, err := bookRepo.ListSeriesWithCount(ctx, "", 10)
+	seriesList, err := bookRepo.ListSeriesWithCount(ctx, facet)
 	if err == nil {
 		t.Logf("Imported %d series", len(seriesList))
 	}

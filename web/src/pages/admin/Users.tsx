@@ -86,7 +86,7 @@ export function Users() {
   const activeUsers = useMemo(() => users.filter((item) => !item.is_deleted).length, [users]);
 
   function openCreate() {
-    setForm({ ...emptyCreate, role_ids: roles.filter((role) => role.name === "USER").map((role) => role.id) });
+    setForm({ ...emptyCreate, role_ids: roles.filter((role) => role.auto_assign).map((role) => role.id) });
     setModal("create");
     setError("");
   }

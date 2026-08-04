@@ -82,7 +82,7 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil || len(files) == 0 {
-		return nil 
+		return nil
 	}
 	var parser bookparser.Parser
 	var filePath string

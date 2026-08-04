@@ -2,6 +2,7 @@ import { KeyRound, RotateCcw, Shield, Trash2, UserCog } from "lucide-react";
 import React from "react";
 
 import type { User } from "@/types";
+import { isAdminUser } from "@/utils/permission";
 
 type UserTableProps = {
   users: User[];
@@ -59,10 +60,10 @@ export const UserTable: React.FC<UserTableProps> = ({
             users.map((item) => {
               const isOwner = Boolean(item.is_owner);
               const isSelf = item.id === currentUserId;
-              const isAdminUser = item.roles?.some(r => Boolean(r.is_admin) || r.name?.toUpperCase() === "ADMIN");
+              const isAdmin = isAdminUser(item);
 
-              const canDelete = !isOwner && !isSelf && (!isAdminUser || isCallerOwner);
-              const canManage = isCallerOwner || isSelf || (!isAdminUser && !isOwner);
+              const canDelete = !isOwner && !isSelf && (!isAdmin || isCallerOwner);
+              const canManage = isCallerOwner || isSelf || (!isAdmin && !isOwner);
 
               return (
                 <tr
@@ -80,7 +81,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                       </div>
                       <div>
                         <div className="font-bold">
-                          {item.full_name || "Unnamed"}
+                          {item.full_name || t("admin.unnamed_user", "Unnamed")}
                         </div>
                         <div className="text-sm opacity-60">{item.email}</div>
                       </div>
@@ -97,7 +98,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </span>
                       ))}
                       {item.roles.length === 0 && (
-                        <span className="text-sm opacity-50">No role</span>
+                        <span className="text-sm opacity-50">{t("admin.no_role", "No role")}</span>
                       )}
                     </div>
                   </td>
@@ -127,7 +128,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onEdit(item)}
                               className="btn btn-ghost join-item btn-sm"
-                              title="Edit user"
+                              title={t("admin.action_edit_user", "Edit user")}
                             >
                               <UserCog className="h-4 w-4" />
                             </button>
@@ -136,7 +137,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onPassword(item)}
                               className="btn btn-ghost join-item btn-sm text-warning hover:bg-warning/10"
-                              title="Change password"
+                              title={t("admin.action_change_password", "Change password")}
                             >
                               <KeyRound className="h-4 w-4" />
                             </button>
@@ -145,7 +146,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onRoles(item)}
                               className="btn btn-ghost join-item btn-sm text-success hover:bg-success/10"
-                              title="Manage roles"
+                              title={t("admin.action_manage_roles", "Manage roles")}
                             >
                               <Shield className="h-4 w-4" />
                             </button>
@@ -154,7 +155,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onDelete(item)}
                               className="btn btn-ghost join-item btn-sm text-error hover:bg-error/10"
-                              title="Delete user"
+                              title={t("admin.action_delete_user", "Delete user")}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -166,7 +167,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onRestore(item)}
                               className="btn btn-ghost join-item btn-sm text-success hover:bg-success/10"
-                              title="Restore user"
+                              title={t("admin.action_restore_user", "Restore user")}
                             >
                               <RotateCcw className="h-4 w-4" />
                             </button>

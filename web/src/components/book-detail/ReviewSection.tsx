@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, MessageSquare, Trash2, Send, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { featureService } from "@/services";
+import { adminService, featureService } from "@/services";
 import { useAuthStore } from "@/stores";
 import type { BookReview } from "@/types";
 import { toast } from "react-toastify";
@@ -192,7 +192,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                           onClick={async () => {
                             if (rv?.user_id && window.confirm(t("review.confirm_delete", "Are you sure you want to delete this review?"))) {
                               try {
-                                await featureService.adminDeleteBookReview(book_id, rv.user_id);
+                                await adminService.deleteReview(book_id, rv.user_id);
                                 toast.success(t("review.deleted", "Review deleted successfully"));
                                 queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
                                 queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });

@@ -73,7 +73,6 @@ func (s *libraryService) scanInboxLibrary(ctx context.Context, libraryID string,
 		imported++
 		log.Info().Str("library_id", libraryID).Str("file", filename).Msg("imported file from inbox")
 	}
-
 	// Drop folders the user emptied by way of import. libraryPath itself is their
 	// drop point and is never removed.
 	pruneEmptyInboxDirs(libraryPath, 0)

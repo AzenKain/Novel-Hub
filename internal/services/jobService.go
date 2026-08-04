@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
@@ -16,11 +17,16 @@ import (
 	"novelhub/pkg/worker"
 )
 
+const keepFinishedJobs = 1000
+
+const recoverBatchSize = worker.BufferSize
+
 type JobService interface {
 	GetJob(ctx context.Context, id string) (*response.JobResponse, error)
 	ListJobs(ctx context.Context, status, jobType string, limit, offset int64) ([]*response.JobResponse, int64, error)
 	ListTasks() []*response.JobTaskResponse
 	Trigger(ctx context.Context, jobType, payload string) (*response.JobResponse, error)
+	PruneFinishedJobs(ctx context.Context) error
 	Recover(ctx context.Context) error
 }
 
@@ -42,6 +48,7 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 			"database_health_check": "Check database connectivity and schema access",
 			"database_backup":       "Create a database backup",
 			"database_books_backup": "Create a database and books backup",
+			"prune_finished_jobs":   "Delete old completed and failed job rows",
 		},
 	}
 }
@@ -70,6 +77,7 @@ func (s *jobService) ListTasks() []*response.JobTaskResponse {
 		"maintenance",
 		"clean_empty_book_dirs",
 		"clean_orphan_uploads",
+		"prune_finished_jobs",
 		"database_health_check",
 		"database_backup",
 		"database_books_backup",
@@ -108,19 +116,35 @@ func (s *jobService) Recover(ctx context.Context) error {
 	if err := s.repo.MarkRunningJobsInterrupted(ctx); err != nil {
 		return err
 	}
-	pending, err := s.repo.ListUnfinishedJobs(ctx, 1000, 0)
+	pending, err := s.repo.ListUnfinishedJobs(ctx, recoverBatchSize, 0)
 	if err != nil {
 		return err
 	}
+	requeued := 0
 	for _, job := range pending {
 		if job == nil || job.Status == nil || *job.Status != "pending" {
 			continue
 		}
 		if err := s.queue.EnqueueExisting(ctx, worker.Job{ID: job.ID, Type: job.Type, Payload: stringValue(job.PayloadJSON)}); err != nil {
 			_, _ = s.repo.UpdateJobStatus(ctx, job.ID, "failed", "failed to recover pending job: "+err.Error())
+			continue
+		}
+		requeued++
+	}
+	if len(pending) == recoverBatchSize {
+		remaining, err := s.repo.CountUnfinishedJobs(ctx)
+		if err == nil && remaining > int64(len(pending)) {
+			log.Warn().
+				Int("requeued", requeued).
+				Int64("still_pending", remaining-int64(len(pending))).
+				Msg("Job recovery hit its batch limit; remaining jobs resume on next restart")
 		}
 	}
-	return s.repo.PruneFinishedJobs(ctx, 1000)
+	return s.PruneFinishedJobs(ctx)
+}
+
+func (s *jobService) PruneFinishedJobs(ctx context.Context) error {
+	return s.repo.PruneFinishedJobs(ctx, keepFinishedJobs)
 }
 
 func (s *jobService) Queued(ctx context.Context, job worker.Job) error {

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,7 +41,7 @@ type FeatureService interface {
 	RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error)
 	SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*response.BookmarkResponse, error)
 	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error)
-	GetBookUserState(ctx context.Context, userID string, bookID string) (*response.BookUserStateResponse, error)
+	GetBookUserState(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.BookUserStateResponse, error)
 	UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review string) (*response.BookReviewResponse, error)
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
 	DeleteReviewByAdmin(ctx context.Context, targetUserID string, bookID string) error
@@ -71,7 +70,6 @@ type featureService struct {
 	settings    SettingsService
 	permissions PermissionCache
 	txManager   database.TxManager
-	activityMu  sync.Mutex
 }
 
 const (
@@ -152,14 +150,11 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 		return nil, apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
 	}
 	if strings.TrimSpace(input.BookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	if strings.TrimSpace(input.ChapterID) == "" {
-		return nil, fmt.Errorf("chapterId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "chapterId is required")
 	}
-
-	s.activityMu.Lock()
-	defer s.activityMu.Unlock()
 
 	tx, err := s.txManager.BeginTx(ctx, nil)
 	if err != nil {
@@ -174,19 +169,14 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 		return nil, err
 	}
 
-	openedCount := int64(1)
-	qualifiedReadCount := int64(0)
 	var lastCountedAt *time.Time
 	if existing != nil {
-		openedCount = existing.OpenedCount + 1
-		qualifiedReadCount = existing.QualifiedReadCount
 		lastCountedAt = existing.LastCountedAt
 	}
 
 	counted := shouldCountQualifiedRead(existing, now)
 	qualifiedDelta := int64(0)
 	if counted {
-		qualifiedReadCount++
 		qualifiedDelta = 1
 		lastCountedAt = &now
 	}
@@ -207,8 +197,8 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 		ProgressPercent:    progressPercent,
 		LocationCfi:        input.LocationCfi,
 		LocationType:       input.LocationType,
-		OpenedCount:        openedCount,
-		QualifiedReadCount: qualifiedReadCount,
+		OpenedCount:        1,
+		QualifiedReadCount: qualifiedDelta,
 		LastCountedAt:      lastCountedAt,
 	}
 
@@ -237,7 +227,7 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 
 func (s *featureService) GetBookReadStats(ctx context.Context, bookID string) (*response.BookReadStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	stats, err := s.repo.GetBookReadStats(ctx, bookID)
 	if err != nil {
@@ -248,14 +238,14 @@ func (s *featureService) GetBookReadStats(ctx context.Context, bookID string) (*
 
 func (s *featureService) RecordDownload(ctx context.Context, bookID string) error {
 	if strings.TrimSpace(bookID) == "" {
-		return fmt.Errorf("bookId is required")
+		return apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	return s.repo.UpsertBookDownloadStats(ctx, bookID, 1)
 }
 
 func (s *featureService) GetBookDownloadStats(ctx context.Context, bookID string) (*response.BookDownloadStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	stats, err := s.repo.GetBookDownloadStats(ctx, bookID)
 	if err != nil {
@@ -266,7 +256,7 @@ func (s *featureService) GetBookDownloadStats(ctx context.Context, bookID string
 
 func (s *featureService) GetBookSocialStats(ctx context.Context, bookID string) (*response.BookSocialStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	stats, err := s.repo.GetBookSocialStats(ctx, bookID)
 	if err != nil {
@@ -277,7 +267,7 @@ func (s *featureService) GetBookSocialStats(ctx context.Context, bookID string) 
 
 func (s *featureService) GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	socialStats, err := s.repo.GetBookSocialStats(ctx, bookID)
 	if err != nil {
@@ -303,11 +293,11 @@ func (s *featureService) GetBookEngagementStats(ctx context.Context, bookID stri
 func (s *featureService) RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error) {
 	bookID := strings.TrimSpace(input.BookID)
 	if bookID == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	actorKey := strings.TrimSpace(input.ActorKey)
 	if actorKey == "" {
-		return nil, fmt.Errorf("share actor is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "share actor is required")
 	}
 	occurredAt := input.OccurredAt
 	if occurredAt.IsZero() {
@@ -343,10 +333,10 @@ func (s *featureService) RecordShare(ctx context.Context, input models.ShareInpu
 
 func (s *featureService) SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*response.BookmarkResponse, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("userId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	bm, err := s.repo.SetBookmark(ctx, userID, bookID, bookmarked)
 	if err != nil {
@@ -362,7 +352,7 @@ type BookmarkedBooksPage struct {
 
 func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("userId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
@@ -402,9 +392,12 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, 
 	return result, nil
 }
 
-func (s *featureService) GetBookUserState(ctx context.Context, userID string, bookID string) (*response.BookUserStateResponse, error) {
+func (s *featureService) GetBookUserState(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.BookUserStateResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
+	}
+	if !s.PolicyAllowsBook(ctx, "read", bookID, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
 	}
 	bookmark, err := s.repo.GetBookmark(ctx, userID, bookID)
 	if err != nil {
@@ -452,13 +445,13 @@ func (s *featureService) GetBookUserState(ctx context.Context, userID string, bo
 
 func (s *featureService) UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review string) (*response.BookReviewResponse, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("userId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	if rating < 1 || rating > 5 {
-		return nil, fmt.Errorf("rating must be between 1 and 5")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "rating must be between 1 and 5")
 	}
 	var reviewPtr *string
 	if value := strings.TrimSpace(review); value != "" {
@@ -473,20 +466,20 @@ func (s *featureService) UpsertBookReview(ctx context.Context, userID string, bo
 
 func (s *featureService) DeleteBookReview(ctx context.Context, userID string, bookID string) error {
 	if userID == "" {
-		return fmt.Errorf("userId is required")
+		return apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if strings.TrimSpace(bookID) == "" {
-		return fmt.Errorf("bookId is required")
+		return apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	return s.repo.DeleteBookReview(ctx, userID, bookID)
 }
 
 func (s *featureService) DeleteReviewByAdmin(ctx context.Context, targetUserID string, bookID string) error {
 	if targetUserID == "" {
-		return fmt.Errorf("userId is required")
+		return apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if strings.TrimSpace(bookID) == "" {
-		return fmt.Errorf("bookId is required")
+		return apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	return s.repo.DeleteBookReview(ctx, targetUserID, bookID)
 }
@@ -504,7 +497,7 @@ func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64
 
 func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*response.BookReviewResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
@@ -518,7 +511,7 @@ func (s *featureService) ListBookReviews(ctx context.Context, bookID string, cur
 
 func (s *featureService) GetBookRatingSummary(ctx context.Context, bookID string) (*response.BookRatingSummaryResponse, error) {
 	if strings.TrimSpace(bookID) == "" {
-		return nil, fmt.Errorf("bookId is required")
+		return nil, apperrors.New(apperrors.ErrBadRequest, "bookId is required")
 	}
 	summary, err := s.repo.GetBookRatingSummary(ctx, bookID)
 	if err != nil {

@@ -5,27 +5,18 @@ import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/t
 import { toast } from 'react-toastify';
 import { create } from "zustand";
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 interface BookAdminState {
-  // Books list & Pagination
-  books: Book[];
-  loading: boolean;
-  error: string;
-  notice: string;
-  page: number;
   search: string;
   selectedLibraryId: string;
-  hasMore: boolean;
 
   // Libraries
   libraries: Library[];
 
   // Editor Modal
   editingBook: Book | null;
-  formData: { 
-    title: string; 
-    author: string; 
+  formData: {
+    title: string;
+    author: string;
     description: string;
     publisher: string;
     language: string;
@@ -75,9 +66,9 @@ interface BookAdminState {
   setSearchSource: (source: string) => void;
   setCoverTab: (tab: "book" | "upload" | "link") => void;
   setLinkUrl: (url: string) => void;
-  setFormData: (data: Partial<{ 
-    title: string; 
-    author: string; 
+  setFormData: (data: Partial<{
+    title: string;
+    author: string;
     description: string;
     publisher: string;
     language: string;
@@ -90,20 +81,14 @@ interface BookAdminState {
   setUploadLibraryId: (id: string) => void;
   setShowLibraryModal: (show: boolean) => void;
   setNewLibraryName: (name: string) => void;
-  setNotice: (notice: string) => void;
-  setError: (error: string) => void;
-  setCoverPreview: (url: string | null) => void;
-  setPage: (updater: number | ((p: number) => number)) => void;
   setEditingBook: (book: Book | null) => void;
   setSearchResults: (results: OnlineMetadataResult[]) => void;
   setBookToDelete: (book: Book | null) => void;
   setLibraryToDelete: (library: Library | null) => void;
-  
+
   // Actions
-  loadData: () => Promise<void>;
   loadLibraries: () => Promise<void>;
   openEditModal: (book: Book) => void;
-  closeEditModal: () => void;
   handleSearchOnline: () => Promise<void>;
   handleSelectResult: (result: OnlineMetadataResult) => void;
   handleSelectEpubImage: (imagePath: string) => Promise<void>;
@@ -119,15 +104,20 @@ interface BookAdminState {
   archiveBook: (id: string, archived: boolean) => Promise<void>;
 }
 
+const invalidateBooks = () => {
+  void queryClient.invalidateQueries({ queryKey: ["books"] });
+  void queryClient.invalidateQueries({ queryKey: ["library"] });
+  void queryClient.invalidateQueries({ queryKey: ["metadata"] });
+};
+
+const invalidateLibraries = () => {
+  void queryClient.invalidateQueries({ queryKey: ["libraries"] });
+  void queryClient.invalidateQueries({ queryKey: ["library"] });
+};
+
 export const useBookAdminStore = create<BookAdminState>((set, get) => ({
-  books: [],
-  loading: true,
-  error: "",
-  notice: "",
-  page: 1,
   search: "",
   selectedLibraryId: "",
-  hasMore: true,
 
   libraries: [],
 
@@ -163,8 +153,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   bookToDelete: null,
   libraryToDelete: null,
 
-  setSearch: (search) => set({ search, page: 1 }),
-  setSelectedLibraryId: (selectedLibraryId) => set({ selectedLibraryId, page: 1 }),
+  setSearch: (search) => set({ search }),
+  setSelectedLibraryId: (selectedLibraryId) => set({ selectedLibraryId }),
   setSearchSource: (searchSource) => set({ searchSource }),
   setCoverTab: (coverTab) => set({ coverTab }),
   setLinkUrl: (linkUrl) => set({ linkUrl }),
@@ -173,38 +163,10 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   setUploadLibraryId: (uploadLibraryId) => set({ uploadLibraryId }),
   setShowLibraryModal: (showLibraryModal) => set({ showLibraryModal }),
   setNewLibraryName: (newLibraryName) => set({ newLibraryName }),
-  setNotice: (notice) => set({ notice }),
-  setError: (error) => set({ error }),
-  setCoverPreview: (coverPreview) => set({ coverPreview }),
-  setPage: (updater) => set((state) => ({ page: typeof updater === "function" ? updater(state.page) : updater })),
   setEditingBook: (editingBook) => set({ editingBook }),
   setSearchResults: (searchResults) => set({ searchResults }),
   setBookToDelete: (bookToDelete) => set({ bookToDelete }),
   setLibraryToDelete: (libraryToDelete) => set({ libraryToDelete }),
-
-  loadData: async () => {
-    const { page, search, selectedLibraryId } = get();
-    set({ loading: true, error: "" });
-    try {
-      const res = await bookService.getBooks({
-        cursor: undefined,
-        limit: 24,
-        search: search || undefined,
-        library_id: selectedLibraryId || undefined
-      });
-
-      if (res.status && res.data) {
-        set({
-          books: res.data,
-          hasMore: res.data.length === 24
-        });
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      set({ loading: false });
-    }
-  },
 
   loadLibraries: async () => {
     try {
@@ -213,7 +175,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         set({ libraries: res.data });
       }
     } catch (err) {
-      console.error("Failed to load libraries:", err);
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   },
 
@@ -271,10 +233,6 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     ]).finally(() => {
       set({ loadingImages: false });
     });
-  },
-
-  closeEditModal: () => {
-    set({ editingBook: null });
   },
 
   handleSearchOnline: async () => {
@@ -370,10 +328,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
 
       toast.success("Success!");
       set({ editingBook: null });
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["metadata"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
-      await get().loadData();
+      invalidateBooks();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error updating book");
     } finally {
@@ -408,9 +363,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         bookFiles: nextFiles,
         editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
       }));
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["metadata"] });
-      await get().loadData();
+      invalidateBooks();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error uploading files");
     } finally {
@@ -427,12 +380,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       await libraryService.createLibrary({ name: newLibraryName });
       toast.success("Library created successfully!");
       set({ newLibraryName: "" });
-      void queryClient.invalidateQueries({ queryKey: ["libraries"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
+      invalidateLibraries();
       const libRes = await libraryService.getLibraries();
       set({ libraries: libRes.data || [] });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err) });
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   },
 
@@ -448,8 +400,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
           library.id === id ? { ...library, name: trimmedName } : library
         )
       }));
-      void queryClient.invalidateQueries({ queryKey: ["libraries"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
+      invalidateLibraries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to rename library");
     }
@@ -460,8 +411,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     try {
       await libraryService.deleteLibrary(id);
       toast.success("Library deleted successfully!");
-      void queryClient.invalidateQueries({ queryKey: ["libraries"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
+      invalidateLibraries();
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       const libRes = await libraryService.getLibraries();
       set({
@@ -470,7 +420,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         uploadLibraryId: uploadLibraryId === id ? "" : uploadLibraryId
       });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err) });
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   },
 
@@ -532,29 +482,12 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
 
       if (successCount === 0) throw new Error("All uploads failed");
 
-      set({
-        showUploadModal: false,
-        page: 1,
-      });
+      set({ showUploadModal: false });
       toast.info(`Uploaded ${successCount} books. Processing metadata...`);
-
-      for (let attempt = 0; attempt < 12; attempt += 1) {
-        await get().loadData();
-        void queryClient.invalidateQueries({ queryKey: ["books"] });
-        void queryClient.invalidateQueries({ queryKey: ["library"] });
-        void queryClient.invalidateQueries({ queryKey: ["metadata"] });
-        if (!get().books.some(book => book.status === "processing")) {
-          toast.success(`Successfully processed ${successCount} books.`);
-          break;
-        }
-        await sleep(1000);
-      }
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err) });
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
-      void queryClient.invalidateQueries({ queryKey: ["metadata"] });
+      invalidateBooks();
       set({
         uploading: false,
         uploadProgress: 0,
@@ -567,34 +500,23 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   },
 
   deleteBook: async (id) => {
-    set({ loading: true, error: "" });
     try {
       await bookService.deleteBook(id);
       toast.success("Book deleted successfully!");
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
-      void queryClient.invalidateQueries({ queryKey: ["metadata"] });
-      await get().loadData();
+      invalidateBooks();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete book");
-    } finally {
-      set({ loading: false });
     }
   },
 
   archiveBook: async (id, archived) => {
-    set({ loading: true, error: "" });
     try {
       const res = await bookService.archiveBook(id, archived);
       if (!res.status) throw new Error(res.message || "Failed to update archive state");
       toast.success(archived ? "Book archived" : "Book unarchived");
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
-      await get().loadData();
+      invalidateBooks();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update archive state");
-    } finally {
-      set({ loading: false });
     }
   }
 }));

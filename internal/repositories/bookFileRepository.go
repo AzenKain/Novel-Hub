@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/localfs"
 )
 
 type SavedBookFile struct {
@@ -31,6 +33,7 @@ type BookFileRepository interface {
 	SaveBook(ctx context.Context, bookID, originalFilename string, src io.Reader) (*SavedBookFile, error)
 	WriteBookMeta(ctx context.Context, bookID string, meta map[string]string) error
 	SaveCover(ctx context.Context, bookID, ext string, data []byte) (coverURL string, path string, err error)
+	ResolveCoverPath(ctx context.Context, bookID, coverURL string) (string, error)
 	HashSHA256(ctx context.Context, path string) (string, error)
 	Exists(ctx context.Context, path string) bool
 	RemoveBookDir(ctx context.Context, bookID string) error
@@ -245,6 +248,28 @@ func (r *localBookFileRepository) SaveCover(ctx context.Context, bookID, ext str
 		return "", "", fmt.Errorf("save cover: %w", err)
 	}
 	return "/storage/books/" + bookID + "/" + filename, absPath, nil
+}
+
+func (r *localBookFileRepository) ResolveCoverPath(ctx context.Context, bookID, coverURL string) (string, error) {
+	bookID, err := safeBookID(bookID)
+	if err != nil {
+		return "", err
+	}
+	filename := path.Base(strings.TrimSpace(strings.ReplaceAll(coverURL, "\\", "/")))
+	if filename == "" || filename == "." || filename == "/" {
+		return "", fmt.Errorf("invalid cover path")
+	}
+	absPath, err := localfs.SafeJoin(r.baseDir, bookID, filename)
+	if err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(absPath); err != nil {
+		return "", fmt.Errorf("cover not found")
+	}
+	return absPath, nil
 }
 
 func (r *localBookFileRepository) HashSHA256(ctx context.Context, path string) (string, error) {

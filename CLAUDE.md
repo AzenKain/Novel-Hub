@@ -18,7 +18,7 @@ Please refer to `AGENTS.md` for full system architecture rules.
   - `pkg/validator`: Input validation for DTO struct bindings.
   - `pkg/worker`: Bounded worker pool queue for background tasks and job schedules.
 - **Frontend (`web/src` & `web/public`)**:
-  - Permission utilities in `web/src/utils/permission.ts` (`isAdminUser`, `isModOrAdminUser`). Do NOT hardcode string role checks in components.
+  - Permission utilities in `web/src/utils/permission.ts` (`isAdminUser`, `isBannedUser`, `hasPermission`). Do NOT hardcode string role checks in components.
   - Translation files in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
   - NO HARDCODED UI TEXT in TSX files. Always add keys to `web/public/locales/` and use `react-i18next` `t()`.
   - Types & Interfaces MUST be defined in `web/src/types/` and exported via `web/src/types/index.ts` (NO inline type definitions inside services/components).

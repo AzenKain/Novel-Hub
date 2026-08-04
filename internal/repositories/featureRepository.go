@@ -63,6 +63,7 @@ type featureRepository struct {
 	db      *sql.DB
 	queries *sqlc.Queries
 	c       cache.Cache
+	inTx    bool
 	sfg     *singleflight.Group
 }
 
@@ -83,13 +84,14 @@ func (r *featureRepository) WithTx(tx *sql.Tx) FeatureRepository {
 		db:      r.db,
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
+		inTx:    true,
 		sfg:     r.sfg,
 	}
 }
 
 func (r *featureRepository) GetLibraryStats(ctx context.Context) (*models.LibraryStatsEntity, error) {
-	key := "feature:library_stats"
-	if r.c != nil {
+	key := constants.CacheKeyLibraryStats
+	if r.c != nil && !r.inTx {
 		var stats models.LibraryStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
 			return &stats, nil
@@ -125,7 +127,7 @@ func (r *featureRepository) CreateCollection(ctx context.Context, id, name strin
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
-		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyCollectionOwnedPattern)
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
@@ -143,7 +145,7 @@ func (r *featureRepository) UpdateCollection(ctx context.Context, id, name strin
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
-		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyCollectionOwnedPattern)
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
@@ -159,7 +161,7 @@ func (r *featureRepository) DeleteCollection(ctx context.Context, id string, use
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
-		_ = r.c.DelByPattern(context.Background(), "collection:owned:*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyCollectionOwnedPattern)
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "id", id))
 	}
 	return nil
@@ -167,7 +169,7 @@ func (r *featureRepository) DeleteCollection(ctx context.Context, id string, use
 
 func (r *featureRepository) CollectionOwnedByUser(ctx context.Context, collectionID, userID string) (bool, error) {
 	key := cache.BuildKey("collection", "owned", userID, collectionID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var owned bool
 		if err := r.c.Get(ctx, key, &owned); err == nil {
 			return owned, nil
@@ -244,7 +246,7 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 	}
 	key := cache.QueryKeyParts(params, "feature", "reading_history", "user", userID)
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			if result, ok := r.getReadingHistoryByBookIDs(ctx, userID, ids); ok {
@@ -334,7 +336,7 @@ func (r *featureRepository) cacheReadingHistoryEntities(ctx context.Context, use
 
 func (r *featureRepository) GetReadingProgress(ctx context.Context, userID string, bookID string) (*models.ReadingProgressEntity, error) {
 	key := cache.BuildKey("feature", "reading_progress", "user", userID, "book", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var progress models.ReadingProgressEntity
 		if err := r.c.Get(ctx, key, &progress); err == nil {
 			return &progress, nil
@@ -371,6 +373,10 @@ func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress 
 	if progress == nil {
 		return nil, fmt.Errorf("reading progress is nil")
 	}
+	progressPercent := float64(0)
+	if progress.ProgressPercent != nil {
+		progressPercent = *progress.ProgressPercent
+	}
 	params := sqlc.UpsertReadingProgressParams{
 		UserID:             progress.UserID,
 		BookID:             progress.BookID,
@@ -378,7 +384,9 @@ func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress 
 		ChapterRef:         progress.ChapterID,
 		ChapterTitle:       progress.ChapterTitle,
 		ChapterIndex:       progress.ChapterIndex,
-		ProgressPercent:    convert.FloatPtrToNullFloat64(progress.ProgressPercent),
+		ProgressPercent:    progressPercent,
+		LocationCfi:        convert.StrPtrToNullStringNonEmpty(progress.LocationCfi),
+		LocationType:       convert.StrPtrToNullStringNonEmpty(progress.LocationType),
 		OpenedCount:        progress.OpenedCount,
 		QualifiedReadCount: progress.QualifiedReadCount,
 		LastCountedAt:      convert.TimePtrToNullTime(progress.LastCountedAt),
@@ -396,6 +404,11 @@ func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress 
 }
 
 func (r *featureRepository) UpsertBookReadStats(ctx context.Context, bookID string, openDelta int64, qualifiedDelta int64, lastCountedAt *time.Time) error {
+	var wasFirstOpen bool
+	if r.c != nil {
+		before, err := r.queries.GetBookReadStats(ctx, bookID)
+		wasFirstOpen = err != nil || (before.TotalOpenCount == 0 && before.QualifiedReadCount == 0)
+	}
 	if err := r.queries.UpsertBookReadStats(ctx, sqlc.UpsertBookReadStatsParams{
 		BookID:             bookID,
 		TotalOpenCount:     openDelta,
@@ -406,14 +419,16 @@ func (r *featureRepository) UpsertBookReadStats(ctx context.Context, bookID stri
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("feature", "read_stats", bookID))
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		if wasFirstOpen {
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		}
 	}
 	return nil
 }
 
 func (r *featureRepository) GetBookReadStats(ctx context.Context, bookID string) (*models.BookReadStatsEntity, error) {
 	key := cache.BuildKey("feature", "read_stats", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var stats models.BookReadStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
 			return &stats, nil
@@ -449,14 +464,14 @@ func (r *featureRepository) UpsertBookDownloadStats(ctx context.Context, bookID 
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("feature", "download_stats", bookID))
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
 
 func (r *featureRepository) GetBookDownloadStats(ctx context.Context, bookID string) (*models.BookDownloadStatsEntity, error) {
 	key := cache.BuildKey("feature", "download_stats", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var stats models.BookDownloadStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
 			return &stats, nil
@@ -485,7 +500,7 @@ func (r *featureRepository) GetBookDownloadStats(ctx context.Context, bookID str
 
 func (r *featureRepository) GetBookmark(ctx context.Context, userID string, bookID string) (*models.BookmarkEntity, error) {
 	key := cache.BuildKey("bookmark", "user", userID, "book", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var bookmark models.BookmarkEntity
 		if err := r.c.Get(ctx, key, &bookmark); err == nil {
 			return &bookmark, nil
@@ -558,7 +573,7 @@ func (r *featureRepository) GetBookmarkedBooks(ctx context.Context, userID strin
 		CursorID:        convert.StrPtrToNullString(&cursorID),
 	}
 	key := cache.QueryKeyParts(params, "bookmark", "user", userID, "ids")
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var rows []BookmarkedBookPage
 		if err := r.c.Get(ctx, key, &rows); err == nil {
 			return rows, nil
@@ -604,8 +619,8 @@ func (r *featureRepository) UpsertBookReview(ctx context.Context, userID string,
 			cache.BuildKey("social", "stats", bookID),
 		)
 		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID)+"*")
-		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyAllReviewsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	if err := r.refreshBookRatingStats(ctx, bookID); err != nil {
 		return nil, err
@@ -625,8 +640,8 @@ func (r *featureRepository) DeleteBookReview(ctx context.Context, userID string,
 			cache.BuildKey("social", "stats", bookID),
 		)
 		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("review", "book", bookID)+"*")
-		_ = r.c.DelByPattern(context.Background(), "feature:all_reviews*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyAllReviewsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	if err := r.refreshBookRatingStats(ctx, bookID); err != nil {
 		return err
@@ -636,7 +651,7 @@ func (r *featureRepository) DeleteBookReview(ctx context.Context, userID string,
 
 func (r *featureRepository) GetBookReview(ctx context.Context, userID string, bookID string) (*models.BookReviewEntity, error) {
 	key := cache.BuildKey("review", "user", userID, "book", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var review models.BookReviewEntity
 		if err := r.c.Get(ctx, key, &review); err == nil {
 			return &review, nil
@@ -668,7 +683,7 @@ func (r *featureRepository) GetBookReview(ctx context.Context, userID string, bo
 
 func (r *featureRepository) GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error) {
 	key := cache.BuildKey("social", "stats", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var stats models.BookSocialStatsEntity
 		if err := r.c.Get(ctx, key, &stats); err == nil {
 			return &stats, nil
@@ -767,7 +782,7 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 	}
 	key := cache.QueryKeyParts(params, "review", "book", bookID)
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var compositeKeys []string
 		if err := r.c.Get(ctx, key, &compositeKeys); err == nil {
 			if result, ok := r.getBookReviewsByCompositeKeys(ctx, compositeKeys); ok {
@@ -853,7 +868,7 @@ func (r *featureRepository) getBookReviewsByCompositeKeys(ctx context.Context, k
 
 func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error) {
 	key := cache.BuildKey("feature", "all_reviews", "limit", limit, "offset", offset)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var reviews []*models.BookReviewEntity
 		if err := r.c.Get(ctx, key, &reviews); err == nil {
 			return reviews, nil
@@ -884,7 +899,7 @@ func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset in
 
 func (r *featureRepository) GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error) {
 	key := cache.BuildKey("rating", "summary", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var summary models.BookRatingSummaryEntity
 		if err := r.c.Get(ctx, key, &summary); err == nil {
 			return &summary, nil
@@ -925,7 +940,7 @@ func (r *featureRepository) GetCollectionsByIDs(ctx context.Context, ids []strin
 	missingIDs := make([]string, 0, len(ids))
 	missingKeys := make([]string, 0, len(ids))
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		raws := r.c.MGet(ctx, keys...)
 		for i, raw := range raws {
 			if len(raw) > 0 {
@@ -944,7 +959,9 @@ func (r *featureRepository) GetCollectionsByIDs(ctx context.Context, ids []strin
 	}
 
 	if len(missingIDs) > 0 {
-		rows, err := r.queries.GetCollectionsByIDs(ctx, missingIDs)
+		rows, err := queryInChunks(missingIDs, func(chunk []string) ([]sqlc.Collection, error) {
+			return r.queries.GetCollectionsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -1004,7 +1021,7 @@ func (r *featureRepository) RemoveBookFromCollection(ctx context.Context, collec
 
 func (r *featureRepository) GetBookCollectionIDs(ctx context.Context, userID string, bookID string) ([]string, error) {
 	key := cache.BuildKey("feature", "book_collections", "user", userID, "book", bookID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return ids, nil
@@ -1081,7 +1098,7 @@ func (r *featureRepository) GetReadingHeatmap(ctx context.Context, userID string
 
 func (r *featureRepository) GetReadingGoal(ctx context.Context, userID string) (*models.ReadingGoalEntity, error) {
 	key := cache.BuildKey("reading_goal", "user", userID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var goal models.ReadingGoalEntity
 		if err := r.c.Get(ctx, key, &goal); err == nil {
 			return &goal, nil
@@ -1130,7 +1147,7 @@ func smartCollectionCacheKey(userID string) string {
 
 func (r *featureRepository) ListSmartCollections(ctx context.Context, userID string) ([]*models.SmartCollectionEntity, error) {
 	key := smartCollectionCacheKey(userID)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var cached []*models.SmartCollectionEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
 			return cached, nil

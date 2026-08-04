@@ -33,9 +33,11 @@ interface PermissionAssignment {
 }
 
 import { useRoleAdminStore } from "@/stores";
+import { Trans, useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 export function Roles() {
+  const { t } = useTranslation();
   const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRolesQuery();
   const { data: permissions = [], isLoading: permissionsLoading, refetch: refetchPermissions } = usePermissionsQuery();
   const { data: libraries = [] } = useLibrariesQuery();
@@ -46,6 +48,11 @@ export function Roles() {
   const assignPermissionsMutation = useAssignRolePermissionsMutation();
   const reorderRolesMutation = useReorderRolesMutation();
 
+  const reorderRoles = (ids: string[]) =>
+    reorderRolesMutation.mutate(ids, {
+      onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
+    });
+
   const handleMoveUp = (index: number, e: SyntheticEvent) => {
     e.stopPropagation();
     if (index <= 0) return;
@@ -53,7 +60,7 @@ export function Roles() {
     const temp = newRoles[index - 1];
     newRoles[index - 1] = newRoles[index];
     newRoles[index] = temp;
-    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+    reorderRoles(newRoles.map((r) => r.id));
   };
 
   const handleMoveDown = (index: number, e: SyntheticEvent) => {
@@ -63,7 +70,7 @@ export function Roles() {
     const temp = newRoles[index + 1];
     newRoles[index + 1] = newRoles[index];
     newRoles[index] = temp;
-    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+    reorderRoles(newRoles.map((r) => r.id));
   };
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -82,7 +89,7 @@ export function Roles() {
     const [moved] = newRoles.splice(draggedIndex, 1);
     newRoles.splice(dropIndex, 0, moved);
     setDraggedIndex(null);
-    reorderRolesMutation.mutate(newRoles.map((r) => r.id));
+    reorderRoles(newRoles.map((r) => r.id));
   };
 
   const {
@@ -209,7 +216,7 @@ export function Roles() {
       };
       createRoleMutation.mutate(data, {
         onSuccess: () => {
-          toast.success("Role created");
+          toast.success(t("admin.role_created", "Role created"));
           setShowModal(false);
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
@@ -226,7 +233,7 @@ export function Roles() {
         },
         {
           onSuccess: () => {
-            toast.success("Role updated");
+            toast.success(t("admin.role_updated", "Role updated"));
             setShowModal(false);
           },
           onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
@@ -239,7 +246,7 @@ export function Roles() {
     if (!roleToDelete) return;
     deleteRoleMutation.mutate(roleToDelete.id, {
       onSuccess: () => {
-        toast.success("Role deleted");
+        toast.success(t("admin.role_deleted", "Role deleted"));
         setRoleToDelete(null);
       },
       onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
@@ -253,8 +260,8 @@ export function Roles() {
       {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Role Management</h1>
-          <p className="text-sm text-base-content/60 mt-1">Create, edit roles and manage permissions</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("admin.role_management", "Role Management")}</h1>
+          <p className="text-sm text-base-content/60 mt-1">{t("admin.role_management_desc", "Create, edit roles and manage permissions")}</p>
         </div>
         <button
           onClick={() => {
@@ -262,7 +269,7 @@ export function Roles() {
             void refetchPermissions();
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
-          title="Refresh"
+          title={t("admin.operations.refresh", "Refresh")}
         >
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -276,7 +283,7 @@ export function Roles() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Roles ({roles.length})</h2>
               <button onClick={openCreate} className="btn btn-primary btn-sm gap-1.5">
-                <Plus className="h-4 w-4" /> Add Role
+                <Plus className="h-4 w-4" /> {t("admin.add_role", "Add Role")}
               </button>
             </div>
 
@@ -302,10 +309,10 @@ export function Roles() {
                         <div className="flex items-center gap-2">
                           <Shield className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`} />
                           <span className="font-bold text-sm truncate">{r.name}</span>
-                          <span className="badge badge-ghost badge-xs font-mono">Rank #{index + 1}</span>
-                          {r.is_admin && <span className="badge badge-error badge-xs">Admin</span>}
-                          {r.is_system && !r.is_admin && <span className="badge badge-neutral badge-xs">System</span>}
-                          {r.auto_assign && <span className="badge badge-info badge-xs">Auto</span>}
+                          <span className="badge badge-ghost badge-xs font-mono">{t("admin.role_rank", "Rank #{{n}}", { n: index + 1 })}</span>
+                          {r.is_admin && <span className="badge badge-error badge-xs">{t("admin.role_badge_admin", "Admin")}</span>}
+                          {r.is_system && !r.is_admin && <span className="badge badge-neutral badge-xs">{t("admin.role_badge_system", "System")}</span>}
+                          {r.auto_assign && <span className="badge badge-info badge-xs">{t("admin.role_badge_auto", "Auto")}</span>}
                         </div>
                         {r.description && (
                           <p className="text-xs text-base-content/60 truncate mt-1 pl-6">{r.description}</p>
@@ -318,7 +325,7 @@ export function Roles() {
                         disabled={index === 0 || reorderRolesMutation.isPending}
                         onClick={(e) => handleMoveUp(index, e)}
                         className="btn btn-ghost btn-xs btn-square"
-                        title="Move Up Priority"
+                        title={t("admin.role_move_up", "Move Up Priority")}
                       >
                         <ChevronUp className="h-3.5 w-3.5" />
                       </button>
@@ -326,7 +333,7 @@ export function Roles() {
                         disabled={index === roles.length - 1 || reorderRolesMutation.isPending}
                         onClick={(e) => handleMoveDown(index, e)}
                         className="btn btn-ghost btn-xs btn-square"
-                        title="Move Down Priority"
+                        title={t("admin.role_move_down", "Move Down Priority")}
                       >
                         <ChevronDown className="h-3.5 w-3.5" />
                       </button>
@@ -337,7 +344,7 @@ export function Roles() {
                             setRoleToDelete(r);
                           }}
                           className="btn btn-ghost btn-xs text-error btn-square"
-                          title="Delete role"
+                          title={t("admin.role_delete", "Delete role")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -357,18 +364,18 @@ export function Roles() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold">{selectedRole.name}</h2>
-                      {selectedRole.is_admin && <span className="badge badge-error">Full Admin Access</span>}
-                      {selectedRole.is_banned && <span className="badge badge-warning text-warning-content font-bold">Blocked Account</span>}
+                      {selectedRole.is_admin && <span className="badge badge-error">{t("admin.role_full_access", "Full Admin Access")}</span>}
+                      {selectedRole.is_banned && <span className="badge badge-warning text-warning-content font-bold">{t("admin.role_blocked", "Blocked Account")}</span>}
                     </div>
                     <p className="text-xs text-base-content/60 mt-1">
-                      {selectedRole.description || "No description provided."}
+                      {selectedRole.description || t("admin.role_no_description", "No description provided.")}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-center">
                     {canModify && (
                       <button onClick={openEdit} className="btn btn-outline btn-sm gap-1.5">
-                        <Pencil className="h-3.5 w-3.5" /> Edit Role
+                        <Pencil className="h-3.5 w-3.5" /> {t("admin.role_edit", "Edit Role")}
                       </button>
                     )}
                     {!selectedRole.is_admin && !selectedRole.is_banned && (
@@ -378,7 +385,7 @@ export function Roles() {
                         className="btn btn-primary btn-sm gap-1.5"
                       >
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save Permissions
+                        {t("admin.role_save_permissions", "Save Permissions")}
                       </button>
                     )}
                   </div>
@@ -387,25 +394,25 @@ export function Roles() {
                 {selectedRole.is_admin ? (
                   <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-error opacity-80" />
-                    <h3 className="font-bold text-lg">Administrator Role</h3>
+                    <h3 className="font-bold text-lg">{t("admin.role_admin_title", "Administrator Role")}</h3>
                     <p className="text-xs text-base-content/60 max-w-md">
-                      Users with the ADMIN role automatically bypass all permission checks and have full unrestricted system access.
+                      {t("admin.role_admin_desc", "Users with the ADMIN role automatically bypass all permission checks and have full unrestricted system access.")}
                     </p>
                   </div>
                 ) : selectedRole.is_banned ? (
                   <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-warning opacity-80" />
-                    <h3 className="font-bold text-lg">Banned / Blocked Role</h3>
+                    <h3 className="font-bold text-lg">{t("admin.role_banned_title", "Banned / Blocked Role")}</h3>
                     <p className="text-xs text-base-content/60 max-w-md">
-                      Users with the BANNED role are blocked immediately. They are denied all actions and system permissions.
+                      {t("admin.role_banned_desc", "Users with the BANNED role are blocked immediately. They are denied all actions and system permissions.")}
                     </p>
                   </div>
                 ) : (
                   <div className="bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm">
                     <div className="p-4 border-b border-base-200 bg-base-200/30 font-bold text-sm flex items-center justify-between">
-                      <span>Permissions ({permissions.length})</span>
+                      <span>{t("admin.role_permissions_count", "Permissions ({{n}})", { n: permissions.length })}</span>
                       <span className="text-xs font-normal text-base-content/60">
-                        {assignments.length} assigned
+                        {t("admin.role_assigned_count", "{{n}} assigned", { n: assignments.length })}
                       </span>
                     </div>
 
@@ -493,14 +500,14 @@ export function Roles() {
                                             onClick={() => setEffect(perm.key, "allow")}
                                             className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success text-white font-bold" : "btn-ghost text-base-content/60"}`}
                                           >
-                                            Allow
+                                            {t("admin.role_effect_allow", "Allow")}
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => setEffect(perm.key, "deny")}
                                             className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error text-white font-bold" : "btn-ghost text-base-content/60"}`}
                                           >
-                                            Deny
+                                            {t("admin.role_effect_deny", "Deny")}
                                           </button>
                                         </div>
                                       )}
@@ -539,7 +546,7 @@ export function Roles() {
             ) : (
               <div className="bg-base-200/30 border border-base-200 rounded-xl p-12 text-center flex flex-col items-center gap-2">
                 <Shield className="h-10 w-10 text-base-content/30" />
-                <p className="text-sm font-medium text-base-content/60">Select a role from the sidebar to edit permissions.</p>
+                <p className="text-sm font-medium text-base-content/60">{t("admin.role_select_prompt", "Select a role from the sidebar to edit permissions.")}</p>
               </div>
             )}
           </div>
@@ -551,7 +558,7 @@ export function Roles() {
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="font-bold text-lg mb-4">
-              {modalMode === "create" ? "Create New Role" : "Edit Role"}
+              {modalMode === "create" ? t("admin.role_create_title", "Create New Role") : t("admin.role_edit", "Edit Role")}
             </h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="form-control">
@@ -563,7 +570,7 @@ export function Roles() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. LIBRARIAN"
+                  placeholder={t("admin.role_name_placeholder", "e.g. LIBRARIAN")}
                   className="input input-bordered w-full focus:input-primary font-mono"
                 />
               </div>
@@ -576,7 +583,7 @@ export function Roles() {
                   rows={2}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Role description and scope"
+                  placeholder={t("admin.role_desc_placeholder", "Role description and scope")}
                   className="textarea textarea-bordered w-full focus:textarea-primary text-sm"
                 />
               </div>
@@ -600,10 +607,10 @@ export function Roles() {
 
               <div className="modal-action">
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : modalMode === "create" ? "Create Role" : "Save Changes"}
+                  {saving ? <span className="loading loading-spinner"></span> : modalMode === "create" ? t("admin.role_create_action", "Create Role") : t("admin.save_changes", "Save Changes")}
                 </button>
               </div>
             </form>
@@ -621,16 +628,21 @@ export function Roles() {
             <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-lg">Delete Role?</h3>
+            <h3 className="font-bold text-lg">{t("admin.role_delete_title", "Delete Role?")}</h3>
             <p className="text-xs text-base-content/60 mt-1 mb-6">
-              Are you sure you want to delete role <span className="font-bold text-base-content">{roleToDelete.name}</span>? Users assigned this role will lose its permissions.
+              <Trans
+                i18nKey="admin.role_delete_confirm"
+                values={{ name: roleToDelete.name }}
+                defaults="Are you sure you want to delete role <bold>{{name}}</bold>? Users assigned this role will lose its permissions."
+                components={{ bold: <span className="font-bold text-base-content" /> }}
+              />
             </p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setRoleToDelete(null)} className="btn btn-ghost flex-1">
-                Cancel
+                {t("common.cancel", "Cancel")}
               </button>
               <button onClick={confirmDelete} disabled={saving} className="btn btn-error text-white flex-1">
-                {saving ? <span className="loading loading-spinner"></span> : "Delete"}
+                {saving ? <span className="loading loading-spinner"></span> : t("common.delete", "Delete")}
               </button>
             </div>
           </div>

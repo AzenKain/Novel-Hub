@@ -35,12 +35,11 @@ func init() {
 }
 
 func isImageURL(value string) bool {
-	if strings.HasPrefix(value, "data:image/") {
-		return true
-	}
-	
 	parsed, err := url.Parse(value)
-	if err != nil {
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	if scheme := strings.ToLower(parsed.Scheme); scheme != "http" && scheme != "https" {
 		return false
 	}
 	switch strings.ToLower(path.Ext(parsed.Path)) {

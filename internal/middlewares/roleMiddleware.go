@@ -9,17 +9,23 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/internal/services"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
+)
+
+var (
+	errUnauthorized = apperrors.New(apperrors.ErrUnauthorized, "Unauthorized")
+	errForbidden    = apperrors.New(apperrors.ErrForbidden, "Permission denied")
 )
 
 func getRoles(c fiber.Ctx) ([]constants.RoleType, error) {
 	claimsVal := c.Locals("user_claims")
 	if claimsVal == nil {
-		return nil, fiber.ErrUnauthorized
+		return nil, errUnauthorized
 	}
 	claims, ok := claimsVal.(*response.JWTClaims)
 	if !ok {
-		return nil, fiber.ErrUnauthorized
+		return nil, errUnauthorized
 	}
 	return claims.Roles, nil
 }
@@ -28,14 +34,14 @@ func RequireAnyRole(required ...constants.RoleType) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		userRoles, err := getRoles(c)
 		if err != nil {
-			return err
+			return apperrors.HandleError(c, err)
 		}
 		for _, role := range userRoles {
 			if slices.Contains(required, role) {
 				return c.Next()
 			}
 		}
-		return fiber.ErrForbidden
+		return apperrors.HandleError(c, errForbidden)
 	}
 }
 
@@ -44,11 +50,11 @@ type PermissionAttrResolver func(c fiber.Ctx) (map[string]any, error)
 func RequireAniListTrackingEnabled(settings services.SettingsService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if settings == nil {
-			return fiber.ErrForbidden
+			return apperrors.HandleError(c, errForbidden)
 		}
 		current, err := settings.Public(context.Background())
 		if err != nil || current == nil || !current.EnableAniListTracking {
-			return fiber.ErrForbidden
+			return apperrors.HandleError(c, apperrors.New(apperrors.ErrForbidden, "AniList tracking is disabled"))
 		}
 		return c.Next()
 	}
@@ -57,11 +63,11 @@ func RequireAniListTrackingEnabled(settings services.SettingsService) fiber.Hand
 func RequireAnyPermission(permissionCache services.PermissionCache, permissions ...string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if permissionCache == nil {
-			return fiber.ErrForbidden
+			return apperrors.HandleError(c, errForbidden)
 		}
 		claims, ok := c.Locals("user_claims").(*response.JWTClaims)
 		if !ok || claims == nil {
-			return fiber.ErrUnauthorized
+			return apperrors.HandleError(c, errUnauthorized)
 		}
 		ctx := services.WithPermissionContext(context.Background(), services.PermissionContext{RoleIDs: claims.RoleIDs, Roles: claims.Roles})
 		for _, permission := range permissions {
@@ -69,22 +75,22 @@ func RequireAnyPermission(permissionCache services.PermissionCache, permissions 
 				return c.Next()
 			}
 		}
-		return fiber.ErrForbidden
+		return apperrors.HandleError(c, errForbidden)
 	}
 }
 
 func RequirePermission(permissionCache services.PermissionCache, permission string, resolvers ...PermissionAttrResolver) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if permissionCache == nil {
-			return fiber.ErrForbidden
+			return apperrors.HandleError(c, errForbidden)
 		}
 		claimsVal := c.Locals("user_claims")
 		if claimsVal == nil {
-			return fiber.ErrUnauthorized
+			return apperrors.HandleError(c, errUnauthorized)
 		}
 		claims, ok := claimsVal.(*response.JWTClaims)
 		if !ok {
-			return fiber.ErrUnauthorized
+			return apperrors.HandleError(c, errUnauthorized)
 		}
 
 		attrs := map[string]any{}
@@ -94,7 +100,7 @@ func RequirePermission(permissionCache services.PermissionCache, permission stri
 			}
 			resolved, err := resolver(c)
 			if err != nil {
-				return err
+				return apperrors.HandleError(c, err)
 			}
 			for key, value := range resolved {
 				attrs[key] = value
@@ -106,7 +112,7 @@ func RequirePermission(permissionCache services.PermissionCache, permission stri
 			Roles:   claims.Roles,
 		})
 		if !permissionCache.Can(ctx, claims.UId, permission, attrs) {
-			return fiber.ErrForbidden
+			return apperrors.HandleError(c, errForbidden)
 		}
 		return c.Next()
 	}
@@ -116,7 +122,7 @@ func LibraryIDParam(param string) PermissionAttrResolver {
 	return func(c fiber.Ctx) (map[string]any, error) {
 		value := c.Params(param)
 		if value == "" {
-			return nil, fiber.ErrBadRequest
+			return nil, apperrors.New(apperrors.ErrBadRequest, "Library ID is required")
 		}
 		return map[string]any{"library_id": value}, nil
 	}
@@ -126,11 +132,11 @@ func BookLibraryAttr(bookRepo repositories.BookDBRepository, param string) Permi
 	return func(c fiber.Ctx) (map[string]any, error) {
 		bookID := c.Params(param)
 		if bookID == "" {
-			return nil, fiber.ErrBadRequest
+			return nil, apperrors.New(apperrors.ErrBadRequest, "Book ID is required")
 		}
 		book, err := bookRepo.GetBook(c.Context(), bookID)
-		if err != nil {
-			return nil, fiber.ErrNotFound
+		if err != nil || book == nil {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
 		}
 		return map[string]any{"library_id": book.LibraryID}, nil
 	}
@@ -140,11 +146,11 @@ func BookFileLibraryAttr(bookRepo repositories.BookDBRepository, param string) P
 	return func(c fiber.Ctx) (map[string]any, error) {
 		file, err := bookRepo.GetBookFileById(c.Context(), c.Params(param))
 		if err != nil || file == nil {
-			return nil, fiber.ErrNotFound
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book file not found")
 		}
 		book, err := bookRepo.GetBook(c.Context(), file.BookID)
 		if err != nil || book == nil {
-			return nil, fiber.ErrNotFound
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
 		}
 		return map[string]any{"library_id": book.LibraryID}, nil
 	}

@@ -3,18 +3,18 @@ package bookparser
 const RawFileContentPath = "__novelhub_raw_file__"
 
 type BookMetadata struct {
-	Title        string
-	Author       string
-	Description  string
-	Publisher    string
-	Language     string
-	Date         string
-	Subjects     []string
-	Series       string
-	SeriesIndex  string
-	CoverData    []byte
-	CoverType    string
-	MetadataJSON string
+	Title            string
+	Author           string
+	Description      string
+	Publisher        string
+	Language         string
+	Date             string
+	Subjects         []string
+	Series           string
+	SeriesIndex      string
+	CoverData        []byte
+	CoverType        string
+	MetadataJSON     string
 	ReadingDirection string
 }
 

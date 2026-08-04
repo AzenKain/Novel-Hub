@@ -51,4 +51,3 @@ func CleanChapterTitle(title string) string {
 	title = html.UnescapeString(title)
 	return strings.Join(strings.Fields(strings.TrimSpace(title)), " ")
 }
-

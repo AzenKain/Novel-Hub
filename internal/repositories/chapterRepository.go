@@ -28,7 +28,7 @@ func (r *bookDBRepository) CreateChapter(ctx context.Context, chapter *models.Ch
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", chapter.ID), cache.BuildKey("chapter", "book", chapter.BookID))
 		// SearchFTSInBook joins chapters for chapter_title/chapter_index.
-		_ = r.c.DelByPattern(context.Background(), "fts:book-search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSBookSearchPattern)
 	}
 	return nil
 }
@@ -164,9 +164,9 @@ func (r *bookDBRepository) DeleteChapter(ctx context.Context, id string) error {
 		if preErr == nil {
 			_ = r.c.Del(ctx, cache.BuildKey("chapter", "book", chapter.BookID))
 		} else {
-			_ = r.c.DelByPattern(context.Background(), "chapter:book:*")
+			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterByBookPattern)
 		}
-		_ = r.c.DelByPattern(context.Background(), "fts:book-search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSBookSearchPattern)
 	}
 	return nil
 }

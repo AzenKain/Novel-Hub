@@ -21,22 +21,12 @@ func NewSyncController(syncService services.SyncService) *SyncController {
 	return &SyncController{syncService: syncService}
 }
 
-func getSyncUserID(c fiber.Ctx) string {
-	uidRaw := c.Locals("uid")
-	if uidRaw != nil {
-		if uidStr, ok := uidRaw.(string); ok {
-			return uidStr
-		}
-	}
-	return ""
-}
-
 func (ctrl *SyncController) GetProgress(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	bookID := c.Params("bookId")
-	userID := getSyncUserID(c)
+	userID, _ := getUserIdFromLocals(c)
 
 	res, err := ctrl.syncService.GetProgress(ctx, userID, bookID, getOptionalClaims(c))
 	if err != nil {
@@ -54,7 +44,7 @@ func (ctrl *SyncController) UpdateProgress(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	userID := getSyncUserID(c)
+	userID, _ := getUserIdFromLocals(c)
 	res, err := ctrl.syncService.UpdateProgress(ctx, userID, dto, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
@@ -67,7 +57,7 @@ func (ctrl *SyncController) KosyncGetProgress(c fiber.Ctx) error {
 	defer cancel()
 
 	document := c.Params("document")
-	userID := getSyncUserID(c)
+	userID, _ := getUserIdFromLocals(c)
 
 	res, err := ctrl.syncService.KosyncGetProgress(ctx, userID, document, getOptionalClaims(c))
 	if err != nil {
@@ -85,7 +75,7 @@ func (ctrl *SyncController) KosyncPushProgress(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	userID := getSyncUserID(c)
+	userID, _ := getUserIdFromLocals(c)
 	res, err := ctrl.syncService.KosyncPushProgress(ctx, userID, dto, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)

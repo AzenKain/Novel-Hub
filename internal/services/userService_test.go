@@ -44,6 +44,33 @@ func newUserSvc(t *testing.T) (UserService, *sql.DB) {
 	return svc, db
 }
 
+func TestRestoreUserCannotResurrectAdminUnlessOwner(t *testing.T) {
+	svc, db := newUserSvc(t)
+	seedOwner(t, db)
+	ctx := context.Background()
+
+	const deletedAdmin = "01920000-0000-7000-8000-000000000eee"
+	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider, token_version, is_deleted) VALUES (?, 'a@n.h', 'LOCAL', 1, 1)`, deletedAdmin); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`, deletedAdmin, seedRoleAdmin); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider, token_version) VALUES ('staff','s@n.h','LOCAL',1)`); err != nil {
+		t.Fatal(err)
+	}
+
+	staff := &response.JWTClaims{UId: "staff", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1}
+	if _, err := svc.RestoreUser(ctx, deletedAdmin, staff); err == nil {
+		t.Fatal("a non-owner restored a deleted admin account")
+	}
+
+	owner := &response.JWTClaims{UId: "01920000-0000-7000-8000-000000000bbb", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1}
+	if _, err := svc.RestoreUser(ctx, deletedAdmin, owner); err != nil {
+		t.Fatalf("owner must still be able to restore an admin: %v", err)
+	}
+}
+
 func seedOwner(t *testing.T, db *sql.DB) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider, token_version) VALUES ('01920000-0000-7000-8000-000000000bbb','owner@n.h','LOCAL',1)`); err != nil {
@@ -167,7 +194,9 @@ func TestRestoreUserDoesNotResurrectCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := svc.RestoreUser(ctx, victim)
+	res, err := svc.RestoreUser(ctx, victim, &response.JWTClaims{
+		UId: "01920000-0000-7000-8000-000000000bbb", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

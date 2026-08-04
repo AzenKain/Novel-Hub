@@ -9,7 +9,6 @@ import (
 	"novelhub/pkg/config"
 )
 
-
 func SafeJoin(base string, parts ...string) (string, error) {
 	absBase, err := filepath.Abs(base)
 	if err != nil {
@@ -37,7 +36,6 @@ func IsValidFile(path string) bool {
 	}
 	return !info.IsDir()
 }
-
 
 func ResolveBookFilePath(bookID string, rawPath string) string {
 	if strings.TrimSpace(rawPath) == "" {

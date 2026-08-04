@@ -74,7 +74,6 @@ func (r *RoleEntity) ToRoleSimple() *RoleSimple {
 	return &RoleSimple{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin, IsBanned: r.IsBanned}
 }
 
-
 func RolesEntityToResponse(roles []*RoleEntity) []*response.RoleResponse {
 	out := make([]*response.RoleResponse, 0, len(roles))
 	for _, role := range roles {
@@ -231,7 +230,7 @@ func (p *RolePermissionEntity) FromSqlc(row sqlc.RolePermission) *RolePermission
 	p.ConditionsJSON = row.ConditionsJson
 	p.CreatedAt = row.CreatedAt
 	p.UpdatedAt = row.UpdatedAt
-	
+
 	var conditions map[string]any
 	if row.ConditionsJson != "" {
 		_ = jsonx.Unmarshal([]byte(row.ConditionsJson), &conditions)
@@ -240,7 +239,7 @@ func (p *RolePermissionEntity) FromSqlc(row sqlc.RolePermission) *RolePermission
 		conditions = map[string]any{}
 	}
 	p.Conditions = conditions
-	
+
 	return p
 }
 

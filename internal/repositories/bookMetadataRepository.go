@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
@@ -11,6 +12,50 @@ import (
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
 )
+
+const (
+	metadataAlphaOther = "#"
+	dStrokeUpper       = "Đ" // Đ
+	dStrokeLower       = "đ" // đ
+)
+
+type MetadataFacetFilter struct {
+	Cursor string
+	Limit  int64
+	Search string
+	Alpha  string
+}
+
+func (f MetadataFacetFilter) cacheKey(facet string) string {
+	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha)
+}
+
+func (f MetadataFacetFilter) sqlcArgs() (search any, alphaUpper any, alphaLower sql.NullString, alphaOther any, dUpper, dLower sql.NullString, cursorName any, cursorID sql.NullString) {
+	if trimmed := strings.TrimSpace(f.Search); trimmed != "" {
+		search = trimmed
+	}
+	switch alpha := strings.TrimSpace(f.Alpha); alpha {
+	case "", "All":
+	case metadataAlphaOther:
+		alphaOther = 1
+		dUpper = sql.NullString{String: dStrokeUpper, Valid: true}
+		dLower = sql.NullString{String: dStrokeLower, Valid: true}
+	case dStrokeUpper, dStrokeLower:
+		alphaUpper = dStrokeUpper
+		alphaLower = sql.NullString{String: dStrokeLower, Valid: true}
+	default:
+		upper := strings.ToUpper(alpha)
+		alphaUpper = upper
+		alphaLower = sql.NullString{String: strings.ToLower(alpha), Valid: true}
+	}
+	if f.Cursor != "" {
+		if parts := convert.DecodeCursor(f.Cursor); len(parts) == 2 {
+			cursorName = parts[0]
+			cursorID = sql.NullString{String: parts[1], Valid: true}
+		}
+	}
+	return
+}
 
 func (r *bookDBRepository) CreateAuthor(ctx context.Context, author *models.AuthorEntity) error {
 	params := sqlc.CreateAuthorParams{
@@ -28,10 +73,10 @@ func (r *bookDBRepository) CreateAuthor(ctx context.Context, author *models.Auth
 		_ = r.c.Set(ctx, cache.BuildKey("author", "name", author.Name), author, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -121,7 +166,9 @@ func (r *bookDBRepository) GetAuthorsByIDs(ctx context.Context, ids []string) ([
 	}
 
 	if len(missingIds) > 0 {
-		rows, err := r.queries.GetAuthorsByIDs(ctx, missingIds)
+		rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Author, error) {
+			return r.queries.GetAuthorsByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -173,10 +220,10 @@ func (r *bookDBRepository) CreateTag(ctx context.Context, tag *models.TagEntity)
 		_ = r.c.Set(ctx, cache.BuildKey("tag", "name", tag.Name), tag, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -189,15 +236,21 @@ func (r *bookDBRepository) GetTagByName(ctx context.Context, name string) (*mode
 			return &tag, nil
 		}
 	}
-	res, err := r.queries.GetTagByName(ctx, name)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		res, err := r.queries.GetTagByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		tag := (&models.TagEntity{}).FromSqlc(res)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, tag, constants.NormalCacheDuration)
+		}
+		return tag, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	tag := (&models.TagEntity{}).FromSqlc(res)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, tag, constants.NormalCacheDuration)
-	}
-	return tag, nil
+	return v.(*models.TagEntity), nil
 }
 
 func (r *bookDBRepository) AddBookTag(ctx context.Context, bookID, tagID string) error {
@@ -205,10 +258,10 @@ func (r *bookDBRepository) AddBookTag(ctx context.Context, bookID, tagID string)
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -252,10 +305,10 @@ func (r *bookDBRepository) CreateSeries(ctx context.Context, series *models.Seri
 		_ = r.c.Set(ctx, cache.BuildKey("series", "name", series.Name), series, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -269,10 +322,10 @@ func (r *bookDBRepository) LinkBookSeries(ctx context.Context, bookID, seriesID 
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -282,10 +335,10 @@ func (r *bookDBRepository) ClearBookSeries(ctx context.Context, bookID string) e
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -329,10 +382,10 @@ func (r *bookDBRepository) CreatePublisher(ctx context.Context, publisher *model
 		_ = r.c.Set(ctx, cache.BuildKey("publisher", "name", publisher.Name), publisher, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -345,10 +398,10 @@ func (r *bookDBRepository) LinkBookPublisher(ctx context.Context, bookID, publis
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -358,10 +411,10 @@ func (r *bookDBRepository) ClearBookPublishers(ctx context.Context, bookID strin
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -405,10 +458,10 @@ func (r *bookDBRepository) CreateLanguage(ctx context.Context, language *models.
 		_ = r.c.Set(ctx, cache.BuildKey("language", "name", language.Name), language, constants.NormalCacheDuration)
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -421,10 +474,10 @@ func (r *bookDBRepository) LinkBookLanguage(ctx context.Context, bookID, languag
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -434,10 +487,10 @@ func (r *bookDBRepository) ClearBookLanguages(ctx context.Context, bookID string
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
@@ -447,16 +500,16 @@ func (r *bookDBRepository) ClearBookTags(ctx context.Context, bookID string) err
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 	}
 	return nil
 }
 
-func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "authors", cursor, limit)
+func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("authors")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -467,15 +520,12 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, cursor stri
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListAuthorsWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListAuthorsWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListAuthorsWithCount(ctx, sqlc.ListAuthorsWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -497,8 +547,8 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, cursor stri
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "series", cursor, limit)
+func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("series")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -509,15 +559,12 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, cursor strin
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListSeriesWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListSeriesWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListSeriesWithCount(ctx, sqlc.ListSeriesWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -539,8 +586,8 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, cursor strin
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "publishers", cursor, limit)
+func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("publishers")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -551,15 +598,12 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, cursor s
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListPublishersWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListPublishersWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListPublishersWithCount(ctx, sqlc.ListPublishersWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -581,8 +625,8 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, cursor s
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "languages", cursor, limit)
+func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("languages")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -593,15 +637,12 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, cursor st
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListLanguagesWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListLanguagesWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListLanguagesWithCount(ctx, sqlc.ListLanguagesWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -623,8 +664,8 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, cursor st
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "tags", cursor, limit)
+func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("tags")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -635,15 +676,12 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, cursor string,
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListTagsWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListTagsWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListTagsWithCount(ctx, sqlc.ListTagsWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -665,8 +703,8 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, cursor string,
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, cursor string, limit int64) ([]*models.MetadataCountEntity, error) {
-	key := cache.BuildKey("metadata", "formats", cursor, limit)
+func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("formats")
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -677,15 +715,12 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, cursor stri
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		params := sqlc.ListFormatsWithCountParams{Limit: limit}
-		if cursor != "" {
-			parts := convert.DecodeCursor(cursor)
-			if len(parts) == 2 {
-				params.CursorName = parts[0]
-				params.CursorID = sql.NullString{String: parts[1], Valid: true}
-			}
-		}
-		rows, err := r.queries.ListFormatsWithCount(ctx, params)
+		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
+		rows, err := r.queries.ListFormatsWithCount(ctx, sqlc.ListFormatsWithCountParams{
+			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			DstrokeUpper: dUpper, DstrokeLower: dLower,
+			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
+		})
 		if err != nil {
 			return nil, err
 		}

@@ -5,6 +5,8 @@ import "time"
 const (
 	MaxPaginationLimit = 100
 
+	OPDSDefaultPageSize = 50
+
 	MaxUploadChunkBytes         = 32 << 20
 	MaxUploadChunks             = 256
 	MaxUploadSessions           = 16

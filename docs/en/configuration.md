@@ -90,6 +90,7 @@ need to override.
 |---|---|---|
 | `DATA_DIR` | `./data` | Root for everything below |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
+| `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | Only directories under this root can be imported. Point it at your Calibre library if it lives elsewhere. |
 
 `DATA_DIR` contains:
 
@@ -97,6 +98,7 @@ need to override.
 data/
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
 ├── logs/            rotating application logs

@@ -10,7 +10,7 @@ import (
 
 func RegisterMetadataRoutes(api fiber.Router, metadataController *controllers.MetadataController, userRepo repositories.UserRepository) {
 	group := api.Group("/metadata", middlewares.OptionalJwtAccess(userRepo))
-	
+
 	group.Get("/authors", metadataController.ListAuthors)
 	group.Get("/series", metadataController.ListSeries)
 	group.Get("/publishers", metadataController.ListPublishers)

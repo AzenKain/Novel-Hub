@@ -26,9 +26,8 @@ func (e *ReadingHistoryEntity) FromSqlc(res sqlc.GetRecentReadingHistoryRow) *Re
 	e.BookID = res.BookID
 	e.FileID = convert.NullStringToStrPtr(res.FileID)
 	e.ChapterID = res.ChapterID
-	if res.ProgressPercent.Valid {
-		e.ProgressPercent = &res.ProgressPercent.Float64
-	}
+	progress := res.ProgressPercent
+	e.ProgressPercent = &progress
 	e.UpdatedAt = res.UpdatedAt.Time
 	e.BookTitle = res.BookTitle
 	e.BookCoverURL = convert.NullStringToStrPtr(res.BookCoverUrl)
@@ -101,9 +100,8 @@ func (e *ReadingProgressEntity) FromSqlc(res sqlc.ReadingProgress) *ReadingProgr
 	e.ChapterID = res.ChapterRef
 	e.ChapterTitle = res.ChapterTitle
 	e.ChapterIndex = res.ChapterIndex
-	if res.ProgressPercent.Valid {
-		e.ProgressPercent = &res.ProgressPercent.Float64
-	}
+	progress := res.ProgressPercent
+	e.ProgressPercent = &progress
 	e.LocationCfi = convert.NullStringToStrPtr(res.LocationCfi)
 	e.LocationType = convert.NullStringToStrPtr(res.LocationType)
 	e.OpenedCount = res.OpenedCount

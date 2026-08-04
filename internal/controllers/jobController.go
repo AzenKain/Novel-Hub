@@ -54,9 +54,6 @@ func (c *JobController) ListJobs(ctx fiber.Ctx) error {
 }
 
 func (c *JobController) ListTasks(ctx fiber.Ctx) error {
-	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
 	data := c.service.ListTasks()
 	return ctx.JSON(response.CommonResponse{Status: true, Data: data})
 }

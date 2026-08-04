@@ -30,7 +30,7 @@ type UserService interface {
 	ChangePassword(ctx context.Context, userID string, dto *request.ChangePasswordDto) error
 	DeleteUser(ctx context.Context, userID string, claims *response.JWTClaims) error
 	ChangeRoleUser(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ChangeRoleDto) (*response.UserResponse, error)
-	RestoreUser(ctx context.Context, userID string) (*response.UserResponse, error)
+	RestoreUser(ctx context.Context, userID string, claims *response.JWTClaims) (*response.UserResponse, error)
 	GetUserByID(ctx context.Context, userID string) (*response.UserResponse, error)
 	SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, error)
 	AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error
@@ -435,7 +435,7 @@ func (u *userService) DeleteUser(ctx context.Context, userID string, claims *res
 	return nil
 }
 
-func (u *userService) RestoreUser(ctx context.Context, userID string) (*response.UserResponse, error) {
+func (u *userService) RestoreUser(ctx context.Context, userID string, claims *response.JWTClaims) (*response.UserResponse, error) {
 	id, ferr := convert.ParseID(userID)
 	if ferr != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
@@ -446,6 +446,12 @@ func (u *userService) RestoreUser(ctx context.Context, userID string) (*response
 	}
 	if user == nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	rootID := u.rootAdminID(ctx)
+	isRoot := claims != nil && rootID != "" && claims.UId == rootID
+	if user.IsAdmin() && !isRoot {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can restore other admin accounts")
 	}
 
 	// Restore flips is_deleted back to 0 with the SAME token_version and refresh_token.

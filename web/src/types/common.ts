@@ -21,6 +21,7 @@ export type PaginatedResponse<T> = {
     page_size: number;
     total_records: number;
     total_pages: number;
+    next_cursor?: string;
   };
 };
 

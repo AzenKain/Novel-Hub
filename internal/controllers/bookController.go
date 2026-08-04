@@ -78,8 +78,8 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Login required"})
 	}
 	var nextCursor *string
-	if len(filtered) >= int(dto.Limit) && len(filtered) > 0 {
-		last := filtered[len(filtered)-1]
+	if len(books) >= int(dto.Limit) && len(books) > 0 {
+		last := books[len(books)-1]
 		nc := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 		nextCursor = &nc
 	}
@@ -97,7 +97,7 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 	id := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
@@ -112,7 +112,7 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 	id := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanDownloadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Downloads are not allowed"})
@@ -120,7 +120,7 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 
 	file, err := h.bookService.GetBookFile(ctx, id, c.Query("file_id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book file not found"})
+		return apperrors.HandleError(c, err)
 	}
 	_ = h.featureService.RecordDownload(ctx, id)
 
@@ -137,14 +137,14 @@ func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 
 	book, err := h.bookService.GetBook(ctx, c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	files, err := h.bookService.ListBookFiles(ctx, c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book files not found"})
+		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: models.BookFileEntitiesToResponse(files)})
 }
@@ -175,7 +175,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	id := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})

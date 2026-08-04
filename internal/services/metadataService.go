@@ -2,20 +2,29 @@ package services
 
 import (
 	"context"
+	"strings"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 )
 
+type MetadataFacetQuery struct {
+	Cursor string
+	Limit  int64
+	Search string
+	Alpha  string
+}
+
 type MetadataService interface {
-	ListAuthors(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
-	ListSeries(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
-	ListPublishers(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
-	ListLanguages(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
-	ListTags(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
-	ListFormats(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error)
+	ListAuthors(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
+	ListSeries(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
+	ListPublishers(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
+	ListLanguages(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
+	ListTags(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
+	ListFormats(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error)
 }
 
 type metadataService struct {
@@ -28,16 +37,26 @@ func NewMetadataService(bookRepo repositories.BookDBRepository) MetadataService 
 	}
 }
 
-func (s *metadataService) ListAuthors(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
+func (s *metadataService) listFacet(
+	ctx context.Context,
+	q MetadataFacetQuery,
+	fetch func(context.Context, repositories.MetadataFacetFilter) ([]*models.MetadataCountEntity, error),
+) (*response.PaginatedResponse, error) {
+	limit := q.Limit
+	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
-	items, err := s.bookRepo.ListAuthorsWithCount(ctx, cursor, limit)
+	items, err := fetch(ctx, repositories.MetadataFacetFilter{
+		Cursor: q.Cursor,
+		Limit:  limit,
+		Search: strings.TrimSpace(q.Search),
+		Alpha:  strings.TrimSpace(q.Alpha),
+	})
 	if err != nil {
 		return nil, err
 	}
 	var nextCursor string
-	if len(items) > 0 {
+	if int64(len(items)) == limit && len(items) > 0 {
 		last := items[len(items)-1]
 		nextCursor = convert.EncodeCursor(last.Name, last.ID)
 	}
@@ -45,87 +64,26 @@ func (s *metadataService) ListAuthors(ctx context.Context, cursor string, limit 
 	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
 }
 
-func (s *metadataService) ListSeries(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	items, err := s.bookRepo.ListSeriesWithCount(ctx, cursor, limit)
-	if err != nil {
-		return nil, err
-	}
-	var nextCursor string
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = convert.EncodeCursor(last.Name, last.ID)
-	}
-	dtos := models.MetadataCountEntitiesToResponse(items)
-	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
+func (s *metadataService) ListAuthors(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListAuthorsWithCount)
 }
 
-func (s *metadataService) ListPublishers(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	items, err := s.bookRepo.ListPublishersWithCount(ctx, cursor, limit)
-	if err != nil {
-		return nil, err
-	}
-	var nextCursor string
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = convert.EncodeCursor(last.Name, last.ID)
-	}
-	dtos := models.MetadataCountEntitiesToResponse(items)
-	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
+func (s *metadataService) ListSeries(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListSeriesWithCount)
 }
 
-func (s *metadataService) ListLanguages(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	items, err := s.bookRepo.ListLanguagesWithCount(ctx, cursor, limit)
-	if err != nil {
-		return nil, err
-	}
-	var nextCursor string
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = convert.EncodeCursor(last.Name, last.ID)
-	}
-	dtos := models.MetadataCountEntitiesToResponse(items)
-	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
+func (s *metadataService) ListPublishers(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListPublishersWithCount)
 }
 
-func (s *metadataService) ListTags(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	items, err := s.bookRepo.ListTagsWithCount(ctx, cursor, limit)
-	if err != nil {
-		return nil, err
-	}
-	var nextCursor string
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = convert.EncodeCursor(last.Name, last.ID)
-	}
-	dtos := models.MetadataCountEntitiesToResponse(items)
-	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
+func (s *metadataService) ListLanguages(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListLanguagesWithCount)
 }
 
-func (s *metadataService) ListFormats(ctx context.Context, cursor string, limit int64) (*response.PaginatedResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	items, err := s.bookRepo.ListFormatsWithCount(ctx, cursor, limit)
-	if err != nil {
-		return nil, err
-	}
-	var nextCursor string
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = convert.EncodeCursor(last.Name, last.ID)
-	}
-	dtos := models.MetadataCountEntitiesToResponse(items)
-	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
+func (s *metadataService) ListTags(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListTagsWithCount)
+}
+
+func (s *metadataService) ListFormats(ctx context.Context, q MetadataFacetQuery) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, s.bookRepo.ListFormatsWithCount)
 }

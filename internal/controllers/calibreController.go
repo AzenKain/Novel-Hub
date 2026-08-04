@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -34,15 +33,7 @@ func (c *CalibreController) ImportCalibre(ctx fiber.Ctx) error {
 		})
 	}
 
-	cleanPath := filepath.Clean(dto.Path)
-	if cleanPath == "." || cleanPath == "/" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "invalid calibre path",
-		})
-	}
-
-	count, err := c.calibreService.ImportCalibreLibrary(reqCtx, cleanPath, dto.LibraryID)
+	count, err := c.calibreService.ImportCalibreLibrary(reqCtx, dto.Path, dto.LibraryID)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

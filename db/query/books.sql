@@ -4,7 +4,7 @@ INSERT INTO books (
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING *;
+RETURNING id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at;
 
 -- name: GetBook :one
 SELECT id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at FROM books
@@ -23,7 +23,7 @@ LIMIT sqlc.arg('limit');
 UPDATE books
 SET title = ?, author_id = ?, description = ?, cover_url = ?, status = ?, metadata_json = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ?
-RETURNING *;
+RETURNING id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at;
 
 -- name: DeleteBook :exec
 DELETE FROM books
@@ -35,7 +35,7 @@ INSERT INTO chapters (
 ) VALUES (
     ?, ?, ?, ?, ?
 )
-RETURNING *;
+RETURNING id, book_id, title, content_path, chapter_index, created_at, updated_at;
 
 -- name: GetChapter :one
 SELECT id, book_id, title, content_path, chapter_index, created_at, updated_at FROM chapters
@@ -59,7 +59,7 @@ INSERT INTO authors (
 ) VALUES (
     ?, ?, ?
 )
-RETURNING *;
+RETURNING id, name, bio, created_at, updated_at;
 
 -- name: GetAuthorByName :one
 SELECT id, name, bio, created_at, updated_at FROM authors
@@ -78,7 +78,7 @@ INSERT INTO tags (
 ) VALUES (
     ?, ?
 )
-RETURNING *;
+RETURNING id, name, created_at;
 
 -- name: GetTagByName :one
 SELECT id, name, created_at FROM tags

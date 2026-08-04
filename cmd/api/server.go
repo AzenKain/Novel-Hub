@@ -282,6 +282,9 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.RegisterHandler("clean_orphan_uploads", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CleanOrphanUploads(ctx)
 	})
+	jobQueue.RegisterHandler("prune_finished_jobs", func(ctx context.Context, jobID string, payload string) error {
+		return jobService.PruneFinishedJobs(ctx)
+	})
 	jobQueue.RegisterHandler("database_health_check", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CheckDatabaseHealth(ctx)
 	})
@@ -365,9 +368,12 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	opdsController := controllers.NewOPDSController(opdsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
-	koboService := services.NewKoboService(bookRepo, bookFileRepo, bookService, featureService, permissionCache)
-	koboController := controllers.NewKoboController(koboService)
-	routes.KoboRoutes(s.App, koboController, userRepo, permissionCache)
+	koboRepo := repositories.NewKoboRepository(db, ramCache)
+	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache)
+	koboAuthService := services.NewKoboAuthService(koboRepo)
+	koboController := controllers.NewKoboController(koboService, koboAuthService)
+	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)
+	routes.KoboSetupRoutes(v1, koboController, userRepo, permissionCache)
 
 	syncService := services.NewSyncService(featureService, bookService, permissionCache)
 	syncController := controllers.NewSyncController(syncService)

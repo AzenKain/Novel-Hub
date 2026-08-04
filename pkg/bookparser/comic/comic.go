@@ -169,12 +169,52 @@ func (p *Parser) SaveOriginalMetadataAndFix(filePath string, meta *bookparser.Bo
 	return bookparser.SaveMetadataSidecar(filePath, meta)
 }
 
+func archiveBudgetAdd(entries *int, total *int64, size int64) error {
+	*entries = *entries + 1
+	if *entries > constants.MaxArchiveEntries {
+		return fmt.Errorf("archive has more than %d entries", constants.MaxArchiveEntries)
+	}
+	if size < 0 || size > int64(constants.MaxArchiveAssetSize) {
+		return fmt.Errorf("archive entry exceeds %d-byte limit", constants.MaxArchiveAssetSize)
+	}
+	if *total > constants.MaxArchiveUncompressedBytes-size {
+		return fmt.Errorf("archive exceeds %d-byte uncompressed limit", constants.MaxArchiveUncompressedBytes)
+	}
+	*total += size
+	return nil
+}
+
+func zipArchiveBudget(files []*zip.File) error {
+	entries := 0
+	var total int64
+	for _, file := range files {
+		if err := archiveBudgetAdd(&entries, &total, int64(file.UncompressedSize64)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sevenZipArchiveBudget(files []*sevenzip.File) error {
+	entries := 0
+	var total int64
+	for _, file := range files {
+		if err := archiveBudgetAdd(&entries, &total, int64(file.UncompressedSize)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func listZipImages(filePath string) ([]string, error) {
 	reader, err := zip.OpenReader(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("open cbz: %w", err)
 	}
 	defer reader.Close()
+	if err := zipArchiveBudget(reader.File); err != nil {
+		return nil, fmt.Errorf("validate cbz: %w", err)
+	}
 	images := make([]string, 0, len(reader.File))
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() || !isComicImage(file.Name) {
@@ -192,6 +232,9 @@ func getZipAsset(filePath string, assetPath string) ([]byte, error) {
 		return nil, fmt.Errorf("open cbz: %w", err)
 	}
 	defer reader.Close()
+	if err := zipArchiveBudget(reader.File); err != nil {
+		return nil, fmt.Errorf("validate cbz: %w", err)
+	}
 	assetPath = strings.TrimLeft(filepath.ToSlash(assetPath), "/")
 	for _, file := range reader.File {
 		if filepath.ToSlash(file.Name) != assetPath {
@@ -207,6 +250,13 @@ func getZipAsset(filePath string, assetPath string) ([]byte, error) {
 	return nil, fmt.Errorf("cbz asset %q not found", assetPath)
 }
 
+func rarEntrySize(header *rardecode.FileHeader) (int64, error) {
+	if header.UnKnownSize {
+		return 0, fmt.Errorf("cbr entry %q declares no uncompressed size", header.Name)
+	}
+	return header.UnPackedSize, nil
+}
+
 func listRARImages(filePath string) ([]string, error) {
 	reader, err := rardecode.OpenReader(filePath)
 	if err != nil {
@@ -214,6 +264,8 @@ func listRARImages(filePath string) ([]string, error) {
 	}
 	defer reader.Close()
 	var images []string
+	entries := 0
+	var total int64
 	for {
 		header, err := reader.Next()
 		if err == io.EOF {
@@ -221,6 +273,13 @@ func listRARImages(filePath string) ([]string, error) {
 		}
 		if err != nil {
 			return nil, fmt.Errorf("read cbr: %w", err)
+		}
+		size, err := rarEntrySize(header)
+		if err != nil {
+			return nil, fmt.Errorf("validate cbr: %w", err)
+		}
+		if err := archiveBudgetAdd(&entries, &total, size); err != nil {
+			return nil, fmt.Errorf("validate cbr: %w", err)
 		}
 		if header.IsDir || !isComicImage(header.Name) {
 			continue
@@ -238,6 +297,8 @@ func getRARAsset(filePath string, assetPath string) ([]byte, error) {
 	}
 	defer reader.Close()
 	assetPath = strings.TrimLeft(filepath.ToSlash(assetPath), "/")
+	entries := 0
+	var total int64
 	for {
 		header, err := reader.Next()
 		if err == io.EOF {
@@ -245,6 +306,13 @@ func getRARAsset(filePath string, assetPath string) ([]byte, error) {
 		}
 		if err != nil {
 			return nil, fmt.Errorf("read cbr: %w", err)
+		}
+		size, err := rarEntrySize(header)
+		if err != nil {
+			return nil, fmt.Errorf("validate cbr: %w", err)
+		}
+		if err := archiveBudgetAdd(&entries, &total, size); err != nil {
+			return nil, fmt.Errorf("validate cbr: %w", err)
 		}
 		if filepath.ToSlash(header.Name) != assetPath {
 			continue
@@ -262,6 +330,8 @@ func listTarImages(filePath string) ([]string, error) {
 	defer file.Close()
 	reader := tar.NewReader(file)
 	var images []string
+	entries := 0
+	var total int64
 	for {
 		header, err := reader.Next()
 		if err == io.EOF {
@@ -269,6 +339,9 @@ func listTarImages(filePath string) ([]string, error) {
 		}
 		if err != nil {
 			return nil, fmt.Errorf("read cbt: %w", err)
+		}
+		if err := archiveBudgetAdd(&entries, &total, header.Size); err != nil {
+			return nil, fmt.Errorf("validate cbt: %w", err)
 		}
 		if header.FileInfo().IsDir() || !isComicImage(header.Name) {
 			continue
@@ -287,6 +360,8 @@ func getTarAsset(filePath string, assetPath string) ([]byte, error) {
 	defer file.Close()
 	reader := tar.NewReader(file)
 	assetPath = strings.TrimLeft(filepath.ToSlash(assetPath), "/")
+	entries := 0
+	var total int64
 	for {
 		header, err := reader.Next()
 		if err == io.EOF {
@@ -294,6 +369,9 @@ func getTarAsset(filePath string, assetPath string) ([]byte, error) {
 		}
 		if err != nil {
 			return nil, fmt.Errorf("read cbt: %w", err)
+		}
+		if err := archiveBudgetAdd(&entries, &total, header.Size); err != nil {
+			return nil, fmt.Errorf("validate cbt: %w", err)
 		}
 		if filepath.ToSlash(header.Name) != assetPath {
 			continue
@@ -309,6 +387,9 @@ func listSevenZipImages(filePath string) ([]string, error) {
 		return nil, fmt.Errorf("open cb7: %w", err)
 	}
 	defer reader.Close()
+	if err := sevenZipArchiveBudget(reader.File); err != nil {
+		return nil, fmt.Errorf("validate cb7: %w", err)
+	}
 	var images []string
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() || !isComicImage(file.Name) {
@@ -326,6 +407,9 @@ func getSevenZipAsset(filePath string, assetPath string) ([]byte, error) {
 		return nil, fmt.Errorf("open cb7: %w", err)
 	}
 	defer reader.Close()
+	if err := sevenZipArchiveBudget(reader.File); err != nil {
+		return nil, fmt.Errorf("validate cb7: %w", err)
+	}
 	assetPath = strings.TrimLeft(filepath.ToSlash(assetPath), "/")
 	for _, file := range reader.File {
 		if filepath.ToSlash(file.Name) != assetPath {

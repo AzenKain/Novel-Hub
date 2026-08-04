@@ -81,8 +81,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countJobsStmt, err = db.PrepareContext(ctx, countJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query CountJobs: %w", err)
 	}
+	if q.countKoboSyncedBooksStmt, err = db.PrepareContext(ctx, countKoboSyncedBooks); err != nil {
+		return nil, fmt.Errorf("error preparing query CountKoboSyncedBooks: %w", err)
+	}
+	if q.countUnfinishedJobsStmt, err = db.PrepareContext(ctx, countUnfinishedJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query CountUnfinishedJobs: %w", err)
+	}
 	if q.countUsersStmt, err = db.PrepareContext(ctx, countUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUsers: %w", err)
+	}
+	if q.countUsersFTSStmt, err = db.PrepareContext(ctx, countUsersFTS); err != nil {
+		return nil, fmt.Errorf("error preparing query CountUsersFTS: %w", err)
 	}
 	if q.createAuthorStmt, err = db.PrepareContext(ctx, createAuthor); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateAuthor: %w", err)
@@ -167,6 +176,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteJobScheduleStmt, err = db.PrepareContext(ctx, deleteJobSchedule); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobSchedule: %w", err)
+	}
+	if q.deleteKoboAuthTokenStmt, err = db.PrepareContext(ctx, deleteKoboAuthToken); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteKoboAuthToken: %w", err)
+	}
+	if q.deleteKoboSyncedBooksStmt, err = db.PrepareContext(ctx, deleteKoboSyncedBooks); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteKoboSyncedBooks: %w", err)
 	}
 	if q.deleteLibraryStmt, err = db.PrepareContext(ctx, deleteLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteLibrary: %w", err)
@@ -293,6 +308,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getJobsByIDsStmt, err = db.PrepareContext(ctx, getJobsByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobsByIDs: %w", err)
+	}
+	if q.getKoboAuthTokenStmt, err = db.PrepareContext(ctx, getKoboAuthToken); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKoboAuthToken: %w", err)
+	}
+	if q.getKoboUserByTokenStmt, err = db.PrepareContext(ctx, getKoboUserByToken); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKoboUserByToken: %w", err)
 	}
 	if q.getLanguageByNameStmt, err = db.PrepareContext(ctx, getLanguageByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLanguageByName: %w", err)
@@ -453,6 +474,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listJobsStmt, err = db.PrepareContext(ctx, listJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListJobs: %w", err)
 	}
+	if q.listKoboSyncedBookIDsStmt, err = db.PrepareContext(ctx, listKoboSyncedBookIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListKoboSyncedBookIDs: %w", err)
+	}
 	if q.listLanguagesWithCountStmt, err = db.PrepareContext(ctx, listLanguagesWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListLanguagesWithCount: %w", err)
 	}
@@ -489,8 +513,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listUnfinishedJobsStmt, err = db.PrepareContext(ctx, listUnfinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUnfinishedJobs: %w", err)
 	}
+	if q.markKoboBookSyncedStmt, err = db.PrepareContext(ctx, markKoboBookSynced); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkKoboBookSynced: %w", err)
+	}
 	if q.markRunningJobsInterruptedStmt, err = db.PrepareContext(ctx, markRunningJobsInterrupted); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkRunningJobsInterrupted: %w", err)
+	}
+	if q.probeUserSearchMatchesStmt, err = db.PrepareContext(ctx, probeUserSearchMatches); err != nil {
+		return nil, fmt.Errorf("error preparing query ProbeUserSearchMatches: %w", err)
 	}
 	if q.pruneFinishedJobsStmt, err = db.PrepareContext(ctx, pruneFinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query PruneFinishedJobs: %w", err)
@@ -524,6 +554,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.searchUserIDsStmt, err = db.PrepareContext(ctx, searchUserIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchUserIDs: %w", err)
+	}
+	if q.searchUserIDsFTSStmt, err = db.PrepareContext(ctx, searchUserIDsFTS); err != nil {
+		return nil, fmt.Errorf("error preparing query SearchUserIDsFTS: %w", err)
+	}
+	if q.touchKoboAuthTokenStmt, err = db.PrepareContext(ctx, touchKoboAuthToken); err != nil {
+		return nil, fmt.Errorf("error preparing query TouchKoboAuthToken: %w", err)
 	}
 	if q.updateBookStmt, err = db.PrepareContext(ctx, updateBook); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateBook: %w", err)
@@ -596,6 +632,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.upsertBookmarkStmt, err = db.PrepareContext(ctx, upsertBookmark); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertBookmark: %w", err)
+	}
+	if q.upsertKoboAuthTokenStmt, err = db.PrepareContext(ctx, upsertKoboAuthToken); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertKoboAuthToken: %w", err)
 	}
 	if q.upsertReadingProgressStmt, err = db.PrepareContext(ctx, upsertReadingProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertReadingProgress: %w", err)
@@ -718,9 +757,24 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing countJobsStmt: %w", cerr)
 		}
 	}
+	if q.countKoboSyncedBooksStmt != nil {
+		if cerr := q.countKoboSyncedBooksStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countKoboSyncedBooksStmt: %w", cerr)
+		}
+	}
+	if q.countUnfinishedJobsStmt != nil {
+		if cerr := q.countUnfinishedJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countUnfinishedJobsStmt: %w", cerr)
+		}
+	}
 	if q.countUsersStmt != nil {
 		if cerr := q.countUsersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countUsersStmt: %w", cerr)
+		}
+	}
+	if q.countUsersFTSStmt != nil {
+		if cerr := q.countUsersFTSStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countUsersFTSStmt: %w", cerr)
 		}
 	}
 	if q.createAuthorStmt != nil {
@@ -861,6 +915,16 @@ func (q *Queries) Close() error {
 	if q.deleteJobScheduleStmt != nil {
 		if cerr := q.deleteJobScheduleStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteJobScheduleStmt: %w", cerr)
+		}
+	}
+	if q.deleteKoboAuthTokenStmt != nil {
+		if cerr := q.deleteKoboAuthTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteKoboAuthTokenStmt: %w", cerr)
+		}
+	}
+	if q.deleteKoboSyncedBooksStmt != nil {
+		if cerr := q.deleteKoboSyncedBooksStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteKoboSyncedBooksStmt: %w", cerr)
 		}
 	}
 	if q.deleteLibraryStmt != nil {
@@ -1071,6 +1135,16 @@ func (q *Queries) Close() error {
 	if q.getJobsByIDsStmt != nil {
 		if cerr := q.getJobsByIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJobsByIDsStmt: %w", cerr)
+		}
+	}
+	if q.getKoboAuthTokenStmt != nil {
+		if cerr := q.getKoboAuthTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKoboAuthTokenStmt: %w", cerr)
+		}
+	}
+	if q.getKoboUserByTokenStmt != nil {
+		if cerr := q.getKoboUserByTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKoboUserByTokenStmt: %w", cerr)
 		}
 	}
 	if q.getLanguageByNameStmt != nil {
@@ -1338,6 +1412,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listJobsStmt: %w", cerr)
 		}
 	}
+	if q.listKoboSyncedBookIDsStmt != nil {
+		if cerr := q.listKoboSyncedBookIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listKoboSyncedBookIDsStmt: %w", cerr)
+		}
+	}
 	if q.listLanguagesWithCountStmt != nil {
 		if cerr := q.listLanguagesWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listLanguagesWithCountStmt: %w", cerr)
@@ -1398,9 +1477,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listUnfinishedJobsStmt: %w", cerr)
 		}
 	}
+	if q.markKoboBookSyncedStmt != nil {
+		if cerr := q.markKoboBookSyncedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markKoboBookSyncedStmt: %w", cerr)
+		}
+	}
 	if q.markRunningJobsInterruptedStmt != nil {
 		if cerr := q.markRunningJobsInterruptedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing markRunningJobsInterruptedStmt: %w", cerr)
+		}
+	}
+	if q.probeUserSearchMatchesStmt != nil {
+		if cerr := q.probeUserSearchMatchesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing probeUserSearchMatchesStmt: %w", cerr)
 		}
 	}
 	if q.pruneFinishedJobsStmt != nil {
@@ -1456,6 +1545,16 @@ func (q *Queries) Close() error {
 	if q.searchUserIDsStmt != nil {
 		if cerr := q.searchUserIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing searchUserIDsStmt: %w", cerr)
+		}
+	}
+	if q.searchUserIDsFTSStmt != nil {
+		if cerr := q.searchUserIDsFTSStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing searchUserIDsFTSStmt: %w", cerr)
+		}
+	}
+	if q.touchKoboAuthTokenStmt != nil {
+		if cerr := q.touchKoboAuthTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing touchKoboAuthTokenStmt: %w", cerr)
 		}
 	}
 	if q.updateBookStmt != nil {
@@ -1578,6 +1677,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertBookmarkStmt: %w", cerr)
 		}
 	}
+	if q.upsertKoboAuthTokenStmt != nil {
+		if cerr := q.upsertKoboAuthTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertKoboAuthTokenStmt: %w", cerr)
+		}
+	}
 	if q.upsertReadingProgressStmt != nil {
 		if cerr := q.upsertReadingProgressStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertReadingProgressStmt: %w", cerr)
@@ -1671,7 +1775,10 @@ type Queries struct {
 	countAdminUsersStmt                *sql.Stmt
 	countFilesForBookStmt              *sql.Stmt
 	countJobsStmt                      *sql.Stmt
+	countKoboSyncedBooksStmt           *sql.Stmt
+	countUnfinishedJobsStmt            *sql.Stmt
 	countUsersStmt                     *sql.Stmt
+	countUsersFTSStmt                  *sql.Stmt
 	createAuthorStmt                   *sql.Stmt
 	createBookStmt                     *sql.Stmt
 	createBookFileStmt                 *sql.Stmt
@@ -1700,6 +1807,8 @@ type Queries struct {
 	deleteFileStmt                     *sql.Stmt
 	deleteHighlightStmt                *sql.Stmt
 	deleteJobScheduleStmt              *sql.Stmt
+	deleteKoboAuthTokenStmt            *sql.Stmt
+	deleteKoboSyncedBooksStmt          *sql.Stmt
 	deleteLibraryStmt                  *sql.Stmt
 	deleteRoleStmt                     *sql.Stmt
 	deleteRolePermissionsStmt          *sql.Stmt
@@ -1742,6 +1851,8 @@ type Queries struct {
 	getJobScheduleStmt                 *sql.Stmt
 	getJobSchedulesByIDsStmt           *sql.Stmt
 	getJobsByIDsStmt                   *sql.Stmt
+	getKoboAuthTokenStmt               *sql.Stmt
+	getKoboUserByTokenStmt             *sql.Stmt
 	getLanguageByNameStmt              *sql.Stmt
 	getLibrariesByIDsStmt              *sql.Stmt
 	getLibraryStmt                     *sql.Stmt
@@ -1795,6 +1906,7 @@ type Queries struct {
 	listFormatsWithCountStmt           *sql.Stmt
 	listJobScheduleIDsStmt             *sql.Stmt
 	listJobsStmt                       *sql.Stmt
+	listKoboSyncedBookIDsStmt          *sql.Stmt
 	listLanguagesWithCountStmt         *sql.Stmt
 	listLibraryIDsStmt                 *sql.Stmt
 	listPermissionKeysStmt             *sql.Stmt
@@ -1807,7 +1919,9 @@ type Queries struct {
 	listTagsWithCountStmt              *sql.Stmt
 	listUnfinishedJobIDsStmt           *sql.Stmt
 	listUnfinishedJobsStmt             *sql.Stmt
+	markKoboBookSyncedStmt             *sql.Stmt
 	markRunningJobsInterruptedStmt     *sql.Stmt
+	probeUserSearchMatchesStmt         *sql.Stmt
 	pruneFinishedJobsStmt              *sql.Stmt
 	refreshBookBookmarkStatsStmt       *sql.Stmt
 	refreshBookRatingStatsStmt         *sql.Stmt
@@ -1819,6 +1933,8 @@ type Queries struct {
 	searchFTSStmt                      *sql.Stmt
 	searchFTSInBookStmt                *sql.Stmt
 	searchUserIDsStmt                  *sql.Stmt
+	searchUserIDsFTSStmt               *sql.Stmt
+	touchKoboAuthTokenStmt             *sql.Stmt
 	updateBookStmt                     *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
 	updateFileHashStmt                 *sql.Stmt
@@ -1843,6 +1959,7 @@ type Queries struct {
 	upsertBookShareStatsStmt           *sql.Stmt
 	upsertBookTrackerMappingStmt       *sql.Stmt
 	upsertBookmarkStmt                 *sql.Stmt
+	upsertKoboAuthTokenStmt            *sql.Stmt
 	upsertReadingProgressStmt          *sql.Stmt
 	upsertReadingSessionStmt           *sql.Stmt
 	upsertRolePermissionStmt           *sql.Stmt
@@ -1875,7 +1992,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countAdminUsersStmt:                q.countAdminUsersStmt,
 		countFilesForBookStmt:              q.countFilesForBookStmt,
 		countJobsStmt:                      q.countJobsStmt,
+		countKoboSyncedBooksStmt:           q.countKoboSyncedBooksStmt,
+		countUnfinishedJobsStmt:            q.countUnfinishedJobsStmt,
 		countUsersStmt:                     q.countUsersStmt,
+		countUsersFTSStmt:                  q.countUsersFTSStmt,
 		createAuthorStmt:                   q.createAuthorStmt,
 		createBookStmt:                     q.createBookStmt,
 		createBookFileStmt:                 q.createBookFileStmt,
@@ -1904,6 +2024,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteFileStmt:                     q.deleteFileStmt,
 		deleteHighlightStmt:                q.deleteHighlightStmt,
 		deleteJobScheduleStmt:              q.deleteJobScheduleStmt,
+		deleteKoboAuthTokenStmt:            q.deleteKoboAuthTokenStmt,
+		deleteKoboSyncedBooksStmt:          q.deleteKoboSyncedBooksStmt,
 		deleteLibraryStmt:                  q.deleteLibraryStmt,
 		deleteRoleStmt:                     q.deleteRoleStmt,
 		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
@@ -1946,6 +2068,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getJobScheduleStmt:                 q.getJobScheduleStmt,
 		getJobSchedulesByIDsStmt:           q.getJobSchedulesByIDsStmt,
 		getJobsByIDsStmt:                   q.getJobsByIDsStmt,
+		getKoboAuthTokenStmt:               q.getKoboAuthTokenStmt,
+		getKoboUserByTokenStmt:             q.getKoboUserByTokenStmt,
 		getLanguageByNameStmt:              q.getLanguageByNameStmt,
 		getLibrariesByIDsStmt:              q.getLibrariesByIDsStmt,
 		getLibraryStmt:                     q.getLibraryStmt,
@@ -1999,6 +2123,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listFormatsWithCountStmt:           q.listFormatsWithCountStmt,
 		listJobScheduleIDsStmt:             q.listJobScheduleIDsStmt,
 		listJobsStmt:                       q.listJobsStmt,
+		listKoboSyncedBookIDsStmt:          q.listKoboSyncedBookIDsStmt,
 		listLanguagesWithCountStmt:         q.listLanguagesWithCountStmt,
 		listLibraryIDsStmt:                 q.listLibraryIDsStmt,
 		listPermissionKeysStmt:             q.listPermissionKeysStmt,
@@ -2011,7 +2136,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listTagsWithCountStmt:              q.listTagsWithCountStmt,
 		listUnfinishedJobIDsStmt:           q.listUnfinishedJobIDsStmt,
 		listUnfinishedJobsStmt:             q.listUnfinishedJobsStmt,
+		markKoboBookSyncedStmt:             q.markKoboBookSyncedStmt,
 		markRunningJobsInterruptedStmt:     q.markRunningJobsInterruptedStmt,
+		probeUserSearchMatchesStmt:         q.probeUserSearchMatchesStmt,
 		pruneFinishedJobsStmt:              q.pruneFinishedJobsStmt,
 		refreshBookBookmarkStatsStmt:       q.refreshBookBookmarkStatsStmt,
 		refreshBookRatingStatsStmt:         q.refreshBookRatingStatsStmt,
@@ -2023,6 +2150,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		searchFTSStmt:                      q.searchFTSStmt,
 		searchFTSInBookStmt:                q.searchFTSInBookStmt,
 		searchUserIDsStmt:                  q.searchUserIDsStmt,
+		searchUserIDsFTSStmt:               q.searchUserIDsFTSStmt,
+		touchKoboAuthTokenStmt:             q.touchKoboAuthTokenStmt,
 		updateBookStmt:                     q.updateBookStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,
 		updateFileHashStmt:                 q.updateFileHashStmt,
@@ -2047,6 +2176,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertBookShareStatsStmt:           q.upsertBookShareStatsStmt,
 		upsertBookTrackerMappingStmt:       q.upsertBookTrackerMappingStmt,
 		upsertBookmarkStmt:                 q.upsertBookmarkStmt,
+		upsertKoboAuthTokenStmt:            q.upsertKoboAuthTokenStmt,
 		upsertReadingProgressStmt:          q.upsertReadingProgressStmt,
 		upsertReadingSessionStmt:           q.upsertReadingSessionStmt,
 		upsertRolePermissionStmt:           q.upsertRolePermissionStmt,

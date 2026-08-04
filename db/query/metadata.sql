@@ -16,8 +16,6 @@ SELECT id, name, created_at FROM languages WHERE name = ? LIMIT 1;
 -- name: CreateLanguage :one
 INSERT INTO languages (id, name) VALUES (?, ?) RETURNING *;
 
-
-
 -- name: LinkBookSeries :exec
 INSERT INTO book_series (book_id, series_id, series_index) VALUES (?, ?, ?)
 ON CONFLICT (book_id, series_id) DO UPDATE SET series_index = excluded.series_index;
@@ -44,7 +42,15 @@ DELETE FROM book_tags WHERE book_id = ?;
 SELECT a.id, a.name, COUNT(b.id) as book_count
 FROM authors a
 JOIN books b ON a.id = b.author_id
-WHERE (sqlc.narg('cursor_name') IS NULL OR a.name > sqlc.narg('cursor_name') OR (a.name = sqlc.narg('cursor_name') AND a.id > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR a.name LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(a.name), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(a.name), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(a.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(a.name), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(a.name), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR a.name > sqlc.narg('cursor_name') OR (a.name = sqlc.narg('cursor_name') AND a.id > sqlc.narg('cursor_id')))
 GROUP BY a.id, a.name
 ORDER BY a.name ASC, a.id ASC
 LIMIT sqlc.arg('limit');
@@ -65,7 +71,15 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
 ) as cover_url
 FROM series s
 JOIN book_series bs ON s.id = bs.series_id
-WHERE (sqlc.narg('cursor_name') IS NULL OR s.name > sqlc.narg('cursor_name') OR (s.name = sqlc.narg('cursor_name') AND s.id > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR s.name LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(s.name), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(s.name), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(s.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(s.name), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(s.name), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR s.name > sqlc.narg('cursor_name') OR (s.name = sqlc.narg('cursor_name') AND s.id > sqlc.narg('cursor_id')))
 GROUP BY s.id, s.name
 ORDER BY s.name ASC, s.id ASC
 LIMIT sqlc.arg('limit');
@@ -74,7 +88,15 @@ LIMIT sqlc.arg('limit');
 SELECT p.id, p.name, COUNT(bp.book_id) as book_count
 FROM publishers p
 JOIN book_publishers bp ON p.id = bp.publisher_id
-WHERE (sqlc.narg('cursor_name') IS NULL OR p.name > sqlc.narg('cursor_name') OR (p.name = sqlc.narg('cursor_name') AND p.id > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR p.name LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(p.name), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(p.name), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(p.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(p.name), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(p.name), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR p.name > sqlc.narg('cursor_name') OR (p.name = sqlc.narg('cursor_name') AND p.id > sqlc.narg('cursor_id')))
 GROUP BY p.id, p.name
 ORDER BY p.name ASC, p.id ASC
 LIMIT sqlc.arg('limit');
@@ -83,7 +105,15 @@ LIMIT sqlc.arg('limit');
 SELECT l.id, l.name, COUNT(bl.book_id) as book_count
 FROM languages l
 JOIN book_languages bl ON l.id = bl.language_id
-WHERE (sqlc.narg('cursor_name') IS NULL OR l.name > sqlc.narg('cursor_name') OR (l.name = sqlc.narg('cursor_name') AND l.id > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR l.name LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(l.name), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(l.name), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(l.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(l.name), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(l.name), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR l.name > sqlc.narg('cursor_name') OR (l.name = sqlc.narg('cursor_name') AND l.id > sqlc.narg('cursor_id')))
 GROUP BY l.id, l.name
 ORDER BY l.name ASC, l.id ASC
 LIMIT sqlc.arg('limit');
@@ -92,7 +122,15 @@ LIMIT sqlc.arg('limit');
 SELECT t.id, t.name, COUNT(bt.book_id) as book_count
 FROM tags t
 JOIN book_tags bt ON t.id = bt.tag_id
-WHERE (sqlc.narg('cursor_name') IS NULL OR t.name > sqlc.narg('cursor_name') OR (t.name = sqlc.narg('cursor_name') AND t.id > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR t.name LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(t.name), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(t.name), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(t.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(t.name), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(t.name), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR t.name > sqlc.narg('cursor_name') OR (t.name = sqlc.narg('cursor_name') AND t.id > sqlc.narg('cursor_id')))
 GROUP BY t.id, t.name
 ORDER BY t.name ASC, t.id ASC
 LIMIT sqlc.arg('limit');
@@ -100,7 +138,15 @@ LIMIT sqlc.arg('limit');
 -- name: ListFormatsWithCount :many
 SELECT LOWER(format) as id, UPPER(format) as name, COUNT(DISTINCT book_id) as book_count
 FROM book_files
-WHERE (sqlc.narg('cursor_name') IS NULL OR UPPER(format) > sqlc.narg('cursor_name') OR (UPPER(format) = sqlc.narg('cursor_name') AND LOWER(format) > sqlc.narg('cursor_id')))
+WHERE (sqlc.narg('search') IS NULL OR format LIKE '%' || sqlc.narg('search') || '%')
+  AND (sqlc.narg('alpha_upper') IS NULL
+       OR UPPER(SUBSTR(TRIM(format), 1, 1)) = sqlc.narg('alpha_upper')
+       OR SUBSTR(TRIM(format), 1, 1) = sqlc.narg('alpha_lower'))
+  AND (sqlc.narg('alpha_other') IS NULL
+       OR (UPPER(SUBSTR(TRIM(format), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(format), 1, 1) <> sqlc.narg('dstroke_upper')
+           AND SUBSTR(TRIM(format), 1, 1) <> sqlc.narg('dstroke_lower')))
+  AND (sqlc.narg('cursor_name') IS NULL OR UPPER(format) > sqlc.narg('cursor_name') OR (UPPER(format) = sqlc.narg('cursor_name') AND LOWER(format) > sqlc.narg('cursor_id')))
 GROUP BY LOWER(format)
 ORDER BY LOWER(format) ASC
 LIMIT sqlc.arg('limit');

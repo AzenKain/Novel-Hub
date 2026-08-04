@@ -172,6 +172,11 @@ type FtsMetadatum struct {
 	Languages   string `json:"languages"`
 }
 
+type FtsUser struct {
+	UserID   string `json:"user_id"`
+	Haystack string `json:"haystack"`
+}
+
 type Highlight struct {
 	ID          string         `json:"id"`
 	UserID      string         `json:"user_id"`
@@ -210,6 +215,19 @@ type JobSchedule struct {
 	LastJobID       sql.NullString `json:"last_job_id"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+type KoboAuthToken struct {
+	Token      string       `json:"token"`
+	UserID     string       `json:"user_id"`
+	CreatedAt  time.Time    `json:"created_at"`
+	LastUsedAt sql.NullTime `json:"last_used_at"`
+}
+
+type KoboSyncedBook struct {
+	UserID   string    `json:"user_id"`
+	BookID   string    `json:"book_id"`
+	SyncedAt time.Time `json:"synced_at"`
 }
 
 type Language struct {
@@ -255,20 +273,20 @@ type ReadingHistory struct {
 }
 
 type ReadingProgress struct {
-	UserID             string          `json:"user_id"`
-	BookID             string          `json:"book_id"`
-	FileID             sql.NullString  `json:"file_id"`
-	ChapterRef         string          `json:"chapter_ref"`
-	ChapterTitle       string          `json:"chapter_title"`
-	ChapterIndex       int64           `json:"chapter_index"`
-	ProgressPercent    sql.NullFloat64 `json:"progress_percent"`
-	LocationCfi        sql.NullString  `json:"location_cfi"`
-	LocationType       sql.NullString  `json:"location_type"`
-	OpenedCount        int64           `json:"opened_count"`
-	QualifiedReadCount int64           `json:"qualified_read_count"`
-	LastOpenedAt       sql.NullTime    `json:"last_opened_at"`
-	LastCountedAt      sql.NullTime    `json:"last_counted_at"`
-	UpdatedAt          sql.NullTime    `json:"updated_at"`
+	UserID             string         `json:"user_id"`
+	BookID             string         `json:"book_id"`
+	FileID             sql.NullString `json:"file_id"`
+	ChapterRef         string         `json:"chapter_ref"`
+	ChapterTitle       string         `json:"chapter_title"`
+	ChapterIndex       int64          `json:"chapter_index"`
+	ProgressPercent    float64        `json:"progress_percent"`
+	LocationCfi        sql.NullString `json:"location_cfi"`
+	LocationType       sql.NullString `json:"location_type"`
+	OpenedCount        int64          `json:"opened_count"`
+	QualifiedReadCount int64          `json:"qualified_read_count"`
+	LastOpenedAt       sql.NullTime   `json:"last_opened_at"`
+	LastCountedAt      sql.NullTime   `json:"last_counted_at"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
 }
 
 type ReadingSession struct {

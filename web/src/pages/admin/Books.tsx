@@ -3,13 +3,13 @@ import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
 import { getMediaUrl } from "@/config/api";
 import { BOOK_FILE_ACCEPT } from "@/constants";
-import { useCalibreImportMutation } from "@/hooks";
+import { useBooksQuery, useCalibreImportMutation, useDebounce } from "@/hooks";
 import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetail";
 import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
 import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -18,7 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 export function Books() {
   const { t } = useTranslation();
   const store = useBookAdminStore(useShallow((state) => ({
-    books: state.books, loading: state.loading, error: state.error, notice: state.notice, page: state.page, search: state.search, selectedLibraryId: state.selectedLibraryId, hasMore: state.hasMore,
+    search: state.search, selectedLibraryId: state.selectedLibraryId,
     libraries: state.libraries, editingBook: state.editingBook, formData: state.formData, submitting: state.submitting,
     bookFiles: state.bookFiles, uploadingBookFiles: state.uploadingBookFiles,
     coverTab: state.coverTab, epubImages: state.epubImages, loadingImages: state.loadingImages, linkUrl: state.linkUrl, coverPreview: state.coverPreview,
@@ -29,11 +29,11 @@ export function Books() {
     bookToDelete: state.bookToDelete, libraryToDelete: state.libraryToDelete,
     setSearch: state.setSearch, setSelectedLibraryId: state.setSelectedLibraryId, setSearchSource: state.setSearchSource, setCoverTab: state.setCoverTab, setLinkUrl: state.setLinkUrl,
     setFormData: state.setFormData, setShowUploadModal: state.setShowUploadModal, setUploadLibraryId: state.setUploadLibraryId, setShowLibraryModal: state.setShowLibraryModal,
-    setNewLibraryName: state.setNewLibraryName, setNotice: state.setNotice, setError: state.setError, setCoverPreview: state.setCoverPreview, setPage: state.setPage,
+    setNewLibraryName: state.setNewLibraryName,
     setEditingBook: state.setEditingBook, setSearchResults: state.setSearchResults, setBookToDelete: state.setBookToDelete, setLibraryToDelete: state.setLibraryToDelete,
-    openEditModal: state.openEditModal, closeEditModal: state.closeEditModal, handleSearchOnline: state.handleSearchOnline, handleSelectResult: state.handleSelectResult,
+    openEditModal: state.openEditModal, handleSearchOnline: state.handleSearchOnline, handleSelectResult: state.handleSelectResult,
     handleSelectEpubImage: state.handleSelectEpubImage, handleImageUpload: state.handleImageUpload, handleLinkUpload: state.handleLinkUpload, handleEditSubmit: state.handleEditSubmit,
-    handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleRenameLibrary: state.handleRenameLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadData: state.loadData, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook, archiveBook: state.archiveBook
+    handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleRenameLibrary: state.handleRenameLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook, archiveBook: state.archiveBook
   })));
   const [actionBook, setActionBook] = useState<Book | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -41,7 +41,7 @@ export function Books() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   const {
-    books, loading, error, notice, page, search, selectedLibraryId, hasMore,
+    search, selectedLibraryId,
     libraries, editingBook, formData, submitting,
     bookFiles, uploadingBookFiles,
     coverTab, epubImages, loadingImages, linkUrl, coverPreview,
@@ -52,11 +52,11 @@ export function Books() {
     bookToDelete, libraryToDelete,
     setSearch, setSelectedLibraryId, setSearchSource, setCoverTab, setLinkUrl,
     setFormData, setShowUploadModal, setUploadLibraryId, setShowLibraryModal,
-    setNewLibraryName, setNotice, setError, setCoverPreview, setPage,
+    setNewLibraryName,
     setEditingBook, setSearchResults, setBookToDelete, setLibraryToDelete,
-    openEditModal, closeEditModal, handleSearchOnline, handleSelectResult,
+    openEditModal, handleSearchOnline, handleSelectResult,
     handleSelectEpubImage, handleImageUpload, handleLinkUpload, handleEditSubmit,
-    handleUploadBookFiles, handleCreateLibrary, handleRenameLibrary, handleDeleteLibrary, handleUploadFiles, loadData
+    handleUploadBookFiles, handleCreateLibrary, handleRenameLibrary, handleDeleteLibrary, handleUploadFiles
   } = store;
 
   const navigate = useNavigate();
@@ -65,14 +65,30 @@ export function Books() {
   const [showCalibreModal, setShowCalibreModal] = useState(false);
   const calibreImportMutation = useCalibreImportMutation();
 
-  useEffect(() => {
-    setSelectedBookIds([]);
-    void store.loadData();
-  }, [page, search, selectedLibraryId]);
+  const debouncedSearch = useDebounce(search, 500);
+  const {
+    data: booksPages,
+    isLoading,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useBooksQuery(useMemo(() => ({
+    limit: 24,
+    search: debouncedSearch || undefined,
+    library_id: selectedLibraryId || undefined,
+  }), [debouncedSearch, selectedLibraryId]));
+
+  const books = useMemo(() => booksPages?.pages.flatMap((page) => page.data || []) ?? [], [booksPages]);
 
   useEffect(() => {
     void store.loadLibraries();
   }, []);
+
+  useEffect(() => {
+    setSelectedBookIds([]);
+  }, [debouncedSearch, selectedLibraryId]);
 
   const isAllSelected = books.length > 0 && books.every(b => selectedBookIds.includes(b.id));
 
@@ -141,12 +157,12 @@ export function Books() {
             </button>
           </div>
           <button
-            onClick={() => void loadData()}
+            onClick={() => void refetch()}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title="Refresh list"
-            disabled={loading}
+            disabled={isFetching}
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`} />
           </button>
           <button
             onClick={() => setShowLibraryModal(true)}
@@ -193,13 +209,13 @@ export function Books() {
                 className="btn btn-error btn-sm gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                {t("admin.delete_selected", "Delete selected")}
+                {t("admin.delete_selected_books", "Delete selected")}
               </button>
             </div>
           </div>
         )}
 
-        {loading && books.length === 0 ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-20 opacity-50">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             {t("common.loading")}
@@ -318,26 +334,19 @@ export function Books() {
               </div>
             )}
 
-            {/* Pagination */}
-            {books.length > 0 && (
+            {hasNextPage && (
               <div className="flex justify-center mt-auto pt-8">
-                <div className="join">
-                  <button
-                    className="join-item btn btn-sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                  >
-                    «
-                  </button>
-                  <button className="join-item btn btn-sm pointer-events-none">Page {page}</button>
-                  <button
-                    className="join-item btn btn-sm"
-                    disabled={!hasMore}
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    »
-                  </button>
-                </div>
+                <button
+                  className="btn btn-primary btn-outline"
+                  onClick={() => void fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    t("common.load_more")
+                  )}
+                </button>
               </div>
             )}
           </>
@@ -681,7 +690,6 @@ export function Books() {
                 onSuccess: (data) => {
                   toast.success(t("admin.calibre_import_success", { count: data.imported_count }));
                   setShowCalibreModal(false);
-                  void loadData();
                 },
                 onError: (err) => {
                   toast.error(err instanceof Error ? err.message : String(err));
@@ -748,7 +756,6 @@ export function Books() {
         onClose={() => setShowBulkDeleteModal(false)}
         onSuccess={() => {
           setSelectedBookIds([]);
-          void store.loadData();
         }}
       />
     </div>

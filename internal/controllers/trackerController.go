@@ -52,6 +52,10 @@ func (ctrl *TrackerController) ConnectTracker(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Message: "Tracker connected successfully"})
 }
 
+func (ctrl *TrackerController) bookReadable(ctx context.Context, bookID string, claims *response.JWTClaims) bool {
+	return ctrl.featureService != nil && ctrl.featureService.PolicyAllowsBook(ctx, "read", bookID, claims)
+}
+
 func (ctrl *TrackerController) MapBookTracker(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -59,6 +63,11 @@ func (ctrl *TrackerController) MapBookTracker(c fiber.Ctx) error {
 	dto := &request.MapTrackerDto{}
 	if err := validator.ValidateBodyDto(c, dto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	claims, _ := getUserClaims(c)
+	if !ctrl.bookReadable(ctx, dto.BookID, claims) {
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrForbidden, "Book is not accessible"))
 	}
 
 	if err := ctrl.trackerService.SaveBookMapping(ctx, dto.BookID, dto.Provider, dto.ExternalSeriesID); err != nil {
@@ -121,6 +130,10 @@ func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
 	userID, err := convert.ParseID(claims.UId)
 	if err != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
+	}
+
+	if !ctrl.bookReadable(ctx, dto.BookID, claims) {
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrForbidden, "Book is not accessible"))
 	}
 
 	progress := dto.Progress

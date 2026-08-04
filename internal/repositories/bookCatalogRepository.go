@@ -33,9 +33,9 @@ func (r *bookDBRepository) CreateBook(ctx context.Context, book *models.BookEnti
 	book.CreatedAt = res.CreatedAt.Time
 	book.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
 	}
 	return nil
 }
@@ -65,13 +65,13 @@ func (r *bookDBRepository) CreateBookWithFile(ctx context.Context, book *models.
 			ctx,
 			cache.BuildKey("book", "id", book.ID),
 			cache.BuildKey("book_file", "book", book.ID),
-			"feature:library_stats",
+			constants.CacheKeyLibraryStats,
 			cache.BuildKey("book_file", "count", book.ID),
 		)
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
 	}
 	return nil
 }
@@ -148,18 +148,23 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 			}
 		}
 
-		ids, err := r.queries.GetRandomBookIDs(ctx, sqlc.GetRandomBookIDsParams{
-			LibraryID: libID,
-			Limit:     limit,
+		value, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
+			ids, err := r.queries.GetRandomBookIDs(ctx, sqlc.GetRandomBookIDsParams{
+				LibraryID: libID,
+				Limit:     limit,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, cacheKey, ids, 30*time.Second)
+			}
+			return ids, nil
 		})
 		if err != nil {
 			return nil, err
 		}
-
-		if r.c != nil && !r.inTx {
-			_ = r.c.Set(ctx, cacheKey, ids, 30*time.Second)
-		}
-		return r.GetBooksByIDs(ctx, ids)
+		return r.GetBooksByIDs(ctx, value.([]string))
 	}
 
 	if collection != "" && collection != "Missing metadata" {
@@ -169,14 +174,20 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 			_ = r.c.Get(ctx, colKey, &ids)
 		}
 		if len(ids) == 0 {
-			var err error
-			ids, err = r.queries.GetBookIDsInCollection(ctx, collection)
+			value, err, _ := r.sfg.Do(colKey, func() (any, error) {
+				ids, err := r.queries.GetBookIDsInCollection(ctx, collection)
+				if err != nil {
+					return nil, err
+				}
+				if r.c != nil && !r.inTx {
+					_ = r.c.Set(ctx, colKey, ids, constants.ListCacheDuration)
+				}
+				return ids, nil
+			})
 			if err != nil {
 				return nil, err
 			}
-			if r.c != nil && !r.inTx {
-				_ = r.c.Set(ctx, colKey, ids, constants.ListCacheDuration)
-			}
+			ids = value.([]string)
 		}
 		books, err := r.GetBooksByIDs(ctx, ids)
 		if err != nil {
@@ -254,14 +265,20 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		}
 	}
 
-	ids, err := r.queries.SearchBookIDs(ctx, params)
+	value, err, _ := r.sfg.Do(queryKey, func() (any, error) {
+		ids, err := r.queries.SearchBookIDs(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, queryKey, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, queryKey, ids, constants.ListCacheDuration)
-	}
-	return r.GetBooksByIDs(ctx, ids)
+	return r.GetBooksByIDs(ctx, value.([]string))
 }
 
 type bookSearchFilters struct {
@@ -382,11 +399,11 @@ func (r *bookDBRepository) UpdateBook(ctx context.Context, book *models.BookEnti
 	}
 	book.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), "feature:library_stats")
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", book.ID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 	}
 	return nil
 }
@@ -404,7 +421,7 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 			cache.BuildKey("chapter", "book", id),
 			cache.BuildKey("book_file", "book", id),
 			cache.BuildKey("book_file", "count", id),
-			"feature:library_stats",
+			constants.CacheKeyLibraryStats,
 		)
 		for _, chapterID := range chapterIDs {
 			_ = r.c.Del(ctx, cache.BuildKey("chapter", "id", chapterID))
@@ -418,13 +435,13 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		}
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:all*")
-		_ = r.c.DelByPattern(context.Background(), "book_file:duplicates*")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "book_tracker_mapping*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
 	}
 	return nil
 }
@@ -526,13 +543,13 @@ func (r *bookDBRepository) BulkUpdateBookLibrary(ctx context.Context, bookIDs []
 	}
 	if r.c != nil && !r.inTx {
 		delKeys := make([]string, 0, len(bookIDs)+1)
-		delKeys = append(delKeys, "feature:library_stats")
+		delKeys = append(delKeys, constants.CacheKeyLibraryStats)
 		for _, id := range bookIDs {
 			delKeys = append(delKeys, cache.BuildKey("book", "id", id))
 		}
 		_ = r.c.Del(ctx, delKeys...)
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
 	}
 	return nil
 }
@@ -550,7 +567,7 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 	}
 	if r.c != nil {
 		delKeys := make([]string, 0, len(bookIDs)*4+1)
-		delKeys = append(delKeys, "feature:library_stats")
+		delKeys = append(delKeys, constants.CacheKeyLibraryStats)
 		for _, id := range bookIDs {
 			delKeys = append(delKeys,
 				cache.BuildKey("book", "id", id),
@@ -560,13 +577,13 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 			)
 		}
 		_ = r.c.Del(ctx, delKeys...)
-		_ = r.c.DelByPattern(context.Background(), "book:search*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
-		_ = r.c.DelByPattern(context.Background(), "chapter*")
-		_ = r.c.DelByPattern(context.Background(), "book_file*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFilePattern)
 		// book_tracker_mappings.book_id is ON DELETE CASCADE; a stale mapping would make
 		// tracker sync push progress for a book that no longer exists.
-		_ = r.c.DelByPattern(context.Background(), "book_tracker_mapping*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
 	}
 	return nil
 }

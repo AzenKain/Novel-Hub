@@ -148,7 +148,7 @@ func (r *bookDBRepository) DeleteFTSBook(ctx context.Context, bookID string) err
 		return err
 	}
 	if r.c != nil {
-		_ = r.c.DelByPattern(context.Background(), "fts:*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSPattern)
 	}
 	return nil
 }
@@ -164,8 +164,8 @@ func (r *bookDBRepository) InsertFTSChapter(ctx context.Context, bookID, chapter
 	}
 	if r.c != nil {
 		_ = r.c.Del(context.Background(), cache.BuildKey("fts", "result", chapterID))
-		_ = r.c.DelByPattern(context.Background(), "fts:search*")
-		_ = r.c.DelByPattern(context.Background(), "fts:book-search*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSBookSearchPattern)
 	}
 	return nil
 }

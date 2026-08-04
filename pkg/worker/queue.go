@@ -39,9 +39,11 @@ type Queue struct {
 	stopped   bool
 }
 
+const BufferSize = 1000
+
 func NewQueue(workers int) *Queue {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Queue{jobs: make(chan Job, 1000), workers: workers, ctx: ctx, cancel: cancel, handler: make(map[string]JobFunc)}
+	return &Queue{jobs: make(chan Job, BufferSize), workers: workers, ctx: ctx, cancel: cancel, handler: make(map[string]JobFunc)}
 }
 
 func (q *Queue) RegisterHandler(jobType string, handler JobFunc) { q.handler[jobType] = handler }

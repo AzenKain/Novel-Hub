@@ -18,6 +18,9 @@ type MetadataIndexViewProps = {
   controls: React.ReactNode;
   t: (key: string, fallback: string) => string;
   onFacetClick: (type: string, item: MetadataCount, nav: string) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 };
 
 export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
@@ -26,6 +29,9 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
   controls,
   t,
   onFacetClick,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }) => {
   const isSeries = section.type === "series";
 
@@ -37,8 +43,10 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
             {section.label}
           </h2>
           <p className="mt-1 text-sm text-base-content/50">
-            {filteredItems.length} / {section.items.length}{" "}
-            {t("library.entries", "entries")}
+            {/* Filtering now happens server-side, so loaded == matching. Showing "x / x"
+                would read as if something were filtered out. */}
+            {filteredItems.length}
+            {hasMore ? "+" : ""} {t("library.entries", "entries")}
           </p>
         </div>
         {controls}
@@ -104,6 +112,22 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            className="btn btn-outline btn-wide"
+            disabled={loadingMore}
+            onClick={onLoadMore}
+          >
+            {loadingMore ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
+              t("common.load_more", "Load more")
+            )}
+          </button>
         </div>
       )}
     </section>

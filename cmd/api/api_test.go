@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
 	"path/filepath"
 	"testing"
 
@@ -44,10 +45,6 @@ func setupTestAppWithDB(t *testing.T) (*fiber.App, *sql.DB, error) {
 	return server.App, db, nil
 }
 
-// TRUST_PROXY decides whether X-Forwarded-Proto is believed, which decides
-// whether the login cookie gets Secure. Reading it wrong either strips the flag
-// over HTTPS or lets an unproxied client spoof it, so each accepted spelling is
-// pinned here.
 func TestParseTrustProxy(t *testing.T) {
 	tests := []struct {
 		raw       string
@@ -59,8 +56,6 @@ func TestParseTrustProxy(t *testing.T) {
 		{raw: "", enabled: false},
 		{raw: "  ", enabled: false},
 		{raw: "FALSE", enabled: false},
-		// Only separators: an empty allowlist trusts nothing, so treat it as off
-		// rather than leaving proxy trust nominally "on".
 		{raw: " , , ", enabled: false},
 		{raw: "true", enabled: true, ranges: true},
 		{raw: "True", enabled: true, ranges: true},
@@ -229,11 +224,6 @@ func TestRefreshPrefersRefreshCookieOverAuthorizationHeader(t *testing.T) {
 	}
 }
 
-// Mistyping a password once must not lock a user out. It used to: the failed
-// attempt populated the RAM cache with a JSON-serialised UserEntity, and
-// PasswordHash is tagged `json:"-"` so it came back empty — every later
-// CompareHashAndPassword ran against "" and failed until the entry expired. The
-// same erasure hit RefreshToken, so token refresh broke the same way.
 func TestSigninWorksAfterAFailedAttempt(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -279,15 +269,6 @@ func TestSigninWorksAfterAFailedAttempt(t *testing.T) {
 	}
 }
 
-// The point of routing the rate limit through RuntimeLimits is that an admin
-// change applies to the very next request, with no restart. This drives that
-// path the way an operator would: sign in, PUT the setting, then get 429'd.
-//
-// It deliberately hammers /auth/signin rather than a plain API route. There is no
-// general API limiter any more — a comic chapter is one request per page, so
-// throttling /api throttled the reader, not an attacker. What is left guards
-// bcrypt, which is the only genuinely expensive thing an unauthenticated caller
-// can reach.
 func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -349,8 +330,6 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 		}
 	}
 
-	// A wrong password: rejected on credentials, but still consumes budget, which is
-	// the whole point of limiting this endpoint.
 	attemptSignin := func() int {
 		body := []byte(`{"email":"ratelimit-admin@example.com","password":"wrong-password"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin", bytes.NewReader(body))
@@ -362,8 +341,6 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 		return resp.StatusCode
 	}
 
-	// Roomy budget first, so the calls below fail on the password rather than the
-	// limiter — otherwise the tightening step below would prove nothing.
 	putLimit(1000, 3600)
 	for i := range 5 {
 		if code := attemptSignin(); code == http.StatusTooManyRequests {
@@ -371,7 +348,6 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 		}
 	}
 
-	// No restart between the PUT below and the calls after it.
 	putLimit(1, 3600)
 
 	sawTooMany := false
@@ -386,9 +362,6 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 	}
 }
 
-// A user who never set a goal must get usable defaults, not a 404 — the analytics
-// page always needs a denominator. Round-tripping then proves the upsert persists
-// past the repository cache.
 func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -477,7 +450,6 @@ func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 		t.Fatalf("expected persisted 2500/40, got %d/%d", goal.TargetWordsPerDay, goal.TargetBooksPerYear)
 	}
 
-	// Zero must be rejected: a 0 words/day target would divide by zero on the client.
 	badReq := httptest.NewRequest(http.MethodPut, "/api/v1/reader/goals/", bytes.NewReader([]byte(`{"target_words_per_day":0,"target_books_per_year":40}`)))
 	badReq.Header.Set("Content-Type", "application/json")
 	badReq.Header.Set("Authorization", "Bearer "+token)
@@ -490,9 +462,6 @@ func TestReadingGoalDefaultsThenPersists(t *testing.T) {
 	}
 }
 
-// rule_json is replayed into a library URL on the client, so it is a trust
-// boundary: only the seven known filter fields may survive a round trip, and a
-// caller must not be able to read another user's saved searches.
 func TestSmartCollectionRoundTripAndIsolation(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -565,7 +534,6 @@ func TestSmartCollectionRoundTripAndIsolation(t *testing.T) {
 	alice := signIn("smart-alice@example.com")
 	bob := signIn("smart-bob@example.com")
 
-	// "evil" is not a rule field; it must be dropped, not stored and replayed.
 	createBody := []byte(`{"name":"Unread sci-fi","rule":{"search":"dune","chip":"Unread","facet":"tag","facet_id":"scifi","evil":"<script>"}}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/smart-collections/", bytes.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
@@ -591,7 +559,6 @@ func TestSmartCollectionRoundTripAndIsolation(t *testing.T) {
 		t.Errorf("rule did not round trip: %#v", saved.Rule)
 	}
 
-	// Bob must not see alice's saved search, nor be able to delete it.
 	if got := list(bob); len(got) != 0 {
 		t.Fatalf("bob sees %d of alice's smart collections, want 0", len(got))
 	}
@@ -604,7 +571,6 @@ func TestSmartCollectionRoundTripAndIsolation(t *testing.T) {
 		t.Fatalf("bob deleted alice's smart collection: alice now has %d", len(got))
 	}
 
-	// Alice can delete her own.
 	ownDelReq := httptest.NewRequest(http.MethodDelete, "/api/v1/smart-collections/"+saved.ID, nil)
 	ownDelReq.Header.Set("Authorization", "Bearer "+alice)
 	ownDelResp, err := app.Test(ownDelReq)
@@ -616,5 +582,175 @@ func TestSmartCollectionRoundTripAndIsolation(t *testing.T) {
 	}
 	if got := list(alice); len(got) != 0 {
 		t.Fatalf("expected 0 after delete, got %d", len(got))
+	}
+}
+
+func TestPermissionDeniedUsesStandardEnvelope(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-access-secret")
+	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
+
+	app, db, err := setupTestAppWithDB(t)
+	if err != nil {
+		t.Fatalf("failed to setup app: %v", err)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userID := uuid.Must(uuid.NewV7()).String()
+	if _, err := db.Exec(`
+		INSERT INTO users (id, email, full_name, password_hash, auth_provider, token_version)
+		VALUES (?, 'plain@example.com', 'Plain', ?, 'LOCAL', 1)
+	`, userID, string(hash)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = 'USER'`, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	signinReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin",
+		bytes.NewReader([]byte(`{"email":"plain@example.com","password":"password123"}`)))
+	signinReq.Header.Set("Content-Type", "application/json")
+	signinResp, err := app.Test(signinReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var auth struct {
+		Data response.AuthResponse `json:"data"`
+	}
+	if err := json.NewDecoder(signinResp.Body).Decode(&auth); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/", nil)
+	req.Header.Set("Authorization", "Bearer "+auth.Data.AccessToken)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 for a user without user.manage, got %d", resp.StatusCode)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var envelope response.CommonResponse
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		t.Fatalf("403 body is not JSON at all: %v (%s)", err, body)
+	}
+	if envelope.Status {
+		t.Fatalf("403 envelope reports status=true: %s", body)
+	}
+	if envelope.Message == "" {
+		t.Fatalf("403 envelope has no message, frontend has nothing to show: %s", body)
+	}
+}
+
+func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
+	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "novelhub-cursor-test.db"))
+	db, err := database.NewSQLiteDB()
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+		t.Fatalf("apply schema: %v", err)
+	}
+
+	openLib := uuid.Must(uuid.NewV7()).String()
+	hiddenLib := uuid.Must(uuid.NewV7()).String()
+	for id, name := range map[string]string{openLib: "Open", hiddenLib: "Hidden"} {
+		if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES (?, ?)`, id, name); err != nil {
+			t.Fatalf("seed library %s: %v", name, err)
+		}
+	}
+	if _, err := db.Exec(`
+		UPDATE app_settings SET value_json = ? WHERE key = 'guest_access.mode'
+	`, `"selected_libraries"`); err != nil {
+		t.Fatalf("set guest mode: %v", err)
+	}
+	if _, err := db.Exec(`
+		UPDATE app_settings SET value_json = ? WHERE key = 'guest_access.library_ids'
+	`, `["`+openLib+`"]`); err != nil {
+		t.Fatalf("set guest libraries: %v", err)
+	}
+
+	const total = 6
+	for i := 0; i < total; i++ {
+		library := openLib
+		if i%2 == 1 {
+			library = hiddenLib
+		}
+		if _, err := db.Exec(`
+			INSERT INTO books (id, library_id, title, status, created_at, updated_at)
+			VALUES (?, ?, ?, 'active', datetime('now', ?), datetime('now', ?))
+		`, uuid.Must(uuid.NewV7()).String(), library, fmt.Sprintf("Book %d", i),
+			fmt.Sprintf("-%d seconds", total-i), fmt.Sprintf("-%d seconds", total-i)); err != nil {
+			t.Fatalf("seed book %d: %v", i, err)
+		}
+	}
+
+	server := NewHTTPServer()
+	server.SetupServer(db, cache.NewRamCache())
+	app := server.App
+
+	firstResp, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/v1/books?limit=100", nil))
+	if err != nil {
+		t.Fatalf("probe request failed: %v", err)
+	}
+	var probe struct {
+		Data []struct {
+			Title string `json:"title"`
+		} `json:"data"`
+	}
+	probeBody, _ := io.ReadAll(firstResp.Body)
+	if err := json.Unmarshal(probeBody, &probe); err != nil {
+		t.Fatalf("probe bad json: %v (%s)", err, probeBody)
+	}
+	if len(probe.Data) != 3 {
+		t.Fatalf("guest sees %d books, want 3 — the permission filter is not applied, so this test cannot detect the cursor bug", len(probe.Data))
+	}
+
+	seen := map[string]bool{}
+	cursor := ""
+	for round := 0; round < total+2; round++ {
+		url := "/api/v1/books?limit=3"
+		if cursor != "" {
+			url += "&cursor=" + neturl.QueryEscape(cursor)
+		}
+		resp, err := app.Test(httptest.NewRequest(http.MethodGet, url, nil))
+		if err != nil {
+			t.Fatalf("round %d: request failed: %v", round, err)
+		}
+		var page struct {
+			Status     bool   `json:"status"`
+			NextCursor string `json:"next_cursor"`
+			Data       []struct {
+				Title string `json:"title"`
+			} `json:"data"`
+		}
+		body, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(body, &page); err != nil {
+			t.Fatalf("round %d: bad json: %v (%s)", round, err, body)
+		}
+		if !page.Status {
+			t.Fatalf("round %d: status=false: %s", round, body)
+		}
+		for _, book := range page.Data {
+			seen[book.Title] = true
+		}
+		if page.NextCursor == "" {
+			break
+		}
+		if page.NextCursor == cursor {
+			t.Fatalf("round %d: cursor did not advance (%q); the client would loop forever", round, cursor)
+		}
+		cursor = page.NextCursor
+	}
+
+	for _, title := range []string{"Book 0", "Book 2", "Book 4"} {
+		if !seen[title] {
+			t.Errorf("%q was never returned: paging stopped early, so it is unreachable from the client", title)
+		}
 	}
 }

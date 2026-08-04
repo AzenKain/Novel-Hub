@@ -5,8 +5,9 @@ import { getReaderThemeClasses } from "@/config/readerTheme";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
 import type { Chapter, Highlight } from "@/types";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 import { useTTS } from "@/hooks/useTTS";
 import { AudioPlayer } from "@/components/reader/AudioPlayer";
 import { FastAverageColor } from "fast-average-color";
@@ -264,10 +265,6 @@ export const ReaderWorkspace = () => {
     return () => { fac.destroy(); };
   }, [book, theme]);
 
-  
-
-  
-
   const { isScrolling: autoScrollActive, toggleScroll: onToggleAutoScroll, updateSpeed } = useAutoScroll(contentRef);
 
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
@@ -372,7 +369,6 @@ export const ReaderWorkspace = () => {
     const fraction = getLocationFraction();
     return Math.min(100, Math.round(((chapterPosition + fraction) / chapters.length) * 100));
   };
-
 
   const { handleContentClick, scrollToFragment } = useReaderNavigation({
     columnsRef,
@@ -482,6 +478,20 @@ export const ReaderWorkspace = () => {
     });
   }, [htmlContent]);
 
+  const invalidateProgressQueries = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["reading"] });
+    void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
+    void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+  }, [queryClient, book_id]);
+
+  const progressWarnedRef = useRef(false);
+  const reportProgressFailure = useCallback((error: unknown) => {
+    console.debug("Failed to record reading activity", error);
+    if (progressWarnedRef.current) return;
+    progressWarnedRef.current = true;
+    toast.warning(t("reader.progress_sync_failed", "Reading progress is not being saved right now"));
+  }, [t]);
+
   useEffect(() => {
     return () => {
       void queryClient.invalidateQueries({ queryKey: ["reading"] });
@@ -505,13 +515,8 @@ export const ReaderWorkspace = () => {
       progress_percent,
       event_type: "chapter_open",
     }).then(() => {
-      void queryClient.invalidateQueries({ queryKey: ["reading"] });
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
-      void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
-    }).catch((error) => {
-      console.debug("Failed to record reading activity", error);
-    });
+      invalidateProgressQueries();
+    }).catch(reportProgressFailure);
   }, [user, book_id, file_id, currentChapter?.id, chapters.length]);
 
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -538,11 +543,8 @@ export const ReaderWorkspace = () => {
         location_type: "scroll",
         event_type: "progress_update",
       }).then(() => {
-        void queryClient.invalidateQueries({ queryKey: ["reading"] });
-        void queryClient.invalidateQueries({ queryKey: ["books"] });
-        void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
-        void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
-      }).catch(console.debug);
+        invalidateProgressQueries();
+      }).catch(reportProgressFailure);
     }, 2000);
   };
 
@@ -562,11 +564,8 @@ export const ReaderWorkspace = () => {
       location_type: "page",
       event_type: "progress_update",
     }).then(() => {
-      void queryClient.invalidateQueries({ queryKey: ["reading"] });
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress"] });
-      void queryClient.invalidateQueries({ queryKey: ["bookUserState"] });
-    }).catch(console.debug);
+      invalidateProgressQueries();
+    }).catch(reportProgressFailure);
   }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length]);
 
   const handleNext = () => {

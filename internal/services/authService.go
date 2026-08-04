@@ -350,7 +350,7 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 func buildSetupSettings(dto *request.SetupDto) map[string]any {
 	settings := map[string]any{
 		"auth.registration_enabled": dto.Registration,
-		"auth.login_required":        dto.LoginRequired,
+		"auth.login_required":       dto.LoginRequired,
 	}
 
 	if dto.SiteTitle != "" {

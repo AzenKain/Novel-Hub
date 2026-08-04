@@ -269,10 +269,7 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		EventType:       dto.EventType,
 	}, getOptionalClaims(ctx))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to record reading activity",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -311,10 +308,7 @@ func (c *FeatureController) GetBookReadStats(ctx fiber.Ctx) error {
 
 	stats, err := c.service.GetBookReadStats(reqCtx, ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch read stats",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -329,10 +323,7 @@ func (c *FeatureController) GetBookDownloadStats(ctx fiber.Ctx) error {
 
 	stats, err := c.service.GetBookDownloadStats(reqCtx, ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch download stats",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -347,10 +338,7 @@ func (c *FeatureController) GetBookEngagementStats(ctx fiber.Ctx) error {
 
 	stats, err := c.service.GetBookEngagementStats(reqCtx, ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch engagement stats",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -377,10 +365,7 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 		OccurredAt: time.Now().UTC(),
 	})
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to record share",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -412,10 +397,7 @@ func (c *FeatureController) SetBookmark(ctx fiber.Ctx) error {
 
 	bookmark, err := c.service.SetBookmark(reqCtx, userID, ctx.Params("id"), dto.Bookmarked)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to update bookmark",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -481,12 +463,10 @@ func (c *FeatureController) GetBookUserState(ctx fiber.Ctx) error {
 		})
 	}
 
-	state, err := c.service.GetBookUserState(reqCtx, userID, ctx.Params("id"))
+	claims, _ := getUserClaims(ctx)
+	state, err := c.service.GetBookUserState(reqCtx, userID, ctx.Params("id"), claims)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch book state",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -518,10 +498,7 @@ func (c *FeatureController) UpsertBookReview(ctx fiber.Ctx) error {
 
 	review, err := c.service.UpsertBookReview(reqCtx, userID, ctx.Params("id"), dto.Rating, dto.Review)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to save review",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -547,10 +524,7 @@ func (c *FeatureController) DeleteBookReview(ctx fiber.Ctx) error {
 	}
 
 	if err := c.service.DeleteBookReview(reqCtx, userID, ctx.Params("id")); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to delete review",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -565,18 +539,12 @@ func (c *FeatureController) AdminDeleteReview(ctx fiber.Ctx) error {
 
 	targetUserID, err := convert.ParseID(ctx.Params("userId"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "invalid user ID",
-		})
+		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "invalid user ID"))
 	}
 
 	bookID := ctx.Params("bookId")
 	if err := c.service.DeleteReviewByAdmin(reqCtx, targetUserID, bookID); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to delete review",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -596,10 +564,7 @@ func (c *FeatureController) ListAllReviews(ctx fiber.Ctx) error {
 
 	reviews, err := c.service.ListAllReviews(reqCtx, int64(dto.Limit), int64(dto.Offset))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch reviews",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{
@@ -632,10 +597,7 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 
 	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), cursorTime, cursorID, int64(dto.Limit))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch reviews",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	var nextCursor *string
@@ -659,10 +621,7 @@ func (c *FeatureController) GetBookRatingSummary(ctx fiber.Ctx) error {
 
 	summary, err := c.service.GetBookRatingSummary(reqCtx, ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "failed to fetch rating summary",
-		})
+		return apperrors.HandleError(ctx, err)
 	}
 
 	return ctx.JSON(response.CommonResponse{

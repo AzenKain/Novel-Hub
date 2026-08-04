@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS reading_progress (
     chapter_ref TEXT NOT NULL,
     chapter_title TEXT NOT NULL DEFAULT '',
     chapter_index INTEGER NOT NULL DEFAULT 0,
-    progress_percent REAL DEFAULT 0,
+    progress_percent REAL NOT NULL DEFAULT 0 CHECK (progress_percent >= 0 AND progress_percent <= 100),
     location_cfi TEXT,
     location_type TEXT,
     opened_count INTEGER NOT NULL DEFAULT 0,

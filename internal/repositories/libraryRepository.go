@@ -18,7 +18,7 @@ import (
 type LibraryRepository interface {
 	CreateLibrary(ctx context.Context, library *models.LibraryEntity) error
 	GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error)
-	ListLibraries(ctx context.Context, limit, offset int64) ([]*models.LibraryEntity, error)
+	ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error)
 	GetLibrariesByIDs(ctx context.Context, ids []string) ([]*models.LibraryEntity, error)
 	UpdateLibrary(ctx context.Context, library *models.LibraryEntity) error
 	DeleteLibrary(ctx context.Context, id string) error
@@ -29,6 +29,7 @@ type libraryRepository struct {
 	db      *sql.DB
 	queries *sqlc.Queries
 	c       cache.Cache
+	inTx    bool
 	sfg     *singleflight.Group
 }
 
@@ -49,6 +50,7 @@ func (r *libraryRepository) WithTx(tx *sql.Tx) LibraryRepository {
 		db:      r.db,
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
+		inTx:    true,
 		sfg:     r.sfg,
 	}
 }
@@ -65,14 +67,14 @@ func (r *libraryRepository) CreateLibrary(ctx context.Context, library *models.L
 	library.CreatedAt = res.CreatedAt.Time
 	library.UpdatedAt = res.UpdatedAt.Time
 	if r.c != nil {
-		_ = r.c.Del(ctx, "library:list")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryList)
 	}
 	return nil
 }
 
 func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.LibraryEntity, error) {
 	key := cache.BuildKey("library", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var library models.LibraryEntity
 		if err := r.c.Get(ctx, key, &library); err == nil {
 			return &library, nil
@@ -97,9 +99,9 @@ func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.
 	return v.(*models.LibraryEntity), nil
 }
 
-func (r *libraryRepository) ListLibraries(ctx context.Context, limit, offset int64) ([]*models.LibraryEntity, error) {
-	key := "library:list"
-	if r.c != nil {
+func (r *libraryRepository) ListLibraries(ctx context.Context) ([]*models.LibraryEntity, error) {
+	key := constants.CacheKeyLibraryList
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetLibrariesByIDs(ctx, ids)
@@ -107,7 +109,7 @@ func (r *libraryRepository) ListLibraries(ctx context.Context, limit, offset int
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		ids, err := r.queries.ListLibraryIDs(ctx, sqlc.ListLibraryIDsParams{Limit: limit, Offset: offset})
+		ids, err := r.queries.ListLibraryIDs(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +137,7 @@ func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string)
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -157,7 +159,9 @@ func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string)
 		sort.Strings(missingIds)
 		sfgKey := "libraries:ids:" + strings.Join(missingIds, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
-			rows, err := r.queries.GetLibrariesByIDs(ctx, missingIds)
+			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Library, error) {
+				return r.queries.GetLibrariesByIDs(ctx, chunk)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -217,8 +221,8 @@ func (r *libraryRepository) UpdateLibrary(ctx context.Context, library *models.L
 
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("library", "id", library.ID))
-		_ = r.c.Del(ctx, "library:list")
-		_ = r.c.Del(ctx, "feature:library_stats")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryList)
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
 	}
 	return nil
 }
@@ -227,19 +231,19 @@ func (r *libraryRepository) DeleteLibrary(ctx context.Context, id string) error 
 	err := r.queries.DeleteLibrary(ctx, id)
 	if err == nil && r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("library", "id", id))
-		_ = r.c.Del(ctx, "library:list")
-		_ = r.c.Del(ctx, "feature:library_stats")
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryList)
+		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
 		// books.library_id is ON DELETE CASCADE, so this also removed every book in the
 		// library plus their chapters, files and tag links. We don't know which ids those
 		// were, so sweep by pattern the way BulkDeleteBooks does for the same DB effect.
-		_ = r.c.DelByPattern(context.Background(), "book:*")
-		_ = r.c.DelByPattern(context.Background(), "book_ids*")
-		_ = r.c.DelByPattern(context.Background(), "chapter*")
-		_ = r.c.DelByPattern(context.Background(), "book_file*")
-		_ = r.c.DelByPattern(context.Background(), "metadata:*")
-		_ = r.c.DelByPattern(context.Background(), "metadata_count:*")
-		_ = r.c.DelByPattern(context.Background(), "fts:*")
-		_ = r.c.DelByPattern(context.Background(), "book_tracker_mapping*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookAllPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFilePattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
 	}
 	return err
 }

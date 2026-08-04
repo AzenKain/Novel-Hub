@@ -78,7 +78,7 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 	}
 
 	return jwtware.New(jwtware.Config{
-		SigningKey:     jwtware.SigningKey{Key: []byte(jwtRefreshSecret)},
+		SigningKey:     jwtware.SigningKey{JWTAlg: "HS256", Key: []byte(jwtRefreshSecret)},
 		ErrorHandler:   jwtError,
 		SuccessHandler: jwtSuccess(userRepo, false, "refresh"),
 		Extractor: extractors.Chain(

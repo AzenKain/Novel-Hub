@@ -1,6 +1,16 @@
 import { api } from "@/config/api";
-import type { CommonResponse, MetadataCount, OnlineMetadataResult } from "@/types";
+import type { CommonResponse, MetadataCount, MetadataFacetParams, OnlineMetadataResult, PaginatedResponse } from "@/types";
 import axios from "axios";
+
+function facetQuery(params?: MetadataFacetParams): string {
+  const search = new URLSearchParams();
+  if (params?.cursor) search.set("cursor", params.cursor);
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.search?.trim()) search.set("search", params.search.trim());
+  if (params?.alpha && params.alpha !== "All") search.set("alpha", params.alpha);
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
 
 function cleanQuery(query: string): string {
   // Remove content in parenthesis or brackets
@@ -120,33 +130,33 @@ async function searchAniList(query: string): Promise<OnlineMetadataResult[]> {
 }
 
 export const metadataService = {
-  async listAuthors(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/authors");
+  async listAuthors(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/authors${facetQuery(params)}`);
     return res.data;
   },
 
-  async listSeries(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/series");
+  async listSeries(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/series${facetQuery(params)}`);
     return res.data;
   },
 
-  async listPublishers(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/publishers");
+  async listPublishers(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/publishers${facetQuery(params)}`);
     return res.data;
   },
 
-  async listLanguages(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/languages");
+  async listLanguages(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/languages${facetQuery(params)}`);
     return res.data;
   },
 
-  async listTags(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/tags");
+  async listTags(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/tags${facetQuery(params)}`);
     return res.data;
   },
 
-  async listFormats(): Promise<CommonResponse<MetadataCount[]>> {
-    const res = await api.get("/metadata/formats");
+  async listFormats(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/formats${facetQuery(params)}`);
     return res.data;
   },
 

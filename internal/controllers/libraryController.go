@@ -51,7 +51,7 @@ func (h *LibraryController) GetLibrary(c fiber.Ctx) error {
 	id := c.Params("id")
 	lib, err := h.libraryService.GetLibrary(ctx, id, getOptionalClaims(c))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Data: lib})
@@ -120,7 +120,7 @@ func (h *LibraryController) UploadFiles(c fiber.Ctx) error {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return c.Status(fiber.StatusRequestTimeout).JSON(response.CommonResponse{Status: false, Message: "Upload timed out"})
 		}
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
+		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Uploaded and queued files successfully", Data: result})
@@ -137,7 +137,7 @@ func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
 
 	_, err := h.libraryService.GetLibrary(ctx, libraryID, getOptionalClaims(c))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Library not found"})
+		return apperrors.HandleError(c, err)
 	}
 
 	c.Set("Content-Type", "application/zip")

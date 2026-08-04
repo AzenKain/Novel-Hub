@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { readerService } from "@/services";
+import i18n from "@/i18n";
 import { useAuthStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import type { ReadingGoal } from "@/types";
 
 export const useReadingStats = (book_id: string | undefined, isActive: boolean) => {
@@ -75,5 +77,8 @@ export function useUpsertReadingGoalMutation() {
   return useMutation({
     mutationFn: ({ wordsPerDay, booksPerYear }: { wordsPerDay: number; booksPerYear: number }) => readerService.upsertReadingGoal(wordsPerDay, booksPerYear),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reader", "goal"] }),
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("analytics.goal_save_failed", "Could not save your reading goal"));
+    },
   });
 }

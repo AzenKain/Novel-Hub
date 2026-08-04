@@ -210,8 +210,8 @@ func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserP
 			cache.BuildKey("user", "email", user.Email),
 			cache.BuildKey("user", "roles", user.ID),
 		)
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return user, nil
 }
@@ -228,10 +228,22 @@ func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdatePr
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID))
 		// SearchUserIDs and CountUsers both match search_text against full_name.
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return user, nil
+}
+
+func ftsMatchQuery(searchText any) (string, bool) {
+	term, ok := searchText.(string)
+	if !ok {
+		return "", false
+	}
+	trimmed := strings.TrimSpace(term)
+	if len([]rune(trimmed)) < 3 {
+		return "", false
+	}
+	return `"` + strings.ReplaceAll(trimmed, `"`, `""`) + `"`, true
 }
 
 func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsParams) ([]*models.UserEntity, error) {
@@ -244,7 +256,7 @@ func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsPa
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		dbIds, err := r.q.SearchUserIDs(ctx, params)
+		dbIds, err := r.searchIDs(ctx, params)
 		if err != nil {
 			return nil, err
 		}
@@ -257,6 +269,40 @@ func (r *userRepository) Search(ctx context.Context, params sqlc.SearchUserIDsPa
 		return nil, err
 	}
 	return r.GetByIDs(ctx, v.([]string))
+}
+
+const ftsListCutoff = 2000
+
+func (r *userRepository) ftsSelectivity(ctx context.Context, match string) (bool, error) {
+	matches, err := r.q.ProbeUserSearchMatches(ctx, sqlc.ProbeUserSearchMatchesParams{
+		MatchQuery: match,
+		Cap:        ftsListCutoff,
+	})
+	if err != nil {
+		return false, err
+	}
+	return matches < ftsListCutoff, nil
+}
+
+func (r *userRepository) searchIDs(ctx context.Context, params sqlc.SearchUserIDsParams) ([]string, error) {
+	match, ok := ftsMatchQuery(params.SearchText)
+	if !ok {
+		return r.q.SearchUserIDs(ctx, params)
+	}
+	if selective, err := r.ftsSelectivity(ctx, match); err != nil || !selective {
+		return r.q.SearchUserIDs(ctx, params)
+	}
+	return r.q.SearchUserIDsFTS(ctx, sqlc.SearchUserIDsFTSParams{
+		MatchQuery:      match,
+		IsDeleted:       params.IsDeleted,
+		RoleID:          params.RoleID,
+		AuthProvider:    params.AuthProvider,
+		CreatedFrom:     params.CreatedFrom,
+		CreatedTo:       params.CreatedTo,
+		CursorCreatedAt: params.CursorCreatedAt,
+		CursorID:        params.CursorID,
+		Limit:           params.Limit,
+	})
 }
 
 func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.UserEntity, error) {
@@ -357,7 +403,7 @@ func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		count, err := r.q.CountUsers(ctx, params)
+		count, err := r.countUsers(ctx, params)
 		if err != nil {
 			return int64(0), err
 		}
@@ -372,6 +418,24 @@ func (r *userRepository) Count(ctx context.Context, params sqlc.CountUsersParams
 	return v.(int64), nil
 }
 
+func (r *userRepository) countUsers(ctx context.Context, params sqlc.CountUsersParams) (int64, error) {
+	match, ok := ftsMatchQuery(params.SearchText)
+	if !ok {
+		return r.q.CountUsers(ctx, params)
+	}
+	if selective, err := r.ftsSelectivity(ctx, match); err != nil || !selective {
+		return r.q.CountUsers(ctx, params)
+	}
+	return r.q.CountUsersFTS(ctx, sqlc.CountUsersFTSParams{
+		MatchQuery:   match,
+		IsDeleted:    params.IsDeleted,
+		RoleID:       params.RoleID,
+		AuthProvider: params.AuthProvider,
+		CreatedFrom:  params.CreatedFrom,
+		CreatedTo:    params.CreatedTo,
+	})
+}
+
 func (r *userRepository) Delete(ctx context.Context, id string) error {
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
@@ -382,8 +446,8 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "token", user.ID), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return nil
 }
@@ -394,8 +458,8 @@ func (r *userRepository) Restore(ctx context.Context, id string) error {
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
-		_ = r.c.DelByPattern(context.Background(), "user:search*")
-		_ = r.c.DelByPattern(context.Background(), "user:count*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
 	return nil
 }

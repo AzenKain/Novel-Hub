@@ -23,6 +23,7 @@ type JobRepository interface {
 	UpdateJobStatus(ctx context.Context, id, status, errorMsg string) (*models.JobEntity, error)
 	ListJobs(ctx context.Context, status, jobType string, limit, offset int64) ([]*models.JobEntity, int64, error)
 	MarkRunningJobsInterrupted(ctx context.Context) error
+	CountUnfinishedJobs(ctx context.Context) (int64, error)
 	PruneFinishedJobs(ctx context.Context, keep int64) error
 	WithTx(tx *sql.Tx) JobRepository
 }
@@ -30,6 +31,7 @@ type JobRepository interface {
 type jobRepository struct {
 	queries *sqlc.Queries
 	c       cache.Cache
+	inTx    bool
 	sfg     *singleflight.Group
 }
 
@@ -48,13 +50,14 @@ func (r *jobRepository) WithTx(tx *sql.Tx) JobRepository {
 	return &jobRepository{
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
+		inTx:    true,
 		sfg:     r.sfg,
 	}
 }
 
 func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntity, error) {
 	key := cache.BuildKey("job", "id", id)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var job models.JobEntity
 		if err := r.c.Get(ctx, key, &job); err == nil {
 			return &job, nil
@@ -91,7 +94,7 @@ func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*mode
 	missingIds := []string{}
 	missingKeys := []string{}
 
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
 			if len(bytes) > 0 {
@@ -113,7 +116,9 @@ func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*mode
 		sort.Strings(missingIds)
 		sfgKey := "jobs:ids:" + strings.Join(missingIds, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
-			rows, err := r.queries.GetJobsByIDs(ctx, missingIds)
+			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Job, error) {
+				return r.queries.GetJobsByIDs(ctx, chunk)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +167,7 @@ func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*mode
 
 func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset int64) ([]*models.JobEntity, error) {
 	key := cache.BuildKey("job", "unfinished", limit, offset)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			return r.GetJobsByIDs(ctx, ids)
@@ -236,7 +241,7 @@ func (r *jobRepository) ListJobs(ctx context.Context, status, jobType string, li
 	countKey := cache.BuildKey("job", "count", status, jobType)
 	var total int64
 	var countFetched bool
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		if err := r.c.Get(ctx, countKey, &total); err == nil {
 			countFetched = true
 		}
@@ -263,7 +268,7 @@ func (r *jobRepository) ListJobs(ctx context.Context, status, jobType string, li
 	}
 
 	key := cache.BuildKey("job", "list", status, jobType, limit, offset)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
 			jobs, err := r.GetJobsByIDs(ctx, ids)
@@ -313,6 +318,10 @@ func (r *jobRepository) MarkRunningJobsInterrupted(ctx context.Context) error {
 		_ = r.c.DelByPattern(ctx, constants.CacheKeyJobAllPattern)
 	}
 	return nil
+}
+
+func (r *jobRepository) CountUnfinishedJobs(ctx context.Context) (int64, error) {
+	return r.queries.CountUnfinishedJobs(ctx)
 }
 
 func (r *jobRepository) PruneFinishedJobs(ctx context.Context, keep int64) error {
