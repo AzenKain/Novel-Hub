@@ -7,18 +7,34 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
+// Position and Permissions exist because the frontend evaluates permissions locally
+// (web/src/utils/permission.ts): it sorts roles by position and walks each role's grants.
+// Omitting them made hasPermission() return false for every custom role.
 type RoleSimple struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	IsAdmin  bool   `json:"is_admin"`
-	IsBanned bool   `json:"is_banned"`
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	IsAdmin     bool                    `json:"is_admin"`
+	IsBanned    bool                    `json:"is_banned"`
+	Position    int64                   `json:"position"`
+	Permissions []*RolePermissionEntity `json:"permissions,omitempty"`
 }
 
 func (r *RoleSimple) ToResponse() *response.RoleSimpleResponse {
 	if r == nil {
 		return nil
 	}
-	return &response.RoleSimpleResponse{ID: r.ID, Name: r.Name, IsAdmin: r.IsAdmin, IsBanned: r.IsBanned}
+	permissions := make([]*response.RolePermissionResponse, 0, len(r.Permissions))
+	for _, perm := range r.Permissions {
+		permissions = append(permissions, perm.ToResponse())
+	}
+	return &response.RoleSimpleResponse{
+		ID:          r.ID,
+		Name:        r.Name,
+		IsAdmin:     r.IsAdmin,
+		IsBanned:    r.IsBanned,
+		Position:    r.Position,
+		Permissions: permissions,
+	}
 }
 
 func RolesToResponse(roles []*RoleSimple) []*response.RoleSimpleResponse {

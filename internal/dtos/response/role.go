@@ -1,10 +1,12 @@
 package response
 
 type RoleSimpleResponse struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	IsAdmin  bool   `json:"is_admin"`
-	IsBanned bool   `json:"is_banned"`
+	ID          string                    `json:"id"`
+	Name        string                    `json:"name"`
+	IsAdmin     bool                      `json:"is_admin"`
+	IsBanned    bool                      `json:"is_banned"`
+	Position    int64                     `json:"position"`
+	Permissions []*RolePermissionResponse `json:"permissions,omitempty"`
 }
 
 type RoleResponse struct {

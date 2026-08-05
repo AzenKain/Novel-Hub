@@ -48,6 +48,7 @@ func newMailUserSvc(t *testing.T) (UserService, SettingsService) {
 		repositories.NewRoleRepository(db, c),
 		repositories.NewSettingsRepository(db, c),
 		database.NewTxManager(db),
+		NewPermissionCache(repositories.NewRoleRepository(db, c)),
 		settings,
 	)
 	return svc, settings

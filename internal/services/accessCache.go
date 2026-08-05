@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/constants"
 )
@@ -29,6 +30,7 @@ type PermissionCache interface {
 	CanRoles(roleIDs []string, roles []constants.RoleType, permission string, attrs map[string]any) bool
 	IsAdmin(roleIDs []string, roles []constants.RoleType) bool
 	GetGuestPermissions() []string
+	DescribeRoles(roleIDs []string) []*models.RoleSimple
 }
 
 type cachedRolePermission struct {
@@ -179,6 +181,43 @@ func (p *permissionCache) IsAdmin(roleIDs []string, roles []constants.RoleType) 
 		return false
 	}
 	return p.hasAdmin(resolved)
+}
+
+// DescribeRoles fills in what a role grants, for the payload the frontend evaluates locally.
+// It reads the same in-memory snapshot Can() uses, so no query is added on the auth path.
+//
+// The frontend's hasPermission() walks role.permissions and sorts by role.position. Without
+// these fields it returned false for every custom role, and only the name === "ADMIN" shortcut
+// in permission.ts kept the admin UI working at all.
+func (p *permissionCache) DescribeRoles(roleIDs []string) []*models.RoleSimple {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	out := make([]*models.RoleSimple, 0, len(roleIDs))
+	for _, id := range roleIDs {
+		role, ok := p.roles[id]
+		if !ok || role == nil {
+			continue
+		}
+		permissions := make([]*models.RolePermissionEntity, 0, len(role.Permissions))
+		for _, perm := range role.Permissions {
+			permissions = append(permissions, &models.RolePermissionEntity{
+				RoleID:        role.ID,
+				PermissionKey: perm.PermissionKey,
+				Effect:        perm.Effect,
+				Conditions:    perm.Conditions,
+			})
+		}
+		out = append(out, &models.RoleSimple{
+			ID:          role.ID,
+			Name:        role.Name,
+			IsAdmin:     role.IsAdmin,
+			IsBanned:    role.Name == constants.RoleTypeBanned.String(),
+			Position:    role.Position,
+			Permissions: permissions,
+		})
+	}
+	return out
 }
 
 func (p *permissionCache) GetGuestPermissions() []string {

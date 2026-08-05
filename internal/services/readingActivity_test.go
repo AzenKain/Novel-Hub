@@ -28,6 +28,7 @@ func (allowAllPermissions) CanRoles([]string, []constants.RoleType, string, map[
 }
 func (allowAllPermissions) IsAdmin([]string, []constants.RoleType) bool { return true }
 func (allowAllPermissions) GetGuestPermissions() []string               { return nil }
+func (allowAllPermissions) DescribeRoles([]string) []*models.RoleSimple { return nil }
 
 func newActivityService(t *testing.T) (*featureService, *sql.DB) {
 	t.Helper()

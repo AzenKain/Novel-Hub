@@ -42,9 +42,10 @@ type userService struct {
 	settingsRepo repositories.SettingsRepository
 	txManager    database.TxManager
 	settings     SettingsService
+	permissions  PermissionCache
 }
 
-func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager, settings ...SettingsService) UserService {
+func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager, permissions PermissionCache, settings ...SettingsService) UserService {
 	var settingsService SettingsService
 	if len(settings) > 0 {
 		settingsService = settings[0]
@@ -55,6 +56,7 @@ func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.
 		settingsRepo: settingsRepo,
 		txManager:    txManager,
 		settings:     settingsService,
+		permissions:  permissions,
 	}
 }
 
@@ -200,6 +202,7 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *
 	}
 	res := user.ToResponse()
 	u.markOwner(ctx, res)
+	u.describeRoles(res)
 	return res, nil
 }
 
@@ -384,6 +387,7 @@ func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims 
 
 	res := user.ToResponse()
 	u.markOwner(ctx, res)
+	u.describeRoles(res)
 	return res, nil
 }
 
@@ -491,7 +495,39 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 	}
 	res := user.ToResponse()
 	u.markOwner(ctx, res)
+	u.describeRoles(res)
 	return res, nil
+}
+
+// The frontend evaluates permissions locally, so the payload has to carry what each role grants.
+// GetUserRoles projects only id and name, which left hasPermission() returning false for every
+// custom role — the name === "ADMIN" shortcut in permission.ts was all that still worked.
+// Read from the permission cache rather than the database: it is the same snapshot the server's
+// own checks use, so the two cannot disagree, and no query lands on the auth path.
+func (u *userService) describeRoles(users ...*response.UserResponse) {
+	if u.permissions == nil {
+		return
+	}
+	for _, user := range users {
+		if user == nil || len(user.Roles) == 0 {
+			continue
+		}
+		ids := make([]string, 0, len(user.Roles))
+		for _, role := range user.Roles {
+			if role != nil {
+				ids = append(ids, role.ID)
+			}
+		}
+		described := u.permissions.DescribeRoles(ids)
+		if len(described) == 0 {
+			continue
+		}
+		roles := make([]*response.RoleSimpleResponse, 0, len(described))
+		for _, role := range described {
+			roles = append(roles, role.ToResponse())
+		}
+		user.Roles = roles
+	}
 }
 
 func (u *userService) markOwner(ctx context.Context, users ...*response.UserResponse) {
@@ -603,5 +639,6 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	}
 	items := models.UsersEntityToResponse(users)
 	u.markOwner(ctx, items...)
+	u.describeRoles(items...)
 	return response.BuildCursorPaginatedResponse(items, total, dto.Limit, nextCursor), nil
 }

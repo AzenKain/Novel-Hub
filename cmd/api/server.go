@@ -188,7 +188,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	totpRepo := repositories.NewTOTPRepository(db, ramCache)
 
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService, services.NewOTPStore(ramCache))
-	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager, settingsService)
+	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager, permissionCache, settingsService)
 	roleService := services.NewRoleService(roleRepo, permissionCache, txManager)
 	auditService := services.NewAuditService(auditRepo, userRepo)
 	totpService := services.NewTOTPService(totpRepo, ramCache)

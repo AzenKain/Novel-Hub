@@ -23,6 +23,7 @@ func (p sessionPermissionStub) CanRoles([]string, []constants.RoleType, string, 
 }
 func (p sessionPermissionStub) IsAdmin([]string, []constants.RoleType) bool { return false }
 func (p sessionPermissionStub) GetGuestPermissions() []string               { return nil }
+func (p sessionPermissionStub) DescribeRoles([]string) []*models.RoleSimple { return nil }
 
 type sessionBookRepo struct {
 	repositories.BookDBRepository

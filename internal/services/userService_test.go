@@ -40,6 +40,7 @@ func newUserSvc(t *testing.T) (UserService, *sql.DB) {
 		repositories.NewRoleRepository(db, c),
 		repositories.NewSettingsRepository(db, c),
 		database.NewTxManager(db),
+		NewPermissionCache(repositories.NewRoleRepository(db, c)),
 	)
 	return svc, db
 }

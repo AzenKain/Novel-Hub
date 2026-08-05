@@ -35,8 +35,10 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	app.Get("/reader/stats/:id", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookReadStats)
 	app.Get("/books/:id/download-stats", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookDownloadStats)
 	app.Get("/books/:id/engagement", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead, middlewares.BookLibraryAttr(bookRepo, "id")), featureController.GetBookEngagementStats)
-	app.Get("/books/:id/rating", featureController.GetBookRatingSummary)
-	app.Get("/books/:id/reviews", featureController.ListBookReviews)
+	// Scoped in the handler via PolicyAllowsBook("read"), not here: RequirePermission checks the
+	// book.read grant but not the guest_access setting, and reviews must honour both.
+	app.Get("/books/:id/rating", middlewares.OptionalJwtAccess(userRepo), featureController.GetBookRatingSummary)
+	app.Get("/books/:id/reviews", middlewares.OptionalJwtAccess(userRepo), featureController.ListBookReviews)
 	app.Post("/books/:id/share", middlewares.OptionalJwtAccess(userRepo), featureController.RecordBookShare)
 
 	collectionGroup := app.Group("/collections", middlewares.JwtAccess(userRepo))

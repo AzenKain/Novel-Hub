@@ -595,6 +595,13 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		}
 	}
 
+	// Reviews name their author and quote free text, so they are scoped to the book they hang
+	// off. This route used to carry no check at all: anyone who guessed a book id read the
+	// reviewers of a library they had no access to.
+	if !c.service.PolicyAllowsBook(reqCtx, "read", ctx.Params("id"), getOptionalClaims(ctx)) {
+		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
+	}
+
 	reviews, err := c.service.ListBookReviews(reqCtx, ctx.Params("id"), cursorTime, cursorID, int64(dto.Limit))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
@@ -618,6 +625,10 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 func (c *FeatureController) GetBookRatingSummary(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	if !c.service.PolicyAllowsBook(reqCtx, "read", ctx.Params("id"), getOptionalClaims(ctx)) {
+		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
+	}
 
 	summary, err := c.service.GetBookRatingSummary(reqCtx, ctx.Params("id"))
 	if err != nil {
