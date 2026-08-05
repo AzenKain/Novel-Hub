@@ -20,7 +20,6 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/config"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/mailer"
 	"novelhub/pkg/netx"
@@ -199,7 +198,7 @@ func (s *deviceService) ExecutePushJob(ctx context.Context, payloadJSON string) 
 
 		maxAttachmentMB := smtpConfig.MaxAttachmentMB
 		if maxAttachmentMB <= 0 {
-			maxAttachmentMB = config.GetIntConfigWithDefault("MAX_EMAIL_ATTACHMENT_MB", 50)
+			maxAttachmentMB = 50
 		}
 
 		if info.Size() > int64(maxAttachmentMB)*1024*1024 {

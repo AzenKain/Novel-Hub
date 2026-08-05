@@ -120,8 +120,10 @@ All utility logic must be centralized within the `pkg/` directory:
 - **Internationalization (i18n & `web/public/locales/`)**:
   - Translation JSON files are stored under [`web/public/locales/`](./web/public/locales/) (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
   - **NO HARDCODED TEXT**: Never hardcode raw user-facing text strings in TSX components. All UI labels, buttons, messages, and placeholders **MUST** be added to `web/public/locales/` JSON files and rendered via `t('translation_key')` from `react-i18next`.
-- **Styling**:
-  - Use TailwindCSS and DaisyUI utility classes. Avoid raw inline `style={{...}}` props unless computing dynamic positioning/dimensions.
+  - **5-Language Synchronization**: When adding or updating translation keys, agents MUST synchronize changes across ALL 5 locale files (`en`, `vi`, `ja`, `ko`, `zh`), support dynamic parameter interpolation (`{{param}}`), and verify zero duplicate keys exist.
+- **Admin Settings vs Environment Variables**:
+  - Environment variables in `.env` are reserved for core system secrets (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `DB_ENCRYPTION_KEY`) and low-level proxy/network infrastructure (`TRUST_PROXY`).
+  - All dynamic feature configuration (e.g. SMTP server credentials, email max attachment size `smtp.max_attachment_mb`, registration, guest access policies, upload limits, rate limits) **MUST** be persisted in the `app_settings` database table and configured dynamically via Admin Settings UI.
 
 ---
 

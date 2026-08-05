@@ -160,7 +160,7 @@ sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 | Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy có rewrite path |
 | Access | Bật/tắt đăng ký, bắt buộc đăng nhập, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
 | Permissions | Quyền theo từng role cho cả 36 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
-| Email (SMTP) | Host, port, username, mật khẩu, địa chỉ gửi, chế độ TLS, cho phép gọi mạng private, kèm nút test kết nối. Cũng gồm bật/tắt xác minh email và reset mật khẩu |
+| Email (SMTP) | Host, port, username, mật khẩu, địa chỉ gửi, chế độ TLS, dung lượng đính kèm tối đa (MB, mặc định 50MB), cho phép gọi mạng private, kèm nút test kết nối. Cũng gồm bật/tắt xác minh email và reset mật khẩu |
 | Reader features | Deep search trong sách, upload font riêng, chọn chỉ số engagement nào hiện trên bìa |
 | Trackers | Bật/tắt sync AniList / MyAnimeList |
 | Upload limits | Kích thước chunk, số chunk, số session đồng thời, tổng dung lượng, TTL của session, kích thước ảnh bìa và asset của site |
@@ -184,6 +184,24 @@ bằng thông tin đăng nhập hợp lệ là traffic bình thường và khôn
 Cố ý không có rate limit chung cho toàn bộ API. Một chương truyện tranh render
 thành một request ảnh cho mỗi trang, nên mở một tập 200 trang sẽ tạo ra đúng 200
 request hợp lệ — một giới hạn chung sẽ chặn người đọc, không phải kẻ tấn công.
+
+---
+
+### Server OPDS 1.2 & 2.0
+
+NovelHub tích hợp sẵn máy chủ OPDS 1.2 (Atom XML) và OPDS 2.0 (JSON) hoàn chỉnh:
+
+- **OPDS 1.2 Catalog**: `/api/opds/v1` (Định dạng Atom XML, tương thích hoàn hảo với KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko).
+- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (Định dạng JSON, tương thích với các trình đọc hiện đại như Thorium).
+- **Xác thực**: Hỗ trợ HTTP Basic Auth (dùng email và mật khẩu tài khoản) cũng như chính sách Truy cập Khách (Guest Access) được cấu hình theo từng thư viện trong Admin Settings.
+
+### PWA & Đọc Sách Offline
+
+NovelHub là một Progressive Web App (PWA) hoàn chỉnh với khả năng cài đặt ứng dụng trực tiếp:
+
+- **Bộ máy Offline**: Cho phép lưu toàn bộ cuốn sách, các chương và hình ảnh đính kèm trực tiếp vào kho lưu trữ IndexedDB của trình duyệt để đọc offline 100% không cần kết nối mạng.
+- **Service Worker & Cập nhật**: Vận hành bởi `vite-plugin-pwa` và `workbox` với thông báo tự động khi có bản cập nhật mới và theo dõi dung lượng bộ nhớ khả dụng.
+- **Phân quyền**: Tính năng lưu sách đọc offline được kiểm soát theo từng vai trò thông qua quyền `book.offline`.
 
 ---
 

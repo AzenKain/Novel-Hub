@@ -30,7 +30,8 @@
 
 - **Frontend (`web/src` & `web/public`)**:
   - Translation files located in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
-  - NO HARDCODED TEXT in TSX: All UI labels & text MUST be defined in `web/public/locales/` JSON files and rendered via `react-i18next` `t('key')`.
+  - NO HARDCODED TEXT in TSX: All UI labels & text MUST be defined in `web/public/locales/` JSON files across ALL 5 languages with parameter interpolation support (`{{param}}`) and zero duplicate keys.
+  - Runtime feature options (like SMTP attachment limit `smtp.max_attachment_mb`) MUST be persisted in `app_settings` DB table and managed via Admin Settings UI (not `.env`).
   - Modularize components under `web/src/components/<domain>/` (~200-400 lines max).
   - Global state via Zustand stores in `web/src/stores/`.
   - API calls via `web/src/services/` using `api.ts` Axios instance (auto 401 token refresh queue).

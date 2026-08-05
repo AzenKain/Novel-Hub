@@ -159,7 +159,7 @@ under **Admin → Settings**. Changes apply immediately.
 | Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a path-rewriting proxy |
 | Access | Registration on/off, sign-in required, guest access mode, per-library guest visibility |
 | Permissions | Per-role control of all 36 permissions — reading, personal features, library content, integrations, administration |
-| Email (SMTP) | Host, port, username, password, sender address, TLS mode, private-network dialling, plus a connection test. Also whether email verification and password reset are enabled |
+| Email (SMTP) | Host, port, username, password, sender address, TLS mode, max attachment size (MB, default 50MB), private-network dialling, plus a connection test. Also whether email verification and password reset are enabled |
 | Reader features | In-book deep search, custom font upload, which cover engagement stats are visible |
 | Trackers | AniList / MyAnimeList sync on or off |
 | Upload limits | Chunk size, chunk count, concurrent sessions, total size, session TTL, cover and site asset size |
@@ -183,6 +183,24 @@ valid credentials is normal traffic and is never throttled.
 There is deliberately no general API rate limit. A comic chapter renders as one
 image request per page, so opening a 200-page volume legitimately fires 200
 requests — a general limit would throttle readers, not attackers.
+
+---
+
+### OPDS 1.2 & 2.0 Server
+
+NovelHub includes full OPDS 1.2 (Atom XML) and OPDS 2.0 (JSON) catalog servers:
+
+- **OPDS 1.2 Catalog**: `/api/opds/v1` (Atom XML format, compatible with KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko).
+- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (JSON format, compatible with modern readers like Thorium).
+- **Authentication**: Supports HTTP Basic Auth (using user account email and password) as well as Guest Access policies configured per library in Admin Settings.
+
+### PWA & Offline Reading
+
+NovelHub is a full Progressive Web App (PWA) with native installability:
+
+- **Offline Engine**: Users can save complete books, chapters, and embedded images directly into browser IndexedDB storage for 100% offline reading without active server connection.
+- **Service Worker & Updates**: Powered by `vite-plugin-pwa` and `workbox` with automatic update notification banners and storage quota monitoring.
+- **Permissions**: Offline book saving is controlled per-role via the `book.offline` permission.
 
 ---
 
