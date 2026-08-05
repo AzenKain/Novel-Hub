@@ -52,7 +52,12 @@ const upsertReadingSession = `-- name: UpsertReadingSession :one
 INSERT INTO reading_sessions (
     id, user_id, book_id, session_date, duration_seconds, words_read
 ) VALUES (
-    ?, ?, ?, CURRENT_DATE, ?, ?
+    ?1,
+    ?2,
+    ?3,
+    date(?4),
+    ?5,
+    ?6
 )
 ON CONFLICT (user_id, book_id, session_date) DO UPDATE
 SET 
@@ -63,11 +68,12 @@ RETURNING id, user_id, book_id, duration_seconds, words_read, session_date, crea
 `
 
 type UpsertReadingSessionParams struct {
-	ID              string `json:"id"`
-	UserID          string `json:"user_id"`
-	BookID          string `json:"book_id"`
-	DurationSeconds int64  `json:"duration_seconds"`
-	WordsRead       int64  `json:"words_read"`
+	ID              string      `json:"id"`
+	UserID          string      `json:"user_id"`
+	BookID          string      `json:"book_id"`
+	SessionDate     interface{} `json:"session_date"`
+	DurationSeconds int64       `json:"duration_seconds"`
+	WordsRead       int64       `json:"words_read"`
 }
 
 func (q *Queries) UpsertReadingSession(ctx context.Context, arg UpsertReadingSessionParams) (ReadingSession, error) {
@@ -75,6 +81,7 @@ func (q *Queries) UpsertReadingSession(ctx context.Context, arg UpsertReadingSes
 		arg.ID,
 		arg.UserID,
 		arg.BookID,
+		arg.SessionDate,
 		arg.DurationSeconds,
 		arg.WordsRead,
 	)

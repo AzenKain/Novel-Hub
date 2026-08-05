@@ -50,7 +50,7 @@ func newSessionService(r *sessionFeatureRepo, b *models.BookEntity, be error, a 
 }
 func TestRecordReadingSessionGeneratesID(t *testing.T) {
 	r := &sessionFeatureRepo{}
-	if e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 3, 7, &response.JWTClaims{}); e != nil {
+	if e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 3, 7, "", &response.JWTClaims{}); e != nil {
 		t.Fatal(e)
 	}
 	if r.got.ID == "" {
@@ -59,7 +59,7 @@ func TestRecordReadingSessionGeneratesID(t *testing.T) {
 }
 func TestRecordReadingSessionInaccessibleBook(t *testing.T) {
 	r := &sessionFeatureRepo{}
-	e := newSessionService(r, nil, errors.New("missing"), true).RecordReadingSession(context.Background(), "u", "b", 1, 0, &response.JWTClaims{})
+	e := newSessionService(r, nil, errors.New("missing"), true).RecordReadingSession(context.Background(), "u", "b", 1, 0, "", &response.JWTClaims{})
 	if !errors.Is(e, apperrors.ErrForbidden) {
 		t.Fatal(e)
 	}
@@ -70,7 +70,7 @@ func TestRecordReadingSessionInaccessibleBook(t *testing.T) {
 func TestRecordReadingSessionRepositoryFailurePreservesCause(t *testing.T) {
 	c := errors.New("NOT NULL constraint failed: reading_sessions.id")
 	r := &sessionFeatureRepo{err: c}
-	e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 1, 0, &response.JWTClaims{})
+	e := newSessionService(r, &models.BookEntity{LibraryID: "l"}, nil, true).RecordReadingSession(context.Background(), "u", "b", 1, 0, "", &response.JWTClaims{})
 	if !errors.Is(e, apperrors.ErrInternalError) || !errors.Is(e, c) {
 		t.Fatalf("causes not preserved: %v", e)
 	}

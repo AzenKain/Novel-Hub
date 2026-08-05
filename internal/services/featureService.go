@@ -53,7 +53,7 @@ type FeatureService interface {
 	PolicyAllowsBook(ctx context.Context, policy string, bookID string, claims *response.JWTClaims) bool
 	PolicyAllowsNoBook(ctx context.Context, policy string, claims *response.JWTClaims) bool
 	ShareActorKey(clientID string, ip string, userAgent string) string
-	RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, claims *response.JWTClaims) error
+	RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, sessionDate string, claims *response.JWTClaims) error
 	GetReadingHeatmap(ctx context.Context, userID string) (map[string]map[string]int64, error)
 	GetReadingGoal(ctx context.Context, userID string) (*response.ReadingGoalResponse, error)
 	UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*response.ReadingGoalResponse, error)
@@ -629,7 +629,22 @@ func readingSessionBookAccessible(book *models.BookEntity, err error, permission
 	return permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookRead, map[string]any{"library_id": book.LibraryID})
 }
 
-func (s *featureService) RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, claims *response.JWTClaims) error {
+func sessionDateOrServerDate(raw string) string {
+	const layout = "2006-01-02"
+	now := time.Now().UTC()
+	serverDate := now.Format(layout)
+	parsed, err := time.Parse(layout, strings.TrimSpace(raw))
+	if err != nil {
+		return serverDate
+	}
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if delta := parsed.Sub(today); delta < -24*time.Hour || delta > 24*time.Hour {
+		return serverDate
+	}
+	return parsed.Format(layout)
+}
+
+func (s *featureService) RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, sessionDate string, claims *response.JWTClaims) error {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	resolved := resolveClaims(claims)
 	if !readingSessionBookAccessible(book, err, s.permissions, resolved) {
@@ -639,6 +654,7 @@ func (s *featureService) RecordReadingSession(ctx context.Context, userID string
 		ID:              uuid.Must(uuid.NewV7()).String(),
 		UserID:          userID,
 		BookID:          bookID,
+		SessionDate:     sessionDateOrServerDate(sessionDate),
 		DurationSeconds: duration,
 		WordsRead:       words,
 	})

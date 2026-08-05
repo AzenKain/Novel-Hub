@@ -200,10 +200,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
 	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
-	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, parserRegistry, permissionCache, jobQueue)
+	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, parserRegistry, permissionCache, settingsService, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
-	metadataService := services.NewMetadataService(bookRepo)
+	metadataService := services.NewMetadataService(bookRepo, libraryService)
 	jobService := services.NewJobService(jobRepo, jobQueue)
 	jobQueue.SetLifecycle(jobService)
 	if err := jobService.Recover(context.Background()); err != nil {

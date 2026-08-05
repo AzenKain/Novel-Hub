@@ -38,23 +38,29 @@ func TestMetadataFacetFiltersRunInSQL(t *testing.T) {
 		}
 	}
 
+	scoped := func(f MetadataFacetFilter) MetadataFacetFilter {
+		f.LibraryIDs = []string{"lib-1"}
+		return f
+	}
 	for _, tc := range []struct {
 		label  string
 		filter MetadataFacetFilter
 		want   []string
 	}{
-		{"alpha A", MetadataFacetFilter{Limit: 50, Alpha: "A"}, []string{"Alice"}},
-		{"alpha Z", MetadataFacetFilter{Limit: 50, Alpha: "Z"}, []string{"Zoe"}},
-		{"alpha B matches lowercase initial", MetadataFacetFilter{Limit: 50, Alpha: "B"}, []string{"bob"}},
+		{"alpha A", scoped(MetadataFacetFilter{Limit: 50, Alpha: "A"}), []string{"Alice"}},
+		{"alpha Z", scoped(MetadataFacetFilter{Limit: 50, Alpha: "Z"}), []string{"Zoe"}},
+		{"alpha B matches lowercase initial", scoped(MetadataFacetFilter{Limit: 50, Alpha: "B"}), []string{"bob"}},
 		// "Ong" starts with a plain ASCII O, so it belongs to bucket O — not to "#".
-		{"alpha O", MetadataFacetFilter{Limit: 50, Alpha: "O"}, []string{"Ong Ba"}},
+		{"alpha O", scoped(MetadataFacetFilter{Limit: 50, Alpha: "O"}), []string{"Ong Ba"}},
 		// Both cases of d-with-stroke belong to the same bucket, and neither may leak into "#".
-		{"alpha D-stroke", MetadataFacetFilter{Limit: 50, Alpha: "Đ"}, []string{"Đặng Thu", "đỏ nam"}},
-		{"alpha # is non-letter only", MetadataFacetFilter{Limit: 50, Alpha: "#"}, []string{"9 Lives"}},
+		{"alpha D-stroke", scoped(MetadataFacetFilter{Limit: 50, Alpha: "Đ"}), []string{"Đặng Thu", "đỏ nam"}},
+		{"alpha # is non-letter only", scoped(MetadataFacetFilter{Limit: 50, Alpha: "#"}), []string{"9 Lives"}},
 		// Plain substring match, same as the client's includes(): "đỏ" does not contain "o".
-		{"search is a substring match", MetadataFacetFilter{Limit: 50, Search: "o"}, []string{"bob", "Ong Ba", "Zoe"}},
-		{"search and alpha combine", MetadataFacetFilter{Limit: 50, Search: "o", Alpha: "Z"}, []string{"Zoe"}},
-		{"no filter returns everything", MetadataFacetFilter{Limit: 50}, names},
+		{"search is a substring match", scoped(MetadataFacetFilter{Limit: 50, Search: "o"}), []string{"bob", "Ong Ba", "Zoe"}},
+		{"search and alpha combine", scoped(MetadataFacetFilter{Limit: 50, Search: "o", Alpha: "Z"}), []string{"Zoe"}},
+		{"no filter returns everything in scope", scoped(MetadataFacetFilter{Limit: 50}), names},
+		{"empty scope matches nothing", MetadataFacetFilter{Limit: 50}, nil},
+		{"unreadable library matches nothing", MetadataFacetFilter{Limit: 50, LibraryIDs: []string{"lib-other"}}, nil},
 	} {
 		t.Run(tc.label, func(t *testing.T) {
 			items, err := repo.ListAuthorsWithCount(ctx, tc.filter)
@@ -87,11 +93,13 @@ func TestMetadataFacetCacheKeyVariesWithFilter(t *testing.T) {
 	base := MetadataFacetFilter{Cursor: "c", Limit: 20}
 	seen := map[string]string{}
 	for label, filter := range map[string]MetadataFacetFilter{
-		"plain":      base,
-		"search":     {Cursor: "c", Limit: 20, Search: "abc"},
-		"alpha":      {Cursor: "c", Limit: 20, Alpha: "A"},
-		"both":       {Cursor: "c", Limit: 20, Search: "abc", Alpha: "A"},
-		"other page": {Cursor: "c2", Limit: 20},
+		"plain":         base,
+		"search":        {Cursor: "c", Limit: 20, Search: "abc"},
+		"alpha":         {Cursor: "c", Limit: 20, Alpha: "A"},
+		"both":          {Cursor: "c", Limit: 20, Search: "abc", Alpha: "A"},
+		"other page":    {Cursor: "c2", Limit: 20},
+		"one library":   {Cursor: "c", Limit: 20, LibraryIDs: []string{"lib-1"}},
+		"two libraries": {Cursor: "c", Limit: 20, LibraryIDs: []string{"lib-1", "lib-2"}},
 	} {
 		key := filter.cacheKey("authors")
 		if prev, ok := seen[key]; ok {

@@ -175,21 +175,23 @@ const listAuthorsWithCount = `-- name: ListAuthorsWithCount :many
 SELECT a.id, a.name, COUNT(b.id) as book_count
 FROM authors a
 JOIN books b ON a.id = b.author_id
-WHERE (?1 IS NULL OR a.name LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(a.name), 1, 1)) = ?2
-       OR SUBSTR(TRIM(a.name), 1, 1) = ?3)
-  AND (?4 IS NULL
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR a.name LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(a.name), 1, 1)) = ?3
+       OR SUBSTR(TRIM(a.name), 1, 1) = ?4)
+  AND (?5 IS NULL
        OR (UPPER(SUBSTR(TRIM(a.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(a.name), 1, 1) <> ?5
-           AND SUBSTR(TRIM(a.name), 1, 1) <> ?6))
-  AND (?7 IS NULL OR a.name > ?7 OR (a.name = ?7 AND a.id > ?8))
+           AND SUBSTR(TRIM(a.name), 1, 1) <> ?6
+           AND SUBSTR(TRIM(a.name), 1, 1) <> ?7))
+  AND (?8 IS NULL OR a.name > ?8 OR (a.name = ?8 AND a.id > ?9))
 GROUP BY a.id, a.name
 ORDER BY a.name ASC, a.id ASC
-LIMIT ?9
+LIMIT ?10
 `
 
 type ListAuthorsWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -209,6 +211,7 @@ type ListAuthorsWithCountRow struct {
 
 func (q *Queries) ListAuthorsWithCount(ctx context.Context, arg ListAuthorsWithCountParams) ([]ListAuthorsWithCountRow, error) {
 	rows, err := q.query(ctx, q.listAuthorsWithCountStmt, listAuthorsWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,
@@ -241,23 +244,26 @@ func (q *Queries) ListAuthorsWithCount(ctx context.Context, arg ListAuthorsWithC
 }
 
 const listFormatsWithCount = `-- name: ListFormatsWithCount :many
-SELECT LOWER(format) as id, UPPER(format) as name, COUNT(DISTINCT book_id) as book_count
-FROM book_files
-WHERE (?1 IS NULL OR format LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(format), 1, 1)) = ?2
-       OR SUBSTR(TRIM(format), 1, 1) = ?3)
-  AND (?4 IS NULL
-       OR (UPPER(SUBSTR(TRIM(format), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(format), 1, 1) <> ?5
-           AND SUBSTR(TRIM(format), 1, 1) <> ?6))
-  AND (?7 IS NULL OR UPPER(format) > ?7 OR (UPPER(format) = ?7 AND LOWER(format) > ?8))
-GROUP BY LOWER(format)
-ORDER BY LOWER(format) ASC
-LIMIT ?9
+SELECT LOWER(bf.format) as id, UPPER(bf.format) as name, COUNT(DISTINCT bf.book_id) as book_count
+FROM book_files bf
+JOIN books b ON b.id = bf.book_id
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR bf.format LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(bf.format), 1, 1)) = ?3
+       OR SUBSTR(TRIM(bf.format), 1, 1) = ?4)
+  AND (?5 IS NULL
+       OR (UPPER(SUBSTR(TRIM(bf.format), 1, 1)) NOT BETWEEN 'A' AND 'Z'
+           AND SUBSTR(TRIM(bf.format), 1, 1) <> ?6
+           AND SUBSTR(TRIM(bf.format), 1, 1) <> ?7))
+  AND (?8 IS NULL OR UPPER(bf.format) > ?8 OR (UPPER(bf.format) = ?8 AND LOWER(bf.format) > ?9))
+GROUP BY LOWER(bf.format)
+ORDER BY LOWER(bf.format) ASC
+LIMIT ?10
 `
 
 type ListFormatsWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -277,6 +283,7 @@ type ListFormatsWithCountRow struct {
 
 func (q *Queries) ListFormatsWithCount(ctx context.Context, arg ListFormatsWithCountParams) ([]ListFormatsWithCountRow, error) {
 	rows, err := q.query(ctx, q.listFormatsWithCountStmt, listFormatsWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,
@@ -312,21 +319,24 @@ const listLanguagesWithCount = `-- name: ListLanguagesWithCount :many
 SELECT l.id, l.name, COUNT(bl.book_id) as book_count
 FROM languages l
 JOIN book_languages bl ON l.id = bl.language_id
-WHERE (?1 IS NULL OR l.name LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(l.name), 1, 1)) = ?2
-       OR SUBSTR(TRIM(l.name), 1, 1) = ?3)
-  AND (?4 IS NULL
+JOIN books b ON b.id = bl.book_id
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR l.name LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(l.name), 1, 1)) = ?3
+       OR SUBSTR(TRIM(l.name), 1, 1) = ?4)
+  AND (?5 IS NULL
        OR (UPPER(SUBSTR(TRIM(l.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(l.name), 1, 1) <> ?5
-           AND SUBSTR(TRIM(l.name), 1, 1) <> ?6))
-  AND (?7 IS NULL OR l.name > ?7 OR (l.name = ?7 AND l.id > ?8))
+           AND SUBSTR(TRIM(l.name), 1, 1) <> ?6
+           AND SUBSTR(TRIM(l.name), 1, 1) <> ?7))
+  AND (?8 IS NULL OR l.name > ?8 OR (l.name = ?8 AND l.id > ?9))
 GROUP BY l.id, l.name
 ORDER BY l.name ASC, l.id ASC
-LIMIT ?9
+LIMIT ?10
 `
 
 type ListLanguagesWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -346,6 +356,7 @@ type ListLanguagesWithCountRow struct {
 
 func (q *Queries) ListLanguagesWithCount(ctx context.Context, arg ListLanguagesWithCountParams) ([]ListLanguagesWithCountRow, error) {
 	rows, err := q.query(ctx, q.listLanguagesWithCountStmt, listLanguagesWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,
@@ -381,21 +392,24 @@ const listPublishersWithCount = `-- name: ListPublishersWithCount :many
 SELECT p.id, p.name, COUNT(bp.book_id) as book_count
 FROM publishers p
 JOIN book_publishers bp ON p.id = bp.publisher_id
-WHERE (?1 IS NULL OR p.name LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(p.name), 1, 1)) = ?2
-       OR SUBSTR(TRIM(p.name), 1, 1) = ?3)
-  AND (?4 IS NULL
+JOIN books b ON b.id = bp.book_id
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR p.name LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(p.name), 1, 1)) = ?3
+       OR SUBSTR(TRIM(p.name), 1, 1) = ?4)
+  AND (?5 IS NULL
        OR (UPPER(SUBSTR(TRIM(p.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(p.name), 1, 1) <> ?5
-           AND SUBSTR(TRIM(p.name), 1, 1) <> ?6))
-  AND (?7 IS NULL OR p.name > ?7 OR (p.name = ?7 AND p.id > ?8))
+           AND SUBSTR(TRIM(p.name), 1, 1) <> ?6
+           AND SUBSTR(TRIM(p.name), 1, 1) <> ?7))
+  AND (?8 IS NULL OR p.name > ?8 OR (p.name = ?8 AND p.id > ?9))
 GROUP BY p.id, p.name
 ORDER BY p.name ASC, p.id ASC
-LIMIT ?9
+LIMIT ?10
 `
 
 type ListPublishersWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -415,6 +429,7 @@ type ListPublishersWithCountRow struct {
 
 func (q *Queries) ListPublishersWithCount(ctx context.Context, arg ListPublishersWithCountParams) ([]ListPublishersWithCountRow, error) {
 	rows, err := q.query(ctx, q.listPublishersWithCountStmt, listPublishersWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,
@@ -451,7 +466,8 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
     SELECT b.cover_url
     FROM book_series bs2
     JOIN books b ON b.id = bs2.book_id
-    WHERE bs2.series_id = s.id AND b.cover_url IS NOT NULL AND b.cover_url != ''
+    WHERE bs2.series_id = s.id AND b.library_id = sb.library_id
+      AND b.cover_url IS NOT NULL AND b.cover_url != ''
     ORDER BY
         CASE
             WHEN bs2.series_index GLOB '[0-9]*' THEN CAST(bs2.series_index AS REAL)
@@ -462,21 +478,24 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
 ) as cover_url
 FROM series s
 JOIN book_series bs ON s.id = bs.series_id
-WHERE (?1 IS NULL OR s.name LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(s.name), 1, 1)) = ?2
-       OR SUBSTR(TRIM(s.name), 1, 1) = ?3)
-  AND (?4 IS NULL
+JOIN books sb ON sb.id = bs.book_id
+WHERE sb.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR s.name LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(s.name), 1, 1)) = ?3
+       OR SUBSTR(TRIM(s.name), 1, 1) = ?4)
+  AND (?5 IS NULL
        OR (UPPER(SUBSTR(TRIM(s.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(s.name), 1, 1) <> ?5
-           AND SUBSTR(TRIM(s.name), 1, 1) <> ?6))
-  AND (?7 IS NULL OR s.name > ?7 OR (s.name = ?7 AND s.id > ?8))
+           AND SUBSTR(TRIM(s.name), 1, 1) <> ?6
+           AND SUBSTR(TRIM(s.name), 1, 1) <> ?7))
+  AND (?8 IS NULL OR s.name > ?8 OR (s.name = ?8 AND s.id > ?9))
 GROUP BY s.id, s.name
 ORDER BY s.name ASC, s.id ASC
-LIMIT ?9
+LIMIT ?10
 `
 
 type ListSeriesWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -497,6 +516,7 @@ type ListSeriesWithCountRow struct {
 
 func (q *Queries) ListSeriesWithCount(ctx context.Context, arg ListSeriesWithCountParams) ([]ListSeriesWithCountRow, error) {
 	rows, err := q.query(ctx, q.listSeriesWithCountStmt, listSeriesWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,
@@ -537,21 +557,24 @@ const listTagsWithCount = `-- name: ListTagsWithCount :many
 SELECT t.id, t.name, COUNT(bt.book_id) as book_count
 FROM tags t
 JOIN book_tags bt ON t.id = bt.tag_id
-WHERE (?1 IS NULL OR t.name LIKE '%' || ?1 || '%')
-  AND (?2 IS NULL
-       OR UPPER(SUBSTR(TRIM(t.name), 1, 1)) = ?2
-       OR SUBSTR(TRIM(t.name), 1, 1) = ?3)
-  AND (?4 IS NULL
+JOIN books b ON b.id = bt.book_id
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (?2 IS NULL OR t.name LIKE '%' || ?2 || '%')
+  AND (?3 IS NULL
+       OR UPPER(SUBSTR(TRIM(t.name), 1, 1)) = ?3
+       OR SUBSTR(TRIM(t.name), 1, 1) = ?4)
+  AND (?5 IS NULL
        OR (UPPER(SUBSTR(TRIM(t.name), 1, 1)) NOT BETWEEN 'A' AND 'Z'
-           AND SUBSTR(TRIM(t.name), 1, 1) <> ?5
-           AND SUBSTR(TRIM(t.name), 1, 1) <> ?6))
-  AND (?7 IS NULL OR t.name > ?7 OR (t.name = ?7 AND t.id > ?8))
+           AND SUBSTR(TRIM(t.name), 1, 1) <> ?6
+           AND SUBSTR(TRIM(t.name), 1, 1) <> ?7))
+  AND (?8 IS NULL OR t.name > ?8 OR (t.name = ?8 AND t.id > ?9))
 GROUP BY t.id, t.name
 ORDER BY t.name ASC, t.id ASC
-LIMIT ?9
+LIMIT ?10
 `
 
 type ListTagsWithCountParams struct {
+	LibraryIds   interface{}    `json:"library_ids"`
 	Search       interface{}    `json:"search"`
 	AlphaUpper   interface{}    `json:"alpha_upper"`
 	AlphaLower   sql.NullString `json:"alpha_lower"`
@@ -571,6 +594,7 @@ type ListTagsWithCountRow struct {
 
 func (q *Queries) ListTagsWithCount(ctx context.Context, arg ListTagsWithCountParams) ([]ListTagsWithCountRow, error) {
 	rows, err := q.query(ctx, q.listTagsWithCountStmt, listTagsWithCount,
+		arg.LibraryIds,
 		arg.Search,
 		arg.AlphaUpper,
 		arg.AlphaLower,

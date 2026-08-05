@@ -28,7 +28,7 @@ export const ReadingHeatmap: React.FC = () => {
       });
 
     if (result.length === 0) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE');
       result.push({ date: today, count: 0, level: 0 });
     }
     return result;

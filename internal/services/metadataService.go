@@ -13,27 +13,33 @@ import (
 )
 
 type MetadataService interface {
-	ListAuthors(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
-	ListSeries(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
-	ListPublishers(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
-	ListLanguages(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
-	ListTags(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
-	ListFormats(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error)
+	ListAuthors(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListSeries(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListPublishers(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListLanguages(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListTags(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListFormats(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
 }
 
 type metadataService struct {
-	bookRepo repositories.BookDBRepository
+	bookRepo  repositories.BookDBRepository
+	libraries LibraryService
 }
 
-func NewMetadataService(bookRepo repositories.BookDBRepository) MetadataService {
+func NewMetadataService(bookRepo repositories.BookDBRepository, libraries LibraryService) MetadataService {
 	return &metadataService{
-		bookRepo: bookRepo,
+		bookRepo:  bookRepo,
+		libraries: libraries,
 	}
 }
 
+// Facets are an index of the catalog: an author list names every author in every library, so an
+// unscoped query told an unauthenticated visitor what a closed library holds. Scoped in the query
+// rather than filtered afterwards, or the LIMIT would page over rows the caller cannot see.
 func (s *metadataService) listFacet(
 	ctx context.Context,
 	q *request.MetadataFacetDto,
+	claims *response.JWTClaims,
 	fetch func(context.Context, repositories.MetadataFacetFilter) ([]*models.MetadataCountEntity, error),
 ) (*response.PaginatedResponse, error) {
 	if q == nil {
@@ -43,11 +49,19 @@ func (s *metadataService) listFacet(
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
+	libraryIDs, err := s.libraries.ReadableLibraryIDs(ctx, claims)
+	if err != nil {
+		return nil, err
+	}
+	if len(libraryIDs) == 0 {
+		return response.BuildCursorPaginatedResponse([]*response.MetadataCountResponse{}, 0, int(limit), ""), nil
+	}
 	items, err := fetch(ctx, repositories.MetadataFacetFilter{
-		Cursor: q.Cursor,
-		Limit:  limit,
-		Search: strings.TrimSpace(q.Search),
-		Alpha:  strings.TrimSpace(q.Alpha),
+		Cursor:     q.Cursor,
+		Limit:      limit,
+		Search:     strings.TrimSpace(q.Search),
+		Alpha:      strings.TrimSpace(q.Alpha),
+		LibraryIDs: libraryIDs,
 	})
 	if err != nil {
 		return nil, err
@@ -61,26 +75,26 @@ func (s *metadataService) listFacet(
 	return response.BuildCursorPaginatedResponse(dtos, 0, int(limit), nextCursor), nil
 }
 
-func (s *metadataService) ListAuthors(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListAuthorsWithCount)
+func (s *metadataService) ListAuthors(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListAuthorsWithCount)
 }
 
-func (s *metadataService) ListSeries(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListSeriesWithCount)
+func (s *metadataService) ListSeries(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListSeriesWithCount)
 }
 
-func (s *metadataService) ListPublishers(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListPublishersWithCount)
+func (s *metadataService) ListPublishers(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListPublishersWithCount)
 }
 
-func (s *metadataService) ListLanguages(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListLanguagesWithCount)
+func (s *metadataService) ListLanguages(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListLanguagesWithCount)
 }
 
-func (s *metadataService) ListTags(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListTagsWithCount)
+func (s *metadataService) ListTags(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListTagsWithCount)
 }
 
-func (s *metadataService) ListFormats(ctx context.Context, q *request.MetadataFacetDto) (*response.PaginatedResponse, error) {
-	return s.listFacet(ctx, q, s.bookRepo.ListFormatsWithCount)
+func (s *metadataService) ListFormats(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListFormatsWithCount)
 }

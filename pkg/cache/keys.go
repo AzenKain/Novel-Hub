@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 
@@ -22,6 +23,14 @@ func BuildKey(parts ...any) string {
 }
 
 func appendPart(sb *strings.Builder, p any) {
+	// A nil pointer reaches the fmt.Stringer case below and panics there — time.Time.String has
+	// a value receiver, so calling it through a nil *time.Time dereferences nothing. Callers pass
+	// *time.Time cursors straight into BuildKey, and the first page of any listing has none.
+	if p == nil {
+		sb.WriteString("nil")
+		return
+	}
+
 	switch v := p.(type) {
 	case string:
 		sb.WriteString(v)
@@ -37,6 +46,18 @@ func appendPart(sb *strings.Builder, p any) {
 		} else {
 			sb.WriteString("false")
 		}
+	case *time.Time:
+		if v == nil {
+			sb.WriteString("nil")
+			return
+		}
+		sb.WriteString(v.Format(time.RFC3339Nano))
+	case *string:
+		if v == nil {
+			sb.WriteString("nil")
+			return
+		}
+		sb.WriteString(*v)
 	case fmt.Stringer:
 		sb.WriteString(v.String())
 	default:

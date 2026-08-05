@@ -45,6 +45,7 @@ export const readerService = {
         book_id,
         duration,
         words,
+        session_date: new Date().toLocaleDateString('sv-SE'),
       });
       return res.data;
     } catch (error) {

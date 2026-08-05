@@ -30,6 +30,7 @@ type LibraryService interface {
 	CreateLibrary(ctx context.Context, dto *request.CreateLibraryDto) (*response.LibraryResponse, error)
 	GetLibrary(ctx context.Context, id string, claims *response.JWTClaims) (*response.LibraryResponse, error)
 	ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]*response.LibraryResponse, error)
+	ReadableLibraryIDs(ctx context.Context, claims *response.JWTClaims) ([]string, error)
 	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error)
 	DeleteLibrary(ctx context.Context, id string) error
 	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
@@ -44,16 +45,18 @@ type libraryService struct {
 	fileRepo    repositories.BookFileRepository
 	parsers     *bookparser.Registry
 	permissions PermissionCache
+	settings    SettingsService
 	jobQueue    *worker.Queue
 }
 
-func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, permissions PermissionCache, jobQueue *worker.Queue) LibraryService {
+func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, permissions PermissionCache, settings SettingsService, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
 		libraryRepo: repo,
 		bookRepo:    bookRepo,
 		fileRepo:    fileRepo,
 		parsers:     parsers,
 		permissions: permissions,
+		settings:    settings,
 		jobQueue:    jobQueue,
 	}
 }
@@ -74,11 +77,22 @@ func (s *libraryService) GetLibrary(ctx context.Context, id string, claims *resp
 	if err != nil {
 		return nil, err
 	}
-	resolved := resolveClaims(claims)
-	if !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermLibraryRead, map[string]any{"library_id": lib.ID}) {
+	if !s.canReadLibrary(resolveClaims(claims), lib.ID) {
 		return nil, apperrors.New(apperrors.ErrNotFound, "Library not found")
 	}
 	return lib.ToResponse(), nil
+}
+
+// The library.read grant alone is not enough: GUEST holds it by default, and what actually closes
+// a library to visitors is the guest_access setting. Both are checked here, as CanReadBook does.
+func (s *libraryService) canReadLibrary(claims *response.JWTClaims, libraryID string) bool {
+	if isGuestClaims(claims) && !s.settings.GuestAllows(libraryID) {
+		return false
+	}
+	if s.permissions.IsAdmin(claims.RoleIDs, claims.Roles) {
+		return true
+	}
+	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermLibraryRead, map[string]any{"library_id": libraryID})
 }
 
 func (s *libraryService) ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]*response.LibraryResponse, error) {
@@ -89,11 +103,28 @@ func (s *libraryService) ListLibraries(ctx context.Context, claims *response.JWT
 	resolved := resolveClaims(claims)
 	visible := make([]*models.LibraryEntity, 0, len(libs))
 	for _, lib := range libs {
-		if s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermLibraryRead, map[string]any{"library_id": lib.ID}) {
+		if s.canReadLibrary(resolved, lib.ID) {
 			visible = append(visible, lib)
 		}
 	}
 	return models.LibraryEntitiesToResponse(visible), nil
+}
+
+// Returns the ids the caller may read, for queries that scope by library rather than filter after
+// the fact. An empty slice means "nothing readable" and callers must render it as no rows.
+func (s *libraryService) ReadableLibraryIDs(ctx context.Context, claims *response.JWTClaims) ([]string, error) {
+	libs, err := s.libraryRepo.ListLibraries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resolved := resolveClaims(claims)
+	ids := make([]string, 0, len(libs))
+	for _, lib := range libs {
+		if s.canReadLibrary(resolved, lib.ID) {
+			ids = append(ids, lib.ID)
+		}
+	}
+	return ids, nil
 }
 
 func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error) {

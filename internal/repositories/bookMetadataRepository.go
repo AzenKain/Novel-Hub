@@ -15,19 +15,29 @@ import (
 
 const (
 	metadataAlphaOther = "#"
-	dStrokeUpper       = "Đ" // Đ
-	dStrokeLower       = "đ" // đ
+	dStrokeUpper       = "Đ"
+	dStrokeLower       = "đ"
 )
 
 type MetadataFacetFilter struct {
-	Cursor string
-	Limit  int64
-	Search string
-	Alpha  string
+	Cursor     string
+	Limit      int64
+	Search     string
+	Alpha      string
+	LibraryIDs []string
 }
 
 func (f MetadataFacetFilter) cacheKey(facet string) string {
-	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha)
+	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha,
+		strings.Join(f.LibraryIDs, ","))
+}
+
+func (f MetadataFacetFilter) libraryScope() string {
+	data, err := jsonx.Marshal(f.LibraryIDs)
+	if err != nil {
+		return "[]"
+	}
+	return string(data)
 }
 
 func (f MetadataFacetFilter) sqlcArgs() (search any, alphaUpper any, alphaLower sql.NullString, alphaOther any, dUpper, dLower sql.NullString, cursorName any, cursorID sql.NullString) {
@@ -586,7 +596,8 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, filter Meta
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListAuthorsWithCount(ctx, sqlc.ListAuthorsWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})
@@ -625,7 +636,8 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, filter Metad
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListSeriesWithCount(ctx, sqlc.ListSeriesWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})
@@ -664,7 +676,8 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, filter M
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListPublishersWithCount(ctx, sqlc.ListPublishersWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})
@@ -703,7 +716,8 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, filter Me
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListLanguagesWithCount(ctx, sqlc.ListLanguagesWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})
@@ -742,7 +756,8 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, filter Metadat
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListTagsWithCount(ctx, sqlc.ListTagsWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})
@@ -781,7 +796,8 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter Meta
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		search, alphaUpper, alphaLower, alphaOther, dUpper, dLower, cursorName, cursorID := filter.sqlcArgs()
 		rows, err := r.queries.ListFormatsWithCount(ctx, sqlc.ListFormatsWithCountParams{
-			Search: search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
+			LibraryIds: filter.libraryScope(),
+			Search:     search, AlphaUpper: alphaUpper, AlphaLower: alphaLower, AlphaOther: alphaOther,
 			DstrokeUpper: dUpper, DstrokeLower: dLower,
 			CursorName: cursorName, CursorID: cursorID, Limit: filter.Limit,
 		})

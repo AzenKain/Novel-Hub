@@ -2,7 +2,12 @@
 INSERT INTO reading_sessions (
     id, user_id, book_id, session_date, duration_seconds, words_read
 ) VALUES (
-    ?, ?, ?, CURRENT_DATE, ?, ?
+    sqlc.arg('id'),
+    sqlc.arg('user_id'),
+    sqlc.arg('book_id'),
+    date(sqlc.arg('session_date')),
+    sqlc.arg('duration_seconds'),
+    sqlc.arg('words_read')
 )
 ON CONFLICT (user_id, book_id, session_date) DO UPDATE
 SET 

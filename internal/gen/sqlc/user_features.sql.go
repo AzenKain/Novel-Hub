@@ -208,15 +208,34 @@ func (q *Queries) GetBookDownloadStats(ctx context.Context, bookID string) (Book
 }
 
 const getBookIDsInCollection = `-- name: GetBookIDsInCollection :many
-SELECT b.id 
+SELECT b.id
 FROM books b
 JOIN collection_books cb ON cb.book_id = b.id
-WHERE cb.collection_id = ?
-ORDER BY cb.added_at DESC
+WHERE cb.collection_id = ?1 AND
+    (?2 IS NULL OR
+     datetime(b.created_at) < datetime(?2) OR
+     (datetime(b.created_at) = datetime(?2) AND b.id < ?3))
+ORDER BY datetime(b.created_at) DESC, b.id DESC
+LIMIT ?4
 `
 
-func (q *Queries) GetBookIDsInCollection(ctx context.Context, collectionID string) ([]string, error) {
-	rows, err := q.query(ctx, q.getBookIDsInCollectionStmt, getBookIDsInCollection, collectionID)
+type GetBookIDsInCollectionParams struct {
+	CollectionID    string         `json:"collection_id"`
+	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	Limit           int64          `json:"limit"`
+}
+
+// Keyset paged on the same (created_at, id) pair as SearchBookIDs, so the collection filter no
+// longer has to load every member and page in Go. created_at is second-resolution, hence the id
+// tiebreaker: without it a bulk upload's tied rows straddle the page boundary and one is skipped.
+func (q *Queries) GetBookIDsInCollection(ctx context.Context, arg GetBookIDsInCollectionParams) ([]string, error) {
+	rows, err := q.query(ctx, q.getBookIDsInCollectionStmt, getBookIDsInCollection,
+		arg.CollectionID,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

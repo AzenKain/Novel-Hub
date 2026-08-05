@@ -718,7 +718,7 @@ func (c *FeatureController) RecordReadingSession(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	err := c.service.RecordReadingSession(reqCtx, userID, dto.BookID, dto.Duration, dto.Words, getOptionalClaims(ctx))
+	err := c.service.RecordReadingSession(reqCtx, userID, dto.BookID, dto.Duration, dto.Words, dto.SessionDate, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

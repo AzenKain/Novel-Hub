@@ -52,12 +52,19 @@ INSERT INTO collection_books (
 DELETE FROM collection_books
 WHERE collection_id = ? AND book_id = ?;
 
+-- Keyset paged on the same (created_at, id) pair as SearchBookIDs, so the collection filter no
+-- longer has to load every member and page in Go. created_at is second-resolution, hence the id
+-- tiebreaker: without it a bulk upload's tied rows straddle the page boundary and one is skipped.
 -- name: GetBookIDsInCollection :many
-SELECT b.id 
+SELECT b.id
 FROM books b
 JOIN collection_books cb ON cb.book_id = b.id
-WHERE cb.collection_id = ?
-ORDER BY cb.added_at DESC;
+WHERE cb.collection_id = sqlc.arg('collection_id') AND
+    (sqlc.narg('cursor_created_at') IS NULL OR
+     datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
+     (datetime(b.created_at) = datetime(sqlc.narg('cursor_created_at')) AND b.id < sqlc.narg('cursor_id')))
+ORDER BY datetime(b.created_at) DESC, b.id DESC
+LIMIT sqlc.arg('limit');
 
 -- name: GetReadingProgress :one
 SELECT user_id, book_id, file_id, chapter_ref, chapter_title, chapter_index, progress_percent, location_cfi, location_type, opened_count, qualified_read_count, last_opened_at, last_counted_at, updated_at

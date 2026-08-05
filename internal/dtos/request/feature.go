@@ -53,9 +53,10 @@ type UpdateHighlightNoteDto struct {
 }
 
 type RecordReadingSessionDto struct {
-	BookID   string `json:"book_id" validate:"required,uuid"`
-	Duration int64  `json:"duration" validate:"required,min=1"`
-	Words    int64  `json:"words" validate:"min=0"`
+	BookID      string `json:"book_id" validate:"required,uuid"`
+	Duration    int64  `json:"duration" validate:"required,min=1"`
+	Words       int64  `json:"words" validate:"min=0"`
+	SessionDate string `json:"session_date,omitempty" validate:"omitempty,datetime=2006-01-02"`
 }
 
 type UpsertReadingGoalDto struct {

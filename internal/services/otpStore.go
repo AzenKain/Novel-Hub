@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -30,6 +31,7 @@ type otpEntry struct {
 
 type OTPStore struct {
 	cache cache.Cache
+	mu    sync.Mutex
 }
 
 func NewOTPStore(c cache.Cache) *OTPStore { return &OTPStore{cache: c} }
@@ -55,6 +57,8 @@ func (s *OTPStore) Issue(ctx context.Context, purpose OTPPurpose, email string) 
 	if s.cache == nil {
 		return "", apperrors.New(apperrors.ErrInternalError, "Verification codes are unavailable")
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	cooldown := otpCooldownKey(purpose, email)
 	if exists, _ := s.cache.Exists(ctx, cooldown); exists {
 		return "", apperrors.New(apperrors.ErrTooManyRequests, "A code was already sent, please wait before requesting another")
@@ -81,6 +85,8 @@ func (s *OTPStore) Verify(ctx context.Context, purpose OTPPurpose, email string,
 		return "", apperrors.New(apperrors.ErrInternalError, "Verification codes are unavailable")
 	}
 	key := otpKey(purpose, email)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	var entry otpEntry
 	if err := s.cache.Get(ctx, key, &entry); err != nil {
 		return "", apperrors.New(apperrors.ErrBadRequest, "The code is invalid or has expired")
@@ -108,6 +114,8 @@ func (s *OTPStore) Consume(ctx context.Context, purpose OTPPurpose, email string
 		return apperrors.New(apperrors.ErrInternalError, "Verification codes are unavailable")
 	}
 	key := otpVerifiedKey(purpose, email, ticket)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	exists, err := s.cache.Exists(ctx, key)
 	if err != nil || !exists {
 		return apperrors.New(apperrors.ErrBadRequest, "Email verification is missing or has expired")

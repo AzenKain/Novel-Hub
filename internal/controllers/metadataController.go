@@ -23,7 +23,7 @@ func NewMetadataController(service services.MetadataService) *MetadataController
 	}
 }
 
-func (h *MetadataController) listFacet(c fiber.Ctx, fetch func(context.Context, *request.MetadataFacetDto) (*response.PaginatedResponse, error)) error {
+func (h *MetadataController) listFacet(c fiber.Ctx, fetch func(context.Context, *request.MetadataFacetDto, *response.JWTClaims) (*response.PaginatedResponse, error)) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -32,7 +32,7 @@ func (h *MetadataController) listFacet(c fiber.Ctx, fetch func(context.Context, 
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
 
-	res, err := fetch(ctx, dto)
+	res, err := fetch(ctx, dto, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

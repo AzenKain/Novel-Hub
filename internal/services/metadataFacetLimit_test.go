@@ -9,6 +9,7 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/cache"
+	"novelhub/pkg/database"
 )
 
 // The facet DTO is now passed straight through from the controller instead of being copied into
@@ -17,7 +18,15 @@ import (
 // database for an unbounded page.
 func TestListFacetClampsLimitEvenWhenTheValidatorNeverRan(t *testing.T) {
 	_, db := newActivityService(t)
-	svc := &metadataService{bookRepo: repositories.NewBookDBRepository(db, cache.NewRamCache())}
+	c := cache.NewRamCache()
+	svc := &metadataService{
+		bookRepo: repositories.NewBookDBRepository(db, c),
+		libraries: &libraryService{
+			libraryRepo: repositories.NewLibraryRepository(db, c),
+			permissions: allowAllPermissions{},
+			settings:    NewSettingsService(repositories.NewSettingsRepository(db, c), database.NewTxManager(db)),
+		},
+	}
 
 	for _, q := range []*request.MetadataFacetDto{
 		{Limit: 5000},
@@ -25,7 +34,7 @@ func TestListFacetClampsLimitEvenWhenTheValidatorNeverRan(t *testing.T) {
 		{Limit: -1},
 		nil,
 	} {
-		res, err := svc.ListAuthors(context.Background(), q)
+		res, err := svc.ListAuthors(context.Background(), q, nil)
 		if err != nil {
 			t.Fatalf("%#v: %v", q, err)
 		}
