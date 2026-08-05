@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	neturl "net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
@@ -30,7 +31,7 @@ func setupTestAppWithDB(t *testing.T) (*fiber.App, *sql.DB, error) {
 		return nil, nil, err
 	}
 
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		return nil, nil, err
 	}
 
@@ -316,7 +317,7 @@ func TestRateLimitAppliesWithoutRestart(t *testing.T) {
 	token := signinData.Data.AccessToken
 
 	putLimit := func(max int, window int) {
-		body := []byte(fmt.Sprintf(`{"limits.rate_limit_auth":%d,"limits.rate_limit_auth_window_seconds":%d}`, max, window))
+		body := fmt.Appendf(nil, `{"limits.rate_limit_auth":%d,"limits.rate_limit_auth_window_seconds":%d}`, max, window)
 		req := httptest.NewRequest(http.MethodPut, "/api/v1/settings/", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -653,7 +654,7 @@ func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
@@ -752,5 +753,54 @@ func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
 		if !seen[title] {
 			t.Errorf("%q was never returned: paging stopped early, so it is unreachable from the client", title)
 		}
+	}
+}
+
+// A missing row used to reach the client as 500 with "sql: no rows in result set" as the message.
+// Repositories return sql.ErrNoRows raw by convention — no repository imports apperrors — and
+// HandleError only recognised its own AppError kinds, so every "book not found" was a 500 that
+// also put the storage engine's wording on the wire. Fixed in HandleError rather than in each
+// repository: one guard covers every caller, including the ones nobody has audited.
+func TestMissingRowIsNotFoundNotServerError(t *testing.T) {
+	app, _, err := setupTestAppWithDB(t)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	const missing = "00000000-0000-7000-8000-000000000000"
+	for _, path := range []string{
+		"/api/v1/books/" + missing,
+		"/api/v1/books/" + missing + "/download",
+		"/api/v1/libraries/" + missing,
+		// These four read the book then check permission. They used to collapse both into one
+		// 403 "You do not have access to this book", which is the wrong status and the wrong
+		// story: it implies the book exists. GetBootstrap always split them; these diverged.
+		"/api/v1/reader/" + missing + "/bootstrap",
+		"/api/v1/reader/" + missing + "/chapter/x",
+		"/api/v1/reader/" + missing + "/file",
+		"/api/v1/reader/" + missing + "/images",
+	} {
+		t.Run(path, func(t *testing.T) {
+			resp, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
+			if err != nil {
+				t.Fatalf("request: %v", err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			if resp.StatusCode != http.StatusNotFound {
+				t.Errorf("status = %d, want 404: %s", resp.StatusCode, body)
+			}
+
+			var envelope response.CommonResponse
+			if err := json.Unmarshal(body, &envelope); err != nil {
+				t.Fatalf("body is not the standard envelope: %v (%s)", err, body)
+			}
+			if envelope.Status {
+				t.Error("status must be false on an error")
+			}
+			// The driver's wording names the storage engine and tells a client nothing actionable.
+			if strings.Contains(envelope.Message, "sql:") || strings.Contains(envelope.Message, "no rows") {
+				t.Errorf("message leaks driver text: %q", envelope.Message)
+			}
+		})
 	}
 }

@@ -11,14 +11,14 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 
 	"github.com/gofiber/fiber/v3"
 )
 
 type OPDSController struct {
-	opdsService services.OPDSService
+	opdsService     services.OPDSService
+	settingsService services.SettingsService
 }
 
 func opdsPageQuery(ctx fiber.Ctx) request.OPDSPageDto {
@@ -34,9 +34,10 @@ func opdsPageQuery(ctx fiber.Ctx) request.OPDSPageDto {
 	return request.OPDSPageDto{Cursor: strings.TrimSpace(ctx.Query("cursor")), Limit: limit}
 }
 
-func NewOPDSController(opdsService services.OPDSService) *OPDSController {
+func NewOPDSController(opdsService services.OPDSService, settingsService services.SettingsService) *OPDSController {
 	return &OPDSController{
-		opdsService: opdsService,
+		opdsService:     opdsService,
+		settingsService: settingsService,
 	}
 }
 
@@ -44,7 +45,7 @@ func (c *OPDSController) GetRootCatalog(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetRootCatalog(reqCtx, serverURL, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS catalog")
@@ -54,7 +55,7 @@ func (c *OPDSController) GetRootCatalog(ctx fiber.Ctx) error {
 }
 
 func (c *OPDSController) GetOpenSearchDescription(ctx fiber.Ctx) error {
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	desc := c.opdsService.GetOpenSearchDescription(serverURL)
 	xmlBytes, err := xml.MarshalIndent(desc, "", "  ")
 	if err != nil {
@@ -69,7 +70,7 @@ func (c *OPDSController) SearchCatalog(ctx fiber.Ctx) error {
 	defer cancel()
 
 	query := ctx.Query("q", "")
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.SearchBooksOPDS(reqCtx, serverURL, query, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to execute OPDS search")
@@ -81,7 +82,7 @@ func (c *OPDSController) GetRecentBooks(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 
 	feed, err := c.opdsService.GetRecentBooks(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
@@ -95,7 +96,7 @@ func (c *OPDSController) GetAuthorsCatalog(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetAuthorsCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate authors OPDS catalog")
@@ -108,7 +109,7 @@ func (c *OPDSController) GetAuthorBooks(ctx fiber.Ctx) error {
 	defer cancel()
 
 	authorName := ctx.Params("name")
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetAuthorBooks(reqCtx, serverURL, authorName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate author books OPDS catalog")
@@ -120,7 +121,7 @@ func (c *OPDSController) GetSeriesCatalog(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetSeriesCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series OPDS catalog")
@@ -133,7 +134,7 @@ func (c *OPDSController) GetSeriesBooks(ctx fiber.Ctx) error {
 	defer cancel()
 
 	seriesName := ctx.Params("name")
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetSeriesBooks(reqCtx, serverURL, seriesName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate series books OPDS catalog")
@@ -145,7 +146,7 @@ func (c *OPDSController) GetTagsCatalog(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetTagsCatalog(reqCtx, serverURL, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tags OPDS catalog")
@@ -158,7 +159,7 @@ func (c *OPDSController) GetTagBooks(ctx fiber.Ctx) error {
 	defer cancel()
 
 	tagName := ctx.Params("name")
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetTagBooks(reqCtx, serverURL, tagName, opdsPageQuery(ctx), getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate tag books OPDS catalog")
@@ -170,7 +171,7 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	serverURL := getBaseURL(ctx)
+	serverURL := getBaseURL(ctx, c.settingsService)
 	feed, err := c.opdsService.GetOPDS2Catalog(reqCtx, serverURL, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to generate OPDS 2.0 catalog")
@@ -180,9 +181,14 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 	return ctx.JSON(feed)
 }
 
-func getBaseURL(ctx fiber.Ctx) string {
-	if serverURL := strings.TrimSpace(config.GetConfigWithDefault("SERVER_URL", "")); serverURL != "" {
-		return strings.TrimSuffix(serverURL, "/")
+// The configured server.url wins over the detected host: behind a path-rewriting proxy the
+// detected value is wrong, and a reader app follows these links to download files, so a wrong
+// host shows a working catalog whose every download fails.
+func getBaseURL(ctx fiber.Ctx, settings services.SettingsService) string {
+	if settings != nil {
+		if configured := settings.ServerURL(); configured != "" {
+			return configured
+		}
 	}
 	scheme := "http"
 	if ctx.Protocol() == "https" || ctx.Get("X-Forwarded-Proto") == "https" {

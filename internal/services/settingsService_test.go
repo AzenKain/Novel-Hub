@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
@@ -74,7 +75,7 @@ func TestSettingsServiceRuntimeLimitsSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 
@@ -158,7 +159,7 @@ func TestSettingsServiceReloadRejectsMalformedPersistedLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 
@@ -181,7 +182,7 @@ func TestSettingsServiceSMTPPasswordLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 
@@ -263,7 +264,7 @@ func TestSettingsServiceRejectsIncompleteSMTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 
@@ -300,5 +301,127 @@ func TestSettingsServiceRejectsIncompleteSMTP(t *testing.T) {
 	}
 	if admin.SMTP.Enabled || admin.SMTP.Host != "" {
 		t.Fatalf("rejected SMTP settings leaked into the snapshot: %#v", admin.SMTP)
+	}
+}
+
+// server.url is admin-only on purpose: GET /settings/public has no middleware, so a field on
+// PublicSettings is served to anonymous callers, and this value names the internal host, its
+// port and the proxy topology in front of it.
+func TestSettingsServiceServerURLStaysOutOfPublicPayload(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "settings.db")
+	t.Setenv("SQLITE_DB_PATH", dbPath)
+	db, err := database.NewSQLiteDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.ApplySchema(db); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repositories.NewSettingsRepository(db, nil)
+	service := NewSettingsService(repo, database.NewTxManager(db))
+	ctx := context.Background()
+	if err := service.Reload(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	const configured = "https://books.internal.example"
+	admin, err := service.UpdateSettings(ctx, map[string]any{"server.url": configured})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if admin.ServerURL != configured {
+		t.Fatalf("admin view = %q, want %q", admin.ServerURL, configured)
+	}
+	if service.ServerURL() != configured {
+		t.Fatalf("runtime accessor = %q, want %q", service.ServerURL(), configured)
+	}
+
+	public, err := service.Public(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := jsonx.Marshal(public)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(body), configured) || strings.Contains(string(body), "server_url") {
+		t.Fatalf("unauthenticated payload leaked the server URL: %s", body)
+	}
+}
+
+func TestSettingsServiceRejectsInvalidServerURL(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "settings.db")
+	t.Setenv("SQLITE_DB_PATH", dbPath)
+	db, err := database.NewSQLiteDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.ApplySchema(db); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repositories.NewSettingsRepository(db, nil)
+	service := NewSettingsService(repo, database.NewTxManager(db))
+	ctx := context.Background()
+	if err := service.Reload(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	rejected := []struct {
+		name  string
+		value any
+	}{
+		{"wrong scheme", "ftp://books.example.com"},
+		{"no scheme", "books.example.com"},
+		{"no host", "https://"},
+		{"carries a path", "https://books.example.com/library"},
+		{"carries a query", "https://books.example.com?x=1"},
+		{"header injection", "https://books.example.com\r\nX-Injected: 1"},
+		{"not a string", 42},
+	}
+	for _, test := range rejected {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := service.UpdateSettings(ctx, map[string]any{"server.url": test.value}); err == nil {
+				t.Fatalf("invalid server URL was accepted: %#v", test.value)
+			}
+		})
+	}
+
+	// Empty means "detect it per request", which is the default and must stay writable.
+	if _, err := service.UpdateSettings(ctx, map[string]any{"server.url": ""}); err != nil {
+		t.Fatalf("empty server URL was rejected: %v", err)
+	}
+	// A trailing slash would double up in serverURL + "/api/opds/v1".
+	admin, err := service.UpdateSettings(ctx, map[string]any{"server.url": "https://books.example.com/"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if admin.ServerURL != "https://books.example.com" {
+		t.Fatalf("trailing slash survived: %q", admin.ServerURL)
+	}
+}
+
+// allowedSettingKey and UpdateSettingsDto.UnknownKeys are two hand-maintained lists that must
+// agree. They drifted once: limits.rate_limit_api sat in allowedSettingKey for months while
+// UnknownKeys rejected it at decode time, so the key was unreachable over HTTP and unread by
+// any limiter — dead config that still looked configurable.
+func TestAllowedSettingKeysAreAcceptedByTheRequestDto(t *testing.T) {
+	for _, key := range allowedSettingKeys {
+		t.Run(key, func(t *testing.T) {
+			body, err := jsonx.Marshal(map[string]any{key: nil})
+			if err != nil {
+				t.Fatal(err)
+			}
+			dto := &request.UpdateSettingsDto{}
+			if err := jsonx.Unmarshal(body, dto); err != nil {
+				t.Fatalf("allowedSettingKey accepts %q but the DTO rejects it: %v", key, err)
+			}
+			if unknown := dto.UnknownKeys(); len(unknown) > 0 {
+				t.Fatalf("allowedSettingKey accepts %q but UnknownKeys reports it unknown", key)
+			}
+		})
 	}
 }

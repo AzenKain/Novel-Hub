@@ -18,7 +18,7 @@ func TestSQLiteConcurrency(t *testing.T) {
 	}
 	defer db.Close()
 
-	if err := ApplySchema(db, "../../db/schema"); err != nil {
+	if err := ApplySchema(db); err != nil {
 		t.Fatalf("failed to apply schema: %v", err)
 	}
 

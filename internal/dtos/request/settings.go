@@ -18,6 +18,7 @@ type UpdateSettingsDto struct {
 	SiteFavicon             *string                 `json:"site.favicon" validate:"omitempty,max=2048"`
 	SiteLogo                *string                 `json:"site.logo" validate:"omitempty,max=2048"`
 	SiteMetaDescription     *string                 `json:"site.meta_description" validate:"omitempty,max=1000"`
+	ServerURL               *string                 `json:"server.url" validate:"omitempty,url,max=2048"`
 	SidebarVisibleItems     *[]string               `json:"sidebar.visible_items" validate:"omitempty,max=100"`
 	HomeSections            *HomeSectionSettingsDto `json:"home.sections"`
 	RegistrationEnabled     *bool                   `json:"auth.registration_enabled"`
@@ -101,6 +102,7 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "site.favicon", d.SiteFavicon)
 	putPtr(values, "site.logo", d.SiteLogo)
 	putPtr(values, "site.meta_description", d.SiteMetaDescription)
+	putPtr(values, "server.url", d.ServerURL)
 	putPtr(values, "sidebar.visible_items", d.SidebarVisibleItems)
 	if d.HomeSections != nil {
 		sections := make(map[string]any, 2)
@@ -141,6 +143,7 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 	known := map[string]bool{
 		"site.title": true, "site.description": true, "site.favicon": true, "site.logo": true,
 		"site.meta_description": true, "sidebar.visible_items": true, "home.sections": true,
+		"server.url":                true,
 		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
 		"tracker.anilist_enabled":   true,

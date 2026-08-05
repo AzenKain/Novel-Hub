@@ -13,6 +13,7 @@ import (
 
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/convert"
 )
 
@@ -30,7 +31,7 @@ func (s *bookService) GetBookFile(ctx context.Context, bookID string, fileID str
 		return nil, err
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no files found for book %s", bookID)
+		return nil, apperrors.New(apperrors.ErrNotFound, "This book has no files")
 	}
 	if fileID != "" {
 		for _, file := range files {
@@ -38,7 +39,7 @@ func (s *bookService) GetBookFile(ctx context.Context, bookID string, fileID str
 				return file, nil
 			}
 		}
-		return nil, fmt.Errorf("file %s not found for book %s", fileID, bookID)
+		return nil, apperrors.New(apperrors.ErrNotFound, "File not found for this book")
 	}
 	return s.preferReadableFile(files), nil
 }
@@ -105,7 +106,7 @@ func (s *bookService) ProcessSingleLocalFile(ctx context.Context, bookID string,
 
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !isAllowedBookFormat(ext) {
-		return fmt.Errorf("unsupported format")
+		return apperrors.New(apperrors.ErrBadRequest, "Unsupported file format")
 	}
 
 	src, err := os.Open(localFilePath)

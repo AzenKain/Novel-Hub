@@ -40,8 +40,6 @@ COPY --from=alpine-assets /data /data
 
 COPY --from=backend-builder /app/novelhub .
 
-COPY db/schema ./db/schema
-
 EXPOSE 3434
 
 ENV SERVER_HOST=0.0.0.0

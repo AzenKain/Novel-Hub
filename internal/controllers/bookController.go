@@ -295,7 +295,10 @@ func (h *BookController) SearchInBook(c fiber.Ctx) error {
 	defer cancel()
 
 	publicSettings, err := h.settings.Public(ctx)
-	if err != nil || publicSettings == nil || !publicSettings.EnableInBookSearch {
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if publicSettings == nil || !publicSettings.EnableInBookSearch {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
 			Status:  false,
 			Message: "in-book search is disabled by system administrator",
@@ -305,7 +308,7 @@ func (h *BookController) SearchInBook(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, bookID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "Book not found"})
+		return apperrors.HandleError(c, err)
 	}
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})

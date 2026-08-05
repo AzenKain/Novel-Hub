@@ -83,7 +83,6 @@ need to override.
 |---|---|---|
 | `SERVER_HOST` | `127.0.0.1` | Docker sets `0.0.0.0`; do not override it there or the published port is unreachable |
 | `SERVER_PORT` | `3434` | |
-| `SERVER_URL` | — | Absolute base URL used in OPDS catalog links. Only needed if the auto-detected host is wrong, e.g. behind a path-rewriting proxy |
 
 ### Storage
 
@@ -102,6 +101,7 @@ data/
 ├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -156,15 +156,19 @@ under **Admin → Settings**. Changes apply immediately.
 | Area | Covers |
 |---|---|
 | Site | Title, description, logo, favicon, sidebar items, home sections |
-| Access | Registration on/off, guest access mode, per-library guest visibility |
-| Permissions | Per-role control of read, download, bookmark, collection, review, share |
+| Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a path-rewriting proxy |
+| Access | Registration on/off, sign-in required, guest access mode, per-library guest visibility |
+| Permissions | Per-role control of all 36 permissions — reading, personal features, library content, integrations, administration |
+| Email (SMTP) | Host, port, username, password, sender address, TLS mode, private-network dialling, plus a connection test. Also whether email verification and password reset are enabled |
+| Reader features | In-book deep search, custom font upload, which cover engagement stats are visible |
+| Trackers | AniList / MyAnimeList sync on or off |
 | Upload limits | Chunk size, chunk count, concurrent sessions, total size, session TTL, cover and site asset size |
 | Rate limits | Sign-in and OPDS attempts per window, and the window length |
 
 ### Rate limits
 
 NovelHub rate-limits exactly two things, both guarded by the same pair of
-settings: **sign-in** (`/api/v1/auth/*`) and **OPDS** (`/opds/*`).
+settings: **sign-in** (`/api/v1/auth/*`) and **OPDS** (`/api/opds/*`).
 
 Both run bcrypt password verification, which costs roughly 50–100 ms of CPU per
 attempt — about 600× the cost of everything else on the request. That is the

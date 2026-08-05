@@ -22,7 +22,8 @@ ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = 'allow',
     conditions_json = '{}';
 
--- GUEST default permissions
+-- GUEST default permissions. Deliberately no book.offline even though it has book.read:
+-- an offline copy outlives the anonymous session that made it and stays readable on a shared device.
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -44,6 +45,7 @@ JOIN permissions p ON p.key IN (
     'book.tts',
     'book.search.deep',
     'book.download',
+    'book.offline',
     'book.send_email',
     'book.share',
     'book.bookmark',
@@ -69,6 +71,7 @@ JOIN permissions p ON p.key IN (
     'book.tts',
     'book.search.deep',
     'book.download',
+    'book.offline',
     'book.send_email',
     'book.share',
     'book.bookmark',

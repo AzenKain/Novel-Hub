@@ -21,7 +21,7 @@ test:
 	go test ./...
 
 build: sqlc
-	go build ./cmd/api
+	go build -o novelhub ./cmd/api
 
 web-install:
 	cd web && $(BUN) install

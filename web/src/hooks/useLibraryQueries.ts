@@ -15,8 +15,64 @@ export function useLibrariesQuery() {
   });
 }
 
-export function useLibraryStatsQuery() {
-  return useQuery<LibraryStats>({
+// Libraries live in React Query, not in a store copy: bookAdminStore used to hold its own
+// `libraries` array fetched directly from the service, so invalidating the ["libraries"] key
+// updated every consumer except the admin Books page that owned the copy.
+const invalidateLibraries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  void queryClient.invalidateQueries({ queryKey: ["libraries"] });
+  void queryClient.invalidateQueries({ queryKey: ["library"] });
+};
+
+export function useCreateLibraryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const res = await libraryService.createLibrary({ name });
+      if (!res.status) throw new Error(res.message || "Failed to create library");
+      return res.data;
+    },
+    onSuccess: () => invalidateLibraries(queryClient),
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.library_create_failed", "Could not create the library"));
+    },
+  });
+}
+
+export function useUpdateLibraryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const res = await libraryService.updateLibrary(id, { name });
+      if (!res.status) throw new Error(res.message || "Failed to rename library");
+      return res.data;
+    },
+    onSuccess: () => invalidateLibraries(queryClient),
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.library_rename_failed", "Could not rename the library"));
+    },
+  });
+}
+
+export function useDeleteLibraryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await libraryService.deleteLibrary(id);
+      if (!res.status) throw new Error(res.message || "Failed to delete library");
+      return res;
+    },
+    // Books carry a library_id, so deleting a library changes what the book list may show.
+    onSuccess: () => {
+      invalidateLibraries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.library_delete_failed", "Could not delete the library"));
+    },
+  });
+}
+
+export function useLibraryStatsQuery() {  return useQuery<LibraryStats>({
     queryKey: ["library", "stats"],
     queryFn: async () => {
       const res = await featureService.getLibraryStats();

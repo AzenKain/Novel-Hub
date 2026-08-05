@@ -9,14 +9,12 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/config"
 )
 
 // KoboAuthService manages the path token a Kobo device authenticates with.
 //
-// baseURL is passed in rather than read from config here because the controller already knows
-// the scheme and host the request arrived on, and a request-derived value is right in more
-// deployments than a single configured one.
+// baseURL is passed in rather than resolved here: the controller already applies the configured
+// server.url and falls back to the request's own scheme and host.
 type KoboAuthService interface {
 	// EnsureSetup returns the caller's endpoint URL, creating a token if absent. Called when
 	// the user opens the Kobo setup card, so it must be idempotent — regenerating on every
@@ -76,15 +74,11 @@ func (s *koboAuthService) RevokeToken(ctx context.Context, userID string) error 
 // setupResponse builds the api_endpoint value the user pastes into the device, and flags the one
 // mistake that breaks this setup silently.
 //
-// The token segment comes before /v1/... because the device appends that itself. baseURL falls
-// back to SERVER_URL when the caller has nothing better; a Kobo cannot resolve "localhost", so
-// a loopback address is reported back rather than rejected — calibre-web warns about exactly
-// this case when the setup page is opened over loopback.
+// The token segment comes before /v1/... because the device appends that itself. A Kobo cannot
+// resolve "localhost", so a loopback address is reported back rather than rejected — calibre-web
+// warns about exactly this case when the setup page is opened over loopback.
 func setupResponse(baseURL, token string) *response.KoboSetupResponse {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if baseURL == "" {
-		baseURL = strings.TrimRight(strings.TrimSpace(config.GetConfigWithDefault("SERVER_URL", "")), "/")
-	}
 	endpoint := baseURL + "/kobo/" + token
 
 	lower := strings.ToLower(endpoint)

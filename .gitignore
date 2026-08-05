@@ -4,6 +4,7 @@ vendor/
 *.txt
 # Build outputs
 /api
+/novelhub
 /cmd/api/dist/
 /web/dist/
 test-ebook/

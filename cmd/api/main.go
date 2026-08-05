@@ -87,7 +87,7 @@ func main() {
 		}
 	}()
 
-	if err := database.ApplySchema(db, "db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		log.Fatal().Err(err).Msg("failed to apply schema")
 	}
 

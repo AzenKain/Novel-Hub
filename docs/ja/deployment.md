@@ -27,23 +27,20 @@ compose ファイルはコンテナ向けに `SERVER_HOST`、`SERVER_PORT`、`DA
 
 ### リバースプロキシの背後で
 
-`.env` に追加します。
+追加する設定はありません。compose ファイルは既に `TRUST_PROXY=true` を既定値として
+います。compose によるデプロイはほぼすべてプロキシの背後にあるためです。あとは
+`X-Forwarded-For` と `X-Forwarded-Proto` を転送するようプロキシを設定してください —
+[リバースプロキシ](reverse-proxy.md) を参照してください。
 
-```bash
-TRUST_PROXY=true
-```
-
-その上で、`X-Forwarded-For` と `X-Forwarded-Proto` を転送するようプロキシを設定して
-ください — [リバースプロキシ](reverse-proxy.md) を参照してください。
-
-`TRUST_PROXY` は、多くの Docker デプロイにプロキシがあるにもかかわらず、Docker でも
-デフォルトでは有効になっていません。公開ポート経由のリクエストは Docker ブリッジ
-（`172.17.0.1`）から到達しますが、これは *プライベート* アドレスです — つまり、素の
-`docker compose up` では `true` にすると直接アクセスしてくるすべての訪問者を等しく
-信頼してしまいます。そうなると訪問者は自分で `X-Forwarded-For` を設定してリクエスト
-ごとに新しいレート制限バケットを得られるようになり、さらに
+**プロキシを置かずにポートを直接インターネットへ公開する場合は、`.env` で
+`TRUST_PROXY=false` を設定してください。** 公開ポート経由のリクエストは Docker
+ブリッジ（`172.17.0.1`）から到達しますが、これは *プライベート* アドレスなので、
+`true` は本物のプロキシと同じように直接アクセスしてくる訪問者をすべて信頼します。
+そうなると訪問者は自分で `X-Forwarded-For` を設定してリクエストごとに新しいレート
+制限バケットを得られ — サインインのレート制限は完全に無効化されます — さらに
 `X-Forwarded-Proto: https` を偽装して、平文 HTTP なのにログインクッキーに `Secure`
-を付けさせることができます。そしてブラウザはそのクッキーを黙って破棄します。
+を付けさせることができます。ブラウザはそのクッキーを黙って破棄するため、症状は
+「パスワードが違う」として現れます。
 
 プロキシが同一ホスト上で動いている場合は、ループバックに公開して他の何もコンテナに
 到達できないようにしてください。
@@ -61,8 +58,10 @@ ports:
 /data
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -83,8 +82,18 @@ docker compose pull
 docker compose up -d
 ```
 
-スキーマのマイグレーションは起動時に自動的に適用されます。先にバックアップを取って
-ください — 下記を参照。
+新しいスキーマは起動時に適用されます。先にバックアップを取ってください — 下記を参照。
+
+### ヘルスチェック
+
+イメージにはヘルスチェックが組み込まれており、20 秒の猶予のあと 30 秒ごとに
+`/api/v1/health` を確認します。そのため `docker compose ps` は単に "running" ではなく
+コンテナの実際の状態を報告します。
+
+```bash
+docker compose ps          # STATUS 列に healthy / unhealthy が表示されます
+curl http://127.0.0.1:3434/api/v1/health
+```
 
 ### ログ
 
@@ -119,8 +128,8 @@ make build
 ./novelhub
 ```
 
-バイナリは同じ場所に `db/schema/` を必要とします — 起動時にスキーマファイルを適用す
-るためです。
+バイナリは自己完結型です。スキーマと Web UI が埋め込まれているため、隣に置くファイルは
+ありません。起動時にデータベースを作成し、スキーマを適用します。
 
 ### systemd
 
@@ -196,16 +205,20 @@ Inbox のスキャンは、ファイルの変更が止まってから 10 秒待�
 
 | プロトコル | エンドポイント | 認証 |
 |---|---|---|
-| OPDS 1.2 | `/opds/v1` | HTTP Basic — NovelHub のメールアドレスとパスワード |
-| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
-| Kobo | `/kobo/v1` | Bearer トークン |
+| OPDS 1.2 | `/api/opds/v1` | HTTP Basic — NovelHub のメールアドレスとパスワード |
+| OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/<token>/v1/…` | パス内のトークン — Kobo は Authorization ヘッダーを送りません |
 
 KOReader、Calibre、Moon+ Reader、Thorium などの OPDS クライアントで動作します。
 
+Kobo のエンドポイントは手入力しません。**プロフィール → Kobo 同期** を開き、生成さ
+れた URL をコピーしてください。ユーザーごとの秘密トークンが含まれています。パスワード
+と同じ扱いにしてください — それを持つ相手はライブラリにアクセスできます。
+
 OPDS のレート制限は認証の *失敗* のみを対象とするため、通常のポーリングがスロットリ
 ングされることはありません。カタログのリンクが誤ったホストを指している場合 — たとえ
-ばパスを書き換えるプロキシの背後にある場合 — は、`SERVER_URL` に正しい絶対ベース URL
-を設定してください。
+ばパスを書き換えるプロキシの背後にある場合 — は、**管理 → 設定** の **サーバー URL**
+に正しい絶対ベース URL を設定してください。再起動なしで即座に反映されます。
 
 ---
 

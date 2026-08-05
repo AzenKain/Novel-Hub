@@ -26,7 +26,8 @@ openssl rand -hex 32   # run three times, one value each
 每个都要用不同的随机值。
 
 **之后再修改。** 修改任意一个 JWT 密钥会让所有人被登出 —— 不会丢失数据。修改
-`DB_ENCRYPTION_KEY` 会让已加密的追踪器令牌永久无法解读;用户必须重新关联那些账号。
+`DB_ENCRYPTION_KEY` 会让已加密的追踪器令牌和已保存的 SMTP 密码永久无法解读;用户必须
+重新关联那些账号,管理员也必须重新输入 SMTP 密码。
 动手之前先备份数据库。
 
 它们之所以保留为环境变量,是因为它们签名和加密的正是数据库*里面*的内容。把它们存进
@@ -75,7 +76,6 @@ TRUST_PROXY=false
 |---|---|---|
 | `SERVER_HOST` | `127.0.0.1` | Docker 会设为 `0.0.0.0`;不要在那里覆盖它,否则映射出去的端口无法访问 |
 | `SERVER_PORT` | `3434` | |
-| `SERVER_URL` | — | OPDS 目录链接使用的绝对基础 URL。仅当自动探测到的主机不正确时才需要,例如位于会重写路径的代理之后 |
 
 ### 存储
 
@@ -83,6 +83,7 @@ TRUST_PROXY=false
 |---|---|---|
 | `DATA_DIR` | `./data` | 下面所有内容的根目录 |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
+| `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | 只有位于该根目录下的目录才能导入。如果你的 Calibre 库在别处，请把它指向那里。 |
 
 `DATA_DIR` 包含:
 
@@ -90,8 +91,10 @@ TRUST_PROXY=false
 data/
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -146,15 +149,19 @@ data/
 | 区域 | 涵盖内容 |
 |---|---|
 | 站点 | 标题、描述、Logo、favicon、侧边栏项目、首页板块 |
-| 访问 | 注册开关、访客访问模式、按书库的访客可见性 |
-| 权限 | 按角色控制阅读、下载、书签、收藏集、书评、分享 |
+| 服务器 URL | OPDS 目录和 Kobo 同步链接使用的绝对基础 URL。留空则按每个请求自动探测;仅当探测到的主机不正确时才需设置,例如位于会重写路径的代理之后 |
+| 访问 | 注册开关、是否必须登录、访客访问模式、按书库的访客可见性 |
+| 权限 | 按角色控制全部 36 项权限 —— 阅读、个人功能、书库内容、集成、管理 |
+| 邮件 (SMTP) | 主机、端口、用户名、密码、发件地址、TLS 模式、是否允许连接私有网络,以及连接测试。邮箱验证与密码重置的开关也在这里 |
+| 阅读器功能 | 书内深度搜索、自定义字体上传、封面上显示哪些互动统计 |
+| 追踪器 | AniList / MyAnimeList 同步开关 |
 | 上传限制 | 分片大小、分片数量、并发会话数、总大小、会话 TTL、封面与站点素材大小 |
 | 限流 | 每个时间窗内的登录与 OPDS 尝试次数,以及时间窗长度 |
 
 ### 限流
 
 NovelHub 只对两件事限流,而且两者共用同一对设置:**登录**(`/api/v1/auth/*`)和
-**OPDS**(`/opds/*`)。
+**OPDS**(`/api/opds/*`)。
 
 两者都会执行 bcrypt 密码校验,每次大约消耗 50–100 ms 的 CPU —— 差不多是同一个请求里
 其他所有工作总和的 600 倍。这才是值得保护的资源。OPDS 也算在内,是因为它使用

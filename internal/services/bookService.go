@@ -17,6 +17,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
@@ -680,7 +681,7 @@ func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapter
 	if fileID != "" {
 		targetIndex, ok := fileChapterIndex(file.ID, chapterID)
 		if !ok {
-			return "", fmt.Errorf("chapter content path not found")
+			return "", apperrors.New(apperrors.ErrNotFound, "Chapter not found")
 		}
 		spine, err := parser.ParseSpine(filePath)
 		if err != nil {
@@ -720,7 +721,7 @@ func (s *bookService) GetChapterHTML(ctx context.Context, bookID string, chapter
 		}
 	}
 	if contentPath == "" {
-		return "", fmt.Errorf("chapter content path not found")
+		return "", apperrors.New(apperrors.ErrNotFound, "Chapter not found")
 	}
 
 	if contentPath == bookparser.RawFileContentPath {

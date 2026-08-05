@@ -53,7 +53,7 @@ func setupKoboFixture(t *testing.T, seed ...func(*testing.T, *sql.DB, koboSeed))
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
@@ -780,5 +780,114 @@ func TestKoboSetupEndpointShape(t *testing.T) {
 	// app.Test uses example.com as the host, so this is not loopback.
 	if payload.Data.IsLocalAddress {
 		t.Errorf("is_local_address = true for %q", payload.Data.EndpointURL)
+	}
+}
+
+// server.url replaces the old SERVER_URL env var. A Kobo follows this endpoint to sync and
+// download, so a value taken from the request host is wrong behind a path-rewriting proxy —
+// the catalog appears to work and every transfer fails. Both branches are pinned because a
+// change that always used the configured value would break every install that has none.
+func TestKoboSetupEndpointUsesConfiguredServerURL(t *testing.T) {
+	const configured = "https://books.example.org"
+
+	for _, tc := range []struct {
+		name      string
+		serverURL string
+		wantorig  string
+	}{
+		{name: "configured wins over detected host", serverURL: configured, wantorig: configured},
+		{name: "empty falls back to detected host", serverURL: "", wantorig: "http://example.com"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("JWT_SECRET", "test-access-secret")
+			t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
+
+			f := setupKoboFixture(t, func(t *testing.T, db *sql.DB, _ koboSeed) {
+				t.Helper()
+				encoded, err := json.Marshal(tc.serverURL)
+				if err != nil {
+					t.Fatalf("encode server.url: %v", err)
+				}
+				if _, err := db.Exec(`
+					INSERT INTO app_settings (key, value_json) VALUES ('server.url', ?)
+					ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json
+				`, string(encoded)); err != nil {
+					t.Fatalf("seed server.url: %v", err)
+				}
+			})
+
+			signinBody := []byte(`{"email":"kobo-test@example.com","password":"password123"}`)
+			signinReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin", bytes.NewReader(signinBody))
+			signinReq.Header.Set("Content-Type", "application/json")
+			signinResp, err := f.app.Test(signinReq)
+			if err != nil {
+				t.Fatalf("signin: %v", err)
+			}
+			var signin struct {
+				Data struct {
+					AccessToken string `json:"access_token"`
+				} `json:"data"`
+			}
+			decodeJSON(t, signinResp, &signin)
+			if signin.Data.AccessToken == "" {
+				t.Fatal("signin returned no access token")
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/kobo/setup", nil)
+			req.Header.Set("Authorization", "Bearer "+signin.Data.AccessToken)
+			resp, err := f.app.Test(req)
+			if err != nil {
+				t.Fatalf("get setup: %v", err)
+			}
+			if resp.StatusCode != http.StatusOK {
+				body, _ := io.ReadAll(resp.Body)
+				t.Fatalf("get setup = %d, want 200: %s", resp.StatusCode, body)
+			}
+
+			var payload struct {
+				Data struct {
+					EndpointURL string `json:"endpoint_url"`
+				} `json:"data"`
+			}
+			decodeJSON(t, resp, &payload)
+
+			want := tc.wantorig + "/kobo/" + f.token
+			if payload.Data.EndpointURL != want {
+				t.Errorf("endpoint_url = %q, want %q", payload.Data.EndpointURL, want)
+			}
+		})
+	}
+}
+
+// The same value drives every OPDS link, and a reader app resolves them to fetch files.
+func TestOPDSCatalogUsesConfiguredServerURL(t *testing.T) {
+	const configured = "https://books.example.org"
+
+	f := setupKoboFixture(t, func(t *testing.T, db *sql.DB, _ koboSeed) {
+		t.Helper()
+		if _, err := db.Exec(`
+			INSERT INTO app_settings (key, value_json) VALUES ('server.url', '"https://books.example.org"')
+			ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json
+		`); err != nil {
+			t.Fatalf("seed server.url: %v", err)
+		}
+	})
+
+	resp, err := f.app.Test(httptest.NewRequest(http.MethodGet, "/api/opds/v1", nil))
+	if err != nil {
+		t.Fatalf("get opds: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("get opds = %d, want 200", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if !bytes.Contains(body, []byte(configured+"/api/opds/v1")) {
+		t.Errorf("catalog carries no link on %s:\n%s", configured, body)
+	}
+	if bytes.Contains(body, []byte("http://example.com")) {
+		t.Errorf("catalog still carries the detected host:\n%s", body)
 	}
 }

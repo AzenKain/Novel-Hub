@@ -80,7 +80,6 @@ TRUST_PROXY=false
 |---|---|---|
 | `SERVER_HOST` | `127.0.0.1` | Docker에서는 `0.0.0.0`으로 설정됩니다. 그곳에서는 재정의하지 마십시오. 그러지 않으면 발행된 포트에 접근할 수 없습니다 |
 | `SERVER_PORT` | `3434` | |
-| `SERVER_URL` | — | OPDS 카탈로그 링크에 사용되는 절대 기본 URL입니다. 자동 감지된 호스트가 잘못된 경우, 예를 들어 경로를 재작성하는 프록시 뒤에 있을 때만 필요합니다 |
 
 ### 저장소
 
@@ -88,6 +87,7 @@ TRUST_PROXY=false
 |---|---|---|
 | `DATA_DIR` | `./data` | 아래 모든 항목의 루트 |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
+| `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | 이 루트 아래의 디렉터리만 가져올 수 있습니다. Calibre 라이브러리가 다른 곳에 있으면 그 경로를 지정하십시오. |
 
 `DATA_DIR`에는 다음이 들어 있습니다.
 
@@ -95,8 +95,10 @@ TRUST_PROXY=false
 data/
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -151,15 +153,19 @@ data/
 | 영역 | 범위 |
 |---|---|
 | 사이트 | 제목, 설명, 로고, 파비콘, 사이드바 항목, 홈 섹션 |
-| 접근 | 회원가입 허용 여부, 게스트 접근 모드, 라이브러리별 게스트 노출 |
-| 권한 | 역할별 읽기, 다운로드, 북마크, 컬렉션, 리뷰, 공유 제어 |
+| 서버 URL | OPDS 카탈로그와 Kobo 동기화 링크에 사용되는 절대 기본 URL. 비워 두면 요청마다 자동 감지합니다. 감지된 호스트가 잘못된 경우, 예를 들어 경로를 재작성하는 프록시 뒤에 있을 때만 설정하십시오 |
+| 접근 | 회원가입 허용 여부, 로그인 필수 여부, 게스트 접근 모드, 라이브러리별 게스트 노출 |
+| 권한 | 36개 권한 전체를 역할별로 제어 — 읽기, 개인 기능, 라이브러리 콘텐츠, 연동, 관리 |
+| 이메일 (SMTP) | 호스트, 포트, 사용자명, 비밀번호, 발신 주소, TLS 모드, 사설 네트워크 연결 허용, 연결 테스트. 이메일 인증과 비밀번호 재설정 활성화도 여기입니다 |
+| 리더 기능 | 본문 심층 검색, 사용자 폰트 업로드, 표지에 표시할 참여 지표 |
+| 트래커 | AniList / MyAnimeList 동기화 켜기·끄기 |
 | 업로드 제한 | 청크 크기, 청크 개수, 동시 세션 수, 총 용량, 세션 TTL, 표지 및 사이트 에셋 크기 |
 | 요청 수 제한 | 창(window)당 로그인 및 OPDS 시도 횟수와 창 길이 |
 
 ### 요청 수 제한
 
 NovelHub은 정확히 두 가지에만 요청 수 제한을 걸며, 둘 다 같은 설정 한 쌍으로
-관리됩니다. **로그인**(`/api/v1/auth/*`)과 **OPDS**(`/opds/*`)입니다.
+관리됩니다. **로그인**(`/api/v1/auth/*`)과 **OPDS**(`/api/opds/*`)입니다.
 
 두 경로 모두 bcrypt 비밀번호 검증을 수행하는데, 시도당 CPU를 약 50–100 ms
 소모합니다. 요청의 다른 모든 처리를 합친 것의 약 600배입니다. 이것이 보호할 가치가

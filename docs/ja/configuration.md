@@ -83,7 +83,6 @@ TRUST_PROXY=false
 |---|---|---|
 | `SERVER_HOST` | `127.0.0.1` | Docker では `0.0.0.0` が設定されます。そこで上書きすると公開ポートに到達できなくなります |
 | `SERVER_PORT` | `3434` | |
-| `SERVER_URL` | — | OPDS カタログのリンクで使われる絶対ベース URL。自動検出されたホストが誤っている場合のみ必要です（例: パスを書き換えるプロキシの背後） |
 
 ### ストレージ
 
@@ -91,6 +90,7 @@ TRUST_PROXY=false
 |---|---|---|
 | `DATA_DIR` | `./data` | 以下すべてのルート |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
+| `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | このルート配下のディレクトリのみインポートできます。Calibre ライブラリが別の場所にある場合はそこを指定してください。 |
 
 `DATA_DIR` の内容:
 
@@ -98,8 +98,10 @@ TRUST_PROXY=false
 data/
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -155,15 +157,19 @@ data/
 | 領域 | 対象 |
 |---|---|
 | サイト | タイトル、説明、ロゴ、favicon、サイドバー項目、ホームセクション |
-| アクセス | 登録の可否、ゲストアクセスモード、ライブラリごとのゲスト表示 |
-| 権限 | ロールごとの閲覧・ダウンロード・ブックマーク・コレクション・レビュー・共有の制御 |
+| サーバー URL | OPDS カタログと Kobo 同期のリンクで使う絶対ベース URL。空欄ならリクエストごとに自動検出します。検出されたホストが誤っている場合 — 例えばパスを書き換えるプロキシの背後 — にのみ設定してください |
+| アクセス | 登録の可否、サインイン必須、ゲストアクセスモード、ライブラリごとのゲスト表示 |
+| 権限 | 36 個すべての権限をロールごとに制御 — 閲覧、個人機能、ライブラリ内容、連携、管理 |
+| メール (SMTP) | ホスト、ポート、ユーザー名、パスワード、送信元アドレス、TLS モード、プライベートネットワークへの接続可否、接続テスト。メール確認とパスワードリセットの有効化もここです |
+| リーダー機能 | 本文の詳細検索、カスタムフォントのアップロード、表紙に表示するエンゲージメント指標 |
+| トラッカー | AniList / MyAnimeList 同期の有効・無効 |
 | アップロード上限 | チャンクサイズ、チャンク数、同時セッション数、合計サイズ、セッション TTL、表紙とサイトアセットのサイズ |
 | レート制限 | ウィンドウあたりのサインインおよび OPDS の試行回数と、ウィンドウの長さ |
 
 ### レート制限
 
 NovelHub がレート制限をかけるのはちょうど 2 つだけで、どちらも同じ設定のペアで守
-られています。**サインイン**（`/api/v1/auth/*`）と **OPDS**（`/opds/*`）です。
+られています。**サインイン**（`/api/v1/auth/*`）と **OPDS**（`/api/opds/*`）です。
 
 どちらも bcrypt によるパスワード検証を実行し、1 回の試行あたり約 50〜100 ms の CPU
 時間を消費します — そのリクエストにおける他のすべての処理の約 600 倍です。守る価

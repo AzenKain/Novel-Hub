@@ -29,7 +29,7 @@ func TestConcurrentLogoutsDoNotHitBusySnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider, token_version) VALUES ('01920000-0000-7000-8000-0000000000f1','multi@n.h','LOCAL',1)`); err != nil {

@@ -26,7 +26,7 @@ func TestWithTxRoutesSliceQueriesThroughTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()

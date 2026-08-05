@@ -22,7 +22,7 @@ func TestExportManyBooksInClause(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewBookDBRepository(db, cache.NewRamCache())
@@ -66,7 +66,7 @@ func TestListChaptersByBookLongNovel(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewBookDBRepository(db, cache.NewRamCache())
@@ -119,7 +119,7 @@ func TestSearchBooksCursorTiebreaker(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewBookDBRepository(db, cache.NewRamCache())

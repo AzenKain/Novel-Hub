@@ -54,3 +54,57 @@ WHEN NEW.updated_at = OLD.updated_at
 BEGIN
     UPDATE roles SET updated_at = datetime('now') WHERE id = OLD.id;
 END;
+
+-- Per-user TOTP (RFC 6238). Replaces the emailed login code: the secret lives on the user's
+-- phone, so a broken SMTP server can no longer decide whether anyone can sign in.
+-- The secret is stored with pkg/crypto EncryptAES like smtp.password -- a database copy or
+-- backup must not hand over a working second factor.
+CREATE TABLE IF NOT EXISTS user_totp (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    secret TEXT NOT NULL,
+    confirmed_at DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recovery codes are the only way back in when the phone is gone, so they are single-use and
+-- stored hashed: a leaked table must not be a set of working bypasses.
+CREATE TABLE IF NOT EXISTS user_totp_recovery_codes (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    used_at DATETIME,
+    PRIMARY KEY (user_id, code_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_totp_recovery_unused
+    ON user_totp_recovery_codes(user_id) WHERE used_at IS NULL;
+
+-- Trigram index for admin user search: LIKE '%term%' cannot use a B-tree index.
+-- Same matches as LIKE ("miya" still finds "Omiya"), 160ms -> 0.4ms on selective terms.
+-- ponytail: one concatenated column, not three. Multi-column MATCH needs the
+-- `<table> MATCH` form, which sqlc rejects. Costs a bigger index (96MB/200k users).
+CREATE VIRTUAL TABLE IF NOT EXISTS fts_users USING fts5(
+    user_id UNINDEXED,
+    haystack,
+    tokenize="trigram"
+);
+
+-- Keep haystack identical in all three triggers and the backfill below.
+CREATE TRIGGER IF NOT EXISTS t_users_fts_ai AFTER INSERT ON users BEGIN
+  INSERT INTO fts_users(user_id, haystack)
+  VALUES (new.id, new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, ''));
+END;
+
+CREATE TRIGGER IF NOT EXISTS t_users_fts_ad AFTER DELETE ON users BEGIN
+  DELETE FROM fts_users WHERE user_id = old.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS t_users_fts_au AFTER UPDATE ON users BEGIN
+  DELETE FROM fts_users WHERE user_id = old.id;
+  INSERT INTO fts_users(user_id, haystack)
+  VALUES (new.id, new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, ''));
+END;
+
+INSERT INTO fts_users(user_id, haystack)
+SELECT u.id, u.id || ' ' || u.email || ' ' || COALESCE(u.full_name, '')
+FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM fts_users f WHERE f.user_id = u.id);

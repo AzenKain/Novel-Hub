@@ -3,6 +3,7 @@ import { create } from "zustand";
 
 interface SettingsAdminState {
   site: { title: string; description: string; favicon: string; logo: string; meta_description: string };
+  serverUrl: string;
   sidebarItems: string[];
   homeSections: { random_books: boolean; top_books: boolean };
   registration: boolean;
@@ -24,6 +25,7 @@ interface SettingsAdminState {
   cropTarget: "logo" | "favicon" | null;
 
   setSite: (site: { title: string; description: string; favicon: string; logo: string; meta_description: string } | ((prev: any) => any)) => void;
+  setServerUrl: (url: string) => void;
   setSidebarItems: (items: string[] | ((prev: string[]) => string[])) => void;
   setHomeSections: (sections: { random_books: boolean; top_books: boolean } | ((prev: any) => any)) => void;
   setRegistration: (enabled: boolean) => void;
@@ -52,6 +54,7 @@ const initialHomeSections = { random_books: true, top_books: true };
 
 const initialState = {
   site: initialSite,
+  serverUrl: "",
   sidebarItems: [],
   homeSections: initialHomeSections,
   registration: true,
@@ -76,6 +79,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   ...initialState,
 
   setSite: (site) => set((state) => ({ site: typeof site === "function" ? site(state.site) : site })),
+  setServerUrl: (serverUrl) => set({ serverUrl }),
   setSidebarItems: (sidebarItems) => set((state) => ({ sidebarItems: typeof sidebarItems === "function" ? sidebarItems(state.sidebarItems) : sidebarItems })),
   setHomeSections: (homeSections) => set((state) => ({ homeSections: typeof homeSections === "function" ? homeSections(state.homeSections) : homeSections })),
   setRegistration: (registration) => set({ registration }),
@@ -98,6 +102,7 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   initFromSettings: (s) =>
     set({
       site: s.site || initialSite,
+      serverUrl: s.server_url ?? "",
       sidebarItems: s.sidebar_visible_items || [],
       homeSections: s.home_sections || initialHomeSections,
       registration: s.registration_enabled,

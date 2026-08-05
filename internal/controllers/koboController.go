@@ -16,17 +16,18 @@ import (
 )
 
 type KoboController struct {
-	koboService services.KoboService
-	authService services.KoboAuthService
+	koboService     services.KoboService
+	authService     services.KoboAuthService
+	settingsService services.SettingsService
 }
 
-func NewKoboController(koboService services.KoboService, authService services.KoboAuthService) *KoboController {
-	return &KoboController{koboService: koboService, authService: authService}
+func NewKoboController(koboService services.KoboService, authService services.KoboAuthService, settingsService services.SettingsService) *KoboController {
+	return &KoboController{koboService: koboService, authService: authService, settingsService: settingsService}
 }
 
 func (ctrl *KoboController) GetInitialization(c fiber.Ctx) error {
 	c.Set(kobo.APITokenHeader, kobo.APITokenValue)
-	return c.JSON(ctrl.koboService.GetInitialization(getBaseURL(c) + "/kobo/" + middlewares.KoboAuthTokenFrom(c)))
+	return c.JSON(ctrl.koboService.GetInitialization(getBaseURL(c, ctrl.settingsService) + "/kobo/" + middlewares.KoboAuthTokenFrom(c)))
 }
 
 func (ctrl *KoboController) AuthDevice(c fiber.Ctx) error {
@@ -57,7 +58,7 @@ func (ctrl *KoboController) GetSyncList(c fiber.Ctx) error {
 	res, err := ctrl.koboService.GetSyncList(ctx, request.KoboSyncDto{
 		UserID:      userID,
 		SyncToken:   c.Get(kobo.SyncTokenHeader),
-		EndpointURL: getBaseURL(c) + "/kobo/" + middlewares.KoboAuthTokenFrom(c),
+		EndpointURL: getBaseURL(c, ctrl.settingsService) + "/kobo/" + middlewares.KoboAuthTokenFrom(c),
 	}, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
@@ -77,7 +78,7 @@ func (ctrl *KoboController) GetBookMetadata(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	res, err := ctrl.koboService.GetBookMetadata(ctx, c.Params("uuid"), getBaseURL(c)+"/kobo/"+middlewares.KoboAuthTokenFrom(c), getOptionalClaims(c))
+	res, err := ctrl.koboService.GetBookMetadata(ctx, c.Params("uuid"), getBaseURL(c, ctrl.settingsService)+"/kobo/"+middlewares.KoboAuthTokenFrom(c), getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -148,7 +149,7 @@ func (ctrl *KoboController) GetSetup(c fiber.Ctx) error {
 	if !ok {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Authentication required"))
 	}
-	res, err := ctrl.authService.EnsureSetup(ctx, claims.UId, getBaseURL(c))
+	res, err := ctrl.authService.EnsureSetup(ctx, claims.UId, getBaseURL(c, ctrl.settingsService))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -163,7 +164,7 @@ func (ctrl *KoboController) RegenerateSetup(c fiber.Ctx) error {
 	if !ok {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Authentication required"))
 	}
-	res, err := ctrl.authService.RegenerateSetup(ctx, claims.UId, getBaseURL(c))
+	res, err := ctrl.authService.RegenerateSetup(ctx, claims.UId, getBaseURL(c, ctrl.settingsService))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

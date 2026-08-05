@@ -3,7 +3,7 @@ import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
 import { getMediaUrl } from "@/config/api";
 import { BOOK_FILE_ACCEPT } from "@/constants";
-import { useBooksQuery, useCalibreImportMutation, useDebounce } from "@/hooks";
+import { useBooksQuery, useCalibreImportMutation, useCreateLibraryMutation, useDebounce, useDeleteLibraryMutation, useLibrariesQuery, useUpdateLibraryMutation } from "@/hooks";
 import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetail";
 import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
@@ -19,7 +19,7 @@ export function Books() {
   const { t } = useTranslation();
   const store = useBookAdminStore(useShallow((state) => ({
     search: state.search, selectedLibraryId: state.selectedLibraryId,
-    libraries: state.libraries, editingBook: state.editingBook, formData: state.formData, submitting: state.submitting,
+    editingBook: state.editingBook, formData: state.formData, submitting: state.submitting,
     bookFiles: state.bookFiles, uploadingBookFiles: state.uploadingBookFiles,
     coverTab: state.coverTab, epubImages: state.epubImages, loadingImages: state.loadingImages, linkUrl: state.linkUrl, coverPreview: state.coverPreview,
     searchSource: state.searchSource, searching: state.searching, searchResults: state.searchResults,
@@ -33,7 +33,7 @@ export function Books() {
     setEditingBook: state.setEditingBook, setSearchResults: state.setSearchResults, setBookToDelete: state.setBookToDelete, setLibraryToDelete: state.setLibraryToDelete,
     openEditModal: state.openEditModal, handleSearchOnline: state.handleSearchOnline, handleSelectResult: state.handleSelectResult,
     handleSelectEpubImage: state.handleSelectEpubImage, handleImageUpload: state.handleImageUpload, handleLinkUpload: state.handleLinkUpload, handleEditSubmit: state.handleEditSubmit,
-    handleUploadBookFiles: state.handleUploadBookFiles, handleCreateLibrary: state.handleCreateLibrary, handleRenameLibrary: state.handleRenameLibrary, handleDeleteLibrary: state.handleDeleteLibrary, handleUploadFiles: state.handleUploadFiles, loadLibraries: state.loadLibraries, deleteBook: state.deleteBook, archiveBook: state.archiveBook
+    handleUploadBookFiles: state.handleUploadBookFiles, handleUploadFiles: state.handleUploadFiles, deleteBook: state.deleteBook, archiveBook: state.archiveBook
   })));
   const [actionBook, setActionBook] = useState<Book | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -42,7 +42,7 @@ export function Books() {
 
   const {
     search, selectedLibraryId,
-    libraries, editingBook, formData, submitting,
+    editingBook, formData, submitting,
     bookFiles, uploadingBookFiles,
     coverTab, epubImages, loadingImages, linkUrl, coverPreview,
     searchSource, searching, searchResults,
@@ -56,7 +56,7 @@ export function Books() {
     setEditingBook, setSearchResults, setBookToDelete, setLibraryToDelete,
     openEditModal, handleSearchOnline, handleSelectResult,
     handleSelectEpubImage, handleImageUpload, handleLinkUpload, handleEditSubmit,
-    handleUploadBookFiles, handleCreateLibrary, handleRenameLibrary, handleDeleteLibrary, handleUploadFiles
+    handleUploadBookFiles, handleUploadFiles
   } = store;
 
   const navigate = useNavigate();
@@ -64,6 +64,22 @@ export function Books() {
   const canImportCalibre = hasPermission(user, "calibre.sync");
   const [showCalibreModal, setShowCalibreModal] = useState(false);
   const calibreImportMutation = useCalibreImportMutation();
+  const { data: libraries = [] } = useLibrariesQuery();
+  const createLibraryMutation = useCreateLibraryMutation();
+  const updateLibraryMutation = useUpdateLibraryMutation();
+  const deleteLibraryMutation = useDeleteLibraryMutation();
+
+  const handleCreateLibrary = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    const name = newLibraryName.trim();
+    if (!name) return;
+    createLibraryMutation.mutate(name, {
+      onSuccess: () => {
+        setNewLibraryName("");
+        toast.success(t("admin.library_created", "Library created"));
+      },
+    });
+  };
 
   const debouncedSearch = useDebounce(search, 500);
   const {
@@ -81,10 +97,6 @@ export function Books() {
   }), [debouncedSearch, selectedLibraryId]));
 
   const books = useMemo(() => booksPages?.pages.flatMap((page) => page.data || []) ?? [], [booksPages]);
-
-  useEffect(() => {
-    void store.loadLibraries();
-  }, []);
 
   useEffect(() => {
     setSelectedBookIds([]);
@@ -707,7 +719,12 @@ export function Books() {
         onClose={() => setShowLibraryModal(false)}
         onNameChange={setNewLibraryName}
         onCreate={handleCreateLibrary}
-        onRename={handleRenameLibrary}
+        onRename={(id, name) =>
+          updateLibraryMutation.mutate(
+            { id, name },
+            { onSuccess: () => toast.success(t("admin.library_renamed", "Library renamed")) }
+          )
+        }
         onDelete={setLibraryToDelete}
       />
 
@@ -744,7 +761,14 @@ export function Books() {
         onClose={() => setLibraryToDelete(null)}
         onConfirm={() => {
           if (libraryToDelete) {
-            void handleDeleteLibrary(libraryToDelete.id);
+            deleteLibraryMutation.mutate(libraryToDelete.id, {
+              onSuccess: () => {
+                toast.success(t("admin.library_deleted", "Library deleted"));
+                // The deleted library may be the one being filtered or uploaded into.
+                if (selectedLibraryId === libraryToDelete.id) setSelectedLibraryId("");
+                if (uploadLibraryId === libraryToDelete.id) setUploadLibraryId("");
+              },
+            });
             setLibraryToDelete(null);
           }
         }}

@@ -21,7 +21,7 @@ func newUserTestRepo(t *testing.T) (UserRepository, *sql.DB, cache.Cache) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	c := cache.NewRamCache()
@@ -95,7 +95,7 @@ func TestAdminCountInvalidatedOnRoleChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()

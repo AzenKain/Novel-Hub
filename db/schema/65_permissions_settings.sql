@@ -71,6 +71,7 @@ INSERT INTO permissions (key, description) VALUES
     ('book.tts', 'Use text-to-speech audio reader'),
     ('book.search.deep', 'Deep search inside book content'),
     ('book.download', 'Download raw book files'),
+    ('book.offline', 'Save books to the browser for offline reading'),
     ('book.send_email', 'Send book files to email / Send-to-Kindle'),
     ('book.share', 'Share books and create public share links'),
     ('book.bookmark', 'Bookmark books and manage reading lists'),
@@ -111,6 +112,7 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('site.favicon', '""'),
     ('site.logo', '""'),
     ('site.meta_description', '"Self-hosted local-first digital book library manager."'),
+    ('server.url', '""'),
     ('sidebar.visible_items', '["books","hot_books","downloaded_books","top_rated_books","bookmarked_books","read_books","unread_books","subjects","series","authors","publishers","languages","file_formats","ratings","archived_books","collections"]'),
     ('home.sections', '{"random_books":true,"top_books":true}'),
     ('auth.registration_enabled', 'true'),
@@ -127,3 +129,13 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('limits.site_asset_bytes', '10485760')
 ON CONFLICT(key) DO NOTHING;
 
+INSERT INTO app_settings (key, value_json) VALUES
+    ('smtp.enabled', 'false'),
+    ('smtp.host', '""'),
+    ('smtp.port', '587'),
+    ('smtp.username', '""'),
+    ('smtp.password', '""'),
+    ('smtp.from_email', '""'),
+    ('smtp.tls_mode', '"starttls"'),
+    ('smtp.allow_private_networks', 'false')
+ON CONFLICT(key) DO NOTHING;

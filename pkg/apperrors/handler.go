@@ -1,6 +1,7 @@
 package apperrors
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/gofiber/fiber/v3"
@@ -8,24 +9,35 @@ import (
 	"novelhub/internal/dtos/response"
 )
 
+// HandleError is the single place a domain error becomes an HTTP status.
+//
+// Matching is by errors.Is, not by comparing AppError.Err, so a kind stays matchable after being
+// wrapped with %w. The sql.ErrNoRows case is what stops a missing row from becoming a 500:
+// repositories return it raw by convention (no repository imports this package), so without it
+// every "book not found" surfaced as 500 with "sql: no rows in result set" as the message — a
+// storage detail on the wire, and the wrong status for a client to act on.
 func HandleError(c fiber.Ctx, err error) error {
-	var appErr *AppError
 	code := fiber.StatusInternalServerError
-	if errors.As(err, &appErr) {
-		switch appErr.Err {
-		case ErrBadRequest:
-			code = fiber.StatusBadRequest
-		case ErrNotFound:
-			code = fiber.StatusNotFound
-		case ErrConflict:
-			code = fiber.StatusConflict
-		case ErrUnauthorized:
-			code = fiber.StatusUnauthorized
-		case ErrForbidden:
-			code = fiber.StatusForbidden
-		case ErrTooManyRequests:
-			code = fiber.StatusTooManyRequests
-		}
+	message := err.Error()
+
+	switch {
+	case errors.Is(err, ErrBadRequest):
+		code = fiber.StatusBadRequest
+	case errors.Is(err, ErrConflict):
+		code = fiber.StatusConflict
+	case errors.Is(err, ErrUnauthorized):
+		code = fiber.StatusUnauthorized
+	case errors.Is(err, ErrForbidden):
+		code = fiber.StatusForbidden
+	case errors.Is(err, ErrTooManyRequests):
+		code = fiber.StatusTooManyRequests
+	case errors.Is(err, ErrNotFound):
+		code = fiber.StatusNotFound
+	case errors.Is(err, sql.ErrNoRows):
+		code = fiber.StatusNotFound
+		// Raw driver text names the storage engine and says nothing a client can use.
+		message = "Not found"
 	}
-	return c.Status(code).JSON(response.CommonResponse{Status: false, Message: err.Error()})
+
+	return c.Status(code).JSON(response.CommonResponse{Status: false, Message: message})
 }

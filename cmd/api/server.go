@@ -374,13 +374,13 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
 
 	opdsService := services.NewOPDSService(bookService, permissionCache)
-	opdsController := controllers.NewOPDSController(opdsService)
+	opdsController := controllers.NewOPDSController(opdsService, settingsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
 	koboRepo := repositories.NewKoboRepository(db, ramCache)
 	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache)
 	koboAuthService := services.NewKoboAuthService(koboRepo)
-	koboController := controllers.NewKoboController(koboService, koboAuthService)
+	koboController := controllers.NewKoboController(koboService, koboAuthService, settingsService)
 	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)
 	routes.KoboSetupRoutes(v1, koboController, userRepo, permissionCache)
 

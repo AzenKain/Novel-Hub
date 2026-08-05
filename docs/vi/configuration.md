@@ -84,7 +84,6 @@ bạn cần ghi đè.
 |---|---|---|
 | `SERVER_HOST` | `127.0.0.1` | Docker đặt `0.0.0.0`; đừng ghi đè ở đó nếu không port đã publish sẽ không truy cập được |
 | `SERVER_PORT` | `3434` | |
-| `SERVER_URL` | — | Base URL tuyệt đối dùng trong các link catalog OPDS. Chỉ cần khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy có rewrite path |
 
 ### Lưu trữ
 
@@ -92,6 +91,7 @@ bạn cần ghi đè.
 |---|---|---|
 | `DATA_DIR` | `./data` | Thư mục gốc cho mọi thứ bên dưới |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
+| `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | Chỉ những thư mục nằm dưới gốc này mới import được. Trỏ nó tới thư viện Calibre nếu thư viện nằm ở chỗ khác. |
 
 `DATA_DIR` chứa:
 
@@ -99,8 +99,10 @@ bạn cần ghi đè.
 data/
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -155,15 +157,19 @@ sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 | Khu vực | Bao gồm |
 |---|---|
 | Site | Tiêu đề, mô tả, logo, favicon, mục sidebar, các section trang chủ |
-| Access | Bật/tắt đăng ký, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
-| Permissions | Quyền theo từng role: đọc, tải, bookmark, collection, đánh giá, chia sẻ |
+| Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy có rewrite path |
+| Access | Bật/tắt đăng ký, bắt buộc đăng nhập, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
+| Permissions | Quyền theo từng role cho cả 36 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
+| Email (SMTP) | Host, port, username, mật khẩu, địa chỉ gửi, chế độ TLS, cho phép gọi mạng private, kèm nút test kết nối. Cũng gồm bật/tắt xác minh email và reset mật khẩu |
+| Reader features | Deep search trong sách, upload font riêng, chọn chỉ số engagement nào hiện trên bìa |
+| Trackers | Bật/tắt sync AniList / MyAnimeList |
 | Upload limits | Kích thước chunk, số chunk, số session đồng thời, tổng dung lượng, TTL của session, kích thước ảnh bìa và asset của site |
 | Rate limits | Số lần thử đăng nhập và OPDS trong mỗi cửa sổ, và độ dài cửa sổ |
 
 ### Rate limit
 
 NovelHub chỉ giới hạn đúng hai thứ, cả hai dùng chung một cặp setting:
-**đăng nhập** (`/api/v1/auth/*`) và **OPDS** (`/opds/*`).
+**đăng nhập** (`/api/v1/auth/*`) và **OPDS** (`/api/opds/*`).
 
 Cả hai đều chạy xác minh mật khẩu bằng bcrypt, tốn khoảng 50–100 ms CPU mỗi lần
 thử — gấp chừng 600 lần mọi thứ còn lại trong request. Đó chính là tài nguyên đáng

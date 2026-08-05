@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -56,6 +57,7 @@ type SettingsService interface {
 	Public(ctx context.Context) (*models.PublicSettings, error)
 	Admin(ctx context.Context) (*models.AdminSettings, error)
 	Limits() models.RuntimeLimits
+	ServerURL() string
 	UpdateSettings(ctx context.Context, settings map[string]any) (*models.AdminSettings, error)
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
@@ -228,6 +230,7 @@ func (s *settingsService) Admin(ctx context.Context) (*models.AdminSettings, err
 		Limits:         s.Limits(),
 		Bounds:         runtimeLimitBounds(),
 		SMTP:           smtpSettingsFromRaw(raw),
+		ServerURL:      serverURLFromRaw(raw),
 	}, nil
 }
 
@@ -236,6 +239,54 @@ func (s *settingsService) Limits() models.RuntimeLimits {
 	limits := s.limits
 	s.mu.RUnlock()
 	return limits
+}
+
+// Read straight off the raw map rather than through Admin(), which composes every section:
+// this runs on every OPDS and Kobo request.
+func (s *settingsService) ServerURL() string {
+	s.mu.RLock()
+	raw := s.raw
+	s.mu.RUnlock()
+	return serverURLFromRaw(raw)
+}
+
+func serverURLFromRaw(raw map[string]any) string {
+	return strings.TrimSuffix(strings.TrimSpace(rawString(raw, "server.url", "")), "/")
+}
+
+// This value is concatenated into OPDS XML and the Kobo endpoint the user pastes into a device,
+// so it is validated here and not only in the request DTO: the setup wizard and any future
+// caller reach UpdateSettings without passing through pkg/validator.
+func validateServerURLRaw(raw map[string]any) error {
+	value, ok := raw["server.url"]
+	if !ok {
+		return nil
+	}
+	text, valid := value.(string)
+	if !valid {
+		return errors.New("Server URL must be a string")
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+	if strings.ContainsAny(text, "\r\n") {
+		return errors.New("Server URL must not contain newlines")
+	}
+	parsed, err := url.Parse(text)
+	if err != nil {
+		return errors.New("Invalid server URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return errors.New("Server URL must start with http:// or https://")
+	}
+	if parsed.Host == "" {
+		return errors.New("Server URL must include a host")
+	}
+	if strings.Trim(parsed.Path, "/") != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return errors.New("Server URL must be a base URL without a path, query or fragment")
+	}
+	return nil
 }
 
 // smtp.password of "" clears the credential; anything else is encrypted before it is stored.
@@ -284,6 +335,9 @@ func (s *settingsService) UpdateSettings(ctx context.Context, settings map[strin
 		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
 	if err := validateSMTPRaw(candidateRaw); err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
+	}
+	if err := validateServerURLRaw(candidateRaw); err != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
 	candidatePublic := settingsFromRaw(candidateRaw)
@@ -569,47 +623,47 @@ func secretSettingKey(key string) bool {
 	return key == "smtp.password"
 }
 
+// A slice rather than a switch so a test can walk it and check every entry against
+// UpdateSettingsDto.UnknownKeys — the two lists are maintained by hand and drifted once.
+var allowedSettingKeys = []string{
+	"site.title",
+	"site.description",
+	"site.favicon",
+	"site.logo",
+	"site.meta_description",
+	"server.url",
+	"sidebar.visible_items",
+	"home.sections",
+	"auth.registration_enabled",
+	"auth.login_required",
+	"guest_access.mode",
+	"guest_access.library_ids",
+	"reader.enable_in_book_search",
+	"font.enable_custom_font_upload",
+	"tracker.anilist_enabled",
+	"auth.require_email_verify",
+	"auth.password_reset_enabled",
+	"limits.upload_chunk_bytes",
+	"limits.upload_chunks",
+	"limits.upload_sessions",
+	"limits.upload_bytes",
+	"limits.upload_session_ttl_seconds",
+	"limits.cover_bytes",
+	"limits.site_asset_bytes",
+	"limits.rate_limit_auth",
+	"limits.rate_limit_auth_window_seconds",
+	"smtp.enabled",
+	"smtp.host",
+	"smtp.port",
+	"smtp.username",
+	"smtp.password",
+	"smtp.from_email",
+	"smtp.tls_mode",
+	"smtp.allow_private_networks",
+}
+
 func allowedSettingKey(key string) bool {
-	switch key {
-	case "site.title",
-		"site.description",
-		"site.favicon",
-		"site.logo",
-		"site.meta_description",
-		"sidebar.visible_items",
-		"home.sections",
-		"auth.registration_enabled",
-		"auth.login_required",
-		"guest_access.mode",
-		"guest_access.library_ids",
-		"reader.enable_in_book_search",
-		"font.enable_custom_font_upload",
-		"tracker.anilist_enabled",
-		"auth.require_email_verify",
-		"auth.password_reset_enabled",
-		"limits.upload_chunk_bytes",
-		"limits.upload_chunks",
-		"limits.upload_sessions",
-		"limits.upload_bytes",
-		"limits.upload_session_ttl_seconds",
-		"limits.cover_bytes",
-		"limits.site_asset_bytes",
-		"limits.rate_limit_api",
-		"limits.rate_limit_api_window_seconds",
-		"limits.rate_limit_auth",
-		"limits.rate_limit_auth_window_seconds",
-		"smtp.enabled",
-		"smtp.host",
-		"smtp.port",
-		"smtp.username",
-		"smtp.password",
-		"smtp.from_email",
-		"smtp.tls_mode",
-		"smtp.allow_private_networks":
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(allowedSettingKeys, key)
 }
 
 func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error) {

@@ -79,11 +79,15 @@ type SMTPSettings struct {
 	AvailableTLSModes    []string `json:"available_tls_modes"`
 }
 
+// ServerURL is on AdminSettings rather than PublicSettings because GET /settings/public is
+// unauthenticated: a base URL exposes the internal hostname, port and proxy topology to anyone.
+// The frontend never needs it — a browser already knows its own origin.
 type AdminSettings struct {
 	PublicSettings
-	Limits RuntimeLimits      `json:"limits"`
-	Bounds RuntimeLimitBounds `json:"bounds"`
-	SMTP   SMTPSettings       `json:"smtp"`
+	Limits    RuntimeLimits      `json:"limits"`
+	Bounds    RuntimeLimitBounds `json:"bounds"`
+	SMTP      SMTPSettings       `json:"smtp"`
+	ServerURL string             `json:"server_url"`
 }
 
 func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {

@@ -168,7 +168,7 @@ func TestNextInSeriesRespectsLibraryVisibility(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 

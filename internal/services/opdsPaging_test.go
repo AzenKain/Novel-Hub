@@ -94,7 +94,7 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES ('lib-1','Lib')`); err != nil {

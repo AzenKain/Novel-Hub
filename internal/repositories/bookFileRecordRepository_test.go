@@ -27,7 +27,7 @@ func newBookFileTestRepo(t *testing.T) (*bookDBRepository, *sql.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	if err := database.ApplySchema(db, filepath.Join("..", "..", "db", "schema")); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()

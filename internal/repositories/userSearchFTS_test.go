@@ -69,6 +69,9 @@ func TestUserSearchFTSMatchesLikeSemantics(t *testing.T) {
 				}
 				want = append(want, id)
 			}
+			if err := wantIDs.Err(); err != nil {
+				t.Fatal(err)
+			}
 			wantIDs.Close()
 
 			got, err := repo.Search(ctx, sqlc.SearchUserIDsParams{

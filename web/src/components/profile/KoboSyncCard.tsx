@@ -92,7 +92,7 @@ export const KoboSyncCard: React.FC = () => {
           <span>
             {t(
               "kobo.local_address_warning",
-              "This URL points at localhost, which a Kobo device cannot reach. Set SERVER_URL to an address on your network."
+              "This URL points at localhost, which a Kobo device cannot reach. Set the Server URL under Admin → Settings to an address on your network."
             )}
           </span>
         </div>

@@ -130,7 +130,7 @@ All utility logic must be centralized within the `pkg/` directory:
 - **STRICT RULE: ZERO INLINE / RAW SQL IN APPLICATION CODE (SQLC MANDATORY)**:
   - **STRICTLY FORBIDDEN**: Writing inline SQL queries, raw SQL strings (`"SELECT ..."`), or executing `db.Exec(...)` / `db.Query(...)` directly inside Go application logic, repositories, controllers, or services for NovelHub DB is **STRICTLY PROHIBITED**.
   - **SQLC ONLY**: Every database query for NovelHub **MUST** be defined in `.sql` files under `db/query/` and generated via `make sqlc`.
-  - **Exceptions**: The ONLY exception is reading external 3rd-party SQLite database files (such as Calibre's `metadata.db`) or applying schema migrations by reading `.sql` schema files from disk.
+  - **Exceptions**: The ONLY exception is reading external 3rd-party SQLite database files (such as Calibre's `metadata.db`) or applying schema migrations from the `db/schema/*.sql` files embedded into the binary via `db.SchemaFS`.
 - **Unbounded Queries**: Every list or search query **MUST** enforce a pagination boundary: `if limit <= 0 || limit > 100 { limit = 20 }`.
 - **SQL Projection**: Always specify explicit columns in SQL queries under `db/query` (avoid `SELECT *` projection at runtime).
 - **SQLite Performance**: Maintain SQLite connection limits: `MaxOpenConns` should be CPU-bound (typically 4-16) and `journal_mode=WAL` with `synchronous=NORMAL` must be preserved.

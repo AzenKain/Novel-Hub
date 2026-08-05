@@ -34,7 +34,7 @@ func setupAppTOTP(t *testing.T) (*fiber.App, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.ApplySchema(db, "../../db/schema"); err != nil {
+	if err := database.ApplySchema(db); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`

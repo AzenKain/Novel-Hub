@@ -31,6 +31,7 @@ export function Settings() {
 
   const {
     site, setSite,
+    serverUrl, setServerUrl,
     sidebarItems, setSidebarItems,
     homeSections, setHomeSections,
     registration, setRegistration,
@@ -50,6 +51,7 @@ export function Settings() {
     initFromSettings,
   } = useSettingsAdminStore(useShallow((state) => ({
     site: state.site, setSite: state.setSite,
+    serverUrl: state.serverUrl, setServerUrl: state.setServerUrl,
     sidebarItems: state.sidebarItems, setSidebarItems: state.setSidebarItems,
     homeSections: state.homeSections, setHomeSections: state.setHomeSections,
     registration: state.registration, setRegistration: state.setRegistration,
@@ -172,6 +174,7 @@ export function Settings() {
       "site.favicon": site.favicon,
       "site.logo": site.logo,
       "site.meta_description": site.meta_description,
+      "server.url": serverUrl.trim(),
     });
   }
 
@@ -274,6 +277,19 @@ export function Settings() {
                       value={site.meta_description}
                       onChange={(e) => setSite({ ...site, meta_description: e.target.value })}
                     />
+                  </div>
+                  <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.server_url_label", "Server URL")}</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      value={serverUrl}
+                      onChange={(e) => setServerUrl(e.target.value)}
+                      placeholder="https://books.example.com"
+                    />
+                    <p className="text-xs text-base-content/50 pl-1">
+                      {t("settings.server_url_desc", "Absolute base URL used in OPDS catalog and Kobo sync links. Leave empty to detect it from each request — set it only if the detected host is wrong, for example behind a path-rewriting proxy.")}
+                    </p>
                   </div>
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
                     <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.logo_url_label", "Logo URL")}</label>

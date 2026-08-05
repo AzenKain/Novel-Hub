@@ -144,6 +144,7 @@ export interface AdminSettings extends PublicSettings {
   limits: RuntimeLimits;
   bounds: RuntimeLimitBounds;
   smtp: SmtpSettings;
+  server_url?: string;
 }
 
 export interface PublicSettings {

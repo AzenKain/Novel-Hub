@@ -26,22 +26,18 @@ compose 파일이 컨테이너용으로 `SERVER_HOST`, `SERVER_PORT`, `DATA_DIR`
 
 ### 리버스 프록시 뒤에서
 
-`.env`에 추가하십시오.
-
-```bash
-TRUST_PROXY=true
-```
-
-그다음 프록시가 `X-Forwarded-For`와 `X-Forwarded-Proto`를 전달하도록 설정하십시오.
+추가할 것은 없습니다. compose 파일은 이미 `TRUST_PROXY=true`를 기본값으로 둡니다.
+compose 배포는 거의 모두 프록시 뒤에 있기 때문입니다. 프록시가
+`X-Forwarded-For`와 `X-Forwarded-Proto`를 전달하도록만 설정하십시오.
 [리버스 프록시](reverse-proxy.md)를 참고하십시오.
 
-Docker 배포 중 프록시를 두는 경우가 많지만, Docker에서도 `TRUST_PROXY`는 기본적으로
-활성화되지 않습니다. 발행된 포트를 통과한 요청은 Docker 브리지(`172.17.0.1`)에서
-도착하는데 이는 *사설* 주소이므로, 평범한 `docker compose up` 환경에서 `true`로
-두면 직접 접속하는 모든 방문자까지 똑같이 신뢰하게 됩니다. 그러면 그 방문자들이
-직접 `X-Forwarded-For`를 설정해 요청마다 새 요청 수 제한 버킷을 받을 수 있고,
-`X-Forwarded-Proto: https`를 위조해 평문 HTTP에서 로그인 쿠키에 `Secure`가 붙게
-만들 수 있으며, 브라우저는 그 쿠키를 조용히 버립니다.
+**프록시 없이 포트를 인터넷에 그대로 노출한다면 `.env`에 `TRUST_PROXY=false`를
+설정하십시오.** 발행된 포트를 통과한 요청은 Docker 브리지(`172.17.0.1`), 즉 *사설*
+주소에서 도착하므로 `true`는 실제 프록시와 똑같이 직접 접속하는 모든 방문자를
+신뢰합니다. 그러면 그 방문자들이 직접 `X-Forwarded-For`를 설정해 요청마다 새 요청 수
+제한 버킷을 받을 수 있어 로그인 제한이 완전히 무력화되고, `X-Forwarded-Proto: https`를
+위조해 평문 HTTP에서 로그인 쿠키에 `Secure`가 붙게 만들 수 있습니다. 브라우저는 그
+쿠키를 조용히 버리므로 증상은 "비밀번호가 틀렸다"로 나타납니다.
 
 프록시가 같은 호스트에서 실행된다면, 그 외의 어떤 것도 컨테이너에 접근하지 못하도록
 루프백으로 발행하십시오.
@@ -59,8 +55,10 @@ ports:
 /data
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -81,8 +79,18 @@ docker compose pull
 docker compose up -d
 ```
 
-스키마 마이그레이션은 시작 시 자동으로 적용됩니다. 먼저 백업하십시오. 아래를
-참고하십시오.
+새 스키마는 시작 시 적용됩니다. 먼저 백업하십시오. 아래를 참고하십시오.
+
+### 헬스체크
+
+이미지에는 헬스체크가 포함되어 있어 20초의 유예 후 30초마다 `/api/v1/health`를
+확인합니다. 따라서 `docker compose ps`는 단순히 "running"이 아니라 컨테이너의 실제
+상태를 보고합니다.
+
+```bash
+docker compose ps          # STATUS 열에 healthy / unhealthy 표시
+curl http://127.0.0.1:3434/api/v1/health
+```
 
 ### 로그
 
@@ -115,7 +123,7 @@ make build
 ./novelhub
 ```
 
-바이너리는 옆에 `db/schema/`가 있어야 합니다. 시작 시 스키마 파일을 적용합니다.
+바이너리는 자체 완결형입니다. 스키마와 웹 UI가 내장되어 있어 옆에 복사할 파일이 없습니다. 시작 시 데이터베이스를 만들고 스키마를 적용합니다.
 
 ### systemd
 
@@ -190,15 +198,20 @@ Inbox 스캔은 파일 변경이 멈춘 뒤 10초를 기다린 다음 가져오�
 
 | 프로토콜 | 엔드포인트 | 인증 |
 |---|---|---|
-| OPDS 1.2 | `/opds/v1` | HTTP Basic — NovelHub 이메일과 비밀번호 |
-| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
-| Kobo | `/kobo/v1` | Bearer 토큰 |
+| OPDS 1.2 | `/api/opds/v1` | HTTP Basic — NovelHub 이메일과 비밀번호 |
+| OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/<token>/v1/…` | 경로에 담긴 토큰 — Kobo는 Authorization 헤더를 보내지 않습니다 |
 
 KOReader, Calibre, Moon+ Reader, Thorium 및 기타 OPDS 클라이언트에서 동작합니다.
 
+Kobo 엔드포인트는 직접 입력하지 않습니다. **프로필 → Kobo 동기화**를 열어 생성된 URL을
+복사하십시오. 사용자별 비밀 토큰이 들어 있습니다. 비밀번호처럼 취급하십시오 — 그것을
+가진 사람은 당신의 라이브러리에 접근할 수 있습니다.
+
 OPDS는 인증 *실패*에만 요청 수 제한이 걸리므로 정상적인 주기 조회는 결코 제한되지
 않습니다. 카탈로그 링크가 잘못된 호스트를 가리킨다면 — 예를 들어 경로를 재작성하는
-프록시 뒤에 있을 때 — `SERVER_URL`을 올바른 절대 기본 URL로 설정하십시오.
+프록시 뒤에 있을 때 — **관리 → 설정**의 **서버 URL**을 올바른 절대 기본 URL로
+설정하십시오. 재시작 없이 즉시 적용됩니다.
 
 ---
 

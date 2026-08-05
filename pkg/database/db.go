@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	novelhubdb "novelhub/db"
 	"novelhub/pkg/config"
 )
 
@@ -28,12 +30,12 @@ func defaultMaxOpenConns() int {
 	return conns
 }
 
-func ApplySchema(db *sql.DB, schemaDir string) error {
+func ApplySchema(db *sql.DB) error {
 	if _, err := db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY);`); err != nil {
 		return fmt.Errorf("create schema_migrations: %w", err)
 	}
 
-	entries, err := os.ReadDir(schemaDir)
+	entries, err := fs.ReadDir(novelhubdb.SchemaFS, "schema")
 	if err != nil {
 		return err
 	}
@@ -56,8 +58,8 @@ func ApplySchema(db *sql.DB, schemaDir string) error {
 			continue
 		}
 
-		path := filepath.Join(schemaDir, file)
-		schema, err := os.ReadFile(path)
+		path := "schema/" + file
+		schema, err := fs.ReadFile(novelhubdb.SchemaFS, path)
 		if err != nil {
 			return err
 		}

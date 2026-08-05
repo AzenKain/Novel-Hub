@@ -26,22 +26,19 @@ or the published port cannot be reached from the host.
 
 ### Behind a reverse proxy
 
-Add to `.env`:
+Nothing to add — the compose file already defaults to `TRUST_PROXY=true`, since
+nearly every compose deployment sits behind a proxy. Just configure the proxy to
+forward `X-Forwarded-For` and `X-Forwarded-Proto` — see
+[Reverse Proxy](reverse-proxy.md).
 
-```bash
-TRUST_PROXY=true
-```
-
-Then configure the proxy to forward `X-Forwarded-For` and `X-Forwarded-Proto` —
-see [Reverse Proxy](reverse-proxy.md).
-
-`TRUST_PROXY` is not enabled by default in Docker, even though many Docker
-deployments have a proxy. Requests through a published port arrive from the
-Docker bridge (`172.17.0.1`), which is a *private* address — so `true` would
-equally trust every direct visitor on a plain `docker compose up`. Those visitors
-could then set `X-Forwarded-For` themselves to get a fresh rate-limit bucket per
-request, and forge `X-Forwarded-Proto: https` so the login cookie gets `Secure`
-over plain HTTP, which browsers silently drop.
+**Publishing the port straight to the internet with no proxy? Set
+`TRUST_PROXY=false` in `.env`.** Requests through a published port arrive from the
+Docker bridge (`172.17.0.1`), a *private* address, so `true` trusts every direct
+visitor just as it trusts a real proxy. Those visitors can then set
+`X-Forwarded-For` themselves to get a fresh rate-limit bucket per request —
+defeating the sign-in limiter entirely — and forge `X-Forwarded-Proto: https` so
+the login cookie gets `Secure` over plain HTTP, which browsers silently drop and
+which presents as a wrong password.
 
 If the proxy runs on the same host, publish to loopback so nothing else can
 reach the container:
@@ -59,8 +56,10 @@ Everything lives in the `novelhub_data` volume, mounted at `/data`:
 /data
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -81,7 +80,18 @@ docker compose pull
 docker compose up -d
 ```
 
-Schema migrations apply automatically at startup. Back up first — see below.
+New schema is applied at startup. Back up first — see below.
+
+### Health
+
+The image ships a healthcheck that polls `/api/v1/health` every 30 seconds after a
+20-second grace period, so `docker compose ps` reports the container's real state
+rather than just "running":
+
+```bash
+docker compose ps          # STATUS column shows healthy / unhealthy
+curl http://127.0.0.1:3434/api/v1/health
+```
 
 ### Logs
 
@@ -114,7 +124,7 @@ make build
 ./novelhub
 ```
 
-The binary needs `db/schema/` beside it — it applies schema files at startup.
+The binary is self-contained: the schema and the web UI are embedded in it, so there is nothing to copy beside it. It creates the database and applies the schema at startup.
 
 ### systemd
 
@@ -189,15 +199,20 @@ a partial copy is never picked up.
 
 | Protocol | Endpoint | Auth |
 |---|---|---|
-| OPDS 1.2 | `/opds/v1` | HTTP Basic — your NovelHub email and password |
-| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
-| Kobo | `/kobo/v1` | Bearer token |
+| OPDS 1.2 | `/api/opds/v1` | HTTP Basic — your NovelHub email and password |
+| OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/<token>/v1/…` | The token in the path — a Kobo sends no Authorization header |
 
 Works with KOReader, Calibre, Moon+ Reader, Thorium and other OPDS clients.
 
+The Kobo endpoint is not typed by hand: open **Profile → Kobo Sync** and copy the
+generated URL, which embeds a per-user secret token. Treat it like a password —
+anyone holding it has your library.
+
 OPDS is rate-limited on *failed* authentication only, so normal polling is never
 throttled. If catalog links point at the wrong host — behind a path-rewriting
-proxy, for instance — set `SERVER_URL` to the correct absolute base URL.
+proxy, for instance — set the **Server URL** under **Admin → Settings** to the
+correct absolute base URL. It applies immediately, with no restart.
 
 ---
 

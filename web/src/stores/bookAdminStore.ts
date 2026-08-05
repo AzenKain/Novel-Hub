@@ -1,6 +1,6 @@
 import { queryClient } from "@/config/queryClient";
 import { formatFileSize, formatUploadSpeed, getMetaContent, toStringList } from "@/lib/bookDetail";
-import { bookService, libraryService, metadataService, uploadService } from "@/services";
+import { bookService, metadataService, uploadService } from "@/services";
 import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
 import { toast } from 'react-toastify';
 import { create } from "zustand";
@@ -8,9 +8,6 @@ import { create } from "zustand";
 interface BookAdminState {
   search: string;
   selectedLibraryId: string;
-
-  // Libraries
-  libraries: Library[];
 
   // Editor Modal
   editingBook: Book | null;
@@ -87,7 +84,6 @@ interface BookAdminState {
   setLibraryToDelete: (library: Library | null) => void;
 
   // Actions
-  loadLibraries: () => Promise<void>;
   openEditModal: (book: Book) => void;
   handleSearchOnline: () => Promise<void>;
   handleSelectResult: (result: OnlineMetadataResult) => void;
@@ -96,9 +92,6 @@ interface BookAdminState {
   handleLinkUpload: () => Promise<void>;
   handleEditSubmit: (e?: React.SyntheticEvent) => Promise<void>;
   handleUploadBookFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleCreateLibrary: (e: React.SyntheticEvent) => Promise<void>;
-  handleRenameLibrary: (id: string, name: string) => Promise<void>;
-  handleDeleteLibrary: (id: string) => Promise<void>;
   handleUploadFiles: (filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
   archiveBook: (id: string, archived: boolean) => Promise<void>;
@@ -110,16 +103,9 @@ const invalidateBooks = () => {
   void queryClient.invalidateQueries({ queryKey: ["metadata"] });
 };
 
-const invalidateLibraries = () => {
-  void queryClient.invalidateQueries({ queryKey: ["libraries"] });
-  void queryClient.invalidateQueries({ queryKey: ["library"] });
-};
-
 export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   search: "",
   selectedLibraryId: "",
-
-  libraries: [],
 
   editingBook: null,
   formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: "", series: "", series_index: "" },
@@ -167,17 +153,6 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   setSearchResults: (searchResults) => set({ searchResults }),
   setBookToDelete: (bookToDelete) => set({ bookToDelete }),
   setLibraryToDelete: (libraryToDelete) => set({ libraryToDelete }),
-
-  loadLibraries: async () => {
-    try {
-      const res = await libraryService.getLibraries();
-      if (res.status && res.data) {
-        set({ libraries: res.data });
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  },
 
   openEditModal: (book) => {
     let publisher = "";
@@ -369,58 +344,6 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     } finally {
       e.target.value = "";
       set({ uploadingBookFiles: false });
-    }
-  },
-
-  handleCreateLibrary: async (e) => {
-    e.preventDefault();
-    const { newLibraryName } = get();
-    if (!newLibraryName.trim()) return;
-    try {
-      await libraryService.createLibrary({ name: newLibraryName });
-      toast.success("Library created successfully!");
-      set({ newLibraryName: "" });
-      invalidateLibraries();
-      const libRes = await libraryService.getLibraries();
-      set({ libraries: libRes.data || [] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  },
-
-  handleRenameLibrary: async (id, name) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) return;
-    try {
-      const res = await libraryService.updateLibrary(id, { name: trimmedName });
-      if (!res.status) throw new Error(res.message || "Failed to rename library");
-      toast.success("Library renamed successfully!");
-      set((state) => ({
-        libraries: state.libraries.map((library) =>
-          library.id === id ? { ...library, name: trimmedName } : library
-        )
-      }));
-      invalidateLibraries();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rename library");
-    }
-  },
-
-  handleDeleteLibrary: async (id) => {
-    const { selectedLibraryId, uploadLibraryId } = get();
-    try {
-      await libraryService.deleteLibrary(id);
-      toast.success("Library deleted successfully!");
-      invalidateLibraries();
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      const libRes = await libraryService.getLibraries();
-      set({
-        libraries: libRes.data || [],
-        selectedLibraryId: selectedLibraryId === id ? "" : selectedLibraryId,
-        uploadLibraryId: uploadLibraryId === id ? "" : uploadLibraryId
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
     }
   },
 

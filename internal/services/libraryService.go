@@ -76,7 +76,7 @@ func (s *libraryService) GetLibrary(ctx context.Context, id string, claims *resp
 	}
 	resolved := resolveClaims(claims)
 	if !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermLibraryRead, map[string]any{"library_id": lib.ID}) {
-		return nil, fmt.Errorf("library not found")
+		return nil, apperrors.New(apperrors.ErrNotFound, "Library not found")
 	}
 	return lib.ToResponse(), nil
 }

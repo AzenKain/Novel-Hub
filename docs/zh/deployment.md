@@ -24,21 +24,16 @@ compose 文件已为容器设置了 `SERVER_HOST`、`SERVER_PORT` 和 `DATA_DIR`
 
 ### 在反向代理之后
 
-在 `.env` 中添加:
+无需添加任何配置 —— compose 文件已经把 `TRUST_PROXY` 默认设为 `true`,因为几乎所有
+用 compose 的部署都位于代理之后。你只需配置代理转发 `X-Forwarded-For` 和
+`X-Forwarded-Proto` —— 参见[反向代理](reverse-proxy.md)。
 
-```bash
-TRUST_PROXY=true
-```
-
-然后配置代理转发 `X-Forwarded-For` 和 `X-Forwarded-Proto` ——
-参见[反向代理](reverse-proxy.md)。
-
-`TRUST_PROXY` 在 Docker 中并未默认启用,尽管很多 Docker 部署确实带了代理。通过映射
-端口进来的请求来自 Docker 网桥(`172.17.0.1`),那是一个*私有*地址 —— 所以在一个
-普通的 `docker compose up` 环境里,`true` 会同样地信任每一个直连访客。这些访客就能
-自己设置 `X-Forwarded-For`,让每个请求都拿到一个全新的限流计数桶;还能伪造
-`X-Forwarded-Proto: https`,使登录 Cookie 在纯 HTTP 上也带上 `Secure`,而浏览器会
-静默丢弃它。
+**如果没有代理、直接把端口暴露到公网,请在 `.env` 中设置 `TRUST_PROXY=false`。**
+通过映射端口进来的请求来自 Docker 网桥(`172.17.0.1`),那是一个*私有*地址,所以
+`true` 会像信任真正的代理一样信任每一个直连访客。这些访客就能自己设置
+`X-Forwarded-For`,让每个请求都拿到一个全新的限流计数桶 —— 登录限流被完全绕过 ——
+还能伪造 `X-Forwarded-Proto: https`,使登录 Cookie 在纯 HTTP 上也带上 `Secure`,
+而浏览器会静默丢弃它,表现出来就是"密码错误"。
 
 如果代理运行在同一台主机上,就把端口只映射到回环地址,这样别的东西都无法访问容器:
 
@@ -55,8 +50,10 @@ ports:
 /data
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -77,7 +74,17 @@ docker compose pull
 docker compose up -d
 ```
 
-数据库结构迁移会在启动时自动应用。先做备份 —— 见下文。
+新的结构定义会在启动时应用。先做备份 —— 见下文。
+
+### 健康检查
+
+镜像内置了健康检查:在 20 秒的启动宽限期之后,每 30 秒探测一次 `/api/v1/health`,
+因此 `docker compose ps` 报告的是容器的真实状态,而不只是 "running":
+
+```bash
+docker compose ps          # STATUS 列会显示 healthy / unhealthy
+curl http://127.0.0.1:3434/api/v1/health
+```
 
 ### 日志
 
@@ -110,7 +117,7 @@ make build
 ./novelhub
 ```
 
-二进制文件旁边需要有 `db/schema/` 目录 —— 它会在启动时应用这些结构定义文件。
+二进制文件是自包含的：结构定义和 Web 界面都已嵌入其中，无需在旁边放置任何文件。它会在启动时创建数据库并应用结构定义。
 
 ### systemd
 
@@ -181,14 +188,18 @@ Inbox 扫描会在文件停止变化后再等 10 秒才导入,因此绝不会捡
 
 | 协议 | 端点 | 认证 |
 |---|---|---|
-| OPDS 1.2 | `/opds/v1` | HTTP Basic —— 你的 NovelHub 邮箱和密码 |
-| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
-| Kobo | `/kobo/v1` | Bearer 令牌 |
+| OPDS 1.2 | `/api/opds/v1` | HTTP Basic —— 你的 NovelHub 邮箱和密码 |
+| OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/<token>/v1/…` | 路径中的令牌 —— Kobo 不会发送 Authorization 头 |
 
 可配合 KOReader、Calibre、Moon+ Reader、Thorium 以及其他 OPDS 客户端使用。
 
+Kobo 端点不需要手动输入:打开 **个人资料 → Kobo 同步**,复制生成的 URL,其中包含每位
+用户各自的密钥令牌。请把它当作密码看待 —— 拿到它的人就能访问你的整个书库。
+
 OPDS 仅对认证*失败*的请求限流,因此正常轮询永远不会被限流。如果目录链接指向了错误的
-主机 —— 例如位于会重写路径的代理之后 —— 请把 `SERVER_URL` 设为正确的绝对基础 URL。
+主机 —— 例如位于会重写路径的代理之后 —— 请在 **管理 → 设置** 中把 **服务器 URL** 设为
+正确的绝对基础 URL。它会立即生效,无需重启。
 
 ---
 

@@ -42,7 +42,7 @@ func (ctrl *TrackerController) ConnectTracker(c fiber.Ctx) error {
 
 	userID, err := convert.ParseID(claims.UId)
 	if err != nil {
-		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Invalid user ID"))
 	}
 
 	if err := ctrl.trackerService.SaveUserTracker(ctx, userID, dto.Provider, dto.AccessToken); err != nil {
@@ -119,7 +119,7 @@ func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
 
 	userID, err := convert.ParseID(claims.UId)
 	if err != nil {
-		return apperrors.New(apperrors.ErrBadRequest, "Invalid user ID")
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Invalid user ID"))
 	}
 
 	if !ctrl.bookReadable(ctx, dto.BookID, claims) {

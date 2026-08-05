@@ -26,22 +26,18 @@ không truy cập được từ host.
 
 ### Đằng sau reverse proxy
 
-Thêm vào `.env`:
+Không cần thêm gì — file compose đã mặc định `TRUST_PROXY=true`, vì gần như mọi bản
+triển khai bằng compose đều nằm sau proxy. Chỉ cần cấu hình proxy chuyển tiếp
+`X-Forwarded-For` và `X-Forwarded-Proto` — xem [Reverse Proxy](reverse-proxy.md).
 
-```bash
-TRUST_PROXY=true
-```
-
-Sau đó cấu hình proxy để chuyển tiếp `X-Forwarded-For` và `X-Forwarded-Proto` — xem
-[Reverse Proxy](reverse-proxy.md).
-
-`TRUST_PROXY` không được bật mặc định trong Docker, dù nhiều bản triển khai Docker có
-proxy. Request đi qua một port đã publish sẽ đến từ Docker bridge (`172.17.0.1`), là
-một địa chỉ *private* — nên `true` cũng sẽ tin cậy y như vậy mọi khách truy cập trực
-tiếp trên một lệnh `docker compose up` thông thường. Những khách đó khi ấy có thể tự
-đặt `X-Forwarded-For` để có một rate-limit bucket mới cho mỗi request, và giả mạo
-`X-Forwarded-Proto: https` để cookie đăng nhập được gắn `Secure` trên HTTP thuần,
-thứ mà trình duyệt âm thầm loại bỏ.
+**Publish port thẳng ra internet mà không có proxy? Hãy đặt `TRUST_PROXY=false`
+trong `.env`.** Request đi qua một port đã publish sẽ đến từ Docker bridge
+(`172.17.0.1`), là một địa chỉ *private*, nên `true` tin cậy mọi khách truy cập trực
+tiếp đúng như tin cậy một proxy thật. Những khách đó khi ấy có thể tự đặt
+`X-Forwarded-For` để có một rate-limit bucket mới cho mỗi request — vô hiệu hoá hoàn
+toàn limiter đăng nhập — và giả mạo `X-Forwarded-Proto: https` để cookie đăng nhập
+được gắn `Secure` trên HTTP thuần, thứ mà trình duyệt âm thầm loại bỏ và biểu hiện ra
+thành "sai mật khẩu".
 
 Nếu proxy chạy trên cùng máy, hãy publish vào loopback để không thứ gì khác chạm được
 tới container:
@@ -59,8 +55,10 @@ Mọi thứ nằm trong volume `novelhub_data`, mount tại `/data`:
 /data
 ├── novelhub.db      SQLite database
 ├── books/           imported books and covers
+├── calibre/         Calibre libraries available for import
 ├── inbox/           drop files here for automatic import
 ├── uploads/         in-progress chunked uploads
+├── public/          uploaded site logo and favicon
 ├── logs/            rotating application logs
 └── backups/         database backups
 ```
@@ -81,7 +79,17 @@ docker compose pull
 docker compose up -d
 ```
 
-Migration schema được áp dụng tự động lúc khởi động. Hãy backup trước — xem bên dưới.
+Schema mới được áp dụng lúc khởi động. Hãy backup trước — xem bên dưới.
+
+### Sức khoẻ container
+
+Image có sẵn healthcheck, gọi `/api/v1/health` mỗi 30 giây sau 20 giây chờ khởi động,
+nên `docker compose ps` báo đúng trạng thái thật của container chứ không chỉ "running":
+
+```bash
+docker compose ps          # cột STATUS hiện healthy / unhealthy
+curl http://127.0.0.1:3434/api/v1/health
+```
 
 ### Log
 
@@ -114,7 +122,7 @@ make build
 ./novelhub
 ```
 
-Binary cần có `db/schema/` nằm cạnh nó — nó áp dụng các file schema lúc khởi động.
+Binary là file duy nhất: schema và giao diện web đã nằm sẵn bên trong, không cần copy gì kèm theo. Nó tự tạo database và áp schema lúc khởi động.
 
 ### systemd
 
@@ -189,15 +197,20 @@ bao giờ nhặt phải bản copy dở dang.
 
 | Giao thức | Endpoint | Xác thực |
 |---|---|---|
-| OPDS 1.2 | `/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
-| OPDS 2.0 | `/opds/v2/catalog` | HTTP Basic |
-| Kobo | `/kobo/v1` | Bearer token |
+| OPDS 1.2 | `/api/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
+| OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
+| Kobo | `/kobo/<token>/v1/…` | Token nằm trong path — máy Kobo không gửi header Authorization |
 
 Hoạt động với KOReader, Calibre, Moon+ Reader, Thorium và các client OPDS khác.
 
+Endpoint Kobo không tự gõ tay: vào **Trang cá nhân → Kobo Sync** rồi copy URL đã
+sinh, trong đó có token bí mật riêng của từng người. Hãy coi nó như mật khẩu — ai
+giữ nó là truy cập được cả thư viện của bạn.
+
 OPDS chỉ bị rate limit khi xác thực *thất bại*, nên việc poll bình thường không bao
 giờ bị chặn. Nếu link catalog trỏ sai host — chẳng hạn khi nằm sau proxy có rewrite
-path — hãy đặt `SERVER_URL` thành base URL tuyệt đối đúng.
+path — hãy đặt **URL máy chủ** trong **Admin → Cài đặt** thành base URL tuyệt đối
+đúng. Nó có hiệu lực ngay, không cần restart.
 
 ---
 

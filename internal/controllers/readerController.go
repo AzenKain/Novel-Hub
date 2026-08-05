@@ -54,7 +54,10 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	chapterID := decodeRouteParam(c.Params("chapterId"))
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -75,7 +78,10 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 
 	bookID := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	file, err := h.bookService.GetBookFile(ctx, bookID, c.Query("file_id"))
@@ -101,7 +107,10 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	bookID := c.Params("id")
 	assetPath := decodeRouteParam(c.Params("*"))
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -135,7 +144,10 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 
 	bookID := c.Params("id")
 	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil || !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
@@ -160,7 +172,8 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 	if err == nil && file != nil {
 		f, err := file.Open()
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Failed to open uploaded file"})
+			// The client's part parsed fine; failing to open the spooled copy is our side.
+			return apperrors.HandleError(c, apperrors.New(apperrors.ErrInternalError, "Failed to open uploaded file"))
 		}
 		defer f.Close()
 		limit := h.settings.Limits().CoverBytes
