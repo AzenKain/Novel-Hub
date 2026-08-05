@@ -1,5 +1,9 @@
 # NovelHub
 
+<p align="center">
+  <img src="docs/assets/banner.png" alt="NovelHub Banner" width="100%" />
+</p>
+
 Self-hosted, local-first digital book library manager. Organize, read, and manage your entire digital book collection — EPUB, MOBI, PDF, DOCX, FB2, and more — from a single, high-performance web interface.
 
 **Docs:** [English](docs/en/configuration.md) · [Tiếng Việt](docs/vi/configuration.md) · [日本語](docs/ja/configuration.md) · [한국어](docs/ko/configuration.md) · [简体中文](docs/zh/configuration.md)
