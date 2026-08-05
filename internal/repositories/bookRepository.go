@@ -123,6 +123,6 @@ func (r *bookDBRepository) WithTx(tx *sql.Tx) BookDBRepository {
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
 		inTx:    true,
-		sfg:     r.sfg,
+		sfg:     &singleflight.Group{},
 	}
 }

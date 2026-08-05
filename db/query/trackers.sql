@@ -24,19 +24,19 @@ DELETE FROM user_trackers
 WHERE user_id = ? AND provider = ?;
 
 -- name: GetBookTrackerMapping :one
-SELECT id, book_id, provider, external_series_id, created_at
+SELECT id, user_id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
-WHERE book_id = ? AND provider = ?
+WHERE user_id = ? AND book_id = ? AND provider = ?
 LIMIT 1;
 
 -- name: GetBookTrackerMappingsByIDs :many
-SELECT id, book_id, provider, external_series_id, created_at
+SELECT id, user_id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
 WHERE id IN (sqlc.slice('ids'));
 
 -- name: UpsertBookTrackerMapping :one
-INSERT INTO book_tracker_mappings (id, book_id, provider, external_series_id)
-VALUES (?, ?, ?, ?)
-ON CONFLICT(book_id, provider) DO UPDATE SET
+INSERT INTO book_tracker_mappings (id, user_id, book_id, provider, external_series_id)
+VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id, book_id, provider) DO UPDATE SET
     external_series_id = excluded.external_series_id
-RETURNING id, book_id, provider, external_series_id, created_at;
+RETURNING id, user_id, book_id, provider, external_series_id, created_at;

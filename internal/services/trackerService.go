@@ -23,9 +23,9 @@ type TrackerService interface {
 	SyncAniListProgress(ctx context.Context, userID string, mediaID string, progress int) error
 	SyncMyAnimeListProgress(ctx context.Context, userID string, mangaID string, chaptersRead int) error
 	SearchAniListMedia(ctx context.Context, title string) ([]response.TrackerSearchResultResponse, error)
-	GetOrMapBookTrackerID(ctx context.Context, bookID string, title string, provider string) (string, error)
+	GetOrMapBookTrackerID(ctx context.Context, userID string, bookID string, title string, provider string) (string, error)
 	SaveUserTracker(ctx context.Context, userID string, provider string, accessToken string) error
-	SaveBookMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) error
+	SaveBookMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) error
 }
 
 type trackerService struct {
@@ -210,8 +210,10 @@ func (s *trackerService) doAniListRequest(ctx context.Context, payload map[strin
 	return jsonx.Unmarshal(respBody, out)
 }
 
-func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, bookID string, title string, provider string) (string, error) {
-	mapping, err := s.repo.GetBookTrackerMapping(ctx, bookID, provider)
+// The mapping is scoped to userID: the sync that follows writes to that user's own tracker
+// account, so which external series a book points at is per reader, not per instance.
+func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, userID string, bookID string, title string, provider string) (string, error) {
+	mapping, err := s.repo.GetBookTrackerMapping(ctx, userID, bookID, provider)
 	if err == nil && mapping != nil && mapping.ExternalSeriesID != "" {
 		return mapping.ExternalSeriesID, nil
 	}
@@ -223,12 +225,12 @@ func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, bookID strin
 		}
 		if len(results) > 0 {
 			externalID := results[0].ExternalSeriesID
-			_, _ = s.repo.UpsertBookTrackerMapping(ctx, bookID, provider, externalID)
+			_, _ = s.repo.UpsertBookTrackerMapping(ctx, userID, bookID, provider, externalID)
 			return externalID, nil
 		}
 	}
 
-	return "", fmt.Errorf("tracker mapping for book ID %s not found", bookID)
+	return "", apperrors.New(apperrors.ErrNotFound, "No tracker entry found for this book")
 }
 
 func (s *trackerService) SyncAniListProgress(ctx context.Context, userID string, mediaID string, progress int) error {
@@ -307,8 +309,8 @@ func (s *trackerService) SaveUserTracker(ctx context.Context, userID string, pro
 	return nil
 }
 
-func (s *trackerService) SaveBookMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) error {
-	_, err := s.repo.UpsertBookTrackerMapping(ctx, bookID, provider, externalSeriesID)
+func (s *trackerService) SaveBookMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) error {
+	_, err := s.repo.UpsertBookTrackerMapping(ctx, userID, bookID, provider, externalSeriesID)
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("failed to save book tracker mapping: %v", err))
 	}

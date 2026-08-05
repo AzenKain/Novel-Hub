@@ -59,6 +59,7 @@ func (e *UserTrackerEntity) ToResponse() *response.UserTrackerResponse {
 
 type BookTrackerMappingEntity struct {
 	ID               string    `json:"id"`
+	UserID           string    `json:"user_id"`
 	BookID           string    `json:"book_id"`
 	Provider         string    `json:"provider"`
 	ExternalSeriesID string    `json:"external_series_id"`
@@ -67,6 +68,7 @@ type BookTrackerMappingEntity struct {
 
 func (e *BookTrackerMappingEntity) FromSqlc(res sqlc.BookTrackerMapping) *BookTrackerMappingEntity {
 	e.ID = res.ID
+	e.UserID = res.UserID
 	e.BookID = res.BookID
 	e.Provider = res.Provider
 	e.ExternalSeriesID = res.ExternalSeriesID

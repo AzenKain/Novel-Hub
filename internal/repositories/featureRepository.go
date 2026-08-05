@@ -76,6 +76,11 @@ func NewFeatureRepository(db *sql.DB, c cache.Cache) FeatureRepository {
 	}
 }
 
+// The transactional copy gets its own singleflight group and writes nothing to the cache
+// (inTx guards every Set). Sharing the parent's group let a plain reader join a call already
+// in flight inside the transaction and receive a row that was not committed yet — which then
+// vanished on rollback while the cache kept serving it. Both halves are needed: gating the
+// writes alone still leaks through the shared group, and vice versa.
 func (r *featureRepository) WithTx(tx *sql.Tx) FeatureRepository {
 	if tx == nil {
 		return r
@@ -85,7 +90,7 @@ func (r *featureRepository) WithTx(tx *sql.Tx) FeatureRepository {
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
 		inTx:    true,
-		sfg:     r.sfg,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -104,7 +109,7 @@ func (r *featureRepository) GetLibraryStats(ctx context.Context) (*models.Librar
 			return nil, err
 		}
 		result := (&models.LibraryStatsEntity{}).FromSqlc(stats)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
 		}
 		return result, nil
@@ -125,7 +130,7 @@ func (r *featureRepository) CreateCollection(ctx context.Context, id, name strin
 		return nil, err
 	}
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyCollectionOwnedPattern)
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
@@ -143,7 +148,7 @@ func (r *featureRepository) UpdateCollection(ctx context.Context, id, name strin
 		return nil, err
 	}
 	result := (&models.CollectionEntity{}).FromSqlc(collection)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Del(ctx, cache.BuildKey("collection", "user", userID))
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyCollectionOwnedPattern)
 		_ = r.c.Set(ctx, cache.BuildKey("collection", "id", result.ID), result, constants.NormalCacheDuration)
@@ -184,7 +189,7 @@ func (r *featureRepository) CollectionOwnedByUser(ctx context.Context, collectio
 		if err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, owned, constants.NormalCacheDuration)
 		}
 		return owned, nil
@@ -226,7 +231,7 @@ func (r *featureRepository) GetUserCollections(ctx context.Context, userID strin
 			return nil, err
 		}
 
-		if key != "" && r.c != nil {
+		if key != "" && r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 		}
 		return ids, nil
@@ -262,7 +267,7 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 		}
 
 		if len(idRows) == 0 {
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 			}
 			return []*models.ReadingHistoryEntity{}, nil
@@ -280,7 +285,7 @@ func (r *featureRepository) GetRecentReadingHistory(ctx context.Context, userID 
 		}
 		result := (&models.ReadingHistoryEntities{}).FromSqlc(rows)
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, idRows, constants.ListCacheDuration)
 			r.cacheReadingHistoryEntities(ctx, userID, result)
 		}
@@ -352,7 +357,7 @@ func (r *featureRepository) GetReadingProgress(ctx context.Context, userID strin
 			return nil, err
 		}
 		result := (&models.ReadingProgressEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -438,7 +443,7 @@ func (r *featureRepository) GetBookReadStats(ctx context.Context, bookID string)
 			return nil, err
 		}
 		result := (&models.BookReadStatsEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -481,7 +486,7 @@ func (r *featureRepository) GetBookDownloadStats(ctx context.Context, bookID str
 			return nil, err
 		}
 		result := (&models.BookDownloadStatsEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -510,7 +515,7 @@ func (r *featureRepository) GetBookmark(ctx context.Context, userID string, book
 			return nil, err
 		}
 		result := (&models.BookmarkEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -544,7 +549,7 @@ func (r *featureRepository) SetBookmark(ctx context.Context, userID string, book
 		return nil, err
 	}
 	result := (&models.BookmarkEntity{}).FromSqlc(row)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("bookmark", "user", userID, "ids")+"*")
 	}
@@ -583,7 +588,7 @@ func (r *featureRepository) GetBookmarkedBooks(ctx context.Context, userID strin
 		for i, row := range rows {
 			result[i] = BookmarkedBookPage{BookID: row.BookID, CreatedAt: row.CreatedAt.Time}
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
 		}
 		return result, nil
@@ -661,7 +666,7 @@ func (r *featureRepository) GetBookReview(ctx context.Context, userID string, bo
 			return nil, err
 		}
 		result := (&models.BookReviewEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -693,7 +698,7 @@ func (r *featureRepository) GetBookSocialStats(ctx context.Context, bookID strin
 			return nil, err
 		}
 		result := (&models.BookSocialStatsEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -792,7 +797,7 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 		}
 
 		if len(keysRows) == 0 {
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 			}
 			return []*models.BookReviewEntity{}, nil
@@ -811,7 +816,7 @@ func (r *featureRepository) ListBookReviews(ctx context.Context, bookID string, 
 
 		result := (&models.BookReviewEntities{}).FromSqlc(rows)
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, keysRows, constants.ListCacheDuration)
 			for _, entity := range result {
 				_ = r.c.Set(ctx, cache.BuildKey("review", "user", entity.UserID, "book", entity.BookID), entity, constants.NormalCacheDuration)
@@ -880,7 +885,7 @@ func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset in
 
 		reviews := (&models.BookReviewEntities{}).FromListAllReviewsSqlc(rows)
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, reviews, constants.ListCacheDuration)
 		}
 		return reviews, nil
@@ -909,7 +914,7 @@ func (r *featureRepository) GetBookRatingSummary(ctx context.Context, bookID str
 			return nil, err
 		}
 		result := (&models.BookRatingSummaryEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -1030,7 +1035,7 @@ func (r *featureRepository) GetBookCollectionIDs(ctx context.Context, userID str
 		if err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 		}
 		return ids, nil
@@ -1105,7 +1110,7 @@ func (r *featureRepository) GetReadingGoal(ctx context.Context, userID string) (
 			return nil, err
 		}
 		result := (&models.ReadingGoalEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -1126,7 +1131,7 @@ func (r *featureRepository) UpsertReadingGoal(ctx context.Context, userID string
 		return nil, err
 	}
 	result := (&models.ReadingGoalEntity{}).FromSqlc(row)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, cache.BuildKey("reading_goal", "user", userID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
@@ -1155,7 +1160,7 @@ func (r *featureRepository) ListSmartCollections(ctx context.Context, userID str
 		}
 		entities := models.SmartCollectionEntities{}
 		result := entities.FromSqlc(rows)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
 		}
 		return result, nil

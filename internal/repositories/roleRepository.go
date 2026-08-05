@@ -49,7 +49,7 @@ func NewRoleRepository(db sqlc.DBTX, c cache.Cache) RoleRepository {
 }
 
 func (r *roleRepository) WithTx(tx *sql.Tx) RoleRepository {
-	return &roleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: r.sfg}
+	return &roleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: &singleflight.Group{}}
 }
 
 func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.RoleEntity, error) {
@@ -151,7 +151,7 @@ func (r *roleRepository) GetByID(ctx context.Context, id string) (*models.RoleEn
 			return nil, err
 		}
 		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 		}
 		return rolePtr, nil
@@ -231,7 +231,7 @@ func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.Rol
 		}
 
 		if len(idRows) == 0 {
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 			}
 			return []*models.RolePermissionEntity{}, nil
@@ -251,7 +251,7 @@ func (r *roleRepository) ListRolePermissions(ctx context.Context) ([]*models.Rol
 			ids[i] = entity.ID
 		}
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 			r.cacheRolePermissionEntities(ctx, out)
 		}
@@ -281,7 +281,7 @@ func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID string) 
 		}
 
 		if len(idRows) == 0 {
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 			}
 			return []*models.RolePermissionEntity{}, nil
@@ -301,7 +301,7 @@ func (r *roleRepository) GetRolePermissions(ctx context.Context, roleID string) 
 			ids[i] = entity.ID
 		}
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 			r.cacheRolePermissionEntities(ctx, out)
 		}

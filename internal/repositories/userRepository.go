@@ -59,7 +59,7 @@ func (r *userRepository) WithTx(tx *sql.Tx) UserRepository {
 		q:    r.q.WithTx(tx),
 		c:    r.c,
 		inTx: true,
-		sfg:  r.sfg,
+		sfg:  &singleflight.Group{},
 	}
 }
 

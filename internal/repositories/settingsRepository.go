@@ -44,7 +44,7 @@ func (r *settingsRepository) WithTx(tx *sql.Tx) SettingsRepository {
 		q:    r.q.WithTx(tx),
 		c:    r.c,
 		inTx: true,
-		sfg:  r.sfg,
+		sfg:  &singleflight.Group{},
 	}
 }
 
@@ -66,7 +66,7 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 		}
 
 		if len(keyRows) == 0 {
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, key, []string{}, constants.ListCacheDuration)
 			}
 			return []*models.AppSettingEntity{}, nil
@@ -85,7 +85,7 @@ func (r *settingsRepository) List(ctx context.Context) ([]*models.AppSettingEnti
 			keys[i] = entity.Key
 		}
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, keys, constants.ListCacheDuration)
 			r.cacheSettingEntities(ctx, out)
 		}
@@ -154,7 +154,7 @@ func (r *settingsRepository) Get(ctx context.Context, key string) (*models.AppSe
 			return nil, err
 		}
 		result := (&models.AppSettingEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, cacheKey, result, constants.NormalCacheDuration)
 		}
 		return result, nil
@@ -189,7 +189,7 @@ func (r *settingsRepository) GetSetupState(ctx context.Context, key string) (str
 		if err != nil {
 			return "", err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, cacheKey, row.Value, constants.NormalCacheDuration)
 		}
 		return row.Value, nil

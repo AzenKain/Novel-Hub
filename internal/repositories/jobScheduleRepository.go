@@ -42,7 +42,7 @@ func (r *jobScheduleRepository) WithTx(tx *sql.Tx) JobScheduleRepository {
 	if tx == nil {
 		return r
 	}
-	return &jobScheduleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: r.sfg}
+	return &jobScheduleRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: &singleflight.Group{}}
 }
 
 func (r *jobScheduleRepository) Get(ctx context.Context, id string) (*models.JobScheduleEntity, error) {
@@ -59,7 +59,7 @@ func (r *jobScheduleRepository) Get(ctx context.Context, id string) (*models.Job
 			return nil, err
 		}
 		entity := (&models.JobScheduleEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
 		}
 		return entity, nil
@@ -159,7 +159,7 @@ func (r *jobScheduleRepository) List(ctx context.Context) ([]*models.JobSchedule
 		if dbIds == nil {
 			dbIds = []string{}
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
 		}
 		return dbIds, nil

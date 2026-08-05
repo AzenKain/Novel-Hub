@@ -42,7 +42,7 @@ func (r *koboRepository) WithTx(tx *sql.Tx) KoboRepository {
 	if tx == nil {
 		return r
 	}
-	return &koboRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: r.sfg}
+	return &koboRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sfg: &singleflight.Group{}}
 }
 
 func (r *koboRepository) UpsertAuthToken(ctx context.Context, token, userID string) (*models.KoboAuthTokenEntity, error) {

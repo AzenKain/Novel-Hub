@@ -51,7 +51,7 @@ func (r *jobRepository) WithTx(tx *sql.Tx) JobRepository {
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
 		inTx:    true,
-		sfg:     r.sfg,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -70,7 +70,7 @@ func (r *jobRepository) GetJob(ctx context.Context, id string) (*models.JobEntit
 			return nil, err
 		}
 		job := (&models.JobEntity{}).FromSqlc(row)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, job, constants.NormalCacheDuration)
 		}
 		return job, nil
@@ -182,7 +182,7 @@ func (r *jobRepository) ListUnfinishedJobs(ctx context.Context, limit, offset in
 		if dbIds == nil {
 			dbIds = []string{}
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
 		}
 		return dbIds, nil
@@ -252,7 +252,7 @@ func (r *jobRepository) ListJobs(ctx context.Context, status, jobType string, li
 			if err != nil {
 				return int64(0), err
 			}
-			if r.c != nil {
+			if r.c != nil && !r.inTx {
 				_ = r.c.Set(ctx, countKey, t, constants.ListCacheDuration)
 			}
 			return t, nil
@@ -292,7 +292,7 @@ func (r *jobRepository) ListJobs(ctx context.Context, status, jobType string, li
 		if dbIds == nil {
 			dbIds = []string{}
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, dbIds, constants.ListCacheDuration)
 		}
 		return dbIds, nil

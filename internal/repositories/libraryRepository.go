@@ -51,7 +51,7 @@ func (r *libraryRepository) WithTx(tx *sql.Tx) LibraryRepository {
 		queries: r.queries.WithTx(tx),
 		c:       r.c,
 		inTx:    true,
-		sfg:     r.sfg,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -88,7 +88,7 @@ func (r *libraryRepository) GetLibrary(ctx context.Context, id string) (*models.
 		}
 		library := (&models.LibraryEntity{}).FromSqlc(res)
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, library, constants.NormalCacheDuration)
 		}
 		return library, nil
@@ -113,7 +113,7 @@ func (r *libraryRepository) ListLibraries(ctx context.Context) ([]*models.Librar
 		if err != nil {
 			return nil, err
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 		}
 		return ids, nil

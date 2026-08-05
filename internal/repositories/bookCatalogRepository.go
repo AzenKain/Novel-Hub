@@ -193,15 +193,30 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		if err != nil {
 			return nil, err
 		}
-		var filtered []*models.BookEntity
+		// Same keyset rule as the SQL path in books.sql: created_at alone is not unique, because
+		// it is CURRENT_TIMESTAMP at second resolution and a bulk upload gives every book in the
+		// batch the same value. Without the id tiebreaker, page 2 kept only rows strictly before
+		// the cursor, so a book sharing the boundary timestamp was skipped entirely — 24 of 25
+		// visible with no error anywhere.
+		filtered := make([]*models.BookEntity, 0, len(books))
 		for _, b := range books {
-			if cursor == nil || b.CreatedAt.Before(*cursor) {
+			if b == nil {
+				continue
+			}
+			if cursor == nil {
+				filtered = append(filtered, b)
+				continue
+			}
+			if b.CreatedAt.Before(*cursor) || (b.CreatedAt.Equal(*cursor) && b.ID < cursorID) {
 				filtered = append(filtered, b)
 			}
 		}
 
 		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+			if !filtered[i].CreatedAt.Equal(filtered[j].CreatedAt) {
+				return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+			}
+			return filtered[i].ID > filtered[j].ID
 		})
 
 		if int64(len(filtered)) > limit {

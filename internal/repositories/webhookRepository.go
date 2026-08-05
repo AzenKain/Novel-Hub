@@ -64,7 +64,7 @@ func (r *webhookRepository) Create(ctx context.Context, entity *models.WebhookEn
 	}
 
 	res := models.WebhookFromSqlc(row)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, cache.BuildKey("webhook", res.ID), res, constants.NormalCacheDuration)
 		_ = r.c.Del(ctx, constants.CacheKeyWebhookAll, constants.CacheKeyWebhookActive)
 	}
@@ -92,7 +92,7 @@ func (r *webhookRepository) GetByID(ctx context.Context, id string) (*models.Web
 	}
 
 	res := v.(*models.WebhookEntity)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, cacheKey, res, constants.NormalCacheDuration)
 	}
 	return res, nil
@@ -116,7 +116,7 @@ func (r *webhookRepository) ListAll(ctx context.Context) ([]*models.WebhookEntit
 		for _, row := range rows {
 			res = append(res, models.WebhookFromSqlc(row))
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, res, constants.ListCacheDuration)
 		}
 		return res, nil
@@ -145,7 +145,7 @@ func (r *webhookRepository) ListActive(ctx context.Context) ([]*models.WebhookEn
 		for _, row := range rows {
 			res = append(res, models.WebhookFromSqlc(row))
 		}
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, res, constants.ListCacheDuration)
 		}
 		return res, nil
@@ -178,7 +178,7 @@ func (r *webhookRepository) Update(ctx context.Context, entity *models.WebhookEn
 	}
 
 	res := models.WebhookFromSqlc(row)
-	if r.c != nil {
+	if r.c != nil && !r.inTx {
 		_ = r.c.Set(ctx, cache.BuildKey("webhook", res.ID), res, constants.NormalCacheDuration)
 		_ = r.c.Del(ctx, constants.CacheKeyWebhookAll, constants.CacheKeyWebhookActive)
 	}

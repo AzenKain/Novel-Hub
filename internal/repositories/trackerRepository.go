@@ -23,9 +23,9 @@ type TrackerRepository interface {
 	DeleteUserTracker(ctx context.Context, userID string, provider string) error
 
 	GetMappingByID(ctx context.Context, id string) (*models.BookTrackerMappingEntity, error)
-	GetBookTrackerMapping(ctx context.Context, bookID string, provider string) (*models.BookTrackerMappingEntity, error)
+	GetBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string) (*models.BookTrackerMappingEntity, error)
 	GetBookTrackerMappingsByIDs(ctx context.Context, ids []string) ([]*models.BookTrackerMappingEntity, error)
-	UpsertBookTrackerMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) (*models.BookTrackerMappingEntity, error)
+	UpsertBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) (*models.BookTrackerMappingEntity, error)
 	WithTx(tx *sql.Tx) TrackerRepository
 }
 
@@ -52,7 +52,7 @@ func (r *trackerRepository) WithTx(tx *sql.Tx) TrackerRepository {
 		q:    r.q.WithTx(tx),
 		c:    r.c,
 		inTx: true,
-		sfg:  r.sfg,
+		sfg:  &singleflight.Group{},
 	}
 }
 
@@ -176,7 +176,7 @@ func (r *trackerRepository) GetMappingByID(ctx context.Context, id string) (*mod
 		}
 
 		entity := (&models.BookTrackerMappingEntity{}).FromSqlc(rows[0])
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
 		}
 		return entity, nil
@@ -259,8 +259,10 @@ func (r *trackerRepository) GetBookTrackerMappingsByIDs(ctx context.Context, ids
 	return ordered, nil
 }
 
-func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, bookID string, provider string) (*models.BookTrackerMappingEntity, error) {
-	key := cache.BuildKey("book_tracker_mapping", "book_provider", bookID, provider)
+func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string) (*models.BookTrackerMappingEntity, error) {
+	// userID belongs in the key as well as the query: a key without it would serve one reader's
+	// mapping to another out of cache even after the SQL was scoped.
+	key := cache.BuildKey("book_tracker_mapping", "user_book_provider", userID, bookID, provider)
 	if r.c != nil && !r.inTx {
 		var entity models.BookTrackerMappingEntity
 		if err := r.c.Get(ctx, key, &entity); err == nil {
@@ -270,6 +272,7 @@ func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, bookID st
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		res, err := r.q.GetBookTrackerMapping(ctx, sqlc.GetBookTrackerMappingParams{
+			UserID:   userID,
 			BookID:   bookID,
 			Provider: provider,
 		})
@@ -278,7 +281,7 @@ func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, bookID st
 		}
 
 		entity := (&models.BookTrackerMappingEntity{}).FromSqlc(res)
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
 			_ = r.c.Set(ctx, cache.BuildKey("book_tracker_mapping", "id", entity.ID), entity, constants.NormalCacheDuration)
 		}
@@ -290,10 +293,11 @@ func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, bookID st
 	return v.(*models.BookTrackerMappingEntity), nil
 }
 
-func (r *trackerRepository) UpsertBookTrackerMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) (*models.BookTrackerMappingEntity, error) {
+func (r *trackerRepository) UpsertBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) (*models.BookTrackerMappingEntity, error) {
 	// Consumed only when the upsert inserts; the conflict branch keeps the existing id.
 	res, err := r.q.UpsertBookTrackerMapping(ctx, sqlc.UpsertBookTrackerMappingParams{
 		ID:               uuid.Must(uuid.NewV7()).String(),
+		UserID:           userID,
 		BookID:           bookID,
 		Provider:         provider,
 		ExternalSeriesID: externalSeriesID,
@@ -302,8 +306,8 @@ func (r *trackerRepository) UpsertBookTrackerMapping(ctx context.Context, bookID
 		return nil, err
 	}
 	entity := (&models.BookTrackerMappingEntity{}).FromSqlc(res)
-	if r.c != nil {
-		key := cache.BuildKey("book_tracker_mapping", "book_provider", bookID, provider)
+	if r.c != nil && !r.inTx {
+		key := cache.BuildKey("book_tracker_mapping", "user_book_provider", userID, bookID, provider)
 		idKey := cache.BuildKey("book_tracker_mapping", "id", entity.ID)
 		_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
 		_ = r.c.Set(ctx, idKey, entity, constants.NormalCacheDuration)

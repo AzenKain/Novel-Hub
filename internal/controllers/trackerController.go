@@ -65,12 +65,15 @@ func (ctrl *TrackerController) MapBookTracker(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	claims, _ := getUserClaims(c)
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
 	if !ctrl.bookReadable(ctx, dto.BookID, claims) {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrForbidden, "Book is not accessible"))
 	}
 
-	if err := ctrl.trackerService.SaveBookMapping(ctx, dto.BookID, dto.Provider, dto.ExternalSeriesID); err != nil {
+	if err := ctrl.trackerService.SaveBookMapping(ctx, claims.UId, dto.BookID, dto.Provider, dto.ExternalSeriesID); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
@@ -140,7 +143,7 @@ func (ctrl *TrackerController) SyncProgress(c fiber.Ctx) error {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Progress must be 1 or greater"))
 	}
 
-	mediaID, err := ctrl.trackerService.GetOrMapBookTrackerID(ctx, dto.BookID, dto.Title, "anilist")
+	mediaID, err := ctrl.trackerService.GetOrMapBookTrackerID(ctx, userID, dto.BookID, dto.Title, "anilist")
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

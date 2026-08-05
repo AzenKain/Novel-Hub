@@ -27,22 +27,24 @@ func (q *Queries) DeleteUserTracker(ctx context.Context, arg DeleteUserTrackerPa
 }
 
 const getBookTrackerMapping = `-- name: GetBookTrackerMapping :one
-SELECT id, book_id, provider, external_series_id, created_at
+SELECT id, user_id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
-WHERE book_id = ? AND provider = ?
+WHERE user_id = ? AND book_id = ? AND provider = ?
 LIMIT 1
 `
 
 type GetBookTrackerMappingParams struct {
+	UserID   string `json:"user_id"`
 	BookID   string `json:"book_id"`
 	Provider string `json:"provider"`
 }
 
 func (q *Queries) GetBookTrackerMapping(ctx context.Context, arg GetBookTrackerMappingParams) (BookTrackerMapping, error) {
-	row := q.queryRow(ctx, q.getBookTrackerMappingStmt, getBookTrackerMapping, arg.BookID, arg.Provider)
+	row := q.queryRow(ctx, q.getBookTrackerMappingStmt, getBookTrackerMapping, arg.UserID, arg.BookID, arg.Provider)
 	var i BookTrackerMapping
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.BookID,
 		&i.Provider,
 		&i.ExternalSeriesID,
@@ -52,7 +54,7 @@ func (q *Queries) GetBookTrackerMapping(ctx context.Context, arg GetBookTrackerM
 }
 
 const getBookTrackerMappingsByIDs = `-- name: GetBookTrackerMappingsByIDs :many
-SELECT id, book_id, provider, external_series_id, created_at
+SELECT id, user_id, book_id, provider, external_series_id, created_at
 FROM book_tracker_mappings
 WHERE id IN (/*SLICE:ids*/?)
 `
@@ -78,6 +80,7 @@ func (q *Queries) GetBookTrackerMappingsByIDs(ctx context.Context, ids []string)
 		var i BookTrackerMapping
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
 			&i.BookID,
 			&i.Provider,
 			&i.ExternalSeriesID,
@@ -173,15 +176,16 @@ func (q *Queries) GetUserTrackersByIDs(ctx context.Context, ids []string) ([]Use
 }
 
 const upsertBookTrackerMapping = `-- name: UpsertBookTrackerMapping :one
-INSERT INTO book_tracker_mappings (id, book_id, provider, external_series_id)
-VALUES (?, ?, ?, ?)
-ON CONFLICT(book_id, provider) DO UPDATE SET
+INSERT INTO book_tracker_mappings (id, user_id, book_id, provider, external_series_id)
+VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id, book_id, provider) DO UPDATE SET
     external_series_id = excluded.external_series_id
-RETURNING id, book_id, provider, external_series_id, created_at
+RETURNING id, user_id, book_id, provider, external_series_id, created_at
 `
 
 type UpsertBookTrackerMappingParams struct {
 	ID               string `json:"id"`
+	UserID           string `json:"user_id"`
 	BookID           string `json:"book_id"`
 	Provider         string `json:"provider"`
 	ExternalSeriesID string `json:"external_series_id"`
@@ -190,6 +194,7 @@ type UpsertBookTrackerMappingParams struct {
 func (q *Queries) UpsertBookTrackerMapping(ctx context.Context, arg UpsertBookTrackerMappingParams) (BookTrackerMapping, error) {
 	row := q.queryRow(ctx, q.upsertBookTrackerMappingStmt, upsertBookTrackerMapping,
 		arg.ID,
+		arg.UserID,
 		arg.BookID,
 		arg.Provider,
 		arg.ExternalSeriesID,
@@ -197,6 +202,7 @@ func (q *Queries) UpsertBookTrackerMapping(ctx context.Context, arg UpsertBookTr
 	var i BookTrackerMapping
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.BookID,
 		&i.Provider,
 		&i.ExternalSeriesID,

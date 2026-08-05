@@ -130,6 +130,7 @@ type BookTag struct {
 
 type BookTrackerMapping struct {
 	ID               string    `json:"id"`
+	UserID           string    `json:"user_id"`
 	BookID           string    `json:"book_id"`
 	Provider         string    `json:"provider"`
 	ExternalSeriesID string    `json:"external_series_id"`

@@ -48,7 +48,7 @@ func (r *highlightRepository) WithTx(tx *sql.Tx) HighlightRepository {
 		db:      r.db,
 		c:       r.c,
 		inTx:    true,
-		sfg:     r.sfg,
+		sfg:     &singleflight.Group{},
 	}
 }
 
@@ -95,7 +95,7 @@ func (r *highlightRepository) GetByChapter(ctx context.Context, userID string, c
 			ids[i] = h.ID
 		}
 
-		if r.c != nil {
+		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 			missingToCache := make(map[string]any)
 			for _, h := range result {

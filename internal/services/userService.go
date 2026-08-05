@@ -633,7 +633,10 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	}
 
 	var nextCursor string
-	if len(users) > 0 {
+	// Only a full page can have anything after it. Emitting a cursor for a short page — as this
+	// did for every non-empty result — renders one more page in the admin list that is always
+	// empty. Every sibling list guards the same way (auditService, metadataService, opdsService).
+	if len(users) > 0 && len(users) == dto.Limit {
 		lastUser := users[len(users)-1]
 		nextCursor = convert.EncodeCursor(lastUser.CreatedAt, lastUser.ID)
 	}
