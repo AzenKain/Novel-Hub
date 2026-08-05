@@ -422,7 +422,7 @@ export function Roles() {
                           {
                             id: "reading",
                             name: "📖 Book Reading & Discovery",
-                            keys: ["book.read", "book.tts", "book.search.deep", "book.download", "book.send_email", "book.share"]
+                            keys: ["book.read", "book.tts", "book.search.deep", "book.download", "book.offline", "book.send_email", "book.share"]
                           },
                           {
                             id: "interactions",

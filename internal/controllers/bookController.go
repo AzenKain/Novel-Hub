@@ -21,10 +21,11 @@ type BookController struct {
 	featureService services.FeatureService
 	settings       services.SettingsService
 	permissions    services.PermissionCache
+	audit          services.AuditService
 }
 
-func NewBookController(bookService services.BookService, featureService services.FeatureService, settings services.SettingsService, permissions services.PermissionCache) *BookController {
-	return &BookController{bookService: bookService, featureService: featureService, settings: settings, permissions: permissions}
+func NewBookController(bookService services.BookService, featureService services.FeatureService, settings services.SettingsService, permissions services.PermissionCache, audit services.AuditService) *BookController {
+	return &BookController{bookService: bookService, featureService: featureService, settings: settings, permissions: permissions, audit: audit}
 }
 
 func (h *BookController) ListBooks(c fiber.Ctx) error {
@@ -103,6 +104,17 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: book.ToResponse()})
+}
+
+func (h *BookController) GetBookSeries(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	res, err := h.bookService.GetBookSeriesContext(ctx, c.Params("id"), getOptionalClaims(c))
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *BookController) DownloadBook(c fiber.Ctx) error {

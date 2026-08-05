@@ -69,7 +69,7 @@ func RequireAnyPermission(permissionCache services.PermissionCache, permissions 
 		if !ok || claims == nil {
 			return apperrors.HandleError(c, errUnauthorized)
 		}
-		ctx := services.WithPermissionContext(context.Background(), services.PermissionContext{RoleIDs: claims.RoleIDs, Roles: claims.Roles})
+		ctx := services.WithPermissionContext(context.Background(), claims)
 		for _, permission := range permissions {
 			if permissionCache.Can(ctx, claims.UId, permission, nil) {
 				return c.Next()
@@ -107,10 +107,7 @@ func RequirePermission(permissionCache services.PermissionCache, permission stri
 			}
 		}
 
-		ctx := services.WithPermissionContext(context.Background(), services.PermissionContext{
-			RoleIDs: claims.RoleIDs,
-			Roles:   claims.Roles,
-		})
+		ctx := services.WithPermissionContext(context.Background(), claims)
 		if !permissionCache.Can(ctx, claims.UId, permission, attrs) {
 			return apperrors.HandleError(c, errForbidden)
 		}

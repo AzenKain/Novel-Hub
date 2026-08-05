@@ -15,6 +15,18 @@ type AppSetting struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
+type AuditLog struct {
+	ID          string         `json:"id"`
+	ActorID     sql.NullString `json:"actor_id"`
+	ActorEmail  string         `json:"actor_email"`
+	Action      string         `json:"action"`
+	TargetType  string         `json:"target_type"`
+	TargetID    sql.NullString `json:"target_id"`
+	TargetLabel string         `json:"target_label"`
+	Ip          string         `json:"ip"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+}
+
 type Author struct {
 	ID        string         `json:"id"`
 	Name      string         `json:"name"`
@@ -368,6 +380,19 @@ type User struct {
 type UserRole struct {
 	UserID string `json:"user_id"`
 	RoleID string `json:"role_id"`
+}
+
+type UserTotp struct {
+	UserID      string       `json:"user_id"`
+	Secret      string       `json:"secret"`
+	ConfirmedAt sql.NullTime `json:"confirmed_at"`
+	CreatedAt   time.Time    `json:"created_at"`
+}
+
+type UserTotpRecoveryCode struct {
+	UserID   string       `json:"user_id"`
+	CodeHash string       `json:"code_hash"`
+	UsedAt   sql.NullTime `json:"used_at"`
 }
 
 type UserTracker struct {

@@ -6,6 +6,7 @@ import {
   useDeleteUserMutation,
   useResetUserPasswordMutation,
   useRolesQuery,
+  useSendUserEmailMutation,
   useUpdateUserMutation,
   useUsersQuery,
 } from "@/hooks";
@@ -18,7 +19,7 @@ import {
   Search,
   UserPlus
 } from "lucide-react";
-import { SyntheticEvent, useMemo } from "react";
+import { SyntheticEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from 'react-toastify';
 import { useShallow } from "zustand/react/shallow";
@@ -73,6 +74,7 @@ export function Users() {
   const resetPasswordMutation = useResetUserPasswordMutation();
   const changeRolesMutation = useChangeUserRolesMutation();
   const deleteUserMutation = useDeleteUserMutation();
+  const sendEmailMutation = useSendUserEmailMutation();
 
   const users = usersData?.users || [];
   const loading = usersLoading || rolesLoading;
@@ -81,9 +83,11 @@ export function Users() {
     updateUserMutation.isPending ||
     resetPasswordMutation.isPending ||
     changeRolesMutation.isPending ||
-    deleteUserMutation.isPending;
+    deleteUserMutation.isPending ||
+    sendEmailMutation.isPending;
 
   const activeUsers = useMemo(() => users.filter((item) => !item.is_deleted).length, [users]);
+  const [emailForm, setEmailForm] = useState({ subject: "", body: "" });
 
   function openCreate() {
     setForm({ ...emptyCreate, role_ids: roles.filter((role) => role.auto_assign).map((role) => role.id) });
@@ -116,6 +120,29 @@ export function Users() {
     setRoleIDs(target.roles.map((role) => role.id));
     setModal("roles");
     setError("");
+  }
+
+  function openEmail(target: User) {
+    setSelected(target);
+    setEmailForm({ subject: "", body: "" });
+    setModal("email");
+    setError("");
+  }
+
+  function handleSendEmail(event: SyntheticEvent) {
+    event.preventDefault();
+    if (!selected) return;
+    setError("");
+    sendEmailMutation.mutate(
+      { id: selected.id, data: emailForm },
+      {
+        onSuccess: () => {
+          toast.success(t('admin.email_sent', 'Email sent'));
+          setModal(null);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      }
+    );
   }
 
   function handleCreate(event: SyntheticEvent) {
@@ -276,6 +303,7 @@ export function Users() {
           onEdit={openEdit}
           onPassword={openPassword}
           onRoles={openRoles}
+          onEmail={openEmail}
           onDelete={setUserToDelete}
           onRestore={handleRestore}
           currentUserId={currentUser?.id}
@@ -541,6 +569,69 @@ export function Users() {
                 </button>
                 <button type="submit" disabled={saving} className="btn btn-primary">
                   {saving ? <span className="loading loading-spinner"></span> : t('common.save', 'Save Roles')}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setModal(null)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {modal === "email" && selected && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-2">{t('admin.send_email_title', 'Send Email')}</h3>
+            <p className="text-xs text-base-content/60 mb-4">
+              {t('admin.send_email_desc', 'This message goes to the address on file:')}{" "}
+              <span className="font-bold text-base-content">{selected.email}</span>
+            </p>
+            {error && (
+              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            <form onSubmit={handleSendEmail} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('admin.email_subject', 'Subject')}</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={200}
+                  value={emailForm.subject}
+                  onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">{t('admin.email_body', 'Message')}</span>
+                </label>
+                <textarea
+                  required
+                  rows={6}
+                  maxLength={10000}
+                  value={emailForm.body}
+                  onChange={(e) => setEmailForm({ ...emailForm, body: e.target.value })}
+                  className="textarea textarea-bordered w-full focus:textarea-primary"
+                />
+              </div>
+
+              <div className="modal-action">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !emailForm.subject.trim() || !emailForm.body.trim()}
+                  className="btn btn-primary"
+                >
+                  {saving ? <span className="loading loading-spinner"></span> : t('admin.send_email', 'Send')}
                 </button>
               </div>
             </form>

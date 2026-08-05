@@ -1,11 +1,24 @@
 package controllers
 
 import (
+	"context"
+	"time"
+
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/services"
 	"novelhub/pkg/convert"
 
 	"github.com/gofiber/fiber/v3"
 )
+
+func auditContext(c fiber.Ctx, timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	actor := services.AuditActor{IP: c.IP()}
+	if userID, ok := getUserIdFromLocals(c); ok {
+		actor.UserID = userID
+	}
+	return services.WithAuditActor(ctx, actor), cancel
+}
 
 func getOptionalClaims(c fiber.Ctx) *response.JWTClaims {
 	claims, ok := c.Locals("user_claims").(*response.JWTClaims)

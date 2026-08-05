@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"errors"
 	"slices"
 
 	jwtware "github.com/gofiber/contrib/v3/jwt"
@@ -41,24 +42,28 @@ func GuestClaims() *response.JWTClaims {
 	}
 }
 
+func continueAsGuest(c fiber.Ctx) error {
+	claims := GuestClaims()
+	c.Locals("user_claims", claims)
+	c.Locals("uid", claims.UId)
+	return c.Next()
+}
+
+// No token is a guest; a token that fails to parse is a failed login and must 401, or the
+// frontend refresh interceptor never fires.
 func OptionalJwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	jwtSecret, err := config.GetConfig("JWT_SECRET")
 	if err != nil {
-		return func(c fiber.Ctx) error {
-			claims := GuestClaims()
-			c.Locals("user_claims", claims)
-			c.Locals("uid", claims.UId)
-			return c.Next()
-		}
+		return continueAsGuest
 	}
 
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{JWTAlg: "HS256", Key: []byte(jwtSecret)},
 		ErrorHandler: func(c fiber.Ctx, err error) error {
-			claims := GuestClaims()
-			c.Locals("user_claims", claims)
-			c.Locals("uid", claims.UId)
-			return c.Next()
+			if errors.Is(err, extractors.ErrNotFound) {
+				return continueAsGuest(c)
+			}
+			return jwtError(c, err)
 		},
 		SuccessHandler: jwtSuccess(userRepo, true, "access"),
 		Extractor: extractors.Chain(
@@ -91,17 +96,7 @@ func JwtRefresh(userRepo repositories.UserRepository) fiber.Handler {
 
 func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedType string) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		fallbackToGuest := func() error {
-			claims := GuestClaims()
-			c.Locals("user_claims", claims)
-			c.Locals("uid", claims.UId)
-			return c.Next()
-		}
-
 		unauthorized := func() error {
-			if optional {
-				return fallbackToGuest()
-			}
 			return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Invalid or missing token"})
 		}
 
@@ -119,7 +114,7 @@ func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedTyp
 		}
 		if slices.Contains(claims.Roles, constants.RoleTypeBanned) {
 			if optional {
-				return fallbackToGuest()
+				return continueAsGuest(c)
 			}
 			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "User account is banned"})
 		}
@@ -134,9 +129,6 @@ func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedTyp
 			return unauthorized()
 		}
 		if tokenVersion != claims.TokenVersion {
-			if optional {
-				return fallbackToGuest()
-			}
 			return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Token has been invalidated"})
 		}
 

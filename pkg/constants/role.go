@@ -20,6 +20,7 @@ const (
 	PermBookTTS        = "book.tts"
 	PermBookSearchDeep = "book.search.deep"
 	PermBookDownload   = "book.download"
+	PermBookOffline    = "book.offline"
 	PermBookSendEmail  = "book.send_email"
 	PermBookShare      = "book.share"
 
@@ -89,6 +90,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermBookTTS,
 			PermBookSearchDeep,
 			PermBookDownload,
+			PermBookOffline,
 			PermBookSendEmail,
 			PermBookShare,
 			PermBookBookmark,
@@ -108,6 +110,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermBookTTS,
 			PermBookSearchDeep,
 			PermBookDownload,
+			PermBookOffline,
 			PermBookSendEmail,
 			PermBookShare,
 			PermBookBookmark,
@@ -135,7 +138,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 		}
 	case RoleTypeAdmin:
 		return []string{
-			PermBookRead, PermBookTTS, PermBookSearchDeep, PermBookDownload, PermBookSendEmail, PermBookShare,
+			PermBookRead, PermBookTTS, PermBookSearchDeep, PermBookDownload, PermBookOffline, PermBookSendEmail, PermBookShare,
 			PermBookBookmark, PermBookCollection, PermBookHighlight, PermBookReviewCreate, PermBookReviewDelete, PermUserStatsRead, PermTrackerSync,
 			PermBookUpload, PermBookEdit, PermBookMetadataFetch, PermBookDelete, PermBookDuplicateManage, PermBookArchive, PermBookBulkManage,
 			PermLibraryRead, PermLibraryManage,

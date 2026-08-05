@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -94,7 +93,7 @@ func (s *jobScheduleService) Update(ctx context.Context, id string, dto *request
 		NextRunAt: time.Now().Add(time.Duration(dto.IntervalMinutes) * time.Minute), ID: id,
 	})
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "job schedule not found")
 		}
 		return nil, err
@@ -112,7 +111,7 @@ func boolToInt(value bool) int64 {
 
 func (s *jobScheduleService) Delete(ctx context.Context, id string) error {
 	err := s.repo.Delete(ctx, id)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && apperrors.IsNotFound(err) {
 		return apperrors.New(apperrors.ErrNotFound, "job schedule not found")
 	}
 	return err
@@ -121,7 +120,7 @@ func (s *jobScheduleService) Delete(ctx context.Context, id string) error {
 func (s *jobScheduleService) RunNow(ctx context.Context, id string) (*response.JobResponse, error) {
 	schedule, err := s.repo.Get(ctx, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "job schedule not found")
 		}
 		return nil, err

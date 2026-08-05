@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -40,7 +39,7 @@ type FeatureService interface {
 	GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error)
 	RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error)
 	SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*response.BookmarkResponse, error)
-	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error)
+	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*models.BookmarkedBooksPage, error)
 	GetBookUserState(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.BookUserStateResponse, error)
 	UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review string) (*response.BookReviewResponse, error)
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
@@ -62,23 +61,31 @@ type FeatureService interface {
 	CreateSmartCollection(ctx context.Context, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
 	UpdateSmartCollection(ctx context.Context, id string, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
 	DeleteSmartCollection(ctx context.Context, id string, userID string) error
+	SetWebhookService(webhook WebhookService)
 }
 
 type featureService struct {
-	repo        repositories.FeatureRepository
-	bookRepo    repositories.BookDBRepository
-	settings    SettingsService
-	permissions PermissionCache
-	txManager   database.TxManager
+	repo           repositories.FeatureRepository
+	bookRepo       repositories.BookDBRepository
+	settings       SettingsService
+	permissions    PermissionCache
+	txManager      database.TxManager
+	webhookService WebhookService
 }
 
 const (
 	readCountCooldown = 12 * time.Hour
 	shareCountWindow  = time.Hour
+	// Must match the "read"/"reading" filters in db/query/books.sql.
+	bookCompletedPercent = 99.5
 )
 
 func NewFeatureService(repo repositories.FeatureRepository, bookRepo repositories.BookDBRepository, settings SettingsService, permissions PermissionCache, txManager database.TxManager) FeatureService {
 	return &featureService{repo: repo, bookRepo: bookRepo, settings: settings, permissions: permissions, txManager: txManager}
+}
+
+func (s *featureService) SetWebhookService(webhook WebhookService) {
+	s.webhookService = webhook
 }
 
 func (s *featureService) GetLibraryStats(ctx context.Context) (*response.LibraryStatsResponse, error) {
@@ -135,7 +142,7 @@ func (s *featureService) GetRecentReadingHistory(ctx context.Context, userID str
 func (s *featureService) GetReadingProgress(ctx context.Context, userID string, bookID string) (*response.ReadingProgressResponse, error) {
 	entity, err := s.repo.GetReadingProgress(ctx, userID, bookID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "No reading progress found")
 		}
 		return nil, err
@@ -143,6 +150,7 @@ func (s *featureService) GetReadingProgress(ctx context.Context, userID string, 
 	return entity.ToResponse(), nil
 }
 
+// Announces reading.completed only on the crossing into finished, so re-opening does not re-fire.
 func (s *featureService) RecordReadingActivity(ctx context.Context, input models.ReadingActivityInput, claims *response.JWTClaims) (*response.ReadingActivityResponse, error) {
 	book, err := s.bookRepo.GetBook(ctx, input.BookID)
 	resolved := resolveClaims(claims)
@@ -165,7 +173,7 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 
 	now := time.Now().UTC()
 	existing, err := txRepo.GetReadingProgress(ctx, input.UserID, input.BookID)
-	if err != nil {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, err
 	}
 
@@ -182,6 +190,8 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 	}
 
 	progressPercent := normalizeProgress(input.ProgressPercent)
+	justFinished := progressPercent != nil && *progressPercent >= bookCompletedPercent &&
+		!(existing != nil && existing.ProgressPercent != nil && *existing.ProgressPercent >= bookCompletedPercent)
 	chapterTitle := strings.TrimSpace(input.ChapterTitle)
 	if chapterTitle == "" {
 		chapterTitle = fmt.Sprintf("Chapter %d", input.ChapterIndex+1)
@@ -221,6 +231,11 @@ func (s *featureService) RecordReadingActivity(ctx context.Context, input models
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
+	}
+	if justFinished && s.webhookService != nil {
+		payload := BuildBookWebhookPayload(book)
+		payload["user_id"] = input.UserID
+		s.webhookService.DispatchEvent(ctx, "reading.completed", payload)
 	}
 	return res.ToResponse(), nil
 }
@@ -345,12 +360,7 @@ func (s *featureService) SetBookmark(ctx context.Context, userID string, bookID 
 	return bm.ToResponse(), nil
 }
 
-type BookmarkedBooksPage struct {
-	Books      []*models.BookEntity
-	NextCursor string
-}
-
-func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*BookmarkedBooksPage, error) {
+func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*models.BookmarkedBooksPage, error) {
 	if userID == "" {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
@@ -384,7 +394,7 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, 
 			book.Files = filesByBookID[book.ID]
 		}
 	}
-	result := &BookmarkedBooksPage{Books: books}
+	result := &models.BookmarkedBooksPage{Books: books}
 	if len(bookmarkRows) >= int(limit) && len(bookmarkRows) > 0 {
 		last := bookmarkRows[len(bookmarkRows)-1]
 		result.NextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.BookID
@@ -667,7 +677,7 @@ const (
 func (s *featureService) GetReadingGoal(ctx context.Context, userID string) (*response.ReadingGoalResponse, error) {
 	goal, err := s.repo.GetReadingGoal(ctx, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return &response.ReadingGoalResponse{
 				UserID:             userID,
 				TargetWordsPerDay:  defaultTargetWordsPerDay,
@@ -734,7 +744,7 @@ func (s *featureService) UpdateSmartCollection(ctx context.Context, id string, u
 	}
 	entity, err := s.repo.UpdateSmartCollection(ctx, id, userID, dto.Name, string(ruleJson))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "Smart collection not found")
 		}
 		return nil, err

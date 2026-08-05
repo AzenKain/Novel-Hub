@@ -32,4 +32,10 @@ func SettingsRoutes(app fiber.Router, controller *controllers.SettingsController
 		middlewares.RequirePermission(permissionCache, "setting.manage"),
 		controller.UploadAdminLogo,
 	)
+	route.Post(
+		"/smtp/test",
+		middlewares.JwtAccess(userRepo),
+		middlewares.RequirePermission(permissionCache, "setting.manage"),
+		controller.TestSMTP,
+	)
 }

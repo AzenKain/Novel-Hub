@@ -58,6 +58,7 @@ const AVAILABLE_EVENTS = [
   { id: "book.deleted", label: "book.deleted" },
   { id: "metadata.updated", label: "metadata.updated" },
   { id: "reading.completed", label: "reading.completed" },
+  { id: "job.failed", label: "job.failed" },
 ];
 
 export const WebhookModal: React.FC<WebhookModalProps> = ({
@@ -80,6 +81,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
     events: ["book.created", "book.deleted"],
     is_active: true,
   });
+  const isEmailTemplate = form.template_type === "email";
 
   const [embedColor, setEmbedColor] = useState<string>("#5865F2");
   const [botName, setBotName] = useState<string>("NovelHub Bot");
@@ -330,15 +332,25 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
                 {/* URL */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.endpoint_url", "Endpoint URL")} *</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {isEmailTemplate
+                      ? t("settings.email_recipients", "Recipients")
+                      : t("settings.endpoint_url", "Endpoint URL")}{" "}
+                    *
+                  </label>
                   <input
-                    type="url"
+                    type={isEmailTemplate ? "text" : "url"}
                     required
-                    placeholder="https://discord.com/api/webhooks/..."
+                    placeholder={isEmailTemplate ? "mailto:ops@example.com,team@example.com" : "https://discord.com/api/webhooks/..."}
                     value={form.url}
                     onChange={(e) => setForm({ ...form, url: e.target.value })}
                     className="input input-bordered input-sm w-full font-mono text-xs"
                   />
+                  {isEmailTemplate && (
+                    <p className="mt-1 text-[11px] text-base-content/50">
+                      {t("settings.email_recipients_hint", "Comma-separated addresses after mailto:. Requires SMTP to be configured.")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Platform Template */}
@@ -353,6 +365,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     <option value="telegram">Telegram Bot HTML</option>
                     <option value="slack">Slack Block Kit</option>
                     <option value="generic">Generic JSON (Custom / n8n / Zapier)</option>
+                    <option value="email">{t("settings.template_email", "Email (SMTP)")}</option>
                   </select>
                 </div>
 

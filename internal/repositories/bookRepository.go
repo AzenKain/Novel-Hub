@@ -63,6 +63,8 @@ type BookMetadataRepository interface {
 	CreateSeries(ctx context.Context, series *models.SeriesEntity) error
 	LinkBookSeries(ctx context.Context, bookID, seriesID string, seriesIndex *string) error
 	ClearBookSeries(ctx context.Context, bookID string) error
+	GetBookSeries(ctx context.Context, bookID string) ([]*models.BookSeriesEntity, error)
+	GetNextBookInSeries(ctx context.Context, seriesID, currentBookID string) (*models.NextInSeriesEntity, error)
 	GetPublisherByName(ctx context.Context, name string) (*models.PublisherEntity, error)
 	CreatePublisher(ctx context.Context, publisher *models.PublisherEntity) error
 	LinkBookPublisher(ctx context.Context, bookID, publisherID string) error

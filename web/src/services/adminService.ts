@@ -10,6 +10,8 @@ import type {
   Permission,
   Role,
   SearchUserParams,
+  SendUserEmailRequest,
+  SmtpTestRequest,
   UpdateProfileRequest,
   UpdateRolePermissionsRequest,
   UpdateRoleRequest,
@@ -58,6 +60,18 @@ export const adminService = {
   async resetPassword(id: string, newPassword: string): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.patch(`/users/${id}/password`, { new_password: newPassword });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<unknown>;
+      }
+      throw error;
+    }
+  },
+
+  async sendUserEmail(id: string, data: SendUserEmailRequest): Promise<CommonResponse<unknown>> {
+    try {
+      const res = await api.post(`/users/${id}/email`, data);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -210,6 +224,18 @@ export const adminService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         return error.response.data as CommonResponse<AdminSettings>;
+      }
+      throw error;
+    }
+  },
+
+  async testSmtp(data: SmtpTestRequest): Promise<CommonResponse<unknown>> {
+    try {
+      const res = await api.post("/settings/smtp/test", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<unknown>;
       }
       throw error;
     }

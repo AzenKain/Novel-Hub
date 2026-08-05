@@ -1,7 +1,7 @@
 import { CreateUserRequest, Role, User } from "@/types";
 import { create } from "zustand";
 
-type ModalMode = "create" | "edit" | "password" | "roles" | null;
+type ModalMode = "create" | "edit" | "password" | "roles" | "email" | null;
 
 const emptyCreate: CreateUserRequest = {
   email: "",

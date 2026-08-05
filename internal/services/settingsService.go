@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"io"
 	"math"
@@ -15,14 +14,17 @@ import (
 	"sync"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/crypto"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/mailer"
 	"novelhub/pkg/netx"
 )
 
@@ -58,6 +60,8 @@ type SettingsService interface {
 	GuestAllows(libraryID string) bool
 	SetupRequired(ctx context.Context) bool
 	SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error)
+	SMTP(ctx context.Context) (mailer.SMTPConfig, error)
+	TestSMTP(ctx context.Context, dto *request.SMTPTestDto) error
 }
 
 type settingsService struct {
@@ -216,10 +220,14 @@ func (s *settingsService) Admin(ctx context.Context) (*models.AdminSettings, err
 	if err != nil {
 		return nil, err
 	}
+	s.mu.RLock()
+	raw := s.raw
+	s.mu.RUnlock()
 	return &models.AdminSettings{
 		PublicSettings: *public,
 		Limits:         s.Limits(),
 		Bounds:         runtimeLimitBounds(),
+		SMTP:           smtpSettingsFromRaw(raw),
 	}, nil
 }
 
@@ -230,6 +238,7 @@ func (s *settingsService) Limits() models.RuntimeLimits {
 	return limits
 }
 
+// smtp.password of "" clears the credential; anything else is encrypted before it is stored.
 func (s *settingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.AdminSettings, error) {
 	s.updateMu.Lock()
 	defer s.updateMu.Unlock()
@@ -248,6 +257,19 @@ func (s *settingsService) UpdateSettings(ctx context.Context, settings map[strin
 			return nil, apperrors.New(apperrors.ErrBadRequest, "Unsupported setting: "+key)
 		}
 		value = dereferenceSettingValue(value)
+		if secretSettingKey(key) {
+			plaintext, ok := value.(string)
+			if !ok {
+				return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid SMTP password")
+			}
+			if plaintext != "" {
+				ciphertext, err := crypto.EncryptAES(plaintext)
+				if err != nil {
+					return nil, apperrors.New(apperrors.ErrInternalError, "Failed to encrypt the SMTP password")
+				}
+				value = ciphertext
+			}
+		}
 		candidateRaw[key] = value
 		data, err := jsonx.Marshal(value)
 		if err != nil {
@@ -259,6 +281,9 @@ func (s *settingsService) UpdateSettings(ctx context.Context, settings map[strin
 
 	candidateLimits, err := runtimeLimitsFromRaw(candidateRaw)
 	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
+	}
+	if err := validateSMTPRaw(candidateRaw); err != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, err.Error())
 	}
 	candidatePublic := settingsFromRaw(candidateRaw)
@@ -327,7 +352,7 @@ func (s *settingsService) SetupRequired(ctx context.Context) bool {
 func (s *settingsService) setupCompleted(ctx context.Context) bool {
 	value, err := s.repo.GetSetupState(ctx, "completed")
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return false
 		}
 		return true
@@ -357,6 +382,8 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	settings.EnableAniListTracking = rawBool(raw, "tracker.anilist_enabled", true)
+	settings.RequireEmailVerify = rawBool(raw, "auth.require_email_verify", false)
+	settings.PasswordResetEnabled = rawBool(raw, "auth.password_reset_enabled", false)
 	return settings
 }
 
@@ -535,6 +562,13 @@ func filterKnown(items []string, known []string) []string {
 	return out
 }
 
+// A secret setting is one the admin UI itself will not read back. Only these are withheld from
+// the audit trail, because every other key is already visible via GET /settings, so redacting
+// them would cost the trail its usefulness without protecting anything.
+func secretSettingKey(key string) bool {
+	return key == "smtp.password"
+}
+
 func allowedSettingKey(key string) bool {
 	switch key {
 	case "site.title",
@@ -551,6 +585,8 @@ func allowedSettingKey(key string) bool {
 		"reader.enable_in_book_search",
 		"font.enable_custom_font_upload",
 		"tracker.anilist_enabled",
+		"auth.require_email_verify",
+		"auth.password_reset_enabled",
 		"limits.upload_chunk_bytes",
 		"limits.upload_chunks",
 		"limits.upload_sessions",
@@ -561,7 +597,15 @@ func allowedSettingKey(key string) bool {
 		"limits.rate_limit_api",
 		"limits.rate_limit_api_window_seconds",
 		"limits.rate_limit_auth",
-		"limits.rate_limit_auth_window_seconds":
+		"limits.rate_limit_auth_window_seconds",
+		"smtp.enabled",
+		"smtp.host",
+		"smtp.port",
+		"smtp.username",
+		"smtp.password",
+		"smtp.from_email",
+		"smtp.tls_mode",
+		"smtp.allow_private_networks":
 		return true
 	default:
 		return false

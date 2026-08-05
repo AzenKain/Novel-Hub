@@ -134,7 +134,8 @@
         "jobs": "Jobs",
         "schedules": "Schedules",
         "logs": "Logs",
-        "backups": "Backups"
+        "backups": "Backups",
+        "audit": "Audit"
       },
       "run_task": "Run maintenance task",
       "run_now": "Run now",
@@ -162,7 +163,9 @@
         "extract_metadata": "Extract metadata",
         "hash_file": "Hash file",
         "index_book": "Index book",
-        "webhook.dispatch": "Dispatch webhook"
+        "webhook.dispatch": "Dispatch webhook",
+        "prune_audit_logs": "Prune audit logs",
+        "prune_finished_jobs": "Prune finished jobs"
       },
       "job_queued": "Job queued",
       "action_failed": "Action failed",
@@ -200,8 +203,25 @@
         "mib": "MiB",
         "gib": "GiB"
       },
-      "no_backups": "No backups found"
-    }
+      "no_backups": "No backups found",
+      "audit_action": "Action",
+      "all_actions": "All actions",
+      "audit_total": "{{count}} entries",
+      "audit_retention": "Kept for 90 days",
+      "audit_time": "Time",
+      "audit_actor": "Actor",
+      "audit_target": "Target",
+      "audit_ip": "IP",
+      "audit_system": "System",
+      "audit_empty": "No audit entries yet"
+    },
+    "action_send_email": "Send email",
+    "send_email_title": "Send Email",
+    "send_email_desc": "This message goes to the address on file:",
+    "email_subject": "Subject",
+    "email_body": "Message",
+    "send_email": "Send",
+    "email_sent": "Email sent"
   },
   "auth": {
     "login_to_account": "Login to your account",
@@ -225,7 +245,25 @@
     "full_name": "Full Name",
     "optional": "(optional)",
     "password_min": "Minimum 8 characters",
-    "unexpected_error": "An unexpected error occurred"
+    "unexpected_error": "An unexpected error occurred",
+    "otp_send": "Send verification code",
+    "otp_sent_to": "We sent a 6-digit code to {{email}}.",
+    "otp_code": "Verification code",
+    "otp_verify": "Verify code",
+    "otp_resend": "Resend code",
+    "otp_resend_in": "Resend in {{seconds}}s",
+    "otp_verified": "Email verified",
+    "forgot_password": "Forgot password?",
+    "reset_title": "Reset Password",
+    "reset_desc": "We'll email you a code to confirm it's your account.",
+    "reset_submit": "Set new password",
+    "new_password": "New password",
+    "back_to_login": "Back to sign in",
+    "reset_disabled": "Password Reset Disabled",
+    "reset_disabled_desc": "Password reset by email is currently disabled. Ask an administrator to reset your password.",
+    "totp_prompt": "Enter the 6-digit code from your authenticator app, or a recovery code.",
+    "totp_code": "Authentication code",
+    "totp_verify": "Verify and sign in"
   },
   "common": {
     "cancel": "Cancel",
@@ -258,7 +296,9 @@
     "apply": "Apply",
     "share": "Share",
     "download": "Download",
-    "load_more": "Load more"
+    "load_more": "Load more",
+    "previous": "Previous",
+    "next": "Next"
   },
   "library": {
     "ready_to_read": "Ready to read",
@@ -547,7 +587,8 @@
     "description": "Synopsis",
     "bookmarks": "Bookmarks",
     "collections": "Collections",
-    "no_description": "No description available."
+    "no_description": "No description available.",
+    "next_in_series": "Next in series"
   },
   "settings": {
     "title": "Settings",
@@ -653,14 +694,9 @@
     "permission_webhook_manage": "Manage webhooks and notification integrations",
     "permission_book_share": "Share books and generate share links",
     "send_to_kindle": "Send to Kindle",
-    "smtp_settings": "SMTP Email Dispatcher Settings",
-    "smtp_subtitle": "Configure outbound mail server for Send-to-Kindle and system notifications.",
     "smtp_host": "SMTP Host",
     "smtp_port": "Port",
-    "smtp_user": "Username / Email",
-    "smtp_pass": "Password / App Secret",
     "smtp_from": "From Email Address",
-    "test_smtp": "Test Connection",
     "runtime_limits": "Runtime Limits",
     "runtime_limits_desc": "Control upload, image, and temporary session size limits.",
     "save_runtime_limits": "Save Limits",
@@ -681,7 +717,33 @@
     "unit_mib": "MiB",
     "unit_minutes": "minutes",
     "unit_count": "count",
-    "limit_range": "Allowed: {{min}}–{{max}}"
+    "limit_range": "Allowed: {{min}}–{{max}}",
+    "smtp_title": "Email (SMTP)",
+    "smtp_desc": "Outbound mail server used for Send-to-Kindle and system notifications.",
+    "smtp_enabled": "Enabled",
+    "smtp_username": "Username",
+    "smtp_password": "Password",
+    "smtp_password_placeholder": "App password",
+    "smtp_password_keep": "Leave blank to keep the saved password",
+    "smtp_password_clear": "Remove the saved password",
+    "smtp_tls_mode": "Encryption",
+    "smtp_tls_none": "None (plain, trusted networks only)",
+    "smtp_tls_starttls": "STARTTLS (usually port 587)",
+    "smtp_tls_implicit": "Implicit TLS / SSL (usually port 465)",
+    "smtp_allow_private": "Allow private / local mail servers",
+    "smtp_allow_private_desc": "Required for a mail server on your LAN, localhost, or a sibling container. Leave off when using an internet provider.",
+    "smtp_test": "Test Connection",
+    "smtp_test_success": "SMTP connection succeeded",
+    "smtp_saved": "SMTP settings saved",
+    "save_smtp": "Save SMTP",
+    "require_email_verify": "Require Email Verification",
+    "require_email_verify_desc": "New accounts must confirm an emailed code before they are created.",
+    "password_reset_enabled": "Enable Password Reset by Email",
+    "password_reset_enabled_desc": "Shows a \"Forgot password?\" link and lets users reset with an emailed code.",
+    "needs_smtp": "Configure SMTP below to enable this.",
+    "template_email": "Email (SMTP)",
+    "email_recipients": "Recipients",
+    "email_recipients_hint": "Comma-separated addresses after mailto:. Requires SMTP to be configured."
   },
   "email": {
     "invalid": "Please enter a valid email address",
@@ -787,5 +849,46 @@
     "complete_setup": "Complete Setup",
     "setup_failed": "Setup failed",
     "unexpected_error": "An unexpected error occurred"
+  },
+  "pwa": {
+    "update_available": "A new version is available.",
+    "reload": "Reload",
+    "later": "Later"
+  },
+  "offline": {
+    "save": "Save for offline",
+    "remove": "Remove offline copy",
+    "chapter_unavailable": "This chapter is not available offline. Save the book for offline reading while you are connected.",
+    "title": "Offline books",
+    "empty": "No books saved for offline reading",
+    "usage": "{{used}} of {{quota}} used",
+    "saved_at": "Saved {{date}}",
+    "chapter_count": "{{count}} chapters",
+    "warning_title": "Download the whole book?",
+    "warning_body": "\"{{title}}\" will be downloaded in full to this device so you can read it without a connection.",
+    "warning_body_with_size": "\"{{title}}\" will be downloaded in full to this device ({{size}}) so you can read it without a connection.",
+    "warning_storage_note": "It uses your browser's storage until you remove it, and it is deleted when you sign out.",
+    "warning_dont_remind": "Don't remind me for a day",
+    "warning_confirm": "Download"
+  },
+  "totp": {
+    "title": "Two-Factor Authentication",
+    "on": "On",
+    "off": "Off",
+    "subtitle": "Require a code from your authenticator app when signing in.",
+    "begin": "Set up two-factor authentication",
+    "scan_instructions": "Scan this with your authenticator app, then enter the code it shows.",
+    "manual_entry": "Or enter this key manually:",
+    "confirm": "Confirm",
+    "current_code": "Current code",
+    "regenerate_codes": "New recovery codes",
+    "disable": "Turn off",
+    "disable_confirm": "Turn off two-factor authentication for your account?",
+    "enabled_toast": "Two-factor authentication is on.",
+    "disabled_toast": "Two-factor authentication is off.",
+    "recovery_regenerated": "New recovery codes generated. The old ones no longer work.",
+    "recovery_remaining": "{{count}} recovery codes left",
+    "recovery_warning": "Save these recovery codes now. Each works once and they are the only way in if you lose your phone. They are not shown again.",
+    "copy_codes": "Copy codes"
   }
 }

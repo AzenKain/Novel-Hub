@@ -3,12 +3,31 @@ package request
 type SignInDto struct {
 	Email    string `json:"email" validate:"required,min=5,max=255,email"`
 	Password string `json:"password" validate:"required"`
+	TOTPCode string `json:"totp_code" validate:"omitempty,min=6,max=16"`
 }
 
 type RegisterDto struct {
-	Email    string `json:"email" validate:"required,min=5,max=255,email"`
-	Password string `json:"password" validate:"required"`
-	FullName string `json:"full_name"`
+	Email     string `json:"email" validate:"required,min=5,max=255,email"`
+	Password  string `json:"password" validate:"required"`
+	FullName  string `json:"full_name"`
+	OTPTicket string `json:"otp_ticket" validate:"omitempty,uuid"`
+}
+
+type RequestOTPDto struct {
+	Email   string `json:"email" validate:"required,min=5,max=255,email"`
+	Purpose string `json:"purpose" validate:"required,oneof=email_verify password_reset"`
+}
+
+type VerifyOTPDto struct {
+	Email   string `json:"email" validate:"required,min=5,max=255,email"`
+	Purpose string `json:"purpose" validate:"required,oneof=email_verify password_reset"`
+	Code    string `json:"code" validate:"required,len=6,numeric"`
+}
+
+type ResetPasswordWithOTPDto struct {
+	Email       string `json:"email" validate:"required,min=5,max=255,email"`
+	OTPTicket   string `json:"otp_ticket" validate:"required,uuid"`
+	NewPassword string `json:"new_password" validate:"required"`
 }
 
 type SetupDto struct {

@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"io"
 	"os"
 	"sort"
@@ -427,7 +425,7 @@ func (s *koboService) bookInfo(ctx context.Context, book *models.BookEntity, end
 func (s *koboService) readingState(ctx context.Context, userID string, book *models.BookEntity) (kobo.ReadingState, bool, error) {
 	progress, err := s.featureService.GetReadingProgress(ctx, userID, book.ID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, apperrors.ErrNotFound) {
+		if apperrors.IsNotFound(err) {
 			return kobo.ReadingState{}, false, nil
 		}
 		return kobo.ReadingState{}, false, err
@@ -438,7 +436,7 @@ func (s *koboService) readingState(ctx context.Context, userID string, book *mod
 func (s *koboService) readingStateOrEmpty(ctx context.Context, userID string, book *models.BookEntity) (kobo.ReadingState, error) {
 	progress, err := s.featureService.GetReadingProgress(ctx, userID, book.ID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, apperrors.ErrNotFound) {
+		if apperrors.IsNotFound(err) {
 			return kobo.NewReadingState(kobo.ReadingStateInput{
 				BookUUID:     book.ID,
 				BookCreated:  book.CreatedAt,

@@ -26,7 +26,7 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **OPDS Server**: Built-in OPDS catalog (with basic auth and guest access controls) for seamless integration with mobile reader apps (Kobo, Moon+ Reader, KyBook).
 - **Social Features**: Read and write reviews, rate books, and generate public share links.
 - **First-Run Setup Wizard**: Intuitive setup wizard (`/setup`) for admin account creation, branding configuration (Logo & Favicon cropper/fetcher), sidebar navigation toggle, and default feature policy setup.
-- **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF protection via `pkg/netx`. Automatic **AES-256-GCM Envelope Encryption** via `pkg/crypto` (`DB_ENCRYPTION_KEY`) for sensitive tokens & credentials stored in SQLite.
+- **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. Socket-level SSRF protection via `pkg/netx`. Automatic **AES-256-GCM Envelope Encryption** via `pkg/crypto` (`DB_ENCRYPTION_KEY`) for sensitive tokens & credentials stored in SQLite, including the SMTP password.
 - **Multi-Language Support**: i18n support with complete translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`).
 - **Single Binary Deployment**: Embedded React frontend in Go binary. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode, MMAP, and auto-migrations.
 
@@ -129,7 +129,7 @@ openssl rand -hex 32   # run three times, one per secret
 |---|---|
 | `JWT_SECRET` | **Required.** Signs access tokens |
 | `JWT_REFRESH_SECRET` | **Required.** Signs refresh tokens |
-| `DB_ENCRYPTION_KEY` | **Required.** Encrypts third-party tokens stored in the database |
+| `DB_ENCRYPTION_KEY` | **Required.** Encrypts third-party tokens and the SMTP password stored in the database |
 | `TRUST_PROXY` | `false` (default), `true`, or a list of proxy IPs/CIDRs. Set when behind nginx/Caddy/Cloudflare |
 
 Site identity, registration, guest access, permissions, upload limits and rate

@@ -9,13 +9,279 @@ Mức độ: 🔴 nặng · 🟠 vừa · 🟡 nhẹ
 
 ## A. Tính năng giả / hỏng hẳn
 
-### 🔴 A1. SMTP là sân khấu, hai tầng — [ ]
+### 🔴 A1. SMTP là sân khấu, hai tầng — [x] *(phase 1)*
 - `web/src/components/admin/settings/SmtpSettingsTab.tsx:16-39` — `handleSave` và `handleTestConnection` có `try` block **rỗng**, chỉ gọi `toast.success`. Không có request nào. `catch` không bao giờ chạy tới.
 - Component này **không được mount ở đâu** (grep 0 chỗ import).
 - `internal/services/bookService_email.go:42-46` — host/user/pass hardcode chuỗi rỗng → `SendEmail` luôn fail "SMTP configuration incomplete".
 
 **Hệ quả:** Send-to-Kindle chưa từng chạy được. Admin bấm Save thấy báo thành công.
-**Sửa:** thêm SMTP vào app settings (schema mới + `db/query/settings.sql` + `settingsService`), đọc config trong `bookService_email.go`, nối tab vào `useAdminSettingsQuery`, mount vào `pages/admin/Settings.tsx`, thêm endpoint test thật.
+
+**Đã sửa (phase 1) — config thật, mã hoá, test connection thật:**
+- `db/schema/99_smtp_settings.sql` seed 8 key `smtp.*` vào `app_settings` (không thêm bảng — key/value + cache + tx đã có sẵn).
+- `internal/services/settingsService_smtp.go` — parse/validate/decrypt; `SMTP(ctx)` cho các luồng mail, `TestSMTP(ctx, dto)` cho endpoint test.
+- `settingsService.UpdateSettings` mã hoá `smtp.password` bằng `crypto.EncryptAES` trước khi ghi; key vắng mặt → giữ ciphertext cũ, `""` → xoá credential. Admin response chỉ trả `password_configured`.
+- `POST /settings/smtp/test` (JWT + `setting.manage`) — chỉ connect/TLS/auth rồi QUIT, không gửi mail thử.
+- `pkg/mailer` thêm `TLSMode` (`starttls` mặc định / `implicit_tls` cho 465 / `none`) và `AllowPrivateNetworks`. STARTTLS giờ **bắt buộc** khi được chọn, không âm thầm downgrade.
+- `bookService_email.go` đọc config từ settings; bỏ hết hardcode Gmail.
+- FE: `SmtpSettingsTab` viết lại dùng `useUpdateAdminSettingsMutation`/`useTestSmtpMutation`, mount trong `pages/admin/Settings.tsx`; 18 key locale × 5 ngôn ngữ, xoá 5 key chết của tab giả.
+
+**Bug bắt được khi viết test:** `mailer` chỉ dial `ips[0]`. `localhost` trả `::1` trước `127.0.0.1` → mail fail trên host IPv4-only dù server sống. Giờ thử lần lượt mọi IP đã resolve.
+
+**Test (fail trước, pass sau — đã verify bằng cách revert code):**
+- `cmd/api/smtp_test.go` `TestSendBookToEmailUsesConfiguredSMTP` — SMTP server thật nhận đúng attachment; revert về hardcode → test đi ra Gmail và fail 530.
+- `settingsService_test.go` `TestSettingsServiceSMTPPasswordLifecycle` — tắt encrypt → fail vì DB có plaintext.
+- `TestSettingsServiceRejectsIncompleteSMTP` (7 case), `pkg/mailer` 4 test TLS/private-IP, `TestSMTPTestEndpointRequiresPermission`.
+
+**Đã làm (phase 2) — OTP verify đăng ký + forgot password:**
+- 3 endpoint, đúng như code tham khảo: `POST /auth/otp/request` → `/auth/otp/verify` (trả `otp_ticket`) → `/auth/register` hoặc `/auth/password/reset` gửi kèm ticket. Cả 3 nằm sau `authLimiter` vì chúng gửi mail và so secret.
+- `internal/services/otpStore.go` — OTP ở theine cache, **chỉ lưu SHA-256 digest** (dump cache không replay được). TTL 10 phút, cooldown 60s, tối đa 5 lần sai rồi khoá. Ticket single-use, purpose tách biệt (`email_verify` ≠ `password_reset`).
+- `authService_otp.go` — verify **trước khi tạo user**: `Consume` chạy trước INSERT nên địa chỉ chưa xác thực không bao giờ sở hữu account, và 1 ticket không tạo được 2 account. Không cần cột `email_verified`, không cần migration.
+- `ResetPasswordWithOTP` bump `token_version` + xoá refresh token trong cùng transaction — session cũ chết theo mật khẩu cũ (đúng cặp mà `AdminResetPassword` đang dùng).
+- 2 setting `auth.require_email_verify` / `auth.password_reset_enabled`, **mặc định tắt**, toggle trong Settings bị disable khi SMTP chưa bật. Bool default false nên không cần migration (tiền lệ: `reader.enable_in_book_search` cũng không seed).
+- `apperrors.ErrTooManyRequests` → 429. Trước đây cooldown/khoá sẽ trả 400, client không phân biệt được "sai mã" với "thử quá nhiều".
+- FE: `OTPCodeStep` dùng chung cho 2 trang (có countdown resend), `ForgotPasswordPage` + route `/forgot-password`, link "Quên mật khẩu?" chỉ hiện khi admin bật. `RegisterPage` viết lại dùng `useRegisterMutation` + `usePublicSettings` (trước đó gọi service trực tiếp trong `useEffect`, sai rule). 20 key locale × 5 ngôn ngữ, placeholder `{{email}}`/`{{seconds}}` đã verify khớp.
+
+**Chống enumeration:** `RequestOTP` trả **cùng một response** cho địa chỉ có và không có account — khác nhau là biến endpoint này thành máy tra "email này có đăng ký ở đây không". Check SMTP được hoist lên **trước** khi lookup user, vì nó chỉ phụ thuộc config nên không thể dùng để phân biệt. Test `TestRequestOTPDoesNotRevealAccountExistence` so đúng 2 response và assert mail chỉ tới địa chỉ chưa có account; bỏ hoist → test đỏ.
+
+**Test (verify bằng cách revert code, không phải đoán):**
+| Test | Revert gì | Kết quả |
+|---|---|---|
+| `TestRegisterRequiresVerifiedTicketWhenEnabled` | bỏ check lỗi của `Consume` | fail "a forged ticket was accepted" |
+| `TestOTPEndpointsRefusedWhileFeaturesDisabled` | bỏ hoist check SMTP | fail — request thành công dù chưa có mail server |
+| `TestRegisterOverHTTPRefusesWithoutOTPWhenRequired` | xoá route `/otp/verify` | fail 404 |
+
+Cộng `TestOTPStoreVerifyIsSingleUseAndBounded`, `TestOTPStoreLocksOutAfterMaxAttempts`, `TestResetPasswordWithOTPRevokesSessions`, `TestOTPEndpointsRejectUnknownPurpose`.
+
+**Đã làm (phase 3) — webhook mail + admin gửi mail cho user:**
+- **Email là một `template_type` của webhook sẵn có**, không dựng hệ thống cấu hình thứ hai: `url` giữ nguyên, chứa `mailto:a@b.com,c@d.com`. `mailer.ParseRecipients` dedupe địa chỉ, chặn newline (header injection) và bỏ phần `?subject=`.
+- `validateTarget` chặn lẫn transport ở **thời điểm lưu**, không phải lúc dispatch trong background job: email + `https://` bị từ chối, HTTP webhook + `mailto:` cũng vậy. Không có check này thì `mailto:` đi vào HTTP client và fail `unsupported protocol scheme` trong job, admin không thấy gì.
+- Branch nằm trong `sendHTTPRequest` nên **mọi** caller (dispatch, retry, `TestPing`) đi cùng một đường; không thể thêm caller mới mà quên branch. HMAC / custom header / event filter / worker queue của HTTP webhook không đổi.
+- `POST /users/:id/email` sau JWT + `user.manage`. **Không có field recipient** trong DTO — địa chỉ lấy từ user trong path, nên endpoint admin không biến thành open relay. `GetByID` loại row `is_deleted`, nên account đã xoá không nhận được mail.
+- `SettingsService` là dependency **variadic** ở cả `NewWebhookService`/`NewUserService`: test cũ không cần sửa, production `server.go` truyền thật, và HTTP webhook vẫn chạy khi thiếu (nó không cần SMTP).
+- FE: option "Email (SMTP)" trong `WebhookModal` (label/placeholder/hint của field `url` đổi theo transport), action Mail trong `UserTable` + modal soạn subject/body với email đích read-only. 10 key locale × 5 ngôn ngữ.
+
+**Test (revert code để chứng minh):**
+| Test | Revert gì | Kết quả |
+|---|---|---|
+| `TestWebhookEmailNeverUsesHTTPClient` | bỏ branch email | fail `Post "mailto:..." unsupported protocol scheme` |
+| `TestWebhookTargetMustMatchTransport` | bỏ check scheme | fail — HTTP webhook nhận `mailto:` |
+
+Cộng `TestWebhookEmailTemplateDelivers` (assert dedupe: 3 địa chỉ trùng → đúng 2 mail, mail thứ 3 là fail), `TestWebhookEmailRequiresConfiguredSMTP`, `TestSendUserEmailUsesTheStoredAddress`, `TestSendUserEmailRefusesUnknownDeletedAndUnconfigured` (4 case: SMTP tắt / user đã xoá / id không tồn tại / id sai format, và assert **không** có mail nào rời server), `TestSendUserEmailRequiresPermission`, `TestWebhookListAllStillWorksWithoutSettings`.
+
+**Không thêm:** queue mail riêng, template engine, retry riêng cho mail — `pkg/worker` + `settings.SMTP(ctx)` đã đủ.
+
+**Đã sửa — `reading.completed` giờ có producer thật:**
+- `featureService.RecordReadingActivity` dispatch event khi progress **vượt ngưỡng**. Ngưỡng dùng lại đúng `99.5` của `db/query/books.sql:114-115` (filter `read`/`reading` của catalog), đặt thành const `bookCompletedPercent` kèm comment là hai chỗ phải đổi cùng nhau — không bịa số mới, nếu không sách sẽ "đã đọc" ở chỗ này mà "đang đọc" ở chỗ kia.
+- **Edge-triggered, không level-triggered:** mở lại sách đã 100% sẽ sync progress lần nữa; nếu chỉ check `>= 99.5` thì mỗi lần mở là một mail. So với `existing.ProgressPercent` để chỉ bắn ở lần vượt ngưỡng đầu.
+- Dispatch nằm **sau `tx.Commit()`** — không announce một thứ có thể rollback.
+- `SetWebhookService` trên `FeatureService` (khai trong interface, giống `BookService`) vì `webhookService` được dựng sau `featureService` trong `server.go`.
+
+**Test:** `TestReadingCompletedFiresOnceWhenFinished` — 42% không bắn, 100% bắn đúng 1 lần, 100% lần nữa không bắn lại. Harness dùng `worker.Queue` **thật** + handler `webhook.dispatch`, vì `DispatchEvent` return im lặng khi `jobQueue == nil` — truyền nil thì test xanh mà chẳng chứng minh gì. `TestReadingCompletedUsesTheCatalogThreshold` chốt const = 99.5 và 99.4% không bị announce.
+
+---
+
+## Phase 4 — tầng 2 đầy đủ + PWA offline
+
+Năm việc, thứ tự làm: `IsNotFound` → `/health` → audit → 2FA → `job.failed` → PWA shell → PWA offline.
+
+### 🔴 P4-1. `apperrors.IsNotFound` — [x]
+`internal/repositories/featureRepository.go` (8 chỗ) và `trackerRepository.go:64,169` trả **`sql.ErrNoRows` thô** ra khỏi wrapper singleflight; **không repo nào** bọc thành `apperrors.ErrNotFound`. Nhưng 20/22 service chỉ check một nửa — chỉ `koboService.go:430,441` check cả hai. Nghĩa là 20 chỗ đang **âm thầm sai**, không phải chỉ lặp code.
+**Đã sửa:** `IsNotFound(err)` check cả `sql.ErrNoRows` **và** `ErrNotFound`, thay 22 call site ở 12 file. Import chết được xoá bằng cách parse output của compiler (không đoán file nào còn cần `errors`).
+**Test:** `pkg/apperrors/errors_test.go` 8 case, gồm cả hai dạng bọc trong `fmt.Errorf`, và 2 case phải trả false (`database is locked`, `ErrForbidden`). Revert về check một nửa → 3 case đỏ.
+
+### 🔴 P4-2. `/health` nói thật — [x]
+`server.go` trả `{status:true}` cứng, không ping DB: probe xanh trong khi SQLite khoá hoặc file mất. Docker **không có** `HEALTHCHECK` nào.
+**Đã sửa:** `db.PingContext` timeout 2s, lỗi → 503. `HEALTHCHECK` vào `Dockerfile` bằng `wget` (busybox có sẵn trong alpine), dạng shell để `SERVER_PORT` override được. `docker-compose.yml` **không sửa** — compose thừa hưởng HEALTHCHECK của image.
+**Test:** `TestHealthCheck` 200 khi sống, `db.Close()` → 503. Vô hiệu ping (`&& false`) → đỏ "closed database still reported healthy".
+
+### 🟠 P4-3. Audit log hành động admin, giữ 90 ngày — [x]
+- **`db/schema/99a_audit_log.sql`**, **không** `100_`: `pkg/database/db.go:47` sort theo **tên file**, verify bằng `LC_ALL=C sort` cho ra `100_audit_log.sql` **trước** `10_auth.sql` → FK tới `users` trước khi bảng `users` tồn tại.
+- **Không lưu before/after.** `UpdateSettings` nhận cả `smtp.password`; ghi diff là đổ mật khẩu SMTP vào bảng mà mọi admin đọc được — phá đúng thứ phase 1 vừa bảo vệ. Chỉ lưu **danh sách key** đã đổi.
+- Body mail admin gửi cho user **không** vào log, chỉ subject. Đó là nội dung riêng.
+- **Actor đi qua context, không thêm 20 tham số.** 11 method audit không hề nhận `JWTClaims` (`roleService.*`, `settingsService.UpdateSettings`, `backupService.*`, `userService.CreateUser`, `SendEmail`), và `roleService`/`backupService` còn chưa import `response`. IP thì chỉ fiber handler biết, mà controller dựng ctx từ `context.Background()`. Dùng đúng pattern `WithPermissionContext` có sẵn ở `accessCache.go`.
+- `auditContext(c, timeout)` trong `controllers/helper.go` là chỗ duy nhất tạo ctx cho handler có audit. Đi qua `getUserIdFromLocals` (chạy `ParseID`) **cố ý**: `middlewares.GuestClaims()` đặt `UId: "0"` không phải UUID, để lọt vào `actor_id` là vỡ FK `users`.
+- **Ghi ở controller, không ở service:** đây là tầng duy nhất biết cả actor và việc mutation đã thành công, và tránh nhét `auditService` vào 6 service không cần nó.
+- `Record` **không trả error**. Ban user thành công mà audit lỗi thì vẫn phải ban; gọi sau commit nên không còn gì để rollback.
+- `actor_email` denormalize + `actor_id ... ON DELETE SET NULL`: log vẫn đọc được sau khi user bị xoá.
+- Route dùng lại `system.log.read` (`pkg/constants/role.go:61`, chỉ admin/root có) — **không** thêm permission, **không** sửa file RBAC đã applied.
+- Job `prune_audit_logs` giữ theo **90 ngày** (`PruneFinishedJobs` giữ theo **số dòng** — khác pattern, cố ý).
+- FE: tab Audit trong Operations, gate bằng `canReadLogs` có sẵn, keyset pagination prev/next.
+
+**Test (revert để chứng minh):**
+| Test | Revert gì | Kết quả |
+|---|---|---|
+| `TestAuditRecordsAdminMutationWithActorAndIP` | bỏ `IP: c.IP()` | đỏ "ip is empty; the actor context did not reach the service" |
+| `TestAuditListRequiresSystemLogRead` | bỏ `RequirePermission` | đỏ "a plain user read the audit trail: got 200" |
+| `TestAuditPruneKeepsRowsInsideRetentionWindow` | 90 → 30 ngày | đỏ "pruned 2 rows, want exactly the one older than 30 days" |
+| `TestAuditPruneIsATriggerableTask` | bỏ entry trong `tasks` map | đỏ "no description; the admin UI would show a blank row" |
+
+Cộng `TestAuditWriteFailureDoesNotFailTheAction` (DROP bảng audit → user vẫn được tạo 201), `TestAuditKeysetPaginationDoesNotRepeatOrSkip` (7 dòng, limit 3, không lặp không mất), `TestAuditRecordWithoutActorStillWritesTheRow`, `TestAuditListFiltersByAction`.
+
+### 🟠 P4-4. 2FA email khi login — [x]
+- Một setting `auth.login_2fa_enabled`, **mặc định tắt**, đi đúng 5 tầng như `auth.require_email_verify`. Hai setting kia không seed SQL → theo tiền lệ, không thêm file schema.
+- **Gate ở `Signin`, KHÔNG ở `authenticate`.** `ValidateCredentials` (`authService.go:135`) dùng chung `authenticate` và **là đường OPDS/Kobo Basic auth** (`server.go:372`) — thiết bị đọc sách không nhập được OTP. Đây là bẫy chính của việc này và có test riêng chốt lại.
+- **`login2FARequired` fail-open, không fail-closed:** setting bật nhưng SMTP hỏng hoặc `otp == nil` thì không ai nhận được mã bao giờ, đòi mã là **khoá sạch mọi account** khỏi một server mà đường cứu duy nhất là đăng nhập bằng admin.
+- Purpose thứ ba `login_2fa` thêm vào **cả 6 chỗ**: `otpStore`, `otpPurposeFromString`, `emailFeatureEnabled` (thiếu case ở đây là **âm thầm cho qua**), `otpMailBody`, validator `oneof=`, union type FE.
+- Khi cần mã: **không** mint token, **không** set cookie. `AuthResponse` thêm `otp_required` (omitempty) thay vì tạo response type mới.
+- FE `useLoginFlow` short-circuit **trước** `authService.me()` — nếu không nó gọi `/users/current` khi chưa có cookie, 401 sẽ latch `authFailed = true` ở interceptor và giết auto-refresh cả session. Dùng chung cho **cả 2** mặt login (`LoginPage` + `LoginView` modal), sửa email thì reset bước mã.
+
+**Test (revert để chứng minh):**
+| Test | Revert gì | Kết quả |
+|---|---|---|
+| `TestLogin2FAWithholdsTokensUntilTheCodeIsVerified` | bỏ gate | đỏ "signin did not ask for a second factor" |
+| `TestLogin2FADoesNotLockOutOPDSBasicAuth` | **dời gate xuống `authenticate`** | đỏ "OPDS catalog returned 500" |
+
+Cộng `TestLogin2FAFallsOpenWhenSMTPIsUnusable` (SMTP tắt → vẫn vào được, không `otp_required`), `TestLogin2FAOffKeepsPlainSignin`, và assert ticket không replay được lần hai.
+
+### 🟡 P4-5. Webhook `job.failed` — [x]
+`jobService.Failed()` là chokepoint **duy nhất**: mọi job hỏng đi qua đây sau khi `pkg/worker/queue.go:152` hết retry. Dispatch một chỗ, phủ hết 12 job type. `SetWebhookService` setter injection vì `webhookService` cần chính `queue` mà `jobService` sở hữu — đảo thứ tự dựng không phá được vòng.
+Payload chỉ `job_id` / `job_type` / `error`. **Không** nhét payload gốc: nó chứa đường dẫn file tuyệt đối.
+`job.failed` là event **thứ 5** và cả 4 cái trước đều đã có producer thật (`reading.completed` là cái vừa sửa ở phase 3).
+**Test:** `TestJobFailedDispatchesWebhookOnce` — job thành công **không** gửi mail, job hỏng gửi đúng 1 mail chứa `job_type` + error. Bỏ dispatch → đỏ "an exhausted job did not dispatch job.failed". Cộng `TestJobFailedStillRecordsWithoutWebhookService` (webhook nil vẫn ghi `status=failed`, `error_msg`).
+
+### 🔴 P4-6. PWA — "web đổi thì PWA phải đổi theo" — [x]
+Đây là câu hỏi gốc. Ba phát hiện, verify trực tiếp:
+
+1. **PWA từng bị dập bằng búa.** `web/src/main.tsx:169-177` unregister **mọi** service worker mỗi lần load, có từ commit `init`. `vite.config.ts:6` import `VitePWA` nhưng **không có trong mảng `plugins`** — import chết, `tsc` không bắt vì tsconfig tắt `noUnusedLocals`. Icon `pwa-192x192.png`/`pwa-512x512.png` đã tồn tại, không có manifest. Đây là tàn dư của một lần PWA cache lỗi. **Xoá block unregister mà không có cơ chế update = tái hiện đúng lỗi cũ.**
+2. **`sw.js` bị cache 1 năm là nguyên nhân gốc.** `server.go` set `MaxAge: 31536000` cho **mọi** file trong `dist`. Service worker cũ bị đóng băng vĩnh viễn → client không bao giờ biết có bản mới. Đã cho `sw.js` / `registerSW.js` / `manifest.webmanifest` **`no-store`** qua `ModifyResponse` của static middleware (một handler, không tự viết file server).
+3. **`/locales/*.json` là bug có thật, độc lập với PWA.** File từ `public/` nên **không có content-hash**, mà lại `max-age=31536000`. Sửa bản dịch xong browser cũ không bao giờ thấy. Cùng lỗi với `favicon.ico`, `logo.svg`, `pwa-*.png`. Nhóm này giờ `max-age=300`; `assets/*` (đã hash) giữ 1 năm.
+
+- `registerType: "prompt"`, **không** `autoUpdate`: người đang đọc giữa chương không bị đổi trang dưới chân. Revision của precache manifest đổi theo hash `assets/*` mỗi build → đó chính là thứ làm `onNeedRefresh` bắn, **không cần** endpoint version mới.
+- **`/api/**` không bao giờ cache.** Auth là cookie HTTPOnly và URL **không** chứa gì phân biệt user → cache hit sẽ cho user A xem thư viện/tiến độ của user B trên máy chung, và vẫn trả dữ liệu sau khi logout. `/api/` chỉ xuất hiện đúng 1 lần trong `sw.js`: ở `navigateFallbackDenylist` (nếu không, API call lúc offline sẽ resolve thành `index.html`).
+- Google Fonts cross-origin → `CacheFirst` + `cacheableResponse: {statuses: [0, 200]}` (response opaque là status 0, thiếu là không cache được gì).
+- `/reader/:id/file` và audio **không** vào runtime cache: hai đường này dùng byte-range (`Accept-Ranges`), workbox xử lý 206 sai nếu không có `RangeRequestsPlugin`.
+
+**Test:**
+| Test | Revert gì | Kết quả |
+|---|---|---|
+| `TestServiceWorkerAndManifestAreNotCached` | bỏ nhánh `no-store` | đỏ `/sw.js Cache-Control = "public, max-age=31536000"` — đúng lỗi gốc |
+| `TestRevisionlessAssetsUseAShortMaxAge` | — | `/locales/*.json`, favicon, logo, icon không được có max-age 1 năm |
+| `TestHashedAssetsKeepTheLongMaxAge` | — | `assets/*.js` vẫn giữ 1 năm |
+| `TestServiceWorkerNeverCachesTheAPI` | — | parse `sw.js` thật, mọi `registerRoute` không phải `NavigationRoute` đều không được khớp `/api` |
+
+### 🟡 P4-7. PWA tải sách về đọc offline — [x]
+- `web/src/lib/offlineStore.ts` — IndexedDB native, **không thêm dep**: 2 object store và 5 operation không đủ để đánh đổi một dependency. Store `books` (metadata + danh sách chương) và `chapters` (HTML, key `bookId:chapterId`).
+- Tải tuần tự từng chương, không song song: sách có thể hàng trăm chương, bắn hết một lúc sẽ giành hết băng thông với chính request của reader — trên điện thoại là khác biệt giữa "tải xong" và "treo".
+- **Ghi row `books` sau cùng.** Ngược lại thì một quyển "ready" nhưng thiếu chương sẽ đọc offline được nửa đường rồi vỡ. Lỗi giữa đường → xoá sạch quyển đó.
+- Reader là **network-first, không cache-first**: online vẫn ưu tiên mạng để admin sửa metadata là thấy ngay. IndexedDB chỉ dùng khi request thật sự fail. Chương chưa tải báo lỗi rõ ràng thay vì trắng trang.
+- **Xoá sạch khi logout** (`useLogoutMutation`). Nội dung sách là dữ liệu riêng; để lại trên máy chung là cho người sau đọc thư viện của người trước.
+- `navigator.storage.estimate()` hiện dung lượng trong modal "Sách đã lưu offline" (vào từ menu user, không thêm route).
+
+**Test:** `web/src/lib/offlineStore.test.ts` (vitest + `fake-indexeddb`) — round-trip, xoá đúng phạm vi, `clearAll` không để lại gì. Đổi `chapterKey` thành chỉ `chapterId` → đỏ "deletes only the requested book's chapters" (hai quyển dùng cùng chapter id sẽ xoá lẫn nhau).
+
+### Chốt cuối phase 4
+`gofmt -l` sạch, `go build ./...`, `go vet ./...`, `go test ./...` **toàn bộ xanh**, `make sqlc` không drift, `bunx tsc --noEmit` sạch, `bun run build` OK, `bun run test` 22/22, parity locale **816 key × 5 ngôn ngữ** + placeholder khớp, 0 component gọi `api.*` trực tiếp.
+
+### Không làm trong phase 4
+- **CI** — người dùng nói chưa cần.
+- **CSRF / metrics / API-key** (tầng 3) — ngoài phạm vi.
+
+Verify bằng revert: tắt dispatch → fail "did not dispatch"; bỏ so sánh với `existing` → fail "fired twice".
+
+Cả 4 event trong `WebhookModal` giờ đều có producer (`book.created` 1, `book.deleted` 2, `metadata.updated` 1, `reading.completed` 1) → FE không cần đổi.
+
+---
+
+## Phase 5 — trả lời 8 câu hỏi của phase 4
+
+Sáu việc, theo đúng quyết định của người dùng trong `PHASE4_CAN_HOI.md`.
+
+### 🔴 P5-1. Bốn bug có sẵn — [x]
+
+**(1) `OptionalJwtAccess` hạ cấp thành guest im lặng.** Middleware không phân biệt "không có token" với "token hỏng": cả hai đều thành guest + 200. Interceptor FE chỉ refresh khi thấy 401 (`web/src/config/api.ts:81`), nên token hết hạn giữa chừng = thư viện tự rỗng đi, không có cách nào lấy token mới.
+**Đã sửa:** `ErrorHandler` phân biệt `extractors.ErrNotFound` (không có credential → guest) với mọi lỗi khác (có credential mà hỏng → 401). `jwtSuccess` bỏ luôn 3 nhánh `fallbackToGuest` còn lại — token đã parse xong thì mọi từ chối sau đó đều là credential bị chối, không phải khách vãng lai. `optional` giờ chỉ còn quyết định banned trả 403 hay xem như guest.
+**Test:** `cmd/api/optionalauth_test.go` — không token → 200, token đúng → 200, token rác → 401, sau logout (token_version bump) → 401, cookie hỏng → 401. Revert nhánh phân biệt → đỏ "got 200, want 401".
+
+**(2) `userService.go` deref `claims` không guard.** `DeleteUser` nhận `claims` từ controller **kể cả khi type assertion fail** (`if ok && ...` rồi vẫn truyền xuống), và service deref `claims.UId` thẳng. Chưa chạm tới được vì route có `JwtAccess`, nhưng là nil deref chờ sẵn.
+**Đã sửa:** ở **controller**, không ở service — 5/6 handler đã có guard `if !ok { return 401 }`, chỉ `DeleteUser` thiếu. Thêm cho khớp. Không tạo helper `callerID()` bọc `claims.UId`: root cause nằm ở chỗ truyền, không phải chỗ đọc.
+
+**(3) `scan_library_inbox` thiếu trong `ListTasks`.** `order` là bản sao chép tay của map `tasks`, và task này chỉ có trong map → admin không bấm được dù backend có handler. Ngược lại `prune_finished_jobs` có trong `order` nhưng **thiếu label locale** ở cả 5 file.
+**Đã sửa:** `ListTasks` append mọi key trong map mà `order` không liệt kê (sorted), nên task mới không bao giờ biến mất lặng nữa. Thêm `prune_finished_jobs` vào 5 locale.
+**Test:** `internal/services/jobTasks_test.go` — mọi key trong map phải xuất hiện đúng một lần và có description; mọi task phải có label trong cả 5 locale. Revert `order` → đỏ "scan_library_inbox is in the tasks map but not in ListTasks".
+
+**(4) Chip series lọc sai.** Không phải chỉ thiếu `facet_id` như báo cáo ban đầu — resolver ở `LibraryWorkspace.tsx:472` **có** fallback theo tên, nhưng nó bail (`if (!matched && !facetId) return`) khi `section.items` rỗng, mà items chỉ nạp khi `activeNav` đã là facet đó, mà chính effect này mới là chỗ set `activeNav`. Deadlock: chip tên-only không bao giờ mở được gì. Chip tag/author/publisher **cùng lỗi**.
+**Đã sửa:** khi chưa resolve được, đổi `activeNav` trước rồi return — vòng sau danh sách facet đã nạp và tên khớp được. Một sửa ở resolver, mọi chip hưởng. Riêng chip series trên `BookDetailPage` giờ lấy `series_id` thật từ API (xem P5-6) nên đi thẳng, không cần vòng hai.
+
+### 🔴 P5-2. Thay 2FA email bằng TOTP — [x]
+Người dùng chọn TOTP kiểu Google Authenticator thay cho OTP-qua-email đã build ở phase 4. Đây là **cơ chế khác hẳn**, không phải đổi cấu hình: secret nằm trên máy người dùng, server không gửi gì.
+**Hệ quả tốt nhất: câu hỏi số 2 (fail-open) biến mất hoàn toàn.** TOTP không cần SMTP, nên "bật 2FA + SMTP chết = khoá hết mọi người" không còn tồn tại — không phải chọn giữa fail-open và fail-closed nữa.
+
+- `pkg/totp/` — RFC 6238 bằng stdlib (`crypto/hmac`, `crypto/sha1`, `encoding/base32`), **không thêm dependency**. QR dùng `qrcode.react` + component `CustomQRCode` **đã có sẵn** trong repo.
+- `db/schema/99b_user_totp.sql` — `user_totp` (secret mã hoá bằng `crypto.EncryptAES`, giống `smtp.password`) + `user_totp_recovery_codes` (hash SHA-256, dùng một lần).
+- Gate vẫn ở `Signin`, **không** ở `authenticate` — `ValidateCredentials` dùng chung đường đó và là cổng OPDS/Kobo Basic auth, máy đọc sách không gõ được mã.
+- **Chống replay:** một mã TOTP hợp lệ suốt 3 bước (~90 giây), nên mã bị nhìn trộm dùng lại được. Đốt counter đã dùng vào cache, TTL 2 phút.
+- Bỏ sạch đường email-2FA: `OTPPurposeLogin2FA`, setting `auth.login_2fa_enabled`, toggle admin, helper `login2FARequired`, mail body. Xoá `cmd/api/login2fa_test.go`.
+- Enrol/disable ghi audit (`totp.enable` / `totp.disable`).
+
+**Test:** `pkg/totp/totp_test.go` verify bằng **6 vector công bố trong RFC 6238 Appendix B** — đúng chuẩn chứ không phải đúng với chính nó. `cmd/api/totp_test.go` chạy qua HTTP thật: enrol → confirm → login đòi mã; mã sai bị chối; **mã dùng lại bị chối**; recovery code dùng được đúng một lần; OPDS Basic auth vẫn 200; hoạt động khi **không có SMTP nào**; disable thì login lại bình thường.
+**Revert chứng minh:** bỏ gate ở `Signin` → 4 test đỏ. Dời gate xuống `authenticate` → "OPDS catalog returned 500" — đúng cái bẫy đã lo từ phase 4.
+
+### 🔴 P5-3. Audit log ghi giá trị an toàn — [x]
+Người dùng muốn ghi giá trị thật, chỉ thứ nhạy cảm mới ghi chung chung.
+**Đã sửa:** `secretSettingKey()` — chỉ `smtp.password` là bí mật, vì đó là key duy nhất admin UI **không** đọc lại được (`GET /settings` trả `PasswordConfigured: bool`, không trả giá trị). Mọi key khác đã hiện công khai trong UI nên giấu khỏi audit chỉ làm log vô dụng mà không bảo vệ gì. Cùng hàm đó dùng lại cho nhánh mã hoá trong `UpdateSettings` — một danh sách, hai chỗ dùng, không lệch nhau được.
+`SettingsAuditLabel` sort theo key (map order không lọt vào log), cắt giá trị > 60 ký tự, secret ghi `smtp.password = (updated)`.
+**Test:** `auditSettings_test.go` + `TestAuditSettingsUpdateRecordsValuesButNotTheSMTPPassword` chạy qua HTTP thật — mật khẩu không có trong `audit_logs` **và** không có dạng plaintext trong `app_settings`. Bỏ nhánh redact → đỏ, in ra đúng mật khẩu.
+
+### 🔴 P5-4. `/offline` thành route riêng — [x]
+Modal → trang `/offline`, vào từ menu avatar. **Không** thêm vào `SIDEBAR_LABELS` đúng như yêu cầu. Xoá `OfflineBooksModal.tsx`.
+
+### 🔴 P5-5. Offline cho mọi loại sách + quyền + cảnh báo — [x]
+
+**Cảnh báo cho *mọi* sách, không chỉ comic/audio.** `OfflineWarningModal` nói rõ sẽ tải **toàn bộ** sách, kèm dung lượng thật từ `size_bytes` của file đang chọn, có checkbox "không nhắc lại trong một ngày" (localStorage — đây là lựa chọn theo máy về một cache theo máy, không đáng một vòng gọi server).
+
+**Quyền `book.offline`.** `db/schema/99c_book_offline_permission.sql` cấp cho **đúng các role đang có `book.download`** bằng cách copy từ `role_permissions` — không hardcode danh sách, nên không lệch được. GUEST cố tình **không** có: bản offline sống lâu hơn phiên ẩn danh tạo ra nó và nằm lại trên máy chung. Thêm vào `GetDefaultPermissionsForRole` (USER/MOD/ADMIN) và category "Book Reading & Discovery" ở `Roles.tsx`. File schema mới vì sửa file đã applied là no-op.
+
+**Comic + audio đọc offline thật.** Không dùng service worker (`/api/*` vẫn tuyệt đối không cache — cookie auth, không có key phân biệt user, cache là rò dữ liệu sang người khác). Thay vào đó object store `blobs` trong IndexedDB:
+- Sách chữ/comic: tải HTML từng chương, **parse ra các URL `/asset/`** rồi tải từng ảnh về làm blob.
+- PDF/audio: tải thẳng file gốc qua `/reader/:id/file`.
+- Khi offline, `useOfflineAssets` đổi `src` sang `blob:` URL và **revoke đúng lúc** — không revoke thì mỗi lần lật trang comic rò hàng trăm object URL.
+- `deleteBook` chuyển sang xoá theo `IDBKeyRange` thay vì duyệt danh sách chương trong row `books`: bản tải dở (chết trước khi ghi row) trước đây để lại rác vĩnh viễn.
+
+**Test:** 6 test trong `offlineStore.test.ts`. Revert về xoá-theo-entry → đỏ 2 test: blob mồ côi, và chương của bản tải dở sống sót.
+
+### 🔴 P5-6. Next-in-series (kèm bug chip series) — [x]
+- `db/query/series.sql` — `GetBookSeries` (trả **`series_id`** cho chip) + `GetNextBookInSeries` (row-value comparison, sắp theo `series_index` số trước rồi `created_at`, **cùng thứ tự** `ListSeriesWithCount` dùng để chọn cover). Đã probe thật trên modernc SQLite trước khi xây tiếp — row-value comparison không phải lúc nào cũng có.
+- Đọc từ bảng `book_series`, **không** từ `metadata_json` — đó là nguồn đúng, và là nửa còn lại của bug chip.
+- **Lọc quyền per-caller, không cache theo sách:** `GetBook` + `CanReadBook` cho quyển kế tiếp. Guest bị giới hạn thư viện **không** được biết tên sách ở thư viện khác.
+- Bỏ qua sách `archived` — gợi ý một quyển ẩn khỏi catalog là đẩy người đọc vào trang không mở được.
+- FE: card "Tiếp theo trong bộ" ở `BookDetailPage`, chip series dùng `facet_id` thật.
+
+**Test:** `cmd/api/series_test.go` 4 test. Bỏ lọc quyền → đỏ "a guest was shown the next book from a library they cannot read". Bỏ lọc archived → đỏ "an archived book was offered". Test visibility có **probe tự kiểm**: nếu guest đọc được sách ẩn trực tiếp thì fail ngay với "this test cannot detect a leak" — test không bao giờ xanh giả.
+
+### 🔴 P5-7. Hai deferral cuối — [x]
+
+Khi khảo sát để làm thì **báo cáo cũ đã lỗi thời một nửa và giấu một bug thật**.
+
+**(a) "19 chỗ `errors.Is(sql.ErrNoRows)` ở 10 file service" — đã xong từ phase 4.** `grep` trong `internal/services/` trả **0 kết quả**; `apperrors.IsNotFound` đã thay hết. 10 chỗ còn lại nằm ở **repository** — nơi *sinh ra* lỗi, không phải nơi so sánh, nên không thuộc mô tả cũ. Repository trả `sql.ErrNoRows` thô là **đúng convention hiện tại** (`bookCatalogRepository.go:120`, không repo nào import `apperrors`) và `IsNotFound` che cả hai cách viết.
+
+**(b) Bug thật: `GetReadingProgress` trả `(nil, nil)`.** `featureRepository.go:352` nuốt `sql.ErrNoRows` thành nil-không-lỗi, nên nhánh `IsNotFound` ở `featureService.go:145` **không bao giờ chạy** — code chết. Hệ quả thấy được ở Kobo: `readingState()` trả `hasState=true` cho quyển **chưa từng mở**, nên **mọi** sách trong thư viện đều được đẩy kèm `ReadingState` rỗng, tức là báo với máy đọc rằng server có vị trí đọc cho quyển chưa ai mở. Vi phạm `AGENTS.md:41`.
+**Đã sửa:** bỏ nhánh nuốt lỗi. Rà hết 6 caller: `featureService.go:176` (trong tx) đổi thành `err != nil && !IsNotFound(err)` — lần đọc đầu tiên **phải** đi tiếp với `existing == nil`; 5 caller còn lại đã check sẵn nên tự khỏi.
+**Không đụng 7 site `ErrNoRows` còn lại** trong cùng file: chúng trả **giá trị zero có nghĩa** (`&BookReadStatsEntity{BookID}` = "0 lượt đọc") hoặc nil được caller đọc đúng (`bookmark != nil` = "chưa bookmark"). Đổi thành lỗi là biến "chưa có dữ liệu" thành 404 ở màn hình chi tiết sách.
+
+**(c) `trackerRepository.go:63,168` nuốt lỗi DB thật.** `if err != nil || len(rows) == 0 { return nil, sql.ErrNoRows }` gộp hai thứ khác hẳn nhau: database hỏng bị báo cáo thành "không tồn tại", tức là 404 thay vì 500. Đã tách hai nhánh.
+
+**(d) "6 type sai chỗ" — chỉ 3 cái thật sự phải chuyển.**
+- `MetadataFacetQuery` → **xoá**, dùng `request.MetadataFacetDto` **đã tồn tại** (copy 1-1 đúng 4 field; controller copy tay rồi vứt DTO gốc). Clamp `limit` **giữ nguyên trong service**: `pkg/validator` chỉ chạy trên đường HTTP, service không được tin caller.
+- `OPDSPageQuery` → `request.OPDSPageDto`. `UpdateCoverInput` → `request.UpdateCoverDto`. `TrackerSearchResult` → `response.TrackerSearchResultResponse`.
+- `BookmarkedBooksPage` → **`internal/models`**, không phải `dtos/response`: nó chứa `[]*models.BookEntity` mà `models` đã import `response` (`models/audit.go:6`) → đảo chiều là import cycle. Cùng chỗ với `ReaderBootstrapEntity`/`BookFileUploadResult` đã nằm sẵn.
+- `PermissionContext` → **xoá hẳn**, không phải chuyển. Nó là context value (cặp với `WithPermissionContext`), không phải input/output service, và 2 field của nó (`RoleIDs`, `Roles`) **đã có nguyên vẹn** trong `response.JWTClaims` — middleware chỉ copy ra để nhét lại vào context. Giờ truyền thẳng `*response.JWTClaims`, thêm guard nil ở `accessCache.go:114`.
+
+**(e) Bug thừa chưa ai báo:** `trackerController.go:100-108` **dựng lại bằng tay** `[]fiber.Map` với đúng 4 key trùng tên json tag đã có sẵn trên struct. Đã xoá, trả thẳng `results`.
+
+**Test:**
+- `cmd/api/kobo_contract_test.go` — sách chưa mở **không** có `ReadingState`; sách đã mở **có**, kèm progress. Revert repo → đỏ "an unopened book was synced with a ReadingState". Test thứ hai là bản đối chiếu: nếu ai đó "sửa" bằng cách bỏ luôn `ReadingState` khỏi sync thì test đầu vẫn xanh, test này đỏ.
+- `internal/services/readingProgressNotFound_test.go` — sách chưa mở trả `ErrNotFound`, không phải nil-không-lỗi.
+- `internal/repositories/trackerRepository_test.go` — drop bảng rồi query: lỗi DB **không** được báo thành not-found. Revert nhánh gộp → đỏ "a failing query was reported as not-found".
+- `internal/services/metadataFacetLimit_test.go` — gọi thẳng service (bỏ qua validator) với `limit=5000/0/-1/nil`, page size luôn trong `(0, 100]`. Revert clamp → đỏ "produced page size 5000".
+- `internal/dtos/response/tracker_test.go` — chốt **đúng 4 key** trên dây (`external_series_id`, `title_english`, `title_romaji`, `media_type`) khớp `web/src/types/tracker.ts:18`. Đây là thứ duy nhất bắt được đổi tên key sau khi xoá map tay.
+- `TestRecordReadingActivityCountsEveryConcurrentOpen` có sẵn phủ luôn đường ghi lần đầu: bỏ `!IsNotFound(err)` → đỏ "sql: no rows in result set".
+
+**FE không đổi một dòng** — mọi thay đổi là type nội bộ Go, JSON trên dây giữ nguyên. `tsc` sạch, `bun run test` 25/25, `bun run build` OK là bằng chứng.
+
+### Chốt cuối phase 5
+`gofmt -l` sạch, `go build ./...`, `go vet ./...`, `go test ./...` **toàn bộ xanh**, `make sqlc` không drift, `bunx tsc --noEmit` sạch, `bun run build` OK, `bun run test` 25/25, parity locale **844 key × 5 ngôn ngữ** + placeholder khớp, 0 component gọi `api.*` trực tiếp.
+
+**Sửa kèm (bug có sẵn, không do phase 5):** `library.bulk_tag_subtitle` ở ja/ko/zh thiếu `{{count}}` — con số không bao giờ hiện. Đã verify bằng `git show HEAD` là có trước lượt này.
 
 ### 🔴 A2. Phân trang admin books chết — [x] *(gộp E5)*
 - `web/src/stores/bookAdminStore.ts:186` destructure `page` rồi **không dùng**; luôn gửi `cursor: undefined, limit: 24`.
@@ -521,6 +787,6 @@ Verify tay, không chỉ tin báo cáo:
 ## Deferral có ý thức
 
 - **B5 CSRF** — xem mục B5.
-- **`OptionalJwtAccess` hạ cấp thành guest im lặng** — token hết hạn trên ~20 route read trả 200 với ít dữ liệu thay vì 401, nên interceptor auto-refresh của FE (`web/src/config/api.ts`) không bao giờ kích hoạt. Đúng thiết kế (guest browsing), nhưng gây UX khó hiểu khi token hết hạn giữa chừng. Cần quyết định riêng, không gộp vào lượt này.
-- **Type input/output định nghĩa ở service thay vì `internal/dtos`** — `OPDSPageQuery`, `MetadataFacetQuery`, `TrackerSearchResult`, `UpdateCoverInput`, `BookmarkedBooksPage`, `PermissionContext`. Cùng lỗi vừa sửa ở K9 nhưng có **trước** lượt này, và `MetadataFacetQuery` còn là bản copy 1-1 của `request.MetadataFacetDto` **đã tồn tại** — controller copy 4 field sang rồi vứt. Sửa kèm vào diff refactor Kobo sẽ làm diff không review được. Quyết riêng.
-- **`errors.Is(err, sql.ErrNoRows)` lặp 19 chỗ ở 10 file service** — ứng viên rõ cho `apperrors.IsNotFound(err)`: một guard, mọi caller đi qua. Đã chọn inline trong Kobo ở lượt này để giữ phạm vi; gom lại là task riêng.
+- ~~**`OptionalJwtAccess` hạ cấp thành guest im lặng**~~ — **đã sửa ở P5-1**: không có token → 200 guest, có token mà hỏng/hết hạn → 401.
+- ~~**Type input/output định nghĩa ở service thay vì `internal/dtos`**~~ — **đã làm ở P5-7**. Chỉ 3/6 thật sự phải chuyển; `BookmarkedBooksPage` vào `internal/models` (import cycle nếu vào `response`), `PermissionContext` bị **xoá** chứ không chuyển.
+- ~~**`errors.Is(err, sql.ErrNoRows)` lặp 19 chỗ ở 10 file service**~~ — **mô tả sai, đã đóng ở P5-7**. Trong `internal/services/` còn **0 chỗ** (xong từ phase 4). 10 chỗ còn lại ở repository là đúng convention; nhưng một trong số đó (`GetReadingProgress`) là bug thật và đã sửa.

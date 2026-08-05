@@ -134,7 +134,8 @@
         "jobs": "ジョブ",
         "schedules": "スケジュール",
         "logs": "ログ",
-        "backups": "バックアップ"
+        "backups": "バックアップ",
+        "audit": "監査"
       },
       "run_task": "メンテナンスを実行",
       "run_now": "今すぐ実行",
@@ -162,7 +163,9 @@
         "extract_metadata": "メタデータ抽出",
         "hash_file": "ファイルハッシュ",
         "index_book": "書籍インデックス",
-        "webhook.dispatch": "Webhook送信"
+        "webhook.dispatch": "Webhook送信",
+        "prune_audit_logs": "監査ログを整理",
+        "prune_finished_jobs": "完了ジョブの削除"
       },
       "job_queued": "ジョブを登録しました",
       "action_failed": "操作に失敗しました",
@@ -200,8 +203,25 @@
         "mib": "MiB",
         "gib": "GiB"
       },
-      "no_backups": "バックアップはありません"
-    }
+      "no_backups": "バックアップはありません",
+      "audit_action": "操作",
+      "all_actions": "すべての操作",
+      "audit_total": "{{count}} 件",
+      "audit_retention": "90日間保持",
+      "audit_time": "時刻",
+      "audit_actor": "実行者",
+      "audit_target": "対象",
+      "audit_ip": "IP",
+      "audit_system": "システム",
+      "audit_empty": "監査ログはまだありません"
+    },
+    "action_send_email": "メールを送信",
+    "send_email_title": "メールを送信",
+    "send_email_desc": "登録されているアドレスに送信します:",
+    "email_subject": "件名",
+    "email_body": "本文",
+    "send_email": "送信",
+    "email_sent": "メールを送信しました"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -225,7 +245,25 @@
     "full_name": "氏名",
     "optional": "(任意)",
     "password_min": "8文字以上",
-    "unexpected_error": "予期しないエラーが発生しました"
+    "unexpected_error": "予期しないエラーが発生しました",
+    "otp_send": "確認コードを送信",
+    "otp_sent_to": "{{email}} に 6 桁のコードを送信しました。",
+    "otp_code": "確認コード",
+    "otp_verify": "コードを確認",
+    "otp_resend": "コードを再送",
+    "otp_resend_in": "{{seconds}} 秒後に再送できます",
+    "otp_verified": "メールアドレスを確認しました",
+    "forgot_password": "パスワードをお忘れですか？",
+    "reset_title": "パスワードの再設定",
+    "reset_desc": "ご本人確認のため、コードをメールでお送りします。",
+    "reset_submit": "新しいパスワードを設定",
+    "new_password": "新しいパスワード",
+    "back_to_login": "ログインに戻る",
+    "reset_disabled": "パスワード再設定は無効です",
+    "reset_disabled_desc": "メールによるパスワード再設定は現在無効です。管理者にパスワードの再設定を依頼してください。",
+    "totp_prompt": "認証アプリの6桁のコード、またはリカバリコードを入力してください。",
+    "totp_code": "認証コード",
+    "totp_verify": "確認してサインイン"
   },
   "common": {
     "cancel": "キャンセル",
@@ -258,7 +296,9 @@
     "apply": "適用",
     "share": "共有",
     "download": "ダウンロード",
-    "load_more": "もっと読み込む"
+    "load_more": "もっと読み込む",
+    "previous": "前へ",
+    "next": "次へ"
   },
   "library": {
     "ready_to_read": "読む準備ができました",
@@ -272,7 +312,7 @@
     "select_target_library": "移動先ライブラリを選択...",
     "move": "移動",
     "bulk_tag_title": "選択した本にタグを追加",
-    "bulk_tag_subtitle": "コンマ区切りでタグを入力してください:",
+    "bulk_tag_subtitle": "コンマ区切りでタグを入力し、{{count}} 冊の本に追加します:",
     "tag_input_placeholder": "例: ファンタジー, アクション",
     "processing": "処理中...",
     "by_author": "著",
@@ -547,7 +587,8 @@
     "description": "あらすじ",
     "bookmarks": "ブックマーク数",
     "collections": "コレクション数",
-    "no_description": "あらすじはありません。"
+    "no_description": "あらすじはありません。",
+    "next_in_series": "シリーズの次の巻"
   },
   "settings": {
     "title": "設定",
@@ -653,14 +694,9 @@
     "permission_webhook_manage": "Webhook および通知連携の管理",
     "permission_book_share": "書籍の共有と共有リンクの生成",
     "send_to_kindle": "Kindle に送信",
-    "smtp_settings": "SMTP メール送信サーバー設定",
-    "smtp_subtitle": "Send-to-Kindle およびシステム通知用の送信メールサーバーを設定します。",
     "smtp_host": "SMTP ホスト",
     "smtp_port": "ポート",
-    "smtp_user": "ユーザー名 / メール",
-    "smtp_pass": "パスワード / アプリシークレット",
     "smtp_from": "送信元メールアドレス",
-    "test_smtp": "接続テスト",
     "runtime_limits": "ランタイム制限",
     "runtime_limits_desc": "アップロード、画像、一時セッションのサイズ制限を管理します。",
     "save_runtime_limits": "制限を保存",
@@ -681,7 +717,33 @@
     "unit_mib": "MiB",
     "unit_minutes": "分",
     "unit_count": "件",
-    "limit_range": "許容範囲: {{min}}～{{max}}"
+    "limit_range": "許容範囲: {{min}}～{{max}}",
+    "smtp_title": "メール (SMTP)",
+    "smtp_desc": "Send-to-Kindle とシステム通知に使う送信メールサーバー。",
+    "smtp_enabled": "有効",
+    "smtp_username": "ユーザー名",
+    "smtp_password": "パスワード",
+    "smtp_password_placeholder": "アプリパスワード",
+    "smtp_password_keep": "空欄のままにすると保存済みのパスワードを維持します",
+    "smtp_password_clear": "保存済みのパスワードを削除",
+    "smtp_tls_mode": "暗号化",
+    "smtp_tls_none": "なし (信頼できるネットワークのみ)",
+    "smtp_tls_starttls": "STARTTLS (通常はポート 587)",
+    "smtp_tls_implicit": "暗黙的 TLS / SSL (通常はポート 465)",
+    "smtp_allow_private": "プライベート / ローカルのメールサーバーを許可",
+    "smtp_allow_private_desc": "LAN、localhost、同一ホストのコンテナにあるメールサーバーを使う場合に必要です。インターネットのプロバイダーを使う場合はオフのままにしてください。",
+    "smtp_test": "接続テスト",
+    "smtp_test_success": "SMTP 接続に成功しました",
+    "smtp_saved": "SMTP 設定を保存しました",
+    "save_smtp": "SMTP を保存",
+    "require_email_verify": "メール確認を必須にする",
+    "require_email_verify_desc": "新しいアカウントは、メールで送られたコードを確認しないと作成されません。",
+    "password_reset_enabled": "メールでのパスワード再設定を有効にする",
+    "password_reset_enabled_desc": "「パスワードをお忘れですか？」を表示し、メールのコードで再設定できるようにします。",
+    "needs_smtp": "有効にするには下の SMTP を設定してください。",
+    "template_email": "メール (SMTP)",
+    "email_recipients": "宛先",
+    "email_recipients_hint": "mailto: の後にカンマ区切りでアドレスを指定します。SMTP の設定が必要です。"
   },
   "email": {
     "invalid": "有効なメールアドレスを入力してください",
@@ -787,5 +849,46 @@
     "complete_setup": "セットアップ完了",
     "setup_failed": "セットアップに失敗しました",
     "unexpected_error": "予期しないエラーが発生しました"
+  },
+  "pwa": {
+    "update_available": "新しいバージョンがあります。",
+    "reload": "再読み込み",
+    "later": "後で"
+  },
+  "offline": {
+    "save": "オフライン用に保存",
+    "remove": "オフラインデータを削除",
+    "chapter_unavailable": "この章はオフラインでは利用できません。接続中に本を保存してください。",
+    "title": "オフラインの本",
+    "empty": "オフライン用に保存した本はありません",
+    "usage": "{{quota}} のうち {{used}} 使用",
+    "saved_at": "{{date}} に保存",
+    "chapter_count": "{{count}} 章",
+    "warning_title": "本を丸ごとダウンロードしますか？",
+    "warning_body": "「{{title}}」をこの端末に完全にダウンロードし、オフラインで読めるようにします。",
+    "warning_body_with_size": "「{{title}}」をこの端末に完全にダウンロードします（{{size}}）。オフラインで読めるようになります。",
+    "warning_storage_note": "削除するまでブラウザのストレージを使用し、サインアウト時に削除されます。",
+    "warning_dont_remind": "1日間表示しない",
+    "warning_confirm": "ダウンロード"
+  },
+  "totp": {
+    "title": "二要素認証",
+    "on": "オン",
+    "off": "オフ",
+    "subtitle": "サインイン時に認証アプリのコードを要求します。",
+    "begin": "二要素認証を設定する",
+    "scan_instructions": "認証アプリでこれをスキャンし、表示されたコードを入力してください。",
+    "manual_entry": "または、このキーを手動で入力:",
+    "confirm": "確認",
+    "current_code": "現在のコード",
+    "regenerate_codes": "新しいリカバリコード",
+    "disable": "オフにする",
+    "disable_confirm": "アカウントの二要素認証をオフにしますか？",
+    "enabled_toast": "二要素認証がオンになりました。",
+    "disabled_toast": "二要素認証がオフになりました。",
+    "recovery_regenerated": "新しいリカバリコードを生成しました。古いコードは使用できません。",
+    "recovery_remaining": "残りのリカバリコード: {{count}}",
+    "recovery_warning": "これらのリカバリコードを今すぐ保存してください。各コードは一度だけ使用でき、携帯電話を紛失した場合の唯一の手段です。再表示されません。",
+    "copy_codes": "コードをコピー"
   }
 }

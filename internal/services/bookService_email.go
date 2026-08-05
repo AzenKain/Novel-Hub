@@ -39,19 +39,12 @@ func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipi
 		Filename: filepath.Base(targetFile.Path),
 		Path:     targetFile.Path,
 	}
-	smtpHost := "smtp.gmail.com"
-	smtpPort := 587
-	smtpUser := ""
-	smtpPass := ""
-	fromEmail := "noreply@novelhub.local"
 
-	m := mailer.NewSMTPMailer(mailer.SMTPConfig{
-		Host:      smtpHost,
-		Port:      smtpPort,
-		Username:  smtpUser,
-		Password:  smtpPass,
-		FromEmail: fromEmail,
-	})
+	smtpConfig, err := s.settings.SMTP(ctx)
+	if err != nil {
+		return err
+	}
+	m := mailer.NewSMTPMailer(smtpConfig)
 
 	subject := fmt.Sprintf("[NovelHub] Send to Kindle: %s", book.Title)
 	body := fmt.Sprintf("Enjoy reading '%s' on your Kindle or e-reader device!", book.Title)

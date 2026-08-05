@@ -22,7 +22,9 @@ import {
   Globe,
   Building,
   Play,
-  RotateCcw
+  RotateCcw,
+  CloudDownload,
+  CheckCircle2
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
@@ -30,6 +32,7 @@ import { getMediaUrl } from "@/config/api";
 import { bookService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard } from "@/components/book-detail";
+import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
@@ -42,7 +45,9 @@ import {
   useBookEngagementStatsQuery,
   useToggleBookmarkMutation,
   useAddBookToCollectionMutation,
-  useRemoveBookFromCollectionMutation
+  useRemoveBookFromCollectionMutation,
+  useOfflineBook,
+  useBookSeriesQuery
 } from "@/hooks";
 
 export const BookDetailPage: React.FC = () => {
@@ -58,6 +63,9 @@ export const BookDetailPage: React.FC = () => {
   const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
+  const offline = useOfflineBook(book_id, selectedFileId || undefined);
+  const { data: seriesContext } = useBookSeriesQuery(book_id || "");
+  const [offlineWarningOpen, setOfflineWarningOpen] = useState(false);
 
   React.useEffect(() => {
     if (book_id) {
@@ -81,12 +89,16 @@ export const BookDetailPage: React.FC = () => {
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
   const tags = toStringList(meta.subject);
+  const seriesEntry = seriesContext?.series?.[0];
+  const nextInSeries = seriesContext?.next;
 
   const guestPerms = publicSettings?.guest_permissions;
   const allowCollection = hasPermission(user, "book.collection", book?.library_id, guestPerms);
   const allowBookmark = hasPermission(user, "book.bookmark", book?.library_id, guestPerms);
   const allowShare = hasPermission(user, "book.share", book?.library_id, guestPerms);
   const allowDownload = hasPermission(user, "book.download", book?.library_id, guestPerms);
+  const allowOffline = hasPermission(user, "book.offline", book?.library_id, guestPerms);
+  const offlineSizeBytes = (book?.files || []).find((file) => file.id === (selectedFileId || book?.files?.[0]?.id))?.size_bytes;
   const allowReview = hasPermission(user, "book.review.create", book?.library_id, guestPerms);
   const allowRead = hasPermission(user, "book.read", book?.library_id, guestPerms);
   const allowStats = hasPermission(user, "user.stats.read", book?.library_id, guestPerms);
@@ -310,12 +322,16 @@ export const BookDetailPage: React.FC = () => {
               <h1 className="text-3xl md:text-4xl font-extrabold text-base-content mb-2 leading-tight">
                 {book.title}
               </h1>
-              {meta.series && (
-                <div 
+              {seriesEntry && (
+                <div
                   className="badge badge-primary badge-outline mt-1 mb-2 text-sm px-3 py-1 h-auto text-left whitespace-normal leading-tight cursor-pointer hover:bg-primary hover:text-primary-content"
-                  onClick={() => navigate(`/?nav=series&facet=series&name=${encodeURIComponent(meta.series || '')}`)}
+                  onClick={() =>
+                    navigate(
+                      `/?nav=series&facet=series&facet_id=${encodeURIComponent(seriesEntry.series_id)}&name=${encodeURIComponent(seriesEntry.series_name)}`
+                    )
+                  }
                 >
-                  {meta.series} {meta.series_index ? `#${meta.series_index}` : ""}
+                  {seriesEntry.series_name} {seriesEntry.series_index ? `#${seriesEntry.series_index}` : ""}
                 </div>
               )}
             </div>
@@ -539,6 +555,40 @@ export const BookDetailPage: React.FC = () => {
                       </>
                     )}
 
+                    {allowRead && allowOffline && (
+                      <button
+                        className="btn btn-outline btn-md sm:w-auto shrink-0 whitespace-nowrap gap-2"
+                        disabled={offline.status === "downloading" || offline.status === "unknown"}
+                        onClick={() => {
+                          if (offline.status === "ready") {
+                            void offline.remove();
+                          } else if (offlineWarningSuppressed()) {
+                            void offline.download();
+                          } else {
+                            setOfflineWarningOpen(true);
+                          }
+                        }}
+                        title={offline.error || undefined}
+                      >
+                        {offline.status === "downloading" ? (
+                          <>
+                            <span className="loading loading-spinner loading-xs shrink-0" />
+                            <span className="whitespace-nowrap">{offline.progress}%</span>
+                          </>
+                        ) : offline.status === "ready" ? (
+                          <>
+                            <CheckCircle2 className="w-5 h-5 shrink-0 text-success" />
+                            <span className="whitespace-nowrap">{t("offline.remove", "Remove offline copy")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <CloudDownload className="w-5 h-5 shrink-0" />
+                            <span className="whitespace-nowrap">{t("offline.save", "Save for offline")}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
                     {allowDownload && (
                       <a
                         href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
@@ -571,6 +621,35 @@ export const BookDetailPage: React.FC = () => {
             </div>
 
 
+            {nextInSeries && (
+              <div className="pt-2 border-t border-base-200 mt-2">
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-2">
+                  {t("book.next_in_series", "Next in series")}
+                </p>
+                <button
+                  className="flex items-center gap-3 w-full text-left p-3 rounded-xl border border-base-300 bg-base-100 hover:border-primary transition-colors"
+                  onClick={() => navigate(`/books/${encodeURIComponent(nextInSeries.book_id)}`)}
+                >
+                  {nextInSeries.cover_url ? (
+                    <img
+                      src={getMediaUrl(nextInSeries.cover_url)}
+                      alt=""
+                      className="w-10 h-14 object-cover rounded shrink-0"
+                    />
+                  ) : (
+                    <BookOpen className="w-6 h-6 opacity-50 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{nextInSeries.title}</p>
+                    <p className="text-xs opacity-60 truncate">
+                      {nextInSeries.series_name}
+                      {nextInSeries.series_index ? ` #${nextInSeries.series_index}` : ""}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )}
+
             {/* Reviews Section */}
             <div className="pt-2 border-t border-base-200 mt-2">
               <TrackerMapCard book_id={book.id!} title={book.title} />
@@ -595,6 +674,17 @@ export const BookDetailPage: React.FC = () => {
           onCopy={handleCopy}
         />
       )}
+
+      <OfflineWarningModal
+        open={offlineWarningOpen}
+        title={book.title}
+        sizeBytes={offlineSizeBytes}
+        onCancel={() => setOfflineWarningOpen(false)}
+        onConfirm={() => {
+          setOfflineWarningOpen(false);
+          void offline.download();
+        }}
+      />
     </div>
   );
 };

@@ -349,9 +349,6 @@ func (r *featureRepository) GetReadingProgress(ctx context.Context, userID strin
 			BookID: bookID,
 		})
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return (*models.ReadingProgressEntity)(nil), nil
-			}
 			return nil, err
 		}
 		result := (&models.ReadingProgressEntity{}).FromSqlc(row)
@@ -362,9 +359,6 @@ func (r *featureRepository) GetReadingProgress(ctx context.Context, userID strin
 	})
 	if err != nil {
 		return nil, err
-	}
-	if v == nil {
-		return nil, nil
 	}
 	return v.(*models.ReadingProgressEntity), nil
 }

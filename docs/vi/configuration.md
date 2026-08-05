@@ -24,14 +24,15 @@ openssl rand -hex 32   # run three times, one value each
 |---|---|
 | `JWT_SECRET` | Ký access token |
 | `JWT_REFRESH_SECRET` | Ký refresh token |
-| `DB_ENCRYPTION_KEY` | Mã hóa token của bên thứ ba (AniList, MAL) lưu trong database |
+| `DB_ENCRYPTION_KEY` | Mã hóa token của bên thứ ba (AniList, MAL) và mật khẩu SMTP lưu trong database |
 
 Mỗi biến dùng một giá trị random khác nhau.
 
 **Đổi về sau.** Đổi một trong hai JWT secret sẽ đăng xuất toàn bộ người dùng —
-không mất dữ liệu. Đổi `DB_ENCRYPTION_KEY` khiến các token tracker đã mã hóa
-vĩnh viễn không đọc được nữa; người dùng phải kết nối lại những tài khoản đó. Hãy
-backup database trước khi chạm vào nó.
+không mất dữ liệu. Đổi `DB_ENCRYPTION_KEY` khiến các token tracker và mật khẩu
+SMTP đã mã hóa vĩnh viễn không đọc được nữa; người dùng phải kết nối lại những
+tài khoản đó và admin phải nhập lại mật khẩu SMTP. Hãy backup database trước khi
+chạm vào nó.
 
 Chúng vẫn là biến môi trường vì chúng ký và mã hóa những gì nằm *trong* database.
 Lưu chính chúng trong database sẽ thành vòng lặp luẩn quẩn.

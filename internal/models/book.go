@@ -132,3 +132,8 @@ func FTSResultEntitiesToResponse(entities []*FTSResultEntity) []*response.FTSRes
 	}
 	return out
 }
+
+type BookmarkedBooksPage struct {
+	Books      []*BookEntity
+	NextCursor string
+}

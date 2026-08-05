@@ -97,19 +97,9 @@ func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	mapped := make([]fiber.Map, len(results))
-	for i, r := range results {
-		mapped[i] = fiber.Map{
-			"external_series_id": r.ExternalSeriesID,
-			"title_english":      r.TitleEnglish,
-			"title_romaji":       r.TitleRomaji,
-			"media_type":         r.MediaType,
-		}
-	}
-
 	return c.JSON(response.CommonResponse{
 		Status: true,
-		Data:   fiber.Map{"results": mapped},
+		Data:   fiber.Map{"results": results},
 	})
 }
 

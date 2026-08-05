@@ -103,6 +103,55 @@ func (h *AuthController) SubmitSetup(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
+func (h *AuthController) RequestOTP(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+
+	dto := &request.RequestOTPDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.RequestOTP(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *AuthController) VerifyOTP(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dto := &request.VerifyOTPDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.VerifyOTP(ctx, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *AuthController) ResetPasswordWithOTP(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	dto := &request.ResetPasswordWithOTPDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	if err := h.service.ResetPasswordWithOTP(ctx, dto); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	clearAuthCookie(c, "access_token")
+	clearAuthCookie(c, "refresh_token")
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Password updated successfully"})
+}
+
 func (h *AuthController) Signin(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -115,6 +164,9 @@ func (h *AuthController) Signin(c fiber.Ctx) error {
 	res, err := h.service.Signin(ctx, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
+	}
+	if res.TOTPRequired {
+		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 	}
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)

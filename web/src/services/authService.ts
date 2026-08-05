@@ -1,11 +1,11 @@
 import { api } from "@/config/api";
-import type { AuthResponse, ChangePasswordRequest, CommonResponse, UpdateProfileRequest, User } from "@/types";
+import type { AuthResponse, ChangePasswordRequest, CommonResponse, TOTPEnrollment, TOTPRecoveryCodes, TOTPStatus, UpdateProfileRequest, User } from "@/types";
 import axios from "axios";
 
 export const authService = {
-  async signin(email: string, password: string): Promise<CommonResponse<AuthResponse>> {
+  async signin(email: string, password: string, totpCode?: string): Promise<CommonResponse<AuthResponse>> {
     try {
-      const response = await api.post("/auth/signin", { email, password });
+      const response = await api.post("/auth/signin", { email, password, ...(totpCode ? { totp_code: totpCode } : {}) });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -61,5 +61,30 @@ export const authService = {
       }
       throw error;
     }
+  },
+
+  async totpStatus(): Promise<CommonResponse<TOTPStatus>> {
+    const response = await api.get("/auth/totp");
+    return response.data;
+  },
+
+  async totpEnroll(): Promise<CommonResponse<TOTPEnrollment>> {
+    const response = await api.post("/auth/totp/enroll", {});
+    return response.data;
+  },
+
+  async totpConfirm(code: string): Promise<CommonResponse<TOTPRecoveryCodes>> {
+    const response = await api.post("/auth/totp/confirm", { code });
+    return response.data;
+  },
+
+  async totpDisable(code: string): Promise<CommonResponse<void>> {
+    const response = await api.post("/auth/totp/disable", { code });
+    return response.data;
+  },
+
+  async totpRecoveryCodes(code: string): Promise<CommonResponse<TOTPRecoveryCodes>> {
+    const response = await api.post("/auth/totp/recovery-codes", { code });
+    return response.data;
   }
 };

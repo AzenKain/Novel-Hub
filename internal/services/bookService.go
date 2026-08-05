@@ -28,6 +28,7 @@ var styleBlockRegex = regexp.MustCompile(`(?i)(<style[^>]*>)([\s\S]*?)(</style>)
 
 type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
+	GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error)
 	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
 
 	ListChapters(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
@@ -47,7 +48,7 @@ type BookService interface {
 	GetChapterHTML(ctx context.Context, bookID string, chapterID string, fileID string) (string, error)
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
-	UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error)
+	UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
 	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error
@@ -65,13 +66,6 @@ type BookService interface {
 	CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool)
 	SafeDownloadFilename(title string, ext string) string
-}
-
-type UpdateCoverInput struct {
-	UploadedFileName string
-	UploadedData     []byte
-	CoverURL         string
-	EPUBImagePath    string
 }
 
 type bookService struct {

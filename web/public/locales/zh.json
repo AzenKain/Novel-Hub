@@ -134,7 +134,8 @@
         "jobs": "任务",
         "schedules": "计划",
         "logs": "日志",
-        "backups": "备份"
+        "backups": "备份",
+        "audit": "审计"
       },
       "run_task": "运行维护任务",
       "run_now": "立即运行",
@@ -162,7 +163,9 @@
         "extract_metadata": "提取元数据",
         "hash_file": "文件哈希",
         "index_book": "书籍索引",
-        "webhook.dispatch": "发送Webhook"
+        "webhook.dispatch": "发送Webhook",
+        "prune_audit_logs": "清理审计日志",
+        "prune_finished_jobs": "清理已完成任务"
       },
       "job_queued": "任务已加入队列",
       "action_failed": "操作失败",
@@ -200,8 +203,25 @@
         "mib": "MiB",
         "gib": "GiB"
       },
-      "no_backups": "没有备份"
-    }
+      "no_backups": "没有备份",
+      "audit_action": "操作",
+      "all_actions": "全部操作",
+      "audit_total": "{{count}} 条记录",
+      "audit_retention": "保留 90 天",
+      "audit_time": "时间",
+      "audit_actor": "操作人",
+      "audit_target": "对象",
+      "audit_ip": "IP",
+      "audit_system": "系统",
+      "audit_empty": "暂无审计记录"
+    },
+    "action_send_email": "发送邮件",
+    "send_email_title": "发送邮件",
+    "send_email_desc": "消息将发送到账号登记的地址:",
+    "email_subject": "主题",
+    "email_body": "内容",
+    "send_email": "发送",
+    "email_sent": "邮件已发送"
   },
   "auth": {
     "login_to_account": "登录到您的账户",
@@ -225,7 +245,25 @@
     "full_name": "姓名",
     "optional": "（可选）",
     "password_min": "至少 8 个字符",
-    "unexpected_error": "发生了意外错误"
+    "unexpected_error": "发生了意外错误",
+    "otp_send": "发送验证码",
+    "otp_sent_to": "已向 {{email}} 发送 6 位验证码。",
+    "otp_code": "验证码",
+    "otp_verify": "验证",
+    "otp_resend": "重新发送验证码",
+    "otp_resend_in": "{{seconds}} 秒后可重发",
+    "otp_verified": "邮箱已验证",
+    "forgot_password": "忘记密码？",
+    "reset_title": "重置密码",
+    "reset_desc": "我们会向你的邮箱发送验证码以确认身份。",
+    "reset_submit": "设置新密码",
+    "new_password": "新密码",
+    "back_to_login": "返回登录",
+    "reset_disabled": "密码重置已停用",
+    "reset_disabled_desc": "通过邮件重置密码的功能当前已停用。请联系管理员为你重置密码。",
+    "totp_prompt": "请输入验证器应用中的 6 位验证码，或一个恢复码。",
+    "totp_code": "验证码",
+    "totp_verify": "验证并登录"
   },
   "common": {
     "cancel": "取消",
@@ -258,7 +296,9 @@
     "apply": "应用",
     "share": "分享",
     "download": "下载",
-    "load_more": "加载更多"
+    "load_more": "加载更多",
+    "previous": "上一页",
+    "next": "下一页"
   },
   "library": {
     "ready_to_read": "准备阅读",
@@ -272,7 +312,7 @@
     "select_target_library": "选择目标媒体库...",
     "move": "移动",
     "bulk_tag_title": "为所选图书添加标签",
-    "bulk_tag_subtitle": "请输入以逗号分隔的标签:",
+    "bulk_tag_subtitle": "请输入以逗号分隔的标签，添加到 {{count}} 本书:",
     "tag_input_placeholder": "例如: 奇幻, 动作",
     "processing": "处理中...",
     "by_author": "作者",
@@ -547,7 +587,8 @@
     "description": "简介",
     "bookmarks": "书签数",
     "collections": "合集数",
-    "no_description": "暂无简介。"
+    "no_description": "暂无简介。",
+    "next_in_series": "系列下一本"
   },
   "settings": {
     "title": "设置",
@@ -653,14 +694,9 @@
     "permission_webhook_manage": "管理 Webhook 和通知集成",
     "permission_book_share": "分享书籍与生成分享链接",
     "send_to_kindle": "发送至 Kindle",
-    "smtp_settings": "SMTP 邮件发送服务器设置",
-    "smtp_subtitle": "配置用于 Send-to-Kindle 及系统通知的发件邮件服务器。",
     "smtp_host": "SMTP 主机",
     "smtp_port": "端口",
-    "smtp_user": "用户名 / 邮箱",
-    "smtp_pass": "密码 / 应用密钥",
     "smtp_from": "发件人邮箱地址",
-    "test_smtp": "测试连接",
     "runtime_limits": "运行时限制",
     "runtime_limits_desc": "管理上传、图片和临时会话的大小限制。",
     "save_runtime_limits": "保存限制",
@@ -681,7 +717,33 @@
     "unit_mib": "MiB",
     "unit_minutes": "分钟",
     "unit_count": "个",
-    "limit_range": "允许范围：{{min}}–{{max}}"
+    "limit_range": "允许范围：{{min}}–{{max}}",
+    "smtp_title": "邮件 (SMTP)",
+    "smtp_desc": "用于 Send-to-Kindle 和系统通知的外发邮件服务器。",
+    "smtp_enabled": "启用",
+    "smtp_username": "用户名",
+    "smtp_password": "密码",
+    "smtp_password_placeholder": "应用专用密码",
+    "smtp_password_keep": "留空则保留已保存的密码",
+    "smtp_password_clear": "删除已保存的密码",
+    "smtp_tls_mode": "加密",
+    "smtp_tls_none": "无 (仅用于可信网络)",
+    "smtp_tls_starttls": "STARTTLS (通常为 587 端口)",
+    "smtp_tls_implicit": "隐式 TLS / SSL (通常为 465 端口)",
+    "smtp_allow_private": "允许内网 / 本地邮件服务器",
+    "smtp_allow_private_desc": "当邮件服务器位于局域网、localhost 或同主机容器时需要开启。使用互联网服务商时请保持关闭。",
+    "smtp_test": "测试连接",
+    "smtp_test_success": "SMTP 连接成功",
+    "smtp_saved": "已保存 SMTP 设置",
+    "save_smtp": "保存 SMTP",
+    "require_email_verify": "强制邮箱验证",
+    "require_email_verify_desc": "新账号必须先确认邮件中的验证码才能创建。",
+    "password_reset_enabled": "启用邮件重置密码",
+    "password_reset_enabled_desc": "显示“忘记密码？”链接，并允许用户使用邮件验证码重置。",
+    "needs_smtp": "请先配置下方的 SMTP 才能启用。",
+    "template_email": "邮件 (SMTP)",
+    "email_recipients": "收件人",
+    "email_recipients_hint": "在 mailto: 之后填写以逗号分隔的地址。需要先配置 SMTP。"
   },
   "email": {
     "invalid": "请输入有效的邮箱地址",
@@ -787,5 +849,46 @@
     "complete_setup": "完成设置",
     "setup_failed": "设置失败",
     "unexpected_error": "发生意外错误"
+  },
+  "pwa": {
+    "update_available": "有新版本可用。",
+    "reload": "重新加载",
+    "later": "稍后"
+  },
+  "offline": {
+    "save": "保存以离线阅读",
+    "remove": "删除离线副本",
+    "chapter_unavailable": "此章节无法离线阅读。请在联网时保存本书。",
+    "title": "离线书籍",
+    "empty": "尚未保存任何离线书籍",
+    "usage": "已使用 {{used}} / {{quota}}",
+    "saved_at": "保存于 {{date}}",
+    "chapter_count": "{{count}} 章",
+    "warning_title": "下载整本书？",
+    "warning_body": "《{{title}}》将完整下载到此设备，以便你在没有网络时阅读。",
+    "warning_body_with_size": "《{{title}}》将完整下载到此设备（{{size}}），以便你在没有网络时阅读。",
+    "warning_storage_note": "在你删除之前，它会占用浏览器存储空间；退出登录时会被删除。",
+    "warning_dont_remind": "一天内不再提醒",
+    "warning_confirm": "下载"
+  },
+  "totp": {
+    "title": "两步验证",
+    "on": "已开启",
+    "off": "已关闭",
+    "subtitle": "登录时要求输入验证器应用中的验证码。",
+    "begin": "设置两步验证",
+    "scan_instructions": "用验证器应用扫描此二维码，然后输入它显示的验证码。",
+    "manual_entry": "或手动输入此密钥：",
+    "confirm": "确认",
+    "current_code": "当前验证码",
+    "regenerate_codes": "新的恢复码",
+    "disable": "关闭",
+    "disable_confirm": "要关闭你账户的两步验证吗？",
+    "enabled_toast": "两步验证已开启。",
+    "disabled_toast": "两步验证已关闭。",
+    "recovery_regenerated": "已生成新的恢复码，旧的恢复码不再有效。",
+    "recovery_remaining": "剩余 {{count}} 个恢复码",
+    "recovery_warning": "请立即保存这些恢复码。每个只能使用一次，是你丢失手机后唯一的登录方式。它们不会再次显示。",
+    "copy_codes": "复制恢复码"
   }
 }

@@ -60,7 +60,10 @@ func (r *trackerRepository) GetByID(ctx context.Context, id string) (*models.Use
 	key := cache.BuildKey("user_tracker", "secret", "id", id)
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		rows, err := r.q.GetUserTrackersByIDs(ctx, []string{id})
-		if err != nil || len(rows) == 0 {
+		if err != nil {
+			return nil, err
+		}
+		if len(rows) == 0 {
 			return nil, sql.ErrNoRows
 		}
 		return (&models.UserTrackerEntity{}).FromSqlc(rows[0])
@@ -165,7 +168,10 @@ func (r *trackerRepository) GetMappingByID(ctx context.Context, id string) (*mod
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		rows, err := r.q.GetBookTrackerMappingsByIDs(ctx, []string{id})
-		if err != nil || len(rows) == 0 {
+		if err != nil {
+			return nil, err
+		}
+		if len(rows) == 0 {
 			return nil, sql.ErrNoRows
 		}
 

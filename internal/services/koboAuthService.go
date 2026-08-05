@@ -3,9 +3,7 @@ package services
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
-	"errors"
 	"strings"
 
 	"novelhub/internal/dtos/response"
@@ -42,7 +40,7 @@ func (s *koboAuthService) EnsureSetup(ctx context.Context, userID, baseURL strin
 	if err == nil && existing != nil {
 		return setupResponse(baseURL, existing.Token), nil
 	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, err
 	}
 	return s.RegenerateSetup(ctx, userID, baseURL)

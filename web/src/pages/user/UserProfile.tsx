@@ -3,6 +3,7 @@ import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
+import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
@@ -332,6 +333,9 @@ export const UserProfile = () => {
                     </form>
                   )}
                 </div>
+
+                {/* Two-Factor Authentication Card */}
+                <TwoFactorCard />
 
                 {/* Reading Heatmap Card */}
                 <ReadingHeatmap />

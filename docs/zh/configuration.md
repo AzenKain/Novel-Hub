@@ -21,7 +21,7 @@ openssl rand -hex 32   # run three times, one value each
 |---|---|
 | `JWT_SECRET` | 为访问令牌签名 |
 | `JWT_REFRESH_SECRET` | 为刷新令牌签名 |
-| `DB_ENCRYPTION_KEY` | 加密存放在数据库里的第三方令牌(AniList、MAL) |
+| `DB_ENCRYPTION_KEY` | 加密存放在数据库里的第三方令牌(AniList、MAL)和 SMTP 密码 |
 
 每个都要用不同的随机值。
 

@@ -1,10 +1,11 @@
-import { ProtectedRoute } from "@/components/common";
+import { ProtectedRoute, UpdatePrompt } from "@/components/common";
 import "@/i18n";
 import { AdminLayout, Books, Duplicates, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
-import { LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
+import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
 import { LibraryWorkspace } from "@/pages/library";
 import { ReaderWorkspace } from "@/pages/reader";
 import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
+import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
 import { useSettingsStore } from "@/stores";
 import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
@@ -97,6 +98,7 @@ function App() {
               <Route element={<ProtectedRoute requiredPermission="user.stats.read" />}>
                 <Route path="/analytics" element={<ReadingAnalyticsPage />} />
               </Route>
+              <Route path="/offline" element={<OfflineBooksPage />} />
               <Route
                 path="/admin"
                 element={<ProtectedRoute requiredAnyPermissions={["admin.access", "job.read", "job.manage", "system.log.read", "system.backup"]} />}
@@ -131,6 +133,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/setup" element={<SetupWizard />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -141,6 +144,7 @@ function App() {
           hideProgressBar
           theme="colored"
         />
+        <UpdatePrompt />
       </ThemeInitializer>
     </BrowserRouter>
   );
@@ -165,12 +169,4 @@ createRoot(document.getElementById("root")!).render(
   </React.StrictMode>,
 );
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function (registrations) {
-    for (let registration of registrations) {
-      registration.unregister();
-    }
-  }).catch(function (err) {
-    console.log('Service Worker unregistration failed: ', err);
-  });
-}
+

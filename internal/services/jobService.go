@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -28,12 +28,18 @@ type JobService interface {
 	Trigger(ctx context.Context, jobType, payload string) (*response.JobResponse, error)
 	PruneFinishedJobs(ctx context.Context) error
 	Recover(ctx context.Context) error
+	SetWebhookService(webhook WebhookService)
 }
 
 type jobService struct {
-	repo  repositories.JobRepository
-	queue *worker.Queue
-	tasks map[string]string
+	repo           repositories.JobRepository
+	queue          *worker.Queue
+	tasks          map[string]string
+	webhookService WebhookService
+}
+
+func (s *jobService) SetWebhookService(webhook WebhookService) {
+	s.webhookService = webhook
 }
 
 func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobService {
@@ -49,6 +55,7 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 			"database_backup":       "Create a database backup",
 			"database_books_backup": "Create a database and books backup",
 			"prune_finished_jobs":   "Delete old completed and failed job rows",
+			"prune_audit_logs":      "Delete audit log entries older than 90 days",
 		},
 	}
 }
@@ -56,7 +63,7 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 func (s *jobService) GetJob(ctx context.Context, id string) (*response.JobResponse, error) {
 	job, err := s.repo.GetJob(ctx, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "job not found")
 		}
 		return nil, err
@@ -72,19 +79,34 @@ func (s *jobService) ListJobs(ctx context.Context, status, jobType string, limit
 	return models.JobEntitiesToResponse(jobs), total, nil
 }
 
+// order is display order only; anything in tasks but missing here is appended, so a new task
+// can never be silently unreachable from the admin UI the way scan_library_inbox was.
 func (s *jobService) ListTasks() []*response.JobTaskResponse {
 	order := []string{
 		"maintenance",
+		"scan_library_inbox",
 		"clean_empty_book_dirs",
 		"clean_orphan_uploads",
 		"prune_finished_jobs",
+		"prune_audit_logs",
 		"database_health_check",
 		"database_backup",
 		"database_books_backup",
 	}
-	out := make([]*response.JobTaskResponse, 0, len(order))
+	out := make([]*response.JobTaskResponse, 0, len(s.tasks))
+	listed := make(map[string]bool, len(s.tasks))
 	for _, taskType := range order {
-		out = append(out, &response.JobTaskResponse{Type: taskType, Description: s.tasks[taskType]})
+		description, ok := s.tasks[taskType]
+		if !ok {
+			continue
+		}
+		listed[taskType] = true
+		out = append(out, &response.JobTaskResponse{Type: taskType, Description: description})
+	}
+	for _, taskType := range slices.Sorted(maps.Keys(s.tasks)) {
+		if !listed[taskType] {
+			out = append(out, &response.JobTaskResponse{Type: taskType, Description: s.tasks[taskType]})
+		}
 	}
 	return out
 }
@@ -168,6 +190,13 @@ func (s *jobService) Failed(ctx context.Context, job worker.Job, jobErr error) e
 		message = jobErr.Error()
 	}
 	_, err := s.repo.UpdateJobStatus(ctx, job.ID, "failed", message)
+	if s.webhookService != nil {
+		s.webhookService.DispatchEvent(ctx, "job.failed", map[string]any{
+			"job_id":   job.ID,
+			"job_type": job.Type,
+			"error":    message,
+		})
+	}
 	return err
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"novelhub/pkg/apperrors"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 )
@@ -151,7 +152,7 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 	defer cancel()
 
 	bookID := c.Params("id")
-	input := services.UpdateCoverInput{
+	input := request.UpdateCoverDto{
 		CoverURL:      c.FormValue("cover_url"),
 		EPUBImagePath: c.FormValue("epub_image_path"),
 	}

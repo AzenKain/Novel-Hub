@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore, useLibraryStore } from "@/stores";
-import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut } from "lucide-react";
+import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
 import { useShallow } from "zustand/react/shallow";
 
@@ -126,6 +126,12 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
                     </Link>
                   </li>
                 )}
+                <li>
+                  <Link to="/offline" className="flex items-center gap-2">
+                    <CloudDownload className="w-4 h-4 opacity-70" />
+                    {t("offline.title")}
+                  </Link>
+                </li>
                 <li>
                   <button className="text-error flex items-center gap-2" onClick={logout}>
                     <LogOut className="w-4 h-4 opacity-80" />

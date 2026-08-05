@@ -23,7 +23,7 @@ openssl rand -hex 32   # run three times, one value each
 |---|---|
 | `JWT_SECRET` | 액세스 토큰 서명 |
 | `JWT_REFRESH_SECRET` | 리프레시 토큰 서명 |
-| `DB_ENCRYPTION_KEY` | 데이터베이스에 저장되는 서드파티 토큰(AniList, MAL) 암호화 |
+| `DB_ENCRYPTION_KEY` | 데이터베이스에 저장되는 서드파티 토큰(AniList, MAL) 및 SMTP 비밀번호 암호화 |
 
 각각 서로 다른 무작위 값을 사용합니다.
 

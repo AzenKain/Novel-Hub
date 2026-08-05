@@ -23,7 +23,7 @@ openssl rand -hex 32   # run three times, one value each
 |---|---|
 | `JWT_SECRET` | アクセストークンの署名 |
 | `JWT_REFRESH_SECRET` | リフレッシュトークンの署名 |
-| `DB_ENCRYPTION_KEY` | データベースに保存されるサードパーティトークン（AniList、MAL）の暗号化 |
+| `DB_ENCRYPTION_KEY` | データベースに保存されるサードパーティトークン（AniList、MAL）と SMTP パスワードの暗号化 |
 
 それぞれに異なるランダム値を使ってください。
 

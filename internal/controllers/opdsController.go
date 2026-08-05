@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/config"
@@ -20,7 +21,7 @@ type OPDSController struct {
 	opdsService services.OPDSService
 }
 
-func opdsPageQuery(ctx fiber.Ctx) services.OPDSPageQuery {
+func opdsPageQuery(ctx fiber.Ctx) request.OPDSPageDto {
 	limit := int64(constants.OPDSDefaultPageSize)
 	if raw := strings.TrimSpace(ctx.Query("limit")); raw != "" {
 		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 {
@@ -30,7 +31,7 @@ func opdsPageQuery(ctx fiber.Ctx) services.OPDSPageQuery {
 	if limit > constants.MaxPaginationLimit {
 		limit = constants.MaxPaginationLimit
 	}
-	return services.OPDSPageQuery{Cursor: strings.TrimSpace(ctx.Query("cursor")), Limit: limit}
+	return request.OPDSPageDto{Cursor: strings.TrimSpace(ctx.Query("cursor")), Limit: limit}
 }
 
 func NewOPDSController(opdsService services.OPDSService) *OPDSController {

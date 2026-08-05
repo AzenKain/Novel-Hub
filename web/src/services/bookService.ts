@@ -2,6 +2,7 @@ import { API_BASE, api } from "@/config/api";
 import type {
   Book,
   BookFile,
+  BookSeriesContext,
   Chapter,
   CursorPaginatedResponse,
   CommonResponse,
@@ -44,6 +45,17 @@ export const bookService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<Book>;
+      throw error;
+    }
+  },
+
+  async getBookSeries(id: string): Promise<CommonResponse<BookSeriesContext>> {
+    try {
+      const res = await api.get(`/books/${id}/series`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<BookSeriesContext>;
       throw error;
     }
   },

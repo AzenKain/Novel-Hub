@@ -1,4 +1,5 @@
-import { useLoginMutation } from "@/hooks";
+import { useLoginFlow } from "@/hooks";
+import { TOTPCodeStep } from "./TOTPCodeStep";
 import { useAuthStore } from "@/stores";
 import { BookOpen, LogIn } from "lucide-react";
 import { SyntheticEvent, useState } from "react";
@@ -13,7 +14,7 @@ export function LoginView() {
     }))
   );
 
-  const loginMutation = useLoginMutation();
+  const { mutation: loginMutation, needsCode, resetCode, submit } = useLoginFlow();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +22,7 @@ export function LoginView() {
 
   async function handleSubmit(event: SyntheticEvent) {
     event.preventDefault();
-    loginMutation.mutate({ email, password });
+    submit(email, password);
   }
 
   return (
@@ -50,7 +51,10 @@ export function LoginView() {
             </label>
             <input 
               value={email} 
-              onChange={(event) => setEmail(event.target.value)} 
+              onChange={(event) => {
+                setEmail(event.target.value);
+                resetCode();
+              }}
               type="email" 
               placeholder={"account@example.com"}
               autoComplete="email" 
@@ -77,13 +81,20 @@ export function LoginView() {
             </div>
           )}
 
-          <button 
-            className="btn btn-primary mt-4 w-full" 
-            disabled={loginMutation.isPending}
-          >
-            {loginMutation.isPending ? <span className="loading loading-spinner"></span> : <LogIn size={20} />}
-            {t("auth.sign_in")}
-          </button>
+          {needsCode ? (
+            <TOTPCodeStep
+              pending={loginMutation.isPending}
+              onSubmit={(code) => submit(email, password, code)}
+            />
+          ) : (
+            <button
+              className="btn btn-primary mt-4 w-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? <span className="loading loading-spinner"></span> : <LogIn size={20} />}
+              {t("auth.sign_in")}
+            </button>
+          )}
         </form>
       </div>
       <form method="dialog" className="modal-backdrop">

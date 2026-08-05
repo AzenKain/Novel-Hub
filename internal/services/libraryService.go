@@ -3,8 +3,6 @@ package services
 import (
 	"archive/zip"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -118,7 +116,7 @@ func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
 
 func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error) {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "Library not found")
 		}
 		return nil, err

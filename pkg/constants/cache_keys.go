@@ -22,6 +22,9 @@ const (
 	CacheKeyJobAllPattern             = "job:*"
 	CacheKeyBookSearchPattern         = "book:search*"
 	CacheKeyLibraryStats              = "feature:library_stats"
+	CacheKeyAuditActions              = "audit:actions"
+	CacheKeyAuditListPattern          = "audit:list*"
+	CacheKeyAuditCountPattern         = "audit:count*"
 
 	CacheKeyBookAllPattern           = "book:*"
 	CacheKeyBookIDsPattern           = "book_ids*"
@@ -37,10 +40,12 @@ const (
 	CacheKeyFTSBookSearchPattern     = "fts:book-search*"
 	CacheKeyFTSSearchPattern         = "fts:search*"
 	CacheKeyMetadataPattern          = "metadata:*"
+	CacheKeyBookSeriesPattern        = "book_series:*"
 	CacheKeyMetadataCountPattern     = "metadata_count:*"
 	CacheKeyAllReviewsPattern        = "feature:all_reviews*"
 	CacheKeyRoleNamePattern          = "role:name:*"
 	CacheKeyUserAllPattern           = "user:*"
 	CacheKeyKoboTokenPattern         = "kobo:token:*"
+	CacheKeyTOTPUserPattern          = "totp:user:*"
 	CacheKeySettingsAll              = "settings:all"
 )

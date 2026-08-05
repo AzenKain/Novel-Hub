@@ -489,7 +489,19 @@ export const LibraryWorkspace = () => {
         (item) => item.name.trim().toLowerCase() === normalizedName,
       );
 
-    if (!matched && !facetId) return;
+    // A name-only link used to be dropped here: section.items is only populated once activeNav
+    // is already this facet, which this effect is what sets, so the chip never opened anything.
+    // Switching the nav first lets the facet list load and the name resolve on the next pass.
+    if (!matched && !facetId) {
+      if (activeNav !== nav) {
+        setActiveNav(nav);
+        setActiveCollection("");
+        setActiveChip("All");
+        setMetadataQuery("");
+        setMetadataAlpha("All");
+      }
+      return;
+    }
 
     setActiveNav(nav);
     setActiveCollection("");
@@ -501,7 +513,7 @@ export const LibraryWorkspace = () => {
       id: matched?.id || facetId,
       name: matched?.name || name || facetId,
     });
-  }, [location.search, metadataFacets]);
+  }, [location.search, metadataFacets, facetSections, activeNav]);
 
   const metadataControls = (
     <div className="flex flex-col gap-3">

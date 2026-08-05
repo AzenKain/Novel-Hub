@@ -63,6 +63,11 @@ export type UpdateRolePermissionsRequest = {
 
 export type UpdateSettingsRequest = Record<string, unknown>;
 
+export type SendUserEmailRequest = {
+  subject: string;
+  body: string;
+};
+
 export interface AdminReview {
   user_id: string;
   book_id: string;
@@ -111,9 +116,34 @@ export interface RuntimeLimitBounds {
   max: RuntimeLimits;
 }
 
+export type SmtpTlsMode = "none" | "starttls" | "implicit_tls";
+
+export interface SmtpSettings {
+  enabled: boolean;
+  host: string;
+  port: number;
+  username: string;
+  from_email: string;
+  tls_mode: SmtpTlsMode;
+  allow_private_networks: boolean;
+  password_configured: boolean;
+  available_tls_modes: SmtpTlsMode[];
+}
+
+export type SmtpTestRequest = {
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  from_email?: string;
+  tls_mode?: SmtpTlsMode;
+  allow_private_networks?: boolean;
+};
+
 export interface AdminSettings extends PublicSettings {
   limits: RuntimeLimits;
   bounds: RuntimeLimitBounds;
+  smtp: SmtpSettings;
 }
 
 export interface PublicSettings {
@@ -127,6 +157,8 @@ export interface PublicSettings {
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
   enable_anilist_tracking?: boolean;
+  require_email_verify?: boolean;
+  password_reset_enabled?: boolean;
   setup_completed: boolean;
   available_sidebar_items: string[];
   available_home_sections: string[];
@@ -137,7 +169,7 @@ export interface Webhook {
   id: string;
   name: string;
   url: string;
-  template_type: "generic" | "discord" | "telegram" | "slack";
+  template_type: "generic" | "discord" | "telegram" | "slack" | "email";
   secret?: string;
   custom_headers?: string;
   events: string[];
@@ -149,7 +181,7 @@ export interface Webhook {
 export interface CreateWebhookInput {
   name: string;
   url: string;
-  template_type: "generic" | "discord" | "telegram" | "slack";
+  template_type: "generic" | "discord" | "telegram" | "slack" | "email";
   secret?: string;
   custom_headers?: string;
   events: string[];
@@ -220,4 +252,16 @@ export interface RestoreResult {
 
 export interface CalibreImportResult {
   imported_count: number;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actor_id?: string;
+  actor_email: string;
+  action: string;
+  target_type: string;
+  target_id?: string;
+  target_label: string;
+  ip: string;
+  created_at: string;
 }

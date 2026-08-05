@@ -18,10 +18,11 @@ import (
 
 type SettingsController struct {
 	service services.SettingsService
+	audit   services.AuditService
 }
 
-func NewSettingsController(service services.SettingsService) *SettingsController {
-	return &SettingsController{service: service}
+func NewSettingsController(service services.SettingsService, audit services.AuditService) *SettingsController {
+	return &SettingsController{service: service, audit: audit}
 }
 
 func (h *SettingsController) PublicSettings(c fiber.Ctx) error {
@@ -47,18 +48,34 @@ func (h *SettingsController) AdminSettings(c fiber.Ctx) error {
 }
 
 func (h *SettingsController) UpdateSettings(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.UpdateSettingsDto{}
 	if errs := validator.ValidateBodyDto(c, dto); errs != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
 	}
-	settings, err := h.service.UpdateSettings(ctx, dto.Values())
+	values := dto.Values()
+	settings, err := h.service.UpdateSettings(ctx, values)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionSettingsUpdate, "settings", "", services.SettingsAuditLabel(values))
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: settings})
+}
+
+func (h *SettingsController) TestSMTP(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+
+	dto := &request.SMTPTestDto{}
+	if errs := validator.ValidateBodyDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
+	}
+	if err := h.service.TestSMTP(ctx, dto); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "SMTP connection succeeded"})
 }
 
 func (h *SettingsController) SetupStatus(c fiber.Ctx) error {

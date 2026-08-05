@@ -2,6 +2,9 @@ import { ComicReader, ReaderContent, ReaderPageControls, ReaderSelectionToolbar,
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
 import { API_BASE } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
+import { offlineStore } from "@/lib/offlineStore";
+import { useOfflineAssets } from "@/hooks/useOfflineAssets";
+import { rawFileKey } from "@/hooks/useOfflineBook";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore } from "@/stores";
 import type { Chapter, Highlight } from "@/types";
@@ -50,6 +53,8 @@ export const ReaderWorkspace = () => {
   const pendingTextOffsetRef = useRef<number | null>(null);
   const lastFocusedControlRef = useRef<HTMLElement | null>(null);
   const ttsOffsetRef = useRef<number>(0);
+  const { resolveHTML, resolveBlobURL } = useOfflineAssets(book_id);
+  const [offlineRawUrl, setOfflineRawUrl] = useState<string | undefined>(undefined);
 
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
 
@@ -278,6 +283,28 @@ export const ReaderWorkspace = () => {
   const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.content_path?.toLowerCase().endsWith(".pdf"));
   const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
   const isPdfAudio = isPdf || isAudio;
+  const rawFileUrl = `${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`;
+
+  // A HEAD probe rather than waiting for the player to fail: an <audio> or <iframe> pointed at
+  // an unreachable URL shows its own broken state and never tells us to fall back.
+  useEffect(() => {
+    if (!isPdfAudio || !activeFile) {
+      setOfflineRawUrl(undefined);
+      return;
+    }
+    let active = true;
+    void fetch(rawFileUrl, { method: "HEAD", credentials: "include" })
+      .then((res) => (res.ok ? undefined : Promise.reject(new Error("unreachable"))))
+      .catch(() => resolveBlobURL(rawFileKey(activeFile.id)))
+      .then((url) => {
+        if (active) setOfflineRawUrl(url || undefined);
+      })
+      .catch(() => active && setOfflineRawUrl(undefined));
+    return () => {
+      active = false;
+    };
+  }, [isPdfAudio, activeFile, rawFileUrl, resolveBlobURL]);
+
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
   const pageWidth = scrollLayout || pageFrameWidth === 0
     ? 0
@@ -390,9 +417,16 @@ export const ReaderWorkspace = () => {
           user ? featureService.getReadingProgress(book_id) : Promise.reject("guest"),
         ]);
 
-        if (res.status === "fulfilled" && res.value.status && res.value.data) {
-          setBook(res.value.data.book);
-          const sorted = [...res.value.data.chapters].sort((a, b) => a.chapter_index - b.chapter_index);
+        const offline = res.status === "fulfilled" && res.value.status && res.value.data
+          ? null
+          : await offlineStore.getBook(book_id).catch(() => undefined);
+        const loaded = offline
+          ? { book: offline.book, chapters: offline.chapters }
+          : res.status === "fulfilled" && res.value.status ? res.value.data : null;
+
+        if (loaded) {
+          setBook(loaded.book);
+          const sorted = [...loaded.chapters].sort((a, b) => a.chapter_index - b.chapter_index);
           setChapters(sorted);
           if (sorted.length > 0) {
             let targetChapter = sorted[0];
@@ -444,7 +478,15 @@ export const ReaderWorkspace = () => {
       }
     } catch (err) {
       console.error("Failed to load chapter content", err);
-      setHtmlContent(`<div class='text-error p-4'>${t('common.error', 'Failed to load chapter content.')}</div>`);
+      const stored = await offlineStore.getChapter(book_id, chapter.id).catch(() => undefined);
+      if (stored) {
+        setHtmlContent(await resolveHTML(stored));
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+        }
+        return;
+      }
+      setHtmlContent(`<div class='text-error p-4'>${t('offline.chapter_unavailable', 'This chapter is not available offline. Save the book for offline reading while you are connected.')}</div>`);
     }
   };
 
@@ -751,13 +793,13 @@ export const ReaderWorkspace = () => {
                 {isPdf ? (
                   <iframe
                     title={book.title}
-                    src={`${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`}
+                    src={offlineRawUrl || rawFileUrl}
                     className="reader-pdf-frame w-full h-full flex-1 border-0"
                   />
                 ) : isAudio ? (
                   <div className="flex-1 w-full h-full pb-32">
                     <AudioPlayer 
-                      rawUrl={`${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`}
+                      rawUrl={offlineRawUrl || rawFileUrl}
                       title={book.title}
                       author={book.author_name || "Unknown"}
                       cover_url={book.cover_url || `/api/v1/books/${book.id}/cover`}

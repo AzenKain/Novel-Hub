@@ -61,14 +61,6 @@ type FiberServer struct {
 	Restart   chan struct{}
 }
 
-// parseTrustProxy reads TRUST_PROXY: "false"/empty disables it, "true" trusts
-// loopback/private/link-local proxies, anything else is a comma-separated
-// allowlist of proxy IPs or CIDRs. See docs/configuration.md.
-//
-// Stays an env var rather than an admin setting because fiber freezes it at
-// New(), before the database opens, and c.Scheme() reads it to decide whether
-// the auth cookie gets Secure — you would have to sign in to fix the setting
-// that breaks signing in.
 func parseTrustProxy(raw string) (bool, fiber.TrustProxyConfig) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" || strings.EqualFold(raw, "false") {
@@ -83,8 +75,7 @@ func parseTrustProxy(raw string) (bool, fiber.TrustProxyConfig) {
 			config.Proxies = append(config.Proxies, proxy)
 		}
 	}
-	// A value of only separators would otherwise enable proxy trust with an empty
-	// allowlist, which trusts nothing but still reads as "on".
+
 	if len(config.Proxies) == 0 {
 		return false, fiber.TrustProxyConfig{}
 	}
@@ -129,9 +120,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		}
 		return c.Status(fiber.StatusServiceUnavailable).JSON(response.CommonResponse{Status: false, Message: "restore pending; restart NovelHub to continue"})
 	})
-	// The production build is embedded here and calls "/api/v1" relatively, so the
-	// page and API are always same-origin and CORS never applies. Only the vite dev
-	// server is a genuinely different origin.
+
 	s.App.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
@@ -195,10 +184,15 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
 	webhookRepo := repositories.NewWebhookRepository(db, ramCache)
+	auditRepo := repositories.NewAuditRepository(db, ramCache)
+	totpRepo := repositories.NewTOTPRepository(db, ramCache)
 
-	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService)
-	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager)
+	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService, services.NewOTPStore(ramCache))
+	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager, settingsService)
 	roleService := services.NewRoleService(roleRepo, permissionCache, txManager)
+	auditService := services.NewAuditService(auditRepo, userRepo)
+	totpService := services.NewTOTPService(totpRepo, ramCache)
+	authService.SetTOTPService(totpService)
 	jobWorkers := config.GetIntConfigWithDefault("JOB_WORKERS", 1)
 	if jobWorkers < 1 {
 		jobWorkers = 1
@@ -229,23 +223,27 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	}, maintenanceGate)
 	calibreService := services.NewCalibreSyncService(bookRepo, bookFileRepo, txManager)
 	calibreController := controllers.NewCalibreController(calibreService)
-	webhookService := services.NewWebhookService(webhookRepo, jobQueue)
+	webhookService := services.NewWebhookService(webhookRepo, jobQueue, settingsService)
 	webhookController := controllers.NewWebhookController(webhookService)
 	bookService.SetWebhookService(webhookService)
+	featureService.SetWebhookService(webhookService)
+	jobService.SetWebhookService(webhookService)
 	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache, settingsService)
 
 	authController := controllers.NewAuthController(authService)
-	userController := controllers.NewUserController(userService)
-	roleController := controllers.NewRoleController(roleService)
-	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache)
+	userController := controllers.NewUserController(userService, auditService)
+	roleController := controllers.NewRoleController(roleService, auditService)
+	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache, auditService)
 	libraryController := controllers.NewLibraryController(libraryService)
 	jobController := controllers.NewJobController(jobService, jobScheduleService)
-	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService)
+	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService, auditService)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
 	highlightController := controllers.NewHighlightController(highlightService)
 	metadataController := controllers.NewMetadataController(metadataService)
-	settingsController := controllers.NewSettingsController(settingsService)
+	settingsController := controllers.NewSettingsController(settingsService, auditService)
+	auditController := controllers.NewAuditController(auditService)
+	totpController := controllers.NewTOTPController(totpService, userService, auditService)
 	uploadController := controllers.NewUploadController(uploadService)
 
 	jobQueue.RegisterHandler("extract_metadata", func(ctx context.Context, jobID string, payload string) error {
@@ -284,6 +282,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	})
 	jobQueue.RegisterHandler("prune_finished_jobs", func(ctx context.Context, jobID string, payload string) error {
 		return jobService.PruneFinishedJobs(ctx)
+	})
+	jobQueue.RegisterHandler("prune_audit_logs", func(ctx context.Context, jobID string, payload string) error {
+		_, err := auditService.Prune(ctx)
+		return err
 	})
 	jobQueue.RegisterHandler("database_health_check", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CheckDatabaseHealth(ctx)
@@ -346,6 +348,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	v1 := api.Group("/v1")
 
 	v1.Get("/health", func(c fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(response.CommonResponse{Status: false, Message: "database unavailable"})
+		}
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "ok"})
 	})
 
@@ -360,6 +367,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
+	routes.AuditRoutes(v1, auditController, userRepo, permissionCache)
+	routes.TOTPRoutes(v1, totpController, userRepo, settingsService)
 	routes.WebhookRoutes(v1, webhookController, userRepo, permissionCache)
 	routes.SetupUploadRoutes(v1, uploadController, userRepo)
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
@@ -411,7 +420,18 @@ func serveEmbeddedFrontend(app *fiber.App) {
 
 	app.Use(static.New("", static.Config{
 		FS:     dist,
-		MaxAge: 31536000, // 1 year for assets
+		MaxAge: 31536000, // 1 year, correct only for the content-hashed assets/*
+		// Caching sw.js freezes the old service worker forever; public/ files have no content hash.
+		ModifyResponse: func(c fiber.Ctx) error {
+			switch path := c.Path(); {
+			case path == "/sw.js" || path == "/registerSW.js" || path == "/manifest.webmanifest":
+				c.Set(fiber.HeaderCacheControl, "no-cache, no-store, must-revalidate")
+			case strings.HasPrefix(path, "/locales/") || path == "/favicon.ico" ||
+				path == "/logo.svg" || strings.HasPrefix(path, "/pwa-"):
+				c.Set(fiber.HeaderCacheControl, "public, max-age=300, must-revalidate")
+			}
+			return nil
+		},
 		NotFoundHandler: func(c fiber.Ctx) error {
 			if c.Method() != fiber.MethodGet {
 				return c.Next()

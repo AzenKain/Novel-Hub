@@ -4,9 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
-	"database/sql"
 	"encoding/hex"
-	"errors"
 	"slices"
 	"time"
 
@@ -29,11 +27,15 @@ import (
 
 type AuthService interface {
 	Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error)
+	SetTOTPService(service TOTPService)
 	ValidateCredentials(ctx context.Context, dto *request.SignInDto) (*response.JWTClaims, error)
 	Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, error)
 	SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error)
 	RefreshToken(ctx context.Context, userID string, refreshToken string) (*response.AuthResponse, error)
 	Logout(ctx context.Context, userID string) error
+	RequestOTP(ctx context.Context, dto *request.RequestOTPDto) (*response.OTPRequestResponse, error)
+	VerifyOTP(ctx context.Context, dto *request.VerifyOTPDto) (*response.OTPVerifyResponse, error)
+	ResetPasswordWithOTP(ctx context.Context, dto *request.ResetPasswordWithOTPDto) error
 }
 
 type authService struct {
@@ -42,10 +44,20 @@ type authService struct {
 	settingsRepo repositories.SettingsRepository
 	txManager    database.TxManager
 	settings     SettingsService
+	otp          *OTPStore
+	totp         TOTPService
 }
 
-func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, txManager database.TxManager, settingsRepo repositories.SettingsRepository, settings SettingsService) AuthService {
-	return &authService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager, settingsRepo: settingsRepo, settings: settings}
+func (a *authService) SetTOTPService(service TOTPService) {
+	a.totp = service
+}
+
+func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, txManager database.TxManager, settingsRepo repositories.SettingsRepository, settings SettingsService, otp ...*OTPStore) AuthService {
+	var store *OTPStore
+	if len(otp) > 0 {
+		store = otp[0]
+	}
+	return &authService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager, settingsRepo: settingsRepo, settings: settings, otp: store}
 }
 
 func refreshTokenDigest(token string) string {
@@ -115,7 +127,7 @@ func (a *authService) authenticate(ctx context.Context, dto *request.SignInDto) 
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
 	user, err := a.userRepo.GetAuthByEmail(ctx, dto.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(dto.Password)) != nil {
@@ -135,10 +147,21 @@ func (a *authService) ValidateCredentials(ctx context.Context, dto *request.Sign
 	return tokenClaims(user, "access", constants.AccessTokenDuration), nil
 }
 
+// The gate sits here and never in authenticate: ValidateCredentials shares that path and is
+// the OPDS/Kobo Basic-auth entry point, where no device can type a code.
 func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
 	user, err := a.authenticate(ctx, dto)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.totp != nil && a.totp.Enabled(ctx, user.ID) {
+		if dto.TOTPCode == "" {
+			return &response.AuthResponse{TOTPRequired: true}, nil
+		}
+		if err := a.totp.VerifyLogin(ctx, user.ID, dto.TOTPCode); err != nil {
+			return nil, err
+		}
 	}
 
 	tokens, tokenErr := a.genToken(user)
@@ -169,9 +192,20 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 	if !settings.RegistrationEnabled {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Public registration is disabled")
 	}
+	if settings.RequireEmailVerify {
+		if a.otp == nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Verification codes are unavailable")
+		}
+		if dto.OTPTicket == "" {
+			return nil, apperrors.New(apperrors.ErrBadRequest, "Email verification is required")
+		}
+		if err := a.otp.Consume(ctx, OTPPurposeEmailVerify, dto.Email, dto.OTPTicket); err != nil {
+			return nil, err
+		}
+	}
 
 	existing, err := a.userRepo.GetByEmail(ctx, dto.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if existing != nil {
@@ -253,7 +287,7 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 		}
 	} else {
 		completed, err := a.settingsRepo.GetSetupState(ctx, "completed")
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		if err != nil && !apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to check setup state")
 		}
 		if completed == "true" {
@@ -388,7 +422,7 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid user ID")
 	}
 	user, err := a.userRepo.GetAuthByID(ctx, id)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil || user.RefreshToken == "" || !refreshTokenMatches(user.RefreshToken, refreshToken) {

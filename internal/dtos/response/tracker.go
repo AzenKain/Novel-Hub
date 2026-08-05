@@ -11,6 +11,14 @@ type UserTrackerResponse struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
+// One selectable AniList media candidate.
+type TrackerSearchResultResponse struct {
+	ExternalSeriesID string `json:"external_series_id"`
+	TitleEnglish     string `json:"title_english,omitempty"`
+	TitleRomaji      string `json:"title_romaji,omitempty"`
+	MediaType        string `json:"media_type"`
+}
+
 type BookTrackerMappingResponse struct {
 	ID               string    `json:"id"`
 	BookID           string    `json:"book_id"`

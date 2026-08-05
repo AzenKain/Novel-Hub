@@ -134,7 +134,8 @@
         "jobs": "Tác vụ",
         "schedules": "Lịch chạy",
         "logs": "Nhật ký",
-        "backups": "Sao lưu"
+        "backups": "Sao lưu",
+        "audit": "Kiểm toán"
       },
       "run_task": "Chạy tác vụ bảo trì",
       "run_now": "Chạy ngay",
@@ -162,7 +163,9 @@
         "extract_metadata": "Trích xuất metadata",
         "hash_file": "Tạo hash tệp",
         "index_book": "Lập chỉ mục sách",
-        "webhook.dispatch": "Gửi webhook"
+        "webhook.dispatch": "Gửi webhook",
+        "prune_audit_logs": "Dọn log kiểm toán",
+        "prune_finished_jobs": "Dọn job đã hoàn tất"
       },
       "job_queued": "Đã xếp tác vụ",
       "action_failed": "Thao tác thất bại",
@@ -200,8 +203,25 @@
         "mib": "MiB",
         "gib": "GiB"
       },
-      "no_backups": "Không có bản sao lưu"
-    }
+      "no_backups": "Không có bản sao lưu",
+      "audit_action": "Hành động",
+      "all_actions": "Tất cả hành động",
+      "audit_total": "{{count}} bản ghi",
+      "audit_retention": "Giữ 90 ngày",
+      "audit_time": "Thời gian",
+      "audit_actor": "Người thực hiện",
+      "audit_target": "Đối tượng",
+      "audit_ip": "IP",
+      "audit_system": "Hệ thống",
+      "audit_empty": "Chưa có bản ghi kiểm toán"
+    },
+    "action_send_email": "Gửi email",
+    "send_email_title": "Gửi email",
+    "send_email_desc": "Thư sẽ gửi tới địa chỉ đã lưu của tài khoản:",
+    "email_subject": "Tiêu đề",
+    "email_body": "Nội dung",
+    "send_email": "Gửi",
+    "email_sent": "Đã gửi email"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",
@@ -225,7 +245,25 @@
     "full_name": "Họ và tên",
     "optional": "(không bắt buộc)",
     "password_min": "Tối thiểu 8 ký tự",
-    "unexpected_error": "Đã xảy ra lỗi không mong muốn"
+    "unexpected_error": "Đã xảy ra lỗi không mong muốn",
+    "otp_send": "Gửi mã xác thực",
+    "otp_sent_to": "Đã gửi mã 6 số tới {{email}}.",
+    "otp_code": "Mã xác thực",
+    "otp_verify": "Xác thực mã",
+    "otp_resend": "Gửi lại mã",
+    "otp_resend_in": "Gửi lại sau {{seconds}}s",
+    "otp_verified": "Email đã xác thực",
+    "forgot_password": "Quên mật khẩu?",
+    "reset_title": "Đặt lại mật khẩu",
+    "reset_desc": "Chúng tôi sẽ gửi mã qua email để xác nhận đây là tài khoản của bạn.",
+    "reset_submit": "Đặt mật khẩu mới",
+    "new_password": "Mật khẩu mới",
+    "back_to_login": "Về trang đăng nhập",
+    "reset_disabled": "Đặt lại mật khẩu đang tắt",
+    "reset_disabled_desc": "Tính năng đặt lại mật khẩu qua email đang tắt. Hãy nhờ admin đặt lại mật khẩu cho bạn.",
+    "totp_prompt": "Nhập mã 6 số từ ứng dụng xác thực, hoặc một mã dự phòng.",
+    "totp_code": "Mã xác thực",
+    "totp_verify": "Xác minh và đăng nhập"
   },
   "common": {
     "cancel": "Hủy",
@@ -258,7 +296,9 @@
     "apply": "Áp dụng",
     "share": "Chia sẻ",
     "download": "Tải xuống",
-    "load_more": "Tải thêm"
+    "load_more": "Tải thêm",
+    "previous": "Trước",
+    "next": "Sau"
   },
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
@@ -547,7 +587,8 @@
     "description": "Tóm tắt",
     "bookmarks": "Lượt bookmark",
     "collections": "Bộ sưu tập",
-    "no_description": "Không có tóm tắt cho sách này."
+    "no_description": "Không có tóm tắt cho sách này.",
+    "next_in_series": "Tiếp theo trong bộ"
   },
   "settings": {
     "title": "Cài đặt",
@@ -653,14 +694,9 @@
     "permission_webhook_manage": "Quản lý webhook và tích hợp thông báo",
     "permission_book_share": "Chia sẻ sách và tạo liên kết chia sẻ",
     "send_to_kindle": "Gửi đến Kindle",
-    "smtp_settings": "Cài đặt máy chủ email SMTP",
-    "smtp_subtitle": "Cấu hình máy chủ gửi mail hệ thống cho tính năng Gửi đến Kindle và thông báo.",
     "smtp_host": "SMTP Host",
     "smtp_port": "Cổng (Port)",
-    "smtp_user": "Tên đăng nhập / Email",
-    "smtp_pass": "Mật khẩu / App Secret",
     "smtp_from": "Địa chỉ Email người gửi",
-    "test_smtp": "Kiểm tra kết nối",
     "runtime_limits": "Giới hạn vận hành",
     "runtime_limits_desc": "Kiểm soát giới hạn tải lên, hình ảnh và phiên tạm thời.",
     "save_runtime_limits": "Lưu giới hạn",
@@ -681,7 +717,33 @@
     "unit_mib": "MiB",
     "unit_minutes": "phút",
     "unit_count": "lần",
-    "limit_range": "Cho phép: {{min}}–{{max}}"
+    "limit_range": "Cho phép: {{min}}–{{max}}",
+    "smtp_title": "Email (SMTP)",
+    "smtp_desc": "Máy chủ mail gửi đi, dùng cho Send-to-Kindle và thông báo hệ thống.",
+    "smtp_enabled": "Bật",
+    "smtp_username": "Tên đăng nhập",
+    "smtp_password": "Mật khẩu",
+    "smtp_password_placeholder": "Mật khẩu ứng dụng",
+    "smtp_password_keep": "Để trống để giữ mật khẩu đã lưu",
+    "smtp_password_clear": "Xoá mật khẩu đã lưu",
+    "smtp_tls_mode": "Mã hoá",
+    "smtp_tls_none": "Không (chỉ dùng trong mạng tin cậy)",
+    "smtp_tls_starttls": "STARTTLS (thường là cổng 587)",
+    "smtp_tls_implicit": "TLS ngầm / SSL (thường là cổng 465)",
+    "smtp_allow_private": "Cho phép máy chủ mail nội bộ",
+    "smtp_allow_private_desc": "Cần bật nếu máy chủ mail nằm trong LAN, localhost hoặc container khác. Để tắt khi dùng nhà cung cấp trên Internet.",
+    "smtp_test": "Kiểm tra kết nối",
+    "smtp_test_success": "Kết nối SMTP thành công",
+    "smtp_saved": "Đã lưu cài đặt SMTP",
+    "save_smtp": "Lưu SMTP",
+    "require_email_verify": "Bắt buộc xác thực email",
+    "require_email_verify_desc": "Tài khoản mới phải nhập đúng mã gửi qua email trước khi được tạo.",
+    "password_reset_enabled": "Cho phép đặt lại mật khẩu qua email",
+    "password_reset_enabled_desc": "Hiện link \"Quên mật khẩu?\" và cho người dùng đặt lại bằng mã gửi qua email.",
+    "needs_smtp": "Cấu hình SMTP bên dưới để bật mục này.",
+    "template_email": "Email (SMTP)",
+    "email_recipients": "Người nhận",
+    "email_recipients_hint": "Các địa chỉ cách nhau bằng dấu phẩy, đặt sau mailto:. Cần cấu hình SMTP trước."
   },
   "email": {
     "invalid": "Vui lòng nhập địa chỉ email hợp lệ",
@@ -787,5 +849,46 @@
     "complete_setup": "Hoàn tất thiết lập",
     "setup_failed": "Thiết lập thất bại",
     "unexpected_error": "Đã xảy ra lỗi không mong muốn"
+  },
+  "pwa": {
+    "update_available": "Đã có bản mới.",
+    "reload": "Tải lại",
+    "later": "Để sau"
+  },
+  "offline": {
+    "save": "Lưu để đọc offline",
+    "remove": "Xoá bản offline",
+    "chapter_unavailable": "Chương này chưa có offline. Hãy lưu sách để đọc offline khi còn kết nối mạng.",
+    "title": "Sách đã lưu offline",
+    "empty": "Chưa lưu sách nào để đọc offline",
+    "usage": "Đã dùng {{used}} trong {{quota}}",
+    "saved_at": "Lưu ngày {{date}}",
+    "chapter_count": "{{count}} chương",
+    "warning_title": "Tải toàn bộ sách?",
+    "warning_body": "\"{{title}}\" sẽ được tải đầy đủ về máy này để bạn đọc khi không có mạng.",
+    "warning_body_with_size": "\"{{title}}\" sẽ được tải đầy đủ về máy này ({{size}}) để bạn đọc khi không có mạng.",
+    "warning_storage_note": "Nó chiếm dung lượng của trình duyệt đến khi bạn xoá, và sẽ bị xoá khi bạn đăng xuất.",
+    "warning_dont_remind": "Không nhắc lại trong một ngày",
+    "warning_confirm": "Tải về"
+  },
+  "totp": {
+    "title": "Xác thực hai bước",
+    "on": "Bật",
+    "off": "Tắt",
+    "subtitle": "Yêu cầu mã từ ứng dụng xác thực khi đăng nhập.",
+    "begin": "Thiết lập xác thực hai bước",
+    "scan_instructions": "Quét mã này bằng ứng dụng xác thực, rồi nhập mã nó hiện ra.",
+    "manual_entry": "Hoặc nhập khóa này thủ công:",
+    "confirm": "Xác nhận",
+    "current_code": "Mã hiện tại",
+    "regenerate_codes": "Tạo mã dự phòng mới",
+    "disable": "Tắt",
+    "disable_confirm": "Tắt xác thực hai bước cho tài khoản của bạn?",
+    "enabled_toast": "Đã bật xác thực hai bước.",
+    "disabled_toast": "Đã tắt xác thực hai bước.",
+    "recovery_regenerated": "Đã tạo mã dự phòng mới. Mã cũ không còn dùng được.",
+    "recovery_remaining": "Còn {{count}} mã dự phòng",
+    "recovery_warning": "Hãy lưu các mã dự phòng này ngay. Mỗi mã dùng được một lần và là cách duy nhất để vào nếu bạn mất điện thoại. Chúng sẽ không hiện lại.",
+    "copy_codes": "Sao chép mã"
   }
 }

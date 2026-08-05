@@ -326,6 +326,7 @@ func (r *bookDBRepository) LinkBookSeries(ctx context.Context, bookID, seriesID 
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSeriesPattern)
 	}
 	return nil
 }
@@ -339,8 +340,71 @@ func (r *bookDBRepository) ClearBookSeries(ctx context.Context, bookID string) e
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSeriesPattern)
 	}
 	return nil
+}
+
+func (r *bookDBRepository) GetBookSeries(ctx context.Context, bookID string) ([]*models.BookSeriesEntity, error) {
+	key := cache.BuildKey("book_series", "book", bookID)
+	if r.c != nil && !r.inTx {
+		var cached []*models.BookSeriesEntity
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return cached, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.GetBookSeries(ctx, bookID)
+		if err != nil {
+			return nil, err
+		}
+		result := models.BookSeriesFromSqlc(rows)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]*models.BookSeriesEntity), nil
+}
+
+func (r *bookDBRepository) GetNextBookInSeries(ctx context.Context, seriesID, currentBookID string) (*models.NextInSeriesEntity, error) {
+	key := cache.BuildKey("book_series", "next", seriesID, currentBookID)
+	if r.c != nil && !r.inTx {
+		var cached models.NextInSeriesEntity
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return &cached, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetNextBookInSeries(ctx, sqlc.GetNextBookInSeriesParams{
+			SeriesID:      seriesID,
+			CurrentBookID: currentBookID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		result := &models.NextInSeriesEntity{
+			SeriesID:    seriesID,
+			BookID:      row.ID,
+			LibraryID:   row.LibraryID,
+			Title:       row.Title,
+			CoverURL:    convert.NullStringToStrPtr(row.CoverUrl),
+			SeriesIndex: convert.NullStringToStrPtr(row.SeriesIndex),
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*models.NextInSeriesEntity), nil
 }
 
 func (r *bookDBRepository) GetPublisherByName(ctx context.Context, name string) (*models.PublisherEntity, error) {

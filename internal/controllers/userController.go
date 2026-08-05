@@ -15,14 +15,15 @@ import (
 
 type UserController struct {
 	service services.UserService
+	audit   services.AuditService
 }
 
-func NewUserController(svc services.UserService) *UserController {
-	return &UserController{service: svc}
+func NewUserController(svc services.UserService, audit services.AuditService) *UserController {
+	return &UserController{service: svc, audit: audit}
 }
 
 func (h *UserController) CreateUser(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.CreateUserDto{}
@@ -34,6 +35,7 @@ func (h *UserController) CreateUser(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserCreate, "user", res.ID, res.Email)
 	return c.Status(fiber.StatusCreated).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
@@ -123,7 +125,7 @@ func (h *UserController) GetUserByID(c fiber.Ctx) error {
 }
 
 func (h *UserController) AdminUpdateProfile(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.UpdateProfileDto{}
@@ -140,11 +142,12 @@ func (h *UserController) AdminUpdateProfile(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", res.ID, res.Email)
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *UserController) AdminResetPassword(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.ResetPasswordDto{}
@@ -161,11 +164,28 @@ func (h *UserController) AdminResetPassword(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserResetPass, "user", c.Params("id"), "")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Password reset successfully"})
 }
 
+func (h *UserController) SendUserEmail(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 45*time.Second)
+	defer cancel()
+
+	dto := &request.SendUserEmailDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	if err := h.service.SendEmail(ctx, c.Params("id"), dto); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	h.audit.Record(ctx, services.AuditActionUserSendEmail, "user", c.Params("id"), dto.Subject)
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Email sent successfully"})
+}
+
 func (h *UserController) ChangeRoleUser(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.ChangeRoleDto{}
@@ -182,11 +202,12 @@ func (h *UserController) ChangeRoleUser(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserRoleChange, "user", res.ID, res.Email)
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *UserController) RestoreUser(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	claims, ok := getUserClaims(c)
@@ -198,15 +219,19 @@ func (h *UserController) RestoreUser(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserRestore, "user", res.ID, res.Email)
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *UserController) DeleteUser(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	claims, ok := getUserClaims(c)
-	if ok && claims.UId == c.Params("id") {
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+	if claims.UId == c.Params("id") {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You cannot delete yourself"})
 	}
 
@@ -214,5 +239,6 @@ func (h *UserController) DeleteUser(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionUserDelete, "user", c.Params("id"), "")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "User deleted successfully"})
 }

@@ -27,6 +27,8 @@ type UpdateSettingsDto struct {
 	EnableInBookSearch      *bool                   `json:"reader.enable_in_book_search"`
 	EnableCustomFontUpload  *bool                   `json:"font.enable_custom_font_upload"`
 	EnableAniListTracking   *bool                   `json:"tracker.anilist_enabled"`
+	RequireEmailVerify      *bool                   `json:"auth.require_email_verify"`
+	PasswordResetEnabled    *bool                   `json:"auth.password_reset_enabled"`
 	UploadChunkBytes        *int64                  `json:"limits.upload_chunk_bytes"`
 	UploadChunks            *int                    `json:"limits.upload_chunks"`
 	UploadSessions          *int                    `json:"limits.upload_sessions"`
@@ -38,7 +40,26 @@ type UpdateSettingsDto struct {
 	RateLimitAuth              *int   `json:"limits.rate_limit_auth"`
 	RateLimitAuthWindowSeconds *int64 `json:"limits.rate_limit_auth_window_seconds"`
 
+	SMTPEnabled              *bool   `json:"smtp.enabled"`
+	SMTPHost                 *string `json:"smtp.host" validate:"omitempty,max=255"`
+	SMTPPort                 *int    `json:"smtp.port" validate:"omitempty,min=1,max=65535"`
+	SMTPUsername             *string `json:"smtp.username" validate:"omitempty,max=255"`
+	SMTPPassword             *string `json:"smtp.password" validate:"omitempty,max=1024"`
+	SMTPFromEmail            *string `json:"smtp.from_email" validate:"omitempty,max=255"`
+	SMTPTLSMode              *string `json:"smtp.tls_mode" validate:"omitempty,oneof=none starttls implicit_tls"`
+	SMTPAllowPrivateNetworks *bool   `json:"smtp.allow_private_networks"`
+
 	present map[string]bool
+}
+
+type SMTPTestDto struct {
+	Host                 *string `json:"host" validate:"omitempty,max=255"`
+	Port                 *int    `json:"port" validate:"omitempty,min=1,max=65535"`
+	Username             *string `json:"username" validate:"omitempty,max=255"`
+	Password             *string `json:"password" validate:"omitempty,max=1024"`
+	FromEmail            *string `json:"from_email" validate:"omitempty,max=255"`
+	TLSMode              *string `json:"tls_mode" validate:"omitempty,oneof=none starttls implicit_tls"`
+	AllowPrivateNetworks *bool   `json:"allow_private_networks"`
 }
 
 func (d *UpdateSettingsDto) UnmarshalJSON(data []byte) error {
@@ -94,6 +115,8 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "reader.enable_in_book_search", d.EnableInBookSearch)
 	putPtr(values, "font.enable_custom_font_upload", d.EnableCustomFontUpload)
 	putPtr(values, "tracker.anilist_enabled", d.EnableAniListTracking)
+	putPtr(values, "auth.require_email_verify", d.RequireEmailVerify)
+	putPtr(values, "auth.password_reset_enabled", d.PasswordResetEnabled)
 	putPtr(values, "limits.upload_chunk_bytes", d.UploadChunkBytes)
 	putPtr(values, "limits.upload_chunks", d.UploadChunks)
 	putPtr(values, "limits.upload_sessions", d.UploadSessions)
@@ -103,6 +126,14 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "limits.site_asset_bytes", d.SiteAssetBytes)
 	putPtr(values, "limits.rate_limit_auth", d.RateLimitAuth)
 	putPtr(values, "limits.rate_limit_auth_window_seconds", d.RateLimitAuthWindowSeconds)
+	putPtr(values, "smtp.enabled", d.SMTPEnabled)
+	putPtr(values, "smtp.host", d.SMTPHost)
+	putPtr(values, "smtp.port", d.SMTPPort)
+	putPtr(values, "smtp.username", d.SMTPUsername)
+	putPtr(values, "smtp.password", d.SMTPPassword)
+	putPtr(values, "smtp.from_email", d.SMTPFromEmail)
+	putPtr(values, "smtp.tls_mode", d.SMTPTLSMode)
+	putPtr(values, "smtp.allow_private_networks", d.SMTPAllowPrivateNetworks)
 	return values
 }
 
@@ -113,10 +144,14 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
 		"tracker.anilist_enabled":   true,
+		"auth.require_email_verify": true, "auth.password_reset_enabled": true,
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,
 		"limits.rate_limit_auth": true, "limits.rate_limit_auth_window_seconds": true,
+		"smtp.enabled": true, "smtp.host": true, "smtp.port": true, "smtp.username": true,
+		"smtp.password": true, "smtp.from_email": true, "smtp.tls_mode": true,
+		"smtp.allow_private_networks": true,
 	}
 	unknown := make([]string, 0)
 	for key := range d.present {

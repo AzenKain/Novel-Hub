@@ -10,6 +10,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
@@ -30,7 +31,7 @@ func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 	seen := map[string]bool{}
 	cursor := ""
 	for page := 0; page < 10; page++ {
-		feed, err := svc.GetRecentBooks(ctx, serverURL, OPDSPageQuery{Limit: 3, Cursor: cursor}, claims)
+		feed, err := svc.GetRecentBooks(ctx, serverURL, request.OPDSPageDto{Limit: 3, Cursor: cursor}, claims)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,7 +60,7 @@ func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 // a page that is always empty.
 func TestOPDSLastPageHasNoNextLink(t *testing.T) {
 	svc, claims := newOPDSPagingService(t, 2)
-	feed, err := svc.GetRecentBooks(context.Background(), "http://localhost:3434", OPDSPageQuery{Limit: 50}, claims)
+	feed, err := svc.GetRecentBooks(context.Background(), "http://localhost:3434", request.OPDSPageDto{Limit: 50}, claims)
 	if err != nil {
 		t.Fatal(err)
 	}

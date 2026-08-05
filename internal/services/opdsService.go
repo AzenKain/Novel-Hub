@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/pkg/constants"
@@ -15,22 +16,17 @@ import (
 	"novelhub/pkg/opds"
 )
 
-type OPDSPageQuery struct {
-	Cursor string
-	Limit  int64
-}
-
 type OPDSService interface {
 	GetRootCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetRecentBooks(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	GetRecentBooks(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
 	GetOpenSearchDescription(serverURL string) *opds.OpenSearchDescription
-	SearchBooksOPDS(ctx context.Context, serverURL string, query string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagBooks(ctx context.Context, serverURL string, tagName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error)
+	SearchBooksOPDS(ctx context.Context, serverURL string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagBooks(ctx context.Context, serverURL string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
 	GetOPDS2Catalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (map[string]any, error)
 }
 
@@ -158,14 +154,14 @@ func decodeBookCursor(cursor string) (*time.Time, string) {
 }
 
 func (s *opdsService) visibleBooks(ctx context.Context, limit int64, claims *response.JWTClaims) ([]*models.BookEntity, error) {
-	page, err := s.visibleBooksPage(ctx, OPDSPageQuery{Limit: limit}, claims)
+	page, err := s.visibleBooksPage(ctx, request.OPDSPageDto{Limit: limit}, claims)
 	if err != nil {
 		return nil, err
 	}
 	return page.Books, nil
 }
 
-func (s *opdsService) visibleBooksPage(ctx context.Context, q OPDSPageQuery, claims *response.JWTClaims) (visiblePage, error) {
+func (s *opdsService) visibleBooksPage(ctx context.Context, q request.OPDSPageDto, claims *response.JWTClaims) (visiblePage, error) {
 	claims = resolveClaims(claims)
 	cursorTime, cursorID := decodeBookCursor(q.Cursor)
 	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", cursorTime, cursorID, q.Limit)
@@ -195,7 +191,7 @@ func appendNextLink(feed *opds.Feed, serverURL, selfPath, cursor string) {
 	})
 }
 
-func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -218,7 +214,7 @@ func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q OP
 	return feed, nil
 }
 
-func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
 	cursorTime, cursorID := decodeBookCursor(q.Cursor)
 	books, err := s.books.SearchBooks(ctx, nil, nil, query, "", "", "", "", cursorTime, cursorID, q.Limit)
@@ -246,7 +242,7 @@ func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, que
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -281,7 +277,7 @@ func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
 	cursorTime, cursorID := decodeBookCursor(q.Cursor)
 	books, err := s.books.SearchBooks(ctx, nil, nil, "", authorName, "", "", "", cursorTime, cursorID, q.Limit)
@@ -307,7 +303,7 @@ func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, auth
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -343,7 +339,7 @@ func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q 
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
 	cursorTime, cursorID := decodeBookCursor(q.Cursor)
 	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", seriesName, "", "", cursorTime, cursorID, q.Limit)
@@ -369,7 +365,7 @@ func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seri
 	return feed, nil
 }
 
-func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -406,7 +402,7 @@ func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q OP
 	return feed, nil
 }
 
-func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, q OPDSPageQuery, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
 	cursorTime, cursorID := decodeBookCursor(q.Cursor)
 	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", tagName, "", cursorTime, cursorID, q.Limit)

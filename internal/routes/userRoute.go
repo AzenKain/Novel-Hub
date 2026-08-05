@@ -52,6 +52,12 @@ func UserRoutes(app fiber.Router, controller *controllers.UserController, userRe
 		middlewares.RequirePermission(permissionCache, "user.manage"),
 		controller.ChangeRoleUser,
 	)
+	route.Post(
+		"/:id/email",
+		middlewares.JwtAccess(userRepo),
+		middlewares.RequirePermission(permissionCache, "user.manage"),
+		controller.SendUserEmail,
+	)
 	route.Patch(
 		"/:id/restore",
 		middlewares.JwtAccess(userRepo),

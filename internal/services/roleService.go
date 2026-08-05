@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -59,7 +57,7 @@ func (r *roleService) GetRoleByID(ctx context.Context, id string) (*response.Rol
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid role ID")
 	}
 	role, err := r.roleRepo.GetByID(ctx, roleID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if role == nil {

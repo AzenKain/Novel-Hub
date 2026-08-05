@@ -1,10 +1,11 @@
+import { AuditTab } from "@/components/admin/operations/AuditTab";
 import { BackupsTab } from "@/components/admin/operations/BackupsTab";
 import { JobsTab } from "@/components/admin/operations/JobsTab";
 import { LogsTab } from "@/components/admin/operations/LogsTab";
 import { SchedulesTab } from "@/components/admin/operations/SchedulesTab";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
-import { Archive, CalendarClock, ListTodo, ScrollText } from "lucide-react";
+import { Archive, CalendarClock, ListTodo, ScrollText, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +21,7 @@ export function Operations() {
     ...(canReadJobs || canManageJobs ? [{ id: "schedules", icon: CalendarClock }] : []),
     ...(canReadLogs ? [{ id: "logs", icon: ScrollText }] : []),
     ...(canBackup ? [{ id: "backups", icon: Archive }] : []),
+    ...(canReadLogs ? [{ id: "audit", icon: ShieldCheck }] : []),
   ];
   const [active, setActive] = useState(tabs[0]?.id || "jobs");
 
@@ -30,5 +32,6 @@ export function Operations() {
     {active === "schedules" && (canReadJobs || canManageJobs) && <SchedulesTab />}
     {active === "logs" && canReadLogs && <LogsTab />}
     {active === "backups" && canBackup && <BackupsTab />}
+    {active === "audit" && canReadLogs && <AuditTab />}
   </div>;
 }

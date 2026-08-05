@@ -1,5 +1,13 @@
 import { api } from "@/config/api";
-import type { CommonResponse, PublicSettings } from "@/types";
+import type {
+  CommonResponse,
+  OTPPurpose,
+  OTPRequestResponse,
+  OTPVerifyResponse,
+  PublicSettings,
+  RegisterRequest,
+  ResetPasswordWithOTPRequest,
+} from "@/types";
 import axios from "axios";
 
 export const settingsService = {
@@ -25,9 +33,42 @@ export const settingsService = {
     }
   },
 
-  async register(data: { email: string; password: string; full_name?: string }): Promise<CommonResponse<unknown>> {
+  async register(data: RegisterRequest): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.post("/auth/register", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<unknown>;
+      throw error;
+    }
+  },
+
+  async requestOTP(email: string, purpose: OTPPurpose): Promise<CommonResponse<OTPRequestResponse>> {
+    try {
+      const res = await api.post("/auth/otp/request", { email, purpose });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<OTPRequestResponse>;
+      throw error;
+    }
+  },
+
+  async verifyOTP(email: string, purpose: OTPPurpose, code: string): Promise<CommonResponse<OTPVerifyResponse>> {
+    try {
+      const res = await api.post("/auth/otp/verify", { email, purpose, code });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<OTPVerifyResponse>;
+      throw error;
+    }
+  },
+
+  async resetPasswordWithOTP(data: ResetPasswordWithOTPRequest): Promise<CommonResponse<unknown>> {
+    try {
+      const res = await api.post("/auth/password/reset", data);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)

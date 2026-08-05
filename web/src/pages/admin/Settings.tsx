@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
+import { SmtpSettingsTab } from "@/components/admin/settings/SmtpSettingsTab";
 import { WebhooksTab } from "@/components/admin/settings/WebhooksTab";
 
 export function Settings() {
@@ -34,6 +35,8 @@ export function Settings() {
     homeSections, setHomeSections,
     registration, setRegistration,
     loginRequired, setLoginRequired,
+    requireEmailVerify, setRequireEmailVerify,
+    passwordResetEnabled, setPasswordResetEnabled,
     guestMode, setGuestMode,
     guestLibraryIds, setGuestLibraryIds,
     inBookSearch, setInBookSearch,
@@ -51,6 +54,8 @@ export function Settings() {
     homeSections: state.homeSections, setHomeSections: state.setHomeSections,
     registration: state.registration, setRegistration: state.setRegistration,
     loginRequired: state.loginRequired, setLoginRequired: state.setLoginRequired,
+    requireEmailVerify: state.requireEmailVerify, setRequireEmailVerify: state.setRequireEmailVerify,
+    passwordResetEnabled: state.passwordResetEnabled, setPasswordResetEnabled: state.setPasswordResetEnabled,
     guestMode: state.guestMode, setGuestMode: state.setGuestMode,
     guestLibraryIds: state.guestLibraryIds, setGuestLibraryIds: state.setGuestLibraryIds,
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
@@ -190,6 +195,8 @@ export function Settings() {
     void saveSection("Registration & Guest", {
       "auth.registration_enabled": registration,
       "auth.login_required": loginRequired,
+      "auth.require_email_verify": requireEmailVerify,
+      "auth.password_reset_enabled": passwordResetEnabled,
       "guest_access.mode": guestMode,
       "guest_access.library_ids": guestMode === "selected_libraries" ? guestLibraryIds : [],
     });
@@ -576,6 +583,42 @@ export function Settings() {
                   <input
                     type="checkbox"
                     className="toggle toggle-primary"
+                    checked={requireEmailVerify}
+                    onChange={(e) => setRequireEmailVerify(e.target.checked)}
+                    disabled={!adminSettings?.smtp?.enabled}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.require_email_verify", "Require Email Verification")}</span>
+                    <p className="text-xs text-base-content/50">
+                      {adminSettings?.smtp?.enabled
+                        ? t("settings.require_email_verify_desc", "New accounts must confirm an emailed code before they are created.")
+                        : t("settings.needs_smtp", "Configure SMTP below to enable this.")}
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={passwordResetEnabled}
+                    onChange={(e) => setPasswordResetEnabled(e.target.checked)}
+                    disabled={!adminSettings?.smtp?.enabled}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.password_reset_enabled", "Enable Password Reset by Email")}</span>
+                    <p className="text-xs text-base-content/50">
+                      {adminSettings?.smtp?.enabled
+                        ? t("settings.password_reset_enabled_desc", "Shows a \"Forgot password?\" link and lets users reset with an emailed code.")
+                        : t("settings.needs_smtp", "Configure SMTP below to enable this.")}
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
                     checked={loginRequired}
                     onChange={(e) => setLoginRequired(e.target.checked)}
                   />
@@ -615,6 +658,12 @@ export function Settings() {
           </div>
 
           <RuntimeLimitsCard />
+
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-4 sm:p-5">
+              <SmtpSettingsTab settings={adminSettings} />
+            </div>
+          </div>
 
           {/* ────── Webhooks Integration ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">

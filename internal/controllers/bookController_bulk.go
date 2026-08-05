@@ -2,18 +2,20 @@ package controllers
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/validator"
 )
 
 func (h *BookController) BulkDeleteBooks(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := auditContext(c, 30*time.Second)
 	defer cancel()
 
 	claims, ok := getUserClaims(c)
@@ -30,6 +32,7 @@ func (h *BookController) BulkDeleteBooks(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionBookBulkDelete, "book", "", strconv.Itoa(result.SuccessCount)+" books")
 
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		Status: true,
@@ -38,7 +41,7 @@ func (h *BookController) BulkDeleteBooks(c fiber.Ctx) error {
 }
 
 func (h *BookController) BulkMoveBooks(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := auditContext(c, 30*time.Second)
 	defer cancel()
 
 	claims, ok := getUserClaims(c)
@@ -55,6 +58,7 @@ func (h *BookController) BulkMoveBooks(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionBookBulkMove, "book", "", strconv.Itoa(result.SuccessCount)+" books")
 
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		Status: true,

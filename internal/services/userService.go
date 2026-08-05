@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"slices"
 	"strings"
 
@@ -34,6 +33,7 @@ type UserService interface {
 	GetUserByID(ctx context.Context, userID string) (*response.UserResponse, error)
 	SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, error)
 	AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error
+	SendEmail(ctx context.Context, userID string, dto *request.SendUserEmailDto) error
 }
 
 type userService struct {
@@ -41,22 +41,23 @@ type userService struct {
 	roleRepo     repositories.RoleRepository
 	settingsRepo repositories.SettingsRepository
 	txManager    database.TxManager
+	settings     SettingsService
 }
 
-func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager) UserService {
+func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager, settings ...SettingsService) UserService {
+	var settingsService SettingsService
+	if len(settings) > 0 {
+		settingsService = settings[0]
+	}
 	return &userService{
 		userRepo:     userRepo,
 		roleRepo:     roleRepo,
 		settingsRepo: settingsRepo,
 		txManager:    txManager,
+		settings:     settingsService,
 	}
 }
 
-// rootAdminID returns the owner account id recorded during setup, or "" when it
-// cannot be determined. Returning "" is safe: every "only the owner may ..."
-// check below compares the caller against this value, so an unknown owner makes
-// those comparisons fail and the privileged action is denied. The owner is
-// always an admin, so the admin guards still protect the owner account itself.
 func (u *userService) rootAdminID(ctx context.Context) string {
 	if u.settingsRepo == nil {
 		return ""
@@ -102,7 +103,7 @@ func (u *userService) CreateUser(ctx context.Context, dto *request.CreateUserDto
 	}
 
 	existing, err := u.userRepo.GetByEmail(ctx, dto.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if existing != nil {
@@ -177,8 +178,7 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *
 	}
 
 	rootID := u.rootAdminID(ctx)
-	callerID := claims.UId
-	isRoot := rootID != "" && callerID == rootID
+	isRoot := rootID != "" && claims.UId == rootID
 	if rootID != "" && id == rootID && !isRoot {
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
 	}
@@ -293,6 +293,7 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, cla
 	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
 }
+
 func (u *userService) ChangeRoleUser(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ChangeRoleDto) (*response.UserResponse, error) {
 	id, ferr := convert.ParseID(userID)
 	if ferr != nil {
@@ -407,11 +408,6 @@ func (u *userService) DeleteUser(ctx context.Context, userID string, claims *res
 		return apperrors.New(apperrors.ErrForbidden, "Only the owner can delete other admin accounts")
 	}
 
-	// Soft-deleting a user hides the row from GetUserTokenVersion (which filters
-	// is_deleted = 0), so the attacker's captured JWT/refresh token fail. But the row keeps
-	// the same token_version and refresh_token — a Restore flips is_deleted back to 0 and
-	// resurrects every credential captured before the deletion. Bump token_version and
-	// clear refresh_token on the way down so a future restore cannot un-revoke them.
 	tx, err := u.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
@@ -441,7 +437,7 @@ func (u *userService) RestoreUser(ctx context.Context, userID string, claims *re
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
 	user, err := u.userRepo.GetByIDWithoutDeleted(ctx, id)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil {
@@ -454,11 +450,6 @@ func (u *userService) RestoreUser(ctx context.Context, userID string, claims *re
 		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can restore other admin accounts")
 	}
 
-	// Restore flips is_deleted back to 0 with the SAME token_version and refresh_token.
-	// DeleteUser now bumps token_version and clears refresh_token on the way down, so the
-	// restored row already carries revoked credentials. To stay safe even against a
-	// deletion made before that guard existed, bump again here: any JWT captured before
-	// this restore is rejected, and the cleared refresh_token stops rotation.
 	tx, err := u.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
@@ -492,7 +483,7 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
 	}
 	user, err := u.userRepo.GetByID(ctx, id)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
 	if user == nil {
@@ -503,8 +494,6 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 	return res, nil
 }
 
-// markOwner flags the root admin so the UI can gate owner-only actions without
-// inferring ownership from the id.
 func (u *userService) markOwner(ctx context.Context, users ...*response.UserResponse) {
 	rootID := u.rootAdminID(ctx)
 	if rootID == "" {

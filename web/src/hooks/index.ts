@@ -8,3 +8,5 @@ export * from "./useOperationsQueries";
 export * from "./useSettings";
 export * from "./useTrackerQueries";
 export * from "./useKoboQueries";
+export * from "./useOfflineAssets";
+export * from "./useOfflineBook";

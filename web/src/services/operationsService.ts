@@ -1,5 +1,6 @@
 import { API_BASE, api, toQuery } from "@/config/api";
 import type {
+  AuditLogEntry,
   BackgroundJob,
   BackupInfo,
   CommonResponse,
@@ -14,6 +15,28 @@ import type {
 import axios from "axios";
 
 export const operationsService = {
+  async listAuditLogs(params: { action?: string; cursor?: string; limit?: number }): Promise<PaginatedResponse<AuditLogEntry>> {
+    try {
+      const res = await api.get(`/admin/audit${toQuery(params)}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as PaginatedResponse<AuditLogEntry>;
+      }
+      throw error;
+    }
+  },
+  async listAuditActions(): Promise<CommonResponse<string[]>> {
+    try {
+      const res = await api.get("/admin/audit/actions");
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<string[]>;
+      }
+      throw error;
+    }
+  },
   async listJobs(params: { status?: string; type?: string; limit?: number; offset?: number }): Promise<PaginatedResponse<BackgroundJob>> {
     try {
       const res = await api.get(`/jobs${toQuery(params)}`);

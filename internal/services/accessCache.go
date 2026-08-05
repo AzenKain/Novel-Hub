@@ -7,24 +7,20 @@ import (
 	"strings"
 	"sync"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/constants"
 )
 
 type permissionContextKey struct{}
 
-type PermissionContext struct {
-	RoleIDs []string
-	Roles   []constants.RoleType
+func WithPermissionContext(ctx context.Context, claims *response.JWTClaims) context.Context {
+	return context.WithValue(ctx, permissionContextKey{}, claims)
 }
 
-func WithPermissionContext(ctx context.Context, permissionCtx PermissionContext) context.Context {
-	return context.WithValue(ctx, permissionContextKey{}, permissionCtx)
-}
-
-func PermissionContextFrom(ctx context.Context) PermissionContext {
-	value, _ := ctx.Value(permissionContextKey{}).(PermissionContext)
-	return value
+func PermissionContextFrom(ctx context.Context) *response.JWTClaims {
+	claims, _ := ctx.Value(permissionContextKey{}).(*response.JWTClaims)
+	return claims
 }
 
 type PermissionCache interface {
@@ -112,8 +108,11 @@ func (p *permissionCache) Reload(ctx context.Context) error {
 }
 
 func (p *permissionCache) Can(ctx context.Context, userID string, permission string, attrs map[string]any) bool {
-	permissionCtx := PermissionContextFrom(ctx)
-	return p.CanRoles(permissionCtx.RoleIDs, permissionCtx.Roles, permission, attrs)
+	claims := PermissionContextFrom(ctx)
+	if claims == nil {
+		return false
+	}
+	return p.CanRoles(claims.RoleIDs, claims.Roles, permission, attrs)
 }
 
 func (p *permissionCache) CanRoles(roleIDs []string, roles []constants.RoleType, permission string, attrs map[string]any) bool {

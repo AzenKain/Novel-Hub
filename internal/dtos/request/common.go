@@ -18,3 +18,10 @@ type MetadataFacetDto struct {
 	Search string `json:"search,omitempty" query:"search" validate:"omitempty,max=200"`
 	Alpha  string `json:"alpha,omitempty" query:"alpha" validate:"omitempty,max=8"`
 }
+
+// No validate tags: OPDS parses its query string by hand rather than through pkg/validator,
+// because a reader device gets an XML error document, not a JSON field-error list.
+type OPDSPageDto struct {
+	Cursor string
+	Limit  int64
+}

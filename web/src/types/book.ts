@@ -128,6 +128,26 @@ export interface BootstrapResponse {
   chapters: Chapter[];
 }
 
+export interface BookSeriesEntry {
+  series_id: string;
+  series_name: string;
+  series_index?: string;
+}
+
+export interface NextInSeries {
+  series_id: string;
+  series_name: string;
+  book_id: string;
+  title: string;
+  cover_url?: string;
+  series_index?: string;
+}
+
+export interface BookSeriesContext {
+  series: BookSeriesEntry[];
+  next?: NextInSeries;
+}
+
 export interface Highlight {
   id: string;
   user_id: string;

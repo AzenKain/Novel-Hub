@@ -16,18 +16,19 @@ import (
 type SystemOperationsController struct {
 	logs    services.SystemLogService
 	backups services.BackupService
+	audit   services.AuditService
 }
 
-func NewSystemOperationsController(logs services.SystemLogService, backups services.BackupService) *SystemOperationsController {
-	return &SystemOperationsController{logs: logs, backups: backups}
+func NewSystemOperationsController(logs services.SystemLogService, backups services.BackupService, audit services.AuditService) *SystemOperationsController {
+	return &SystemOperationsController{logs: logs, backups: backups, audit: audit}
 }
 
-func systemOperationContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 30*time.Minute)
+func systemOperationContext(c fiber.Ctx) (context.Context, context.CancelFunc) {
+	return auditContext(c, 30*time.Minute)
 }
 
 func (c *SystemOperationsController) ListLogs(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	items, err := c.logs.List(reqCtx)
@@ -38,7 +39,7 @@ func (c *SystemOperationsController) ListLogs(ctx fiber.Ctx) error {
 }
 
 func (c *SystemOperationsController) TailLogs(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	dto := &request.LogTailDto{Lines: 200}
@@ -54,7 +55,7 @@ func (c *SystemOperationsController) TailLogs(ctx fiber.Ctx) error {
 }
 
 func (c *SystemOperationsController) DownloadLog(ctx fiber.Ctx) error {
-	_, cancel := systemOperationContext()
+	_, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	path, err := c.logs.Path(ctx.Params("name"))
@@ -65,7 +66,7 @@ func (c *SystemOperationsController) DownloadLog(ctx fiber.Ctx) error {
 }
 
 func (c *SystemOperationsController) ListBackups(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	items, err := c.backups.List(reqCtx)
@@ -76,7 +77,7 @@ func (c *SystemOperationsController) ListBackups(ctx fiber.Ctx) error {
 }
 
 func (c *SystemOperationsController) CreateBackup(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	dto := &request.CreateBackupDto{}
@@ -88,11 +89,12 @@ func (c *SystemOperationsController) CreateBackup(ctx fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
+	c.audit.Record(reqCtx, services.AuditActionBackupCreate, "backup", backup.Name, backup.Name)
 	return ctx.Status(fiber.StatusCreated).JSON(response.CommonResponse{Status: true, Data: backup})
 }
 
 func (c *SystemOperationsController) DownloadBackup(ctx fiber.Ctx) error {
-	_, cancel := systemOperationContext()
+	_, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	path, err := c.backups.Path(ctx.Params("name"))
@@ -103,17 +105,18 @@ func (c *SystemOperationsController) DownloadBackup(ctx fiber.Ctx) error {
 }
 
 func (c *SystemOperationsController) DeleteBackup(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	if err := c.backups.Delete(reqCtx, ctx.Params("name")); err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
+	c.audit.Record(reqCtx, services.AuditActionBackupDelete, "backup", ctx.Params("name"), ctx.Params("name"))
 	return ctx.JSON(response.CommonResponse{Status: true})
 }
 
 func (c *SystemOperationsController) RestoreBackup(ctx fiber.Ctx) error {
-	reqCtx, cancel := systemOperationContext()
+	reqCtx, cancel := systemOperationContext(ctx)
 	defer cancel()
 
 	dto := &request.RestoreBackupDto{}
@@ -125,5 +128,6 @@ func (c *SystemOperationsController) RestoreBackup(ctx fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
+	c.audit.Record(reqCtx, services.AuditActionBackupRestore, "backup", ctx.Params("name"), ctx.Params("name"))
 	return ctx.Status(fiber.StatusAccepted).JSON(response.CommonResponse{Status: true, Data: result})
 }

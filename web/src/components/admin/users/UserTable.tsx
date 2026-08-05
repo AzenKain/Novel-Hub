@@ -1,4 +1,4 @@
-import { KeyRound, RotateCcw, Shield, Trash2, UserCog } from "lucide-react";
+import { KeyRound, Mail, RotateCcw, Shield, Trash2, UserCog } from "lucide-react";
 import React from "react";
 
 import type { User } from "@/types";
@@ -10,6 +10,7 @@ type UserTableProps = {
   onEdit: (user: User) => void;
   onPassword: (user: User) => void;
   onRoles: (user: User) => void;
+  onEmail: (user: User) => void;
   onDelete: (user: User) => void;
   onRestore: (user: User) => void;
   currentUserId?: string;
@@ -22,6 +23,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   onEdit,
   onPassword,
   onRoles,
+  onEmail,
   onDelete,
   onRestore,
   currentUserId,
@@ -151,6 +153,13 @@ export const UserTable: React.FC<UserTableProps> = ({
                               <Shield className="h-4 w-4" />
                             </button>
                           )}
+                          <button
+                            onClick={() => onEmail(item)}
+                            className="btn btn-ghost join-item btn-sm text-info hover:bg-info/10"
+                            title={t("admin.action_send_email", "Send email")}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </button>
                           {canDelete && (
                             <button
                               onClick={() => onDelete(item)}

@@ -15,10 +15,11 @@ import (
 
 type RoleController struct {
 	service services.RoleService
+	audit   services.AuditService
 }
 
-func NewRoleController(svc services.RoleService) *RoleController {
-	return &RoleController{service: svc}
+func NewRoleController(svc services.RoleService, audit services.AuditService) *RoleController {
+	return &RoleController{service: svc, audit: audit}
 }
 
 func (h *RoleController) GetRoleByID(c fiber.Ctx) error {
@@ -55,7 +56,7 @@ func (h *RoleController) GetPermissions(c fiber.Ctx) error {
 }
 
 func (h *RoleController) CreateRole(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.CreateRoleDto{}
@@ -66,11 +67,12 @@ func (h *RoleController) CreateRole(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionRoleCreate, "role", res.ID, res.Name)
 	return c.Status(fiber.StatusCreated).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *RoleController) UpdateRole(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.UpdateRoleDto{}
@@ -81,11 +83,12 @@ func (h *RoleController) UpdateRole(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionRoleUpdate, "role", res.ID, res.Name)
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *RoleController) UpdateRolePermissions(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	dto := &request.UpdateRolePermissionsDto{}
@@ -96,17 +99,19 @@ func (h *RoleController) UpdateRolePermissions(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionRolePermUpdate, "role", res.ID, res.Name)
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
 
 func (h *RoleController) DeleteRole(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
 	err := h.service.DeleteRole(ctx, c.Params("id"))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
+	h.audit.Record(ctx, services.AuditActionRoleDelete, "role", c.Params("id"), "")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Role deleted successfully"})
 }
 

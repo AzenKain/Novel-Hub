@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/jsonx"
@@ -18,18 +19,10 @@ import (
 
 const anilistUserAgent = "NovelHub/1.0 (+https://github.com/novelhub)"
 
-// TrackerSearchResult is one selectable AniList media candidate returned to the client.
-type TrackerSearchResult struct {
-	ExternalSeriesID string `json:"external_series_id"`
-	TitleEnglish     string `json:"title_english,omitempty"`
-	TitleRomaji      string `json:"title_romaji,omitempty"`
-	MediaType        string `json:"media_type"`
-}
-
 type TrackerService interface {
 	SyncAniListProgress(ctx context.Context, userID string, mediaID string, progress int) error
 	SyncMyAnimeListProgress(ctx context.Context, userID string, mangaID string, chaptersRead int) error
-	SearchAniListMedia(ctx context.Context, title string) ([]TrackerSearchResult, error)
+	SearchAniListMedia(ctx context.Context, title string) ([]response.TrackerSearchResultResponse, error)
 	GetOrMapBookTrackerID(ctx context.Context, bookID string, title string, provider string) (string, error)
 	SaveUserTracker(ctx context.Context, userID string, provider string, accessToken string) error
 	SaveBookMapping(ctx context.Context, bookID string, provider string, externalSeriesID string) error
@@ -47,7 +40,7 @@ func NewTrackerService(repo repositories.TrackerRepository) TrackerService {
 	}
 }
 
-func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) ([]TrackerSearchResult, error) {
+func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) ([]response.TrackerSearchResultResponse, error) {
 	cleanTitle := strings.TrimSpace(title)
 	if len(cleanTitle) > 100 {
 		cleanTitle = cleanTitle[:100]
@@ -58,14 +51,14 @@ func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) (
 
 	if id, err := strconv.ParseInt(cleanTitle, 10, 64); err == nil && id > 0 {
 		if result, err := s.fetchAniListMediaByID(ctx, id); err == nil && result != nil {
-			return []TrackerSearchResult{*result}, nil
+			return []response.TrackerSearchResultResponse{*result}, nil
 		}
 	}
 
 	// ponytail: two sequential calls (manga + anime) instead of one aliased query;
 	// AniList has no combined "search across types" field, and this keeps each
 	// GraphQL query simple. Revisit if AniList adds a type-agnostic search.
-	results := make([]TrackerSearchResult, 0, 10)
+	results := make([]response.TrackerSearchResultResponse, 0, 10)
 	for _, mediaType := range []string{"MANGA", "ANIME"} {
 		found, err := s.fetchAniListMediaBySearch(ctx, cleanTitle, mediaType)
 		if err != nil {
@@ -80,7 +73,7 @@ func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) (
 	return results, nil
 }
 
-func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (*TrackerSearchResult, error) {
+func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (*response.TrackerSearchResultResponse, error) {
 	query := `query ($id: Int) {
 		Media (id: $id) {
 			id
@@ -120,7 +113,7 @@ func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (*
 		return nil, fmt.Errorf("no AniList entry found for ID %d", id)
 	}
 
-	return &TrackerSearchResult{
+	return &response.TrackerSearchResultResponse{
 		ExternalSeriesID: fmt.Sprintf("%d", res.Data.Media.ID),
 		TitleEnglish:     res.Data.Media.Title.English,
 		TitleRomaji:      res.Data.Media.Title.Romaji,
@@ -128,7 +121,7 @@ func (s *trackerService) fetchAniListMediaByID(ctx context.Context, id int64) (*
 	}, nil
 }
 
-func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTitle string, mediaType string) ([]TrackerSearchResult, error) {
+func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTitle string, mediaType string) ([]response.TrackerSearchResultResponse, error) {
 	query := `query ($search: String, $type: MediaType) {
 		Page (perPage: 10) {
 			media (search: $search, type: $type, sort: SEARCH_MATCH) {
@@ -169,9 +162,9 @@ func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTit
 		return nil, err
 	}
 
-	results := make([]TrackerSearchResult, 0, len(res.Data.Page.Media))
+	results := make([]response.TrackerSearchResultResponse, 0, len(res.Data.Page.Media))
 	for _, m := range res.Data.Page.Media {
-		results = append(results, TrackerSearchResult{
+		results = append(results, response.TrackerSearchResultResponse{
 			ExternalSeriesID: fmt.Sprintf("%d", m.ID),
 			TitleEnglish:     m.Title.English,
 			TitleRomaji:      m.Title.Romaji,

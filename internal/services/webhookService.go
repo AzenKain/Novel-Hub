@@ -21,6 +21,7 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/mailer"
 	"novelhub/pkg/netx"
 	"novelhub/pkg/worker"
 )
@@ -40,14 +41,34 @@ type webhookService struct {
 	repo       repositories.WebhookRepository
 	jobQueue   *worker.Queue
 	httpClient *http.Client
+	settings   SettingsService
 }
 
-func NewWebhookService(repo repositories.WebhookRepository, jobQueue *worker.Queue) WebhookService {
+func NewWebhookService(repo repositories.WebhookRepository, jobQueue *worker.Queue, settings ...SettingsService) WebhookService {
+	var settingsService SettingsService
+	if len(settings) > 0 {
+		settingsService = settings[0]
+	}
 	return &webhookService{
 		repo:       repo,
 		jobQueue:   jobQueue,
 		httpClient: netx.NewSafeHTTPClient(10 * time.Second),
+		settings:   settingsService,
 	}
+}
+
+func validateTarget(templateType string, target string) error {
+	if templateType == webhookTemplateEmail {
+		if _, err := mailer.ParseRecipients(target); err != nil {
+			return apperrors.New(apperrors.ErrBadRequest, err.Error())
+		}
+		return nil
+	}
+	scheme := strings.ToLower(strings.SplitN(target, ":", 2)[0])
+	if scheme != "http" && scheme != "https" {
+		return apperrors.New(apperrors.ErrBadRequest, "webhook URL must use http or https")
+	}
+	return nil
 }
 
 func (s *webhookService) Create(ctx context.Context, req *request.CreateWebhookDto) (*models.WebhookEntity, error) {
@@ -55,6 +76,9 @@ func (s *webhookService) Create(ctx context.Context, req *request.CreateWebhookD
 	templateType := strings.ToLower(req.TemplateType)
 	if templateType == "" {
 		templateType = "generic"
+	}
+	if err := validateTarget(templateType, req.URL); err != nil {
+		return nil, err
 	}
 
 	isActive := true
@@ -97,6 +121,9 @@ func (s *webhookService) Update(ctx context.Context, id string, req *request.Upd
 	templateType := strings.ToLower(req.TemplateType)
 	if templateType == "" {
 		templateType = "generic"
+	}
+	if err := validateTarget(templateType, req.URL); err != nil {
+		return nil, err
 	}
 
 	entity := &models.WebhookEntity{
@@ -194,6 +221,9 @@ func (s *webhookService) supportsEvent(events []string, event string) bool {
 }
 
 func (s *webhookService) sendHTTPRequest(ctx context.Context, wh *models.WebhookEntity, eventType string, rawPayloadBytes []byte) error {
+	if wh.TemplateType == webhookTemplateEmail {
+		return s.sendEmail(ctx, wh, eventType, rawPayloadBytes)
+	}
 	formattedBody, contentType := s.formatBodyByTemplate(wh.TemplateType, eventType, rawPayloadBytes)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wh.URL, bytes.NewReader(formattedBody))
@@ -343,6 +373,7 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 			"book.deleted":      "🗑️ Book Deleted",
 			"metadata.updated":  "📝 Book Metadata Updated",
 			"reading.completed": "🎉 Reading Completed",
+			"job.failed":        "⚠️ Background Job Failed",
 		}
 		titleText, ok := eventTitles[eventType]
 		if !ok {
@@ -356,6 +387,8 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 			color = 3066993 // Green
 		} else if eventType == "metadata.updated" {
 			color = 15844367 // Gold
+		} else if eventType == "job.failed" {
+			color = 15158332 // Red
 		}
 
 		if customHex, ok := rawData["_embed_color"].(string); ok && strings.TrimSpace(customHex) != "" {

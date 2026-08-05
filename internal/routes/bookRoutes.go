@@ -23,6 +23,7 @@ func BookRoutes(app fiber.Router, bookController *controllers.BookController, us
 	bookGroup.Post("/:id/files", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.UploadBookFiles)
 	bookGroup.Get("/:id", middlewares.OptionalJwtAccess(userRepo), bookController.GetBook)
 	bookGroup.Get("/:id/chapters", middlewares.OptionalJwtAccess(userRepo), bookController.ListChapters)
+	bookGroup.Get("/:id/series", middlewares.OptionalJwtAccess(userRepo), bookController.GetBookSeries)
 	bookGroup.Get("/:id/search", middlewares.OptionalJwtAccess(userRepo), bookController.SearchInBook)
 	bookGroup.Put("/:id/metadata", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.UpdateMetadata)
 	bookGroup.Patch("/:id/archive", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookArchive, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.ArchiveBook)

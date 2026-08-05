@@ -38,6 +38,8 @@ type PublicSettings struct {
 	EnableInBookSearch     bool                `json:"enable_in_book_search"`
 	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
 	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
+	RequireEmailVerify     bool                `json:"require_email_verify"`
+	PasswordResetEnabled   bool                `json:"password_reset_enabled"`
 	SetupCompleted         bool                `json:"setup_completed"`
 	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
 	AvailableHomeSections  []string            `json:"available_home_sections"`
@@ -65,10 +67,23 @@ type RuntimeLimitBounds struct {
 	Max RuntimeLimits `json:"max"`
 }
 
+type SMTPSettings struct {
+	Enabled              bool     `json:"enabled"`
+	Host                 string   `json:"host"`
+	Port                 int      `json:"port"`
+	Username             string   `json:"username"`
+	FromEmail            string   `json:"from_email"`
+	TLSMode              string   `json:"tls_mode"`
+	AllowPrivateNetworks bool     `json:"allow_private_networks"`
+	PasswordConfigured   bool     `json:"password_configured"`
+	AvailableTLSModes    []string `json:"available_tls_modes"`
+}
+
 type AdminSettings struct {
 	PublicSettings
 	Limits RuntimeLimits      `json:"limits"`
 	Bounds RuntimeLimitBounds `json:"bounds"`
+	SMTP   SMTPSettings       `json:"smtp"`
 }
 
 func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {

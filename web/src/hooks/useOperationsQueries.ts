@@ -124,3 +124,26 @@ export function useDeleteBackupMutation() {
 export function useRestoreBackupMutation() {
   return useMutation({ mutationFn: (name: string) => operationsService.restoreBackup(name) });
 }
+
+export function useAuditActionsQuery() {
+  return useQuery({
+    queryKey: ["operations", "audit-actions"],
+    queryFn: async () => {
+      const res = await operationsService.listAuditActions();
+      if (!res.status) throw new Error(res.message || "audit_actions_failed");
+      return res.data || [];
+    },
+  });
+}
+
+export function useAuditLogsQuery(action: string, cursor: string) {
+  return useQuery({
+    queryKey: ["operations", "audit", action, cursor],
+    placeholderData: (previous) => previous,
+    queryFn: async () => {
+      const res = await operationsService.listAuditLogs({ action: action || undefined, cursor: cursor || undefined, limit: 20 });
+      if (!res.status) throw new Error(res.message || "audit_failed");
+      return { items: res.data || [], nextCursor: res.pagination?.next_cursor || "", total: res.pagination?.total_records || 0 };
+    },
+  });
+}

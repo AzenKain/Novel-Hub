@@ -3,7 +3,7 @@ package request
 type CreateWebhookDto struct {
 	Name          string   `json:"name" validate:"required,min=1,max=100"`
 	URL           string   `json:"url" validate:"required,url"`
-	TemplateType  string   `json:"template_type" validate:"oneof=generic discord telegram slack"`
+	TemplateType  string   `json:"template_type" validate:"oneof=generic discord telegram slack email"`
 	Secret        *string  `json:"secret,omitempty"`
 	CustomHeaders *string  `json:"custom_headers,omitempty"`
 	Events        []string `json:"events" validate:"required,min=1"`
@@ -13,7 +13,7 @@ type CreateWebhookDto struct {
 type UpdateWebhookDto struct {
 	Name          string   `json:"name" validate:"required,min=1,max=100"`
 	URL           string   `json:"url" validate:"required,url"`
-	TemplateType  string   `json:"template_type" validate:"oneof=generic discord telegram slack"`
+	TemplateType  string   `json:"template_type" validate:"oneof=generic discord telegram slack email"`
 	Secret        *string  `json:"secret,omitempty"`
 	CustomHeaders *string  `json:"custom_headers,omitempty"`
 	Events        []string `json:"events" validate:"required,min=1"`

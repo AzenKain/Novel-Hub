@@ -1,4 +1,5 @@
-import { useLoginMutation, usePublicSettings } from "@/hooks";
+import { TOTPCodeStep } from "@/components/common";
+import { useLoginFlow, usePublicSettings } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { BookOpen, Loader2, LogIn } from "lucide-react";
 import { SyntheticEvent, useEffect, useState } from "react";
@@ -10,7 +11,7 @@ export function LoginPage() {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const settings = usePublicSettings();
-  const loginMutation = useLoginMutation();
+  const { mutation: loginMutation, needsCode, resetCode, submit } = useLoginFlow();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +24,7 @@ export function LoginPage() {
 
   async function handleSubmit(event: SyntheticEvent) {
     event.preventDefault();
-    loginMutation.mutate({ email, password });
+    submit(email, password);
   }
 
   return (
@@ -47,7 +48,10 @@ export function LoginPage() {
               </label>
               <input
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  resetCode();
+                }}
                 type="email"
                 placeholder="account@example.com"
                 autoComplete="email"
@@ -58,6 +62,11 @@ export function LoginPage() {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold">{t("auth.password")}</span>
+                {settings?.password_reset_enabled && (
+                  <Link to="/forgot-password" className="label-text-alt link link-hover">
+                    {t("auth.forgot_password", "Forgot password?")}
+                  </Link>
+                )}
               </label>
               <input
                 value={password}
@@ -80,17 +89,24 @@ export function LoginPage() {
               </div>
             )}
 
-            <button
-              className="btn btn-primary mt-4 w-full"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? (
-                <Loader2 className="animate-spin" size={20} />
-              ) : (
-                <LogIn size={20} />
-              )}
-              {t("auth.sign_in")}
-            </button>
+            {needsCode ? (
+              <TOTPCodeStep
+                pending={loginMutation.isPending}
+                onSubmit={(code) => submit(email, password, code)}
+              />
+            ) : (
+              <button
+                className="btn btn-primary mt-4 w-full"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <LogIn size={20} />
+                )}
+                {t("auth.sign_in")}
+              </button>
+            )}
           </form>
 
           {settings?.registration_enabled && (

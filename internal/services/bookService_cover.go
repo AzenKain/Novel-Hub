@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/netx"
 )
 
-func (s *bookService) UpdateCover(ctx context.Context, bookID string, input UpdateCoverInput) (string, error) {
+func (s *bookService) UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error) {
 	if _, err := s.GetBook(ctx, bookID); err != nil {
 		return "", err
 	}
@@ -34,7 +35,7 @@ func (s *bookService) UpdateCover(ctx context.Context, bookID string, input Upda
 	return coverURLPath, nil
 }
 
-func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input UpdateCoverInput) ([]byte, string, error) {
+func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input request.UpdateCoverDto) ([]byte, string, error) {
 	limit := s.settings.Limits().CoverBytes
 	if len(input.UploadedData) > 0 {
 		ext, err := bookparser.ValidateImage(input.UploadedData, limit)

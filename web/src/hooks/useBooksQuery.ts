@@ -139,6 +139,19 @@ export function useBookQuery(book_id: string) {
   });
 }
 
+export function useBookSeriesQuery(book_id: string) {
+  return useQuery({
+    queryKey: ["book", book_id, "series"],
+    queryFn: async () => {
+      const res = await bookService.getBookSeries(book_id);
+      if (!res.status) throw new Error(res.message || "Failed to fetch series");
+      return res.data;
+    },
+    enabled: !!book_id,
+    retry: false,
+  });
+}
+
 export function useBookUserStateQuery(book_id: string, enabled = true) {
   return useQuery({
     queryKey: ["bookUserState", book_id],

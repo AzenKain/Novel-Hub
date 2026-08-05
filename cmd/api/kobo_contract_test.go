@@ -384,6 +384,56 @@ func TestKoboSyncEmptyResultIsArrayNotNull(t *testing.T) {
 	}
 }
 
+// An unopened book must arrive with no ReadingState at all. When the repository answered
+// "no row" with (nil, nil) instead of an error, every book in the library came back carrying an
+// empty ReadingState, which tells the device the server has a position for a book it has never
+// been opened on.
+func TestKoboSyncOmitsReadingStateForUnopenedBook(t *testing.T) {
+	f := setupKoboFixture(t)
+
+	var items []map[string]json.RawMessage
+	decodeJSON(t, f.get(t, "/v1/library/sync", nil), &items)
+	if len(items) != 1 {
+		t.Fatalf("sync returned %d items, want 1", len(items))
+	}
+	var entitlement map[string]json.RawMessage
+	if err := json.Unmarshal(items[0]["NewEntitlement"], &entitlement); err != nil {
+		t.Fatalf("decode entitlement: %v", err)
+	}
+	if raw, ok := entitlement["ReadingState"]; ok {
+		t.Errorf("an unopened book was synced with a ReadingState: %s", raw)
+	}
+}
+
+// The mirror of the test above: once the book has been opened, the state must be there. A fix
+// that simply dropped ReadingState from sync would pass the previous test and break the device.
+func TestKoboSyncCarriesReadingStateForOpenedBook(t *testing.T) {
+	f := setupKoboFixture(t)
+	if _, err := f.db.Exec(`
+		INSERT INTO reading_progress (user_id, book_id, chapter_ref, progress_percent, opened_count)
+		VALUES (?, ?, 'chapter-1', 42.0, 1)
+	`, f.userID, f.bookID); err != nil {
+		t.Fatalf("seed progress: %v", err)
+	}
+
+	var items []map[string]json.RawMessage
+	decodeJSON(t, f.get(t, "/v1/library/sync", nil), &items)
+	if len(items) != 1 {
+		t.Fatalf("sync returned %d items, want 1", len(items))
+	}
+	var entitlement map[string]json.RawMessage
+	if err := json.Unmarshal(items[0]["NewEntitlement"], &entitlement); err != nil {
+		t.Fatalf("decode entitlement: %v", err)
+	}
+	raw, ok := entitlement["ReadingState"]
+	if !ok {
+		t.Fatal("an opened book was synced without its ReadingState; the device loses the position")
+	}
+	if !bytes.Contains(raw, []byte("42")) {
+		t.Errorf("ReadingState carries no progress: %s", raw)
+	}
+}
+
 func TestKoboBookMetadataEndpoint(t *testing.T) {
 	f := setupKoboFixture(t)
 	resp := f.get(t, "/v1/library/"+f.bookID+"/metadata", nil)

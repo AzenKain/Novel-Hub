@@ -1,49 +1,36 @@
-import { settingsService } from "@/services";
+import { OTPCodeStep, PasswordStrength } from "@/components/common";
+import { usePublicSettings, useRegisterMutation } from "@/hooks";
 import { BookOpen, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { PasswordStrength } from "@/components/common";
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const settings = usePublicSettings();
+  const registerMutation = useRegisterMutation();
+
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [ticket, setTicket] = useState("");
 
-  useEffect(() => {
-    settingsService.getPublic().then((res) => {
-      if (res.data && !res.data.registration_enabled) {
-        setRegistrationEnabled(false);
-      }
-    });
-  }, []);
+  const verifyRequired = settings?.require_email_verify ?? false;
+  const needsVerification = verifyRequired && !ticket;
 
-  const handleSubmit = async (e: React.SyntheticEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await settingsService.register({
+    registerMutation.mutate(
+      {
         email: form.email,
         password: form.password,
         full_name: form.full_name || undefined,
-      });
-      if (res.status) {
-        navigate("/", { replace: true });
-      } else {
-        setError(res.message || t("auth.register_failed", "Registration failed"));
-      }
-    } catch {
-      setError(t("auth.unexpected_error", "An unexpected error occurred"));
-    } finally {
-      setLoading(false);
-    }
+        otp_ticket: ticket || undefined,
+      },
+      { onSuccess: () => navigate("/", { replace: true }) }
+    );
   };
 
-  if (!registrationEnabled) {
+  if (settings && !settings.registration_enabled) {
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
         <div className="card w-full max-w-md bg-base-100 shadow-xl text-center">
@@ -82,44 +69,63 @@ export function RegisterPage() {
                 placeholder="account@example.com"
                 className="input input-bordered w-full"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, email: e.target.value });
+                  setTicket("");
+                }}
                 required
                 autoComplete="email"
               />
             </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">{t("auth.full_name", "Full Name")}</span></label>
-              <input
-                type="text"
-                placeholder={t("auth.optional", "(optional)")}
-                className="input input-bordered w-full"
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              />
-            </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">{t("auth.password", "Password")}</span></label>
-              <input
-                type="password"
-                placeholder={t("auth.password_min", "Minimum 8 characters")}
-                className="input input-bordered w-full"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-                minLength={8}
-                autoComplete="new-password"
-              />
-              {form.password.length > 0 && <PasswordStrength password={form.password} />}
-            </div>
 
-            {error && (
-              <div className="alert alert-error py-2 text-sm rounded-lg">{error}</div>
+            {needsVerification ? (
+              <OTPCodeStep email={form.email} purpose="email_verify" onVerified={setTicket} />
+            ) : (
+              <>
+                {verifyRequired && (
+                  <div className="alert alert-success py-2 text-sm rounded-lg">
+                    {t("auth.otp_verified", "Email verified")}
+                  </div>
+                )}
+                <div className="form-control">
+                  <label className="label"><span className="label-text font-semibold">{t("auth.full_name", "Full Name")}</span></label>
+                  <input
+                    type="text"
+                    placeholder={t("auth.optional", "(optional)")}
+                    className="input input-bordered w-full"
+                    value={form.full_name}
+                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label"><span className="label-text font-semibold">{t("auth.password", "Password")}</span></label>
+                  <input
+                    type="password"
+                    placeholder={t("auth.password_min", "Minimum 8 characters")}
+                    className="input input-bordered w-full"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                  {form.password.length > 0 && <PasswordStrength password={form.password} />}
+                </div>
+
+                {registerMutation.error && (
+                  <div className="alert alert-error py-2 text-sm rounded-lg">
+                    {registerMutation.error instanceof Error
+                      ? registerMutation.error.message
+                      : String(registerMutation.error)}
+                  </div>
+                )}
+
+                <button className="btn btn-primary mt-2" disabled={registerMutation.isPending}>
+                  {registerMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : null}
+                  {t("auth.register", "Register")}
+                </button>
+              </>
             )}
-
-            <button className="btn btn-primary mt-2" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" size={20} /> : null}
-              {t("auth.register", "Register")}
-            </button>
           </form>
 
           <div className="text-center mt-2">

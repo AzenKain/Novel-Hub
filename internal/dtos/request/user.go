@@ -28,6 +28,11 @@ type ChangeRoleDto struct {
 	Roles []string `json:"role_ids" validate:"required,min=1,dive,uuid"`
 }
 
+type SendUserEmailDto struct {
+	Subject string `json:"subject" validate:"required,min=1,max=200"`
+	Body    string `json:"body" validate:"required,min=1,max=10000"`
+}
+
 type SearchUserDto struct {
 	PaginationDto
 	Sort         string     `json:"sort,omitempty" query:"sort" validate:"omitempty,oneof=id created_at updated_at email is_deleted auth_provider"`

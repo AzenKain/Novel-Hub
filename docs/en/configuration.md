@@ -24,14 +24,15 @@ openssl rand -hex 32   # run three times, one value each
 |---|---|
 | `JWT_SECRET` | Signs access tokens |
 | `JWT_REFRESH_SECRET` | Signs refresh tokens |
-| `DB_ENCRYPTION_KEY` | Encrypts third-party tokens (AniList, MAL) stored in the database |
+| `DB_ENCRYPTION_KEY` | Encrypts third-party tokens (AniList, MAL) and the SMTP password stored in the database |
 
 Use a different random value for each.
 
 **Changing them later.** Changing either JWT secret signs everyone out — no data
-is lost. Changing `DB_ENCRYPTION_KEY` makes already-encrypted tracker tokens
-permanently unreadable; users have to reconnect those accounts. Back up your
-database before touching it.
+is lost. Changing `DB_ENCRYPTION_KEY` makes already-encrypted tracker tokens and
+the saved SMTP password permanently unreadable; users have to reconnect those
+accounts and an admin has to re-enter the SMTP password. Back up your database
+before touching it.
 
 These stay environment variables because they sign and encrypt what is *in* the
 database. Storing them in the database would be circular.

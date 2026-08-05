@@ -23,6 +23,8 @@ func HandleError(c fiber.Ctx, err error) error {
 			code = fiber.StatusUnauthorized
 		case ErrForbidden:
 			code = fiber.StatusForbidden
+		case ErrTooManyRequests:
+			code = fiber.StatusTooManyRequests
 		}
 	}
 	return c.Status(code).JSON(response.CommonResponse{Status: false, Message: err.Error()})

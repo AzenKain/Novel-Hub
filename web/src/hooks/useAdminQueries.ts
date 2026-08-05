@@ -9,6 +9,8 @@ import type {
   Permission,
   Role,
   SearchUserParams,
+  SendUserEmailRequest,
+  SmtpTestRequest,
   UpdateRoleRequest,
   User,
   Webhook,
@@ -38,6 +40,16 @@ export function useUpdateAdminSettingsMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
       void queryClient.invalidateQueries({ queryKey: ["public", "settings"] });
+    },
+  });
+}
+
+export function useTestSmtpMutation() {
+  return useMutation({
+    mutationFn: async (data: SmtpTestRequest) => {
+      const res = await adminService.testSmtp(data);
+      if (!res.status) throw new Error(res.message || "SMTP connection failed");
+      return res;
     },
   });
 }
@@ -113,6 +125,16 @@ export function useResetUserPasswordMutation() {
     mutationFn: async ({ id, password }: { id: string; password: string }) => {
       const res = await adminService.resetPassword(id, password);
       if (!res.status) throw new Error(res.message || "Failed to reset password");
+      return res;
+    },
+  });
+}
+
+export function useSendUserEmailMutation() {
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: SendUserEmailRequest }) => {
+      const res = await adminService.sendUserEmail(id, data);
+      if (!res.status) throw new Error(res.message || "Failed to send the email");
       return res;
     },
   });

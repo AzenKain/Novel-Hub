@@ -50,4 +50,7 @@ ENV DATA_DIR=/data
 ENV SQLITE_DB_PATH=/data/novelhub.db
 ENV RESTORE_AUTO_RESTART=true
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD wget -q -O /dev/null "http://127.0.0.1:${SERVER_PORT:-3434}/api/v1/health" || exit 1
+
 CMD ["./novelhub"]
