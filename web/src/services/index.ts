@@ -12,3 +12,4 @@ export * from './uploadService';
 export * from "./webhookService";
 export * from "./trackerService";
 export * from "./koboService";
+export * from "./deviceService";

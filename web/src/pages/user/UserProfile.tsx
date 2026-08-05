@@ -5,6 +5,7 @@ import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
+import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
 import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
@@ -355,6 +356,9 @@ export const UserProfile = () => {
 
                 {/* Kobo Native Wi-Fi Sync Card */}
                 <KoboSyncCard />
+
+                {/* Multi-Device Push Center Card */}
+                <UserDevicesCard />
 
                 {/* AniList Tracker Connect Card */}
                 <TrackerConnectCard />

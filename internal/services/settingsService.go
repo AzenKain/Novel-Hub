@@ -438,6 +438,7 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.EnableAniListTracking = rawBool(raw, "tracker.anilist_enabled", true)
 	settings.RequireEmailVerify = rawBool(raw, "auth.require_email_verify", false)
 	settings.PasswordResetEnabled = rawBool(raw, "auth.password_reset_enabled", false)
+	settings.SMTPEnabled = rawBool(raw, "smtp.enabled", false)
 	return settings
 }
 
@@ -660,6 +661,7 @@ var allowedSettingKeys = []string{
 	"smtp.from_email",
 	"smtp.tls_mode",
 	"smtp.allow_private_networks",
+	"smtp.max_attachment_mb",
 }
 
 func allowedSettingKey(key string) bool {

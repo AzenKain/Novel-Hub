@@ -12,6 +12,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/crypto"
 	"novelhub/pkg/validator"
 )
 
@@ -55,6 +56,26 @@ func setAuthCookie(c fiber.Ctx, name string, value string, duration time.Duratio
 	}
 	c.Cookie(cookie)
 }
+
+func setCSRFCookie(c fiber.Ctx, duration time.Duration) {
+	token, err := crypto.GenerateRandomHex(16)
+	if err != nil {
+		return
+	}
+	settings := getAuthCookieSettings(c)
+	cookie := &fiber.Cookie{
+		Name:     "csrf_token",
+		Value:    token,
+		Expires:  time.Now().Add(duration),
+		MaxAge:   int(duration.Seconds()),
+		HTTPOnly: false,
+		Secure:   settings.secure,
+		SameSite: settings.sameSite,
+		Path:     "/",
+	}
+	c.Cookie(cookie)
+}
+
 
 func clearAuthCookie(c fiber.Ctx, name string) {
 	settings := getAuthCookieSettings(c)
@@ -149,6 +170,7 @@ func (h *AuthController) ResetPasswordWithOTP(c fiber.Ctx) error {
 	}
 	clearAuthCookie(c, "access_token")
 	clearAuthCookie(c, "refresh_token")
+	clearAuthCookie(c, "csrf_token")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Password updated successfully"})
 }
 
@@ -170,6 +192,7 @@ func (h *AuthController) Signin(c fiber.Ctx) error {
 	}
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)
+	setCSRFCookie(c, constants.RefreshTokenDuration)
 
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
@@ -203,10 +226,12 @@ func (h *AuthController) RefreshToken(c fiber.Ctx) error {
 	if err != nil {
 		clearAuthCookie(c, "access_token")
 		clearAuthCookie(c, "refresh_token")
+		clearAuthCookie(c, "csrf_token")
 		return apperrors.HandleError(c, err)
 	}
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)
+	setCSRFCookie(c, constants.RefreshTokenDuration)
 
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
 }
@@ -227,5 +252,6 @@ func (h *AuthController) Logout(c fiber.Ctx) error {
 
 	clearAuthCookie(c, "access_token")
 	clearAuthCookie(c, "refresh_token")
+	clearAuthCookie(c, "csrf_token")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Logged out successfully"})
 }

@@ -43,9 +43,20 @@ let isRefreshing = false;
 let authFailed = false;
 let queue: QueueItem[] = [];
 
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+}
+
 api.interceptors.request.use((config) => {
   if (config.url?.includes("/auth/signin") || config.url?.includes("/auth/signup")) {
     authFailed = false;
+  }
+  const csrfToken = getCookie("csrf_token");
+  if (csrfToken && config.headers) {
+    config.headers["X-CSRF-Token"] = csrfToken;
   }
   return config;
 });

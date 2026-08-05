@@ -21,6 +21,10 @@ func smtpSettingsFromRaw(raw map[string]any) models.SMTPSettings {
 	if value, ok := strictInteger(raw["smtp.port"]); ok {
 		port = int(value)
 	}
+	maxAttachmentMB := 50
+	if value, ok := strictInteger(raw["smtp.max_attachment_mb"]); ok && value > 0 {
+		maxAttachmentMB = int(value)
+	}
 	mode := rawString(raw, "smtp.tls_mode", mailer.TLSModeStartTLS)
 	if !slices.Contains(availableTLSModes, mode) {
 		mode = mailer.TLSModeStartTLS
@@ -33,6 +37,7 @@ func smtpSettingsFromRaw(raw map[string]any) models.SMTPSettings {
 		FromEmail:            rawString(raw, "smtp.from_email", ""),
 		TLSMode:              mode,
 		AllowPrivateNetworks: rawBool(raw, "smtp.allow_private_networks", false),
+		MaxAttachmentMB:      maxAttachmentMB,
 		PasswordConfigured:   rawString(raw, "smtp.password", "") != "",
 		AvailableTLSModes:    append([]string(nil), availableTLSModes...),
 	}
@@ -43,6 +48,12 @@ func validateSMTPRaw(raw map[string]any) error {
 		port, valid := strictInteger(value)
 		if !valid || port < 1 || port > 65535 {
 			return errors.New("Invalid SMTP port")
+		}
+	}
+	if value, ok := raw["smtp.max_attachment_mb"]; ok {
+		mb, valid := strictInteger(value)
+		if !valid || mb < 1 || mb > 500 {
+			return errors.New("Invalid SMTP max attachment size")
 		}
 	}
 	if mode, ok := raw["smtp.tls_mode"]; ok {
@@ -88,6 +99,7 @@ func (s *settingsService) smtpConfig(raw map[string]any) (mailer.SMTPConfig, err
 		FromEmail:            settings.FromEmail,
 		TLSMode:              settings.TLSMode,
 		AllowPrivateNetworks: settings.AllowPrivateNetworks,
+		MaxAttachmentMB:      settings.MaxAttachmentMB,
 	}, nil
 }
 

@@ -3,6 +3,7 @@ import type {
   AuditLogEntry,
   BackgroundJob,
   BackupInfo,
+  CacheStats,
   CommonResponse,
   JobSchedule,
   JobTask,
@@ -196,5 +197,16 @@ export const operationsService = {
   },
   backupDownloadUrl(name: string) {
     return `${API_BASE}/system/backups/${encodeURIComponent(name)}/download`;
+  },
+  async getCacheStats(): Promise<CommonResponse<CacheStats>> {
+    try {
+      const res = await api.get("/system/metrics/cache");
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<CacheStats>;
+      }
+      throw error;
+    }
   },
 };

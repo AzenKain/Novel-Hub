@@ -159,6 +159,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createTagStmt, err = db.PrepareContext(ctx, createTag); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateTag: %w", err)
 	}
+	if q.createUserDeviceStmt, err = db.PrepareContext(ctx, createUserDevice); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateUserDevice: %w", err)
+	}
 	if q.createUserRoleStmt, err = db.PrepareContext(ctx, createUserRole); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUserRole: %w", err)
 	}
@@ -218,6 +221,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
+	}
+	if q.deleteUserDeviceStmt, err = db.PrepareContext(ctx, deleteUserDevice); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserDevice: %w", err)
 	}
 	if q.deleteUserTOTPStmt, err = db.PrepareContext(ctx, deleteUserTOTP); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUserTOTP: %w", err)
@@ -423,6 +429,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserCollectionIDsStmt, err = db.PrepareContext(ctx, getUserCollectionIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserCollectionIDs: %w", err)
 	}
+	if q.getUserDeviceByIDStmt, err = db.PrepareContext(ctx, getUserDeviceByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserDeviceByID: %w", err)
+	}
+	if q.getUserDevicesByIDsStmt, err = db.PrepareContext(ctx, getUserDevicesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserDevicesByIDs: %w", err)
+	}
 	if q.getUserReadingGoalStmt, err = db.PrepareContext(ctx, getUserReadingGoal); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserReadingGoal: %w", err)
 	}
@@ -551,6 +563,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listUnfinishedJobsStmt, err = db.PrepareContext(ctx, listUnfinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUnfinishedJobs: %w", err)
+	}
+	if q.listUserDeviceIDsStmt, err = db.PrepareContext(ctx, listUserDeviceIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListUserDeviceIDs: %w", err)
 	}
 	if q.markKoboBookSyncedStmt, err = db.PrepareContext(ctx, markKoboBookSynced); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkKoboBookSynced: %w", err)
@@ -932,6 +947,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createTagStmt: %w", cerr)
 		}
 	}
+	if q.createUserDeviceStmt != nil {
+		if cerr := q.createUserDeviceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createUserDeviceStmt: %w", cerr)
+		}
+	}
 	if q.createUserRoleStmt != nil {
 		if cerr := q.createUserRoleStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createUserRoleStmt: %w", cerr)
@@ -1030,6 +1050,11 @@ func (q *Queries) Close() error {
 	if q.deleteUserStmt != nil {
 		if cerr := q.deleteUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteUserStmt: %w", cerr)
+		}
+	}
+	if q.deleteUserDeviceStmt != nil {
+		if cerr := q.deleteUserDeviceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserDeviceStmt: %w", cerr)
 		}
 	}
 	if q.deleteUserTOTPStmt != nil {
@@ -1372,6 +1397,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUserCollectionIDsStmt: %w", cerr)
 		}
 	}
+	if q.getUserDeviceByIDStmt != nil {
+		if cerr := q.getUserDeviceByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserDeviceByIDStmt: %w", cerr)
+		}
+	}
+	if q.getUserDevicesByIDsStmt != nil {
+		if cerr := q.getUserDevicesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserDevicesByIDsStmt: %w", cerr)
+		}
+	}
 	if q.getUserReadingGoalStmt != nil {
 		if cerr := q.getUserReadingGoalStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserReadingGoalStmt: %w", cerr)
@@ -1585,6 +1620,11 @@ func (q *Queries) Close() error {
 	if q.listUnfinishedJobsStmt != nil {
 		if cerr := q.listUnfinishedJobsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listUnfinishedJobsStmt: %w", cerr)
+		}
+	}
+	if q.listUserDeviceIDsStmt != nil {
+		if cerr := q.listUserDeviceIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listUserDeviceIDsStmt: %w", cerr)
 		}
 	}
 	if q.markKoboBookSyncedStmt != nil {
@@ -1921,6 +1961,7 @@ type Queries struct {
 	createSeriesStmt                   *sql.Stmt
 	createSmartCollectionStmt          *sql.Stmt
 	createTagStmt                      *sql.Stmt
+	createUserDeviceStmt               *sql.Stmt
 	createUserRoleStmt                 *sql.Stmt
 	createWebhookStmt                  *sql.Stmt
 	databaseHealthCheckStmt            *sql.Stmt
@@ -1941,6 +1982,7 @@ type Queries struct {
 	deleteRolePermissionsStmt          *sql.Stmt
 	deleteSmartCollectionStmt          *sql.Stmt
 	deleteUserStmt                     *sql.Stmt
+	deleteUserDeviceStmt               *sql.Stmt
 	deleteUserTOTPStmt                 *sql.Stmt
 	deleteUserTrackerStmt              *sql.Stmt
 	deleteWebhookStmt                  *sql.Stmt
@@ -2009,6 +2051,8 @@ type Queries struct {
 	getUserByIDStmt                    *sql.Stmt
 	getUserByIDWithoutDeletedStmt      *sql.Stmt
 	getUserCollectionIDsStmt           *sql.Stmt
+	getUserDeviceByIDStmt              *sql.Stmt
+	getUserDevicesByIDsStmt            *sql.Stmt
 	getUserReadingGoalStmt             *sql.Stmt
 	getUserRolesStmt                   *sql.Stmt
 	getUserTOTPStmt                    *sql.Stmt
@@ -2052,6 +2096,7 @@ type Queries struct {
 	listTagsWithCountStmt              *sql.Stmt
 	listUnfinishedJobIDsStmt           *sql.Stmt
 	listUnfinishedJobsStmt             *sql.Stmt
+	listUserDeviceIDsStmt              *sql.Stmt
 	markKoboBookSyncedStmt             *sql.Stmt
 	markRunningJobsInterruptedStmt     *sql.Stmt
 	probeUserSearchMatchesStmt         *sql.Stmt
@@ -2153,6 +2198,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createSeriesStmt:                   q.createSeriesStmt,
 		createSmartCollectionStmt:          q.createSmartCollectionStmt,
 		createTagStmt:                      q.createTagStmt,
+		createUserDeviceStmt:               q.createUserDeviceStmt,
 		createUserRoleStmt:                 q.createUserRoleStmt,
 		createWebhookStmt:                  q.createWebhookStmt,
 		databaseHealthCheckStmt:            q.databaseHealthCheckStmt,
@@ -2173,6 +2219,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
 		deleteSmartCollectionStmt:          q.deleteSmartCollectionStmt,
 		deleteUserStmt:                     q.deleteUserStmt,
+		deleteUserDeviceStmt:               q.deleteUserDeviceStmt,
 		deleteUserTOTPStmt:                 q.deleteUserTOTPStmt,
 		deleteUserTrackerStmt:              q.deleteUserTrackerStmt,
 		deleteWebhookStmt:                  q.deleteWebhookStmt,
@@ -2241,6 +2288,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getUserByIDStmt:                    q.getUserByIDStmt,
 		getUserByIDWithoutDeletedStmt:      q.getUserByIDWithoutDeletedStmt,
 		getUserCollectionIDsStmt:           q.getUserCollectionIDsStmt,
+		getUserDeviceByIDStmt:              q.getUserDeviceByIDStmt,
+		getUserDevicesByIDsStmt:            q.getUserDevicesByIDsStmt,
 		getUserReadingGoalStmt:             q.getUserReadingGoalStmt,
 		getUserRolesStmt:                   q.getUserRolesStmt,
 		getUserTOTPStmt:                    q.getUserTOTPStmt,
@@ -2284,6 +2333,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listTagsWithCountStmt:              q.listTagsWithCountStmt,
 		listUnfinishedJobIDsStmt:           q.listUnfinishedJobIDsStmt,
 		listUnfinishedJobsStmt:             q.listUnfinishedJobsStmt,
+		listUserDeviceIDsStmt:              q.listUserDeviceIDsStmt,
 		markKoboBookSyncedStmt:             q.markKoboBookSyncedStmt,
 		markRunningJobsInterruptedStmt:     q.markRunningJobsInterruptedStmt,
 		probeUserSearchMatchesStmt:         q.probeUserSearchMatchesStmt,

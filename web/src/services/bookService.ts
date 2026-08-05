@@ -26,6 +26,7 @@ export const bookService = {
     if (params.chip) query.append("chip", params.chip);
     if (params.facet) query.append("facet", params.facet);
     if (params.facet_id) query.append("facet_id", params.facet_id);
+    if (params.t) query.append("t", params.t.toString());
 
     const qs = query.toString();
     try {

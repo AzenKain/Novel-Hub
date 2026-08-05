@@ -10,17 +10,19 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/validator"
 )
 
 type SystemOperationsController struct {
-	logs    services.SystemLogService
-	backups services.BackupService
-	audit   services.AuditService
+	logs     services.SystemLogService
+	backups  services.BackupService
+	audit    services.AuditService
+	ramCache cache.Cache
 }
 
-func NewSystemOperationsController(logs services.SystemLogService, backups services.BackupService, audit services.AuditService) *SystemOperationsController {
-	return &SystemOperationsController{logs: logs, backups: backups, audit: audit}
+func NewSystemOperationsController(logs services.SystemLogService, backups services.BackupService, audit services.AuditService, ramCache cache.Cache) *SystemOperationsController {
+	return &SystemOperationsController{logs: logs, backups: backups, audit: audit, ramCache: ramCache}
 }
 
 func systemOperationContext(c fiber.Ctx) (context.Context, context.CancelFunc) {
@@ -131,3 +133,9 @@ func (c *SystemOperationsController) RestoreBackup(ctx fiber.Ctx) error {
 	c.audit.Record(reqCtx, services.AuditActionBackupRestore, "backup", ctx.Params("name"), ctx.Params("name"))
 	return ctx.Status(fiber.StatusAccepted).JSON(response.CommonResponse{Status: true, Data: result})
 }
+
+func (c *SystemOperationsController) GetCacheStats(ctx fiber.Ctx) error {
+	stats := c.ramCache.Stats()
+	return ctx.JSON(response.CommonResponse{Status: true, Data: stats})
+}
+

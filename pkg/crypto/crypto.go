@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"io"
 	"strings"
@@ -90,3 +91,12 @@ func DecryptAES(cryptoText string) (string, error) {
 
 	return string(plaintext), nil
 }
+
+func GenerateRandomHex(nBytes int) (string, error) {
+	b := make([]byte, nBytes)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+

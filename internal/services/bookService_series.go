@@ -8,9 +8,6 @@ import (
 	"novelhub/pkg/apperrors"
 )
 
-// The next book is resolved per caller rather than cached with the book: it has to be filtered
-// by what this reader may see, and a guest must not learn a title from a library they cannot
-// open just because a signed-in user warmed the cache.
 func (s *bookService) GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error) {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	if err != nil {

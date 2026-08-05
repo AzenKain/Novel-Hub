@@ -137,5 +137,6 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('smtp.password', '""'),
     ('smtp.from_email', '""'),
     ('smtp.tls_mode', '"starttls"'),
-    ('smtp.allow_private_networks', 'false')
+    ('smtp.allow_private_networks', 'false'),
+    ('smtp.max_attachment_mb', '50')
 ON CONFLICT(key) DO NOTHING;

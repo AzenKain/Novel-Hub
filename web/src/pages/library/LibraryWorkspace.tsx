@@ -162,10 +162,10 @@ export const LibraryWorkspace = () => {
   const [showBulkTagModal, setShowBulkTagModal] = React.useState(false);
   const debouncedSearch = useDebounce(search, 500);
 
-  const { data: hotBooksData } = useHotBooksQuery(6);
+  const { data: hotBooksData } = useHotBooksQuery(8);
   const topBooks = hotBooksData || [];
 
-  const { data: randomBooksData, refetch: refetchRandomBooks } = useRandomBooksQuery(6);
+  const { data: randomBooksData } = useRandomBooksQuery(8);
   const randomBooks = randomBooksData || [];
 
   const recentReading = recentHistory.slice(0, 4);
@@ -664,40 +664,32 @@ export const LibraryWorkspace = () => {
 
           {(!publicSettings || publicSettings.home_sections.random_books !== false) && (
             <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary">
-                    <Shuffle className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-black">
-                      {t("library.random_books", "Random books")}
-                    </h3>
-                    <p className="text-sm text-base-content/50">
-                      {t(
-                        "library.random_books_hint",
-                        "Refresh the shelf when you want something unexpected.",
-                      )}
-                    </p>
-                  </div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary">
+                  <Shuffle className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-black">
+                    {t("library.random_books", "Random books")}
+                  </h3>
+                  <p className="text-sm text-base-content/50">
+                    {t(
+                      "library.random_books_hint",
+                      "Refresh the shelf when you want something unexpected.",
+                    )}
+                  </p>
                 </div>
-                <button
-                  className="btn btn-outline btn-sm w-full gap-2 sm:w-auto"
-                  onClick={() => refetchRandomBooks()}
-                >
-                  <Shuffle className="h-4 w-4" />
-                  {t("library.shuffle_books", "Shuffle")}
-                </button>
               </div>
 
               {randomBooks.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scroll-smooth items-stretch">
                   {randomBooks.map((book) => (
-                    <BookCard
-                      key={book.id}
-                      book={book}
-                      onClick={openBookDetail}
-                    />
+                    <div key={book.id} className="w-36 sm:w-44 shrink-0 flex flex-col">
+                      <BookCard
+                        book={book}
+                        onClick={openBookDetail}
+                      />
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -727,9 +719,11 @@ export const LibraryWorkspace = () => {
                 </div>
               </div>
               {topBooks.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scroll-smooth items-stretch">
                   {topBooks.map((book) => (
-                    <BookCard key={book.id} book={book} onClick={openBookDetail} />
+                    <div key={book.id} className="w-36 sm:w-44 shrink-0 flex flex-col">
+                      <BookCard key={book.id} book={book} onClick={openBookDetail} />
+                    </div>
                   ))}
                 </div>
               ) : (

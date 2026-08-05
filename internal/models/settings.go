@@ -40,6 +40,7 @@ type PublicSettings struct {
 	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
 	RequireEmailVerify     bool                `json:"require_email_verify"`
 	PasswordResetEnabled   bool                `json:"password_reset_enabled"`
+	SMTPEnabled            bool                `json:"smtp_enabled"`
 	SetupCompleted         bool                `json:"setup_completed"`
 	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
 	AvailableHomeSections  []string            `json:"available_home_sections"`
@@ -54,10 +55,6 @@ type RuntimeLimits struct {
 	UploadSessionTTLSeconds int64 `json:"upload_session_ttl_seconds"`
 	CoverBytes              int64 `json:"cover_bytes"`
 	SiteAssetBytes          int64 `json:"site_asset_bytes"`
-
-	// Guards the bcrypt-backed endpoints (sign-in and OPDS Basic auth). There is
-	// deliberately no general API limit: a self-hosted reader legitimately fires
-	// hundreds of asset requests per comic chapter.
 	RateLimitAuth              int   `json:"rate_limit_auth"`
 	RateLimitAuthWindowSeconds int64 `json:"rate_limit_auth_window_seconds"`
 }
@@ -75,13 +72,11 @@ type SMTPSettings struct {
 	FromEmail            string   `json:"from_email"`
 	TLSMode              string   `json:"tls_mode"`
 	AllowPrivateNetworks bool     `json:"allow_private_networks"`
+	MaxAttachmentMB      int      `json:"max_attachment_mb"`
 	PasswordConfigured   bool     `json:"password_configured"`
 	AvailableTLSModes    []string `json:"available_tls_modes"`
 }
 
-// ServerURL is on AdminSettings rather than PublicSettings because GET /settings/public is
-// unauthenticated: a base URL exposes the internal hostname, port and proxy topology to anyone.
-// The frontend never needs it — a browser already knows its own origin.
 type AdminSettings struct {
 	PublicSettings
 	Limits    RuntimeLimits      `json:"limits"`

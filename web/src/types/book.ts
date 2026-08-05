@@ -65,6 +65,7 @@ export interface SearchBookParams {
   chip?: string;
   facet?: string;
   facet_id?: string;
+  t?: number;
 }
 
 export interface SearchDeepResult {

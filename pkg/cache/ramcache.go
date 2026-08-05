@@ -25,6 +25,14 @@ const (
 	autoMaxCostDivisor int64 = 16
 )
 
+type CacheStats struct {
+	Hits       uint64  `json:"hits"`
+	Misses     uint64  `json:"misses"`
+	HitRate    float64 `json:"hit_rate"`
+	MaxCost    int64   `json:"max_cost"`
+	EntryCount int64   `json:"entry_count"`
+}
+
 type Cache interface {
 	Set(ctx context.Context, key string, value any, ttl time.Duration) error
 	Get(ctx context.Context, key string, dest any) error
@@ -34,6 +42,7 @@ type Cache interface {
 	MSet(ctx context.Context, pairs map[string]any, ttl time.Duration) error
 	Exists(ctx context.Context, key string) (bool, error)
 	GetOrFetch(ctx context.Context, key string, dest any, ttl time.Duration, fetcher func() (any, error)) error
+	Stats() CacheStats
 }
 
 type RamCache struct {
@@ -41,6 +50,7 @@ type RamCache struct {
 	sf       singleflight.Group
 	versions map[string]int64
 	verMu    sync.RWMutex
+	maxCost  int64
 }
 
 func NewRamCache() Cache {
@@ -65,6 +75,7 @@ func NewTheineCache(maxCost int64) Cache {
 	return &RamCache{
 		items:    items,
 		versions: make(map[string]int64),
+		maxCost:  maxCost,
 	}
 }
 
@@ -193,4 +204,15 @@ func (r *RamCache) GetOrFetch(ctx context.Context, key string, dest any, ttl tim
 		return errors.New("invalid cache payload")
 	}
 	return jsonx.Unmarshal(data, dest)
+}
+
+func (r *RamCache) Stats() CacheStats {
+	st := r.items.Stats()
+	return CacheStats{
+		Hits:       st.Hits(),
+		Misses:     st.Misses(),
+		HitRate:    st.HitRatio(),
+		MaxCost:    r.maxCost,
+		EntryCount: int64(r.items.Len()),
+	}
 }

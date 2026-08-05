@@ -378,6 +378,16 @@ type User struct {
 	UpdatedAt    string         `json:"updated_at"`
 }
 
+type UserDevice struct {
+	ID            string       `json:"id"`
+	UserID        string       `json:"user_id"`
+	Name          string       `json:"name"`
+	DeviceType    string       `json:"device_type"`
+	TargetAddress string       `json:"target_address"`
+	CreatedAt     sql.NullTime `json:"created_at"`
+	UpdatedAt     sql.NullTime `json:"updated_at"`
+}
+
 type UserRole struct {
 	UserID string `json:"user_id"`
 	RoleID string `json:"role_id"`

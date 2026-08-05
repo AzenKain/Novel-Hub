@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -87,7 +88,7 @@ func TestRegisterOverHTTPRefusesWithoutOTPWhenRequired(t *testing.T) {
 	var message string
 	select {
 	case message = <-received:
-	default:
+	case <-time.After(3 * time.Second):
 		t.Fatal("no code was mailed")
 	}
 	code := extractCode(t, message)

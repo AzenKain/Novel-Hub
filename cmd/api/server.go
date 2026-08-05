@@ -127,9 +127,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 			"http://127.0.0.1:5173",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Origin", "X-Requested-With"},
+		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Origin", "X-Requested-With", "X-CSRF-Token"},
 		AllowCredentials: true,
 	}))
+
+	s.App.Use(middlewares.CSRFProtection())
 
 	if !config.GetBoolConfigWithDefault("DISABLE_RESPONSE_COMPRESSION", false) {
 		s.App.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
@@ -186,6 +188,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	webhookRepo := repositories.NewWebhookRepository(db, ramCache)
 	auditRepo := repositories.NewAuditRepository(db, ramCache)
 	totpRepo := repositories.NewTOTPRepository(db, ramCache)
+	deviceRepo := repositories.NewDeviceRepository(db, ramCache)
 
 	authService := services.NewAuthService(userRepo, roleRepo, txManager, settingsRepo, settingsService, services.NewOTPStore(ramCache))
 	userService := services.NewUserService(userRepo, roleRepo, settingsRepo, txManager, permissionCache, settingsService)
@@ -229,6 +232,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	featureService.SetWebhookService(webhookService)
 	jobService.SetWebhookService(webhookService)
 	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache, settingsService)
+	deviceService := services.NewDeviceService(deviceRepo, bookRepo, bookService, settingsService, permissionCache, jobQueue)
 
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService, auditService)
@@ -236,7 +240,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache, auditService)
 	libraryController := controllers.NewLibraryController(libraryService)
 	jobController := controllers.NewJobController(jobService, jobScheduleService)
-	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService, auditService)
+	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService, auditService, ramCache)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
 	highlightController := controllers.NewHighlightController(highlightService)
@@ -245,6 +249,26 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	auditController := controllers.NewAuditController(auditService)
 	totpController := controllers.NewTOTPController(totpService, userService, auditService)
 	uploadController := controllers.NewUploadController(uploadService)
+	deviceController := controllers.NewDeviceController(deviceService)
+
+	userService.SetJobQueue(jobQueue)
+	authService.SetJobQueue(jobQueue)
+
+	jobQueue.RegisterHandler("push_book_to_device", func(ctx context.Context, jobID string, payload string) error {
+		return deviceService.ExecutePushJob(ctx, payload)
+	})
+
+	jobQueue.RegisterHandler("send_book_email", func(ctx context.Context, jobID string, payload string) error {
+		return bookService.ExecuteSendBookEmailJob(ctx, payload)
+	})
+
+	jobQueue.RegisterHandler("send_user_email", func(ctx context.Context, jobID string, payload string) error {
+		return userService.ExecuteSendUserEmailJob(ctx, payload)
+	})
+
+	jobQueue.RegisterHandler("send_otp_email", func(ctx context.Context, jobID string, payload string) error {
+		return authService.ExecuteSendOTPJob(ctx, payload)
+	})
 
 	jobQueue.RegisterHandler("extract_metadata", func(ctx context.Context, jobID string, payload string) error {
 		err := bookService.ExtractMetadata(ctx, payload)
@@ -274,30 +298,38 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobQueue.RegisterHandler("maintenance", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.RunMaintenance(ctx)
 	})
+
 	jobQueue.RegisterHandler("clean_empty_book_dirs", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CleanEmptyBookDirs(ctx)
 	})
+
 	jobQueue.RegisterHandler("clean_orphan_uploads", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CleanOrphanUploads(ctx)
 	})
+
 	jobQueue.RegisterHandler("prune_finished_jobs", func(ctx context.Context, jobID string, payload string) error {
 		return jobService.PruneFinishedJobs(ctx)
 	})
+
 	jobQueue.RegisterHandler("prune_audit_logs", func(ctx context.Context, jobID string, payload string) error {
 		_, err := auditService.Prune(ctx)
 		return err
 	})
+
 	jobQueue.RegisterHandler("database_health_check", func(ctx context.Context, jobID string, payload string) error {
 		return maintenanceService.CheckDatabaseHealth(ctx)
 	})
+
 	jobQueue.RegisterHandler("database_backup", func(ctx context.Context, jobID string, payload string) error {
 		_, err := backupService.Create(ctx, false)
 		return err
 	})
+
 	jobQueue.RegisterHandler("database_books_backup", func(ctx context.Context, jobID string, payload string) error {
 		_, err := backupService.Create(ctx, true)
 		return err
 	})
+
 	jobQueue.RegisterHandler("scan_library_inbox", func(ctx context.Context, jobID string, payload string) error {
 		_, err := libraryService.ScanInbox(ctx)
 		return err
@@ -371,6 +403,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.TOTPRoutes(v1, totpController, userRepo, settingsService)
 	routes.WebhookRoutes(v1, webhookController, userRepo, permissionCache)
 	routes.SetupUploadRoutes(v1, uploadController, userRepo)
+	routes.DeviceRoutes(v1, deviceController, userRepo, bookRepo, permissionCache)
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
 
 	opdsService := services.NewOPDSService(bookService, permissionCache)

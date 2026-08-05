@@ -141,6 +141,18 @@ func (ctrl *KoboController) DownloadKePub(c fiber.Ctx) error {
 	return ctrl.koboService.GetBookKePubStream(ctx, bookID, getOptionalClaims(c), c.Response().BodyWriter())
 }
 
+func (ctrl *KoboController) ArchiveBook(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, _ := getUserIdFromLocals(c)
+	if err := ctrl.koboService.ArchiveBook(ctx, userID, c.Params("uuid"), getOptionalClaims(c)); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{})
+}
+
+
 func (ctrl *KoboController) GetSetup(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

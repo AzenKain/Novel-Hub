@@ -32,7 +32,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
 
   return (
     <article 
-      className="group card card-compact bg-base-100 border border-base-200 shadow-sm cursor-pointer rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+      className="group card card-compact bg-base-100 border border-base-200 shadow-sm cursor-pointer rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between"
       onClick={() => onClick(book)}
       tabIndex={0}
       onKeyDown={(event) => {
@@ -42,7 +42,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
         }
       }}
     >
-      <figure className={`relative aspect-[3/4.12] w-full text-white flex flex-col justify-between p-4 bg-linear-to-br ${gradientClass}`}>
+      <figure className={`relative aspect-[3/4.12] w-full text-white flex flex-col justify-between p-4 bg-linear-to-br ${gradientClass} shrink-0`}>
         {book.cover_url ? (
           <>
             <img src={getMediaUrl(book.cover_url)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
@@ -57,7 +57,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
           </>
         )}
       </figure>
-      <div className="card-body p-2 gap-1.5">
+      <div className="card-body p-2 gap-1 flex-1 flex flex-col justify-start">
         <strong className="text-base line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary" title={book.title}>{book.title}</strong>
         <p 
           className="text-sm text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer"

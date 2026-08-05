@@ -32,6 +32,7 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
     from_email: "",
     tls_mode: "starttls" as SmtpTlsMode,
     allow_private_networks: false,
+    max_attachment_mb: 50,
   });
   const [password, setPassword] = useState("");
   const [clearPassword, setClearPassword] = useState(false);
@@ -48,6 +49,7 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
       from_email: smtp.from_email,
       tls_mode: smtp.tls_mode,
       allow_private_networks: smtp.allow_private_networks,
+      max_attachment_mb: smtp.max_attachment_mb || 50,
     });
     setPassword("");
     setClearPassword(false);
@@ -79,6 +81,7 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
       "smtp.from_email": form.from_email.trim(),
       "smtp.tls_mode": form.tls_mode,
       "smtp.allow_private_networks": form.allow_private_networks,
+      "smtp.max_attachment_mb": form.max_attachment_mb,
     };
     const nextPassword = passwordPayload();
     if (nextPassword !== undefined) {
@@ -248,6 +251,21 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">
+              {t("settings.smtp_max_attachment", "Max Attachment (MB)")}
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={form.max_attachment_mb}
+              onChange={(e) => setForm({ ...form, max_attachment_mb: parseInt(e.target.value) || 50 })}
+              placeholder="50"
+              className="input input-bordered w-full"
+            />
           </div>
         </div>
 

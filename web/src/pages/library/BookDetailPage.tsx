@@ -24,14 +24,16 @@ import {
   Play,
   RotateCcw,
   CloudDownload,
-  CheckCircle2
+  CheckCircle2,
+  Send,
+  FileText
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
-import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard } from "@/components/book-detail";
+import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
@@ -59,6 +61,7 @@ export const BookDetailPage: React.FC = () => {
   const publicSettings = usePublicSettings();
   
   const [shareOpen, setShareOpen] = useState(false);
+  const [sendModalOpen, setSendModalOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
@@ -96,6 +99,7 @@ export const BookDetailPage: React.FC = () => {
   const allowCollection = hasPermission(user, "book.collection", book?.library_id, guestPerms);
   const allowBookmark = hasPermission(user, "book.bookmark", book?.library_id, guestPerms);
   const allowShare = hasPermission(user, "book.share", book?.library_id, guestPerms);
+  const allowSendEmail = hasPermission(user, "book.send_email", book?.library_id, guestPerms);
   const allowDownload = hasPermission(user, "book.download", book?.library_id, guestPerms);
   const allowOffline = hasPermission(user, "book.offline", book?.library_id, guestPerms);
   const offlineSizeBytes = (book?.files || []).find((file) => file.id === (selectedFileId || book?.files?.[0]?.id))?.size_bytes;
@@ -257,6 +261,12 @@ export const BookDetailPage: React.FC = () => {
               <span className="hidden sm:inline ml-1">
                 {isBookmarked ? t("book.remove_bookmark", "Remove Bookmark") : t("book.add_bookmark", "Bookmark")}
               </span>
+            </button>
+          )}
+          {allowSendEmail && (
+            <button onClick={() => setSendModalOpen(true)} className="btn btn-ghost btn-sm">
+              <Send className="w-4 h-4 mr-1" />
+              {t("send_to_device", "Send to Device")}
             </button>
           )}
           {allowShare && (
@@ -472,8 +482,18 @@ export const BookDetailPage: React.FC = () => {
               })()}
             </div>
 
-            {/* Quick Actions (Read/Continue Reading/Download) */}
-            {(allowRead || allowDownload) && book.files && book.files.length > 0 && (() => {
+            {/* Helper for smart file truncation: e.g. "Tap 09 - After St...epub" */}
+            {(() => {
+              const formatTruncatedFilename = (path: string, maxLength = 22) => {
+                const filename = path.split('/').pop() || path;
+                const extIdx = filename.lastIndexOf('.');
+                if (extIdx <= 0 || filename.length <= maxLength) return filename;
+                const ext = filename.slice(extIdx);
+                const base = filename.slice(0, extIdx);
+                const keep = Math.max(4, maxLength - ext.length - 3);
+                return `${base.slice(0, keep)}...${ext}`;
+              };
+
               const hasReadingHistory = Boolean(
                 user &&
                 readingProgress &&
@@ -481,105 +501,92 @@ export const BookDetailPage: React.FC = () => {
               );
 
               return (
-                <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 my-3 w-full">
-                  {/* File Select Dropdown */}
-                  <select
-                    className="select select-bordered select-md w-full xl:w-64 font-medium text-ellipsis overflow-hidden whitespace-nowrap shrink-0"
-                    value={selectedFileId || book.files[0].id}
-                    onChange={(e) => setSelectedFileId(e.target.value)}
-                  >
-                    {book.files.map((file) => {
-                      const filename = file.path.split('/').pop() || file.path;
-                      const truncated = filename.length > 25 
-                        ? `${filename.slice(0, 18)}...${filename.slice(filename.lastIndexOf('.'))}`
-                        : filename;
-                      return (
-                        <option key={file.id} value={file.id}>
-                          {truncated}
-                        </option>
-                      );
-                    })}
-                  </select>
-
-                  {/* Buttons Container */}
-                  <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
+                <div className="flex flex-col gap-2.5 my-3 w-full">
+                  {/* Row 1: Primary Action & Smart Truncated File Dropdown */}
+                  <div className="flex flex-wrap items-center gap-2.5 w-full">
+                    {/* Primary Read CTA */}
                     {allowRead && (
-                      <>
+                      <button
+                        onClick={() =>
+                          navigate(
+                            `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
+                              selectedFileId || readingProgress?.file_id || book.files?.[0]?.id || ""
+                            )}`
+                          )
+                        }
+                        className="btn btn-primary btn-md gap-2 font-bold text-sm px-6 shadow-xs shrink-0"
+                        disabled={!book.files?.length}
+                      >
                         {hasReadingHistory ? (
                           <>
-                            {/* Continue Reading Button */}
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                                    selectedFileId || readingProgress?.file_id || book.files![0].id
-                                  )}`
-                                )
-                              }
-                              className="btn btn-primary btn-md flex-1 px-4 gap-2 min-w-0 h-auto py-2.5 overflow-hidden text-left"
-                              disabled={!book.files.length}
-                            >
-                              <Play className="w-4 h-4 fill-current shrink-0" />
-                              <div className="flex flex-col items-start text-left leading-tight min-w-0 overflow-hidden flex-1">
-                                <span className="font-bold text-sm truncate w-full whitespace-nowrap">
-                                  {t("reader.continue_reading", "Continue Reading")}
-                                </span>
-                                <span
-                                  className="block w-full truncate text-[11px] opacity-85 font-normal whitespace-nowrap"
-                                  title={`${readingProgress?.chapter_title || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapter_index || 0) + 1}`}${
-                                    typeof readingProgress?.progress_percent === "number" && readingProgress.progress_percent > 0
-                                      ? ` (${readingProgress.progress_percent}%)`
-                                      : ""
-                                  }`}
-                                >
-                                  {readingProgress?.chapter_title || `${t("reader.chapter", "Chapter")} ${(readingProgress?.chapter_index || 0) + 1}`}
-                                  {typeof readingProgress?.progress_percent === "number" && readingProgress.progress_percent > 0
-                                    ? ` (${readingProgress.progress_percent}%)`
-                                    : ""}
-                                </span>
-                              </div>
-                            </button>
-
-                            {/* Read from Beginning Button */}
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                                    selectedFileId || book.files![0].id
-                                  )}&start_over=true`
-                                )
-                              }
-                              className="btn btn-outline btn-md sm:w-auto shrink-0 gap-1.5 whitespace-nowrap"
-                              disabled={!book.files.length}
-                              title={t("reader.read_from_beginning", "Start from Beginning")}
-                            >
-                              <RotateCcw className="w-4 h-4 shrink-0" />
-                              <span className="whitespace-nowrap">{t("reader.start_over", "Start Over")}</span>
-                            </button>
+                            <Play className="w-4 h-4 fill-current shrink-0" />
+                            <span className="whitespace-nowrap">{t("reader.continue_reading", "Continue Reading")}</span>
                           </>
                         ) : (
-                          /* First time reading: Single Read Button */
-                          <button
-                            onClick={() =>
-                              navigate(
-                                `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                                  selectedFileId || book.files![0].id
-                                )}`
-                              )
-                            }
-                            className="btn btn-primary btn-md flex-1 sm:w-auto shrink-0 whitespace-nowrap gap-2"
-                            disabled={!book.files.length}
-                          >
-                            <BookOpen className="w-5 h-5 shrink-0" />
-                            <span className="whitespace-nowrap">{t("reader.read", "Read")}</span>
-                          </button>
+                          <>
+                            <BookOpen className="w-4 h-4 shrink-0" />
+                            <span className="whitespace-nowrap">{t("reader.read", "Read Now")}</span>
+                          </>
                         )}
-                      </>
+                      </button>
+                    )}
+
+                    {/* Smart Truncated File Format Dropdown */}
+                    <select
+                      className="select select-bordered select-md font-medium max-w-[210px] shrink-0"
+                      value={selectedFileId || book.files?.[0]?.id || ""}
+                      onChange={(e) => setSelectedFileId(e.target.value)}
+                    >
+                      {(book.files || []).map((file) => {
+                        return (
+                          <option key={file.id} value={file.id} title={file.path.split('/').pop() || file.path}>
+                            {formatTruncatedFilename(file.path, 22)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Reading Progress Subtitle Line (Dedicated Pill Bar) */}
+                  {hasReadingHistory && readingProgress && (
+                    <div className="flex items-center gap-2 text-xs text-base-content/75 font-medium px-3 py-1.5 bg-base-200/60 rounded-lg w-fit max-w-full">
+                      <span className="badge badge-primary badge-sm font-bold text-[10px] px-2 py-0.5 shrink-0">
+                        {typeof readingProgress.progress_percent === "number" && readingProgress.progress_percent > 0
+                          ? `${readingProgress.progress_percent}%`
+                          : "0%"}
+                      </span>
+                      <span className="truncate max-w-[450px]" title={readingProgress.chapter_title || undefined}>
+                        <span className="opacity-70 mr-1">{t("reader.reading_chapter", "Currently at")}:</span>
+                        <strong className="text-base-content font-semibold">
+                          {readingProgress.chapter_title || t("reader.chapter_num", "Chapter {{num}}", { num: (readingProgress.chapter_index || 0) + 1 })}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Row 2: Secondary Utility Action Buttons Bar */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
+                    {allowRead && hasReadingHistory && (
+                      <button
+                        onClick={() =>
+                          navigate(
+                            `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
+                              selectedFileId || book.files?.[0]?.id || ""
+                            )}&start_over=true`
+                          )
+                        }
+                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                        disabled={!book.files?.length}
+                        title={t("reader.read_from_beginning", "Start from Beginning")}
+                      >
+                        <RotateCcw className="w-4 h-4 shrink-0" />
+                        <span>{t("reader.start_over", "Start Over")}</span>
+                      </button>
                     )}
 
                     {allowRead && allowOffline && (
                       <button
-                        className="btn btn-outline btn-md sm:w-auto shrink-0 whitespace-nowrap gap-2"
+                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
                         disabled={offline.status === "downloading" || offline.status === "unknown"}
                         onClick={() => {
                           if (offline.status === "ready") {
@@ -594,18 +601,18 @@ export const BookDetailPage: React.FC = () => {
                       >
                         {offline.status === "downloading" ? (
                           <>
-                            <span className="loading loading-spinner loading-xs shrink-0" />
-                            <span className="whitespace-nowrap">{offline.progress}%</span>
+                            <span className="loading loading-spinner loading-xs" />
+                            <span>{offline.progress}%</span>
                           </>
                         ) : offline.status === "ready" ? (
                           <>
-                            <CheckCircle2 className="w-5 h-5 shrink-0 text-success" />
-                            <span className="whitespace-nowrap">{t("offline.remove", "Remove offline copy")}</span>
+                            <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                            <span>{t("offline.remove", "Remove offline copy")}</span>
                           </>
                         ) : (
                           <>
-                            <CloudDownload className="w-5 h-5 shrink-0" />
-                            <span className="whitespace-nowrap">{t("offline.save", "Save for offline")}</span>
+                            <CloudDownload className="w-4 h-4 shrink-0" />
+                            <span>{t("offline.save", "Save for offline")}</span>
                           </>
                         )}
                       </button>
@@ -613,8 +620,8 @@ export const BookDetailPage: React.FC = () => {
 
                     {allowDownload && (
                       <a
-                        href={bookService.getDownloadUrl(book.id, selectedFileId || book.files[0].id)}
-                        className="btn btn-outline btn-md sm:w-auto shrink-0 whitespace-nowrap gap-2"
+                        href={bookService.getDownloadUrl(book.id, selectedFileId || book.files?.[0]?.id || "")}
+                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
                         download
                         onClick={(e) => {
                           if (!book.files?.length) e.preventDefault();
@@ -624,8 +631,8 @@ export const BookDetailPage: React.FC = () => {
                           }, 1000);
                         }}
                       >
-                        <Download className="w-5 h-5 shrink-0" />
-                        <span className="whitespace-nowrap">{t("common.download", "Download")}</span>
+                        <Download className="w-4 h-4 shrink-0" />
+                        <span>{t("common.download", "Download")}</span>
                       </a>
                     )}
                   </div>
@@ -645,6 +652,16 @@ export const BookDetailPage: React.FC = () => {
                 }}
               />
             </div>
+
+            {/* Books in Same Series Section */}
+            {seriesEntry && (
+              <SeriesBooksSection
+                currentBookId={book.id!}
+                seriesId={seriesEntry.series_id}
+                seriesName={seriesEntry.series_name}
+                seriesIndex={seriesEntry.series_index}
+              />
+            )}
 
 
             {nextInSeries && (
@@ -698,6 +715,15 @@ export const BookDetailPage: React.FC = () => {
           t={t}
           onClose={() => setShareOpen(false)}
           onCopy={handleCopy}
+        />
+      )}
+
+      {allowSendEmail && (
+        <SendToKindleModal
+          open={sendModalOpen}
+          book={book}
+          t={t}
+          onClose={() => setSendModalOpen(false)}
         />
       )}
 

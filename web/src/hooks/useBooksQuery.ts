@@ -46,7 +46,7 @@ export function useHotBooksQuery(limit = 6) {
   });
 }
 
-export function useRandomBooksQuery(limit = 6) {
+export function useRandomBooksQuery(limit = 8) {
   return useQuery<Book[]>({
     queryKey: ["books", "random", limit],
     queryFn: async () => {
@@ -55,7 +55,7 @@ export function useRandomBooksQuery(limit = 6) {
       return res.data || [];
     },
     refetchOnWindowFocus: false,
-    staleTime: 0,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -151,6 +151,20 @@ export function useBookSeriesQuery(book_id: string) {
     retry: false,
   });
 }
+
+export function useSeriesBooksQuery(seriesId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["books", "series", seriesId],
+    queryFn: async () => {
+      if (!seriesId) return [];
+      const res = await bookService.getBooks({ facet: "series", facet_id: seriesId, limit: 30 });
+      if (!res.status) throw new Error(res.message || "Failed to fetch books in series");
+      return res.data || [];
+    },
+    enabled: !!seriesId && enabled,
+  });
+}
+
 
 export function useBookUserStateQuery(book_id: string, enabled = true) {
   return useQuery({

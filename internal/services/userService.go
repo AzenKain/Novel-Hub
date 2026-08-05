@@ -20,6 +20,7 @@ import (
 	"novelhub/pkg/database"
 
 	"novelhub/pkg/convert"
+	"novelhub/pkg/worker"
 )
 
 type UserService interface {
@@ -34,6 +35,8 @@ type UserService interface {
 	SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, error)
 	AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error
 	SendEmail(ctx context.Context, userID string, dto *request.SendUserEmailDto) error
+	ExecuteSendUserEmailJob(ctx context.Context, payloadJSON string) error
+	SetJobQueue(jobQueue *worker.Queue)
 }
 
 type userService struct {
@@ -43,6 +46,11 @@ type userService struct {
 	txManager    database.TxManager
 	settings     SettingsService
 	permissions  PermissionCache
+	jobQueue     *worker.Queue
+}
+
+func (u *userService) SetJobQueue(jobQueue *worker.Queue) {
+	u.jobQueue = jobQueue
 }
 
 func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository, settingsRepo repositories.SettingsRepository, txManager database.TxManager, permissions PermissionCache, settings ...SettingsService) UserService {

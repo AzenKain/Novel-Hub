@@ -306,6 +306,8 @@
     "apply": "应用",
     "share": "分享",
     "download": "下载",
+    "view_all": "查看全部",
+    "current": "当前",
     "load_more": "加载更多",
     "previous": "上一页",
     "next": "下一页"
@@ -468,6 +470,8 @@
   },
   "reader": {
     "continue_reading": "继续阅读",
+    "reading_chapter": "当前阅读",
+    "chapter_num": "第{{num}}章",
     "read_from_beginning": "从头阅读",
     "start_over": "重新开始",
     "book_not_found": "未找到书籍",
@@ -605,7 +609,8 @@
     "collection": "合集",
     "collections": "合集数",
     "no_description": "暂无简介。",
-    "next_in_series": "系列下一本"
+    "next_in_series": "系列下一本",
+    "in_same_series": "同系列图书"
   },
   "settings": {
     "title": "设置",
@@ -713,6 +718,7 @@
     "permission_webhook_manage": "管理 Webhook 和通知集成",
     "permission_book_share": "分享书籍与生成分享链接",
     "send_to_kindle": "发送至 Kindle",
+    "send_to_device": "发送至设备",
     "smtp_host": "SMTP 主机",
     "smtp_port": "端口",
     "smtp_from": "发件人邮箱地址",
@@ -750,7 +756,9 @@
     "smtp_tls_starttls": "STARTTLS (通常为 587 端口)",
     "smtp_tls_implicit": "隐式 TLS / SSL (通常为 465 端口)",
     "smtp_allow_private": "允许内网 / 本地邮件服务器",
-    "smtp_allow_private_desc": "当邮件服务器位于局域网、localhost 或同主机容器时需要开启。使用互联网服务商时请保持关闭。",
+    "smtp_allow_private_desc": "局域网、localhost 或同一主机的容器中的邮件服务器需要启用。使用互联网提供商时请保持关闭。",
+    "smtp_max_attachment": "最大附件大小 (MB)",
+    "smtp_max_attachment_hint": "通过邮件发送至阅读器设备的书籍附件最大限制 (默认: 50MB)。",
     "smtp_test": "测试连接",
     "smtp_test_success": "SMTP 连接成功",
     "smtp_saved": "已保存 SMTP 设置",
@@ -909,6 +917,13 @@
     "recovery_regenerated": "已生成新的恢复码，旧的恢复码不再有效。",
     "recovery_remaining": "剩余 {{count}} 个恢复码",
     "recovery_warning": "请立即保存这些恢复码。每个只能使用一次，是你丢失手机后唯一的登录方式。它们不会再次显示。",
-    "copy_codes": "复制恢复码"
+    "copy_codes": "复制验证码"
+  },
+  "device": {
+    "saved_devices": "已保存的设备",
+    "manual_email": "手动输入邮箱",
+    "no_devices": "暂无已保存的设备。",
+    "add_device_tip": "使用手动输入邮箱或在设置中注册设备。",
+    "push": "推送"
   }
 }

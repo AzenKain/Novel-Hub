@@ -22,4 +22,7 @@ func SystemOperationsRoutes(api fiber.Router, controller *controllers.SystemOper
 	backups.Get("/:name/download", controller.DownloadBackup)
 	backups.Delete("/:name", controller.DeleteBackup)
 	backups.Post("/:name/restore", controller.RestoreBackup)
+
+	metrics := api.Group("/system/metrics", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermSystemLogRead))
+	metrics.Get("/cache", controller.GetCacheStats)
 }

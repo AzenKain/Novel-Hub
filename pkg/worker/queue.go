@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alitto/pond/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,6 +30,7 @@ type Job struct {
 
 type Queue struct {
 	jobs      chan Job
+	pool      pond.Pool
 	wg        sync.WaitGroup
 	workers   int
 	ctx       context.Context
@@ -39,16 +41,31 @@ type Queue struct {
 	stopped   bool
 }
 
-const BufferSize = 1000
+const BufferSize = 5000
 
-func NewQueue(workers int) *Queue {
+func NewQueue(workers int, bufferSize ...int) *Queue {
+	size := BufferSize
+	if len(bufferSize) > 0 && bufferSize[0] > 0 {
+		size = bufferSize[0]
+	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Queue{jobs: make(chan Job, BufferSize), workers: workers, ctx: ctx, cancel: cancel, handler: make(map[string]JobFunc)}
+	return &Queue{
+		jobs:    make(chan Job, size),
+		pool:    pond.NewPool(workers),
+		workers: workers,
+		ctx:     ctx,
+		cancel:  cancel,
+		handler: make(map[string]JobFunc),
+	}
 }
 
-func (q *Queue) RegisterHandler(jobType string, handler JobFunc) { q.handler[jobType] = handler }
+func (q *Queue) RegisterHandler(jobType string, handler JobFunc) {
+	q.handler[jobType] = handler
+}
 
-func (q *Queue) SetLifecycle(lifecycle Lifecycle) { q.lifecycle = lifecycle }
+func (q *Queue) SetLifecycle(lifecycle Lifecycle) {
+	q.lifecycle = lifecycle
+}
 
 func (q *Queue) Enqueue(ctx context.Context, job Job) error {
 	return q.enqueue(ctx, job, true)
@@ -83,22 +100,34 @@ func (q *Queue) enqueue(ctx context.Context, job Job, persist bool) error {
 		return ErrQueueStopped
 	case q.jobs <- job:
 		return nil
+	default:
+		q.wg.Add(1)
+		q.pool.Submit(func() {
+			defer q.wg.Done()
+			q.process(job)
+		})
+		return nil
 	}
 }
 
 func (q *Queue) Start() {
-	for range q.workers {
-		q.wg.Go(func() {
-			for {
-				select {
-				case <-q.ctx.Done():
+	q.wg.Go(func() {
+		for {
+			select {
+			case <-q.ctx.Done():
+				return
+			case job, ok := <-q.jobs:
+				if !ok {
 					return
-				case job := <-q.jobs:
-					q.process(job)
 				}
+				q.wg.Add(1)
+				q.pool.Submit(func() {
+					defer q.wg.Done()
+					q.process(job)
+				})
 			}
-		})
-	}
+		}
+	})
 }
 
 func (q *Queue) process(job Job) {
@@ -167,6 +196,9 @@ func (q *Queue) StopContext(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		q.wg.Wait()
+		if q.pool != nil {
+			q.pool.Stop()
+		}
 		close(done)
 	}()
 	select {

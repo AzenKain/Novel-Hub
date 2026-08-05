@@ -306,6 +306,8 @@
     "apply": "적용",
     "share": "공유",
     "download": "다운로드",
+    "view_all": "전체 보기",
+    "current": "현재",
     "load_more": "더 보기",
     "previous": "이전",
     "next": "다음"
@@ -468,6 +470,8 @@
   },
   "reader": {
     "continue_reading": "이어 읽기",
+    "reading_chapter": "현재 읽는 중",
+    "chapter_num": "제{{num}}장",
     "read_from_beginning": "처음부터 읽기",
     "start_over": "처음부터 읽기",
     "book_not_found": "책을 찾을 수 없습니다",
@@ -605,7 +609,8 @@
     "collection": "컬렉션",
     "collections": "컬렉션 수",
     "no_description": "시놉시스가 없습니다.",
-    "next_in_series": "시리즈 다음 권"
+    "next_in_series": "시리즈 다음 권",
+    "in_same_series": "같은 시리즈의 도서"
   },
   "settings": {
     "title": "설정",
@@ -713,6 +718,7 @@
     "permission_webhook_manage": "웹훅 및 알림 연동 관리",
     "permission_book_share": "도서 공유 및 공유 링크 생성",
     "send_to_kindle": "Kindle로 전송",
+    "send_to_device": "기기로 전송",
     "smtp_host": "SMTP 호스트",
     "smtp_port": "포트",
     "smtp_from": "발신자 이메일 주소",
@@ -750,7 +756,9 @@
     "smtp_tls_starttls": "STARTTLS (일반적으로 587 포트)",
     "smtp_tls_implicit": "암시적 TLS / SSL (일반적으로 465 포트)",
     "smtp_allow_private": "사설 / 로컬 메일 서버 허용",
-    "smtp_allow_private_desc": "LAN, localhost 또는 같은 호스트의 컨테이너에 있는 메일 서버를 사용할 때 필요합니다. 인터넷 제공업체를 사용하면 끄십시오.",
+    "smtp_allow_private_desc": "LAN, localhost 또는 다른 컨테이너의 메일 서버에 필요합니다. 인터넷 제공업체를 사용할 경우 해제하세요.",
+    "smtp_max_attachment": "최대 첨부 용량 (MB)",
+    "smtp_max_attachment_hint": "이북 리더기로 전송할 도서 첨부 파일의 최대 크기 (기본값: 50MB).",
     "smtp_test": "연결 테스트",
     "smtp_test_success": "SMTP 연결에 성공했습니다",
     "smtp_saved": "SMTP 설정을 저장했습니다",
@@ -910,5 +918,12 @@
     "recovery_remaining": "남은 복구 코드 {{count}}개",
     "recovery_warning": "이 복구 코드를 지금 저장하세요. 각 코드는 한 번만 사용할 수 있으며 휴대폰을 잃어버렸을 때 유일한 수단입니다. 다시 표시되지 않습니다.",
     "copy_codes": "코드 복사"
+  },
+  "device": {
+    "saved_devices": "저장된 기기",
+    "manual_email": "수동 이메일 입력",
+    "no_devices": "저장된 기기가 없습니다.",
+    "add_device_tip": "수동 이메일을 입력하거나 설정에서 기기를 등록하세요.",
+    "push": "전송"
   }
 }

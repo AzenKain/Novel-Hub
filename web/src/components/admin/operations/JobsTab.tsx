@@ -1,4 +1,4 @@
-import { useJobTasksQuery, useJobsQuery, useTriggerJobMutation } from "@/hooks";
+import { useCacheStatsQuery, useJobTasksQuery, useJobsQuery, useTriggerJobMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
 import {
@@ -51,6 +51,7 @@ export function JobsTab() {
   const [type, setType] = useState("");
   const jobs = useJobsQuery(status, type);
   const tasks = useJobTasksQuery();
+  const cacheStats = useCacheStatsQuery();
   const trigger = useTriggerJobMutation();
   const user = useAuthStore((state) => state.user);
   const canManage = hasPermission(user, "job.manage");
@@ -66,6 +67,39 @@ export function JobsTab() {
 
   return (
     <div className="space-y-3">
+      {/* Cache Performance Cards */}
+      {cacheStats.data && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
+            <span className="text-xs text-base-content/60 font-medium">Cache Hit Rate</span>
+            <div className="text-lg font-bold text-success">
+              {(cacheStats.data.hit_rate * 100).toFixed(1)}%
+            </div>
+            <span className="text-[10px] text-base-content/40 font-mono">
+              {cacheStats.data.hits.toLocaleString()} hits / {cacheStats.data.misses.toLocaleString()} misses
+            </span>
+          </div>
+          <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
+            <span className="text-xs text-base-content/60 font-medium">Cached Entities</span>
+            <div className="text-lg font-bold text-primary">
+              {cacheStats.data.entry_count.toLocaleString()}
+            </div>
+            <span className="text-[10px] text-base-content/40">Active RAM entries</span>
+          </div>
+          <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
+            <span className="text-xs text-base-content/60 font-medium">RAM Budget</span>
+            <div className="text-lg font-bold text-info">
+              {(cacheStats.data.max_cost / (1024 * 1024)).toFixed(0)} MB
+            </div>
+            <span className="text-[10px] text-base-content/40">Theine-Go MaxCost</span>
+          </div>
+          <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
+            <span className="text-xs text-base-content/60 font-medium">Singleflight Guard</span>
+            <div className="text-lg font-bold text-accent">Active</div>
+            <span className="text-[10px] text-base-content/40">Stampede Protection</span>
+          </div>
+        </div>
+      )}
       {/* Maintenance Action Buttons Box - Compact & Visible with Icons */}
       {canManage && (
         <div className="border border-base-200 bg-base-100 rounded-2xl p-3 sm:p-3.5 shadow-2xs space-y-2">

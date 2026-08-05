@@ -147,3 +147,16 @@ export function useAuditLogsQuery(action: string, cursor: string) {
     },
   });
 }
+
+export function useCacheStatsQuery() {
+  return useQuery({
+    queryKey: ["operations", "cache-stats"],
+    queryFn: async () => {
+      const res = await operationsService.getCacheStats();
+      if (!res.status) throw new Error(res.message || "cache_stats_failed");
+      return res.data;
+    },
+    refetchInterval: 5000,
+  });
+}
+

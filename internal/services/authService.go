@@ -23,11 +23,14 @@ import (
 	"novelhub/pkg/convert"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/worker"
 )
 
 type AuthService interface {
 	Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error)
 	SetTOTPService(service TOTPService)
+	SetJobQueue(jobQueue *worker.Queue)
+	ExecuteSendOTPJob(ctx context.Context, payloadJSON string) error
 	ValidateCredentials(ctx context.Context, dto *request.SignInDto) (*response.JWTClaims, error)
 	Register(ctx context.Context, dto *request.RegisterDto) (*response.UserResponse, error)
 	SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error)
@@ -46,6 +49,11 @@ type authService struct {
 	settings     SettingsService
 	otp          *OTPStore
 	totp         TOTPService
+	jobQueue     *worker.Queue
+}
+
+func (a *authService) SetJobQueue(jobQueue *worker.Queue) {
+	a.jobQueue = jobQueue
 }
 
 func (a *authService) SetTOTPService(service TOTPService) {

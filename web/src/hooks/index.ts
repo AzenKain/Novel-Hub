@@ -10,3 +10,4 @@ export * from "./useTrackerQueries";
 export * from "./useKoboQueries";
 export * from "./useOfflineAssets";
 export * from "./useOfflineBook";
+export * from "./useDeviceQueries";

@@ -49,6 +49,7 @@ type UpdateSettingsDto struct {
 	SMTPFromEmail            *string `json:"smtp.from_email" validate:"omitempty,max=255"`
 	SMTPTLSMode              *string `json:"smtp.tls_mode" validate:"omitempty,oneof=none starttls implicit_tls"`
 	SMTPAllowPrivateNetworks *bool   `json:"smtp.allow_private_networks"`
+	SMTPMaxAttachmentMB      *int    `json:"smtp.max_attachment_mb" validate:"omitempty,min=1,max=500"`
 
 	present map[string]bool
 }
@@ -136,6 +137,7 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "smtp.from_email", d.SMTPFromEmail)
 	putPtr(values, "smtp.tls_mode", d.SMTPTLSMode)
 	putPtr(values, "smtp.allow_private_networks", d.SMTPAllowPrivateNetworks)
+	putPtr(values, "smtp.max_attachment_mb", d.SMTPMaxAttachmentMB)
 	return values
 }
 
@@ -154,7 +156,7 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"limits.rate_limit_auth": true, "limits.rate_limit_auth_window_seconds": true,
 		"smtp.enabled": true, "smtp.host": true, "smtp.port": true, "smtp.username": true,
 		"smtp.password": true, "smtp.from_email": true, "smtp.tls_mode": true,
-		"smtp.allow_private_networks": true,
+		"smtp.allow_private_networks": true, "smtp.max_attachment_mb": true,
 	}
 	unknown := make([]string, 0)
 	for key := range d.present {

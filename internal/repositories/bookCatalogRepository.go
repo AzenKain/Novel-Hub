@@ -167,11 +167,6 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return r.GetBooksByIDs(ctx, value.([]string))
 	}
 
-	// The collection filter cannot go through SearchBookIDs (it has no collection parameter), so
-	// it has its own keyset query. It used to load every member of the collection and page in Go:
-	// at 5000 books that cost 87ms cold and 16ms warm per page against 7ms/0.3ms for the SQL
-	// path, and the Go filter compared created_at with no id tiebreaker, so books sharing a
-	// bulk-upload timestamp fell through the page boundary unseen.
 	if collection != "" && collection != "Missing metadata" {
 		colKey := cache.BuildKey("book_ids", "collection", collection, cursor, cursorID, limit)
 		if r.c != nil && !r.inTx {

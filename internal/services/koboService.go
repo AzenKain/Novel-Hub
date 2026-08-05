@@ -30,6 +30,7 @@ type KoboService interface {
 	PutReadingState(ctx context.Context, userID, bookUUID string, dto request.PutKoboStateDto, claims *response.JWTClaims) (*kobo.PutStateResponse, error)
 	GetCoverPath(ctx context.Context, bookUUID string, claims *response.JWTClaims) (string, error)
 	GetBookKePubStream(ctx context.Context, bookID string, claims *response.JWTClaims, out io.Writer) error
+	ArchiveBook(ctx context.Context, userID, bookUUID string, claims *response.JWTClaims) error
 }
 
 type koboService struct {
@@ -491,3 +492,12 @@ func pickKoboFile(files []*models.BookFileEntity) *models.BookFileEntity {
 	})
 	return ranked[0]
 }
+
+func (s *koboService) ArchiveBook(ctx context.Context, userID, bookUUID string, claims *response.JWTClaims) error {
+	if strings.TrimSpace(userID) == "" {
+		return apperrors.New(apperrors.ErrUnauthorized, "User authentication required")
+	}
+	_, _, err := s.accessibleBook(ctx, bookUUID, claims)
+	return err
+}
+

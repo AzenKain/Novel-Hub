@@ -306,6 +306,8 @@
     "apply": "Apply",
     "share": "Share",
     "download": "Download",
+    "view_all": "View All",
+    "current": "Current",
     "load_more": "Load more",
     "previous": "Previous",
     "next": "Next"
@@ -468,6 +470,8 @@
   },
   "reader": {
     "continue_reading": "Continue Reading",
+    "reading_chapter": "Currently at",
+    "chapter_num": "Chapter {{num}}",
     "read_from_beginning": "Start from Beginning",
     "start_over": "Start Over",
     "book_not_found": "Book not found",
@@ -605,7 +609,8 @@
     "collection": "Collection",
     "collections": "Collections",
     "no_description": "No description available.",
-    "next_in_series": "Next in series"
+    "next_in_series": "Next in series",
+    "in_same_series": "Books in this Series"
   },
   "settings": {
     "title": "Settings",
@@ -713,6 +718,7 @@
     "permission_webhook_manage": "Manage webhooks and notification integrations",
     "permission_book_share": "Share books and generate share links",
     "send_to_kindle": "Send to Kindle",
+    "send_to_device": "Send to Device",
     "smtp_host": "SMTP Host",
     "smtp_port": "Port",
     "smtp_from": "From Email Address",
@@ -751,6 +757,8 @@
     "smtp_tls_implicit": "Implicit TLS / SSL (usually port 465)",
     "smtp_allow_private": "Allow private / local mail servers",
     "smtp_allow_private_desc": "Required for a mail server on your LAN, localhost, or a sibling container. Leave off when using an internet provider.",
+    "smtp_max_attachment": "Max Attachment Size (MB)",
+    "smtp_max_attachment_hint": "Maximum book attachment size sent via email to e-Reader devices (Default: 50MB).",
     "smtp_test": "Test Connection",
     "smtp_test_success": "SMTP connection succeeded",
     "smtp_saved": "SMTP settings saved",
@@ -910,5 +918,12 @@
     "recovery_remaining": "{{count}} recovery codes left",
     "recovery_warning": "Save these recovery codes now. Each works once and they are the only way in if you lose your phone. They are not shown again.",
     "copy_codes": "Copy codes"
+  },
+  "device": {
+    "saved_devices": "Saved Devices",
+    "manual_email": "Manual Email",
+    "no_devices": "No saved devices found.",
+    "add_device_tip": "Use Manual Email or register devices in settings.",
+    "push": "Push"
   }
 }

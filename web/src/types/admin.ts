@@ -126,6 +126,7 @@ export interface SmtpSettings {
   from_email: string;
   tls_mode: SmtpTlsMode;
   allow_private_networks: boolean;
+  max_attachment_mb: number;
   password_configured: boolean;
   available_tls_modes: SmtpTlsMode[];
 }
@@ -160,6 +161,7 @@ export interface PublicSettings {
   enable_anilist_tracking?: boolean;
   require_email_verify?: boolean;
   password_reset_enabled?: boolean;
+  smtp_enabled?: boolean;
   setup_completed: boolean;
   available_sidebar_items: string[];
   available_home_sections: string[];
@@ -266,3 +268,12 @@ export interface AuditLogEntry {
   ip: string;
   created_at: string;
 }
+
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  hit_rate: number;
+  max_cost: number;
+  entry_count: number;
+}
+

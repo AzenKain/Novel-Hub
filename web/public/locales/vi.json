@@ -306,6 +306,8 @@
     "apply": "Áp dụng",
     "share": "Chia sẻ",
     "download": "Tải xuống",
+    "view_all": "Xem tất cả",
+    "current": "Hiện tại",
     "load_more": "Tải thêm",
     "previous": "Trước",
     "next": "Sau"
@@ -468,6 +470,8 @@
   },
   "reader": {
     "continue_reading": "Đọc tiếp",
+    "reading_chapter": "Đang đọc",
+    "chapter_num": "Chương {{num}}",
     "read_from_beginning": "Đọc lại từ đầu",
     "start_over": "Đọc lại từ đầu",
     "book_not_found": "Không tìm thấy sách",
@@ -605,7 +609,8 @@
     "collection": "Bộ sưu tập",
     "collections": "Bộ sưu tập",
     "no_description": "Không có tóm tắt cho sách này.",
-    "next_in_series": "Tiếp theo trong bộ"
+    "next_in_series": "Tiếp theo trong bộ",
+    "in_same_series": "Cùng bộ truyện"
   },
   "settings": {
     "title": "Cài đặt",
@@ -713,6 +718,7 @@
     "permission_webhook_manage": "Quản lý webhook và tích hợp thông báo",
     "permission_book_share": "Chia sẻ sách và tạo liên kết chia sẻ",
     "send_to_kindle": "Gửi đến Kindle",
+    "send_to_device": "Gửi đến thiết bị",
     "smtp_host": "SMTP Host",
     "smtp_port": "Cổng (Port)",
     "smtp_from": "Địa chỉ Email người gửi",
@@ -751,6 +757,8 @@
     "smtp_tls_implicit": "TLS ngầm / SSL (thường là cổng 465)",
     "smtp_allow_private": "Cho phép máy chủ mail nội bộ",
     "smtp_allow_private_desc": "Cần bật nếu máy chủ mail nằm trong LAN, localhost hoặc container khác. Để tắt khi dùng nhà cung cấp trên Internet.",
+    "smtp_max_attachment": "Dung lượng đính kèm tối đa (MB)",
+    "smtp_max_attachment_hint": "Giới hạn dung lượng file sách tối đa gửi qua email tới thiết bị đọc sách (Mặc định: 50MB).",
     "smtp_test": "Kiểm tra kết nối",
     "smtp_test_success": "Kết nối SMTP thành công",
     "smtp_saved": "Đã lưu cài đặt SMTP",
@@ -910,5 +918,12 @@
     "recovery_remaining": "Còn {{count}} mã dự phòng",
     "recovery_warning": "Hãy lưu các mã dự phòng này ngay. Mỗi mã dùng được một lần và là cách duy nhất để vào nếu bạn mất điện thoại. Chúng sẽ không hiện lại.",
     "copy_codes": "Sao chép mã"
+  },
+  "device": {
+    "saved_devices": "Thiết bị đã lưu",
+    "manual_email": "Nhập email thủ công",
+    "no_devices": "Chưa có thiết bị nào được lưu.",
+    "add_device_tip": "Nhập email thủ công hoặc đăng ký thiết bị trong cài đặt.",
+    "push": "Gửi ngay"
   }
 }

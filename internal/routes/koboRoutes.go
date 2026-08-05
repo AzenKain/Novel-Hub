@@ -34,6 +34,7 @@ func KoboRoutes(
 	group.Get("/v1/library/:uuid/metadata", koboController.GetBookMetadata)
 	group.Get("/v1/library/:uuid/state", koboController.GetReadingState)
 	group.Put("/v1/library/:uuid/state", koboController.PutReadingState)
+	group.Delete("/v1/library/:uuid", koboController.ArchiveBook)
 
 	group.Get("/:uuid/:width/:height/:isGreyscale/image.jpg", koboController.GetCoverImage)
 	group.Get("/:uuid/:width/:height/:quality/:isGreyscale/image.jpg", koboController.GetCoverImage)

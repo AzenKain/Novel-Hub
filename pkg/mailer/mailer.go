@@ -32,6 +32,7 @@ type SMTPConfig struct {
 	FromEmail            string
 	TLSMode              string
 	AllowPrivateNetworks bool
+	MaxAttachmentMB      int
 }
 
 type Attachment struct {
