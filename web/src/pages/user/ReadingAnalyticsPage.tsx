@@ -84,7 +84,7 @@ export const ReadingAnalyticsPage: React.FC = () => {
         {/* Activity Heatmap */}
         <div className="bg-base-100 border border-base-200 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-bold mb-4">{t('analytics.activity_grid', 'Annual Reading Activity')}</h2>
-          <ReadingHeatmap />
+          <ReadingHeatmap showTitle={false} />
         </div>
       </div>
     </div>

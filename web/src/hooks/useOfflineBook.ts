@@ -1,4 +1,4 @@
-import { API_BASE } from "@/config/api";
+import { API_BASE, getMediaUrl } from "@/config/api";
 import { offlineStore } from "@/lib/offlineStore";
 import { readerService } from "@/services";
 import type { Book } from "@/types";
@@ -14,7 +14,7 @@ export const assetKey = (path: string) => `asset:${path}`;
 
 function assetPathsFrom(html: string): string[] {
   const paths = new Set<string>();
-  for (const match of html.matchAll(/\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?]+)/g)) {
+  for (const match of html.matchAll(/\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?#]+)/g)) {
     paths.add(decodeURIComponent(match[1]));
   }
   return [...paths];
@@ -74,14 +74,26 @@ export function useOfflineBook(bookId?: string, fileId?: string) {
           setProgress(Math.round(((i + 1) / (chapters.length + pending.length || 1)) * 100));
         }
         for (let i = 0; i < pending.length; i++) {
-          const url = `${API_BASE}/reader/${encodeURIComponent(bookId)}/asset/${pending[i]
+          const rawPath = pending[i];
+          const url = `${API_BASE}/reader/${encodeURIComponent(bookId)}/asset/${rawPath
             .split("/")
             .map(encodeURIComponent)
             .join("/")}${query}`;
           const blob = await fetchBlob(url).catch(() => undefined);
-          if (blob) await offlineStore.saveBlob(bookId, assetKey(pending[i]), blob);
+          if (blob) {
+            await offlineStore.saveBlob(bookId, assetKey(rawPath), blob);
+            const fileName = rawPath.split("/").pop();
+            if (fileName && fileName !== rawPath) {
+              await offlineStore.saveBlob(bookId, assetKey(fileName), blob);
+            }
+          }
           setProgress(Math.round(((chapters.length + i + 1) / (chapters.length + pending.length)) * 100));
         }
+      }
+
+      if (book.cover_url) {
+        const coverBlob = await fetchBlob(getMediaUrl(book.cover_url)).catch(() => undefined);
+        if (coverBlob) await offlineStore.saveBlob(bookId, "cover", coverBlob);
       }
 
       await offlineStore.saveBook({ book, chapters, savedAt: Date.now() });

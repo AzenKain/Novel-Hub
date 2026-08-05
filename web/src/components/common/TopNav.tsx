@@ -1,20 +1,24 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore, useLibraryStore } from "@/stores";
 import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
 import { useShallow } from "zustand/react/shallow";
-
 import { hasPermission } from "@/utils/permission";
+import { LoginView } from "./LoginView";
+import { RegisterView } from "./RegisterView";
 
 interface TopNavProps {
   showSidebarToggle?: boolean;
+  hideAuthButtons?: boolean;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => {
+export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideAuthButtons = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthPage = hideAuthButtons || ["/login", "/register", "/forgot-password"].includes(location.pathname);
   const { user, setProfileModalOpen, logout, setLoginModalOpen } = useAuthStore(
     useShallow((state) => ({
       user: state.user,
@@ -69,6 +73,15 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <ThemeController />
         <LanguageSwitcher />
+
+        <Link
+          to="/offline"
+          className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
+          title={t("offline.title", "Offline Books")}
+          aria-label={t("offline.title", "Offline Books")}
+        >
+          <CloudDownload className="w-5 h-5" />
+        </Link>
 
         {user ? (
           <>
@@ -141,15 +154,17 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false }) => 
               </ul>
             </div>
           </>
-        ) : (
+        ) : !isAuthPage ? (
           <button
             onClick={() => setLoginModalOpen(true)}
             className="btn btn-primary btn-sm sm:btn-md"
           >
             {t("auth.login", "Login")}
           </button>
-        )}
+        ) : null}
       </div>
+      <LoginView />
+      <RegisterView />
     </div>
   );
 };

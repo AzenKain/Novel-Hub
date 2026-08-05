@@ -169,10 +169,8 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 <div key={idx} className="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="avatar placeholder">
-                        <div className="bg-neutral text-neutral-content rounded-full w-8 h-8">
-                          <span className="text-xs">{(rv as any).username?.charAt(0)?.toUpperCase() || "U"}</span>
-                        </div>
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs ring-2 ring-primary/20 shrink-0">
+                        {((rv as any).username || (rv as any).user_name || "U").charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="font-bold text-sm">{(rv as any).username || t("common.user", "User")}</div>
@@ -230,7 +228,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
             )}
           </>
         ) : (
-          <div className="text-center py-12 text-base-content/50 bg-base-200/20 rounded-2xl border border-dashed border-base-300">
+          <div className="text-center py-12 text-base-content/50 bg-base-100 rounded-2xl border border-dashed border-base-300 shadow-2xs">
             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p>{t("review.no_reviews", "No reviews yet. Be the first to review!")}</p>
           </div>

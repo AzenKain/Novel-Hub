@@ -11,7 +11,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
-import { X, User, Key } from "lucide-react";
+import { X, User, Key, Activity } from "lucide-react";
 
 export const UserProfile = () => {
   const { user, isProfileModalOpen, setProfileModalOpen } = useAuthStore(
@@ -176,11 +176,11 @@ export const UserProfile = () => {
                       <div>
                         <div className="font-bold text-base text-base-content flex items-center gap-2">
                           {user.email}
-                          <span className="badge badge-neutral badge-xs uppercase font-semibold">{user.auth_provider}</span>
+                          <span className="badge badge-ghost badge-sm uppercase font-semibold text-base-content/70">{user.auth_provider}</span>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <label className="btn btn-xs btn-neutral cursor-pointer">
-                            {t('user.upload_avatar', 'Upload Photo')}
+                          <label className="btn btn-xs btn-primary !text-white cursor-pointer">
+                            <span className="!text-white font-medium">{t('user.upload_avatar', 'Upload Photo')}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -338,7 +338,17 @@ export const UserProfile = () => {
                 <TwoFactorCard />
 
                 {/* Reading Heatmap Card */}
-                <ReadingHeatmap />
+                <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-3 border-b border-base-200 pb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <Activity className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-base font-bold">
+                      {t("analytics.activity_grid", "Annual Reading Activity")}
+                    </h3>
+                  </div>
+                  <ReadingHeatmap showTitle={false} />
+                </div>
 
                 {/* OPDS 2.0 & Progress Sync Card */}
                 <OPDSSyncCard />

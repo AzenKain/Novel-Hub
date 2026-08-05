@@ -29,7 +29,7 @@ import {
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
-import { bookService } from "@/services";
+import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
 import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
@@ -123,10 +123,32 @@ export const BookDetailPage: React.FC = () => {
 
   const shareUrl = window.location.href;
 
+  const handleShare = async () => {
+    setShareOpen(true);
+    if (book_id) {
+      try {
+        await featureService.recordShare(book_id);
+        void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+        void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
+      if (book_id) {
+        try {
+          await featureService.recordShare(book_id);
+          void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+          void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
+        } catch (e) {
+          // ignore
+        }
+      }
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
@@ -238,7 +260,7 @@ export const BookDetailPage: React.FC = () => {
             </button>
           )}
           {allowShare && (
-            <button onClick={() => setShareOpen(true)} className="btn btn-ghost btn-sm">
+            <button onClick={handleShare} className="btn btn-ghost btn-sm">
               <Share2 className="w-4 h-4 mr-1" />
               {t("common.share", "Share")}
             </button>
@@ -267,7 +289,7 @@ export const BookDetailPage: React.FC = () => {
 
             {/* Engagement Stats */}
             {hasAnyStatToShow && (
-              <div className="w-full grid grid-cols-3 gap-2 text-center bg-base-200/50 p-3 rounded-xl border border-base-200">
+              <div className="w-full grid grid-cols-3 gap-2 text-center bg-base-100 p-3 rounded-xl border border-base-200 shadow-2xs">
                 {showReads && (
                   <div className="flex flex-col items-center p-1">
                     <Eye className="w-4 h-4 text-primary mb-1" />
@@ -596,6 +618,10 @@ export const BookDetailPage: React.FC = () => {
                         download
                         onClick={(e) => {
                           if (!book.files?.length) e.preventDefault();
+                          setTimeout(() => {
+                            void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+                            void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
+                          }, 1000);
                         }}
                       >
                         <Download className="w-5 h-5 shrink-0" />

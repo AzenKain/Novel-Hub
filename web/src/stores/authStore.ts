@@ -6,11 +6,13 @@ type AuthStore = {
   user: User | null;
   booted: boolean;
   isLoginModalOpen: boolean;
+  isRegisterModalOpen: boolean;
   isProfileModalOpen: boolean;
 
   setUser: (user: User | null) => void;
   setBooted: (booted: boolean) => void;
   setLoginModalOpen: (open: boolean) => void;
+  setRegisterModalOpen: (open: boolean) => void;
   setProfileModalOpen: (open: boolean) => void;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
@@ -20,11 +22,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   booted: false,
   isLoginModalOpen: false,
+  isRegisterModalOpen: false,
   isProfileModalOpen: false,
 
   setUser: (user) => set({ user }),
   setBooted: (booted) => set({ booted: true }),
   setLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
+  setRegisterModalOpen: (open) => set({ isRegisterModalOpen: open }),
   setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
 
   logout: async () => {

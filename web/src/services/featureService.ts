@@ -325,5 +325,16 @@ export const featureService = {
       throw error;
     }
   },
+
+  recordShare: async (bookId: string): Promise<CommonResponse<any>> => {
+    try {
+      const res = await api.post(`/books/${encodeURIComponent(bookId)}/share`, {});
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<any>;
+      throw error;
+    }
+  },
 };
 

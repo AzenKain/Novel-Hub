@@ -472,7 +472,7 @@ export const ReaderWorkspace = () => {
     stop();
     try {
       const html = await readerService.getChapterHtml(book_id, chapter.id, file_id);
-      setHtmlContent(html);
+      setHtmlContent(await resolveHTML(html));
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
       }

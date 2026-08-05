@@ -1,19 +1,22 @@
-import { useLoginFlow } from "@/hooks";
+import { useLoginFlow, usePublicSettings } from "@/hooks";
 import { TOTPCodeStep } from "./TOTPCodeStep";
 import { useAuthStore } from "@/stores";
 import { BookOpen, LogIn } from "lucide-react";
 import { SyntheticEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
+import { Link } from "react-router-dom";
 
 export function LoginView() {
-  const { isLoginModalOpen, setLoginModalOpen } = useAuthStore(
+  const { isLoginModalOpen, setLoginModalOpen, setRegisterModalOpen } = useAuthStore(
     useShallow((state) => ({
       isLoginModalOpen: state.isLoginModalOpen,
       setLoginModalOpen: state.setLoginModalOpen,
+      setRegisterModalOpen: state.setRegisterModalOpen,
     }))
   );
 
+  const settings = usePublicSettings();
   const { mutation: loginMutation, needsCode, resetCode, submit } = useLoginFlow();
 
   const [email, setEmail] = useState("");
@@ -64,6 +67,15 @@ export function LoginView() {
           <div className="form-control w-full">
             <label className="label">
               <span className="label-text font-semibold">{t("auth.password")}</span>
+              {settings?.password_reset_enabled && (
+                <Link
+                  to="/forgot-password"
+                  onClick={() => setLoginModalOpen(false)}
+                  className="label-text-alt link link-hover"
+                >
+                  {t("auth.forgot_password", "Forgot password?")}
+                </Link>
+              )}
             </label>
             <input
               value={password}
@@ -96,6 +108,23 @@ export function LoginView() {
             </button>
           )}
         </form>
+
+        {settings?.registration_enabled && (
+          <div className="text-center mt-4 pt-3 border-t border-base-200">
+            <span className="text-sm text-base-content/60 mr-1.5">
+              {t("auth.dont_have_account", "Don't have an account?")}
+            </span>
+            <button
+              onClick={() => {
+                setLoginModalOpen(false);
+                setRegisterModalOpen(true);
+              }}
+              className="text-sm link link-primary font-semibold"
+            >
+              {t("auth.register_now", "Register now")}
+            </button>
+          </div>
+        )}
       </div>
       <form method="dialog" className="modal-backdrop">
         <button onClick={() => setLoginModalOpen(false)}>close</button>

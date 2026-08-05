@@ -372,8 +372,6 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
-			// The pre-read failed, so the path/book/count keys are unknown — sweep the
-			// domain rather than leaving book_file:path:<path> pointing at a deleted row.
 			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileNamespacePattern)
 		}
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)

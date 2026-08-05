@@ -51,7 +51,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
         <CustomQRCode value={shareUrl} size={200} />
 
-        <div className="rounded-xl border border-base-300 bg-base-200/35 p-3">
+        <div className="rounded-xl border border-base-200 bg-base-100 p-3 shadow-2xs">
           <div className="mb-1 text-xs font-bold uppercase tracking-wider text-base-content/45">
             {t("library.share_link", "Share link")}
           </div>

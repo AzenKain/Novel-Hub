@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { metadataService } from "@/services";
 import type { MetadataCount, MetadataFacetParams } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -33,6 +34,10 @@ export function useMetadataFacetQuery(
     getNextPageParam: (lastPage) => lastPage.pagination?.next_cursor || undefined,
   });
 
-  const items: MetadataCount[] = query.data?.pages.flatMap((page) => page.data || []) ?? [];
+  const items = useMemo<MetadataCount[]>(
+    () => query.data?.pages.flatMap((page) => page.data || []) ?? [],
+    [query.data]
+  );
+
   return { ...query, items };
 }

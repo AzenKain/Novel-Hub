@@ -7,11 +7,12 @@ export const sanitizeReaderHtml = (html: string) => {
     .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "");
 
   return DOMPurify.sanitize(stripped, {
-    USE_PROFILES: { html: true },
-    ADD_ATTR: ["target"],
-    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "svg", "math", "link", "video", "audio", "source", "track"],
+    USE_PROFILES: { html: true, svg: true },
+    ADD_TAGS: ["svg", "image", "g", "use"],
+    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height"],
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "math", "link", "video", "audio", "source", "track"],
     FORBID_ATTR: ["srcdoc", "style"],
-    ALLOW_UNKNOWN_PROTOCOLS: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });
 };
 

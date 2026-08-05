@@ -1,4 +1,4 @@
-import { TOTPCodeStep } from "@/components/common";
+import { TOTPCodeStep, TopNav } from "@/components/common";
 import { useLoginFlow, usePublicSettings } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { BookOpen, Loader2, LogIn } from "lucide-react";
@@ -28,8 +28,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl">
+    <div className="min-h-screen bg-base-100 flex flex-col font-sans">
+      <TopNav showSidebarToggle={false} />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200">
         <div className="card-body">
           <div className="flex flex-col items-center gap-2 mb-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -128,5 +130,6 @@ export function LoginPage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

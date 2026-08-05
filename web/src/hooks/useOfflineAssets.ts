@@ -21,12 +21,38 @@ export function useOfflineAssets(bookId?: string) {
     async (html: string) => {
       if (!bookId) return html;
       revoke();
-      const matches = [...html.matchAll(/\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?]+)(\?[^"']*)?/g)];
       let resolved = html;
-      for (const match of matches) {
-        const blob = await offlineStore.getBlob(bookId, assetKey(decodeURIComponent(match[1]))).catch(() => undefined);
-        if (blob) resolved = resolved.split(match[0]).join(track(URL.createObjectURL(blob)));
+
+      // 1. Resolve API asset URLs: /api/v1/reader/.../asset/{path}
+      const apiMatches = [...html.matchAll(/\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?#]+)(\?[^"']*)?/g)];
+      for (const match of apiMatches) {
+        const fullUrl = match[0];
+        const rawPath = decodeURIComponent(match[1]);
+        const fileName = rawPath.split("/").pop() || rawPath;
+
+        let blob = await offlineStore.getBlob(bookId, assetKey(rawPath)).catch(() => undefined);
+        if (!blob && fileName !== rawPath) {
+          blob = await offlineStore.getBlob(bookId, assetKey(fileName)).catch(() => undefined);
+        }
+
+        if (blob) {
+          const blobUrl = track(URL.createObjectURL(blob));
+          resolved = resolved.replaceAll(fullUrl, blobUrl);
+        }
       }
+
+      // 2. Fallback for <img class="cover"> or <img alt="Cover"> with missing or empty src
+      const coverBlob = await offlineStore.getBlob(bookId, "cover").catch(() => undefined);
+      if (coverBlob) {
+        const coverBlobUrl = track(URL.createObjectURL(coverBlob));
+        resolved = resolved.replace(/<img\b(?![^>]*\bsrc=)([^>]*\b(?:class|alt)=["'][^"']*\bcover\b[^"']*["'][^>]*)>/gi, (_m, attrs) => {
+          return `<img src="${coverBlobUrl}" ${attrs}>`;
+        });
+        resolved = resolved.replace(/<img\b([^>]*\bsrc=["']\s*["'][^>]*)>/gi, (_m, attrs) => {
+          return `<img src="${coverBlobUrl}" ${attrs.replace(/src=["']\s*["']/, "")}>`;
+        });
+      }
+
       return resolved;
     },
     [bookId, revoke, track],

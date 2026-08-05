@@ -91,6 +91,8 @@ function App() {
       <ThemeInitializer>
         <SetupGuard>
           <Routes>
+            <Route path="/offline" element={<OfflineBooksPage />} />
+            <Route path="/offline/reader/:book_id" element={<ReaderWorkspace />} />
             <Route element={<GuestGuard />}>
               <Route path="/" element={<LibraryWorkspace />} />
               <Route path="/books/:book_id" element={<LibraryWorkspace />} />
@@ -98,7 +100,6 @@ function App() {
               <Route element={<ProtectedRoute requiredPermission="user.stats.read" />}>
                 <Route path="/analytics" element={<ReadingAnalyticsPage />} />
               </Route>
-              <Route path="/offline" element={<OfflineBooksPage />} />
               <Route
                 path="/admin"
                 element={<ProtectedRoute requiredAnyPermissions={["admin.access", "job.read", "job.manage", "system.log.read", "system.backup"]} />}

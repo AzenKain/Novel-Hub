@@ -2,6 +2,8 @@ import { Plus, MoreVertical, Edit2, Filter, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { featureService } from "@/services";
+import { toast } from "react-toastify";
+import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
 
 import { usePublicSettings } from "@/hooks/useSettings";
 import type { Collection, SmartCollection, SmartCollectionRule, User } from "@/types";
@@ -73,6 +75,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
 
   const [editingCollection, setEditingCollection] = useState<{id: string, name: string} | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [deletingCollectionTarget, setDeletingCollectionTarget] = useState<{ id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   const handleEditCollection = async () => {
@@ -92,8 +95,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
     }
   };
 
-  const handleDeleteCollection = async (id: string, name: string) => {
-    if (!window.confirm(t("library.confirm_delete_collection", "Are you sure you want to delete this collection?"))) return;
+  const confirmDeleteCollection = async () => {
+    if (!deletingCollectionTarget) return;
+    const { id, name } = deletingCollectionTarget;
     setIsDeleting(id);
     try {
       const res = await featureService.deleteCollection(id);
@@ -102,11 +106,13 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         if (activeCollection === name) {
           onCollectionClick("");
         }
+        toast.success(t("library.collection_deleted", "Collection deleted successfully"));
       }
     } catch (e) {
       console.error(e);
     } finally {
       setIsDeleting(null);
+      setDeletingCollectionTarget(null);
     }
   };
 
@@ -176,49 +182,68 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             {collections.length > 0 ? (
               collections.map((collection) => (
                 <li key={collection.id}>
-                  {editingCollection?.id === collection.id ? (
-                    <div className="flex items-center gap-1 p-1">
-                      <input 
-                        type="text" 
-                        className="input input-bordered input-sm w-full" 
-                        value={editingName} 
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleEditCollection()}
-                        autoFocus
-                      />
-                      <button className="btn btn-primary btn-sm px-2" onClick={handleEditCollection}>{t("common.save", "Save")}</button>
-                      <button className="btn btn-ghost btn-sm px-2" onClick={() => setEditingCollection(null)}>{t("common.cancel", "Cancel")}</button>
-                    </div>
-                  ) : (
-                    <div className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}>
-                      <button
-                        className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
-                        onClick={() => onCollectionClick(collection.name)}
-                      >
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-base-200 text-[10px] font-bold uppercase">
-                          {collection.name.charAt(0)}
-                        </span>
-                        <span className="truncate">{collection.name}</span>
-                      </button>
-                      <div className="dropdown dropdown-end">
-                        <button tabIndex={0} className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity mr-1">
-                          {isDeleting === collection.id ? <span className="loading loading-spinner loading-xs"></span> : <MoreVertical className="w-4 h-4" />}
+                  <div className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}>
+                    <button
+                      className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none min-w-0"
+                      onClick={() => onCollectionClick(collection.name)}
+                    >
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-base-200 text-[10px] font-bold uppercase">
+                        {collection.name.charAt(0)}
+                      </span>
+                      <span className="truncate">{collection.name}</span>
+                    </button>
+                    {user && (
+                      <div className="dropdown dropdown-top dropdown-end">
+                        <button
+                          tabIndex={0}
+                          className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mr-1"
+                          aria-label="Collection options"
+                        >
+                          {isDeleting === collection.id ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            <MoreVertical className="w-4 h-4" />
+                          )}
                         </button>
-                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32 border border-base-200">
+                        <ul
+                          tabIndex={0}
+                          className="dropdown-content z-30 menu p-1.5 shadow-xl bg-base-100 rounded-xl w-36 border border-base-200 mb-1"
+                        >
                           <li>
-                            <button onClick={() => { setEditingCollection(collection); setEditingName(collection.name); }}>
-                              <Edit2 className="w-4 h-4" /> {t("common.edit", "Edit")}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCollection(collection);
+                                setEditingName(collection.name);
+                                if (document.activeElement instanceof HTMLElement) {
+                                  document.activeElement.blur();
+                                }
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-base-200/60"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-base-content/70" />
+                              <span>{t("common.edit", "Edit")}</span>
                             </button>
                           </li>
                           <li>
-                            <button className="text-error" onClick={() => handleDeleteCollection(collection.id, collection.name)}>
-                              <Trash2 className="w-4 h-4" /> {t("common.delete", "Delete")}
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-error hover:bg-error/10"
+                              onClick={() => {
+                                setDeletingCollectionTarget({ id: collection.id, name: collection.name });
+                                if (document.activeElement instanceof HTMLElement) {
+                                  document.activeElement.blur();
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>{t("common.delete", "Delete")}</span>
                             </button>
                           </li>
                         </ul>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </li>
               ))
             ) : (
@@ -259,20 +284,17 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                       className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
                       onClick={() => onSmartCollectionClick?.(smart.rule)}
                     >
-                      <Filter className="h-4 w-4 shrink-0 text-base-content/50" />
                       <span className="truncate">{smart.name}</span>
                     </button>
-                    <button
-                      className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity mr-1 text-error"
-                      title={t("common.delete", "Delete")}
-                      onClick={() => {
-                        if (window.confirm(t("library.confirm_delete_smart_collection", "Delete this smart collection?"))) {
-                          onDeleteSmartCollection?.(smart.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {onDeleteSmartCollection && (
+                      <button
+                        className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-error mr-1"
+                        onClick={() => onDeleteSmartCollection(smart.id)}
+                        title={t("common.delete", "Delete")}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -280,6 +302,66 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Edit Collection Modal */}
+      {editingCollection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+            onClick={() => setEditingCollection(null)}
+          />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleEditCollection();
+            }}
+            className="relative z-10 w-full max-w-sm rounded-2xl border border-base-200 bg-base-100 p-6 shadow-2xl space-y-4"
+          >
+            <h3 className="text-lg font-bold text-base-content">
+              {t("library.edit_collection", "Chỉnh sửa bộ sưu tập")}
+            </h3>
+            <div>
+              <label className="text-xs font-medium text-base-content/70 mb-1 block">
+                {t("library.collection_name", "Tên bộ sưu tập")}
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full rounded-xl"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="btn btn-ghost rounded-xl"
+                onClick={() => setEditingCollection(null)}
+              >
+                {t("common.cancel", "Hủy")}
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary rounded-xl text-white"
+                disabled={!editingName.trim()}
+              >
+                {t("common.save", "Lưu")}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deletingCollectionTarget && (
+        <DeleteConfirmModal
+          open={!!deletingCollectionTarget}
+          title={t("library.delete_collection", "Delete Collection")}
+          message={t("library.confirm_delete_collection", "Are you sure you want to delete this collection?")}
+          onClose={() => setDeletingCollectionTarget(null)}
+          onConfirm={confirmDeleteCollection}
+          loading={isDeleting === deletingCollectionTarget.id}
+        />
+      )}
     </div>
   );
 };

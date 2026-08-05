@@ -1,5 +1,6 @@
 export * from "./HomeView";
 export * from "./LoginView";
+export * from "./RegisterView";
 export * from "./ProtectedRoute";
 export * from "./PasswordStrength";
 export * from "./ImageCropperModal";

@@ -126,104 +126,118 @@ export function Books() {
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">{t("admin.books")}</h1>
-          <p className="text-sm opacity-60 mt-1">Manage EPUB novels</p>
+      {/* Header Bar matching Roles/Users design */}
+      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("admin.books", "Books")}</h1>
+          <p className="text-sm text-base-content/60 mt-1">{t("admin.books_subtitle", "Manage EPUB novel files, libraries, and calibre imports.")}</p>
         </div>
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-          <div className="flex min-w-0 flex-1 basis-full items-center gap-2 rounded-full bg-base-200 px-4 py-2 sm:basis-64 xl:max-w-72">
-            <Search className="w-4 h-4 opacity-50" />
-            <input
-              type="text"
-              placeholder="Search books..."
-              className="min-w-0 w-full bg-transparent border-none outline-none text-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select
-            className="select select-sm select-bordered min-w-0 max-w-full flex-1 rounded-full sm:flex-none"
-            value={selectedLibraryId}
-            onChange={(e) => setSelectedLibraryId(e.target.value)}
-          >
-            <option value="">All Libraries</option>
-            {libraries.map(lib => (
-              <option key={lib.id} value={lib.id}>{lib.name}</option>
-            ))}
-          </select>
-          <div className="join border border-base-300 rounded-lg p-0.5 bg-base-200">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-active btn-primary' : 'btn-ghost'}`}
-              title={t('admin.grid_view', 'Grid view')}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-active btn-primary' : 'btn-ghost'}`}
-              title={t('admin.table_view', 'Table view')}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => void refetch()}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
-            title="Refresh list"
+            title={t("settings.refresh", "Refresh list")}
             disabled={isFetching}
           >
             <RefreshCw className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`} />
           </button>
-          <button
-            onClick={() => setShowLibraryModal(true)}
-            className="btn btn-secondary btn-sm sm:btn-md gap-2"
-          >
-            Manage Libraries
-          </button>
-          {canImportCalibre && (
-            <button
-              onClick={() => setShowCalibreModal(true)}
-              className="btn btn-outline btn-sm sm:btn-md gap-2"
-            >
-              <DatabaseBackup className="w-4 h-4" />
-              {t("admin.calibre_import", "Import from Calibre")}
-            </button>
-          )}
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="btn btn-primary btn-sm sm:btn-md gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload
-          </button>
         </div>
       </header>
 
+      {/* Main Content Area */}
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
+          {/* Toolbar & Action Controls */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            {/* Search, Library Filter & View Switcher */}
+            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder={t("admin.search_placeholder", "Search books...")}
+                  className="input input-bordered input-sm sm:input-md w-full pl-9 bg-base-100 rounded-xl"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <select
+                className="select select-bordered select-sm sm:select-md bg-base-100 rounded-xl min-w-[150px]"
+                value={selectedLibraryId}
+                onChange={(e) => setSelectedLibraryId(e.target.value)}
+              >
+                <option value="">{t("admin.all_libraries", "All Libraries")}</option>
+                {libraries.map((lib) => (
+                  <option key={lib.id} value={lib.id}>{lib.name}</option>
+                ))}
+              </select>
+
+              <div className="join border border-base-200 rounded-xl p-0.5 bg-base-100">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                  title={t('admin.grid_view', 'Grid view')}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                  title={t('admin.table_view', 'Table view')}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+              <button
+                onClick={() => setShowLibraryModal(true)}
+                className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl"
+              >
+                {t("admin.manage_libraries", "Manage Libraries")}
+              </button>
+              {canImportCalibre && (
+                <button
+                  onClick={() => setShowCalibreModal(true)}
+                  className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl"
+                >
+                  <DatabaseBackup className="w-4 h-4" />
+                  {t("admin.calibre_import", "Import from Calibre")}
+                </button>
+              )}
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl !text-white font-medium"
+              >
+                <Upload className="w-4 h-4" />
+                {t("admin.upload", "Upload")}
+              </button>
+            </div>
+          </div>
+
         {selectedBookIds.length > 0 && (
-          <div className="mb-4 p-3 bg-base-200/80 rounded-xl border border-primary/20 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-sm">
+          <div className="mb-3 px-3 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-primary">
                 {t("admin.selected_books", "Selected {{count}} books", { count: selectedBookIds.length })}
               </span>
               <button
                 onClick={() => setSelectedBookIds([])}
-                className="btn btn-ghost btn-xs text-xs opacity-70 hover:opacity-100"
+                className="btn btn-ghost btn-xs text-xs opacity-70 hover:opacity-100 h-6 min-h-0"
               >
                 {t("common.deselect_all", "Clear selection")}
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowBulkDeleteModal(true)}
-                className="btn btn-error btn-sm gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t("admin.delete_selected_books", "Delete selected")}
-              </button>
-            </div>
+            <button
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="btn btn-error btn-xs gap-1.5 text-white h-7 min-h-0"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t("admin.delete_selected_books", "Delete selected")}
+            </button>
           </div>
         )}
 
@@ -233,10 +247,14 @@ export function Books() {
             {t("common.loading")}
           </div>
         ) : books.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 opacity-50 border-2 border-dashed border-base-300 rounded-2xl bg-base-200/50">
-            <BookOpen className="h-12 w-12 mb-4" />
-            <p className="text-lg font-medium">{t("common.no_data")}</p>
-            <p className="text-sm mt-1">Config a library in the system and upload EPUB files.</p>
+          <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-1">
+              <BookOpen className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-base-content">{t("common.no_data", "No Data Found")}</h3>
+              <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">{t("admin.no_books_hint", "Configure a library in the system and upload EPUB files.")}</p>
+            </div>
           </div>
         ) : (
           <>
@@ -363,6 +381,7 @@ export function Books() {
             )}
           </>
         )}
+        </div>
       </div>
 
       <BookActionModal

@@ -114,17 +114,21 @@ export function Reviews() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
           {loading && reviews.length === 0 ? (
             <div className="flex items-center justify-center py-20 opacity-50">
               <Loader2 className="animate-spin h-8 w-8 text-primary mr-3" />
               <span className="text-lg">Loading reviews...</span>
             </div>
           ) : reviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 opacity-50 border-2 border-dashed border-base-300 rounded-2xl bg-base-200/50">
-              <MessageSquareText className="h-12 w-12 mb-4" />
-              <p className="text-lg font-medium">No reviews found</p>
-              <p className="text-sm mt-1">User reviews will appear here as they are submitted.</p>
+            <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-1">
+                <MessageSquareText className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-base-content">{t("admin.no_reviews", "No user reviews found")}</h3>
+                <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">{t("admin.no_reviews_hint", "User reviews submitted for library books will appear here.")}</p>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-3">

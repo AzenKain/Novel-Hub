@@ -1,3 +1,4 @@
+import { toast } from "react-toastify";
 import { RecentlyReadPanel } from "@/components/book-detail";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
@@ -54,14 +55,13 @@ import {
   Flame,
   Languages,
   Layers,
-  LayoutDashboard,
   LayoutGrid,
-  Menu,
   Search,
   Shuffle,
   Star,
   Users
 } from "lucide-react";
+
 
 function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
   if (!visibleKeys || visibleKeys.length === 0) return true;
@@ -97,6 +97,7 @@ export const LibraryWorkspace = () => {
     setMetadataFacets,
     collections,
     setCollections,
+    addCollection,
     recentHistory,
     setRecentHistory,
     showNewCollectionModal,
@@ -136,6 +137,7 @@ export const LibraryWorkspace = () => {
     setMetadataFacets: state.setMetadataFacets,
     collections: state.collections,
     setCollections: state.setCollections,
+    addCollection: state.addCollection,
     recentHistory: state.recentHistory,
     setRecentHistory: state.setRecentHistory,
     showNewCollectionModal: state.showNewCollectionModal,
@@ -206,7 +208,8 @@ export const LibraryWorkspace = () => {
     if (book_id) navigate("/");
   };
 
-  const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {    setActiveNav(nav);
+  const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {
+    setActiveNav(nav);
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
@@ -334,13 +337,19 @@ export const LibraryWorkspace = () => {
         newCollectionName.trim(),
       );
       if (res.status && res.data) {
+        addCollection(res.data);
         setNewCollectionName("");
         setShowNewCollectionModal(false);
+        toast.success(t("library.collection_created", "Collection created successfully"));
         await queryClient.invalidateQueries({ queryKey: ["collections"] });
+      } else {
+        setCollectionError(
+          res.message || t("library.fail_create_collection", "Failed to create collection"),
+        );
       }
-    } catch (err) {
+    } catch (err: any) {
       setCollectionError(
-        t("library.fail_create_collection", "Failed to create collection"),
+        err?.message || t("library.fail_create_collection", "Failed to create collection"),
       );
     }
   };
@@ -349,108 +358,108 @@ export const LibraryWorkspace = () => {
 
   const primaryNavItems: LibraryNavItem[] = useMemo(() => {
     const all: LibraryNavItem[] = [
-    {
-      id: "books",
-      label: t("library.books", "Books"),
-      icon: <BookOpen className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "hot",
-      label: t("library.hot_books", "Hot books"),
-      icon: <Flame className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "downloaded",
-      label: t("library.downloaded_books", "Downloaded books"),
-      icon: <Download className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "top_rated",
-      label: t("library.top_rated_books", "Top rated books"),
-      icon: <Star className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "bookmarks",
-      label: t("library.bookmarked_books", "Bookmarked books"),
-      icon: <Bookmark className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "read",
-      label: t("library.read_books", "Read books"),
-      icon: <Eye className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "unread",
-      label: t("library.unread_books", "Unread books"),
-      icon: <EyeOff className="w-4 h-4 opacity-70" />,
-    },
-  ];
-  return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
-}, [visibleItems, t]);
+      {
+        id: "books",
+        label: t("library.books", "Books"),
+        icon: <BookOpen className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "hot",
+        label: t("library.hot_books", "Hot books"),
+        icon: <Flame className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "downloaded",
+        label: t("library.downloaded_books", "Downloaded books"),
+        icon: <Download className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "top_rated",
+        label: t("library.top_rated_books", "Top rated books"),
+        icon: <Star className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "bookmarks",
+        label: t("library.bookmarked_books", "Bookmarked books"),
+        icon: <Bookmark className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "read",
+        label: t("library.read_books", "Read books"),
+        icon: <Eye className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "unread",
+        label: t("library.unread_books", "Unread books"),
+        icon: <EyeOff className="w-4 h-4 opacity-70" />,
+      },
+    ];
+    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
+  }, [visibleItems, t]);
 
   const facetSections: MetadataFacetSection[] = useMemo(() => {
     const all: MetadataFacetSection[] = [
-    {
-      nav: "tags",
-      type: "tag",
-      label: t("library.subjects", "Subjects"),
-      icon: <Bookmark className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.tags,
-    },
-    {
-      nav: "series",
-      type: "series",
-      label: t("library.series", "Series"),
-      icon: <Layers className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.series,
-    },
-    {
-      nav: "authors",
-      type: "author",
-      label: t("library.authors", "Authors"),
-      icon: <Users className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.authors,
-    },
-    {
-      nav: "publishers",
-      type: "publisher",
-      label: t("library.publishers", "Publishers"),
-      icon: <Building2 className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.publishers,
-    },
-    {
-      nav: "languages",
-      type: "language",
-      label: t("library.languages", "Languages"),
-      icon: <Languages className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.languages,
-    },
-    {
-      nav: "formats",
-      type: "format",
-      label: t("library.file_formats", "File formats"),
-      icon: <FileType className="w-4 h-4 opacity-70" />,
-      items: metadataFacets.formats,
-    },
-  ];
-  return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.nav)) : all;
-}, [visibleItems, metadataFacets, t]);
+      {
+        nav: "tags",
+        type: "tag",
+        label: t("library.subjects", "Subjects"),
+        icon: <Bookmark className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.tags,
+      },
+      {
+        nav: "series",
+        type: "series",
+        label: t("library.series", "Series"),
+        icon: <Layers className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.series,
+      },
+      {
+        nav: "authors",
+        type: "author",
+        label: t("library.authors", "Authors"),
+        icon: <Users className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.authors,
+      },
+      {
+        nav: "publishers",
+        type: "publisher",
+        label: t("library.publishers", "Publishers"),
+        icon: <Building2 className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.publishers,
+      },
+      {
+        nav: "languages",
+        type: "language",
+        label: t("library.languages", "Languages"),
+        icon: <Languages className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.languages,
+      },
+      {
+        nav: "formats",
+        type: "format",
+        label: t("library.file_formats", "File formats"),
+        icon: <FileType className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.formats,
+      },
+    ];
+    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.nav)) : all;
+  }, [visibleItems, metadataFacets, t]);
 
   const secondaryNavItems: LibraryNavItem[] = useMemo(() => {
     const all: LibraryNavItem[] = [
-    {
-      id: "ratings",
-      label: t("library.ratings", "Ratings"),
-      icon: <Star className="w-4 h-4 opacity-70" />,
-    },
-    {
-      id: "archived",
-      label: t("library.archived_books", "Archived books"),
-      icon: <Archive className="w-4 h-4 opacity-70" />,
-    },
-  ];
-  return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
-}, [visibleItems, t]);
+      {
+        id: "ratings",
+        label: t("library.ratings", "Ratings"),
+        icon: <Star className="w-4 h-4 opacity-70" />,
+      },
+      {
+        id: "archived",
+        label: t("library.archived_books", "Archived books"),
+        icon: <Archive className="w-4 h-4 opacity-70" />,
+      },
+    ];
+    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
+  }, [visibleItems, t]);
 
   const currentFacetSection = facetSections.find(
     (section) => section.nav === activeNav,
@@ -624,7 +633,7 @@ export const LibraryWorkspace = () => {
                 </p>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 overflow-hidden rounded-xl border border-base-200 bg-base-200/30 sm:grid-cols-3">
+              <div className="mt-5 grid grid-cols-1 overflow-hidden rounded-xl border border-base-200 bg-base-100 sm:grid-cols-3 shadow-2xs">
                 <div className="p-3.5 sm:p-4">
                   <div className="text-[11px] font-medium uppercase tracking-wider text-base-content/50">
                     {t("library.books_indexed", "books indexed")}
@@ -654,84 +663,84 @@ export const LibraryWorkspace = () => {
           </section>
 
           {(!publicSettings || publicSettings.home_sections.random_books !== false) && (
-          <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary">
-                  <Shuffle className="h-5 w-5" />
-                </span>
-                <div>
-                  <h3 className="text-lg font-black">
-                    {t("library.random_books", "Random books")}
-                  </h3>
-                  <p className="text-sm text-base-content/50">
-                    {t(
-                      "library.random_books_hint",
-                      "Refresh the shelf when you want something unexpected.",
-                    )}
-                  </p>
+            <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary">
+                    <Shuffle className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-black">
+                      {t("library.random_books", "Random books")}
+                    </h3>
+                    <p className="text-sm text-base-content/50">
+                      {t(
+                        "library.random_books_hint",
+                        "Refresh the shelf when you want something unexpected.",
+                      )}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  className="btn btn-outline btn-sm w-full gap-2 sm:w-auto"
+                  onClick={() => refetchRandomBooks()}
+                >
+                  <Shuffle className="h-4 w-4" />
+                  {t("library.shuffle_books", "Shuffle")}
+                </button>
               </div>
-              <button
-                className="btn btn-outline btn-sm w-full gap-2 sm:w-auto"
-                onClick={() => refetchRandomBooks()}
-              >
-                <Shuffle className="h-4 w-4" />
-                {t("library.shuffle_books", "Shuffle")}
-              </button>
-            </div>
 
-            {randomBooks.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
-                {randomBooks.map((book) => (
-                  <BookCard
-                    key={book.id}
-                    book={book}
-                    onClick={openBookDetail}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-base-300 bg-base-200/30 p-8 text-center text-sm text-base-content/45">
-                {t(
-                  "library.no_random_books",
-                  "Add books to get random suggestions.",
-                )}
-              </div>
-            )}
-          </section>
+              {randomBooks.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
+                  {randomBooks.map((book) => (
+                    <BookCard
+                      key={book.id}
+                      book={book}
+                      onClick={openBookDetail}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-sm text-base-content/45 shadow-2xs">
+                  {t(
+                    "library.no_random_books",
+                    "Add books to get random suggestions.",
+                  )}
+                </div>
+              )}
+            </section>
           )}
 
           {(!publicSettings || publicSettings.home_sections.top_books !== false) && (
-          <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Flame className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-lg font-black">
-                  {t("library.top_books", "Top books")}
-                </h3>
-                <p className="text-sm text-base-content/50">
-                  {t("library.top_books_hint", "Most read books in your library.")}
-                </p>
+            <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Flame className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-black">
+                    {t("library.top_books", "Top books")}
+                  </h3>
+                  <p className="text-sm text-base-content/50">
+                    {t("library.top_books_hint", "Most read books in your library.")}
+                  </p>
+                </div>
               </div>
-            </div>
-            {topBooks.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
-                {topBooks.map((book) => (
-                  <BookCard key={book.id} book={book} onClick={openBookDetail} />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-base-300 bg-base-200/30 p-8 text-center text-sm text-base-content/45">
-                {t(
-                  "library.no_top_books",
-                  "Books will appear here once they start getting reads.",
-                )}
-              </div>
-            )}
-          </section>
+              {topBooks.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
+                  {topBooks.map((book) => (
+                    <BookCard key={book.id} book={book} onClick={openBookDetail} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-sm text-base-content/45 shadow-2xs">
+                  {t(
+                    "library.no_top_books",
+                    "Books will appear here once they start getting reads.",
+                  )}
+                </div>
+              )}
+            </section>
           )}
         </>
       )}
@@ -814,7 +823,7 @@ export const LibraryWorkspace = () => {
             )}
           </>
         ) : (
-          <div className="rounded-xl border border-dashed border-base-300 bg-base-200/30 p-12 text-center">
+          <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-12 text-center shadow-2xs">
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-base-content/25" />
             <p className="font-bold text-base-content/70">
               {t("library.no_books_found", "No books found")}
@@ -832,7 +841,7 @@ export const LibraryWorkspace = () => {
   );
 
   return (
-    <div className="drawer lg:drawer-open bg-base-200 min-h-screen">
+    <div className="drawer lg:drawer-open bg-base-100 min-h-screen font-sans">
       <input id="main-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* Main Content */}
@@ -865,7 +874,7 @@ export const LibraryWorkspace = () => {
                   t={t}
                 />
                 {hasPermission(user, "user.stats.read") && (
-                  <div className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+                  <div className="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <h4 className="flex items-center gap-1.5 text-xs font-bold text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">
                         <Activity className="h-4 w-4 shrink-0 text-primary" />

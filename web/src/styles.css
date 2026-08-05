@@ -68,16 +68,19 @@ textarea {
   outline-color: color-mix(in oklab, var(--color-primary) 30%, transparent) !important;
 }
 
-.btn-primary {
+.btn-primary,
+label.btn-primary,
+label.btn-primary * {
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
-  color: var(--color-primary-content) !important;
+  color: #ffffff !important;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled),
+label.btn-primary:hover:not(:disabled) {
   background-color: color-mix(in oklab, var(--color-primary) 88%, var(--color-base-content) 12%) !important;
   border-color: color-mix(in oklab, var(--color-primary) 88%, var(--color-base-content) 12%) !important;
-  color: var(--color-primary-content) !important;
+  color: #ffffff !important;
 }
 
 .btn-ghost {

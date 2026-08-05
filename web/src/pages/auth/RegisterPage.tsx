@@ -1,4 +1,4 @@
-import { OTPCodeStep, PasswordStrength } from "@/components/common";
+import { OTPCodeStep, PasswordStrength, TopNav } from "@/components/common";
 import { usePublicSettings, useRegisterMutation } from "@/hooks";
 import { BookOpen, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -32,15 +32,18 @@ export function RegisterPage() {
 
   if (settings && !settings.registration_enabled) {
     return (
-      <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-        <div className="card w-full max-w-md bg-base-100 shadow-xl text-center">
-          <div className="card-body items-center gap-4">
-            <BookOpen size={40} className="text-base-content/30" />
-            <h2 className="text-xl font-bold">{t("auth.registration_disabled", "Registration Disabled")}</h2>
-            <p className="text-sm text-base-content/60">
-              {t("auth.registration_disabled_desc", "Public registration is currently disabled by the administrator.")}
-            </p>
-            <Link to="/" className="btn btn-primary btn-sm">{t("auth.go_home", "Go Home")}</Link>
+      <div className="min-h-screen bg-base-100 flex flex-col font-sans">
+        <TopNav showSidebarToggle={false} />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200 text-center">
+            <div className="card-body items-center gap-4">
+              <BookOpen size={40} className="text-base-content/30" />
+              <h2 className="text-xl font-bold">{t("auth.registration_disabled", "Registration Disabled")}</h2>
+              <p className="text-sm text-base-content/60">
+                {t("auth.registration_disabled_desc", "Public registration is currently disabled by the administrator.")}
+              </p>
+              <Link to="/" className="btn btn-primary btn-sm">{t("auth.go_home", "Go Home")}</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -48,8 +51,10 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl">
+    <div className="min-h-screen bg-base-100 flex flex-col font-sans">
+      <TopNav showSidebarToggle={false} />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200">
         <div className="card-body">
           <div className="flex flex-col items-center gap-2 mb-4">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -134,5 +139,6 @@ export function RegisterPage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

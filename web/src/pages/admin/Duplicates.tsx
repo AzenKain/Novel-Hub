@@ -226,12 +226,16 @@ export const Duplicates: React.FC = () => {
               <Loader2 className="animate-spin text-primary w-8 h-8" />
             </div>
           ) : duplicateGroups.length === 0 ? (
-            <div className="bg-base-100 border border-base-200 rounded-2xl p-12 text-center flex flex-col items-center gap-3 shadow-sm">
-              <CheckCircle className="h-12 w-12 text-success" />
-              <h3 className="text-lg font-bold">{t("library.no_duplicates", "No Duplicate Files Found")}</h3>
-              <p className="text-xs text-base-content/60 max-w-md">
-                {t("admin.no_duplicates_desc", "All files in your library are unique. There are no SHA-256 hash collisions.")}
-              </p>
+            <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-success/10 text-success mb-1">
+                <CheckCircle className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-base-content">{t("library.no_duplicates", "No Duplicate Files Found")}</h3>
+                <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">
+                  {t("admin.no_duplicates_desc", "All files in your library are unique. There are no SHA-256 hash collisions.")}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
