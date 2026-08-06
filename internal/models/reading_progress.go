@@ -28,7 +28,7 @@ func (e *ReadingHistoryEntity) FromSqlc(res sqlc.GetRecentReadingHistoryRow) *Re
 	e.ChapterID = res.ChapterID
 	progress := res.ProgressPercent
 	e.ProgressPercent = &progress
-	e.UpdatedAt = res.UpdatedAt.Time
+	e.UpdatedAt = res.UpdatedAt
 	e.BookTitle = res.BookTitle
 	e.BookCoverURL = convert.NullStringToStrPtr(res.BookCoverUrl)
 	e.ChapterTitle = res.ChapterTitle
@@ -108,7 +108,7 @@ func (e *ReadingProgressEntity) FromSqlc(res sqlc.ReadingProgress) *ReadingProgr
 	e.QualifiedReadCount = res.QualifiedReadCount
 	e.LastOpenedAt = convert.NullTimeToTimePtr(res.LastOpenedAt)
 	e.LastCountedAt = convert.NullTimeToTimePtr(res.LastCountedAt)
-	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
+	e.UpdatedAt = &res.UpdatedAt
 	return e
 }
 

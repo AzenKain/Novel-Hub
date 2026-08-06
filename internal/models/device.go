@@ -25,7 +25,7 @@ func (e *UserDeviceEntity) FromSqlc(res sqlc.UserDevice) *UserDeviceEntity {
 	e.DeviceType = res.DeviceType
 	e.TargetAddress = res.TargetAddress
 	e.CreatedAt = convert.NullTimeToTimePtr(res.CreatedAt)
-	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
+	e.UpdatedAt = &res.UpdatedAt
 	return e
 }
 

@@ -62,7 +62,7 @@ export type User = {
 };
 
 export type SearchUserParams = {
-  page?: number;
+  cursor?: string;
   limit?: number;
   search?: string;
   is_deleted?: boolean;

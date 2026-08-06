@@ -77,6 +77,7 @@ func (s *bookService) BulkDeleteBooks(ctx context.Context, dto *request.BulkDele
 		if err := tx.Commit(); err != nil {
 			return nil, err
 		}
+		txRepo.FlushCache(ctx)
 		for _, id := range allowedIDs {
 			if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
 				log.Warn().Err(err).Str("book_id", id).Msg("failed to remove deleted book directory")
@@ -312,6 +313,7 @@ func (s *bookService) BulkAddTags(ctx context.Context, dto *request.BulkAddTagsD
 		if err := tx.Commit(); err != nil {
 			return nil, err
 		}
+		txRepo.FlushCache(ctx)
 
 		res.SuccessCount = len(allowedIDs)
 	}

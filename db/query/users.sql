@@ -94,9 +94,8 @@ WHERE
         lower(COALESCE(u.full_name, '')) LIKE '%' || lower(sqlc.narg('search_text')) || '%'
     )
     AND (
-        sqlc.narg('cursor_created_at') IS NULL OR
-        datetime(u.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-        (datetime(u.created_at) = datetime(sqlc.narg('cursor_created_at')) AND u.id > sqlc.narg('cursor_id'))
+        u.created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+        AND (sqlc.narg('cursor_created_at') IS NULL OR u.created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR u.id > sqlc.narg('cursor_id'))
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT sqlc.arg('limit');
@@ -145,9 +144,8 @@ WHERE u.id IN (SELECT user_id FROM fts_users WHERE haystack MATCH sqlc.arg('matc
     AND (sqlc.narg('created_from') IS NULL OR u.created_at >= sqlc.narg('created_from'))
     AND (sqlc.narg('created_to') IS NULL OR u.created_at <= sqlc.narg('created_to'))
     AND (
-        sqlc.narg('cursor_created_at') IS NULL OR
-        datetime(u.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-        (datetime(u.created_at) = datetime(sqlc.narg('cursor_created_at')) AND u.id > sqlc.narg('cursor_id'))
+        u.created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+        AND (sqlc.narg('cursor_created_at') IS NULL OR u.created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR u.id > sqlc.narg('cursor_id'))
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT sqlc.arg('limit');

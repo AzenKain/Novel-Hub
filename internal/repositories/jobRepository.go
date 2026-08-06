@@ -113,8 +113,9 @@ func (r *jobRepository) GetJobsByIDs(ctx context.Context, ids []string) ([]*mode
 	}
 
 	if len(missingIds) > 0 {
-		sort.Strings(missingIds)
-		sfgKey := "jobs:ids:" + strings.Join(missingIds, ",")
+		sortedIDs := append([]string(nil), missingIds...)
+		sort.Strings(sortedIDs)
+		sfgKey := "jobs:ids:" + strings.Join(sortedIDs, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
 			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Job, error) {
 				return r.queries.GetJobsByIDs(ctx, chunk)

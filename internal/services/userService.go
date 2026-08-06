@@ -613,7 +613,8 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	if dto.Cursor != "" {
 		parts := convert.DecodeCursor(dto.Cursor)
 		if len(parts) == 2 {
-			searchParams.CursorCreatedAt = parts[0]
+			cursorTime := convert.CursorTimeString(parts[0])
+			searchParams.CursorCreatedAt = convert.StrPtrToNullStringNonEmpty(&cursorTime)
 			if parts[1] != "" {
 				// UUIDv7 is lexicographically time-ordered, so `id > cursor` still pages correctly.
 				searchParams.CursorID = sql.NullString{String: parts[1], Valid: true}

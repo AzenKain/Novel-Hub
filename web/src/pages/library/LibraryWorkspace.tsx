@@ -314,7 +314,7 @@ export const LibraryWorkspace = () => {
 
   useEffect(() => {
     if (collectionsData) {
-      const allCollections = collectionsData.pages.flatMap((page) => page.data);
+      const allCollections = collectionsData.pages.flatMap((page) => page.data || []);
       setCollections(allCollections);
     }
   }, [collectionsData, setCollections]);

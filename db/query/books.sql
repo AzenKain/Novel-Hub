@@ -13,9 +13,8 @@ WHERE id = ? LIMIT 1;
 -- name: ListBookIDs :many
 SELECT id FROM books
 WHERE
-    (sqlc.narg('cursor_created_at') IS NULL OR
-     datetime(created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-     (datetime(created_at) = datetime(sqlc.narg('cursor_created_at')) AND id < sqlc.narg('cursor_id')))
+    (created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR id < sqlc.narg('cursor_id')))
 ORDER BY created_at DESC, id DESC
 LIMIT sqlc.arg('limit');
 
@@ -94,9 +93,8 @@ INSERT INTO book_tags (
 -- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (sqlc.narg('cursor_created_at') IS NULL OR
-     datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-     (datetime(b.created_at) = datetime(sqlc.narg('cursor_created_at')) AND b.id < sqlc.narg('cursor_id'))) AND
+    (b.created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_created_at') IS NULL OR b.created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR b.id < sqlc.narg('cursor_id'))) AND
     (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
     (
         sqlc.narg('search') IS NULL OR

@@ -1,9 +1,15 @@
 -- name: InsertFTSChapter :exec
-INSERT INTO fts_chapters (book_id, chapter_id, title, content)
-VALUES (?, ?, ?, ?);
+INSERT INTO fts_chapters (rowid, book_id, chapter_id, title, content)
+VALUES (
+    (SELECT rowid FROM chapters WHERE id = sqlc.arg('chapter_id')),
+    sqlc.arg('book_id'),
+    sqlc.arg('chapter_id'),
+    sqlc.arg('title'),
+    sqlc.arg('content')
+);
 
 -- name: DeleteFTSBook :exec
-DELETE FROM fts_chapters WHERE book_id = ?;
+DELETE FROM fts_chapters WHERE rowid IN (SELECT c.rowid FROM chapters c WHERE c.book_id = ?);
 
 -- name: SearchFTS :many
 SELECT book_id, chapter_id, title

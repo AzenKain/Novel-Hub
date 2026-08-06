@@ -57,7 +57,8 @@ JOIN permissions p ON p.key IN (
     'library.read',
     'opds.read',
     'opds.download',
-    'kobo.sync'
+    'kobo.sync',
+    'komga.sync'
 )
 WHERE r.name = 'USER'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
@@ -93,6 +94,7 @@ JOIN permissions p ON p.key IN (
     'opds.read',
     'opds.download',
     'kobo.sync',
+    'komga.sync',
     'calibre.sync',
     'admin.access',
     'job.read'

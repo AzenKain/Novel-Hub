@@ -143,8 +143,6 @@ type ReadingHistoryResponse struct {
 	FileID          *string   `json:"file_id,omitempty"`
 	ChapterID       string    `json:"chapter_id"`
 	ProgressPercent *float64  `json:"progress_percent"`
-	LocationCfi     *string   `json:"location_cfi,omitempty"`
-	LocationType    *string   `json:"location_type,omitempty"`
 	UpdatedAt       time.Time `json:"updated_at"`
 	BookTitle       string    `json:"book_title"`
 	BookCoverURL    *string   `json:"book_cover_url"`

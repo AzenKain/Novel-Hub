@@ -35,9 +35,10 @@ type BookFileRecordRepository interface {
 	GetBookFileById(ctx context.Context, id string) (*models.BookFileEntity, error)
 	UpdateBookFileHash(ctx context.Context, id string, hash string) error
 	GetDuplicateFiles(ctx context.Context, limit, offset int64) ([]*models.DuplicateFileEntity, error)
-	GetDuplicateFileDetails(ctx context.Context) ([]*models.DuplicateFileDetailEntity, error)
+	GetDuplicateFileDetails(ctx context.Context, limit int64) ([]*models.DuplicateFileDetailEntity, error)
 	ListAllFiles(ctx context.Context, limit, offset int64) ([]*models.FileRefEntity, error)
 	DeleteFile(ctx context.Context, id string) error
+	RepointFileUserData(ctx context.Context, oldFileID string, newFileID string) error
 	CountFilesForBook(ctx context.Context, bookID string) (int64, error)
 	WithTx(tx *sql.Tx) BookDBRepository
 }
@@ -98,6 +99,7 @@ type BookDBRepository interface {
 	BookMetadataRepository
 	BookFTSRepository
 	WithTx(tx *sql.Tx) BookDBRepository
+	FlushCache(ctx context.Context)
 }
 
 type bookDBRepository struct {
@@ -117,12 +119,24 @@ func NewBookDBRepository(db *sql.DB, c cache.Cache) BookDBRepository {
 	}
 }
 
+// The returned repository buffers its invalidations; FlushCache after Commit publishes them.
+// Inline sweeps would run a full-cache scan per mutated row while the write lock is held.
 func (r *bookDBRepository) WithTx(tx *sql.Tx) BookDBRepository {
+	var c cache.Cache
+	if r.c != nil {
+		c = cache.NewDeferred(r.c)
+	}
 	return &bookDBRepository{
 		db:      r.db,
 		queries: r.queries.WithTx(tx),
-		c:       r.c,
+		c:       c,
 		inTx:    true,
 		sfg:     &singleflight.Group{},
+	}
+}
+
+func (r *bookDBRepository) FlushCache(ctx context.Context) {
+	if d, ok := r.c.(*cache.DeferredCache); ok {
+		d.Flush(ctx)
 	}
 }

@@ -84,8 +84,9 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	}
 
 	if len(missingIds) > 0 {
-		sort.Strings(missingIds)
-		sfgKey := "roles:ids:" + strings.Join(missingIds, ",")
+		sortedIDs := append([]string(nil), missingIds...)
+		sort.Strings(sortedIDs)
+		sfgKey := "roles:ids:" + strings.Join(sortedIDs, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
 			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Role, error) {
 				return r.q.GetRolesByIDs(ctx, chunk)

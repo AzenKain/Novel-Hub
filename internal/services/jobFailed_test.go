@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 
 	"novelhub/internal/dtos/request"
@@ -105,17 +106,18 @@ func TestJobFailedDispatchesWebhookOnce(t *testing.T) {
 	}
 }
 
-// Failed must record the status even with no webhook service injected.
+// Failed must record the status even with no webhook service injected. Queued instead of Trigger:
+// Trigger hands the job to the worker, whose Completed overwrites the "failed" this asserts on.
 func TestJobFailedStillRecordsWithoutWebhookService(t *testing.T) {
 	service, _ := jobFailedHarness(t)
 	service.SetWebhookService(nil)
 	ctx := context.Background()
 
-	job, err := service.Trigger(ctx, "database_health_check", "")
-	if err != nil {
+	job := worker.Job{ID: uuid.Must(uuid.NewV7()).String(), Type: "database_health_check"}
+	if err := service.Queued(ctx, job); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.Failed(ctx, worker.Job{ID: job.ID, Type: job.Type}, errors.New("boom")); err != nil {
+	if err := service.Failed(ctx, job, errors.New("boom")); err != nil {
 		t.Fatal(err)
 	}
 

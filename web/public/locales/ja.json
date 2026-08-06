@@ -230,7 +230,11 @@
     "email_subject": "件名",
     "email_body": "本文",
     "send_email": "送信",
-    "email_sent": "メールを送信しました"
+    "email_sent": "メールを送信しました",
+    "duplicates_partial_cleanup": "{{deleted}} 件のファイルを削除しました。{{failed}} 件が失敗: {{reason}}",
+    "upload_partial": "{{total}}冊中{{count}}冊をアップロードしました。メタデータを処理中...",
+    "upload_done": "{{count}}冊をアップロードしました。メタデータを処理中...",
+    "upload_all_failed": "ファイルを1つもアップロードできませんでした: {{reason}}"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",

@@ -67,7 +67,7 @@ func setupOPDSFullTestEnv(t *testing.T) (OPDSService, *sql.DB, *response.JWTClai
 		t.Fatalf("failed to load permissions: %v", err)
 	}
 	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
-	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
+	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 	opdsService := NewOPDSService(bookService, permissionCache)
 	adminClaims := &response.JWTClaims{UId: "1", Roles: []constants.RoleType{constants.RoleTypeAdmin}}
 

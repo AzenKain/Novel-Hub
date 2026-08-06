@@ -127,3 +127,60 @@ func TestGetFilesByBookIdSkipsMissingRows(t *testing.T) {
 		}
 	}
 }
+
+// reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") carry no FK to
+// book_files, so deleting a duplicate file orphans them silently. RepointFileUserData moves
+// them onto the surviving file.
+func TestRepointFileUserDataMovesProgressAndHighlights(t *testing.T) {
+	repo, db := newBookFileTestRepo(t)
+	ctx := context.Background()
+
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES
+		 ('f-old', 'book-1', '/tmp/old.epub', 'EPUB', 1, '2024-01-01'),
+		 ('f-new', 'book-1', '/tmp/new.epub', 'EPUB', 1, '2024-01-02')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO users (id, email, password_hash) VALUES ('u-1', 'a@b.c', 'x')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO reading_progress (user_id, book_id, file_id, chapter_ref, progress_percent)
+		 VALUES ('u-1', 'book-1', 'f-old', 'f-old:3', 42)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO highlights (id, user_id, book_id, chapter_id, text_content, start_index, end_index)
+		 VALUES ('h-1', 'u-1', 'book-1', 'f-old:3', 'note', 0, 5),
+		        ('h-2', 'u-1', 'book-1', 'f-other:9', 'keep', 0, 5)`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repo.RepointFileUserData(ctx, "f-old", "f-new"); err != nil {
+		t.Fatal(err)
+	}
+
+	var progressFile string
+	if err := db.QueryRowContext(ctx,
+		`SELECT file_id FROM reading_progress WHERE user_id = 'u-1' AND book_id = 'book-1'`).Scan(&progressFile); err != nil {
+		t.Fatal(err)
+	}
+	if progressFile != "f-new" {
+		t.Errorf("reading_progress.file_id = %q, want f-new", progressFile)
+	}
+
+	var moved, untouched string
+	if err := db.QueryRowContext(ctx, `SELECT chapter_id FROM highlights WHERE id = 'h-1'`).Scan(&moved); err != nil {
+		t.Fatal(err)
+	}
+	if moved != "f-new:3" {
+		t.Errorf("highlights[h-1].chapter_id = %q, want f-new:3", moved)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT chapter_id FROM highlights WHERE id = 'h-2'`).Scan(&untouched); err != nil {
+		t.Fatal(err)
+	}
+	if untouched != "f-other:9" {
+		t.Errorf("highlights[h-2].chapter_id = %q, want f-other:9 (unrelated file must not move)", untouched)
+	}
+}

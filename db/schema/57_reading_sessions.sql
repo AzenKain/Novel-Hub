@@ -11,3 +11,4 @@ CREATE TABLE IF NOT EXISTS reading_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reading_sessions_user_date ON reading_sessions(user_id, session_date);
+CREATE INDEX IF NOT EXISTS idx_reading_sessions_book ON reading_sessions(book_id);

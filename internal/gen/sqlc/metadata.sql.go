@@ -172,10 +172,15 @@ func (q *Queries) LinkBookSeries(ctx context.Context, arg LinkBookSeriesParams) 
 }
 
 const listAuthorsWithCount = `-- name: ListAuthorsWithCount :many
-SELECT a.id, a.name, COUNT(b.id) as book_count
+SELECT a.id, a.name, (
+    SELECT COUNT(*) FROM books b
+    WHERE b.author_id = a.id AND b.library_id IN (SELECT value FROM json_each(?1))
+) as book_count
 FROM authors a
-JOIN books b ON a.id = b.author_id
-WHERE b.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM books b
+    WHERE b.author_id = a.id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR a.name LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(a.name), 1, 1)) = ?3
@@ -185,7 +190,6 @@ WHERE b.library_id IN (SELECT value FROM json_each(?1))
            AND SUBSTR(TRIM(a.name), 1, 1) <> ?6
            AND SUBSTR(TRIM(a.name), 1, 1) <> ?7))
   AND (?8 IS NULL OR a.name > ?8 OR (a.name = ?8 AND a.id > ?9))
-GROUP BY a.id, a.name
 ORDER BY a.name ASC, a.id ASC
 LIMIT ?10
 `
@@ -246,8 +250,10 @@ func (q *Queries) ListAuthorsWithCount(ctx context.Context, arg ListAuthorsWithC
 const listFormatsWithCount = `-- name: ListFormatsWithCount :many
 SELECT LOWER(bf.format) as id, UPPER(bf.format) as name, COUNT(DISTINCT bf.book_id) as book_count
 FROM book_files bf
-JOIN books b ON b.id = bf.book_id
-WHERE b.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM books b
+    WHERE b.id = bf.book_id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR bf.format LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(bf.format), 1, 1)) = ?3
@@ -316,11 +322,17 @@ func (q *Queries) ListFormatsWithCount(ctx context.Context, arg ListFormatsWithC
 }
 
 const listLanguagesWithCount = `-- name: ListLanguagesWithCount :many
-SELECT l.id, l.name, COUNT(bl.book_id) as book_count
+SELECT l.id, l.name, (
+    SELECT COUNT(*) FROM book_languages j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.language_id = l.id AND b.library_id IN (SELECT value FROM json_each(?1))
+) as book_count
 FROM languages l
-JOIN book_languages bl ON l.id = bl.language_id
-JOIN books b ON b.id = bl.book_id
-WHERE b.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM book_languages j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.language_id = l.id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR l.name LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(l.name), 1, 1)) = ?3
@@ -330,7 +342,6 @@ WHERE b.library_id IN (SELECT value FROM json_each(?1))
            AND SUBSTR(TRIM(l.name), 1, 1) <> ?6
            AND SUBSTR(TRIM(l.name), 1, 1) <> ?7))
   AND (?8 IS NULL OR l.name > ?8 OR (l.name = ?8 AND l.id > ?9))
-GROUP BY l.id, l.name
 ORDER BY l.name ASC, l.id ASC
 LIMIT ?10
 `
@@ -389,11 +400,17 @@ func (q *Queries) ListLanguagesWithCount(ctx context.Context, arg ListLanguagesW
 }
 
 const listPublishersWithCount = `-- name: ListPublishersWithCount :many
-SELECT p.id, p.name, COUNT(bp.book_id) as book_count
+SELECT p.id, p.name, (
+    SELECT COUNT(*) FROM book_publishers j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.publisher_id = p.id AND b.library_id IN (SELECT value FROM json_each(?1))
+) as book_count
 FROM publishers p
-JOIN book_publishers bp ON p.id = bp.publisher_id
-JOIN books b ON b.id = bp.book_id
-WHERE b.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM book_publishers j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.publisher_id = p.id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR p.name LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(p.name), 1, 1)) = ?3
@@ -403,7 +420,6 @@ WHERE b.library_id IN (SELECT value FROM json_each(?1))
            AND SUBSTR(TRIM(p.name), 1, 1) <> ?6
            AND SUBSTR(TRIM(p.name), 1, 1) <> ?7))
   AND (?8 IS NULL OR p.name > ?8 OR (p.name = ?8 AND p.id > ?9))
-GROUP BY p.id, p.name
 ORDER BY p.name ASC, p.id ASC
 LIMIT ?10
 `
@@ -462,11 +478,15 @@ func (q *Queries) ListPublishersWithCount(ctx context.Context, arg ListPublisher
 }
 
 const listSeriesWithCount = `-- name: ListSeriesWithCount :many
-SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
+SELECT s.id, s.name, (
+    SELECT COUNT(*) FROM book_series bs
+    JOIN books b ON b.id = bs.book_id
+    WHERE bs.series_id = s.id AND b.library_id IN (SELECT value FROM json_each(?1))
+) as book_count, (
     SELECT b.cover_url
     FROM book_series bs2
     JOIN books b ON b.id = bs2.book_id
-    WHERE bs2.series_id = s.id AND b.library_id = sb.library_id
+    WHERE bs2.series_id = s.id AND b.library_id IN (SELECT value FROM json_each(?1))
       AND b.cover_url IS NOT NULL AND b.cover_url != ''
     ORDER BY
         CASE
@@ -477,9 +497,11 @@ SELECT s.id, s.name, COUNT(bs.book_id) as book_count, (
     LIMIT 1
 ) as cover_url
 FROM series s
-JOIN book_series bs ON s.id = bs.series_id
-JOIN books sb ON sb.id = bs.book_id
-WHERE sb.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM book_series bs
+    JOIN books b ON b.id = bs.book_id
+    WHERE bs.series_id = s.id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR s.name LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(s.name), 1, 1)) = ?3
@@ -489,7 +511,6 @@ WHERE sb.library_id IN (SELECT value FROM json_each(?1))
            AND SUBSTR(TRIM(s.name), 1, 1) <> ?6
            AND SUBSTR(TRIM(s.name), 1, 1) <> ?7))
   AND (?8 IS NULL OR s.name > ?8 OR (s.name = ?8 AND s.id > ?9))
-GROUP BY s.id, s.name
 ORDER BY s.name ASC, s.id ASC
 LIMIT ?10
 `
@@ -554,11 +575,17 @@ func (q *Queries) ListSeriesWithCount(ctx context.Context, arg ListSeriesWithCou
 }
 
 const listTagsWithCount = `-- name: ListTagsWithCount :many
-SELECT t.id, t.name, COUNT(bt.book_id) as book_count
+SELECT t.id, t.name, (
+    SELECT COUNT(*) FROM book_tags j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.tag_id = t.id AND b.library_id IN (SELECT value FROM json_each(?1))
+) as book_count
 FROM tags t
-JOIN book_tags bt ON t.id = bt.tag_id
-JOIN books b ON b.id = bt.book_id
-WHERE b.library_id IN (SELECT value FROM json_each(?1))
+WHERE EXISTS (
+    SELECT 1 FROM book_tags j
+    JOIN books b ON b.id = j.book_id
+    WHERE j.tag_id = t.id AND b.library_id IN (SELECT value FROM json_each(?1))
+  )
   AND (?2 IS NULL OR t.name LIKE '%' || ?2 || '%')
   AND (?3 IS NULL
        OR UPPER(SUBSTR(TRIM(t.name), 1, 1)) = ?3
@@ -568,7 +595,6 @@ WHERE b.library_id IN (SELECT value FROM json_each(?1))
            AND SUBSTR(TRIM(t.name), 1, 1) <> ?6
            AND SUBSTR(TRIM(t.name), 1, 1) <> ?7))
   AND (?8 IS NULL OR t.name > ?8 OR (t.name = ?8 AND t.id > ?9))
-GROUP BY t.id, t.name
 ORDER BY t.name ASC, t.id ASC
 LIMIT ?10
 `

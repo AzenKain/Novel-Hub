@@ -104,7 +104,7 @@ func (s *auditService) List(ctx context.Context, dto *request.ListAuditLogsDto) 
 		Limit:   int64(limit),
 	}
 	if parts := convert.DecodeCursor(dto.Cursor); len(parts) == 2 {
-		filter.CursorCreatedAt = parts[0]
+		filter.CursorCreatedAt = convert.CursorTimeString(parts[0])
 		filter.CursorID = parts[1]
 	}
 

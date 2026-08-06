@@ -84,7 +84,7 @@ func setupKoboTestEnv(t *testing.T) (KoboService, *sql.DB, cache.Cache, *respons
 	}
 
 	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
-	bookService := NewBookService(bookRepo, featureRepo, nil, diskRepo, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
+	bookService := NewBookService(bookRepo, featureRepo, nil, diskRepo, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 	featureService := NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, database.NewTxManager(db))
 	koboService := NewKoboService(bookRepo, diskRepo, koboRepo, bookService, featureService, permissionCache, ramCache)
 

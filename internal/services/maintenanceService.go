@@ -209,6 +209,7 @@ func (s *maintenanceService) removeMissingFile(ctx context.Context, fileID, book
 	if err := tx.Commit(); err != nil {
 		return false, err
 	}
+	repo.FlushCache(ctx)
 	return bookDeleted, nil
 }
 

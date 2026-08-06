@@ -28,8 +28,13 @@ type MetadataFacetFilter struct {
 }
 
 func (f MetadataFacetFilter) cacheKey(facet string) string {
-	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha,
-		strings.Join(f.LibraryIDs, ","))
+	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha, f.scopeKey())
+}
+
+// BookCount is computed under the caller's readable-library set, so every key holding it must
+// carry that set or a wider caller's count leaks to a narrower one.
+func (f MetadataFacetFilter) scopeKey() string {
+	return strings.Join(f.LibraryIDs, ",")
 }
 
 func (f MetadataFacetFilter) libraryScope() string {
@@ -337,6 +342,8 @@ func (r *bookDBRepository) LinkBookSeries(ctx context.Context, bookID, seriesID 
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSeriesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaSeriesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaBookSeriesPattern)
 	}
 	return nil
 }
@@ -351,6 +358,8 @@ func (r *bookDBRepository) ClearBookSeries(ctx context.Context, bookID string) e
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSeriesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaSeriesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaBookSeriesPattern)
 	}
 	return nil
 }
@@ -587,7 +596,7 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, filter Meta
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "author", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "author", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -612,7 +621,7 @@ func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, filter Meta
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "author", result)
+			r.cacheMetadataCountEntities(ctx, "author", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -627,7 +636,7 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, filter Metad
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "series", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "series", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -652,7 +661,7 @@ func (r *bookDBRepository) ListSeriesWithCount(ctx context.Context, filter Metad
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "series", result)
+			r.cacheMetadataCountEntities(ctx, "series", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -667,7 +676,7 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, filter M
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "publisher", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "publisher", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -692,7 +701,7 @@ func (r *bookDBRepository) ListPublishersWithCount(ctx context.Context, filter M
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "publisher", result)
+			r.cacheMetadataCountEntities(ctx, "publisher", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -707,7 +716,7 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, filter Me
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "language", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "language", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -732,7 +741,7 @@ func (r *bookDBRepository) ListLanguagesWithCount(ctx context.Context, filter Me
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "language", result)
+			r.cacheMetadataCountEntities(ctx, "language", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -747,7 +756,7 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, filter Metadat
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "tag", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "tag", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -772,7 +781,7 @@ func (r *bookDBRepository) ListTagsWithCount(ctx context.Context, filter Metadat
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "tag", result)
+			r.cacheMetadataCountEntities(ctx, "tag", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -787,7 +796,7 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter Meta
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
-			if result, ok := r.getMetadataCountByIDs(ctx, "format", ids); ok {
+			if result, ok := r.getMetadataCountByIDs(ctx, "format", filter.scopeKey(), ids); ok {
 				return result, nil
 			}
 		}
@@ -812,7 +821,7 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter Meta
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
-			r.cacheMetadataCountEntities(ctx, "format", result)
+			r.cacheMetadataCountEntities(ctx, "format", filter.scopeKey(), result)
 		}
 		return result, nil
 	})
@@ -822,7 +831,7 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter Meta
 	return v.([]*models.MetadataCountEntity), nil
 }
 
-func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType string, ids []string) ([]*models.MetadataCountEntity, bool) {
+func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType, scope string, ids []string) ([]*models.MetadataCountEntity, bool) {
 	if len(ids) == 0 {
 		return []*models.MetadataCountEntity{}, true
 	}
@@ -832,7 +841,7 @@ func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType
 
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = cache.BuildKey("metadata_count", entityType, "id", id)
+		keys[i] = metadataCountKey(entityType, scope, id)
 	}
 
 	cachedBytes := r.c.MGet(ctx, keys...)
@@ -852,13 +861,17 @@ func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType
 	return ordered, true
 }
 
-func (r *bookDBRepository) cacheMetadataCountEntities(ctx context.Context, entityType string, entities []*models.MetadataCountEntity) {
+func metadataCountKey(entityType, scope, id string) string {
+	return cache.QueryKeyParts(scope, "metadata_count", entityType, "id", id)
+}
+
+func (r *bookDBRepository) cacheMetadataCountEntities(ctx context.Context, entityType, scope string, entities []*models.MetadataCountEntity) {
 	if r.c == nil || len(entities) == 0 {
 		return
 	}
 	toCache := make(map[string]any, len(entities))
 	for _, entity := range entities {
-		toCache[cache.BuildKey("metadata_count", entityType, "id", entity.ID)] = entity
+		toCache[metadataCountKey(entityType, scope, entity.ID)] = entity
 	}
 	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }

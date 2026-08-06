@@ -41,6 +41,3 @@ CREATE TABLE IF NOT EXISTS book_languages (
     FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_series_name ON series(name);
-CREATE INDEX IF NOT EXISTS idx_publishers_name ON publishers(name);
-CREATE INDEX IF NOT EXISTS idx_languages_name ON languages(name);

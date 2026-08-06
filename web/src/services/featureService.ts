@@ -12,6 +12,7 @@ import type {
   LibraryStats,
   ReadingActivityResult,
   ReadingHistory,
+  ReadingProgress,
   RecordReadingActivityPayload,
   SmartCollection,
   SmartCollectionRule,
@@ -33,7 +34,7 @@ export const featureService = {
   getCollections: async (
     cursor?: string,
     limit?: number,
-  ): Promise<CommonResponse<Collection[]>> => {
+  ): Promise<CursorPaginatedResponse<Collection>> => {
     try {
       const params = new URLSearchParams();
       if (cursor) params.append("cursor", cursor);
@@ -43,7 +44,7 @@ export const featureService = {
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<Collection[]>;
+        return error.response.data as CursorPaginatedResponse<Collection>;
       throw error;
     }
   },
@@ -103,13 +104,13 @@ export const featureService = {
 
   getReadingProgress: async (
     book_id: string,
-  ): Promise<CommonResponse<ReadingHistory>> => {
+  ): Promise<CommonResponse<ReadingProgress>> => {
     try {
       const res = await api.get(`/reader/history/progress/${book_id}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<ReadingHistory>;
+        return error.response.data as CommonResponse<ReadingProgress>;
       throw error;
     }
   },

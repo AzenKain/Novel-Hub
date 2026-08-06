@@ -358,9 +358,8 @@ WHERE
         lower(COALESCE(u.full_name, '')) LIKE '%' || lower(?6) || '%'
     )
     AND (
-        ?7 IS NULL OR
-        datetime(u.created_at) < datetime(?7) OR
-        (datetime(u.created_at) = datetime(?7) AND u.id > ?8)
+        u.created_at <= COALESCE(CAST(?7 AS TEXT), '9999-12-31 23:59:59')
+        AND (?7 IS NULL OR u.created_at < CAST(?7 AS TEXT) OR u.id > ?8)
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT ?9
@@ -373,7 +372,7 @@ type SearchUserIDsParams struct {
 	CreatedFrom     interface{}    `json:"created_from"`
 	CreatedTo       interface{}    `json:"created_to"`
 	SearchText      interface{}    `json:"search_text"`
-	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorCreatedAt sql.NullString `json:"cursor_created_at"`
 	CursorID        sql.NullString `json:"cursor_id"`
 	Limit           int64          `json:"limit"`
 }
@@ -424,9 +423,8 @@ WHERE u.id IN (SELECT user_id FROM fts_users WHERE haystack MATCH ?1)
     AND (?5 IS NULL OR u.created_at >= ?5)
     AND (?6 IS NULL OR u.created_at <= ?6)
     AND (
-        ?7 IS NULL OR
-        datetime(u.created_at) < datetime(?7) OR
-        (datetime(u.created_at) = datetime(?7) AND u.id > ?8)
+        u.created_at <= COALESCE(CAST(?7 AS TEXT), '9999-12-31 23:59:59')
+        AND (?7 IS NULL OR u.created_at < CAST(?7 AS TEXT) OR u.id > ?8)
     )
 ORDER BY u.created_at DESC, u.id ASC
 LIMIT ?9
@@ -439,7 +437,7 @@ type SearchUserIDsFTSParams struct {
 	AuthProvider    interface{}    `json:"auth_provider"`
 	CreatedFrom     interface{}    `json:"created_from"`
 	CreatedTo       interface{}    `json:"created_to"`
-	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorCreatedAt sql.NullString `json:"cursor_created_at"`
 	CursorID        sql.NullString `json:"cursor_id"`
 	Limit           int64          `json:"limit"`
 }

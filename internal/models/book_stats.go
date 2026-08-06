@@ -101,7 +101,7 @@ type BookmarkEntity struct {
 func (e *BookmarkEntity) FromSqlc(res sqlc.Bookmark) *BookmarkEntity {
 	e.UserID = res.UserID
 	e.BookID = res.BookID
-	e.CreatedAt = res.CreatedAt.Time
+	e.CreatedAt = res.CreatedAt
 	return e
 }
 

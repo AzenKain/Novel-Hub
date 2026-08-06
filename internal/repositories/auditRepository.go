@@ -91,7 +91,7 @@ func (r *auditRepository) List(ctx context.Context, filter AuditFilter) ([]*mode
 		rows, err := r.q.ListAuditLogs(ctx, sqlc.ListAuditLogsParams{
 			Action:          nullableFilter(filter.Action),
 			ActorID:         nullableFilter(filter.ActorID),
-			CursorCreatedAt: nullableFilter(filter.CursorCreatedAt),
+			CursorCreatedAt: convert.StrPtrToNullStringNonEmpty(&filter.CursorCreatedAt),
 			CursorID:        convert.StrPtrToNullStringNonEmpty(&filter.CursorID),
 			Limit:           filter.Limit,
 		})

@@ -47,14 +47,27 @@ export const DuplicatesWorkspace = () => {
         await deleteFileMutation.mutateAsync(confirmState.file_id);
         toast.success(t("common.success", "File deleted successfully"));
       } else if (confirmState.type === "keepOne") {
+        let deleted = 0;
+        const failures: string[] = [];
         for (const id of confirmState.toDeleteFileIds) {
           try {
             await deleteFileMutation.mutateAsync(id);
+            deleted++;
           } catch (err) {
-            toast.error(`Error: ${String(err)}`);
+            failures.push(err instanceof Error ? err.message : String(err));
           }
         }
-        toast.success(t("common.success", "Duplicates cleaned up"));
+        if (failures.length > 0) {
+          toast.error(
+            t("admin.duplicates_partial_cleanup", "Deleted {{deleted}} file(s), {{failed}} failed: {{reason}}", {
+              deleted,
+              failed: failures.length,
+              reason: failures[0],
+            })
+          );
+        } else {
+          toast.success(t("common.success", "Duplicates cleaned up"));
+        }
       }
       void refetch();
     } catch (err) {

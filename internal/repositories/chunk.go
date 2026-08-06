@@ -1,21 +1,25 @@
 package repositories
 
 import (
+	"database/sql"
 	"slices"
 	"time"
 )
 
-// cursorTimeArg binds a pagination cursor timestamp as an RFC3339 **string**, not a
-// sql.NullTime. modernc.org/sqlite hands sql.NullTime/time.Time to SQLite as a non-text
-// affinity value, so `datetime(?)` returns NULL — the cursor predicate then never matches
-// and every page after the first comes back empty. A text timestamp is what datetime(text)
-// expects, so the `<`/`=` comparisons work. nil interface → SQLite NULL → the
+// cursorTimeArg binds a pagination cursor timestamp as a **string in the column's own
+// format**, "YYYY-MM-DD HH:MM:SS". The cursor predicates compare the bare column so SQLite
+// can seek the created_at index; that only works if both sides are the same text format.
+// RFC3339 would compare 'T' against ' ' and silently return page 1 forever instead of
+// erroring. modernc.org/sqlite also hands time.Time over as a non-text affinity, which
+// compares as less than any string. An invalid NullString → SQLite NULL → the
 // `sqlc.narg('cursor_created_at') IS NULL` first-page branch.
-func cursorTimeArg(t *time.Time) any {
+const sqliteTimeLayout = "2006-01-02 15:04:05"
+
+func cursorTimeArg(t *time.Time) sql.NullString {
 	if t == nil {
-		return nil
+		return sql.NullString{}
 	}
-	return t.UTC().Format(time.RFC3339Nano)
+	return sql.NullString{String: t.UTC().Format(sqliteTimeLayout), Valid: true}
 }
 
 // sqliteMaxSliceArgs bounds how many ids go into one `id IN (?,?,...)` query.

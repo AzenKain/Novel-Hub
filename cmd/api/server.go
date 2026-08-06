@@ -202,7 +202,11 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	}
 	jobQueue := worker.NewQueue(jobWorkers)
 	s.JobQueue = jobQueue
-	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue)
+	assetCache, err := cache.NewByteCache(0, constants.NormalCacheDuration)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to build asset cache")
+	}
+	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue, assetCache)
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, parserRegistry, permissionCache, settingsService, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
 	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
@@ -416,6 +420,14 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	koboController := controllers.NewKoboController(koboService, koboAuthService, settingsService)
 	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)
 	routes.KoboSetupRoutes(v1, koboController, userRepo, permissionCache)
+
+	// Mounted on the app root, not on api: the Mihon Komga extension appends /api/v1 to the
+	// address the user types, so the user enters http://host/komga and requests land on
+	// /komga/api/v1/... See internal/routes/komgaRoutes.go.
+	komgaRepo := repositories.NewKomgaRepository(db, ramCache)
+	komgaService := services.NewKomgaService(komgaRepo, bookRepo, bookFileRepo, bookService, libraryService, featureService, permissionCache, ramCache)
+	komgaController := controllers.NewKomgaController(komgaService)
+	routes.KomgaRoutes(s.App, komgaController, authService, settingsService)
 
 	syncService := services.NewSyncService(featureService, bookService, permissionCache)
 	syncController := controllers.NewSyncController(syncService)

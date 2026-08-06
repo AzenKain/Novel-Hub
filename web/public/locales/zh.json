@@ -230,7 +230,11 @@
     "email_subject": "主题",
     "email_body": "内容",
     "send_email": "发送",
-    "email_sent": "邮件已发送"
+    "email_sent": "邮件已发送",
+    "duplicates_partial_cleanup": "已删除 {{deleted}} 个文件，{{failed}} 个失败：{{reason}}",
+    "upload_partial": "已上传 {{count}}/{{total}} 本书。正在处理元数据...",
+    "upload_done": "已上传 {{count}} 本书。正在处理元数据...",
+    "upload_all_failed": "没有文件上传成功：{{reason}}"
   },
   "auth": {
     "login_to_account": "登录到您的账户",

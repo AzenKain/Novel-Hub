@@ -698,10 +698,13 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		}
 		client := netx.NewSafeHTTPClient(15 * time.Second)
 		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != http.StatusOK {
+		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Failed to fetch URL or URL blocked for security")
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Failed to fetch URL or URL blocked for security")
+		}
 
 		data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 		if err != nil {

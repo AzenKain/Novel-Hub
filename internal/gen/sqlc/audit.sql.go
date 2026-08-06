@@ -107,9 +107,8 @@ WHERE
     (?1 IS NULL OR action = ?1)
     AND (?2 IS NULL OR actor_id = ?2)
     AND (
-        ?3 IS NULL OR
-        datetime(created_at) < datetime(?3) OR
-        (datetime(created_at) = datetime(?3) AND id > ?4)
+        created_at <= COALESCE(CAST(?3 AS TEXT), '9999-12-31 23:59:59')
+        AND (?3 IS NULL OR created_at < CAST(?3 AS TEXT) OR id > ?4)
     )
 ORDER BY created_at DESC, id ASC
 LIMIT ?5
@@ -118,7 +117,7 @@ LIMIT ?5
 type ListAuditLogsParams struct {
 	Action          interface{}    `json:"action"`
 	ActorID         interface{}    `json:"actor_id"`
-	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorCreatedAt sql.NullString `json:"cursor_created_at"`
 	CursorID        sql.NullString `json:"cursor_id"`
 	Limit           int64          `json:"limit"`
 }

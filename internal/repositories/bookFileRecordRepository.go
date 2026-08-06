@@ -20,7 +20,6 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 		_ = r.c.Del(
 			ctx,
 			cache.BuildKey("book_file", "id", file.ID),
-			cache.BuildKey("book_file", "path", file.Path),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
 		)
@@ -44,7 +43,6 @@ func (r *bookDBRepository) UpsertBookFile(ctx context.Context, params sqlc.Upser
 		_ = r.c.Del(
 			ctx,
 			cache.BuildKey("book_file", "id", file.ID),
-			cache.BuildKey("book_file", "path", file.Path),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
 		)
@@ -222,21 +220,14 @@ func (r *bookDBRepository) cacheBookFileEntities(ctx context.Context, entities [
 	toCache := make(map[string]any, len(entities)*2)
 	for _, entity := range entities {
 		toCache[cache.BuildKey("book_file", "id", entity.ID)] = entity
-		toCache[cache.BuildKey("book_file", "path", entity.Path)] = entity
 	}
 	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }
 
+// Not cached by path: the column holds the path as imported, while entities carry the resolved one
+// (models.BookFileEntity.FromSqlc), so a path-keyed entry can never be invalidated by id.
 func (r *bookDBRepository) GetBookFileByPath(ctx context.Context, path string) (*models.BookFileEntity, error) {
-	key := cache.BuildKey("book_file", "path", path)
-	if r.c != nil && !r.inTx {
-		var file models.BookFileEntity
-		if err := r.c.Get(ctx, key, &file); err == nil {
-			return &file, nil
-		}
-	}
-
-	v, err, _ := r.sfg.Do(key, func() (any, error) {
+	v, err, _ := r.sfg.Do(cache.BuildKey("book_file", "path", path), func() (any, error) {
 		file, err := r.queries.GetBookFileByPath(ctx, path)
 		if err != nil {
 			return nil, err
@@ -244,7 +235,6 @@ func (r *bookDBRepository) GetBookFileByPath(ctx context.Context, path string) (
 		result := (&models.BookFileEntity{}).FromSqlc(file)
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
-			_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
 		}
 		return result, nil
 	})
@@ -271,7 +261,6 @@ func (r *bookDBRepository) GetBookFileById(ctx context.Context, id string) (*mod
 		result := (&models.BookFileEntity{}).FromSqlc(file)
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, cache.BuildKey("book_file", "id", result.ID), result, constants.NormalCacheDuration)
-			_ = r.c.Set(ctx, cache.BuildKey("book_file", "path", result.Path), result, constants.NormalCacheDuration)
 		}
 		return result, nil
 	})
@@ -294,8 +283,7 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
-				cache.BuildKey("book_file", "path", file.Path),
-				cache.BuildKey("book_file", "book", file.BookID),
+					cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
@@ -315,19 +303,25 @@ func (r *bookDBRepository) GetDuplicateFiles(ctx context.Context, limit, offset 
 			return rows, nil
 		}
 	}
-	rows, err := r.queries.GetDuplicateFiles(ctx, sqlc.GetDuplicateFilesParams{Limit: limit, Offset: offset})
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.GetDuplicateFiles(ctx, sqlc.GetDuplicateFilesParams{Limit: limit, Offset: offset})
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.DuplicateFileEntities{}).FromSqlc(rows)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.DuplicateFileEntities{}).FromSqlc(rows)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
-	}
-	return result, nil
+	return v.([]*models.DuplicateFileEntity), nil
 }
 
-func (r *bookDBRepository) GetDuplicateFileDetails(ctx context.Context) ([]*models.DuplicateFileDetailEntity, error) {
-	rows, err := r.queries.GetDuplicateFileDetails(ctx)
+func (r *bookDBRepository) GetDuplicateFileDetails(ctx context.Context, limit int64) ([]*models.DuplicateFileDetailEntity, error) {
+	rows, err := r.queries.GetDuplicateFileDetails(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -346,15 +340,21 @@ func (r *bookDBRepository) ListAllFiles(ctx context.Context, limit, offset int64
 			return rows, nil
 		}
 	}
-	rows, err := r.queries.ListAllFiles(ctx, sqlc.ListAllFilesParams{Limit: limit, Offset: offset})
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.ListAllFiles(ctx, sqlc.ListAllFilesParams{Limit: limit, Offset: offset})
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.FileRefEntities{}).FromSqlc(rows)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	result := (&models.FileRefEntities{}).FromSqlc(rows)
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)
-	}
-	return result, nil
+	return v.([]*models.FileRefEntity), nil
 }
 
 func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
@@ -367,8 +367,7 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
-				cache.BuildKey("book_file", "path", file.Path),
-				cache.BuildKey("book_file", "book", file.BookID),
+					cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
 			)
 		} else {
@@ -383,6 +382,26 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *bookDBRepository) RepointFileUserData(ctx context.Context, oldFileID string, newFileID string) error {
+	if err := r.queries.RepointReadingProgressFile(ctx, sqlc.RepointReadingProgressFileParams{
+		NewFileID: sql.NullString{String: newFileID, Valid: true},
+		OldFileID: sql.NullString{String: oldFileID, Valid: true},
+	}); err != nil {
+		return err
+	}
+	if err := r.queries.RepointHighlightChapters(ctx, sqlc.RepointHighlightChaptersParams{
+		NewFileID: newFileID,
+		OldFileID: oldFileID,
+	}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadingProgressPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyHighlightPattern)
+	}
+	return nil
+}
+
 func (r *bookDBRepository) CountFilesForBook(ctx context.Context, bookID string) (int64, error) {
 	key := cache.BuildKey("book_file", "count", bookID)
 	if r.c != nil && !r.inTx {
@@ -391,12 +410,18 @@ func (r *bookDBRepository) CountFilesForBook(ctx context.Context, bookID string)
 			return count, nil
 		}
 	}
-	count, err := r.queries.CountFilesForBook(ctx, bookID)
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		count, err := r.queries.CountFilesForBook(ctx, bookID)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
+		}
+		return count, nil
+	})
 	if err != nil {
 		return 0, err
 	}
-	if r.c != nil && !r.inTx {
-		_ = r.c.Set(ctx, key, count, constants.ListCacheDuration)
-	}
-	return count, nil
+	return v.(int64), nil
 }

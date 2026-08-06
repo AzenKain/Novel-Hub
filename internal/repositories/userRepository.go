@@ -337,8 +337,9 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 	}
 
 	if len(missingIds) > 0 {
-		sort.Strings(missingIds)
-		sfgKey := "users:ids:" + strings.Join(missingIds, ",")
+		sortedIDs := append([]string(nil), missingIds...)
+		sort.Strings(sortedIDs)
+		sfgKey := "users:ids:" + strings.Join(sortedIDs, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
 			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.User, error) {
 				return r.q.GetUsersByIDs(ctx, chunk)

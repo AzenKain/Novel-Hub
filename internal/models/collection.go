@@ -19,7 +19,7 @@ func (e *CollectionEntity) FromSqlc(res sqlc.Collection) *CollectionEntity {
 	e.ID = res.ID
 	e.UserID = res.UserID
 	e.Name = res.Name
-	e.CreatedAt = res.CreatedAt.Time
+	e.CreatedAt = res.CreatedAt
 	e.UpdatedAt = res.UpdatedAt.Time
 	return e
 }

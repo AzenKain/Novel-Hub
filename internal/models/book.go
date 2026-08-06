@@ -36,7 +36,7 @@ func (e *BookEntity) FromSqlc(res sqlc.Book) *BookEntity {
 	e.CoverURL = convert.NullStringToStrPtr(res.CoverUrl)
 	e.Status = status
 	e.MetadataJSON = convert.NullStringToStrPtr(res.MetadataJson)
-	e.CreatedAt = res.CreatedAt.Time
+	e.CreatedAt = res.CreatedAt
 	e.UpdatedAt = res.UpdatedAt.Time
 	return e
 }

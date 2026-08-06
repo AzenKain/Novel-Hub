@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/response"
+	"novelhub/pkg/worker"
 )
 
 // HandleError is the single place a domain error becomes an HTTP status.
@@ -37,6 +38,10 @@ func HandleError(c fiber.Ctx, err error) error {
 		code = fiber.StatusNotFound
 		// Raw driver text names the storage engine and says nothing a client can use.
 		message = "Not found"
+	case errors.Is(err, worker.ErrQueueFull):
+		// A saturated worker pool is transient, so the client needs a status it can retry on
+		// rather than the 500 an unmatched error would otherwise get.
+		code = fiber.StatusServiceUnavailable
 	}
 
 	return c.Status(code).JSON(response.CommonResponse{Status: false, Message: message})

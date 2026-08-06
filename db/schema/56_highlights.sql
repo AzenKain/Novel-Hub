@@ -14,3 +14,4 @@ CREATE TABLE IF NOT EXISTS highlights (
 
 CREATE INDEX IF NOT EXISTS idx_highlights_user_book ON highlights(user_id, book_id);
 CREATE INDEX IF NOT EXISTS idx_highlights_chapter ON highlights(chapter_id);
+CREATE INDEX IF NOT EXISTS idx_highlights_book ON highlights(book_id);

@@ -230,7 +230,11 @@
     "email_subject": "제목",
     "email_body": "내용",
     "send_email": "보내기",
-    "email_sent": "이메일을 보냈습니다"
+    "email_sent": "이메일을 보냈습니다",
+    "duplicates_partial_cleanup": "{{deleted}}개 파일을 삭제했습니다. {{failed}}개 실패: {{reason}}",
+    "upload_partial": "{{total}}권 중 {{count}}권을 업로드했습니다. 메타데이터 처리 중...",
+    "upload_done": "{{count}}권을 업로드했습니다. 메타데이터 처리 중...",
+    "upload_all_failed": "파일을 하나도 업로드하지 못했습니다: {{reason}}"
   },
   "auth": {
     "login_to_account": "계정에 로그인",

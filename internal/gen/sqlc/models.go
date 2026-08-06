@@ -24,7 +24,7 @@ type AuditLog struct {
 	TargetID    sql.NullString `json:"target_id"`
 	TargetLabel string         `json:"target_label"`
 	Ip          string         `json:"ip"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
+	CreatedAt   time.Time      `json:"created_at"`
 }
 
 type Author struct {
@@ -49,7 +49,7 @@ type Book struct {
 	RatingCount   sql.NullInt64   `json:"rating_count"`
 	ReadCount     sql.NullInt64   `json:"read_count"`
 	OpenCount     sql.NullInt64   `json:"open_count"`
-	CreatedAt     sql.NullTime    `json:"created_at"`
+	CreatedAt     time.Time       `json:"created_at"`
 	UpdatedAt     sql.NullTime    `json:"updated_at"`
 }
 
@@ -97,8 +97,8 @@ type BookReview struct {
 	BookID    string         `json:"book_id"`
 	Rating    int64          `json:"rating"`
 	Review    sql.NullString `json:"review"`
-	CreatedAt sql.NullTime   `json:"created_at"`
-	UpdatedAt sql.NullTime   `json:"updated_at"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type BookSeries struct {
@@ -138,9 +138,9 @@ type BookTrackerMapping struct {
 }
 
 type Bookmark struct {
-	UserID    string       `json:"user_id"`
-	BookID    string       `json:"book_id"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	UserID    string    `json:"user_id"`
+	BookID    string    `json:"book_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Chapter struct {
@@ -157,7 +157,7 @@ type Collection struct {
 	ID        string       `json:"id"`
 	UserID    string       `json:"user_id"`
 	Name      string       `json:"name"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
@@ -277,14 +277,6 @@ type ReadingGoal struct {
 	UpdatedAt          sql.NullTime `json:"updated_at"`
 }
 
-type ReadingHistory struct {
-	UserID          string          `json:"user_id"`
-	BookID          string          `json:"book_id"`
-	ChapterID       string          `json:"chapter_id"`
-	ProgressPercent sql.NullFloat64 `json:"progress_percent"`
-	UpdatedAt       sql.NullTime    `json:"updated_at"`
-}
-
 type ReadingProgress struct {
 	UserID             string         `json:"user_id"`
 	BookID             string         `json:"book_id"`
@@ -299,7 +291,7 @@ type ReadingProgress struct {
 	QualifiedReadCount int64          `json:"qualified_read_count"`
 	LastOpenedAt       sql.NullTime   `json:"last_opened_at"`
 	LastCountedAt      sql.NullTime   `json:"last_counted_at"`
-	UpdatedAt          sql.NullTime   `json:"updated_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 type ReadingSession struct {
@@ -385,7 +377,7 @@ type UserDevice struct {
 	DeviceType    string       `json:"device_type"`
 	TargetAddress string       `json:"target_address"`
 	CreatedAt     sql.NullTime `json:"created_at"`
-	UpdatedAt     sql.NullTime `json:"updated_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
 type UserRole struct {

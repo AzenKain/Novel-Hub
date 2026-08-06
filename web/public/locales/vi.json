@@ -230,7 +230,11 @@
     "email_subject": "Tiêu đề",
     "email_body": "Nội dung",
     "send_email": "Gửi",
-    "email_sent": "Đã gửi email"
+    "email_sent": "Đã gửi email",
+    "duplicates_partial_cleanup": "Đã xoá {{deleted}} tệp, {{failed}} tệp thất bại: {{reason}}",
+    "upload_partial": "Đã tải lên {{count}}/{{total}} sách. Đang xử lý metadata...",
+    "upload_done": "Đã tải lên {{count}} sách. Đang xử lý metadata...",
+    "upload_all_failed": "Không tải lên được tệp nào: {{reason}}"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",

@@ -135,9 +135,8 @@ const listUserDeviceIDs = `-- name: ListUserDeviceIDs :many
 SELECT id FROM user_devices
 WHERE user_id = ?
   AND (
-      ?3 IS NULL OR
-      datetime(updated_at) < datetime(?3) OR
-      (datetime(updated_at) = datetime(?3) AND id < ?4)
+      updated_at <= COALESCE(CAST(?3 AS TEXT), '9999-12-31 23:59:59')
+      AND (?3 IS NULL OR updated_at < CAST(?3 AS TEXT) OR id < ?4)
   )
 ORDER BY updated_at DESC, id DESC
 LIMIT ?
@@ -145,7 +144,7 @@ LIMIT ?
 
 type ListUserDeviceIDsParams struct {
 	UserID          string         `json:"user_id"`
-	CursorUpdatedAt interface{}    `json:"cursor_updated_at"`
+	CursorUpdatedAt sql.NullString `json:"cursor_updated_at"`
 	CursorID        sql.NullString `json:"cursor_id"`
 	Limit           int64          `json:"limit"`
 }

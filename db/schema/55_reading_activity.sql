@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS reading_progress (
     qualified_read_count INTEGER NOT NULL DEFAULT 0,
     last_opened_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_counted_at DATETIME,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, book_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS book_read_stats (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reading_progress_user_time ON reading_progress(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reading_progress_file ON reading_progress(file_id);
 CREATE INDEX IF NOT EXISTS idx_book_read_stats_count ON book_read_stats(qualified_read_count DESC, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS book_download_stats (

@@ -39,3 +39,18 @@ func DecodeCursor(cursorStr string) []string {
 	}
 	return []string{raw[:separator], raw[separator+1:]}
 }
+
+// CursorTimeString converts a decoded cursor's time half into the "YYYY-MM-DD HH:MM:SS" text
+// SQLite stores, which is what the keyset predicates compare against so the created_at index
+// can be seeked. Cursors travel over the wire as RFC3339, where 'T' sorts above ' ' and the
+// comparison would quietly match nothing but the first page. Unparseable input is returned
+// unchanged so a hand-made cursor still behaves as before rather than becoming page 1.
+func CursorTimeString(v string) string {
+	if v == "" {
+		return ""
+	}
+	if t, err := time.Parse(time.RFC3339, v); err == nil {
+		return t.UTC().Format("2006-01-02 15:04:05")
+	}
+	return v
+}

@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS setup_state (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role_id);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_key ON role_permissions(permission_key);
 CREATE INDEX IF NOT EXISTS idx_roles_auto_assign ON roles(auto_assign) WHERE is_deleted = 0;
 
@@ -93,6 +92,7 @@ INSERT INTO permissions (key, description) VALUES
     ('opds.read', 'Access OPDS catalog feed'),
     ('opds.download', 'Download books via OPDS'),
     ('kobo.sync', 'Sync reading progress with Kobo devices'),
+    ('komga.sync', 'Sync manga and reading progress with Mihon/Tachiyomi'),
     ('calibre.sync', 'Sync and import from Calibre server'),
     ('admin.access', 'Access admin dashboard'),
     ('user.manage', 'Manage user accounts and roles'),

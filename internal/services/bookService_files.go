@@ -156,33 +156,47 @@ func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
 	defer func() { _ = tx.Rollback() }()
 
 	txBookRepo := s.bookRepo.WithTx(tx)
+
+	survivors, err := txBookRepo.GetFilesByBookId(ctx, fileRecord.BookID)
+	if err != nil {
+		return err
+	}
+	keep := s.preferReadableFileExcept(survivors, fileID)
+	if keep == nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Cannot delete the only file of a book. Delete the book instead.")
+	}
+	// ponytail: reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") have no
+	// FK, so a plain delete orphans them instead of cascading. Repoint them onto the survivor.
+	if err := txBookRepo.RepointFileUserData(ctx, fileID, keep.ID); err != nil {
+		return err
+	}
+
 	if err := txBookRepo.DeleteFile(ctx, fileID); err != nil {
 		return err
 	}
 
-	remaining, err := txBookRepo.CountFilesForBook(ctx, fileRecord.BookID)
-	if err != nil {
-		return err
-	}
-	if remaining == 0 {
-		if err := txBookRepo.DeleteBook(ctx, fileRecord.BookID); err != nil {
-			return err
-		}
-	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	txBookRepo.FlushCache(ctx)
 
-	// Filesystem cleanup happens after the DB commit: a failed transaction must not
-	// destroy the only copy of a file whose row is still live.
-	if remaining == 0 {
-		if err := s.fileRepo.RemoveBookDir(ctx, fileRecord.BookID); err != nil {
-			log.Warn().Err(err).Str("book_id", fileRecord.BookID).Msg("failed to remove book files")
-		}
-	} else if fileRecord.Path != "" {
+	if fileRecord.Path != "" {
 		if err := os.Remove(fileRecord.Path); err != nil && !os.IsNotExist(err) {
 			log.Warn().Err(err).Str("path", fileRecord.Path).Msg("failed to remove physical book file")
 		}
 	}
 	return nil
+}
+
+func (s *bookService) preferReadableFileExcept(files []*models.BookFileEntity, excludeID string) *models.BookFileEntity {
+	remaining := make([]*models.BookFileEntity, 0, len(files))
+	for _, file := range files {
+		if file != nil && file.ID != excludeID {
+			remaining = append(remaining, file)
+		}
+	}
+	if len(remaining) == 0 {
+		return nil
+	}
+	return s.preferReadableFile(remaining)
 }

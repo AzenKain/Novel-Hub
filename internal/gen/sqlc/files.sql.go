@@ -74,6 +74,8 @@ WHERE bf.hash IS NOT NULL AND bf.hash != '' AND bf.hash IN (
     WHERE bf2.hash IS NOT NULL AND bf2.hash != '' 
     GROUP BY bf2.hash 
     HAVING COUNT(*) > 1
+    ORDER BY bf2.hash
+    LIMIT ?1
 )
 ORDER BY bf.hash, bf.created_at ASC
 `
@@ -91,8 +93,8 @@ type GetDuplicateFileDetailsRow struct {
 	LibraryID     string         `json:"library_id"`
 }
 
-func (q *Queries) GetDuplicateFileDetails(ctx context.Context) ([]GetDuplicateFileDetailsRow, error) {
-	rows, err := q.query(ctx, q.getDuplicateFileDetailsStmt, getDuplicateFileDetails)
+func (q *Queries) GetDuplicateFileDetails(ctx context.Context, limit int64) ([]GetDuplicateFileDetailsRow, error) {
+	rows, err := q.query(ctx, q.getDuplicateFileDetailsStmt, getDuplicateFileDetails, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -259,6 +261,39 @@ func (q *Queries) ListAllFiles(ctx context.Context, arg ListAllFilesParams) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const repointHighlightChapters = `-- name: RepointHighlightChapters :exec
+UPDATE highlights
+SET chapter_id = ?1 || substr(chapter_id, length(CAST(?2 AS TEXT)) + 1),
+    updated_at = CURRENT_TIMESTAMP
+WHERE chapter_id LIKE CAST(?2 AS TEXT) || ':%'
+`
+
+type RepointHighlightChaptersParams struct {
+	NewFileID string `json:"new_file_id"`
+	OldFileID string `json:"old_file_id"`
+}
+
+func (q *Queries) RepointHighlightChapters(ctx context.Context, arg RepointHighlightChaptersParams) error {
+	_, err := q.exec(ctx, q.repointHighlightChaptersStmt, repointHighlightChapters, arg.NewFileID, arg.OldFileID)
+	return err
+}
+
+const repointReadingProgressFile = `-- name: RepointReadingProgressFile :exec
+UPDATE reading_progress
+SET file_id = ?1, updated_at = CURRENT_TIMESTAMP
+WHERE file_id = ?2
+`
+
+type RepointReadingProgressFileParams struct {
+	NewFileID sql.NullString `json:"new_file_id"`
+	OldFileID sql.NullString `json:"old_file_id"`
+}
+
+func (q *Queries) RepointReadingProgressFile(ctx context.Context, arg RepointReadingProgressFileParams) error {
+	_, err := q.exec(ctx, q.repointReadingProgressFileStmt, repointReadingProgressFile, arg.NewFileID, arg.OldFileID)
+	return err
 }
 
 const updateFileHash = `-- name: UpdateFileHash :exec

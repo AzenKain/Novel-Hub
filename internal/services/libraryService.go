@@ -145,6 +145,9 @@ func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
 	return s.libraryRepo.DeleteLibrary(ctx, id)
 }
 
+// ponytail: flat cap, not a per-user quota. Each file enqueues 2 bounded jobs plus a DB row.
+const maxUploadFiles = 200
+
 func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error) {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
 		if apperrors.IsNotFound(err) {
@@ -154,6 +157,9 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 	}
 	if len(files) == 0 {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "no files provided")
+	}
+	if len(files) > maxUploadFiles {
+		return nil, apperrors.New(apperrors.ErrBadRequest, fmt.Sprintf("too many files, max %d per upload", maxUploadFiles))
 	}
 
 	successCount := 0
@@ -342,12 +348,21 @@ func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string,
 			return nil
 		}
 
+		bookIDs := make([]string, len(books))
+		for i, book := range books {
+			bookIDs[i] = book.ID
+		}
+		allFiles, filesErr := s.bookRepo.GetFilesByBookIDs(ctx, bookIDs)
+		if filesErr != nil {
+			return fmt.Errorf("get files for %d books: %w", len(bookIDs), filesErr)
+		}
+		filesByBook := make(map[string][]*models.BookFileEntity, len(books))
+		for _, f := range allFiles {
+			filesByBook[f.BookID] = append(filesByBook[f.BookID], f)
+		}
+
 		for _, book := range books {
-			files, filesErr := s.bookRepo.GetFilesByBookId(ctx, book.ID)
-			if filesErr != nil {
-				return fmt.Errorf("get files for book %s: %w", book.ID, filesErr)
-			}
-			for _, f := range files {
+			for _, f := range filesByBook[book.ID] {
 				if f.State != nil && *f.State == "deleted" {
 					continue
 				}

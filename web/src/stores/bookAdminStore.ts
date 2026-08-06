@@ -1,4 +1,5 @@
 import { queryClient } from "@/config/queryClient";
+import i18n from "@/i18n";
 import { formatFileSize, formatUploadSpeed, getMetaContent, toStringList } from "@/lib/bookDetail";
 import { bookService, metadataService, uploadService } from "@/services";
 import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
@@ -371,6 +372,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
 
     try {
       let successCount = 0;
+      let firstError = "";
       const totalFiles = fileArray.length;
 
       for (let i = 0; i < totalFiles; i++) {
@@ -400,13 +402,16 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
           successCount++;
         } catch (fileErr) {
           console.error("Failed to upload file:", file.name, fileErr);
+          if (!firstError) firstError = fileErr instanceof Error ? fileErr.message : String(fileErr);
         }
       }
 
-      if (successCount === 0) throw new Error("All uploads failed");
+      if (successCount === 0) throw new Error(i18n.t("admin.upload_all_failed", { reason: firstError }));
 
       set({ showUploadModal: false });
-      toast.info(`Uploaded ${successCount} books. Processing metadata...`);
+      toast.info(successCount === totalFiles
+        ? i18n.t("admin.upload_done", { count: successCount })
+        : i18n.t("admin.upload_partial", { count: successCount, total: totalFiles }));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {

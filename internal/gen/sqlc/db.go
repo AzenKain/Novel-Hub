@@ -93,6 +93,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countKoboSyncedBooksStmt, err = db.PrepareContext(ctx, countKoboSyncedBooks); err != nil {
 		return nil, fmt.Errorf("error preparing query CountKoboSyncedBooks: %w", err)
 	}
+	if q.countKomgaSeriesStmt, err = db.PrepareContext(ctx, countKomgaSeries); err != nil {
+		return nil, fmt.Errorf("error preparing query CountKomgaSeries: %w", err)
+	}
 	if q.countUnfinishedJobsStmt, err = db.PrepareContext(ctx, countUnfinishedJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUnfinishedJobs: %w", err)
 	}
@@ -348,6 +351,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getKoboUserByTokenStmt, err = db.PrepareContext(ctx, getKoboUserByToken); err != nil {
 		return nil, fmt.Errorf("error preparing query GetKoboUserByToken: %w", err)
 	}
+	if q.getKomgaBookSeriesStmt, err = db.PrepareContext(ctx, getKomgaBookSeries); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKomgaBookSeries: %w", err)
+	}
+	if q.getKomgaSeriesByIDsStmt, err = db.PrepareContext(ctx, getKomgaSeriesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKomgaSeriesByIDs: %w", err)
+	}
+	if q.getKomgaSeriesProgressStmt, err = db.PrepareContext(ctx, getKomgaSeriesProgress); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKomgaSeriesProgress: %w", err)
+	}
 	if q.getLanguageByNameStmt, err = db.PrepareContext(ctx, getLanguageByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLanguageByName: %w", err)
 	}
@@ -528,6 +540,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listKoboSyncedBookIDsStmt, err = db.PrepareContext(ctx, listKoboSyncedBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListKoboSyncedBookIDs: %w", err)
 	}
+	if q.listKomgaSeriesBooksStmt, err = db.PrepareContext(ctx, listKomgaSeriesBooks); err != nil {
+		return nil, fmt.Errorf("error preparing query ListKomgaSeriesBooks: %w", err)
+	}
+	if q.listKomgaSeriesIDsStmt, err = db.PrepareContext(ctx, listKomgaSeriesIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListKomgaSeriesIDs: %w", err)
+	}
+	if q.listKomgaSeriesProgressStmt, err = db.PrepareContext(ctx, listKomgaSeriesProgress); err != nil {
+		return nil, fmt.Errorf("error preparing query ListKomgaSeriesProgress: %w", err)
+	}
 	if q.listLanguagesWithCountStmt, err = db.PrepareContext(ctx, listLanguagesWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListLanguagesWithCount: %w", err)
 	}
@@ -593,6 +614,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.removeBookFromCollectionStmt, err = db.PrepareContext(ctx, removeBookFromCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveBookFromCollection: %w", err)
+	}
+	if q.repointHighlightChaptersStmt, err = db.PrepareContext(ctx, repointHighlightChapters); err != nil {
+		return nil, fmt.Errorf("error preparing query RepointHighlightChapters: %w", err)
+	}
+	if q.repointReadingProgressFileStmt, err = db.PrepareContext(ctx, repointReadingProgressFile); err != nil {
+		return nil, fmt.Errorf("error preparing query RepointReadingProgressFile: %w", err)
 	}
 	if q.restoreUserStmt, err = db.PrepareContext(ctx, restoreUser); err != nil {
 		return nil, fmt.Errorf("error preparing query RestoreUser: %w", err)
@@ -835,6 +862,11 @@ func (q *Queries) Close() error {
 	if q.countKoboSyncedBooksStmt != nil {
 		if cerr := q.countKoboSyncedBooksStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countKoboSyncedBooksStmt: %w", cerr)
+		}
+	}
+	if q.countKomgaSeriesStmt != nil {
+		if cerr := q.countKomgaSeriesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countKomgaSeriesStmt: %w", cerr)
 		}
 	}
 	if q.countUnfinishedJobsStmt != nil {
@@ -1262,6 +1294,21 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getKoboUserByTokenStmt: %w", cerr)
 		}
 	}
+	if q.getKomgaBookSeriesStmt != nil {
+		if cerr := q.getKomgaBookSeriesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKomgaBookSeriesStmt: %w", cerr)
+		}
+	}
+	if q.getKomgaSeriesByIDsStmt != nil {
+		if cerr := q.getKomgaSeriesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKomgaSeriesByIDsStmt: %w", cerr)
+		}
+	}
+	if q.getKomgaSeriesProgressStmt != nil {
+		if cerr := q.getKomgaSeriesProgressStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKomgaSeriesProgressStmt: %w", cerr)
+		}
+	}
 	if q.getLanguageByNameStmt != nil {
 		if cerr := q.getLanguageByNameStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getLanguageByNameStmt: %w", cerr)
@@ -1562,6 +1609,21 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listKoboSyncedBookIDsStmt: %w", cerr)
 		}
 	}
+	if q.listKomgaSeriesBooksStmt != nil {
+		if cerr := q.listKomgaSeriesBooksStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listKomgaSeriesBooksStmt: %w", cerr)
+		}
+	}
+	if q.listKomgaSeriesIDsStmt != nil {
+		if cerr := q.listKomgaSeriesIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listKomgaSeriesIDsStmt: %w", cerr)
+		}
+	}
+	if q.listKomgaSeriesProgressStmt != nil {
+		if cerr := q.listKomgaSeriesProgressStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listKomgaSeriesProgressStmt: %w", cerr)
+		}
+	}
 	if q.listLanguagesWithCountStmt != nil {
 		if cerr := q.listLanguagesWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listLanguagesWithCountStmt: %w", cerr)
@@ -1670,6 +1732,16 @@ func (q *Queries) Close() error {
 	if q.removeBookFromCollectionStmt != nil {
 		if cerr := q.removeBookFromCollectionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing removeBookFromCollectionStmt: %w", cerr)
+		}
+	}
+	if q.repointHighlightChaptersStmt != nil {
+		if cerr := q.repointHighlightChaptersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing repointHighlightChaptersStmt: %w", cerr)
+		}
+	}
+	if q.repointReadingProgressFileStmt != nil {
+		if cerr := q.repointReadingProgressFileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing repointReadingProgressFileStmt: %w", cerr)
 		}
 	}
 	if q.restoreUserStmt != nil {
@@ -1939,6 +2011,7 @@ type Queries struct {
 	countFilesForBookStmt              *sql.Stmt
 	countJobsStmt                      *sql.Stmt
 	countKoboSyncedBooksStmt           *sql.Stmt
+	countKomgaSeriesStmt               *sql.Stmt
 	countUnfinishedJobsStmt            *sql.Stmt
 	countUnusedRecoveryCodesStmt       *sql.Stmt
 	countUsersStmt                     *sql.Stmt
@@ -2024,6 +2097,9 @@ type Queries struct {
 	getJobsByIDsStmt                   *sql.Stmt
 	getKoboAuthTokenStmt               *sql.Stmt
 	getKoboUserByTokenStmt             *sql.Stmt
+	getKomgaBookSeriesStmt             *sql.Stmt
+	getKomgaSeriesByIDsStmt            *sql.Stmt
+	getKomgaSeriesProgressStmt         *sql.Stmt
 	getLanguageByNameStmt              *sql.Stmt
 	getLibrariesByIDsStmt              *sql.Stmt
 	getLibraryStmt                     *sql.Stmt
@@ -2084,6 +2160,9 @@ type Queries struct {
 	listJobScheduleIDsStmt             *sql.Stmt
 	listJobsStmt                       *sql.Stmt
 	listKoboSyncedBookIDsStmt          *sql.Stmt
+	listKomgaSeriesBooksStmt           *sql.Stmt
+	listKomgaSeriesIDsStmt             *sql.Stmt
+	listKomgaSeriesProgressStmt        *sql.Stmt
 	listLanguagesWithCountStmt         *sql.Stmt
 	listLibraryIDsStmt                 *sql.Stmt
 	listPermissionKeysStmt             *sql.Stmt
@@ -2106,6 +2185,8 @@ type Queries struct {
 	refreshBookRatingStatsStmt         *sql.Stmt
 	releaseJobScheduleClaimStmt        *sql.Stmt
 	removeBookFromCollectionStmt       *sql.Stmt
+	repointHighlightChaptersStmt       *sql.Stmt
+	repointReadingProgressFileStmt     *sql.Stmt
 	restoreUserStmt                    *sql.Stmt
 	rotateUserRefreshTokenStmt         *sql.Stmt
 	searchBookIDsStmt                  *sql.Stmt
@@ -2176,6 +2257,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countFilesForBookStmt:              q.countFilesForBookStmt,
 		countJobsStmt:                      q.countJobsStmt,
 		countKoboSyncedBooksStmt:           q.countKoboSyncedBooksStmt,
+		countKomgaSeriesStmt:               q.countKomgaSeriesStmt,
 		countUnfinishedJobsStmt:            q.countUnfinishedJobsStmt,
 		countUnusedRecoveryCodesStmt:       q.countUnusedRecoveryCodesStmt,
 		countUsersStmt:                     q.countUsersStmt,
@@ -2261,6 +2343,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getJobsByIDsStmt:                   q.getJobsByIDsStmt,
 		getKoboAuthTokenStmt:               q.getKoboAuthTokenStmt,
 		getKoboUserByTokenStmt:             q.getKoboUserByTokenStmt,
+		getKomgaBookSeriesStmt:             q.getKomgaBookSeriesStmt,
+		getKomgaSeriesByIDsStmt:            q.getKomgaSeriesByIDsStmt,
+		getKomgaSeriesProgressStmt:         q.getKomgaSeriesProgressStmt,
 		getLanguageByNameStmt:              q.getLanguageByNameStmt,
 		getLibrariesByIDsStmt:              q.getLibrariesByIDsStmt,
 		getLibraryStmt:                     q.getLibraryStmt,
@@ -2321,6 +2406,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listJobScheduleIDsStmt:             q.listJobScheduleIDsStmt,
 		listJobsStmt:                       q.listJobsStmt,
 		listKoboSyncedBookIDsStmt:          q.listKoboSyncedBookIDsStmt,
+		listKomgaSeriesBooksStmt:           q.listKomgaSeriesBooksStmt,
+		listKomgaSeriesIDsStmt:             q.listKomgaSeriesIDsStmt,
+		listKomgaSeriesProgressStmt:        q.listKomgaSeriesProgressStmt,
 		listLanguagesWithCountStmt:         q.listLanguagesWithCountStmt,
 		listLibraryIDsStmt:                 q.listLibraryIDsStmt,
 		listPermissionKeysStmt:             q.listPermissionKeysStmt,
@@ -2343,6 +2431,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		refreshBookRatingStatsStmt:         q.refreshBookRatingStatsStmt,
 		releaseJobScheduleClaimStmt:        q.releaseJobScheduleClaimStmt,
 		removeBookFromCollectionStmt:       q.removeBookFromCollectionStmt,
+		repointHighlightChaptersStmt:       q.repointHighlightChaptersStmt,
+		repointReadingProgressFileStmt:     q.repointReadingProgressFileStmt,
 		restoreUserStmt:                    q.restoreUserStmt,
 		rotateUserRefreshTokenStmt:         q.rotateUserRefreshTokenStmt,
 		searchBookIDsStmt:                  q.searchBookIDsStmt,

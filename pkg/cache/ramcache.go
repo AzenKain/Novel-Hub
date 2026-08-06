@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Yiling-J/theine-go"
@@ -46,11 +44,9 @@ type Cache interface {
 }
 
 type RamCache struct {
-	items    *theine.Cache[string, []byte]
-	sf       singleflight.Group
-	versions map[string]int64
-	verMu    sync.RWMutex
-	maxCost  int64
+	items   *theine.Cache[string, []byte]
+	sf      singleflight.Group
+	maxCost int64
 }
 
 func NewRamCache() Cache {
@@ -73,9 +69,8 @@ func NewTheineCache(maxCost int64) Cache {
 		panic(err)
 	}
 	return &RamCache{
-		items:    items,
-		versions: make(map[string]int64),
-		maxCost:  maxCost,
+		items:   items,
+		maxCost: maxCost,
 	}
 }
 
@@ -139,11 +134,16 @@ func (r *RamCache) Del(ctx context.Context, keys ...string) error {
 	return nil
 }
 
+// Prefix match, not filepath.Match: '*' there does not cross '/', so any key holding a
+// filesystem path or a raw search term was unreachable by the "prefix*" sweeps we use.
 func (r *RamCache) DelByPattern(ctx context.Context, pattern string) error {
+	prefix, ok := strings.CutSuffix(pattern, "*")
+	if !ok {
+		return r.Del(ctx, pattern)
+	}
 	keys := make([]string, 0)
 	r.items.Range(func(key string, value []byte) bool {
-		matched, err := filepath.Match(pattern, key)
-		if err == nil && matched {
+		if strings.HasPrefix(key, prefix) {
 			keys = append(keys, key)
 		}
 		return true

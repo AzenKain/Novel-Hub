@@ -36,6 +36,7 @@ INSERT INTO permissions (key, description) VALUES
     ('opds.read', 'Access OPDS catalog feed'),
     ('opds.download', 'Download books via OPDS'),
     ('kobo.sync', 'Sync reading progress with Kobo devices'),
+    ('komga.sync', 'Sync manga and reading progress with Mihon/Tachiyomi'),
     ('calibre.sync', 'Sync and import from Calibre server'),
     ('admin.access', 'Access admin dashboard'),
     ('user.manage', 'Manage user accounts and roles'),
@@ -65,7 +66,7 @@ JOIN permissions p ON p.key IN (
     'book.read', 'book.tts', 'book.search.deep', 'book.download', 'book.send_email',
     'book.share', 'book.bookmark', 'book.collection', 'book.highlight',
     'book.review.create', 'user.stats.read', 'tracker.sync', 'library.read',
-    'opds.read', 'opds.download', 'kobo.sync'
+    'opds.read', 'opds.download', 'kobo.sync', 'komga.sync'
 )
 WHERE r.name = 'USER'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
@@ -80,7 +81,7 @@ JOIN permissions p ON p.key IN (
     'book.review.create', 'book.review.delete', 'user.stats.read', 'tracker.sync',
     'book.upload', 'book.edit', 'book.metadata.fetch', 'book.delete',
     'book.duplicate.manage', 'book.archive', 'book.bulk.manage', 'library.read',
-    'library.manage', 'opds.read', 'opds.download', 'kobo.sync', 'calibre.sync',
+    'library.manage', 'opds.read', 'opds.download', 'kobo.sync', 'komga.sync', 'calibre.sync',
     'admin.access', 'job.read'
 )
 WHERE r.name = 'MOD'

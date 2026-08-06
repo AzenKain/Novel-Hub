@@ -114,7 +114,7 @@ func (r *deviceRepository) ListByUserID(ctx context.Context, userID string, curs
 		v, err, _ := r.sf.Do(listKey, func() (any, error) {
 			fetchedIDs, err := r.q.ListUserDeviceIDs(ctx, sqlc.ListUserDeviceIDsParams{
 				UserID:          userID,
-				CursorUpdatedAt: convert.TimePtrToNullTime(cursor),
+				CursorUpdatedAt: cursorTimeArg(cursor),
 				CursorID:        convert.StrPtrToNullStringNonEmpty(&cursorID),
 				Limit:           limit,
 			})

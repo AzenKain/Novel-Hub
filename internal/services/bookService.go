@@ -19,6 +19,7 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/worker"
@@ -81,9 +82,10 @@ type bookService struct {
 	permissions    PermissionCache
 	jobQueue       *worker.Queue
 	webhookService WebhookService
+	assetCache     *cache.ByteCache
 }
 
-func NewBookService(repo repositories.BookDBRepository, featureRepo repositories.FeatureRepository, libraryRepo repositories.LibraryRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue) BookService {
+func NewBookService(repo repositories.BookDBRepository, featureRepo repositories.FeatureRepository, libraryRepo repositories.LibraryRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue, assetCache *cache.ByteCache) BookService {
 	return &bookService{
 		bookRepo:    repo,
 		featureRepo: featureRepo,
@@ -94,6 +96,7 @@ func NewBookService(repo repositories.BookDBRepository, featureRepo repositories
 		settings:    settings,
 		permissions: permissions,
 		jobQueue:    jobQueue,
+		assetCache:  assetCache,
 	}
 }
 
@@ -309,6 +312,13 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		}
 	}
 
+	var spine []bookparser.ChapterData
+	if parserErr == nil {
+		if parsed, err := parser.ParseSpine(filePath); err == nil {
+			spine = parsed
+		}
+	}
+
 	tx, err := s.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -325,20 +335,17 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		}
 	}
 
-	if parserErr == nil {
-		spine, err := parser.ParseSpine(filePath)
-		if err == nil {
-			for _, ch := range spine {
-				contentPath := ch.ContentPath
-				chapter := &models.ChapterEntity{
-					ID:           uuid.Must(uuid.NewV7()).String(),
-					BookID:       bookID,
-					Title:        ch.Title,
-					ContentPath:  &contentPath,
-					ChapterIndex: int64(ch.Index),
-				}
-				_ = txRepo.CreateChapter(ctx, chapter)
-			}
+	for _, ch := range spine {
+		contentPath := ch.ContentPath
+		chapter := &models.ChapterEntity{
+			ID:           uuid.Must(uuid.NewV7()).String(),
+			BookID:       bookID,
+			Title:        ch.Title,
+			ContentPath:  &contentPath,
+			ChapterIndex: int64(ch.Index),
+		}
+		if err := txRepo.CreateChapter(ctx, chapter); err != nil {
+			return err
 		}
 	}
 
@@ -351,7 +358,11 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		return err
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	txRepo.FlushCache(ctx)
+	return nil
 }
 
 func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.BookDBRepository, bookID string, meta *bookparser.BookMetadata) error {
@@ -498,7 +509,7 @@ func (s *bookService) GetDuplicates(ctx context.Context) ([]*models.DuplicateFil
 }
 
 func (s *bookService) GetDuplicateGroups(ctx context.Context) ([]*response.DuplicateGroupResponse, error) {
-	details, err := s.bookRepo.GetDuplicateFileDetails(ctx)
+	details, err := s.bookRepo.GetDuplicateFileDetails(ctx, constants.MaxPaginationLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -585,6 +596,7 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	txRepo.FlushCache(ctx)
 
 	meta := &bookparser.BookMetadata{
 		Title:       req.Title,
@@ -742,19 +754,32 @@ func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath str
 	if err != nil {
 		return nil, err
 	}
-	parser, err := s.parserForFile(file)
-	if err != nil {
-		return nil, err
-	}
-	data, err := parser.GetAsset(file.Path, assetPath)
-	if err != nil {
-		return nil, err
-	}
-
 	contentType := readerAssetContentType(assetPath)
 	if contentType == "text/html" || contentType == "application/javascript" || contentType == "image/svg+xml" {
 		return nil, fmt.Errorf("active reader assets are not served inline")
 	}
+
+	load := func() ([]byte, error) {
+		parser, parserErr := s.parserForFile(file)
+		if parserErr != nil {
+			return nil, parserErr
+		}
+		return parser.GetAsset(file.Path, assetPath)
+	}
+
+	// Raster images only: a comic page costs ~20ms of archive decompression every time and a
+	// volume is read page by page, so the same bytes are rebuilt over and over. Everything else
+	// is either mutated below or a whole audiobook, neither of which belongs in RAM.
+	var data []byte
+	if s.assetCache != nil && strings.HasPrefix(contentType, "image/") {
+		data, err = s.assetCache.GetOrLoad(cache.BuildKey("asset", file.ID, file.ModTime, assetPath), load)
+	} else {
+		data, err = load()
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	if contentType == "text/css" {
 		data = []byte(scopeReaderCSS(string(data)))
 	}
@@ -813,6 +838,7 @@ func (s *bookService) DeleteBook(ctx context.Context, id string) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	txRepo.FlushCache(ctx)
 
 	// Filesystem cleanup after commit: a rolled-back delete must not destroy book files.
 	if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {

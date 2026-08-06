@@ -586,7 +586,7 @@ func (r *featureRepository) GetBookmarkedBooks(ctx context.Context, userID strin
 		}
 		result := make([]BookmarkedBookPage, len(rows))
 		for i, row := range rows {
-			result[i] = BookmarkedBookPage{BookID: row.BookID, CreatedAt: row.CreatedAt.Time}
+			result[i] = BookmarkedBookPage{BookID: row.BookID, CreatedAt: row.CreatedAt}
 		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, result, constants.ListCacheDuration)

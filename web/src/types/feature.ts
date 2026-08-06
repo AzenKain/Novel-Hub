@@ -4,13 +4,28 @@ export interface ReadingHistory {
   file_id?: string;
   chapter_id: string;
   progress_percent?: number;
-  location_cfi?: string;
-  location_type?: string;
   updated_at: string;
   book_title: string;
   book_cover_url?: string;
   chapter_title: string;
   chapter_index: number;
+}
+
+export interface ReadingProgress {
+  user_id: string;
+  book_id: string;
+  file_id?: string;
+  chapter_id: string;
+  chapter_title: string;
+  chapter_index: number;
+  progress_percent?: number;
+  location_cfi?: string;
+  location_type?: string;
+  opened_count: number;
+  qualified_read_count: number;
+  last_opened_at?: string;
+  last_counted_at?: string;
+  updated_at?: string;
 }
 
 export interface BookReadStats {

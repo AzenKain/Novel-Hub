@@ -155,6 +155,7 @@ func (s *calibreSyncService) importCalibreBook(ctx context.Context, libraryID st
 	if err := tx.Commit(); err != nil {
 		return false
 	}
+	txRepo.FlushCache(ctx)
 	committed = true
 
 	coverPath, err := localfs.SafeJoin(bookDir, "cover.jpg")

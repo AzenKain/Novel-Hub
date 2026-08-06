@@ -463,15 +463,14 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 const listBookIDs = `-- name: ListBookIDs :many
 SELECT id FROM books
 WHERE
-    (?1 IS NULL OR
-     datetime(created_at) < datetime(?1) OR
-     (datetime(created_at) = datetime(?1) AND id < ?2))
+    (created_at <= COALESCE(CAST(?1 AS TEXT), '9999-12-31 23:59:59')
+     AND (?1 IS NULL OR created_at < CAST(?1 AS TEXT) OR id < ?2))
 ORDER BY created_at DESC, id DESC
 LIMIT ?3
 `
 
 type ListBookIDsParams struct {
-	CursorCreatedAt interface{}    `json:"cursor_created_at"`
+	CursorCreatedAt sql.NullString `json:"cursor_created_at"`
 	CursorID        sql.NullString `json:"cursor_id"`
 	Limit           int64          `json:"limit"`
 }
@@ -531,9 +530,8 @@ func (q *Queries) ListChapterIDsByBook(ctx context.Context, bookID string) ([]st
 const searchBookIDs = `-- name: SearchBookIDs :many
 SELECT b.id FROM books b
 WHERE
-    (?1 IS NULL OR
-     datetime(b.created_at) < datetime(?1) OR
-     (datetime(b.created_at) = datetime(?1) AND b.id < ?2)) AND
+    (b.created_at <= COALESCE(CAST(?1 AS TEXT), '9999-12-31 23:59:59')
+     AND (?1 IS NULL OR b.created_at < CAST(?1 AS TEXT) OR b.id < ?2)) AND
     (?3 IS NULL OR b.library_id = ?3) AND
     (
         ?4 IS NULL OR
@@ -568,7 +566,7 @@ LIMIT ?29
 `
 
 type SearchBookIDsParams struct {
-	CursorCreatedAt       interface{}    `json:"cursor_created_at"`
+	CursorCreatedAt       sql.NullString `json:"cursor_created_at"`
 	CursorID              sql.NullString `json:"cursor_id"`
 	LibraryID             interface{}    `json:"library_id"`
 	Search                interface{}    `json:"search"`

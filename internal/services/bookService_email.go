@@ -3,14 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/google/uuid"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/config"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/mailer"
 	"novelhub/pkg/worker"
@@ -35,15 +33,12 @@ func (s *bookService) SendBookToEmail(ctx context.Context, bookID string, recipi
 		return apperrors.New(apperrors.ErrNotFound, "No files available for this book")
 	}
 
-	targetFile := files[0]
-	info, err := os.Stat(targetFile.Path)
+	smtpConfig, err := s.settings.SMTP(ctx)
 	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, "Failed to inspect book file")
+		return err
 	}
-
-	maxAttachmentMB := config.GetIntConfigWithDefault("MAX_EMAIL_ATTACHMENT_MB", 50)
-	if info.Size() > int64(maxAttachmentMB)*1024*1024 {
-		return apperrors.New(apperrors.ErrBadRequest, fmt.Sprintf("Book file exceeds %dMB email attachment size limit", maxAttachmentMB))
+	if _, err := resolveEmailAttachment(files, smtpConfig.MaxAttachmentMB); err != nil {
+		return err
 	}
 
 	payload, err := jsonx.MarshalString(sendBookEmailPayload{
@@ -85,16 +80,20 @@ func (s *bookService) ExecuteSendBookEmailJob(ctx context.Context, payloadJSON s
 		return apperrors.New(apperrors.ErrNotFound, "No files available for this book")
 	}
 
-	targetFile := files[0]
+	smtpConfig, err := s.settings.SMTP(ctx)
+	if err != nil {
+		return err
+	}
+
+	targetFile, err := resolveEmailAttachment(files, smtpConfig.MaxAttachmentMB)
+	if err != nil {
+		return err
+	}
 	attachment := &mailer.Attachment{
 		Filename: filepath.Base(targetFile.Path),
 		Path:     targetFile.Path,
 	}
 
-	smtpConfig, err := s.settings.SMTP(ctx)
-	if err != nil {
-		return err
-	}
 	m := mailer.NewSMTPMailer(smtpConfig)
 
 	subject := fmt.Sprintf("[NovelHub] Send to Kindle: %s", book.Title)

@@ -10,7 +10,7 @@ import (
 )
 
 const deleteFTSBook = `-- name: DeleteFTSBook :exec
-DELETE FROM fts_chapters WHERE book_id = ?
+DELETE FROM fts_chapters WHERE rowid IN (SELECT c.rowid FROM chapters c WHERE c.book_id = ?)
 `
 
 func (q *Queries) DeleteFTSBook(ctx context.Context, bookID string) error {
@@ -19,21 +19,27 @@ func (q *Queries) DeleteFTSBook(ctx context.Context, bookID string) error {
 }
 
 const insertFTSChapter = `-- name: InsertFTSChapter :exec
-INSERT INTO fts_chapters (book_id, chapter_id, title, content)
-VALUES (?, ?, ?, ?)
+INSERT INTO fts_chapters (rowid, book_id, chapter_id, title, content)
+VALUES (
+    (SELECT rowid FROM chapters WHERE id = ?1),
+    ?2,
+    ?1,
+    ?3,
+    ?4
+)
 `
 
 type InsertFTSChapterParams struct {
-	BookID    string `json:"book_id"`
 	ChapterID string `json:"chapter_id"`
+	BookID    string `json:"book_id"`
 	Title     string `json:"title"`
 	Content   string `json:"content"`
 }
 
 func (q *Queries) InsertFTSChapter(ctx context.Context, arg InsertFTSChapterParams) error {
 	_, err := q.exec(ctx, q.insertFTSChapterStmt, insertFTSChapter,
-		arg.BookID,
 		arg.ChapterID,
+		arg.BookID,
 		arg.Title,
 		arg.Content,
 	)

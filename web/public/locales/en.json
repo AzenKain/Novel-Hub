@@ -230,7 +230,11 @@
     "email_subject": "Subject",
     "email_body": "Message",
     "send_email": "Send",
-    "email_sent": "Email sent"
+    "email_sent": "Email sent",
+    "duplicates_partial_cleanup": "Deleted {{deleted}} file(s), {{failed}} failed: {{reason}}",
+    "upload_partial": "Uploaded {{count}} of {{total}} books. Processing metadata...",
+    "upload_done": "Uploaded {{count}} books. Processing metadata...",
+    "upload_all_failed": "No file could be uploaded: {{reason}}"
   },
   "auth": {
     "login_to_account": "Login to your account",

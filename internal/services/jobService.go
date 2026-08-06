@@ -190,7 +190,9 @@ func (s *jobService) Failed(ctx context.Context, job worker.Job, jobErr error) e
 		message = jobErr.Error()
 	}
 	_, err := s.repo.UpdateJobStatus(ctx, job.ID, "failed", message)
-	if s.webhookService != nil {
+	// A failing endpoint would otherwise self-feed: the dispatch job fails, job.failed fans out one
+	// new dispatch per subscribed webhook, each of which fails the same way.
+	if s.webhookService != nil && job.Type != "webhook.dispatch" {
 		s.webhookService.DispatchEvent(ctx, "job.failed", map[string]any{
 			"job_id":   job.ID,
 			"job_type": job.Type,

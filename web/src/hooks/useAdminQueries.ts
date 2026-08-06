@@ -82,12 +82,16 @@ export function useCalibreImportMutation() {
 
 // Users
 export function useUsersQuery(params: SearchUserParams) {
-  return useQuery<{ users: User[]; total: number }>({
+  return useQuery<{ users: User[]; total: number; nextCursor: string }>({
     queryKey: ["admin", "users", params],
     queryFn: async () => {
       const res = await adminService.searchUsers(params);
       if (!res.status) throw new Error(res.message || "Failed to fetch users");
-      return { users: res.data || [], total: res.pagination?.total_records || 0 };
+      return {
+        users: res.data || [],
+        total: res.pagination?.total_records || 0,
+        nextCursor: res.pagination?.next_cursor || "",
+      };
     },
   });
 }

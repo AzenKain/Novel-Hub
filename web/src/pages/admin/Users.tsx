@@ -58,8 +58,14 @@ export function Users() {
     userToDelete: state.userToDelete, setUserToDelete: state.setUserToDelete,
   })));
 
+  const [cursor, setCursor] = useState("");
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const resetPaging = () => {
+    setCursor("");
+    setCursorHistory([]);
+  };
   const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = useUsersQuery({
-    page: 1,
+    cursor: cursor || undefined,
     limit: 50,
     search: query || undefined,
     is_deleted: showDeleted ? undefined : false,
@@ -267,7 +273,7 @@ export function Users() {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
                 placeholder={t('admin.search_users_placeholder', 'Search users by name or email...')}
                 className="input input-bordered w-full pl-10 focus:input-primary h-10 text-sm rounded-xl bg-base-100"
               />
@@ -276,7 +282,7 @@ export function Users() {
               <input
                 type="checkbox"
                 checked={showDeleted}
-                onChange={(e) => setShowDeleted(e.target.checked)}
+                onChange={(e) => { setShowDeleted(e.target.checked); resetPaging(); }}
                 className="checkbox checkbox-primary checkbox-xs rounded"
               />
               <span className="text-xs font-medium select-none text-base-content/80">{t('admin.show_deleted', 'Show Deleted')}</span>
@@ -309,6 +315,34 @@ export function Users() {
           currentUserId={currentUser?.id}
           isCallerOwner={Boolean(currentUser?.is_owner)}
         />
+
+        {(cursorHistory.length > 0 || usersData?.nextCursor) && (
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              className="btn btn-sm"
+              disabled={cursorHistory.length === 0}
+              onClick={() => {
+                setCursorHistory((prev) => {
+                  setCursor(prev[prev.length - 1] ?? "");
+                  return prev.slice(0, -1);
+                });
+              }}
+            >
+              {t("common.previous")}
+            </button>
+            <button
+              className="btn btn-sm"
+              disabled={!usersData?.nextCursor}
+              onClick={() => {
+                if (!usersData?.nextCursor) return;
+                setCursorHistory((prev) => [...prev, cursor]);
+                setCursor(usersData.nextCursor);
+              }}
+            >
+              {t("common.next")}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

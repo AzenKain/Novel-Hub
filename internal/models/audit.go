@@ -30,7 +30,7 @@ func AuditLogFromSqlc(row sqlc.AuditLog) *AuditLogEntity {
 		TargetID:    convert.NullStringToStrPtr(row.TargetID),
 		TargetLabel: row.TargetLabel,
 		IP:          row.Ip,
-		CreatedAt:   row.CreatedAt.Time,
+		CreatedAt:   row.CreatedAt,
 	}
 }
 

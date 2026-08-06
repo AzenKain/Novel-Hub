@@ -16,9 +16,8 @@ RETURNING id, user_id, name, created_at, updated_at;
 -- name: GetUserCollectionIDs :many
 SELECT id FROM collections
 WHERE user_id = sqlc.arg('user_id') AND
-    (sqlc.narg('cursor_created_at') IS NULL OR
-     datetime(created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-     (datetime(created_at) = datetime(sqlc.narg('cursor_created_at')) AND id < sqlc.narg('cursor_id')))
+    (created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR id < sqlc.narg('cursor_id')))
 ORDER BY created_at DESC, id DESC
 LIMIT sqlc.arg('limit');
 
@@ -60,10 +59,9 @@ SELECT b.id
 FROM books b
 JOIN collection_books cb ON cb.book_id = b.id
 WHERE cb.collection_id = sqlc.arg('collection_id') AND
-    (sqlc.narg('cursor_created_at') IS NULL OR
-     datetime(b.created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-     (datetime(b.created_at) = datetime(sqlc.narg('cursor_created_at')) AND b.id < sqlc.narg('cursor_id')))
-ORDER BY datetime(b.created_at) DESC, b.id DESC
+    (b.created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_created_at') IS NULL OR b.created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR b.id < sqlc.narg('cursor_id')))
+ORDER BY b.created_at DESC, b.id DESC
 LIMIT sqlc.arg('limit');
 
 -- name: GetReadingProgress :one
@@ -144,9 +142,8 @@ SELECT
 FROM reading_progress rp
 JOIN books b ON b.id = rp.book_id
 WHERE rp.user_id = sqlc.arg('user_id') AND
-    (sqlc.narg('cursor_updated_at') IS NULL OR
-     datetime(rp.updated_at) < datetime(sqlc.narg('cursor_updated_at')) OR
-     (datetime(rp.updated_at) = datetime(sqlc.narg('cursor_updated_at')) AND rp.book_id < sqlc.narg('cursor_id')))
+    (rp.updated_at <= COALESCE(CAST(sqlc.narg('cursor_updated_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < CAST(sqlc.narg('cursor_updated_at') AS TEXT) OR rp.book_id < sqlc.narg('cursor_id')))
 ORDER BY rp.updated_at DESC, rp.book_id DESC
 LIMIT sqlc.arg('limit');
 
@@ -212,9 +209,8 @@ ON CONFLICT(book_id) DO UPDATE SET
 -- name: GetBookmarkedBooks :many
 SELECT book_id, created_at FROM bookmarks
 WHERE user_id = sqlc.arg('user_id') AND
-    (sqlc.narg('cursor_created_at') IS NULL OR
-     datetime(created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-     (datetime(created_at) = datetime(sqlc.narg('cursor_created_at')) AND book_id < sqlc.narg('cursor_id')))
+    (created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR book_id < sqlc.narg('cursor_id')))
 ORDER BY created_at DESC, book_id DESC
 LIMIT sqlc.arg('limit');
 
@@ -264,9 +260,8 @@ LIMIT 1;
 -- name: ListBookReviews :many
 SELECT user_id, book_id, rating, review, created_at, updated_at FROM book_reviews
 WHERE book_id = sqlc.arg('book_id') AND
-    (sqlc.narg('cursor_updated_at') IS NULL OR
-     datetime(updated_at) < datetime(sqlc.narg('cursor_updated_at')) OR
-     (datetime(updated_at) = datetime(sqlc.narg('cursor_updated_at')) AND user_id < sqlc.narg('cursor_id')))
+    (updated_at <= COALESCE(CAST(sqlc.narg('cursor_updated_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < CAST(sqlc.narg('cursor_updated_at') AS TEXT) OR user_id < sqlc.narg('cursor_id')))
 ORDER BY updated_at DESC, user_id DESC
 LIMIT sqlc.arg('limit');
 
@@ -327,26 +322,24 @@ WHERE c.user_id = ? AND cb.book_id = ?;
 SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,
        u.full_name as user_name, u.email as user_email,
        b.title as book_title
-FROM book_reviews br
+FROM (SELECT user_id, book_id, rating, review, created_at, updated_at
+      FROM book_reviews ORDER BY updated_at DESC LIMIT ? OFFSET ?) br
 JOIN users u ON u.id = br.user_id
 JOIN books b ON b.id = br.book_id
-ORDER BY br.updated_at DESC
-LIMIT ? OFFSET ?;
+ORDER BY br.updated_at DESC;
 
 -- name: GetRecentReadingHistoryBookIDs :many
 SELECT rp.book_id FROM reading_progress rp
 WHERE rp.user_id = ? AND
-    (sqlc.narg('cursor_updated_at') IS NULL OR
-     datetime(rp.updated_at) < datetime(sqlc.narg('cursor_updated_at')) OR
-     (datetime(rp.updated_at) = datetime(sqlc.narg('cursor_updated_at')) AND rp.book_id < sqlc.narg('cursor_id')))
+    (rp.updated_at <= COALESCE(CAST(sqlc.narg('cursor_updated_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_updated_at') IS NULL OR rp.updated_at < CAST(sqlc.narg('cursor_updated_at') AS TEXT) OR rp.book_id < sqlc.narg('cursor_id')))
 ORDER BY rp.updated_at DESC, rp.book_id DESC
 LIMIT sqlc.arg('limit');
 
 -- name: ListBookReviewCompositeKeys :many
 SELECT CAST(user_id AS TEXT) || ':' || book_id as composite_key FROM book_reviews
 WHERE book_id = ? AND
-    (sqlc.narg('cursor_updated_at') IS NULL OR
-     datetime(updated_at) < datetime(sqlc.narg('cursor_updated_at')) OR
-     (datetime(updated_at) = datetime(sqlc.narg('cursor_updated_at')) AND user_id < sqlc.narg('cursor_id')))
+    (updated_at <= COALESCE(CAST(sqlc.narg('cursor_updated_at') AS TEXT), '9999-12-31 23:59:59')
+     AND (sqlc.narg('cursor_updated_at') IS NULL OR updated_at < CAST(sqlc.narg('cursor_updated_at') AS TEXT) OR user_id < sqlc.narg('cursor_id')))
 ORDER BY updated_at DESC, user_id DESC
 LIMIT sqlc.arg('limit');

@@ -184,10 +184,6 @@ func (s *deviceService) ExecutePushJob(ctx context.Context, payloadJSON string) 
 	}
 
 	filePath := targetFile.Path
-	info, err := os.Stat(filePath)
-	if err != nil {
-		return apperrors.New(apperrors.ErrNotFound, "Book file missing from disk")
-	}
 
 	switch device.DeviceType {
 	case "kindle", "pocketbook":
@@ -196,14 +192,13 @@ func (s *deviceService) ExecutePushJob(ctx context.Context, payloadJSON string) 
 			return apperrors.New(apperrors.ErrInternalError, "SMTP settings not configured")
 		}
 
-		maxAttachmentMB := smtpConfig.MaxAttachmentMB
-		if maxAttachmentMB <= 0 {
-			maxAttachmentMB = 50
+		// ponytail: e-mail delivery is format-picky, KOReader is not — only this branch
+		// narrows the candidates.
+		emailFile, err := resolveEmailAttachment(files, smtpConfig.MaxAttachmentMB)
+		if err != nil {
+			return err
 		}
-
-		if info.Size() > int64(maxAttachmentMB)*1024*1024 {
-			return apperrors.New(apperrors.ErrBadRequest, fmt.Sprintf("Book file exceeds %dMB email attachment limit", maxAttachmentMB))
-		}
+		filePath = emailFile.Path
 
 		m := mailer.NewSMTPMailer(smtpConfig)
 

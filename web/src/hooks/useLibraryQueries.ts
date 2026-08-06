@@ -83,20 +83,15 @@ export function useLibraryStatsQuery() {  return useQuery<LibraryStats>({
 }
 
 export function useCollectionsQuery(enabled = true) {
-  return useInfiniteQuery<{ data: Collection[], nextCursor: string | null }>({
+  return useInfiniteQuery({
     queryKey: ["collections"],
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      const cursor = pageParam as string | undefined;
-      const res = await featureService.getCollections(cursor, 50);
+      const res = await featureService.getCollections(pageParam, 50);
       if (!res.status) throw new Error(res.message || "Failed to fetch collections");
-      
-      const collections = res.data || [];
-      const nextCursor = collections.length === 50 ? collections[collections.length - 1].created_at : null;
-      
-      return { data: collections, nextCursor };
+      return res;
     },
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
   });
 }

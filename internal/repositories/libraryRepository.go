@@ -156,8 +156,9 @@ func (r *libraryRepository) GetLibrariesByIDs(ctx context.Context, ids []string)
 	}
 
 	if len(missingIds) > 0 {
-		sort.Strings(missingIds)
-		sfgKey := "libraries:ids:" + strings.Join(missingIds, ",")
+		sortedIDs := append([]string(nil), missingIds...)
+		sort.Strings(sortedIDs)
+		sfgKey := "libraries:ids:" + strings.Join(sortedIDs, ",")
 		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
 			rows, err := queryInChunks(missingIds, func(chunk []string) ([]sqlc.Library, error) {
 				return r.queries.GetLibrariesByIDs(ctx, chunk)
@@ -238,6 +239,8 @@ func (r *libraryRepository) DeleteLibrary(ctx context.Context, id string) error 
 		// were, so sweep by pattern the way BulkDeleteBooks does for the same DB effect.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookAllPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaSeriesPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaBookSeriesPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFilePattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)

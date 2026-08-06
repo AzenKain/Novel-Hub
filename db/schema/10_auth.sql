@@ -90,21 +90,22 @@ CREATE VIRTUAL TABLE IF NOT EXISTS fts_users USING fts5(
 
 -- Keep haystack identical in all three triggers and the backfill below.
 CREATE TRIGGER IF NOT EXISTS t_users_fts_ai AFTER INSERT ON users BEGIN
-  INSERT INTO fts_users(user_id, haystack)
-  VALUES (new.id, new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, ''));
+  INSERT INTO fts_users(rowid, user_id, haystack)
+  VALUES (new.rowid, new.id, new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, ''));
 END;
 
 CREATE TRIGGER IF NOT EXISTS t_users_fts_ad AFTER DELETE ON users BEGIN
-  DELETE FROM fts_users WHERE user_id = old.id;
+  DELETE FROM fts_users WHERE rowid = old.rowid;
 END;
 
 CREATE TRIGGER IF NOT EXISTS t_users_fts_au AFTER UPDATE ON users BEGIN
-  DELETE FROM fts_users WHERE user_id = old.id;
-  INSERT INTO fts_users(user_id, haystack)
-  VALUES (new.id, new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, ''));
+  UPDATE fts_users
+  SET user_id = new.id,
+      haystack = new.id || ' ' || new.email || ' ' || COALESCE(new.full_name, '')
+  WHERE rowid = old.rowid;
 END;
 
-INSERT INTO fts_users(user_id, haystack)
-SELECT u.id, u.id || ' ' || u.email || ' ' || COALESCE(u.full_name, '')
+INSERT INTO fts_users(rowid, user_id, haystack)
+SELECT u.rowid, u.id, u.id || ' ' || u.email || ' ' || COALESCE(u.full_name, '')
 FROM users u
-WHERE NOT EXISTS (SELECT 1 FROM fts_users f WHERE f.user_id = u.id);
+WHERE NOT EXISTS (SELECT 1 FROM fts_users f WHERE f.rowid = u.rowid);

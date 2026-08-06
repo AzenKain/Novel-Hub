@@ -12,9 +12,8 @@ WHERE
     (sqlc.narg('action') IS NULL OR action = sqlc.narg('action'))
     AND (sqlc.narg('actor_id') IS NULL OR actor_id = sqlc.narg('actor_id'))
     AND (
-        sqlc.narg('cursor_created_at') IS NULL OR
-        datetime(created_at) < datetime(sqlc.narg('cursor_created_at')) OR
-        (datetime(created_at) = datetime(sqlc.narg('cursor_created_at')) AND id > sqlc.narg('cursor_id'))
+        created_at <= COALESCE(CAST(sqlc.narg('cursor_created_at') AS TEXT), '9999-12-31 23:59:59')
+        AND (sqlc.narg('cursor_created_at') IS NULL OR created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR id > sqlc.narg('cursor_id'))
     )
 ORDER BY created_at DESC, id ASC
 LIMIT sqlc.arg('limit');

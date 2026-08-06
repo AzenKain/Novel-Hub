@@ -442,7 +442,7 @@ export function Roles() {
                           {
                             id: "integration",
                             name: "🔄 External Sync & Integration",
-                            keys: ["opds.read", "opds.download", "kobo.sync", "calibre.sync"]
+                            keys: ["opds.read", "opds.download", "kobo.sync", "komga.sync", "calibre.sync"]
                           },
                           {
                             id: "admin",

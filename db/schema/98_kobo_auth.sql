@@ -30,3 +30,5 @@ CREATE TABLE IF NOT EXISTS kobo_synced_books (
     synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, book_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_kobo_synced_books_book ON kobo_synced_books(book_id);

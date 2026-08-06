@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     target_id TEXT,
     target_label TEXT NOT NULL DEFAULT '',
     ip TEXT NOT NULL DEFAULT '',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Matches the keyset order (created_at DESC, id ASC) the list query pages on.

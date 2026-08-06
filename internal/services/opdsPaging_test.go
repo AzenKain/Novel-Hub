@@ -109,7 +109,7 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 		t.Fatal(err)
 	}
 	settingsService := NewSettingsService(repositories.NewSettingsRepository(db, ramCache), database.NewTxManager(db), permissionCache)
-	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil)
+	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 
 	for i := range books {
 		// Distinct created_at so the cursor has a stable order to page through.

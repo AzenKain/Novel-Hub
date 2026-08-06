@@ -12,6 +12,7 @@ import (
 )
 
 var ErrQueueStopped = errors.New("job queue stopped")
+var ErrQueueFull = errors.New("job queue full")
 
 type JobFunc func(ctx context.Context, jobID string, payload string) error
 
@@ -59,14 +60,35 @@ func NewQueue(workers int, bufferSize ...int) *Queue {
 	}
 }
 
+// Registration is documented as before-Start, but nothing enforces it and the worker reads both
+// from another goroutine, so q.mu guards them the same way it already guards stopped.
 func (q *Queue) RegisterHandler(jobType string, handler JobFunc) {
+	q.mu.Lock()
 	q.handler[jobType] = handler
+	q.mu.Unlock()
 }
 
 func (q *Queue) SetLifecycle(lifecycle Lifecycle) {
+	q.mu.Lock()
 	q.lifecycle = lifecycle
+	q.mu.Unlock()
 }
 
+func (q *Queue) lc() Lifecycle {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+	return q.lifecycle
+}
+
+func (q *Queue) handlerFor(jobType string) (JobFunc, bool) {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+	h, ok := q.handler[jobType]
+	return h, ok
+}
+
+// The channel is the only bound: pond.NewPool defaults to an unbounded submit queue, so handing
+// overflow to the pool would accept every job forever instead of applying backpressure.
 func (q *Queue) Enqueue(ctx context.Context, job Job) error {
 	return q.enqueue(ctx, job, true)
 }
@@ -82,31 +104,29 @@ func (q *Queue) enqueue(ctx context.Context, job Job, persist bool) error {
 	if stopped {
 		return ErrQueueStopped
 	}
-	if persist && q.lifecycle != nil {
-		if err := q.lifecycle.Queued(ctx, job); err != nil {
+	if lc := q.lc(); persist && lc != nil {
+		if err := lc.Queued(ctx, job); err != nil {
 			return err
 		}
 	}
 	select {
 	case <-ctx.Done():
-		if q.lifecycle != nil {
-			_ = q.lifecycle.Failed(context.Background(), job, ctx.Err())
+		if lc := q.lc(); lc != nil {
+			_ = lc.Failed(context.Background(), job, ctx.Err())
 		}
 		return ctx.Err()
 	case <-q.ctx.Done():
-		if q.lifecycle != nil {
-			_ = q.lifecycle.Failed(context.Background(), job, ErrQueueStopped)
+		if lc := q.lc(); lc != nil {
+			_ = lc.Failed(context.Background(), job, ErrQueueStopped)
 		}
 		return ErrQueueStopped
 	case q.jobs <- job:
 		return nil
 	default:
-		q.wg.Add(1)
-		q.pool.Submit(func() {
-			defer q.wg.Done()
-			q.process(job)
-		})
-		return nil
+		if lc := q.lc(); lc != nil {
+			_ = lc.Failed(context.Background(), job, ErrQueueFull)
+		}
+		return ErrQueueFull
 	}
 }
 
@@ -134,22 +154,22 @@ func (q *Queue) process(job Job) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Interface("panic", r).Str("job_id", job.ID).Msg("Worker job panicked")
-			if q.lifecycle != nil {
-				_ = q.lifecycle.Failed(q.ctx, job, fmt.Errorf("panic: %v", r))
+			if lc := q.lc(); lc != nil {
+				_ = lc.Failed(q.ctx, job, fmt.Errorf("panic: %v", r))
 			}
 		}
 	}()
-	handler, ok := q.handler[job.Type]
+	handler, ok := q.handlerFor(job.Type)
 	if !ok {
 		err := errors.New("no handler found for job type")
-		if q.lifecycle != nil {
-			_ = q.lifecycle.Failed(q.ctx, job, err)
+		if lc := q.lc(); lc != nil {
+			_ = lc.Failed(q.ctx, job, err)
 		}
 		log.Error().Str("type", job.Type).Msg("No handler found for job type")
 		return
 	}
-	if q.lifecycle != nil {
-		_ = q.lifecycle.Running(q.ctx, job)
+	if lc := q.lc(); lc != nil {
+		_ = lc.Running(q.ctx, job)
 	}
 	start := time.Now()
 	var lastErr error
@@ -158,8 +178,8 @@ func (q *Queue) process(job Job) {
 		err := handler(ctx, job.ID, job.Payload)
 		cancel()
 		if err == nil {
-			if q.lifecycle != nil {
-				_ = q.lifecycle.Completed(q.ctx, job)
+			if lc := q.lc(); lc != nil {
+				_ = lc.Completed(q.ctx, job)
 			}
 			log.Info().Str("job_id", job.ID).Dur("duration", time.Since(start)).Msg("Job completed successfully")
 			return
@@ -169,16 +189,16 @@ func (q *Queue) process(job Job) {
 		if attempt < 3 {
 			select {
 			case <-q.ctx.Done():
-				if q.lifecycle != nil {
-					_ = q.lifecycle.Failed(context.Background(), job, q.ctx.Err())
+				if lc := q.lc(); lc != nil {
+					_ = lc.Failed(context.Background(), job, q.ctx.Err())
 				}
 				return
 			case <-time.After(time.Duration(attempt*500) * time.Millisecond):
 			}
 		}
 	}
-	if q.lifecycle != nil {
-		_ = q.lifecycle.Failed(q.ctx, job, lastErr)
+	if lc := q.lc(); lc != nil {
+		_ = lc.Failed(q.ctx, job, lastErr)
 	}
 	log.Error().Err(lastErr).Str("job_id", job.ID).Msg("Job permanently failed after retries")
 }

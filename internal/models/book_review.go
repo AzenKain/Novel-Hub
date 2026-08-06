@@ -25,8 +25,8 @@ func (e *BookReviewEntity) FromSqlc(res sqlc.BookReview) *BookReviewEntity {
 	e.BookID = res.BookID
 	e.Rating = res.Rating
 	e.Review = convert.NullStringToStrPtr(res.Review)
-	e.CreatedAt = convert.NullTimeToTimePtr(res.CreatedAt)
-	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
+	e.CreatedAt = &res.CreatedAt
+	e.UpdatedAt = &res.UpdatedAt
 	return e
 }
 
@@ -46,8 +46,8 @@ func (e *BookReviewEntity) FromListAllReviewsSqlc(res sqlc.ListAllReviewsRow) *B
 	e.BookID = res.BookID
 	e.Rating = res.Rating
 	e.Review = convert.NullStringToStrPtr(res.Review)
-	e.CreatedAt = convert.NullTimeToTimePtr(res.CreatedAt)
-	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
+	e.CreatedAt = &res.CreatedAt
+	e.UpdatedAt = &res.UpdatedAt
 	e.UserName = convert.NullStringToString(res.UserName)
 	e.UserEmail = res.UserEmail
 	e.BookTitle = res.BookTitle
