@@ -1,4 +1,5 @@
 import { api } from "@/config/api";
+import { offlineStore } from "@/lib/offlineStore";
 import type { BootstrapResponse, CommonResponse, ReadingGoal, SearchSnippet } from "@/types";
 import axios from "axios";
 
@@ -40,6 +41,11 @@ export const readerService = {
   },
 
   async syncReadingSession(book_id: string, duration: number, words: number): Promise<CommonResponse<void>> {
+    const payload = { book_id, duration, words };
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      void offlineStore.enqueueSyncItem({ type: "session", payload });
+      return { status: true, message: "Session queued offline" };
+    }
     try {
       const res = await api.post('/reader/stats/session', {
         book_id,
@@ -49,7 +55,13 @@ export const readerService = {
       });
       return res.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<void>;
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          void offlineStore.enqueueSyncItem({ type: "session", payload });
+          return { status: true, message: "Session queued offline" };
+        }
+        return error.response.data as CommonResponse<void>;
+      }
       throw error;
     }
   },

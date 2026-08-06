@@ -1,4 +1,5 @@
 import { api } from "@/config/api";
+import { offlineStore } from "@/lib/offlineStore";
 import type {
   Book,
   BookEngagementStats,
@@ -81,12 +82,21 @@ export const featureService = {
   recordReadingActivity: async (
     payload: RecordReadingActivityPayload,
   ): Promise<CommonResponse<ReadingActivityResult>> => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      void offlineStore.enqueueSyncItem({ type: "progress", payload });
+      return { status: true, message: "Progress queued offline" };
+    }
     try {
       const res = await api.post("/reader/history", payload);
       return res.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response)
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          void offlineStore.enqueueSyncItem({ type: "progress", payload });
+          return { status: true, message: "Progress queued offline" };
+        }
         return error.response.data as CommonResponse<ReadingActivityResult>;
+      }
       throw error;
     }
   },

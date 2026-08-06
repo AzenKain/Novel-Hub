@@ -73,10 +73,15 @@ function GuestGuard() {
 }
 
 import { useCurrentUserQuery } from "@/hooks";
+import { initOfflineSyncManager } from "@/lib/offlineSyncManager";
 
 function App() {
   const { isLoading: isAuthLoading } = useCurrentUserQuery();
   const booted = useAuthStore((state) => state.booted);
+
+  useEffect(() => {
+    return initOfflineSyncManager();
+  }, []);
 
   if (!booted || isAuthLoading) {
     return (

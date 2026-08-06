@@ -1,15 +1,23 @@
 import type { Book, Chapter } from "@/types";
 
 const DB_NAME = "novelhub-offline";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const BOOKS = "books";
 const CHAPTERS = "chapters";
 const BLOBS = "blobs";
+const SYNC_QUEUE = "sync_queue";
 
 export type OfflineBook = {
   book: Book;
   chapters: Chapter[];
   savedAt: number;
+};
+
+export type PendingSyncItem = {
+  id: string;
+  type: "progress" | "session";
+  payload: any;
+  createdAt: number;
 };
 
 function openDB(): Promise<IDBDatabase> {
@@ -20,6 +28,7 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(BOOKS)) db.createObjectStore(BOOKS);
       if (!db.objectStoreNames.contains(CHAPTERS)) db.createObjectStore(CHAPTERS);
       if (!db.objectStoreNames.contains(BLOBS)) db.createObjectStore(BLOBS);
+      if (!db.objectStoreNames.contains(SYNC_QUEUE)) db.createObjectStore(SYNC_QUEUE);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -98,10 +107,44 @@ export const offlineStore = {
   },
 
   async clearAll(): Promise<void> {
-    await run([BOOKS, CHAPTERS, BLOBS], "readwrite", (tx) => {
+    await run([BOOKS, CHAPTERS, BLOBS, SYNC_QUEUE], "readwrite", (tx) => {
       tx.objectStore(BOOKS).clear();
       tx.objectStore(CHAPTERS).clear();
       tx.objectStore(BLOBS).clear();
+      tx.objectStore(SYNC_QUEUE).clear();
+      return null;
+    });
+  },
+
+  async enqueueSyncItem(item: Omit<PendingSyncItem, "id" | "createdAt">): Promise<string> {
+    const id = `${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
+    const fullItem: PendingSyncItem = {
+      id,
+      type: item.type,
+      payload: item.payload,
+      createdAt: Date.now(),
+    };
+    await run(SYNC_QUEUE, "readwrite", (tx) => tx.objectStore(SYNC_QUEUE).put(fullItem, id));
+    return id;
+  },
+
+  async listSyncItems(): Promise<PendingSyncItem[]> {
+    const all = await run<PendingSyncItem[]>(SYNC_QUEUE, "readonly", (tx) =>
+      tx.objectStore(SYNC_QUEUE).getAll(),
+    );
+    return (all || []).sort((a, b) => a.createdAt - b.createdAt);
+  },
+
+  async deleteSyncItem(id: string): Promise<void> {
+    await run(SYNC_QUEUE, "readwrite", (tx) => {
+      tx.objectStore(SYNC_QUEUE).delete(id);
+      return null;
+    });
+  },
+
+  async clearSyncQueue(): Promise<void> {
+    await run(SYNC_QUEUE, "readwrite", (tx) => {
+      tx.objectStore(SYNC_QUEUE).clear();
       return null;
     });
   },
