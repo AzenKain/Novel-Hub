@@ -190,8 +190,8 @@ requests — a general limit would throttle readers, not attackers.
 
 NovelHub includes full OPDS 1.2 (Atom XML) and OPDS 2.0 (JSON) catalog servers:
 
-- **OPDS 1.2 Catalog**: `/api/opds/v1` (Atom XML format, compatible with KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko).
-- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (JSON format, compatible with modern readers like Thorium).
+- **OPDS 1.2 Catalog**: `/api/opds/v1` (Atom XML format, compatible with KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko). Includes navigation feeds (`/recent`, `/authors`, `/series`, `/tags`), OpenSearch XML (`/api/opds/v1/opensearch.xml`), and full-text search (`/api/opds/v1/search?q={searchTerms}`).
+- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (JSON format `application/opds+json`, compatible with modern readers like Thorium). Includes root navigation links, publication metadata, cover image links, and acquisition links.
 - **Authentication**: Supports HTTP Basic Auth (using user account email and password) as well as Guest Access policies configured per library in Admin Settings.
 
 ### PWA & Offline Reading

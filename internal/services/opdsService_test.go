@@ -246,36 +246,6 @@ func TestOPDS12_TagsCatalogAndFilter(t *testing.T) {
 	}
 }
 
-func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
-	opdsSvc, db, claims := setupOPDSFullTestEnv(t)
-	ctx := context.Background()
-	const serverURL = "http://localhost:8080"
-
-	if _, err := db.Exec(`INSERT INTO books (id, library_id, title, status) VALUES ('test-book-opds-2', 'lib-1', 'Test OPDS 2.0 Book Title', 'active')`); err != nil {
-		t.Fatalf("failed to insert book: %v", err)
-	}
-
-	catalog, err := opdsSvc.GetOPDS2Catalog(ctx, serverURL, claims)
-	if err != nil {
-		t.Fatalf("failed to get OPDS 2.0 catalog: %v", err)
-	}
-
-	metadata, ok := catalog["metadata"].(map[string]any)
-	if !ok || metadata["title"] != "NovelHub OPDS 2.0 Catalog" {
-		t.Errorf("unexpected metadata: %v", catalog["metadata"])
-	}
-
-	publications, ok := catalog["publications"].([]map[string]any)
-	if !ok || len(publications) == 0 {
-		t.Fatalf("expected publications in OPDS 2.0 catalog, got %v", catalog["publications"])
-	}
-
-	pubTitle := publications[0]["metadata"].(map[string]any)["title"]
-	if pubTitle != "Test OPDS 2.0 Book Title" {
-		t.Errorf("expected publication title 'Test OPDS 2.0 Book Title', got %v", pubTitle)
-	}
-}
-
 func TestOPDS12_BookEntryMimeTypesAndAcquisitionLinks(t *testing.T) {
 	opdsSvc, db, claims := setupOPDSFullTestEnv(t)
 	ctx := context.Background()
@@ -337,5 +307,56 @@ func TestOPDS12_BookEntryMimeTypesAndAcquisitionLinks(t *testing.T) {
 		if !acquisitionMimes[f.mime] {
 			t.Errorf("expected acquisition link with MIME type '%s' for format '%s', but not found", f.mime, f.format)
 		}
+	}
+}
+
+func TestOPDSService_GetOPDS2Catalog(t *testing.T) {
+	opdsSvc, db, claims := setupOPDSFullTestEnv(t)
+	ctx := context.Background()
+	const serverURL = "http://localhost:8080"
+
+	metaJSON := `{"series":"Test Series","subject":["Fantasy","Adventure"]}`
+	if _, err := db.Exec(`INSERT INTO books (id, library_id, title, status, description, metadata_json) VALUES ('test-book-opds-2', 'lib-1', 'Test OPDS 2.0 Book Title', 'active', 'A sample book description', ?)`, metaJSON); err != nil {
+		t.Fatalf("failed to insert book: %v", err)
+	}
+
+	catalog, err := opdsSvc.GetOPDS2Catalog(ctx, serverURL, claims)
+	if err != nil {
+		t.Fatalf("failed to get OPDS 2.0 catalog: %v", err)
+	}
+
+	metadata, ok := catalog["metadata"].(map[string]any)
+	if !ok || metadata["title"] != "NovelHub OPDS 2.0 Catalog" {
+		t.Errorf("unexpected metadata: %v", catalog["metadata"])
+	}
+	if numItems, ok := metadata["numberOfItems"].(int); !ok || numItems != 1 {
+		t.Errorf("expected numberOfItems 1, got %v", metadata["numberOfItems"])
+	}
+
+	navigation, ok := catalog["navigation"].([]map[string]any)
+	if !ok || len(navigation) != 4 {
+		t.Fatalf("expected 4 navigation feeds in OPDS 2.0 catalog, got %d", len(navigation))
+	}
+	if navigation[0]["title"] != "Recent Additions" || navigation[1]["title"] != "Authors" {
+		t.Errorf("unexpected navigation titles: %v, %v", navigation[0]["title"], navigation[1]["title"])
+	}
+
+	publications, ok := catalog["publications"].([]map[string]any)
+	if !ok || len(publications) == 0 {
+		t.Fatalf("expected publications in OPDS 2.0 catalog, got %v", catalog["publications"])
+	}
+
+	pubMeta, ok := publications[0]["metadata"].(map[string]any)
+	if !ok {
+		t.Fatalf("invalid publication metadata")
+	}
+	if pubMeta["title"] != "Test OPDS 2.0 Book Title" {
+		t.Errorf("expected publication title 'Test OPDS 2.0 Book Title', got %v", pubMeta["title"])
+	}
+	if pubMeta["summary"] != "A sample book description" {
+		t.Errorf("expected summary 'A sample book description', got %v", pubMeta["summary"])
+	}
+	if belongsTo, ok := pubMeta["belongsTo"].(map[string]any); !ok || belongsTo["series"] != "Test Series" {
+		t.Errorf("expected series 'Test Series' in belongsTo, got %v", pubMeta["belongsTo"])
 	}
 }

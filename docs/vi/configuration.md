@@ -191,8 +191,8 @@ request hợp lệ — một giới hạn chung sẽ chặn người đọc, kh�
 
 NovelHub tích hợp sẵn máy chủ OPDS 1.2 (Atom XML) và OPDS 2.0 (JSON) hoàn chỉnh:
 
-- **OPDS 1.2 Catalog**: `/api/opds/v1` (Định dạng Atom XML, tương thích hoàn hảo với KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko).
-- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (Định dạng JSON, tương thích với các trình đọc hiện đại như Thorium).
+- **OPDS 1.2 Catalog**: `/api/opds/v1` (Định dạng Atom XML, tương thích hoàn hảo với KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko). Bao gồm các danh mục điều hướng (`/recent`, `/authors`, `/series`, `/tags`), OpenSearch XML (`/api/opds/v1/opensearch.xml`), và tìm kiếm toàn văn (`/api/opds/v1/search?q={searchTerms}`).
+- **OPDS 2.0 Catalog**: `/api/opds/v2/catalog` (Định dạng JSON `application/opds+json`, tương thích với các trình đọc hiện đại như Thorium). Bao gồm các liên kết điều hướng gốc, thông tin chi tiết tác phẩm, ảnh bìa và liên kết tải sách.
 - **Xác thực**: Hỗ trợ HTTP Basic Auth (dùng email và mật khẩu tài khoản) cũng như chính sách Truy cập Khách (Guest Access) được cấu hình theo từng thư viện trong Admin Settings.
 
 ### PWA & Đọc Sách Offline

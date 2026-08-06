@@ -187,8 +187,8 @@ OPDS에서는 실패한 시도만 집계됩니다. 유효한 자격 증명으로
 
 NovelHub에는 완전한 OPDS 1.2 (Atom XML) 및 OPDS 2.0 (JSON) 카탈로그 서버가 내장되어 있습니다:
 
-- **OPDS 1.2 카탈로그**: `/api/opds/v1` (Atom XML 형식. KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko 지원).
-- **OPDS 2.0 카탈로그**: `/api/opds/v2/catalog` (JSON 형식. Thorium과 같은 최신 리더 지원).
+- **OPDS 1.2 카탈로그**: `/api/opds/v1` (Atom XML 형식. KOReader, Moon+ Reader, Calibre, PocketBook, Aldiko 지원). 탐색 피드(`/recent`, `/authors`, `/series`, `/tags`), OpenSearch XML(`/api/opds/v1/opensearch.xml`), 전문 검색(`/api/opds/v1/search?q={searchTerms}`)을 포함합니다.
+- **OPDS 2.0 카탈로그**: `/api/opds/v2/catalog` (JSON 형식 `application/opds+json`. Thorium과 같은 최신 리더 지원). 루트 탐색 링크, 간행물 메타데이터, 커버 이미지 링크, 다운로드 링크를 포함합니다.
 - **인증**: HTTP Basic 인증(사용자 계정 이메일 및 비밀번호 사용) 및 Admin Settings에서 라이브러리별로 설정된 게스트 접근 정책을 지원합니다.
 
 ### PWA & 오프라인 독서

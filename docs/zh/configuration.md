@@ -181,8 +181,8 @@ HTTP Basic 认证,不携带会话,所以*每个*请求都要跑一次 bcrypt。
 
 NovelHub 内置了完整的 OPDS 1.2 (Atom XML) 和 OPDS 2.0 (JSON) 书目目录服务器:
 
-- **OPDS 1.2 目录**: `/api/opds/v1` (Atom XML 格式,完美兼容 KOReader、Moon+ Reader、Calibre、PocketBook、Aldiko)。
-- **OPDS 2.0 目录**: `/api/opds/v2/catalog` (JSON 格式,兼容 Thorium 等现代阅读器)。
+- **OPDS 1.2 目录**: `/api/opds/v1` (Atom XML 格式,完美兼容 KOReader、Moon+ Reader、Calibre、PocketBook、Aldiko)。包含导航 Feed (`/recent`、`/authors`、`/series`、`/tags`)、OpenSearch XML (`/api/opds/v1/opensearch.xml`) 及全文搜索 (`/api/opds/v1/search?q={searchTerms}`)。
+- **OPDS 2.0 目录**: `/api/opds/v2/catalog` (JSON 格式 `application/opds+json`,兼容 Thorium 等现代阅读器)。包含根导航链接、作品元数据、封面图片链接及获取/下载链接。
 - **身份验证**: 支持 HTTP Basic Auth(使用用户邮箱和密码)以及在管理设置中按书库配置的访客访问策略。
 
 ### PWA 与离线阅读

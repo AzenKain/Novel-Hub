@@ -193,8 +193,8 @@ OPDS では失敗した試行のみがカウントされます。有効な資格
 
 NovelHub には完全な OPDS 1.2 (Atom XML) および OPDS 2.0 (JSON) カタログサーバーが組み込まれています:
 
-- **OPDS 1.2 カタログ**: `/api/opds/v1` (Atom XML 形式。KOReader、Moon+ Reader、Calibre、PocketBook、Aldiko に対応)。
-- **OPDS 2.0 カタログ**: `/api/opds/v2/catalog` (JSON 形式。Thorium などの最新リーダーに対応)。
+- **OPDS 1.2 カタログ**: `/api/opds/v1` (Atom XML 形式。KOReader、Moon+ Reader、Calibre、PocketBook、Aldiko に対応)。ナビゲーションフィード（`/recent`、`/authors`、`/series`、`/tags`）、OpenSearch XML（`/api/opds/v1/opensearch.xml`）、全文検索（`/api/opds/v1/search?q={searchTerms}`）を含みます。
+- **OPDS 2.0 カタログ**: `/api/opds/v2/catalog` (JSON 形式 `application/opds+json`。Thorium などの最新リーダーに対応)。ルートナビゲーションリンク、書籍メタデータ、カバー画像リンク、取得リンクを含みます。
 - **認証**: HTTP Basic 認証（ユーザーのアカウントメールとパスワードを使用）および Admin Settings でライブラリごとに設定されたゲストアクセスルールに対応。
 
 ### PWA & オフライン読書

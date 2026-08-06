@@ -516,20 +516,44 @@ func (s *opdsService) GetOPDS2Catalog(ctx context.Context, serverURL string, cla
 				links = append(links, map[string]any{"rel": "http://opds-spec.org/acquisition", "href": fmt.Sprintf("%s/api/v1/books/%s/download", serverURL, book.ID), "type": "application/epub+zip"})
 			}
 		}
-		metadata := map[string]any{"title": book.Title, "identifier": "urn:novelhub:book:" + book.ID}
+		metadata := map[string]any{
+			"title":      book.Title,
+			"identifier": "urn:novelhub:book:" + book.ID,
+		}
 		if book.AuthorName != nil && *book.AuthorName != "" {
 			metadata["author"] = *book.AuthorName
+		}
+		if book.Description != nil && *book.Description != "" {
+			metadata["summary"] = *book.Description
+		}
+		if series := getBookSeries(book); series != "" {
+			metadata["belongsTo"] = map[string]any{"series": series}
+		}
+		if tags := getBookTags(book); len(tags) > 0 {
+			metadata["subject"] = tags
 		}
 		publications = append(publications, map[string]any{"metadata": metadata, "links": links})
 	}
 
+	navigation := []map[string]any{
+		{"title": "Recent Additions", "href": serverURL + "/api/opds/v1/recent", "type": "application/atom+xml;profile=opds-catalog;kind=acquisition", "rel": "subsection"},
+		{"title": "Authors", "href": serverURL + "/api/opds/v1/authors", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
+		{"title": "Series", "href": serverURL + "/api/opds/v1/series", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
+		{"title": "Tags & Genres", "href": serverURL + "/api/opds/v1/tags", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
+	}
+
 	searchURL := serverURL + "/api/opds/v1/search?q={searchTerms}"
 	return map[string]any{
-		"metadata": map[string]any{"title": "NovelHub OPDS 2.0 Catalog"},
+		"metadata": map[string]any{
+			"title":         "NovelHub OPDS 2.0 Catalog",
+			"numberOfItems": len(publications),
+		},
 		"links": []map[string]any{
-			{"rel": "self", "href": serverURL + "/api/opds/v2/catalog", "type": "application/opds+json"},
+			{"rel": "self", "href": serverURL + "/api/opds/v2/catalog", "type": opds.MimeTypeOPDS2},
+			{"rel": "start", "href": serverURL + "/api/opds/v2/catalog", "type": opds.MimeTypeOPDS2},
 			{"rel": "search", "href": searchURL, "type": "application/atom+xml;profile=opds-catalog;kind=acquisition"},
 		},
+		"navigation":   navigation,
 		"publications": publications,
 	}, nil
 }

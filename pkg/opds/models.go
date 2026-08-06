@@ -10,6 +10,10 @@ const (
 	NamespaceOpds = "http://opds-spec.org/2010/catalog"
 	NamespaceDc   = "http://purl.org/dc/terms/"
 	NamespaceOs   = "http://a9.com/-/spec/opensearch/1.1/"
+
+	MimeTypeOPDS2       = "application/opds+json"
+	MimeTypeAtom        = "application/atom+xml;profile=opds-catalog;kind=navigation"
+	MimeTypeAcquisition = "application/atom+xml;profile=opds-catalog;kind=acquisition"
 )
 
 type Feed struct {
