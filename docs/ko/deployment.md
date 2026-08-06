@@ -201,8 +201,15 @@ Inbox 스캔은 파일 변경이 멈춘 뒤 10초를 기다린 다음 가져오�
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — NovelHub 이메일과 비밀번호 |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | 경로에 담긴 토큰 — Kobo는 Authorization 헤더를 보내지 않습니다 |
+| Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic 또는 `X-API-Key: <이메일>:<비밀번호>` |
 
 KOReader, Calibre, Moon+ Reader, Thorium 및 기타 OPDS 클라이언트에서 동작합니다.
+
+Mihon(구 Tachiyomi)에서는 기본 **Komga** 확장을 설치하고
+`http://<host>:3434/komga`를 가리키게 하면 됩니다. 클라이언트 쪽은 수정하지
+않습니다 — NovelHub가 그 확장이 이미 사용하는 Komga REST API에 응답하며,
+CBZ/CBR 아카이브에서 페이지를 바로 제공합니다. 진행률은 Mihon 내장 Komga
+트래커를 통해 양방향으로 동기화됩니다. `komga.sync` 권한이 필요합니다.
 
 Kobo 엔드포인트는 직접 입력하지 않습니다. **프로필 → Kobo 동기화**를 열어 생성된 URL을
 복사하십시오. 사용자별 비밀 토큰이 들어 있습니다. 비밀번호처럼 취급하십시오 — 그것을

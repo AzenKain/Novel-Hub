@@ -200,8 +200,15 @@ bao giờ nhặt phải bản copy dở dang.
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | Token nằm trong path — máy Kobo không gửi header Authorization |
+| Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic, hoặc `X-API-Key: <email>:<mật khẩu>` |
 
 Hoạt động với KOReader, Calibre, Moon+ Reader, Thorium và các client OPDS khác.
+
+Với Mihon (trước là Tachiyomi), cài extension **Komga** gốc rồi trỏ vào
+`http://<host>:3434/komga`. Không phải sửa gì phía client — NovelHub trả lời đúng
+REST API Komga mà extension đó vốn đã nói, phục vụ từng trang truyện đọc thẳng từ
+file CBZ/CBR. Tiến độ đọc đồng bộ hai chiều qua tracker Komga có sẵn trong Mihon.
+Cần quyền `komga.sync`.
 
 Endpoint Kobo không tự gõ tay: vào **Trang cá nhân → Kobo Sync** rồi copy URL đã
 sinh, trong đó có token bí mật riêng của từng người. Hãy coi nó như mật khẩu — ai

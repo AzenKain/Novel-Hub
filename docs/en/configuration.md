@@ -119,6 +119,7 @@ All of these auto-tune. Set them only to cap resource use deliberately.
 | `SQLITE_MAX_OPEN_CONNS` | CPU count × 2, clamped to 4–16 |
 | `SQLITE_MAX_IDLE_CONNS` | Same as max open |
 | `CACHE_MAX_COST_BYTES` | Sized from system memory |
+| `ASSET_CACHE_MAX_COST_BYTES` | System memory ÷ 32, clamped to 32 MB–512 MB — comic pages and covers, held as raw bytes in their own budget so they cannot evict book records |
 | `JOB_WORKERS` | `1` — background job concurrency |
 | `GOGC` | `200` — Go GC target; lower trades CPU for memory |
 | `FIBER_CONCURRENCY` | Fiber default |
@@ -158,7 +159,7 @@ under **Admin → Settings**. Changes apply immediately.
 | Site | Title, description, logo, favicon, sidebar items, home sections |
 | Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a path-rewriting proxy |
 | Access | Registration on/off, sign-in required, guest access mode, per-library guest visibility |
-| Permissions | Per-role control of all 36 permissions — reading, personal features, library content, integrations, administration |
+| Permissions | Per-role control of all 37 permissions — reading, personal features, library content, integrations, administration |
 | Email (SMTP) | Host, port, username, password, sender address, TLS mode, max attachment size (MB, default 50MB), private-network dialling, plus a connection test. Also whether email verification and password reset are enabled |
 | Reader features | In-book deep search, custom font upload, which cover engagement stats are visible |
 | Trackers | AniList / MyAnimeList sync on or off |
@@ -215,9 +216,14 @@ connection, which presents as a wrong password.
 
 **`Domain`** is never set, so the cookie stays scoped to the host that served it.
 
-**`SameSite`** is `Lax` and should stay there. NovelHub has no CSRF token or
-origin check, so `SameSite` is its only CSRF defence. Loosening it to `None`
-removes that protection and replaces it with nothing.
+**`SameSite`** is `Lax` and should stay there. Loosening it to `None` hands an
+attacker's page the ability to send your cookies.
+
+**`csrf_token`** is a third cookie, readable by JavaScript on purpose. The
+frontend copies it into an `X-CSRF-Token` header and the server compares the two
+on every POST/PUT/PATCH/DELETE. Requests carrying an `Authorization` header, and
+the `/kobo/`, `/komga/`, `/api/opds/` and `/api/v1/sync/` prefixes, are exempt —
+they authenticate per request and send no cookie, so there is nothing to forge.
 
 ---
 

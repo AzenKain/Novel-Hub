@@ -202,8 +202,15 @@ a partial copy is never picked up.
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — your NovelHub email and password |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | The token in the path — a Kobo sends no Authorization header |
+| Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic, or `X-API-Key: <email>:<password>` |
 
 Works with KOReader, Calibre, Moon+ Reader, Thorium and other OPDS clients.
+
+For Mihon (formerly Tachiyomi), install the stock **Komga** extension and point it
+at `http://<host>:3434/komga`. Nothing is patched on the client side — NovelHub
+answers the Komga REST API that extension already speaks, serving comic pages
+straight out of the CBZ/CBR archive. Progress syncs both ways through Mihon's
+built-in Komga tracker. Gated by the `komga.sync` permission.
 
 The Kobo endpoint is not typed by hand: open **Profile → Kobo Sync** and copy the
 generated URL, which embeds a per-user secret token. Treat it like a password —

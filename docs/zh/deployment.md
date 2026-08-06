@@ -191,8 +191,14 @@ Inbox 扫描会在文件停止变化后再等 10 秒才导入,因此绝不会捡
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic —— 你的 NovelHub 邮箱和密码 |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | 路径中的令牌 —— Kobo 不会发送 Authorization 头 |
+| Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic,或 `X-API-Key: <邮箱>:<密码>` |
 
 可配合 KOReader、Calibre、Moon+ Reader、Thorium 以及其他 OPDS 客户端使用。
+
+对于 Mihon(原 Tachiyomi),安装官方 **Komga** 扩展并指向
+`http://<host>:3434/komga` 即可。客户端无需任何改动 —— NovelHub 直接应答该扩展本
+就使用的 Komga REST API,并从 CBZ/CBR 压缩包中逐页提供图片。阅读进度通过 Mihon 内
+置的 Komga 追踪器双向同步。需要 `komga.sync` 权限。
 
 Kobo 端点不需要手动输入:打开 **个人资料 → Kobo 同步**,复制生成的 URL,其中包含每位
 用户各自的密钥令牌。请把它当作密码看待 —— 拿到它的人就能访问你的整个书库。

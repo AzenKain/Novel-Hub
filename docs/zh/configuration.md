@@ -112,6 +112,7 @@ data/
 | `SQLITE_MAX_OPEN_CONNS` | CPU 核数 × 2,限制在 4–16 之间 |
 | `SQLITE_MAX_IDLE_CONNS` | 与最大打开连接数相同 |
 | `CACHE_MAX_COST_BYTES` | 按系统内存计算 |
+| `ASSET_CACHE_MAX_COST_BYTES` | 系统内存 ÷ 32,限制在 32 MB–512 MB —— 漫画页与封面,以原始字节存放在独立预算中,因此不会挤掉书目记录 |
 | `JOB_WORKERS` | `1` —— 后台任务并发数 |
 | `GOGC` | `200` —— Go GC 目标值;调低是用 CPU 换内存 |
 | `FIBER_CONCURRENCY` | Fiber 默认值 |
@@ -151,7 +152,7 @@ data/
 | 站点 | 标题、描述、Logo、favicon、侧边栏项目、首页板块 |
 | 服务器 URL | OPDS 目录和 Kobo 同步链接使用的绝对基础 URL。留空则按每个请求自动探测;仅当探测到的主机不正确时才需设置,例如位于会重写路径的代理之后 |
 | 访问 | 注册开关、是否必须登录、访客访问模式、按书库的访客可见性 |
-| 权限 | 按角色控制全部 36 项权限 —— 阅读、个人功能、书库内容、集成、管理 |
+| 权限 | 按角色控制全部 37 项权限 —— 阅读、个人功能、书库内容、集成、管理 |
 | 邮件 (SMTP) | 主机、端口、用户名、密码、发件地址、TLS 模式、最大附件大小 (MB，默认 50MB)、是否允许连接私有网络,以及连接测试。邮箱验证与密码重置的开关也在这里 |
 | 阅读器功能 | 书内深度搜索、自定义字体上传、封面上显示哪些互动统计 |
 | 追踪器 | AniList / MyAnimeList 同步开关 |
@@ -205,9 +206,13 @@ NovelHub 是一套完整的渐进式 Web 应用 (PWA),支持原生应用安装:
 
 **`Domain`** 从不设置,因此 Cookie 的作用域始终限定在下发它的那台主机上。
 
-**`SameSite`** 为 `Lax`,并且应当保持这个值。NovelHub 既没有 CSRF token,也不做来源
-(Origin)校验,所以 `SameSite` 是它唯一的 CSRF 防线。把它放宽成 `None` 会移除这层
-保护,并且没有任何东西来替代它。
+**`SameSite`** 为 `Lax`,并且应当保持这个值。放宽成 `None` 等于让攻击者的页面也能
+带上你的 Cookie。
+
+**`csrf_token`** 是第三个 Cookie,有意允许 JavaScript 读取。前端把它复制到
+`X-CSRF-Token` 请求头,服务端在每个 POST/PUT/PATCH/DELETE 上比对两者。带
+`Authorization` 头的请求,以及 `/kobo/`、`/komga/`、`/api/opds/`、`/api/v1/sync/`
+这几个前缀不受此限制 —— 它们逐请求认证且不发送 Cookie,没有可伪造的对象。
 
 ---
 

@@ -120,6 +120,7 @@ Tất cả đều tự điều chỉnh. Chỉ đặt khi bạn muốn chủ đ�
 | `SQLITE_MAX_OPEN_CONNS` | Số CPU × 2, giới hạn trong khoảng 4–16 |
 | `SQLITE_MAX_IDLE_CONNS` | Bằng max open |
 | `CACHE_MAX_COST_BYTES` | Tính theo RAM hệ thống |
+| `ASSET_CACHE_MAX_COST_BYTES` | RAM hệ thống ÷ 32, kẹp trong 32 MB–512 MB — trang truyện và ảnh bìa, giữ dạng byte thô trong ngân sách riêng nên không thể đẩy bản ghi sách ra khỏi cache |
 | `JOB_WORKERS` | `1` — mức song song của job nền |
 | `GOGC` | `200` — mục tiêu GC của Go; giảm xuống là đánh đổi CPU để lấy bộ nhớ |
 | `FIBER_CONCURRENCY` | Mặc định của Fiber |
@@ -159,7 +160,7 @@ sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 | Site | Tiêu đề, mô tả, logo, favicon, mục sidebar, các section trang chủ |
 | Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy có rewrite path |
 | Access | Bật/tắt đăng ký, bắt buộc đăng nhập, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
-| Permissions | Quyền theo từng role cho cả 36 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
+| Permissions | Quyền theo từng role cho cả 37 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
 | Email (SMTP) | Host, port, username, mật khẩu, địa chỉ gửi, chế độ TLS, dung lượng đính kèm tối đa (MB, mặc định 50MB), cho phép gọi mạng private, kèm nút test kết nối. Cũng gồm bật/tắt xác minh email và reset mật khẩu |
 | Reader features | Deep search trong sách, upload font riêng, chọn chỉ số engagement nào hiện trên bìa |
 | Trackers | Bật/tắt sync AniList / MyAnimeList |
@@ -216,9 +217,14 @@ không an toàn, và biểu hiện ra ngoài giống như sai mật khẩu.
 
 **`Domain`** không bao giờ được đặt, nên cookie chỉ giới hạn trong host đã phục vụ nó.
 
-**`SameSite`** là `Lax` và nên giữ nguyên như vậy. NovelHub không có CSRF token hay
-kiểm tra origin, nên `SameSite` là lớp phòng vệ CSRF duy nhất. Nới xuống `None` là
-bỏ đi lớp bảo vệ đó và không thay thế bằng bất cứ thứ gì.
+**`SameSite`** là `Lax` và nên giữ nguyên như vậy. Nới xuống `None` là trao cho
+trang của kẻ tấn công khả năng gửi kèm cookie của bạn.
+
+**`csrf_token`** là cookie thứ ba, cố ý để JavaScript đọc được. Frontend chép nó
+vào header `X-CSRF-Token`, server so hai giá trị này ở mọi POST/PUT/PATCH/DELETE.
+Request mang header `Authorization`, cùng các prefix `/kobo/`, `/komga/`,
+`/api/opds/` và `/api/v1/sync/`, được miễn — chúng xác thực theo từng request và
+không gửi cookie, nên không có gì để giả mạo.
 
 ---
 
