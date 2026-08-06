@@ -411,7 +411,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
 	koboRepo := repositories.NewKoboRepository(db, ramCache)
-	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache)
+	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache, ramCache)
 	koboAuthService := services.NewKoboAuthService(koboRepo)
 	koboController := controllers.NewKoboController(koboService, koboAuthService, settingsService)
 	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)

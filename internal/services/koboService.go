@@ -1,7 +1,9 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"sort"
@@ -13,11 +15,13 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/kepub"
 	"novelhub/pkg/kobo"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 )
 
 type KoboService interface {
@@ -40,6 +44,8 @@ type koboService struct {
 	bookService    BookService
 	featureService FeatureService
 	permissions    PermissionCache
+	cache          cache.Cache
+	sf             singleflight.Group
 }
 
 func NewKoboService(
@@ -49,6 +55,7 @@ func NewKoboService(
 	bookService BookService,
 	featureService FeatureService,
 	permissions PermissionCache,
+	ramCache cache.Cache,
 ) KoboService {
 	return &koboService{
 		bookRepo:       bookRepo,
@@ -57,6 +64,7 @@ func NewKoboService(
 		bookService:    bookService,
 		featureService: featureService,
 		permissions:    permissions,
+		cache:          ramCache,
 	}
 }
 
@@ -324,27 +332,60 @@ func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, cla
 		return apperrors.New(apperrors.ErrNotFound, "Book file not found")
 	}
 
-	file, err := os.Open(target.Path)
-	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
-	}
-	defer file.Close()
-
 	if strings.EqualFold(target.Format, "KEPUB") {
+		file, err := os.Open(target.Path)
+		if err != nil {
+			return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
+		}
+		defer file.Close()
 		if _, err := io.Copy(out, file); err != nil {
 			return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
 		}
 		return nil
 	}
 
-	info, err := file.Stat()
-	if err != nil {
-		return apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
+	cacheKey := fmt.Sprintf(constants.CacheKeyKePubConverted, bookID, target.ID)
+	if s.cache != nil {
+		var cached []byte
+		if err := s.cache.Get(ctx, cacheKey, &cached); err == nil && len(cached) > 0 {
+			_, err := out.Write(cached)
+			return err
+		}
 	}
-	if err := kepub.ConvertEPUBToKePub(file, info.Size(), out); err != nil {
+
+	res, err, _ := s.sf.Do(cacheKey, func() (any, error) {
+		file, openErr := os.Open(target.Path)
+		if openErr != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
+		}
+		defer file.Close()
+
+		info, statErr := file.Stat()
+		if statErr != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to read book file")
+		}
+
+		var buf bytes.Buffer
+		if convertErr := kepub.ConvertEPUBToKePub(file, info.Size(), &buf); convertErr != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to convert book file")
+		}
+
+		convertedBytes := buf.Bytes()
+		if s.cache != nil {
+			_ = s.cache.Set(ctx, cacheKey, convertedBytes, 24*time.Hour)
+		}
+		return convertedBytes, nil
+	})
+
+	if err != nil {
+		return err
+	}
+	convertedBytes, ok := res.([]byte)
+	if !ok {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to convert book file")
 	}
-	return nil
+	_, writeErr := out.Write(convertedBytes)
+	return writeErr
 }
 
 func (s *koboService) accessibleBook(ctx context.Context, bookID string, claims *response.JWTClaims) (*models.BookEntity, *response.JWTClaims, error) {

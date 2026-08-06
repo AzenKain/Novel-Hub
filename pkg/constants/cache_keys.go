@@ -48,4 +48,5 @@ const (
 	CacheKeyKoboTokenPattern         = "kobo:token:*"
 	CacheKeyTOTPUserPattern          = "totp:user:*"
 	CacheKeySettingsAll              = "settings:all"
+	CacheKeyKePubConverted           = "kepub:converted:%s:%s"
 )

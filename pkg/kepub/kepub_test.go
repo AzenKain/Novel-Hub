@@ -24,6 +24,37 @@ func TestInjectKoboSpans(t *testing.T) {
 	}
 }
 
+func TestInjectKoboSpans_MultipleBlockElements(t *testing.T) {
+	inputHTML := `<div><p>Paragraph</p><ul><li>List Item 1</li><li>List Item 2</li></ul><blockquote>Quote</blockquote></div>`
+	output := InjectKoboSpans(inputHTML)
+
+	expectedCount := 5 // div, p, li, li, blockquote
+	if count := strings.Count(output, `class="koboSpan"`); count != expectedCount {
+		t.Fatalf("expected %d koboSpans, got %d in: %s", expectedCount, count, output)
+	}
+}
+
+func TestInjectKoboSpans_NoMatchAndEmpty(t *testing.T) {
+	if output := InjectKoboSpans(""); output != "" {
+		t.Errorf("expected empty output, got %s", output)
+	}
+	plainText := "Plain text without block tags"
+	if output := InjectKoboSpans(plainText); output != plainText {
+		t.Errorf("expected unchanged plain text, got %s", output)
+	}
+}
+
+func TestInjectKoboSpans_UnicodeText(t *testing.T) {
+	inputHTML := `<p>Xin chào thế giới! Đọc sách cùng NovelHub trên e-reader Kobo.</p>`
+	output := InjectKoboSpans(inputHTML)
+	if !strings.Contains(output, `id="koboSpan-1"`) {
+		t.Fatalf("expected koboSpan in unicode output, got: %s", output)
+	}
+	if !strings.Contains(output, "Xin chào thế giới!") {
+		t.Fatalf("unicode content modified: %s", output)
+	}
+}
+
 func TestConvertEPUBToKePubConvertsHTMLAndStreamsAssets(t *testing.T) {
 	input := makeZip(t, map[string][]byte{
 		"chapter.xhtml": []byte(`<html><body><p>Hello.</p></body></html>`),
