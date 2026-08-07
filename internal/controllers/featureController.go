@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,25 +55,13 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 		})
 	}
 
-	limit := int64(50)
-	if l, err := strconv.ParseInt(ctx.Query("limit"), 10, 64); err == nil && l > 0 {
-		limit = l
+	dto := &request.GetUserCollectionsDto{}
+	if err := validator.ValidateQueryDto(ctx, dto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if limit > 100 {
-		limit = 100
-	}
-	var cursorCreatedAt *time.Time
-	var cursorID string
-	if cursorStr := ctx.Query("cursor"); cursorStr != "" {
-		if parts := strings.SplitN(cursorStr, "|", 2); len(parts) == 2 {
-			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
-				cursorCreatedAt = &t
-				cursorID = parts[1]
-			}
-		} else if t, err := time.Parse(time.RFC3339Nano, cursorStr); err == nil {
-			cursorCreatedAt = &t
-		}
-	}
+
+	cursorCreatedAt, cursorID := dto.ParseCursor()
+	limit := dto.GetLimit()
 
 	collections, err := c.service.GetUserCollections(reqCtx, userID, cursorCreatedAt, cursorID, limit)
 	if err != nil {

@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { featureService } from "@/services";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
-
 import { usePublicSettings } from "@/hooks/useSettings";
 import type { Collection, SmartCollection, SmartCollectionRule, User } from "@/types";
 import type { MetadataFacetSection } from "./MetadataIndexView";
@@ -168,13 +167,15 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               {t("library.collections", "Collections")}
             </span>
             {user && (
-              <button
-                onClick={onNewCollection}
-                className="btn btn-ghost btn-circle btn-xs text-base-content/50 hover:text-primary"
-                title={t("library.new_collection", "New Collection")}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              <div className="tooltip tooltip-left" data-tip={t("library.new_collection", "New Collection")}>
+                <button
+                  onClick={onNewCollection}
+                  className="btn btn-ghost btn-circle btn-xs text-base-content/50 hover:text-primary"
+                  aria-label={t("library.new_collection", "New Collection")}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
             )}
           </div>
 

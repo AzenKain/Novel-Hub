@@ -28,6 +28,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "@/constants";
 import { usePublicSettings } from "@/hooks/useSettings";
+import { useReadListNextQuery } from "@/hooks/useReadListQueries";
 import { hasPermission } from "@/utils/permission";
 import { isVisualChapter } from "@/utils/readerHtml";
 
@@ -36,6 +37,7 @@ export const ReaderWorkspace = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const file_id = searchParams.get("file_id") || undefined;
+  const readListId = searchParams.get("readlist") || undefined;
   
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -683,8 +685,17 @@ export const ReaderWorkspace = () => {
     (chapter) => chapter.id === currentChapter?.id,
   );
   const canGoPrev = currentChapterIndex > 0;
-  const canGoNext =
+  const hasNextChapter =
     currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1;
+
+  const readListNext = useReadListNextQuery(readListId, book_id).data;
+  const nextInReadList = !hasNextChapter && readListNext?.has_next ? readListNext.book : undefined;
+  const canGoNext = hasNextChapter || !!nextInReadList;
+
+  const goToNextInReadList = () => {
+    if (!nextInReadList) return;
+    navigate(`/reader/${nextInReadList.id}?readlist=${readListId}`);
+  };
 
   if (loading) {
     return (
@@ -726,7 +737,7 @@ export const ReaderWorkspace = () => {
           readingDirection={readingDirection}
           pageFit={pageFit}
           onPrev={handlePrev}
-          onNext={handleNext}
+          onNext={hasNextChapter ? handleNext : goToNextInReadList}
           setSettingsOpen={(open) => {
             if (open) lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
             setSettingsOpen(open);
@@ -847,6 +858,15 @@ export const ReaderWorkspace = () => {
                   </div>
                 )}
                 
+                {nextInReadList && (
+                  <button
+                    className="btn btn-primary btn-sm mx-auto mt-6 flex gap-1.5 rounded-xl"
+                    onClick={goToNextInReadList}
+                  >
+                    {t("reader.readlist_next", "Next: {{title}}", { title: nextInReadList.title })}
+                  </button>
+                )}
+
                 {!isPdf && scrollLayout && (
                   <ReaderPageControls
                     t={t}
@@ -854,7 +874,7 @@ export const ReaderWorkspace = () => {
                     canGoPrev={canGoPrev}
                     canGoNext={canGoNext}
                     onPrev={handlePrev}
-                    onNext={handleNext}
+                    onNext={hasNextChapter ? handleNext : goToNextInReadList}
                   />
                 )}
               </div>

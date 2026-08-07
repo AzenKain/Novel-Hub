@@ -118,9 +118,9 @@ All utility logic must be centralized within the `pkg/` directory:
   - Use Zustand stores under `web/src/stores/` (`useAuthStore`, `useThemeStore`, `useReaderSettingsStore`, `useSettingsAdminStore`, `useWebhookStore`) for global UI state, theme, user authentication, and reader settings.
   - Transient form state local to a single modal (e.g., typing dở in an input field) may use `useState`.
 - **Internationalization (i18n & `web/public/locales/`)**:
-  - Translation JSON files are stored under [`web/public/locales/`](./web/public/locales/) (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
+  - Translation JSON files are stored under [`web/public/locales/`](./web/public/locales/) (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh-CN.json`, `zh-TW.json`, `es.json`, `fr.json`, `de.json`, `pt.json`, `ru.json`, `ar.json`, `hi.json`, `id.json`, `th.json`, `it.json`).
   - **NO HARDCODED TEXT**: Never hardcode raw user-facing text strings in TSX components. All UI labels, buttons, messages, and placeholders **MUST** be added to `web/public/locales/` JSON files and rendered via `t('translation_key')` from `react-i18next`.
-  - **5-Language Synchronization**: When adding or updating translation keys, agents MUST synchronize changes across ALL 5 locale files (`en`, `vi`, `ja`, `ko`, `zh`), support dynamic parameter interpolation (`{{param}}`), and verify zero duplicate keys exist.
+  - **Multi-Language Synchronization**: When adding or updating translation keys, agents MUST synchronize changes across ALL locale files in `web/public/locales/`, support dynamic parameter interpolation (`{{param}}`), and verify zero duplicate keys exist.
 - **Admin Settings vs Environment Variables**:
   - Environment variables in `.env` are reserved for core system secrets (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `DB_ENCRYPTION_KEY`) and low-level proxy/network infrastructure (`TRUST_PROXY`).
   - All dynamic feature configuration (e.g. SMTP server credentials, email max attachment size `smtp.max_attachment_mb`, registration, guest access policies, upload limits, rate limits) **MUST** be persisted in the `app_settings` database table and configured dynamically via Admin Settings UI.
@@ -148,5 +148,6 @@ All utility logic must be centralized within the `pkg/` directory:
 ## 🛑 5. Agent Workflow & Feature Proposal
 
 - **Feature Proposals**: Do not propose or re-implement features that already exist in the codebase (e.g., Metadata Fetching/Scraping is already handled by frontend; Cross-device sync, Reviews/Ratings, Share Links are already built-in).
+- **Ordered Reading Lists**: `read_lists` / `read_list_books` already provide per-user lists with an explicit `position`, drag reordering, a next-book handoff in the reader, and ComicRack `.cbl` import (`pkg/bookparser/comic/cbl.go`), all gated by `book.collection`. `position` is deliberately NOT `UNIQUE` — swapping adjacent entries must pass through a duplicate value mid-transaction.
 - **Core Engine Mechanics**: The codebase already handles **Chunked Uploads** (for files >100MB), **Smart Garbage Collection** for orphaned uploads, and **Native Audio Streaming** (MP3, M4B, FLAC) without FFmpeg/HLS. Do NOT propose adding FFmpeg or HLS back into the project.
 - **Codebase Review**: You **MUST** thoroughly search the codebase and database schemas (`db/schema/*.sql`) to verify if a feature or schema exists before planning to build it.

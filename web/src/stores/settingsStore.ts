@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { PublicSettings } from '@/types';
 
 export type Theme = 'winter' | 'night' | 'cupcake' | 'coffee' | 'system';
-export type Language = 'en' | 'vi' | 'ja' | 'zh' | 'ko';
+export type Language = 'en' | 'vi' | 'ja' | 'ko' | 'zh' | 'zh-CN' | 'zh-TW' | 'es' | 'fr' | 'de' | 'pt' | 'ru' | 'ar' | 'hi' | 'id' | 'th' | 'it';
 
 interface SettingsState {
   theme: Theme;

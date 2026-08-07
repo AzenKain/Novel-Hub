@@ -15,6 +15,7 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
+	"novelhub/pkg/validator"
 )
 
 type ReaderController struct {
@@ -36,7 +37,12 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 	defer cancel()
 
 	bookID := c.Params("id")
-	bootstrap, err := h.bookService.GetReaderBootstrap(ctx, bookID, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	bootstrap, err := h.bookService.GetReaderBootstrap(ctx, bookID, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -61,7 +67,11 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
-	content, err := h.bookService.GetChapterHTML(ctx, bookID, chapterID, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	content, err := h.bookService.GetChapterHTML(ctx, bookID, chapterID, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -84,7 +94,11 @@ func (h *ReaderController) GetFile(c fiber.Ctx) error {
 	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
-	file, err := h.bookService.GetBookFile(ctx, bookID, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	file, err := h.bookService.GetBookFile(ctx, bookID, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -114,7 +128,11 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
-	asset, err := h.bookService.GetAsset(ctx, bookID, assetPath, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	asset, err := h.bookService.GetAsset(ctx, bookID, assetPath, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -151,7 +169,11 @@ func (h *ReaderController) ListImages(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
-	images, err := h.bookService.ListImages(ctx, bookID, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	images, err := h.bookService.ListImages(ctx, bookID, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

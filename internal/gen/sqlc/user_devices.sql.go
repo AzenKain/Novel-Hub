@@ -133,13 +133,13 @@ func (q *Queries) GetUserDevicesByIDs(ctx context.Context, ids []string) ([]User
 
 const listUserDeviceIDs = `-- name: ListUserDeviceIDs :many
 SELECT id FROM user_devices
-WHERE user_id = ?
+WHERE user_id = ?1
   AND (
-      updated_at <= COALESCE(CAST(?3 AS TEXT), '9999-12-31 23:59:59')
-      AND (?3 IS NULL OR updated_at < CAST(?3 AS TEXT) OR id < ?4)
+      updated_at <= COALESCE(CAST(?2 AS TEXT), '9999-12-31 23:59:59')
+      AND (?2 IS NULL OR updated_at < CAST(?2 AS TEXT) OR id < ?3)
   )
 ORDER BY updated_at DESC, id DESC
-LIMIT ?
+LIMIT ?4
 `
 
 type ListUserDeviceIDsParams struct {

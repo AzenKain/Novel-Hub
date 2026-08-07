@@ -269,6 +269,22 @@ type Publisher struct {
 	CreatedAt sql.NullTime `json:"created_at"`
 }
 
+type ReadList struct {
+	ID          string         `json:"id"`
+	UserID      string         `json:"user_id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+}
+
+type ReadListBook struct {
+	ReadListID string       `json:"read_list_id"`
+	BookID     string       `json:"book_id"`
+	Position   int64        `json:"position"`
+	AddedAt    sql.NullTime `json:"added_at"`
+}
+
 type ReadingGoal struct {
 	UserID             string       `json:"user_id"`
 	TargetWordsPerDay  int64        `json:"target_words_per_day"`

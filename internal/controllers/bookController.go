@@ -130,7 +130,12 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Downloads are not allowed"})
 	}
 
-	file, err := h.bookService.GetBookFile(ctx, id, c.Query("file_id"))
+	fileDto := &request.BookFileQueryDto{}
+	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	file, err := h.bookService.GetBookFile(ctx, id, fileDto.FileID)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -314,8 +319,12 @@ func (h *BookController) SearchInBook(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 
-	query := c.Query("q")
-	results, err := h.bookService.SearchInBook(ctx, bookID, query)
+	searchDto := &request.SearchInBookQueryDto{}
+	if err := validator.ValidateQueryDto(c, searchDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	results, err := h.bookService.SearchInBook(ctx, bookID, searchDto.Query)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

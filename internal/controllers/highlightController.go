@@ -60,15 +60,15 @@ func (c *HighlightController) GetHighlights(ctx fiber.Ctx) error {
 		})
 	}
 
-	chapterID := ctx.Query("chapter_id")
-	if chapterID == "" {
+	dto := &request.GetHighlightsQueryDto{}
+	if errs := validator.ValidateQueryDto(ctx, dto); errs != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "chapter_id query parameter is required",
+			Status: false,
+			Errors: errs,
 		})
 	}
 
-	res, err := c.service.GetHighlights(reqCtx, userID, chapterID, getOptionalClaims(ctx))
+	res, err := c.service.GetHighlights(reqCtx, userID, dto.ChapterID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

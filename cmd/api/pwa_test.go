@@ -38,7 +38,27 @@ func TestRevisionlessAssetsUseAShortMaxAge(t *testing.T) {
 		t.Fatalf("failed to setup app: %v", err)
 	}
 
-	for _, path := range []string{"/locales/en.json", "/favicon.ico", "/logo.svg", "/pwa-192x192.png"} {
+	for _, path := range []string{
+		"/locales/en.json",
+		"/locales/vi.json",
+		"/locales/ja.json",
+		"/locales/ko.json",
+		"/locales/zh-CN.json",
+		"/locales/zh-TW.json",
+		"/locales/es.json",
+		"/locales/fr.json",
+		"/locales/de.json",
+		"/locales/pt.json",
+		"/locales/ru.json",
+		"/locales/ar.json",
+		"/locales/hi.json",
+		"/locales/id.json",
+		"/locales/th.json",
+		"/locales/it.json",
+		"/favicon.ico",
+		"/logo.svg",
+		"/pwa-192x192.png",
+	} {
 		resp, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
 		if err != nil {
 			t.Fatal(err)

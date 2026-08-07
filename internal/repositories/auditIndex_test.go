@@ -429,6 +429,7 @@ func TestAuditIndexFKChildCoverage(t *testing.T) {
 		{"reading_progress", "book_id"},
 		{"reading_progress", "file_id"},
 		{"collection_books", "book_id"},
+		{"read_list_books", "book_id"},
 		{"book_tags", "book_id"},
 		{"book_series", "book_id"},
 		{"book_files", "book_id"},

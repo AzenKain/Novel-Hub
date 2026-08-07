@@ -1,5 +1,46 @@
 package request
 
+import (
+	"strings"
+	"time"
+
+	"novelhub/pkg/constants"
+)
+
+type GetUserCollectionsDto struct {
+	Limit  int64  `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
+	Cursor string `json:"cursor,omitempty" query:"cursor" validate:"omitempty,readlist_cursor"`
+}
+
+func (d *GetUserCollectionsDto) GetLimit() int64 {
+	if d.Limit <= 0 {
+		return 50
+	}
+	if d.Limit > constants.MaxPaginationLimit {
+		return constants.MaxPaginationLimit
+	}
+	return d.Limit
+}
+
+func (d *GetUserCollectionsDto) ParseCursor() (*time.Time, string) {
+	if d.Cursor == "" {
+		return nil, ""
+	}
+	parts := strings.SplitN(d.Cursor, "|", 2)
+	if len(parts) == 2 {
+		if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+			return &t, parts[1]
+		}
+	} else if t, err := time.Parse(time.RFC3339Nano, d.Cursor); err == nil {
+		return &t, ""
+	}
+	return nil, ""
+}
+
+type GetHighlightsQueryDto struct {
+	ChapterID string `json:"chapter_id" query:"chapter_id" validate:"required"`
+}
+
 type CreateCollectionDto struct {
 	Name string `json:"name" validate:"required,min=1,max=100"`
 }

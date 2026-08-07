@@ -11,7 +11,7 @@ i18n
   .init({
     lng: savedLanguage,
     fallbackLng: "en",
-    load: "languageOnly",
+    load: "currentOnly",
     debug: false,
     interpolation: {
       escapeValue: false,

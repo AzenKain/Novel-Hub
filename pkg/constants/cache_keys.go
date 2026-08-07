@@ -36,6 +36,8 @@ const (
 	CacheKeyChapterPattern           = "chapter*"
 	CacheKeyChapterByBookPattern     = "chapter:book:*"
 	CacheKeyCollectionOwnedPattern   = "collection:owned:*"
+	CacheKeyReadListOwnedPattern     = "read_list:owned:*"
+	CacheKeyReadListCountsPattern    = "read_list:counts:*"
 	CacheKeyFTSPattern               = "fts:*"
 	CacheKeyFTSBookSearchPattern     = "fts:book-search*"
 	CacheKeyFTSSearchPattern         = "fts:search*"

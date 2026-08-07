@@ -32,11 +32,17 @@ type ArchiveBookDto struct {
 	Archived bool `json:"archived"`
 }
 
-// No validate tags: this arrives as multipart form fields plus a body already capped by
-// io.LimitReader in the controller, not through ValidateBodyDto.
 type UpdateCoverDto struct {
 	UploadedFileName string
 	UploadedData     []byte
 	CoverURL         string
 	EPUBImagePath    string
+}
+
+type SearchInBookQueryDto struct {
+	Query string `json:"q,omitempty" query:"q" validate:"required,min=1,max=200"`
+}
+
+type BookFileQueryDto struct {
+	FileID string `json:"file_id,omitempty" query:"file_id" validate:"omitempty"`
 }

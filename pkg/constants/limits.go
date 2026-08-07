@@ -16,6 +16,7 @@ const (
 	MaxArchiveEntries           = 20000
 	MaxArchiveAssetSize         = 128 << 20
 	MaxArchiveUncompressedBytes = int64(2) << 30
+	MaxCBLBytes                 = 8 << 20
 	UploadSessionTTL            = 6 * time.Hour
 
 	MinRuntimeUploadChunkBytes = 1 << 20

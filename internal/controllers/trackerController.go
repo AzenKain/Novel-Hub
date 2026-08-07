@@ -84,13 +84,11 @@ func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	title := c.Query("title")
-	if title == "" {
-		title = c.Query("query")
+	dto := &request.SearchAniListQueryDto{}
+	if err := validator.ValidateQueryDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	if title == "" {
-		title = c.Query("q")
-	}
+	title := dto.GetTitle()
 	if title == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Title query is required"})
 	}

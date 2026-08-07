@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore, useLibraryStore } from "@/stores";
-import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload } from "lucide-react";
+import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload, ListOrdered } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
 import { useShallow } from "zustand/react/shallow";
 import { hasPermission } from "@/utils/permission";
@@ -42,13 +42,15 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
     <div className="navbar flex-wrap gap-2 bg-base-100 shadow-sm border-b border-base-200 z-10 px-3 sm:px-4">
       {showSidebarToggle && (
         <div className="flex-none lg:hidden">
-          <label
-            htmlFor="main-drawer"
-            aria-label="open sidebar"
-            className="btn btn-square btn-ghost"
-          >
-            <Menu className="w-5 h-5" />
-          </label>
+          <div className="tooltip tooltip-bottom" data-tip={t("common.toggle_sidebar", "Toggle Sidebar")}>
+            <label
+              htmlFor="main-drawer"
+              aria-label="open sidebar"
+              className="btn btn-square btn-ghost"
+            >
+              <Menu className="w-5 h-5" />
+            </label>
+          </div>
         </div>
       )}
 
@@ -71,49 +73,70 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <ThemeController />
-        <LanguageSwitcher />
+        <div className="tooltip tooltip-bottom" data-tip={t("common.theme", "Theme")}>
+          <ThemeController />
+        </div>
+        <div className="tooltip tooltip-bottom" data-tip={t("common.language", "Language")}>
+          <LanguageSwitcher />
+        </div>
 
-        <Link
-          to="/offline"
-          className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
-          title={t("offline.title", "Offline Books")}
-          aria-label={t("offline.title", "Offline Books")}
-        >
-          <CloudDownload className="w-5 h-5" />
-        </Link>
+        {user && (
+          <div className="tooltip tooltip-bottom" data-tip={t("library.readlists", "Read Lists")}>
+            <Link
+              to="/read-lists"
+              className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
+              aria-label={t("library.readlists", "Read Lists")}
+            >
+              <ListOrdered className="w-5 h-5" />
+            </Link>
+          </div>
+        )}
+
+        <div className="tooltip tooltip-bottom" data-tip={t("offline.title", "Offline Books")}>
+          <Link
+            to="/offline"
+            className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
+            aria-label={t("offline.title", "Offline Books")}
+          >
+            <CloudDownload className="w-5 h-5" />
+          </Link>
+        </div>
 
         {user ? (
           <>
             {hasPermission(user, "admin.access") && (
-              <Link
-                to="/admin"
-                className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                {t("admin.dashboard", "Admin")}
-              </Link>
+              <div className="tooltip tooltip-bottom" data-tip={t("admin.dashboard", "Admin")}>
+                <Link
+                  to="/admin"
+                  className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  {t("admin.dashboard", "Admin")}
+                </Link>
+              </div>
             )}
             <div className="dropdown dropdown-end">
-              <div
-                tabIndex={0}
-                role="button"
-                className="btn btn-ghost btn-circle avatar border border-base-300"
-              >
-                <div className="w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                  {user.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt="Avatar"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="text-lg">
-                      {user.full_name
-                        ? user.full_name.charAt(0).toUpperCase()
-                        : user.email.charAt(0).toUpperCase()}
-                    </span>
-                  )}
+              <div className="tooltip tooltip-bottom" data-tip={t("user.profile", "Profile")}>
+                <div
+                  tabIndex={0}
+                  role="button"
+                  className="btn btn-ghost btn-circle avatar border border-base-300"
+                >
+                  <div className="w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt="Avatar"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-lg">
+                        {user.full_name
+                          ? user.full_name.charAt(0).toUpperCase()
+                          : user.email.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <ul

@@ -19,11 +19,6 @@ func EncodeCursor(v any, id string) string {
 	return base64.StdEncoding.EncodeToString([]byte(raw))
 }
 
-// DecodeCursor splits on the LAST comma, not the first: the sort value comes first and can be
-// free text, while the id is always a UUID. Splitting on the first comma stranded pagination on
-// any author or publisher whose name contains one — and "Surname, Given" is the standard
-// dc:creator form, so that was the norm rather than an edge case. A nil return makes the caller
-// fall back to "no cursor", which serves page 1 again and loops infinite scroll forever.
 func DecodeCursor(cursorStr string) []string {
 	if cursorStr == "" {
 		return nil
@@ -40,11 +35,6 @@ func DecodeCursor(cursorStr string) []string {
 	return []string{raw[:separator], raw[separator+1:]}
 }
 
-// CursorTimeString converts a decoded cursor's time half into the "YYYY-MM-DD HH:MM:SS" text
-// SQLite stores, which is what the keyset predicates compare against so the created_at index
-// can be seeked. Cursors travel over the wire as RFC3339, where 'T' sorts above ' ' and the
-// comparison would quietly match nothing but the first page. Unparseable input is returned
-// unchanged so a hand-made cursor still behaves as before rather than becoming page 1.
 func CursorTimeString(v string) string {
 	if v == "" {
 		return ""

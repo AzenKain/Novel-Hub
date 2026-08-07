@@ -10,6 +10,7 @@ import {
   Tag,
   User,
   ArrowLeft,
+  ListOrdered,
   Share2,
   Bookmark,
   BookmarkPlus,
@@ -49,7 +50,9 @@ import {
   useAddBookToCollectionMutation,
   useRemoveBookFromCollectionMutation,
   useOfflineBook,
-  useBookSeriesQuery
+  useBookSeriesQuery,
+  useReadListsQuery,
+  useAddReadListBookMutation
 } from "@/hooks";
 
 export const BookDetailPage: React.FC = () => {
@@ -88,6 +91,9 @@ export const BookDetailPage: React.FC = () => {
 
   const toggleBookmarkMutation = useToggleBookmarkMutation(book_id || "");
   const addBookToColMutation = useAddBookToCollectionMutation(book_id || "");
+  const readListsQuery = useReadListsQuery(!!user);
+  const readLists = readListsQuery.data?.pages.flatMap((page) => page.data || []) ?? [];
+  const addReadListBookMutation = useAddReadListBookMutation();
   const removeBookFromColMutation = useRemoveBookFromCollectionMutation(book_id || "");
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
@@ -241,6 +247,30 @@ export const BookDetailPage: React.FC = () => {
                     </li>
                   );
                 })}
+              </ul>
+            </div>
+          )}
+          {allowCollection && (
+            <div className="dropdown dropdown-end">
+              <div tabIndex={0} role="button" className="btn btn-ghost btn-sm">
+                <ListOrdered className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">
+                  {t("library.readlists", "Read Lists")}
+                </span>
+              </div>
+              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto flex-nowrap block">
+                {readLists.length === 0 && (
+                  <li className="px-4 py-2 text-sm text-base-content/50 text-center">
+                    {t("library.readlist_empty_short", "No read lists")}
+                  </li>
+                )}
+                {readLists.map((list) => (
+                  <li key={list.id}>
+                    <a onClick={() => book_id && addReadListBookMutation.mutate({ id: list.id, bookId: book_id })}>
+                      <span className="truncate">{list.name}</span>
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           )}

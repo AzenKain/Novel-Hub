@@ -203,6 +203,18 @@ NovelHub is a full Progressive Web App (PWA) with native installability:
 - **Service Worker & Updates**: Powered by `vite-plugin-pwa` and `workbox` with automatic update notification banners and storage quota monitoring.
 - **Permissions**: Offline book saving is controlled per-role via the `book.offline` permission.
 
+### Read Lists & `.cbl` Import
+
+A collection answers "which group is this book in". A read list answers "which
+book comes next": every entry carries an explicit position, so the order is
+yours instead of the order the files were imported in.
+
+- **Per-user**: read lists are private to the account that created them, like collections, and are gated by the same `book.collection` permission.
+- **Reordering**: drag an entry or use the up/down buttons on `/read-lists`. The whole order is saved in one request.
+- **Read in order**: opens the first entry with `?readlist=<id>`. At the end of the last chapter the reader's existing next button carries over to the next book in the list instead of stopping. Archived books are skipped. The position is not remembered — **Read in order** always starts at the first entry.
+- **`.cbl` import**: upload a ComicRack reading list (max 8 MB). Document order *is* the reading order; nothing is re-sorted. Entries match on series name (case-insensitive) plus issue number, where `01`, `1` and `1.0` count as the same number. `Year` and `Volume` are ignored, since books carry no year column. Entries with no match in the library come back in an import report with their series and number; when two books share a series and number, the first one found wins.
+- **Endpoints** (all under `/api/v1/read-lists`): `GET /`, `POST /`, `POST /import`, `GET|PUT|DELETE /:id`, `GET|POST /:id/books`, `DELETE /:id/books/:bookId`, `PUT /:id/order`, `GET /:id/next`.
+
 ---
 
 ## Authentication cookies

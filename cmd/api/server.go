@@ -51,7 +51,7 @@ import (
 	"novelhub/pkg/worker"
 )
 
-//go:embed dist/* dist/assets/*
+//go:embed all:dist
 var embeddedDist embed.FS
 
 type FiberServer struct {
@@ -184,6 +184,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	parserRegistry.Register(audiobook.New(), "mp3", "m4a", "m4b", "flac")
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
+	readListRepo := repositories.NewReadListRepository(db, ramCache)
 	highlightRepo := repositories.NewHighlightRepository(db, ramCache)
 	webhookRepo := repositories.NewWebhookRepository(db, ramCache)
 	auditRepo := repositories.NewAuditRepository(db, ramCache)
@@ -209,6 +210,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	bookService := services.NewBookService(bookRepo, featureRepo, libraryRepo, bookFileRepo, parserRegistry, txManager, settingsService, permissionCache, jobQueue, assetCache)
 	libraryService := services.NewLibraryService(libraryRepo, bookRepo, bookFileRepo, parserRegistry, permissionCache, settingsService, jobQueue)
 	featureService := services.NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, txManager)
+	readListService := services.NewReadListService(readListRepo, bookRepo, bookService, txManager)
 	highlightService := services.NewHighlightService(highlightRepo, bookRepo, permissionCache)
 	metadataService := services.NewMetadataService(bookRepo, libraryService)
 	jobService := services.NewJobService(jobRepo, jobQueue)
@@ -247,6 +249,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService, auditService, ramCache)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
+	readListController := controllers.NewReadListController(readListService)
 	highlightController := controllers.NewHighlightController(highlightService)
 	metadataController := controllers.NewMetadataController(metadataService)
 	settingsController := controllers.NewSettingsController(settingsService, auditService)
@@ -400,7 +403,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.JobRoutes(v1, jobController, userRepo, permissionCache)
 	routes.SystemOperationsRoutes(v1, systemOperationsController, userRepo, permissionCache)
 	routes.SetupReaderRoutes(v1, readerController, userRepo, bookRepo, permissionCache)
-	routes.FeatureRoutes(v1, featureController, highlightController, userRepo, bookRepo, permissionCache)
+	routes.FeatureRoutes(v1, featureController, highlightController, readListController, userRepo, bookRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
 	routes.AuditRoutes(v1, auditController, userRepo, permissionCache)
@@ -480,6 +483,10 @@ func serveEmbeddedFrontend(app *fiber.App) {
 		NotFoundHandler: func(c fiber.Ctx) error {
 			if c.Method() != fiber.MethodGet {
 				return c.Next()
+			}
+			path := c.Path()
+			if strings.HasPrefix(path, "/api/") || strings.HasPrefix(path, "/locales/") || strings.HasPrefix(path, "/assets/") {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "not found"})
 			}
 			return serveIndex(c)
 		},

@@ -204,6 +204,18 @@ NovelHub là một Progressive Web App (PWA) hoàn chỉnh với khả năng cà
 - **Service Worker & Cập nhật**: Vận hành bởi `vite-plugin-pwa` và `workbox` với thông báo tự động khi có bản cập nhật mới và theo dõi dung lượng bộ nhớ khả dụng.
 - **Phân quyền**: Tính năng lưu sách đọc offline được kiểm soát theo từng vai trò thông qua quyền `book.offline`.
 
+### Danh sách đọc & Nhập `.cbl`
+
+Collection trả lời "cuốn này thuộc nhóm nào". Danh sách đọc trả lời "đọc cuốn nào
+tiếp theo": mỗi mục mang một vị trí tường minh, nên thứ tự là do bạn đặt chứ
+không phải thứ tự file được nhập vào kho.
+
+- **Riêng từng user**: danh sách đọc chỉ thuộc về tài khoản đã tạo ra nó, giống Collection, và gác bằng cùng quyền `book.collection`.
+- **Sắp xếp lại**: kéo một mục hoặc dùng nút lên/xuống ở `/read-lists`. Toàn bộ thứ tự được lưu trong một request.
+- **Đọc theo thứ tự**: mở mục đầu tiên kèm `?readlist=<id>`. Hết chương cuối, nút next có sẵn của reader sẽ dắt sang cuốn kế tiếp trong danh sách thay vì dừng lại. Sách đã lưu trữ (archived) bị bỏ qua. Vị trí đang đọc **không** được ghi nhớ — "Đọc theo thứ tự" luôn bắt đầu ở mục đầu tiên.
+- **Nhập `.cbl`**: tải lên một reading list của ComicRack (tối đa 8 MB). Thứ tự trong tài liệu *chính là* thứ tự đọc; không có gì bị sắp lại. Các mục khớp theo tên bộ truyện (không phân biệt hoa thường) cộng số tập, trong đó `01`, `1` và `1.0` được coi là cùng một số. `Year` và `Volume` bị bỏ qua vì bảng sách không có cột năm. Mục nào không tìm thấy trong thư viện sẽ được trả về trong báo cáo nhập kèm bộ truyện và số tập; nếu hai cuốn trùng cả bộ truyện lẫn số tập thì lấy cuốn tìm thấy đầu tiên.
+- **Endpoint** (tất cả dưới `/api/v1/read-lists`): `GET /`, `POST /`, `POST /import`, `GET|PUT|DELETE /:id`, `GET|POST /:id/books`, `DELETE /:id/books/:bookId`, `PUT /:id/order`, `GET /:id/next`.
+
 ---
 
 ## Cookie xác thực

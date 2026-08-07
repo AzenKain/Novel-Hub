@@ -6,6 +6,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
@@ -32,6 +33,10 @@ func init() {
 		}
 		return isImageURL(value)
 	})
+
+	_ = validate.RegisterValidation("readlist_cursor", func(fl validator.FieldLevel) bool {
+		return isReadListCursor(fl.Field().String())
+	})
 }
 
 func isImageURL(value string) bool {
@@ -48,6 +53,15 @@ func isImageURL(value string) bool {
 	default:
 		return false
 	}
+}
+
+func isReadListCursor(value string) bool {
+	if value == "" {
+		return true
+	}
+	parts := strings.SplitN(value, "|", 2)
+	_, err := time.Parse(time.RFC3339Nano, parts[0])
+	return err == nil
 }
 
 type ErrorResponse struct {
@@ -75,6 +89,8 @@ func formatValidationError(err error) []*ErrorResponse {
 				message = fieldError.Field() + " is too long (max " + fieldError.Param() + ")"
 			case "image_url":
 				message = fieldError.Field() + " must be a link to an image"
+			case "readlist_cursor":
+				message = fieldError.Field() + " is an invalid cursor format"
 			default:
 				message = "Field " + fieldError.Field() + " failed validation: " + fieldError.Tag()
 			}

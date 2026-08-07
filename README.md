@@ -22,6 +22,7 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **OPDS 1.2 & 2.0 Server**: Built-in OPDS 1.2 (Atom XML) and OPDS 2.0 (JSON) catalogs at `/api/opds/v1` and `/api/opds/v2/catalog`. Supports full-text search, facet filtering, HTTP Basic Auth, and guest access policies. Seamlessly compatible with mobile reader apps such as KOReader, Moon+ Reader, Calibre, Thorium, Aldiko, and PocketBook.
 - **Mihon / Tachiyomi Sync**: Komga-compatible REST API at `/komga/api/v1` (plus `/api/v2` read-progress) that the stock Mihon Komga extension talks to unmodified — series browsing, per-page image serving straight from CBZ/CBR archives, and two-way progress sync via Mihon's built-in tracker. HTTP Basic auth, gated by `komga.sync`.
 - **Reading Tracker Sync**: Two-way sync with AniList and MyAnimeList — link a book to an external series and push reading progress automatically.
+- **Read Lists & ComicRack Import**: Per-user reading lists with an explicit position per entry — drag to reorder, then "Read in order" walks the list and the reader's next button carries over to the next book once a book ends. Imports ComicRack `.cbl` files, matching entries on series name plus issue number and reporting anything the library does not have. Gated by `book.collection`.
 - **Series Recommendations**: Automatically discovers and displays books in the same series on the book detail page (`SeriesBooksSection`), making it effortless to browse sequential volumes.
 - **Email Delivery (SMTP)**: Admin-configured SMTP with STARTTLS / implicit TLS, UI connection testing, configurable max attachment size (`smtp.max_attachment_mb`), and SSRF-safe dialling. Powers Send-to-Kindle (`book.send_email`) and all account email.
 - **Saved Devices**: Per-user delivery targets (`/user/devices`) for e-mail or a KOReader Wi-Fi endpoint — pick a device instead of retyping an address every time. Outbound pushes go through the SSRF-safe client, and the e-mail branch narrows the file to a format the reader accepts.
@@ -41,7 +42,7 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **Social Features**: Read and write reviews, rate books, and generate public share links.
 - **First-Run Setup Wizard**: Intuitive setup wizard (`/setup`) for admin account creation, branding configuration (Logo & Favicon cropper/fetcher), sidebar navigation toggle, and default feature policy setup.
 - **Security & RBAC**: JWT authentication with access + refresh token rotation and instant token version revocation. AES-256-GCM encryption via `pkg/crypto` (`DB_ENCRYPTION_KEY`) for sensitive tokens and credentials stored in SQLite, including tracker tokens, TOTP secrets and the SMTP password.
-- **Multi-Language Support**: i18n support with complete, synchronized translation datasets in `web/public/locales/` (`en`, `vi`, `ja`, `ko`, `zh`) with dynamic parameter interpolation (`{{num}}`, etc.).
+- **Multi-Language Support**: i18n support with complete, synchronized translation datasets in `web/public/locales/` for 16 languages (`en` English, `vi` Tiếng Việt, `ja` 日本語, `ko` 한국어, `zh-CN` 简体中文, `zh-TW` 繁體中文, `es` Español, `fr` Français, `de` Deutsch, `pt` Português, `ru` Русский, `ar` العربية, `hi` हिन्दी, `id` Bahasa Indonesia, `th` ไทย, `it` Italiano) with dynamic parameter interpolation (`{{num}}`, etc.).
 - **Single Binary Deployment**: The React frontend *and* the SQL schema are embedded in the Go binary — the release artifact is one file with nothing beside it. Zero-config SQLite (`modernc.org/sqlite`) with WAL mode and MMAP; the schema is applied on first launch.
 
 ---
@@ -137,7 +138,7 @@ novelhub/
 │   ├── schema/          # SQLite schema, applied on first launch
 │   └── query/           # Type-safe SQLC query definitions (explicit column projections)
 └── web/                 # React 19 + Vite + TailwindCSS + DaisyUI (Bun)
-    ├── public/locales/  # i18n translation datasets (en, vi, ja, ko, zh)
+    ├── public/locales/  # i18n translation datasets (en, vi, ja, ko, zh-CN, zh-TW, es, fr, de, pt, ru, ar, hi, id, th, it)
     └── src/             # Components, Pages, Services, Stores (Zustand)
 ```
 

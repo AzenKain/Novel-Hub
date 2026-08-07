@@ -10,7 +10,7 @@ import (
 	"novelhub/pkg/constants"
 )
 
-func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, highlightController *controllers.HighlightController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
+func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureController, highlightController *controllers.HighlightController, readListController *controllers.ReadListController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
 	highlightGroup := app.Group("/highlights", middlewares.JwtAccess(userRepo))
 	highlightGroup.Post("/", highlightController.CreateHighlight)
 	highlightGroup.Get("/", highlightController.GetHighlights)
@@ -48,6 +48,20 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	collectionGroup.Delete("/:id", featureController.DeleteCollection)
 	collectionGroup.Post("/:id/books", featureController.AddBookToCollection)
 	collectionGroup.Delete("/:id/books/:bookId", featureController.RemoveBookFromCollection)
+
+	readListGroup := app.Group("/read-lists", middlewares.JwtAccess(userRepo))
+	readListGroup.Use(middlewares.RequirePermission(permissionCache, constants.PermBookCollection))
+	readListGroup.Get("/", readListController.GetReadLists)
+	readListGroup.Post("/", readListController.CreateReadList)
+	readListGroup.Post("/import", readListController.ImportCBL)
+	readListGroup.Get("/:id", readListController.GetReadList)
+	readListGroup.Put("/:id", readListController.UpdateReadList)
+	readListGroup.Delete("/:id", readListController.DeleteReadList)
+	readListGroup.Get("/:id/books", readListController.GetReadListBooks)
+	readListGroup.Post("/:id/books", readListController.AddBook)
+	readListGroup.Delete("/:id/books/:bookId", readListController.RemoveBook)
+	readListGroup.Put("/:id/order", readListController.Reorder)
+	readListGroup.Get("/:id/next", readListController.NextInOrder)
 
 	smartCollectionGroup := app.Group("/smart-collections", middlewares.JwtAccess(userRepo))
 	smartCollectionGroup.Use(middlewares.RequirePermission(permissionCache, constants.PermBookCollection))

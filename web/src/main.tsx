@@ -2,7 +2,7 @@ import { ProtectedRoute, UpdatePrompt } from "@/components/common";
 import "@/i18n";
 import { AdminLayout, Books, Duplicates, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
-import { LibraryWorkspace } from "@/pages/library";
+import { LibraryWorkspace, ReadListPage } from "@/pages/library";
 import { ReaderWorkspace } from "@/pages/reader";
 import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
 import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
@@ -102,6 +102,7 @@ function App() {
               <Route path="/" element={<LibraryWorkspace />} />
               <Route path="/books/:book_id" element={<LibraryWorkspace />} />
               <Route path="/reader/:book_id" element={<ReaderWorkspace />} />
+              <Route path="/read-lists" element={<ReadListPage />} />
               <Route element={<ProtectedRoute requiredPermission="user.stats.read" />}>
                 <Route path="/analytics" element={<ReadingAnalyticsPage />} />
               </Route>

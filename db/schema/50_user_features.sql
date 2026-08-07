@@ -20,6 +20,32 @@ CREATE TABLE IF NOT EXISTS collection_books (
 
 CREATE INDEX IF NOT EXISTS idx_collections_user_id ON collections(user_id);
 
+CREATE TABLE IF NOT EXISTS read_lists (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- position is deliberately not UNIQUE: swapping two adjacent entries has to pass through a state
+-- where both hold the same number, and a UNIQUE constraint would abort mid-transaction.
+CREATE TABLE IF NOT EXISTS read_list_books (
+    read_list_id TEXT NOT NULL,
+    book_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (read_list_id, book_id),
+    FOREIGN KEY (read_list_id) REFERENCES read_lists(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_read_lists_user_created ON read_lists(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_read_list_books_position ON read_list_books(read_list_id, position);
+CREATE INDEX IF NOT EXISTS idx_read_list_books_book ON read_list_books(book_id);
+
 CREATE TABLE IF NOT EXISTS bookmarks (
     user_id TEXT NOT NULL,
     book_id TEXT NOT NULL,

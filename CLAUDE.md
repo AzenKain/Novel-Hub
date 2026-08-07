@@ -19,8 +19,8 @@ Please refer to `AGENTS.md` for full system architecture rules.
   - `pkg/worker`: Bounded worker pool queue for background tasks and job schedules.
 - **Frontend (`web/src` & `web/public`)**:
   - Permission utilities in `web/src/utils/permission.ts` (`isAdminUser`, `isBannedUser`, `hasPermission`). Do NOT hardcode string role checks in components.
-  - Translation files in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh.json`).
-  - NO HARDCODED UI TEXT in TSX files. Always add keys across ALL 5 locale files with dynamic parameter support (`{{param}}`) and verify zero duplicate keys exist.
+  - Translation files in `web/public/locales/` (`en.json`, `vi.json`, `ja.json`, `ko.json`, `zh-CN.json`, `zh-TW.json`, `es.json`, `fr.json`, `de.json`, `pt.json`, `ru.json`, `ar.json`, `hi.json`, `id.json`, `th.json`, `it.json`).
+  - NO HARDCODED UI TEXT in TSX files. Always add keys across locale files with dynamic parameter support (`{{param}}`) and verify zero duplicate keys exist.
   - Dynamic runtime options (e.g. SMTP attachment limit `smtp.max_attachment_mb`) MUST be persisted in `app_settings` and managed via Admin Settings UI, NOT environment variables.
   - Types & Interfaces MUST be defined in `web/src/types/` and exported via `web/src/types/index.ts` (NO inline type definitions inside services/components).
   - Centralized API services in `web/src/services/` (Axios interceptor with auto 401 token refresh in `web/src/config/api.ts`). NEVER call direct `api.get` / `api.post` inside components or hooks.
