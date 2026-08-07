@@ -86,7 +86,10 @@ export function useCreateReadListMutation() {
       if (!res.status) throw new Error(res.message || "Failed to create the read list");
       return res.data;
     },
-    onSuccess: () => invalidate(),
+    onSuccess: () => {
+      invalidate();
+      toast.success(i18n.t("library.readlist_created", "Read list created successfully"));
+    },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_create_failed", "Could not create the read list"));
     },
@@ -101,7 +104,10 @@ export function useUpdateReadListMutation() {
       if (!res.status) throw new Error(res.message || "Failed to rename the read list");
       return res.data;
     },
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (_data, variables) => {
+      invalidate(variables.id);
+      toast.success(i18n.t("library.readlist_updated", "Read list updated successfully"));
+    },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_update_failed", "Could not update the read list"));
     },
@@ -116,7 +122,10 @@ export function useDeleteReadListMutation() {
       if (!res.status) throw new Error(res.message || "Failed to delete the read list");
       return res;
     },
-    onSuccess: (_data, id) => invalidate(id),
+    onSuccess: (_data, id) => {
+      invalidate(id);
+      toast.success(i18n.t("library.readlist_deleted", "Read list deleted successfully"));
+    },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_delete_failed", "Could not delete the read list"));
     },
@@ -131,7 +140,10 @@ export function useAddReadListBookMutation() {
       if (!res.status) throw new Error(res.message || "Failed to add the book");
       return res;
     },
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (_data, variables) => {
+      invalidate(variables.id);
+      toast.success(i18n.t("library.readlist_add_book_success", "Book added to the read list"));
+    },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_add_book_failed", "Could not add the book to the read list"));
     },
@@ -146,7 +158,10 @@ export function useRemoveReadListBookMutation() {
       if (!res.status) throw new Error(res.message || "Failed to remove the book");
       return res;
     },
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (_data, variables) => {
+      invalidate(variables.id);
+      toast.success(i18n.t("library.readlist_remove_book_success", "Book removed from the read list"));
+    },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_remove_book_failed", "Could not remove the book from the read list"));
     },
