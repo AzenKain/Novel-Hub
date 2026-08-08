@@ -163,7 +163,28 @@ func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
 	}
 	keep := s.preferReadableFileExcept(survivors, fileID)
 	if keep == nil {
-		return apperrors.New(apperrors.ErrBadRequest, "Cannot delete the only file of a book. Delete the book instead.")
+		book, err := s.bookRepo.GetBook(ctx, fileRecord.BookID)
+		if err != nil {
+			return err
+		}
+		if err := txBookRepo.DeleteFTSBook(ctx, fileRecord.BookID); err != nil {
+			return err
+		}
+		if err := txBookRepo.DeleteBook(ctx, fileRecord.BookID); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		txBookRepo.FlushCache(ctx)
+
+		if err := s.fileRepo.RemoveBookDir(ctx, fileRecord.BookID); err != nil {
+			log.Warn().Err(err).Str("book_id", fileRecord.BookID).Msg("failed to remove book files")
+		}
+		if book != nil && s.webhookService != nil {
+			s.webhookService.DispatchEvent(ctx, "book.deleted", BuildBookWebhookPayload(book))
+		}
+		return nil
 	}
 	// ponytail: reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") have no
 	// FK, so a plain delete orphans them instead of cascading. Repoint them onto the survivor.

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/netx"
 )
@@ -78,6 +79,11 @@ func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input
 		if err != nil {
 			return nil, "", err
 		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0")
+		req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		if parsed.Host != "" {
+			req.Header.Set("Referer", parsed.Scheme+"://"+parsed.Host+"/")
+		}
 		client := netx.NewSafeHTTPClient(15 * time.Second)
 		resp, err := client.Do(req)
 		if err != nil {
@@ -115,4 +121,74 @@ func (s *bookService) updateCoverURL(ctx context.Context, bookID string, coverUR
 		return err
 	}
 	return nil
+}
+
+func (s *bookService) ProxyCover(ctx context.Context, coverURL string) ([]byte, string, error) {
+	parsed, err := url.Parse(coverURL)
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrBadRequest, "invalid URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, "", apperrors.New(apperrors.ErrBadRequest, "URL must use http or https scheme")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, coverURL, nil)
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, err.Error())
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+	if parsed.Host != "" {
+		req.Header.Set("Referer", parsed.Scheme+"://"+parsed.Host+"/")
+	}
+
+	client := netx.NewSafeHTTPClient(15 * time.Second)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, "failed to download image: "+err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, "failed to download image: status "+resp.Status)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		return nil, "", apperrors.New(apperrors.ErrBadRequest, "URL does not return a valid image type: "+contentType)
+	}
+
+	limit := s.settings.Limits().CoverBytes
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, "failed to read response: "+err.Error())
+	}
+	if int64(len(data)) > limit {
+		return nil, "", apperrors.New(apperrors.ErrBadRequest, "image exceeds cover size limit")
+	}
+
+	ext, err := bookparser.ValidateImage(data, limit)
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrBadRequest, "invalid image content: "+err.Error())
+	}
+
+	var resolvedContentType string
+	switch ext {
+	case ".jpg":
+		resolvedContentType = "image/jpeg"
+	case ".png":
+		resolvedContentType = "image/png"
+	case ".gif":
+		resolvedContentType = "image/gif"
+	case ".webp":
+		resolvedContentType = "image/webp"
+	case ".bmp":
+		resolvedContentType = "image/bmp"
+	case ".tiff":
+		resolvedContentType = "image/tiff"
+	default:
+		resolvedContentType = "application/octet-stream"
+	}
+
+	return data, resolvedContentType, nil
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Check, Copy } from "lucide-react";
 
 import type { Library } from "@/types";
 
@@ -27,10 +28,18 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
   const { t } = useTranslation();
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const startRename = (lib: Library) => {
     setRenaming(lib.id);
     setRenameValue(lib.name);
+  };
+
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
   };
 
   const submitRename = (id: string) => {
@@ -94,7 +103,26 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
                     autoFocus
                   />
                 ) : (
-                  <span className="font-medium">{library.name}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium truncate">{library.name}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-base-content/50">
+                      <span className="font-mono text-[10px] select-all truncate max-w-[150px] sm:max-w-[200px]" title={library.id}>
+                        {library.id}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyId(library.id)}
+                        className="btn btn-ghost btn-circle btn-xs hover:bg-base-300 h-5 w-5 min-h-0"
+                        title="Copy Library ID"
+                      >
+                        {copiedId === library.id ? (
+                          <Check size={11} className="text-success" />
+                        ) : (
+                          <Copy size={11} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 )}
                 <div className="flex gap-1 shrink-0">
                   <button

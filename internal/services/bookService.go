@@ -51,6 +51,7 @@ type BookService interface {
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
 	UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error)
+	ProxyCover(ctx context.Context, coverURL string) ([]byte, string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
 	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error

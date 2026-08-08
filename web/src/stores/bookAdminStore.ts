@@ -37,6 +37,7 @@ interface BookAdminState {
 
   // Metadata Search
   searchSource: string;
+  onlineSearchQuery: string;
   searching: boolean;
   searchResults: OnlineMetadataResult[];
 
@@ -62,6 +63,7 @@ interface BookAdminState {
   setSearch: (search: string) => void;
   setSelectedLibraryId: (id: string) => void;
   setSearchSource: (source: string) => void;
+  setOnlineSearchQuery: (query: string) => void;
   setCoverTab: (tab: "book" | "upload" | "link") => void;
   setLinkUrl: (url: string) => void;
   setFormData: (data: Partial<{
@@ -121,7 +123,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   coverPreview: null,
   pendingCover: null,
 
-  searchSource: "google",
+  searchSource: "fallback",
+  onlineSearchQuery: "",
   searching: false,
   searchResults: [],
 
@@ -143,6 +146,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   setSearch: (search) => set({ search }),
   setSelectedLibraryId: (selectedLibraryId) => set({ selectedLibraryId }),
   setSearchSource: (searchSource) => set({ searchSource }),
+  setOnlineSearchQuery: (onlineSearchQuery) => set({ onlineSearchQuery }),
   setCoverTab: (coverTab) => set({ coverTab }),
   setLinkUrl: (linkUrl) => set({ linkUrl }),
   setFormData: (data) => set((state) => ({ formData: { ...state.formData, ...data } })),
@@ -196,6 +200,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       linkUrl: "",
       coverPreview: book.cover_url || null,
       pendingCover: null,
+      onlineSearchQuery: book.title || "",
+      searchResults: [],
       loadingImages: true
     });
 
@@ -212,14 +218,18 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   },
 
   handleSearchOnline: async () => {
-    const { editingBook, searchSource } = get();
-    if (!editingBook) return;
+    const { onlineSearchQuery, formData, editingBook, searchSource } = get();
+    const query = onlineSearchQuery?.trim() || formData.title?.trim() || editingBook?.title?.trim() || "";
+    if (!query) {
+      toast.warn("Please enter a book title or keyword to search online");
+      return;
+    }
     set({ searching: true, searchResults: [] });
     try {
-      const results = await metadataService.searchOnline(editingBook.title, searchSource);
+      const results = await metadataService.searchOnline(query, searchSource);
       set({ searchResults: results });
     } catch (err) {
-      toast.error("Error connecting to server or fetching metadata");
+      toast.error(err instanceof Error ? err.message : "Error connecting to server or fetching metadata");
     } finally {
       set({ searching: false });
     }
@@ -276,6 +286,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       coverPreview: linkUrl, 
       pendingCover: { type: 'url', value: linkUrl } 
     });
+    toast.success("Cover link applied. Click Save at the bottom to download and save.");
   },
 
   handleEditSubmit: async (e) => {

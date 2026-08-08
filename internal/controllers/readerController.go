@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"novelhub/pkg/apperrors"
+
+	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -269,4 +270,25 @@ func inlineContentDisposition(filename string) string {
 		filename = "book"
 	}
 	return `inline; filename="` + filename + `"`
+}
+
+func (h *ReaderController) ProxyCover(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	coverURL := c.Query("url")
+	if coverURL == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "url query parameter is required"})
+	}
+
+	data, contentType, err := h.bookService.ProxyCover(ctx, coverURL)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	c.Set("Content-Type", contentType)
+	c.Set("X-Content-Type-Options", "nosniff")
+	c.Set("Cache-Control", "public, max-age=86400")
+
+	return c.Send(data)
 }

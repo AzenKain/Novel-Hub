@@ -19,31 +19,39 @@ function cleanQuery(query: string): string {
   cleaned = cleaned.replace(/\s*(?:tập|vol(?:ume)?|quyển|chương|chuong)\b.*/gi, "");
   // Remove punctuation
   cleaned = cleaned.replace(/[^\p{L}\p{N}\s]/gu, "");
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+  return cleaned || query.trim();
 }
 
 async function searchGoogleBooks(query: string): Promise<OnlineMetadataResult[]> {
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`;
-  const res = await axios.get(url);
-  const data = res.data;
-  if (!data.items) return [];
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`;
+    const res = await axios.get(url);
+    const data = res.data;
+    if (!data.items) return [];
 
-  return data.items.map((item: any) => {
-    const vol = item.volumeInfo;
-    let cover = "";
-    if (vol.imageLinks) {
-      cover = vol.imageLinks.thumbnail || vol.imageLinks.smallThumbnail || "";
-      cover = cover.replace("http://", "https://");
+    return data.items.map((item: any) => {
+      const vol = item.volumeInfo;
+      let cover = "";
+      if (vol.imageLinks) {
+        cover = vol.imageLinks.thumbnail || vol.imageLinks.smallThumbnail || "";
+        cover = cover.replace("http://", "https://");
+      }
+      return {
+        title: vol.title,
+        creator: vol.authors ? vol.authors.join(", ") : "",
+        publisher: vol.publisher,
+        language: vol.language,
+        description: vol.description,
+        cover_image: cover,
+      } as OnlineMetadataResult;
+    });
+  } catch (err: any) {
+    if (err?.response?.status === 429 || err?.response?.data?.error?.status === "RESOURCE_EXHAUSTED") {
+      throw new Error("Google Books API quota exceeded for the day. Please select AniList or Open Library.");
     }
-    return {
-      title: vol.title,
-      creator: vol.authors ? vol.authors.join(", ") : "",
-      publisher: vol.publisher,
-      language: vol.language,
-      description: vol.description,
-      cover_image: cover,
-    } as OnlineMetadataResult;
-  });
+    throw err;
+  }
 }
 
 async function searchOpenLibrary(query: string): Promise<OnlineMetadataResult[]> {
@@ -80,7 +88,7 @@ async function searchAniList(query: string): Promise<OnlineMetadataResult[]> {
         format
         countryOfOrigin
         description
-        cover_image {
+        coverImage {
           large
         }
         staff {
@@ -114,15 +122,19 @@ async function searchAniList(query: string): Promise<OnlineMetadataResult[]> {
     let author = "";
     if (m.staff?.edges) {
       const authors = m.staff.edges
-        .filter((e: any) => e.role && e.role.toLowerCase().includes("story"))
-        .map((e: any) => e.node?.name?.full);
-      if (authors.length > 0) author = authors.join(", ");
+        .filter((e: any) => {
+          const role = e.role ? e.role.toLowerCase() : "";
+          return role.includes("story") || role.includes("author") || role.includes("writer") || role.includes("original");
+        })
+        .map((e: any) => e.node?.name?.full)
+        .filter(Boolean);
+      if (authors.length > 0) author = Array.from(new Set(authors)).join(", ");
     }
     return {
       title,
       creator: author,
       description: m.description ? m.description.replace(/<[^>]*>?/gm, '') : "",
-      cover_image: m.cover_image?.large || "",
+      cover_image: m.coverImage?.large || "",
       language: m.countryOfOrigin,
       subject: m.genres ? m.genres.join(", ") : "",
     } as OnlineMetadataResult;
@@ -167,16 +179,23 @@ export const metadataService = {
       case "google":
         return searchGoogleBooks(query);
       case "anilist":
-        return searchAniList(query);
+        return searchAniList(cleanQuery(query));
       case "openlibrary":
-        return searchOpenLibrary(query);
+        return searchOpenLibrary(cleanQuery(query));
       default: {
-        // Fallback strategy: try anilist first, then google books, then open library
+        // Fallback strategy: try AniList first, then OpenLibrary, then Google Books
         try {
-          const aniListResults = await searchAniList(query);
+          const aniListResults = await searchAniList(cleanQuery(query));
           if (aniListResults.length > 0) return aniListResults;
         } catch (e) {
           console.warn("AniList search failed", e);
+        }
+
+        try {
+          const olResults = await searchOpenLibrary(cleanQuery(query));
+          if (olResults.length > 0) return olResults;
+        } catch (e) {
+          console.warn("OpenLibrary search failed", e);
         }
 
         try {
@@ -186,13 +205,6 @@ export const metadataService = {
           console.warn("Google Books search failed", e);
         }
 
-        try {
-          const olResults = await searchOpenLibrary(cleanQuery(query));
-          if (olResults.length > 0) return olResults;
-        } catch (e) {
-          console.warn("OpenLibrary search failed", e);
-        }
-        
         return [];
       }
     }

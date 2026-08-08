@@ -50,7 +50,7 @@ func zipSeed(t *testing.T, books, filesPer int) (*libraryService, string) {
 		}
 		for j := 0; j < filesPer; j++ {
 			p := filepath.Join(dir, fmt.Sprintf("%s-%d.epub", bid, j))
-			body := []byte(fmt.Sprintf("body %s %d", bid, j))
+			body := fmt.Appendf(nil, "body %s %d", bid, j)
 			if err := os.WriteFile(p, body, 0o640); err != nil {
 				t.Fatal(err)
 			}

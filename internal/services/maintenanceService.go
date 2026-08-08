@@ -75,11 +75,6 @@ func removeHTMLTags(input string) string {
 }
 
 func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error {
-	err := s.bookRepo.DeleteFTSBook(ctx, bookID)
-	if err != nil {
-		return err
-	}
-
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil || len(files) == 0 {
 		return nil
@@ -113,6 +108,13 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 		return err
 	}
 
+	type chapterText struct {
+		id    string
+		title string
+		text  string
+	}
+	texts := make([]chapterText, 0, len(chapters))
+
 	for _, ch := range chapters {
 		if ch.ContentPath == nil {
 			continue
@@ -127,14 +129,38 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 			continue
 		}
 
-		text := removeHTMLTags(html)
+		texts = append(texts, chapterText{
+			id:    ch.ID,
+			title: ch.Title,
+			text:  removeHTMLTags(html),
+		})
+	}
 
-		err = s.bookRepo.InsertFTSChapter(ctx, bookID, ch.ID, ch.Title, text)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to insert FTS chapter")
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	txRepo := s.bookRepo.WithTx(tx)
+
+	if err := txRepo.DeleteFTSBook(ctx, bookID); err != nil {
+		return err
+	}
+
+	for _, t := range texts {
+		if err := txRepo.InsertFTSChapter(ctx, bookID, t.id, t.title, t.text); err != nil {
+			log.Error().Err(err).Str("book", bookID).Str("ch", t.title).Msg("Failed to insert FTS chapter")
+			return err
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	txRepo.FlushCache(ctx)
 	return nil
 }
 

@@ -39,7 +39,7 @@ func TestListTasksExposesEveryTask(t *testing.T) {
 func TestEveryTaskHasALocaleLabel(t *testing.T) {
 	service := NewJobService(nil, nil)
 
-	for _, lang := range []string{"en", "vi", "ja", "ko", "zh"} {
+	for _, lang := range []string{"en", "vi", "ja", "ko", "zh-CN"} {
 		raw, err := os.ReadFile("../../web/public/locales/" + lang + ".json")
 		if err != nil {
 			t.Fatalf("read %s locale: %v", lang, err)

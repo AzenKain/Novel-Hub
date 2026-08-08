@@ -11,7 +11,7 @@ require (
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/gofiber/contrib/v3/jwt v1.2.0
-	github.com/gofiber/contrib/v3/zerolog v1.1.2
+	github.com/gofiber/contrib/v3/zerolog v1.1.3
 	github.com/gofiber/fiber/v3 v3.4.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -26,6 +26,8 @@ require (
 	golang.org/x/text v0.40.0
 	modernc.org/sqlite v1.56.0
 )
+
+require golang.org/x/image v0.44.0
 
 require (
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
@@ -43,7 +45,7 @@ require (
 	github.com/gofiber/schema v1.8.3 // indirect
 	github.com/gofiber/utils/v2 v2.4.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/klauspost/compress v1.19.1 // indirect
+	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
@@ -65,10 +67,10 @@ require (
 	github.com/valyala/fasthttp v1.73.0 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
-	golang.org/x/arch v0.29.0 // indirect
+	golang.org/x/arch v0.30.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.74.4 // indirect
+	modernc.org/libc v1.75.2 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.0 // indirect
 )

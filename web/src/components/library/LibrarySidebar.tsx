@@ -1,5 +1,6 @@
 import { Plus, MoreVertical, Edit2, Filter, Trash2 } from "lucide-react";
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { featureService } from "@/services";
 import { toast } from "react-toastify";
@@ -123,7 +124,14 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         className="drawer-overlay"
       />
       <div className="menu flex min-h-full w-64 flex-col gap-5 bg-base-100 p-3 text-base-content">
-        <div className="mt-2 mb-3 flex items-center gap-2.5 px-2">
+        <Link
+          to="/"
+          onClick={() => {
+            onNavClick("");
+            onCollectionClick("");
+          }}
+          className="mt-2 mb-3 flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"
+        >
           {siteLogo ? (
             <img src={siteLogo} alt="Logo" className="h-9 w-9 rounded-lg object-contain shadow-md" />
           ) : (
@@ -132,14 +140,14 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             </div>
           )}
           <div>
-            <h1 className="text-lg font-black leading-none tracking-tight">
+            <h1 className="text-lg font-black leading-none tracking-tight text-base-content">
               {siteTitle}
             </h1>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-base-content/50">
               {siteDesc}
             </p>
           </div>
-        </div>
+        </Link>
 
         <div>
           <li className="menu-title px-2 pb-2 text-xs font-bold uppercase tracking-wider text-base-content/40">

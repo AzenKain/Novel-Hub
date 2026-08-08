@@ -22,12 +22,12 @@ export function Books() {
     editingBook: state.editingBook, formData: state.formData, submitting: state.submitting,
     bookFiles: state.bookFiles, uploadingBookFiles: state.uploadingBookFiles,
     coverTab: state.coverTab, epubImages: state.epubImages, loadingImages: state.loadingImages, linkUrl: state.linkUrl, coverPreview: state.coverPreview,
-    searchSource: state.searchSource, searching: state.searching, searchResults: state.searchResults,
+    searchSource: state.searchSource, onlineSearchQuery: state.onlineSearchQuery, searching: state.searching, searchResults: state.searchResults,
     showUploadModal: state.showUploadModal, uploadLibraryId: state.uploadLibraryId, uploading: state.uploading,
     uploadProgress: state.uploadProgress, uploadSpeed: state.uploadSpeed, uploadCurrentFile: state.uploadCurrentFile, uploadBytesText: state.uploadBytesText, uploadBatchInfo: state.uploadBatchInfo,
     showLibraryModal: state.showLibraryModal, newLibraryName: state.newLibraryName,
     bookToDelete: state.bookToDelete, libraryToDelete: state.libraryToDelete,
-    setSearch: state.setSearch, setSelectedLibraryId: state.setSelectedLibraryId, setSearchSource: state.setSearchSource, setCoverTab: state.setCoverTab, setLinkUrl: state.setLinkUrl,
+    setSearch: state.setSearch, setSelectedLibraryId: state.setSelectedLibraryId, setSearchSource: state.setSearchSource, setOnlineSearchQuery: state.setOnlineSearchQuery, setCoverTab: state.setCoverTab, setLinkUrl: state.setLinkUrl,
     setFormData: state.setFormData, setShowUploadModal: state.setShowUploadModal, setUploadLibraryId: state.setUploadLibraryId, setShowLibraryModal: state.setShowLibraryModal,
     setNewLibraryName: state.setNewLibraryName,
     setEditingBook: state.setEditingBook, setSearchResults: state.setSearchResults, setBookToDelete: state.setBookToDelete, setLibraryToDelete: state.setLibraryToDelete,
@@ -45,12 +45,12 @@ export function Books() {
     editingBook, formData, submitting,
     bookFiles, uploadingBookFiles,
     coverTab, epubImages, loadingImages, linkUrl, coverPreview,
-    searchSource, searching, searchResults,
+    searchSource, onlineSearchQuery, searching, searchResults,
     showUploadModal, uploadLibraryId, uploading,
     uploadProgress, uploadSpeed, uploadCurrentFile, uploadBytesText, uploadBatchInfo,
     showLibraryModal, newLibraryName,
     bookToDelete, libraryToDelete,
-    setSearch, setSelectedLibraryId, setSearchSource, setCoverTab, setLinkUrl,
+    setSearch, setSelectedLibraryId, setSearchSource, setOnlineSearchQuery, setCoverTab, setLinkUrl,
     setFormData, setShowUploadModal, setUploadLibraryId, setShowLibraryModal,
     setNewLibraryName,
     setEditingBook, setSearchResults, setBookToDelete, setLibraryToDelete,
@@ -148,10 +148,10 @@ export function Books() {
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto w-full space-y-6">
           {/* Toolbar & Action Controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 sm:gap-4 mb-6">
             {/* Search, Library Filter & View Switcher */}
-            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="relative flex-1 min-w-[200px] sm:min-w-[240px] max-w-md">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
                 <input
                   type="text"
@@ -162,47 +162,49 @@ export function Books() {
                 />
               </div>
 
-              <select
-                className="select select-bordered select-sm sm:select-md bg-base-100 rounded-xl min-w-[150px]"
-                value={selectedLibraryId}
-                onChange={(e) => setSelectedLibraryId(e.target.value)}
-              >
-                <option value="">{t("admin.all_libraries", "All Libraries")}</option>
-                {libraries.map((lib) => (
-                  <option key={lib.id} value={lib.id}>{lib.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2 shrink-0">
+                <select
+                  className="select select-bordered select-sm sm:select-md bg-base-100 rounded-xl min-w-[140px] sm:min-w-[160px] flex-1 sm:flex-initial"
+                  value={selectedLibraryId}
+                  onChange={(e) => setSelectedLibraryId(e.target.value)}
+                >
+                  <option value="">{t("admin.all_libraries", "All Libraries")}</option>
+                  {libraries.map((lib) => (
+                    <option key={lib.id} value={lib.id}>{lib.name}</option>
+                  ))}
+                </select>
 
-              <div className="join border border-base-200 rounded-xl p-0.5 bg-base-100">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
-                  title={t('admin.grid_view', 'Grid view')}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
-                  title={t('admin.table_view', 'Table view')}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+                <div className="join border border-base-200 rounded-xl p-0.5 bg-base-100 shrink-0">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                    title={t('admin.grid_view', 'Grid view')}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                    title={t('admin.table_view', 'Table view')}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+            <div className="flex items-center gap-2 flex-wrap xl:flex-nowrap shrink-0 justify-start xl:justify-end">
               <button
                 onClick={() => setShowLibraryModal(true)}
-                className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl"
+                className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl text-xs sm:text-sm"
               >
                 {t("admin.manage_libraries", "Manage Libraries")}
               </button>
               {canImportCalibre && (
                 <button
                   onClick={() => setShowCalibreModal(true)}
-                  className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl"
+                  className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl text-xs sm:text-sm"
                 >
                   <DatabaseBackup className="w-4 h-4" />
                   {t("admin.calibre_import", "Import from Calibre")}
@@ -210,7 +212,7 @@ export function Books() {
               )}
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl !text-white font-medium"
+                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl !text-white font-medium text-xs sm:text-sm"
               >
                 <Upload className="w-4 h-4" />
                 {t("admin.upload", "Upload")}
@@ -432,7 +434,7 @@ export function Books() {
                 <div className="flex flex-col items-center gap-2 p-3 bg-base-200/30 border border-base-200 rounded-lg">
                   <div className="w-36 aspect-[3/4.12] rounded-md bg-base-300 border border-base-300 overflow-hidden shadow-md flex items-center justify-center">
                     {coverPreview ? (
-                      <img src={coverPreview} alt="Cover" loading="lazy" className="w-full h-full object-cover" />
+                      <img src={getMediaUrl(coverPreview, editingBook?.id)} alt="Cover" loading="lazy" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-base-content/30 gap-1">
                         <ImageIcon size={24} />
@@ -566,11 +568,24 @@ export function Books() {
                       <option value="google">Google Books</option>
                       <option value="openlibrary">Open Library</option>
                     </select>
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm flex-1 bg-base-100 min-w-0"
+                      placeholder="Search title, series or author..."
+                      value={onlineSearchQuery}
+                      onChange={e => setOnlineSearchQuery(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSearchOnline();
+                        }
+                      }}
+                    />
                     <button
                       type="button"
                       onClick={handleSearchOnline}
                       disabled={searching}
-                      className="btn btn-sm btn-primary gap-1"
+                      className="btn btn-sm btn-primary gap-1 shrink-0"
                     >
                       {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                       {searching ? "Searching..." : "Search"}
@@ -590,7 +605,7 @@ export function Books() {
                           className="flex gap-3 p-2 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors"
                         >
                           {res.cover_image ? (
-                            <img src={res.cover_image} loading="lazy" className="w-9 h-12 object-cover rounded bg-base-200 border border-base-200 shrink-0" referrerPolicy="no-referrer" />
+                            <img src={getMediaUrl(res.cover_image, editingBook?.id)} loading="lazy" className="w-9 h-12 object-cover rounded bg-base-200 border border-base-200 shrink-0" />
                           ) : (
                             <div className="w-9 h-12 rounded bg-base-200 border border-base-200 flex items-center justify-center text-[8px] text-base-content/40 font-bold shrink-0">—</div>
                           )}
