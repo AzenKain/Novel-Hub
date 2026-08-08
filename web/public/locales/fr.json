@@ -1005,5 +1005,15 @@
     "no_results_desc": "Essayez de modifier votre recherche, d'effacer les filtres ou de chercher avec un terme différent.",
     "results_suffix": "résultats",
     "query_label": "Requête"
+  },
+  "vbook": {
+    "title": "Extension VBook",
+    "subtitle": "Installez l'extension NovelHub dans l'application VBook pour parcourir et lire votre bibliothèque depuis votre téléphone.",
+    "entry_label": "URL d'entrée de l'extension VBook",
+    "show_qr": "Afficher le code QR",
+    "guide_title": "Comment installer dans VBook :",
+    "step1": "Ouvrez VBook → Plus → Ajouter une extension → Scannez le code QR ou collez l'URL d'entrée.",
+    "step2": "VBook télécharge l'extension et se connecte à votre serveur NovelHub personnel.",
+    "step3": "Si votre serveur exige une connexion, configurez vos identifiants NovelHub dans les paramètres de l'extension."
   }
 }

@@ -1005,5 +1005,15 @@
     "no_results_desc": "Versuchen Sie, Ihre Suchanfrage anzupassen, Filter zu löschen oder mit einem anderen Begriff zu suchen.",
     "results_suffix": "Ergebnisse",
     "query_label": "Suchbegriff"
+  },
+  "vbook": {
+    "title": "VBook-Plugin",
+    "subtitle": "Installieren Sie das NovelHub-Plugin in der VBook-App, um Ihre Bibliothek vom Handy aus zu durchsuchen und zu lesen.",
+    "entry_label": "VBook-Plugin-Eintrags-URL",
+    "show_qr": "QR-Code anzeigen",
+    "guide_title": "So installieren Sie es in VBook:",
+    "step1": "Öffnen Sie VBook → Mehr → Erweiterung hinzufügen → QR-Code scannen oder Eintrags-URL einfügen.",
+    "step2": "VBook lädt das Plugin herunter und verbindet sich mit Ihrem persönlichen NovelHub-Server.",
+    "step3": "Wenn Ihr Server eine Anmeldung erfordert, konfigurieren Sie Ihre NovelHub-Anmeldedaten in den Erweiterungseinstellungen."
   }
 }

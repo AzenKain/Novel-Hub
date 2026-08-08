@@ -1005,5 +1005,15 @@
     "no_results_desc": "Hãy thử thay đổi từ khóa, xóa bộ lọc hoặc tìm kiếm theo cụm từ khác.",
     "results_suffix": "kết quả",
     "query_label": "Từ khóa"
+  },
+  "vbook": {
+    "title": "Plugin VBook",
+    "subtitle": "Cài plugin NovelHub trong ứng dụng VBook để duyệt và đọc thư viện của bạn từ điện thoại.",
+    "entry_label": "URL Plugin VBook",
+    "show_qr": "Hiện mã QR",
+    "guide_title": "Cách cài đặt trong VBook:",
+    "step1": "Mở VBook → Thêm… → Thêm extension → Quét mã QR hoặc dán URL entry.",
+    "step2": "VBook tải plugin và kết nối đến máy chủ NovelHub cá nhân của bạn.",
+    "step3": "Nếu máy chủ yêu cầu đăng nhập, hãy cấu hình thông tin NovelHub trong cài đặt extension."
   }
 }

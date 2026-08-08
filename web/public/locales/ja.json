@@ -1005,5 +1005,15 @@
     "no_results_desc": "検索クエリを変更するか、フィルターをクリアするか、別の検索語を試してください。",
     "results_suffix": "件",
     "query_label": "検索語"
+  },
+  "vbook": {
+    "title": "VBookプラグイン",
+    "subtitle": "VBookアプリにNovelHubプラグインをインストールして、スマホからライブラリを閲覧・閲覧できます。",
+    "entry_label": "VBookプラグインエントリURL",
+    "show_qr": "QRコードを表示",
+    "guide_title": "VBookでのインストール方法:",
+    "step1": "VBookを開く → その他 → 拡張機能を追加 → QRコードをスキャンまたはエントリURLを貼り付け。",
+    "step2": "VBookがプラグインをダウンロードし、あなたのNovelHubサーバーに接続します。",
+    "step3": "サーバーがログインを要求する場合、拡張機能の設定でNovelHubの認証情報を設定してください。"
   }
 }

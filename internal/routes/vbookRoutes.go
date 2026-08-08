@@ -72,7 +72,12 @@ func VBookRoutes(app fiber.Router, vbookController *controllers.VBookController,
 		return apperrors.New(apperrors.ErrUnauthorized, "Authentication required")
 	}
 
-	v1 := app.Group("/api/v1/vbook", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), auth)
+	pub := app.Group("/v1/vbook", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS))
+	pub.Get("/plugin.json", vbookController.GetPluginJSON)
+	pub.Get("/entry.json", vbookController.GetEntryJSON)
+	pub.Get("/plugin.zip", vbookController.GetPluginZip)
+
+	v1 := app.Group("/v1/vbook", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), auth)
 	v1.Get("/home", vbookController.GetHome)
 	v1.Get("/genres", vbookController.GetGenres)
 	v1.Get("/books", vbookController.GetBooks)

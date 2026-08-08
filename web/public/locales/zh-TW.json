@@ -1005,5 +1005,15 @@
     "no_results_desc": "嘗試修改搜尋關鍵字、清除篩選條件或使用不同的搜尋詞。",
     "results_suffix": "個結果",
     "query_label": "搜尋詞"
+  },
+  "vbook": {
+    "title": "VBook 外掛",
+    "subtitle": "在 VBook 應用程式中安裝 NovelHub 外掛，在手機上瀏覽和閱讀您的書庫。",
+    "entry_label": "VBook 外掛條目 URL",
+    "show_qr": "顯示 QR Code",
+    "guide_title": "如何在 VBook 中安裝：",
+    "step1": "開啟 VBook → 更多 → 新增擴充功能 → 掃描 QR Code 或貼上條目 URL。",
+    "step2": "VBook 將下載外掛並連線到您的個人 NovelHub 伺服器。",
+    "step3": "如果伺服器需要登入，請在外掛設定中設定您的 NovelHub 憑證。"
   }
 }

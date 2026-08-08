@@ -1005,5 +1005,15 @@
     "no_results_desc": "尝试修改搜索关键词、清除筛选条件或使用不同的搜索词。",
     "results_suffix": "个结果",
     "query_label": "搜索词"
+  },
+  "vbook": {
+    "title": "VBook 插件",
+    "subtitle": "在 VBook 应用中安装 NovelHub 插件，在手机上浏览和阅读您的书库。",
+    "entry_label": "VBook 插件条目 URL",
+    "show_qr": "显示二维码",
+    "guide_title": "如何在 VBook 中安装：",
+    "step1": "打开 VBook → 更多 → 添加扩展 → 扫描二维码或粘贴条目 URL。",
+    "step2": "VBook 将下载插件并连接到您的个人 NovelHub 服务器。",
+    "step3": "如果服务器需要登录，请在扩展设置中配置您的 NovelHub 凭据。"
   }
 }

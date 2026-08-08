@@ -1005,5 +1005,15 @@
     "no_results_desc": "Try adjusting your search query, clearing filter options, or searching by a different term.",
     "results_suffix": "results",
     "query_label": "Query"
+  },
+  "vbook": {
+    "title": "VBook Plugin",
+    "subtitle": "Install the NovelHub plugin in VBook to browse & read your library from your phone.",
+    "entry_label": "VBook Plugin Entry URL",
+    "show_qr": "Show QR Code",
+    "guide_title": "How to install in VBook:",
+    "step1": "Open VBook → More → Add extension → Scan the QR code or paste the entry URL.",
+    "step2": "VBook downloads the plugin and connects to your personal NovelHub server.",
+    "step3": "If your server requires login, configure your NovelHub credentials in the extension settings."
   }
 }

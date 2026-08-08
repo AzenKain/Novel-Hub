@@ -56,4 +56,5 @@ const (
 	CacheKeyKomgaPageNamesPattern    = "komga:pages:*"
 	CacheKeyKomgaSeriesPattern       = "komga:series*"
 	CacheKeyKomgaBookSeriesPattern   = "komga:book_series:*"
+	CacheKeyVBookPlugin              = "vbook:plugin:%s"
 )

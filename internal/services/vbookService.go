@@ -1,13 +1,20 @@
 package services
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
 	"strconv"
+	"time"
 
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/cache"
+	"novelhub/pkg/constants"
+	"novelhub/pkg/jsonx"
 )
 
 type VBookService interface {
@@ -18,19 +25,26 @@ type VBookService interface {
 	GetBookDetail(ctx context.Context, bookID string) (*response.VBookBookDetailResponse, error)
 	GetTOC(ctx context.Context, bookID string) ([]*response.VBookTOCItem, error)
 	GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error)
+	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookPluginResponse, error)
+	GetEntryJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
+	GetPluginZip(ctx context.Context, baseURL string) ([]byte, error)
 }
 
 type vbookService struct {
 	bookRepo     repositories.BookCatalogRepository
 	metadataRepo repositories.BookMetadataRepository
 	bookService  BookService
+	vbookFS      fs.FS
+	cache        cache.Cache
 }
 
-func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo repositories.BookMetadataRepository, bookService BookService) VBookService {
+func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo repositories.BookMetadataRepository, bookService BookService, vbookFS fs.FS, ramCache cache.Cache) VBookService {
 	return &vbookService{
 		bookRepo:     bookRepo,
 		metadataRepo: metadataRepo,
 		bookService:  bookService,
+		vbookFS:      vbookFS,
+		cache:        ramCache,
 	}
 }
 
@@ -202,4 +216,107 @@ func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, cha
 	return &response.VBookChapterContentResponse{
 		Content: htmlContent,
 	}, nil
+}
+
+const vbookDescription = "Tiện ích đọc sách cá nhân tự lưu trữ từ máy chủ NovelHub của bạn"
+
+func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookPluginResponse, error) {
+	return &response.VBookPluginResponse{
+		Metadata: response.VBookPluginMetadata{
+			Name:        "NovelHub",
+			Author:      "NovelHub",
+			Version:     1,
+			Source:      baseURL,
+			Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
+			Description: vbookDescription,
+			Locale:      "vi_VN",
+			Language:    "javascript",
+			Type:        "novel",
+		},
+		Script: response.VBookPluginScript{
+			Home:   "home.js",
+			Genre:  "genre.js",
+			Detail: "detail.js",
+			Search: "search.js",
+			Toc:    "toc.js",
+			Chap:   "chap.js",
+		},
+	}, nil
+}
+
+func (s *vbookService) GetEntryJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error) {
+	return &response.VBookRegistryResponse{
+		Metadata: response.VBookRegistryMetadata{
+			Author:      "NovelHub",
+			Description: vbookDescription,
+		},
+		Data: []*response.VBookEntryResponse{
+			{
+				Name:        "NovelHub",
+				Author:      "NovelHub",
+				Path:        baseURL + "/api/v1/vbook/plugin.zip",
+				Version:     1,
+				Source:      baseURL,
+				Icon:        baseURL + "/vbook/icon.png",
+				Description: vbookDescription,
+				Type:        "novel",
+				Locale:      "vi_VN",
+			},
+		},
+	}, nil
+}
+
+var vbookScripts = []string{"chap", "detail", "gen", "genre", "home", "search", "toc"}
+
+func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte, error) {
+	if s.vbookFS == nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "VBook assets are not available")
+	}
+
+	var cached []byte
+	if s.cache != nil {
+		key := fmt.Sprintf(constants.CacheKeyVBookPlugin, baseURL)
+		if err := s.cache.GetOrFetch(ctx, key, &cached, 24*time.Hour, func() (any, error) {
+			return s.buildPluginZip(ctx, baseURL)
+		}); err == nil && len(cached) > 0 {
+			return cached, nil
+		}
+	}
+	return s.buildPluginZip(ctx, baseURL)
+}
+
+func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]byte, error) {
+	plugin, err := s.GetPluginJSON(ctx, baseURL)
+	if err != nil {
+		return nil, err
+	}
+	pluginJSON, err := jsonx.Marshal(plugin)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+	}
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	if w, err := zw.Create("plugin.json"); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+	} else if _, err := w.Write(pluginJSON); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+	}
+	for _, name := range vbookScripts {
+		data, err := fs.ReadFile(s.vbookFS, "src/"+name+".js")
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+		}
+		w, err := zw.Create("src/" + name + ".js")
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+		}
+		if _, err := w.Write(data); err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
+	}
+	return buf.Bytes(), nil
 }

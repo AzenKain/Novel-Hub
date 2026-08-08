@@ -14,12 +14,14 @@ import (
 )
 
 type VBookController struct {
-	vbookService services.VBookService
+	vbookService    services.VBookService
+	settingsService services.SettingsService
 }
 
-func NewVBookController(vbookService services.VBookService) *VBookController {
+func NewVBookController(vbookService services.VBookService, settingsService services.SettingsService) *VBookController {
 	return &VBookController{
-		vbookService: vbookService,
+		vbookService:    vbookService,
+		settingsService: settingsService,
 	}
 }
 
@@ -195,4 +197,41 @@ func (c *VBookController) GetChapterContent(ctx fiber.Ctx) error {
 		Status: true,
 		Data:   content,
 	})
+}
+
+func (c *VBookController) GetPluginJSON(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	plugin, err := c.vbookService.GetPluginJSON(reqCtx, getBaseURL(ctx, c.settingsService))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(plugin)
+}
+
+func (c *VBookController) GetEntryJSON(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	entry, err := c.vbookService.GetEntryJSON(reqCtx, getBaseURL(ctx, c.settingsService))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(entry)
+}
+
+func (c *VBookController) GetPluginZip(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	data, err := c.vbookService.GetPluginZip(reqCtx, getBaseURL(ctx, c.settingsService))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	ctx.Set(fiber.HeaderContentType, "application/zip")
+	return ctx.Send(data)
 }

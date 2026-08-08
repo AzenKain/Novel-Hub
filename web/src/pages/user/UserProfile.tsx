@@ -2,6 +2,7 @@ import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
+import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
@@ -353,6 +354,9 @@ export const UserProfile = () => {
 
                 {/* OPDS 2.0 & Progress Sync Card */}
                 <OPDSSyncCard />
+
+                {/* VBook Plugin Card */}
+                <VBookSyncCard />
 
                 {/* Kobo Native Wi-Fi Sync Card */}
                 <KoboSyncCard />
