@@ -182,7 +182,11 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
-    if (book_id) navigate("/");
+    
+    const params = new URLSearchParams();
+    if (nav && nav !== "books") params.set("nav", nav);
+    if (search) params.set("search", search);
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
   const handleCollectionClick = (collection: string) => {
@@ -192,11 +196,14 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
-    if (book_id) navigate("/");
+
+    const params = new URLSearchParams();
+    if (collection) params.set("collection", collection);
+    if (search) params.set("search", search);
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
-  // Filters live in the Zustand store, not the URL, so a saved rule is applied by
-  // writing the store back — same path the sidebar and chips already take.
+  // Filters live in the Zustand store and sync with URL search params for SEO & shareable links.
   const handleSmartCollectionClick = (rule: SmartCollectionRule) => {
     setSearch(rule.search || "");
     setActiveNav(rule.nav || "");
@@ -213,7 +220,16 @@ export const LibraryWorkspace = () => {
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
-    if (book_id) navigate("/");
+    
+    const singularFacet = type.endsWith("s") && type !== "series" ? type.slice(0, -1) : type;
+    const params = new URLSearchParams();
+    params.set("nav", nav);
+    params.set("facet", singularFacet);
+    if (item.name) params.set("name", item.name);
+    if (item.id) params.set("facet_id", item.id);
+    if (search) params.set("search", search);
+
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
   const queryClient = useQueryClient();
@@ -481,48 +497,72 @@ export const LibraryWorkspace = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const nav = params.get("nav") || "";
-    const facet = params.get("facet") || "";
+    const rawFacet = params.get("facet") || "";
     const facetId = params.get("facet_id") || "";
-    const name = params.get("name") || "";
-    if (!nav || !facet || !metadataNavIds.includes(nav)) return;
+    const name = params.get("name") || params.get("facet_name") || "";
+    const searchParam = params.get("search") || params.get("q") || "";
+    const collectionParam = params.get("collection") || "";
+    const chipParam = params.get("chip") || "";
 
-    const section = facetSections.find(
-      (item) => item.nav === nav && item.type === facet,
-    );
-    if (!section) return;
+    if (searchParam !== search) {
+      setSearch(searchParam);
+    }
+    if (collectionParam && collectionParam !== activeCollection) {
+      setActiveCollection(collectionParam);
+      setActiveNav("");
+      setActiveFacet(null);
+    }
+    if (chipParam && chipParam !== activeChip) {
+      setActiveChip(chipParam);
+    }
 
-    const normalizedName = name.trim().toLowerCase();
-    const matched =
-      section.items.find((item) => item.id === facetId) ||
-      section.items.find(
-        (item) => item.name.trim().toLowerCase() === normalizedName,
-      );
+    if (!nav && !rawFacet) return;
 
-    // A name-only link used to be dropped here: section.items is only populated once activeNav
-    // is already this facet, which this effect is what sets, so the chip never opened anything.
-    // Switching the nav first lets the facet list load and the name resolve on the next pass.
-    if (!matched && !facetId) {
-      if (activeNav !== nav) {
-        setActiveNav(nav);
-        setActiveCollection("");
-        setActiveChip("All");
-        setMetadataQuery("");
-        setMetadataAlpha("All");
-      }
+    // Support both singular and plural facet types (e.g. "publisher" -> "publishers", "author" -> "authors")
+    const facetType = rawFacet ? (rawFacet.endsWith("s") || rawFacet === "series" ? rawFacet : `${rawFacet}s`) : nav;
+    const targetNav = nav || facetType;
+
+    if (!metadataNavIds.includes(targetNav)) {
+      if (nav) setActiveNav(nav);
       return;
     }
 
-    setActiveNav(nav);
-    setActiveCollection("");
-    setActiveChip("All");
-    setMetadataQuery("");
-    setMetadataAlpha("All");
-    setActiveFacet({
-      type: facet,
-      id: matched?.id || facetId,
-      name: matched?.name || name || facetId,
-    });
-  }, [location.search, metadataFacets, facetSections, activeNav]);
+    const section = facetSections.find(
+      (item) => item.nav === targetNav || item.type === facetType || item.type === rawFacet,
+    );
+
+    const normalizedName = name.trim().toLowerCase();
+    const matched = section?.items.find(
+      (item) => item.id === facetId || item.name.trim().toLowerCase() === normalizedName,
+    );
+
+    if (rawFacet || name || facetId) {
+      if (!matched && !facetId && name) {
+        if (activeNav !== targetNav) {
+          setActiveNav(targetNav);
+          setActiveCollection("");
+          setActiveChip(chipParam || "All");
+          setMetadataQuery("");
+          setMetadataAlpha("All");
+        }
+        return;
+      }
+
+      setActiveNav(targetNav);
+      setActiveCollection("");
+      setActiveChip(chipParam || "All");
+      setMetadataQuery("");
+      setMetadataAlpha("All");
+      setActiveFacet({
+        type: section?.type || facetType,
+        id: matched?.id || facetId || name,
+        name: matched?.name || name || facetId,
+      });
+    } else if (nav) {
+      setActiveNav(nav);
+      setActiveFacet(null);
+    }
+  }, [location.search, facetSections]);
 
   const metadataControls = (
     <div className="flex flex-col gap-3">

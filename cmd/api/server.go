@@ -417,6 +417,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	opdsController := controllers.NewOPDSController(opdsService, settingsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
+	vbookService := services.NewVBookService(bookRepo, bookRepo, bookService)
+	vbookController := controllers.NewVBookController(vbookService)
+	routes.VBookRoutes(api, vbookController, authService, settingsService, userRepo)
+
 	koboRepo := repositories.NewKoboRepository(db, ramCache)
 	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache, ramCache)
 	koboAuthService := services.NewKoboAuthService(koboRepo)

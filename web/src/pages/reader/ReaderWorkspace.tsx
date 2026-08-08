@@ -1,6 +1,6 @@
 import { ComicReader, ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
-import { API_BASE } from "@/config/api";
+import { API_BASE, getMediaUrl } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOfflineAssets } from "@/hooks/useOfflineAssets";
@@ -22,6 +22,7 @@ import { useReaderPaging } from "@/hooks/useReaderPaging";
 import { useReaderSelection } from "@/hooks/useReaderSelection";
 import { queryClient } from "@/config/queryClient";
 import { applyUserHighlights, clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { BookOpen, ChevronRight } from "lucide-react";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -29,6 +30,7 @@ import { useShallow } from "zustand/react/shallow";
 import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "@/constants";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useReadListNextQuery } from "@/hooks/useReadListQueries";
+import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
 import { hasPermission } from "@/utils/permission";
 import { isVisualChapter } from "@/utils/readerHtml";
 
@@ -611,12 +613,39 @@ export const ReaderWorkspace = () => {
       invalidateProgressQueries();
     }).catch(reportProgressFailure);
   }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length]);
+  const { data: seriesContext } = useBookSeriesQuery(book_id || "");
+  const readListNext = useReadListNextQuery(readListId, book_id).data;
+
+  const currentChapterIndex = chapters.findIndex(
+    (chapter) => chapter.id === currentChapter?.id,
+  );
+  const canGoPrev = currentChapterIndex > 0;
+  const hasNextChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1;
+
+  const nextInReadList = !hasNextChapter && readListNext?.has_next ? readListNext.book : undefined;
+  const nextInSeries = !hasNextChapter && !nextInReadList && seriesContext?.next ? seriesContext.next : undefined;
+  const canGoNext = hasNextChapter || !!nextInReadList || !!nextInSeries;
+
+  const goToNextInReadList = () => {
+    if (!nextInReadList) return;
+    navigate(`/reader/${nextInReadList.id}?readlist=${readListId}`);
+  };
+
+  const goToNextInSeries = () => {
+    if (!nextInSeries) return;
+    navigate(`/reader/${nextInSeries.book_id}`);
+  };
 
   const handleNext = () => {
     if (!currentChapter) return;
     const idx = chapters.findIndex(c => c.id === currentChapter.id);
     if (idx >= 0 && idx < chapters.length - 1) {
       loadChapter(chapters[idx + 1]);
+    } else if (nextInReadList) {
+      goToNextInReadList();
+    } else if (nextInSeries) {
+      goToNextInSeries();
     }
   };
 
@@ -681,22 +710,6 @@ export const ReaderWorkspace = () => {
     // ponytail: handler closes over live state; rebind on relevant deps
   }, [selectionRange, searchOpen, settingsOpen, sidebarOpen, scrollLayout, isPdfAudio, rtlPaging, pageIndex]);
 
-  const currentChapterIndex = chapters.findIndex(
-    (chapter) => chapter.id === currentChapter?.id,
-  );
-  const canGoPrev = currentChapterIndex > 0;
-  const hasNextChapter =
-    currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1;
-
-  const readListNext = useReadListNextQuery(readListId, book_id).data;
-  const nextInReadList = !hasNextChapter && readListNext?.has_next ? readListNext.book : undefined;
-  const canGoNext = hasNextChapter || !!nextInReadList;
-
-  const goToNextInReadList = () => {
-    if (!nextInReadList) return;
-    navigate(`/reader/${nextInReadList.id}?readlist=${readListId}`);
-  };
-
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-base-100 text-base-content">
@@ -737,7 +750,7 @@ export const ReaderWorkspace = () => {
           readingDirection={readingDirection}
           pageFit={pageFit}
           onPrev={handlePrev}
-          onNext={hasNextChapter ? handleNext : goToNextInReadList}
+          onNext={handleNext}
           setSettingsOpen={(open) => {
             if (open) lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
             setSettingsOpen(open);
@@ -867,6 +880,43 @@ export const ReaderWorkspace = () => {
                   </button>
                 )}
 
+                {!nextInReadList && nextInSeries && (
+                  <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-5 shadow-sm text-center">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                      {t("reader.series_next_label", "Next Volume in Series")}
+                    </p>
+                    <div className="flex items-center gap-3.5 w-full text-left bg-base-200/50 p-3 rounded-xl border border-base-200">
+                      {nextInSeries.cover_url ? (
+                        <img
+                          src={getMediaUrl(nextInSeries.cover_url)}
+                          alt={nextInSeries.title}
+                          className="h-16 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-2xs"
+                        />
+                      ) : (
+                        <div className="h-16 aspect-[3/4.2] rounded-lg bg-primary/10 grid place-items-center text-primary shrink-0">
+                          <BookOpen className="w-6 h-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-base-content truncate">
+                          {nextInSeries.title}
+                        </p>
+                        <p className="text-xs text-base-content/60 truncate mt-0.5">
+                          {nextInSeries.series_name} {nextInSeries.series_index ? `#${nextInSeries.series_index}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm w-full gap-2 rounded-xl mt-1"
+                      onClick={goToNextInSeries}
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      {t("reader.read_next_volume", "Read Next Volume")}
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 {!isPdf && scrollLayout && (
                   <ReaderPageControls
                     t={t}
@@ -874,7 +924,7 @@ export const ReaderWorkspace = () => {
                     canGoPrev={canGoPrev}
                     canGoNext={canGoNext}
                     onPrev={handlePrev}
-                    onNext={hasNextChapter ? handleNext : goToNextInReadList}
+                    onNext={handleNext}
                   />
                 )}
               </div>

@@ -8,6 +8,7 @@ import { getMediaUrl } from '@/config/api';
 interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;
+  compact?: boolean;
 }
 
 const GRADIENTS = [
@@ -19,7 +20,7 @@ const GRADIENTS = [
   "from-[#df6071] via-[#c38a28] to-[#35418d]"
 ];
 
-export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
+export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
@@ -42,7 +43,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
         }
       }}
     >
-      <figure className={`relative aspect-[3/4.12] w-full text-white flex flex-col justify-between p-4 bg-linear-to-br ${gradientClass} shrink-0`}>
+      <figure className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0`}>
         {book.cover_url ? (
           <>
             <img src={getMediaUrl(book.cover_url)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
@@ -51,16 +52,16 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
         ) : (
           <>
             <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-            <small className="z-10 font-black text-[10px] tracking-wider opacity-90">NOVEL</small>
-            <strong className="z-10 text-lg leading-tight line-clamp-3 font-bold" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{book.title}</strong>
-            <small className="z-10 font-black text-[10px] tracking-wider opacity-90 self-end">{format}</small>
+            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90`}>NOVEL</small>
+            <strong className={`z-10 ${compact ? 'text-sm' : 'text-lg'} leading-tight line-clamp-3 font-bold`} style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{book.title}</strong>
+            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90 self-end`}>{format}</small>
           </>
         )}
       </figure>
-      <div className="card-body p-2 gap-1 flex-1 flex flex-col justify-start">
-        <strong className="text-base line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary" title={book.title}>{book.title}</strong>
+      <div className={`card-body ${compact ? 'p-1.5 gap-0.5' : 'p-2 gap-1'} flex-1 flex flex-col justify-start`}>
+        <strong className={`${compact ? 'text-xs' : 'text-base'} line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary`} title={book.title}>{book.title}</strong>
         <p 
-          className="text-sm text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer"
+          className={`${compact ? 'text-[11px]' : 'text-sm'} text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer`}
           title={author_name}
           onClick={(e) => {
             e.stopPropagation();
@@ -71,7 +72,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
         </p>
         {series && (
           <p 
-            className="text-sm text-secondary/80 font-medium line-clamp-1 hover:text-secondary hover:underline cursor-pointer"
+            className={`${compact ? 'text-[11px]' : 'text-sm'} text-secondary/80 font-medium line-clamp-1 hover:text-secondary hover:underline cursor-pointer`}
             title={series}
             onClick={(e) => {
               e.stopPropagation();

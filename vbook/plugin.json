@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "name": "NovelHub",
+    "author": "NovelHub",
+    "version": 1,
+    "source": "hhttps://calibre.kain.id.vn",
+    "regexp": ".*/api/v1/vbook/.*|.*/books/.*",
+    "description": "Tiện ích đọc sách cá nhân tự lưu trữ từ máy chủ NovelHub của bạn",
+    "locale": "vi_VN",
+    "language": "javascript",
+    "type": "novel"
+  },
+  "script": {
+    "home": "home.js",
+    "genre": "genre.js",
+    "detail": "detail.js",
+    "search": "search.js",
+    "toc": "toc.js",
+    "chap": "chap.js"
+  }
+}

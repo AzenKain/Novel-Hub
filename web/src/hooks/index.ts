@@ -1,4 +1,5 @@
 export * from "./useAdminQueries";
+export * from "./useAdvancedSearchQueries";
 export * from "./useAuthQueries";
 export * from "./useBooksQuery";
 export * from "./useDebounce";

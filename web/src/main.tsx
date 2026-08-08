@@ -3,6 +3,7 @@ import "@/i18n";
 import { AdminLayout, Books, Duplicates, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
 import { LibraryWorkspace, ReadListPage } from "@/pages/library";
+import { AdvancedSearchPage } from "@/pages/library/AdvancedSearchPage";
 import { ReaderWorkspace } from "@/pages/reader";
 import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
 import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
@@ -100,6 +101,7 @@ function App() {
             <Route path="/offline/reader/:book_id" element={<ReaderWorkspace />} />
             <Route element={<GuestGuard />}>
               <Route path="/" element={<LibraryWorkspace />} />
+              <Route path="/search" element={<AdvancedSearchPage />} />
               <Route path="/books/:book_id" element={<LibraryWorkspace />} />
               <Route path="/reader/:book_id" element={<ReaderWorkspace />} />
               <Route path="/read-lists" element={<ReadListPage />} />

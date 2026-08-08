@@ -20,7 +20,7 @@ func CSRFProtection() fiber.Handler {
 		}
 
 		path := c.Path()
-		if strings.HasPrefix(path, "/kobo/") || strings.HasPrefix(path, "/komga/") || strings.HasPrefix(path, "/api/opds/") || strings.HasPrefix(path, "/api/v1/sync/") {
+		if strings.HasPrefix(path, "/kobo/") || strings.HasPrefix(path, "/komga/") || strings.HasPrefix(path, "/api/opds/") || strings.HasPrefix(path, "/api/v1/sync/") || strings.HasPrefix(path, "/api/v1/vbook/") {
 			return c.Next()
 		}
 

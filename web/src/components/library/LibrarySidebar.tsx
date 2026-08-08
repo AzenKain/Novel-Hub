@@ -36,6 +36,9 @@ type LibrarySidebarProps = {
   onDeleteSmartCollection?: (id: string) => void;
 };
 
+import { useLibraryStore } from "@/stores";
+import { useShallow } from "zustand/react/shallow";
+
 export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   t,
   user,
@@ -61,6 +64,13 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   const siteTitle = settings?.site?.title || "NovelHub";
   const siteDesc = settings?.site?.description || "Local library manager";
   const siteLogo = settings?.site?.logo;
+
+  const { setSearch, setActiveFacet } = useLibraryStore(
+    useShallow((state) => ({
+      setSearch: state.setSearch,
+      setActiveFacet: state.setActiveFacet,
+    }))
+  );
 
   const renderNavButton = (item: LibraryNavItem) => (
     <li key={item.id}>
@@ -127,6 +137,8 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         <Link
           to="/"
           onClick={() => {
+            setSearch("");
+            setActiveFacet(null);
             onNavClick("");
             onCollectionClick("");
           }}
