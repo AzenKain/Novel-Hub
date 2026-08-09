@@ -52,6 +52,10 @@ SELECT id, book_id, title, content_path, chapter_index, created_at, updated_at F
 DELETE FROM chapters
 WHERE id = ?;
 
+-- name: DeleteChaptersByBook :exec
+DELETE FROM chapters
+WHERE book_id = ?;
+
 -- name: CreateAuthor :one
 INSERT INTO authors (
     id, name, bio

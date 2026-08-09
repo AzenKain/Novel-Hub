@@ -195,6 +195,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteChapterStmt, err = db.PrepareContext(ctx, deleteChapter); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteChapter: %w", err)
 	}
+	if q.deleteChaptersByBookStmt, err = db.PrepareContext(ctx, deleteChaptersByBook); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteChaptersByBook: %w", err)
+	}
 	if q.deleteCollectionStmt, err = db.PrepareContext(ctx, deleteCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteCollection: %w", err)
 	}
@@ -1074,6 +1077,11 @@ func (q *Queries) Close() error {
 	if q.deleteChapterStmt != nil {
 		if cerr := q.deleteChapterStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteChapterStmt: %w", cerr)
+		}
+	}
+	if q.deleteChaptersByBookStmt != nil {
+		if cerr := q.deleteChaptersByBookStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteChaptersByBookStmt: %w", cerr)
 		}
 	}
 	if q.deleteCollectionStmt != nil {
@@ -2157,6 +2165,7 @@ type Queries struct {
 	deleteBookReviewStmt               *sql.Stmt
 	deleteBookmarkStmt                 *sql.Stmt
 	deleteChapterStmt                  *sql.Stmt
+	deleteChaptersByBookStmt           *sql.Stmt
 	deleteCollectionStmt               *sql.Stmt
 	deleteFTSBookStmt                  *sql.Stmt
 	deleteFileStmt                     *sql.Stmt
@@ -2417,6 +2426,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteBookReviewStmt:               q.deleteBookReviewStmt,
 		deleteBookmarkStmt:                 q.deleteBookmarkStmt,
 		deleteChapterStmt:                  q.deleteChapterStmt,
+		deleteChaptersByBookStmt:           q.deleteChaptersByBookStmt,
 		deleteCollectionStmt:               q.deleteCollectionStmt,
 		deleteFTSBookStmt:                  q.deleteFTSBookStmt,
 		deleteFileStmt:                     q.deleteFileStmt,

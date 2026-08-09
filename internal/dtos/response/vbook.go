@@ -75,6 +75,7 @@ type VBookEntryResponse struct {
 	Name        string `json:"name"`
 	Author      string `json:"author"`
 	Path        string `json:"path"`
+	Lib         string `json:"lib"`
 	Version     int    `json:"version"`
 	Source      string `json:"source"`
 	Icon        string `json:"icon"`

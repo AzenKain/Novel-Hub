@@ -1,8 +1,9 @@
+var CONFIG_URL = "{{BASE_URL}}";
 function execute(keyword, page) {
     if (!page) page = "1";
     var fetchUrl = CONFIG_URL + "/api/v1/vbook/search?q=" + encodeURIComponent(keyword) + "&page=" + page;
 
-    var response = Http.get(fetchUrl).string();
+    var response = Http.get(fetchUrl).string("UTF-8");
     if (response) {
         var res = JSON.parse(response);
         if (res.status && res.data) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strconv"
+	"strings"
 	"time"
 
 	"novelhub/internal/dtos/response"
@@ -153,13 +154,17 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 			desc = *b.Description
 		}
 
-		coverURL := baseURL + "/api/v1/books/" + b.ID + "/cover"
+		cover := ""
+		if b.CoverURL != nil {
+			cover = *b.CoverURL
+		}
+
 		items = append(items, &response.VBookBookItem{
 			Name:        b.Title,
 			Link:        baseURL + "/api/v1/vbook/detail?id=" + b.ID,
-			Cover:       coverURL,
+			Cover:       cover,
 			Description: fmt.Sprintf("Tác giả: %s | %s", author, desc),
-			Host:        "NovelHub",
+			Host:        baseURL,
 		})
 	}
 
@@ -192,16 +197,21 @@ func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID
 		description = *book.Description
 	}
 
+	cover := ""
+	if book.CoverURL != nil {
+		cover = *book.CoverURL
+	}
+
 	chapters, _ := s.bookService.ListChapters(ctx, bookID)
 	detailStr := fmt.Sprintf("Tác giả: %s | Tổng số chương: %d", author, len(chapters))
 
 	return &response.VBookBookDetailResponse{
 		Name:        book.Title,
-		Cover:       baseURL + "/api/v1/books/" + book.ID + "/cover",
+		Cover:       cover,
 		Author:      author,
 		Description: description,
 		Detail:      detailStr,
-		Host:        "NovelHub",
+		Host:        baseURL,
 		Ongoing:     false,
 	}, nil
 }
@@ -221,7 +231,7 @@ func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string
 		items = append(items, &response.VBookTOCItem{
 			Name: title,
 			URL:  baseURL + "/api/v1/vbook/chap?book_id=" + bookID + "&chapter_id=" + c.ID,
-			Host: "NovelHub",
+			Host: baseURL,
 		})
 	}
 	return items, nil
@@ -251,6 +261,7 @@ func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*resp
 				Name:        "NovelHub",
 				Author:      "NovelHub",
 				Path:        baseURL + "/api/v1/vbook/plugin.zip",
+				Lib:         baseURL + "/api/v1/vbook/plugin.json",
 				Version:     1,
 				Source:      baseURL,
 				Icon:        baseURL + "/vbook/icon.png",
@@ -325,11 +336,12 @@ func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]by
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 		}
+		script := strings.ReplaceAll(string(data), "{{BASE_URL}}", baseURL)
 		w, err := zw.Create("src/" + name + ".js")
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 		}
-		if _, err := w.Write(data); err != nil {
+		if _, err := w.Write([]byte(script)); err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 		}
 	}

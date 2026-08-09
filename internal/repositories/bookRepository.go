@@ -49,6 +49,7 @@ type ChapterRepository interface {
 	ListChaptersByBook(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetChaptersByIDs(ctx context.Context, ids []string) ([]*models.ChapterEntity, error)
 	DeleteChapter(ctx context.Context, id string) error
+	DeleteChaptersByBook(ctx context.Context, bookID string) error
 	WithTx(tx *sql.Tx) BookDBRepository
 }
 

@@ -1,6 +1,7 @@
+var CONFIG_URL = "{{BASE_URL}}";
 function execute() {
     var url = CONFIG_URL + "/api/v1/vbook/home";
-    var response = Http.get(url).string();
+    var response = Http.get(url).string("UTF-8");
     if (response) {
         var res = JSON.parse(response);
         if (res.status && res.data) {

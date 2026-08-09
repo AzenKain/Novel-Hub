@@ -336,17 +336,20 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		}
 	}
 
-	for _, ch := range spine {
-		contentPath := ch.ContentPath
-		chapter := &models.ChapterEntity{
-			ID:           uuid.Must(uuid.NewV7()).String(),
-			BookID:       bookID,
-			Title:        ch.Title,
-			ContentPath:  &contentPath,
-			ChapterIndex: int64(ch.Index),
-		}
-		if err := txRepo.CreateChapter(ctx, chapter); err != nil {
-			return err
+	if len(spine) > 0 {
+		_ = txRepo.DeleteChaptersByBook(ctx, bookID)
+		for _, ch := range spine {
+			contentPath := ch.ContentPath
+			chapter := &models.ChapterEntity{
+				ID:           uuid.Must(uuid.NewV7()).String(),
+				BookID:       bookID,
+				Title:        ch.Title,
+				ContentPath:  &contentPath,
+				ChapterIndex: int64(ch.Index),
+			}
+			if err := txRepo.CreateChapter(ctx, chapter); err != nil {
+				return err
+			}
 		}
 	}
 

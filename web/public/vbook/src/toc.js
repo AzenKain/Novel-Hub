@@ -1,3 +1,4 @@
+var CONFIG_URL = "{{BASE_URL}}";
 function execute(url) {
     var tocUrl = url;
     if (tocUrl.indexOf("/detail?") >= 0) {
@@ -13,7 +14,7 @@ function execute(url) {
         tocUrl = CONFIG_URL + (tocUrl.indexOf("/") === 0 ? "" : "/") + tocUrl;
     }
 
-    var response = Http.get(tocUrl).string();
+    var response = Http.get(tocUrl).string("UTF-8");
     if (response) {
         var res = JSON.parse(response);
         if (res.status && res.data) {

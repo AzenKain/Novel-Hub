@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"novelhub/pkg/bookparser"
@@ -384,6 +385,11 @@ func findImageManifestItemByHref(items []Item, href string) (Item, bool) {
 	return Item{}, false
 }
 
+type TOCItem struct {
+	Title string
+	Href  string
+}
+
 type NCX struct {
 	XMLName xml.Name `xml:"ncx"`
 	NavMap  NavMap   `xml:"navMap"`
@@ -407,20 +413,20 @@ type NCXContent struct {
 	Src string `xml:"src,attr"`
 }
 
-func parseNCXTOC(r *zip.ReadCloser, ncxPath string) map[string]string {
-	tocMap := make(map[string]string)
+func parseNCXTOCEntries(r *zip.ReadCloser, ncxPath string) []TOCItem {
+	var items []TOCItem
 	ncxFile, err := getZipFile(r, ncxPath)
 	if err != nil {
-		return tocMap
+		return items
 	}
 	rc, err := ncxFile.Open()
 	if err != nil {
-		return tocMap
+		return items
 	}
 	defer rc.Close()
 	var ncx NCX
 	if err := xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&ncx); err != nil {
-		return tocMap
+		return items
 	}
 	ncxBaseDir := filepath.Dir(ncxPath)
 	var walk func(points []NavPoint)
@@ -429,11 +435,11 @@ func parseNCXTOC(r *zip.ReadCloser, ncxPath string) map[string]string {
 			text := bookparser.CleanChapterTitle(p.NavLabel.Text)
 			src := strings.TrimSpace(p.Content.Src)
 			if text != "" && src != "" {
-				cleanSrc := strings.Split(src, "#")[0]
-				resolved := resolveEPUBHref(ncxBaseDir, cleanSrc)
-				if _, exists := tocMap[resolved]; !exists {
-					tocMap[resolved] = text
-				}
+				resolved := resolveEPUBHrefWithAnchor(ncxBaseDir, src)
+				items = append(items, TOCItem{
+					Title: text,
+					Href:  resolved,
+				})
 			}
 			if len(p.NavPoints) > 0 {
 				walk(p.NavPoints)
@@ -441,23 +447,23 @@ func parseNCXTOC(r *zip.ReadCloser, ncxPath string) map[string]string {
 		}
 	}
 	walk(ncx.NavMap.NavPoints)
-	return tocMap
+	return items
 }
 
-func parseEPUB3NavTOC(r *zip.ReadCloser, navPath string) map[string]string {
-	tocMap := make(map[string]string)
+func parseEPUB3NavTOCEntries(r *zip.ReadCloser, navPath string) []TOCItem {
+	var items []TOCItem
 	navFile, err := getZipFile(r, navPath)
 	if err != nil {
-		return tocMap
+		return items
 	}
 	rc, err := navFile.Open()
 	if err != nil {
-		return tocMap
+		return items
 	}
 	defer rc.Close()
 	data, err := bookparser.ReadAllLimit(rc, constants.MaxArchiveAssetSize)
 	if err != nil {
-		return tocMap
+		return items
 	}
 	navBaseDir := filepath.Dir(navPath)
 	aRegex := regexp.MustCompile(`(?i)<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)</a>`)
@@ -468,15 +474,15 @@ func parseEPUB3NavTOC(r *zip.ReadCloser, navPath string) map[string]string {
 			href := strings.TrimSpace(m[1])
 			text := bookparser.CleanChapterTitle(tagRegexp.ReplaceAllString(m[2], ""))
 			if text != "" && href != "" {
-				cleanHref := strings.Split(href, "#")[0]
-				resolved := resolveEPUBHref(navBaseDir, cleanHref)
-				if _, exists := tocMap[resolved]; !exists {
-					tocMap[resolved] = text
-				}
+				resolved := resolveEPUBHrefWithAnchor(navBaseDir, href)
+				items = append(items, TOCItem{
+					Title: text,
+					Href:  resolved,
+				})
 			}
 		}
 	}
-	return tocMap
+	return items
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
@@ -521,12 +527,12 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 		}
 	}
 
-	tocMap := make(map[string]string)
+	var tocEntries []TOCItem
 	if ncxPath != "" {
-		tocMap = parseNCXTOC(r, ncxPath)
+		tocEntries = parseNCXTOCEntries(r, ncxPath)
 	}
-	if len(tocMap) == 0 && navPath != "" {
-		tocMap = parseEPUB3NavTOC(r, navPath)
+	if len(tocEntries) == 0 && navPath != "" {
+		tocEntries = parseEPUB3NavTOCEntries(r, navPath)
 	}
 
 	coverHrefs := make(map[string]struct{})
@@ -540,6 +546,48 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 
 	chapters := []bookparser.ChapterData{}
 	index := 0
+
+	if len(tocEntries) > 0 {
+		firstTOCHrefClean, _, _ := strings.Cut(tocEntries[0].Href, "#")
+		var coverPath string
+		for _, ref := range pkg.Spine.Itemrefs {
+			item, ok := itemsMap[ref.IDRef]
+			if !ok || !strings.Contains(item.MediaType, "html") {
+				continue
+			}
+			chPath := resolveEPUBHref(baseDir, item.Href)
+			if chPath == firstTOCHrefClean {
+				break
+			}
+			if _, isCover := coverHrefs[chPath]; isCover || strings.Contains(strings.ToLower(item.ID), "titlepage") || strings.Contains(strings.ToLower(item.Href), "titlepage") {
+				coverPath = chPath
+				break
+			}
+		}
+
+		if coverPath != "" {
+			chapters = append(chapters, bookparser.ChapterData{
+				Title:       "Cover",
+				ContentPath: coverPath,
+				Index:       index,
+			})
+			index++
+		}
+
+		for _, item := range tocEntries {
+			chapters = append(chapters, bookparser.ChapterData{
+				Title:       item.Title,
+				ContentPath: item.Href,
+				Index:       index,
+			})
+			index++
+		}
+
+		return chapters, nil
+	}
+
+	genericSplitRegex := regexp.MustCompile(`(?i)^(index[_-]?)?split[_-]?\d+|(part|section|chunk|page|chapter|text)[_-]?\d+$`)
+
 	for _, ref := range pkg.Spine.Itemrefs {
 		item, ok := itemsMap[ref.IDRef]
 		if !ok || !strings.Contains(item.MediaType, "html") {
@@ -549,9 +597,7 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 		chPath := resolveEPUBHref(baseDir, item.Href)
 		var title string
 
-		if t, ok := tocMap[chPath]; ok && t != "" {
-			title = t
-		} else if _, isCover := coverHrefs[chPath]; isCover || strings.Contains(strings.ToLower(item.ID), "titlepage") || strings.Contains(strings.ToLower(item.Href), "titlepage") {
+		if _, isCover := coverHrefs[chPath]; isCover || strings.Contains(strings.ToLower(item.ID), "titlepage") || strings.Contains(strings.ToLower(item.Href), "titlepage") {
 			title = "Cover"
 		} else {
 			title = extractTitleFromZip(r, chPath)
@@ -559,9 +605,13 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 
 		if title == "" {
 			base := strings.TrimSuffix(filepath.Base(item.Href), filepath.Ext(item.Href))
-			base = strings.ReplaceAll(base, "_", " ")
-			base = strings.ReplaceAll(base, "-", " ")
-			title = base
+			if genericSplitRegex.MatchString(base) {
+				title = "Chương " + strconv.Itoa(index+1)
+			} else {
+				base = strings.ReplaceAll(base, "_", " ")
+				base = strings.ReplaceAll(base, "-", " ")
+				title = base
+			}
 		}
 
 		title = bookparser.CleanChapterTitle(title)
@@ -667,7 +717,10 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 	}
 	defer r.Close()
 
-	f, err := getZipFile(r, assetPath)
+	assetPathClean, _, _ := strings.Cut(assetPath, "#")
+	assetPathClean, _, _ = strings.Cut(assetPathClean, "?")
+
+	f, err := getZipFile(r, assetPathClean)
 	if err != nil {
 		return nil, err
 	}
@@ -767,4 +820,23 @@ func resolveEPUBHref(baseDir string, href string) string {
 	}
 	value := filepath.Join(baseDir, href)
 	return strings.ReplaceAll(value, "\\", "/")
+}
+
+func resolveEPUBHrefWithAnchor(baseDir string, rawHref string) string {
+	rawHref = strings.TrimSpace(rawHref)
+	parts := strings.SplitN(rawHref, "#", 2)
+	pathPart := parts[0]
+	pathPart, _, _ = strings.Cut(pathPart, "?")
+	if decoded, err := url.PathUnescape(pathPart); err == nil {
+		pathPart = decoded
+	}
+	if baseDir == "." {
+		baseDir = ""
+	}
+	value := filepath.Join(baseDir, pathPart)
+	resolvedPath := strings.ReplaceAll(value, "\\", "/")
+	if len(parts) > 1 && parts[1] != "" {
+		return resolvedPath + "#" + parts[1]
+	}
+	return resolvedPath
 }

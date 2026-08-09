@@ -1,3 +1,4 @@
+var CONFIG_URL = "{{BASE_URL}}";
 function execute(url, page) {
     if (!page) page = "1";
     var fetchUrl = url;
@@ -10,7 +11,7 @@ function execute(url, page) {
         fetchUrl += "?page=" + page;
     }
 
-    var response = Http.get(fetchUrl).string();
+    var response = Http.get(fetchUrl).string("UTF-8");
     if (response) {
         var res = JSON.parse(response);
         if (res.status && res.data) {

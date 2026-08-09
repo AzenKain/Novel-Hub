@@ -170,3 +170,15 @@ func (r *bookDBRepository) DeleteChapter(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+func (r *bookDBRepository) DeleteChaptersByBook(ctx context.Context, bookID string) error {
+	if err := r.queries.DeleteChaptersByBook(ctx, bookID); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("chapter", "book", bookID))
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterByBookPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyFTSBookSearchPattern)
+	}
+	return nil
+}

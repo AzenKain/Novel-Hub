@@ -188,6 +188,16 @@ func (q *Queries) DeleteChapter(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteChaptersByBook = `-- name: DeleteChaptersByBook :exec
+DELETE FROM chapters
+WHERE book_id = ?
+`
+
+func (q *Queries) DeleteChaptersByBook(ctx context.Context, bookID string) error {
+	_, err := q.exec(ctx, q.deleteChaptersByBookStmt, deleteChaptersByBook, bookID)
+	return err
+}
+
 const getAuthorById = `-- name: GetAuthorById :one
 SELECT id, name, bio, created_at, updated_at FROM authors
 WHERE id = ? LIMIT 1

@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/gen/sqlc"
+	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
@@ -103,6 +105,46 @@ func (s *maintenanceService) IndexBook(ctx context.Context, bookID string) error
 		}
 	}
 
+	if spine, err := parser.ParseSpine(filePath); err == nil && len(spine) > 0 {
+		existingChapters, listErr := s.bookRepo.ListChaptersByBook(ctx, bookID)
+		needsUpdate := listErr != nil || len(existingChapters) != len(spine)
+		if !needsUpdate {
+			for i, ch := range spine {
+				if i >= len(existingChapters) || existingChapters[i].Title != ch.Title {
+					needsUpdate = true
+					break
+				}
+			}
+		}
+
+		if needsUpdate {
+			chTx, txErr := s.txManager.BeginTx(ctx, nil)
+			if txErr == nil {
+				txRepo := s.bookRepo.WithTx(chTx)
+				if delErr := txRepo.DeleteChaptersByBook(ctx, bookID); delErr == nil {
+					for _, ch := range spine {
+						contentPath := ch.ContentPath
+						chapter := &models.ChapterEntity{
+							ID:           uuid.Must(uuid.NewV7()).String(),
+							BookID:       bookID,
+							Title:        ch.Title,
+							ContentPath:  &contentPath,
+							ChapterIndex: int64(ch.Index),
+						}
+						_ = txRepo.CreateChapter(ctx, chapter)
+					}
+					if commitErr := chTx.Commit(); commitErr == nil {
+						txRepo.FlushCache(ctx)
+					} else {
+						_ = chTx.Rollback()
+					}
+				} else {
+					_ = chTx.Rollback()
+				}
+			}
+		}
+	}
+
 	chapters, err := s.bookRepo.ListChaptersByBook(ctx, bookID)
 	if err != nil {
 		return err
@@ -179,18 +221,21 @@ func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
 
 		var deleted int64
 		for _, file := range files {
-			if s.fileRepo.Exists(ctx, file.Path) {
-				continue
-			}
-			log.Info().Str("path", file.Path).Msg("File not found, cleaning up")
-			bookDeleted, err := s.removeMissingFile(ctx, file.ID, file.BookID)
-			if err != nil {
-				return err
-			}
-			deleted++
-			if bookDeleted {
-				if err := s.fileRepo.RemoveBookDir(ctx, file.BookID); err != nil {
-					log.Warn().Err(err).Str("book_id", file.BookID).Msg("failed to remove orphaned book directory")
+			if !s.fileRepo.Exists(ctx, file.Path) {
+				log.Info().Str("path", file.Path).Msg("File not found, cleaning up")
+				bookDeleted, err := s.removeMissingFile(ctx, file.ID, file.BookID)
+				if err != nil {
+					return err
+				}
+				deleted++
+				if bookDeleted {
+					if err := s.fileRepo.RemoveBookDir(ctx, file.BookID); err != nil {
+						log.Warn().Err(err).Str("book_id", file.BookID).Msg("failed to remove orphaned book directory")
+					}
+				}
+			} else {
+				if err := s.IndexBook(ctx, file.BookID); err != nil {
+					log.Warn().Err(err).Str("book_id", file.BookID).Msg("failed to re-index book during maintenance")
 				}
 			}
 		}
