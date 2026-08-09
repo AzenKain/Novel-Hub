@@ -262,7 +262,7 @@ func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*resp
 				Author:      "NovelHub",
 				Path:        baseURL + "/api/v1/vbook/plugin.zip",
 				Lib:         baseURL + "/api/v1/vbook/plugin.json",
-				Version:     1,
+				Version:     2,
 				Source:      baseURL,
 				Icon:        baseURL + "/vbook/icon.png",
 				Description: vbookDescription,
@@ -297,7 +297,7 @@ func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]by
 		Metadata: response.VBookPluginMetadata{
 			Name:        "NovelHub",
 			Author:      "NovelHub",
-			Version:     1,
+			Version:     2,
 			Source:      baseURL,
 			Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
 			Description: vbookDescription,
