@@ -302,6 +302,11 @@ func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]by
 	} else if _, err := w.Write(pluginJSON); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 	}
+	if iconData, err := fs.ReadFile(s.vbookFS, "icon.png"); err == nil {
+		if w, err := zw.Create("icon.png"); err == nil {
+			_, _ = w.Write(iconData)
+		}
+	}
 	for _, name := range vbookScripts {
 		data, err := fs.ReadFile(s.vbookFS, "src/"+name+".js")
 		if err != nil {
