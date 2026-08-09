@@ -29,7 +29,7 @@ func (c *VBookController) GetHome(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sections, err := c.vbookService.GetHomeSections(reqCtx)
+	sections, err := c.vbookService.GetHomeSections(reqCtx, getBaseURL(ctx, c.settingsService))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -44,7 +44,7 @@ func (c *VBookController) GetGenres(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	genres, err := c.vbookService.GetGenres(reqCtx)
+	genres, err := c.vbookService.GetGenres(reqCtx, getBaseURL(ctx, c.settingsService))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -68,6 +68,7 @@ func (c *VBookController) GetBooks(ctx fiber.Ctx) error {
 
 	facet := strings.TrimSpace(ctx.Query("facet"))
 	facetID := strings.TrimSpace(ctx.Query("facet_id"))
+	sort := strings.TrimSpace(ctx.Query("sort"))
 
 	page := 1
 	if pStr := strings.TrimSpace(ctx.Query("page")); pStr != "" {
@@ -83,7 +84,7 @@ func (c *VBookController) GetBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.GetBooks(reqCtx, searchPtr, facet, facetID, page, limit)
+	result, err := c.vbookService.GetBooks(reqCtx, getBaseURL(ctx, c.settingsService), searchPtr, sort, facet, facetID, page, limit)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -117,7 +118,7 @@ func (c *VBookController) SearchBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.SearchBooks(reqCtx, query, page, limit)
+	result, err := c.vbookService.SearchBooks(reqCtx, getBaseURL(ctx, c.settingsService), query, page, limit)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -140,7 +141,7 @@ func (c *VBookController) GetDetail(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
 	}
 
-	detail, err := c.vbookService.GetBookDetail(reqCtx, bookID)
+	detail, err := c.vbookService.GetBookDetail(reqCtx, getBaseURL(ctx, c.settingsService), bookID)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -163,7 +164,7 @@ func (c *VBookController) GetTOC(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
 	}
 
-	toc, err := c.vbookService.GetTOC(reqCtx, bookID)
+	toc, err := c.vbookService.GetTOC(reqCtx, getBaseURL(ctx, c.settingsService), bookID)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

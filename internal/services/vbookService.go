@@ -18,12 +18,12 @@ import (
 )
 
 type VBookService interface {
-	GetHomeSections(ctx context.Context) ([]*response.VBookHomeItem, error)
-	GetGenres(ctx context.Context) ([]*response.VBookGenreItem, error)
-	GetBooks(ctx context.Context, search *string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error)
-	SearchBooks(ctx context.Context, query string, page int, limit int) (*response.VBookBookListResponse, error)
-	GetBookDetail(ctx context.Context, bookID string) (*response.VBookBookDetailResponse, error)
-	GetTOC(ctx context.Context, bookID string) ([]*response.VBookTOCItem, error)
+	GetHomeSections(ctx context.Context, baseURL string) ([]*response.VBookHomeItem, error)
+	GetGenres(ctx context.Context, baseURL string) ([]*response.VBookGenreItem, error)
+	GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error)
+	SearchBooks(ctx context.Context, baseURL string, query string, page int, limit int) (*response.VBookBookListResponse, error)
+	GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error)
+	GetTOC(ctx context.Context, baseURL string, bookID string) ([]*response.VBookTOCItem, error)
 	GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error)
 	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
 	GetPluginZip(ctx context.Context, baseURL string) ([]byte, error)
@@ -47,52 +47,52 @@ func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo r
 	}
 }
 
-func (s *vbookService) GetHomeSections(ctx context.Context) ([]*response.VBookHomeItem, error) {
+func (s *vbookService) GetHomeSections(ctx context.Context, baseURL string) ([]*response.VBookHomeItem, error) {
 	return []*response.VBookHomeItem{
 		{
 			Title:  "Sách mới cập nhật",
-			Input:  "/api/v1/vbook/books?sort=updated",
+			Input:  baseURL + "/api/v1/vbook/books?sort=updated",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Sách xem nhiều",
-			Input:  "/api/v1/vbook/books?sort=hot",
+			Input:  baseURL + "/api/v1/vbook/books?sort=hot",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Mới thêm gần đây",
-			Input:  "/api/v1/vbook/books?sort=created",
+			Input:  baseURL + "/api/v1/vbook/books?sort=created",
 			Script: "gen.js",
 		},
 	}, nil
 }
 
-func (s *vbookService) GetGenres(ctx context.Context) ([]*response.VBookGenreItem, error) {
+func (s *vbookService) GetGenres(ctx context.Context, baseURL string) ([]*response.VBookGenreItem, error) {
 	return []*response.VBookGenreItem{
 		{
 			Title:  "Tất cả sách",
-			Input:  "/api/v1/vbook/books",
+			Input:  baseURL + "/api/v1/vbook/books",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Sê-ri",
-			Input:  "/api/v1/vbook/books?facet=series",
+			Input:  baseURL + "/api/v1/vbook/books?facet=series",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Tác giả",
-			Input:  "/api/v1/vbook/books?facet=authors",
+			Input:  baseURL + "/api/v1/vbook/books?facet=authors",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Thẻ / Nhãn",
-			Input:  "/api/v1/vbook/books?facet=tags",
+			Input:  baseURL + "/api/v1/vbook/books?facet=tags",
 			Script: "gen.js",
 		},
 	}, nil
 }
 
-func (s *vbookService) GetBooks(ctx context.Context, search *string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error) {
+func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -100,7 +100,28 @@ func (s *vbookService) GetBooks(ctx context.Context, search *string, facet strin
 		page = 1
 	}
 
-	books, err := s.bookService.SearchBooks(ctx, nil, search, "all", "", "", facet, facetID, nil, "", int64(limit*page))
+	nav := ""
+	if sort == "hot" {
+		nav = "hot"
+	} else if facetID == "" {
+		switch facet {
+		case "series":
+			nav = "series"
+		case "authors":
+			nav = "authors"
+		case "tags":
+			nav = "tags"
+		}
+	} else {
+		switch facet {
+		case "authors":
+			facet = "author"
+		case "tags":
+			facet = "tag"
+		}
+	}
+
+	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, nil, "", int64(limit*page))
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 	}
@@ -132,10 +153,10 @@ func (s *vbookService) GetBooks(ctx context.Context, search *string, facet strin
 			desc = *b.Description
 		}
 
-		coverURL := fmt.Sprintf("/api/v1/books/%s/cover", b.ID)
+		coverURL := baseURL + "/api/v1/books/" + b.ID + "/cover"
 		items = append(items, &response.VBookBookItem{
 			Name:        b.Title,
-			Link:        fmt.Sprintf("/api/v1/vbook/detail?id=%s", b.ID),
+			Link:        baseURL + "/api/v1/vbook/detail?id=" + b.ID,
 			Cover:       coverURL,
 			Description: fmt.Sprintf("Tác giả: %s | %s", author, desc),
 			Host:        "NovelHub",
@@ -148,11 +169,11 @@ func (s *vbookService) GetBooks(ctx context.Context, search *string, facet strin
 	}, nil
 }
 
-func (s *vbookService) SearchBooks(ctx context.Context, query string, page int, limit int) (*response.VBookBookListResponse, error) {
-	return s.GetBooks(ctx, &query, "", "", page, limit)
+func (s *vbookService) SearchBooks(ctx context.Context, baseURL string, query string, page int, limit int) (*response.VBookBookListResponse, error) {
+	return s.GetBooks(ctx, baseURL, &query, "", "", "", page, limit)
 }
 
-func (s *vbookService) GetBookDetail(ctx context.Context, bookID string) (*response.VBookBookDetailResponse, error) {
+func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error) {
 	book, err := s.bookRepo.GetBook(ctx, bookID)
 	if err != nil {
 		if apperrors.IsNotFound(err) {
@@ -176,7 +197,7 @@ func (s *vbookService) GetBookDetail(ctx context.Context, bookID string) (*respo
 
 	return &response.VBookBookDetailResponse{
 		Name:        book.Title,
-		Cover:       fmt.Sprintf("/api/v1/books/%s/cover", book.ID),
+		Cover:       baseURL + "/api/v1/books/" + book.ID + "/cover",
 		Author:      author,
 		Description: description,
 		Detail:      detailStr,
@@ -185,7 +206,7 @@ func (s *vbookService) GetBookDetail(ctx context.Context, bookID string) (*respo
 	}, nil
 }
 
-func (s *vbookService) GetTOC(ctx context.Context, bookID string) ([]*response.VBookTOCItem, error) {
+func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string) ([]*response.VBookTOCItem, error) {
 	chapters, err := s.bookService.ListChapters(ctx, bookID)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load table of contents")
@@ -199,7 +220,7 @@ func (s *vbookService) GetTOC(ctx context.Context, bookID string) ([]*response.V
 		}
 		items = append(items, &response.VBookTOCItem{
 			Name: title,
-			URL:  fmt.Sprintf("/api/v1/vbook/chap?book_id=%s&chapter_id=%s", bookID, c.ID),
+			URL:  baseURL + "/api/v1/vbook/chap?book_id=" + bookID + "&chapter_id=" + c.ID,
 			Host: "NovelHub",
 		})
 	}
