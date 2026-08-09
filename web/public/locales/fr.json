@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "Extension VBook",
     "subtitle": "Installez l'extension NovelHub dans l'application VBook pour parcourir et lire votre bibliothèque depuis votre téléphone.",
-    "entry_label": "URL d'entrée de l'extension VBook",
+    "entry_label": "URL du plugin VBook (plugin.json)",
     "show_qr": "Afficher le code QR",
     "guide_title": "Comment installer dans VBook :",
-    "step1": "Ouvrez VBook → Plus → Ajouter une extension → Scannez le code QR ou collez l'URL d'entrée.",
-    "step2": "VBook télécharge l'extension et se connecte à votre serveur NovelHub personnel.",
-    "step3": "Si votre serveur exige une connexion, configurez vos identifiants NovelHub dans les paramètres de l'extension."
+    "step1": "Cliquez sur 'Télécharger le ZIP' ci-dessus pour enregistrer le fichier plugin.zip.",
+    "step2": "Ouvrez VBook → Appuyez sur les trois points verticaux (⋮) → Sélectionnez 'Importer une extension' → Choisissez le fichier plugin.zip téléchargé.",
+    "download": "Télécharger le ZIP",
+    "download_zip": "Télécharger plugin.zip"
   }
 }

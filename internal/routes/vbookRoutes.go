@@ -74,7 +74,6 @@ func VBookRoutes(app fiber.Router, vbookController *controllers.VBookController,
 
 	pub := app.Group("/v1/vbook", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS))
 	pub.Get("/plugin.json", vbookController.GetPluginJSON)
-	pub.Get("/entry.json", vbookController.GetEntryJSON)
 	pub.Get("/plugin.zip", vbookController.GetPluginZip)
 
 	v1 := app.Group("/v1/vbook", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), auth)

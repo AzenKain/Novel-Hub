@@ -9,12 +9,23 @@ function execute(url) {
         }
     }
 
+    if (tocUrl.indexOf("http") !== 0) {
+        tocUrl = CONFIG_URL + (tocUrl.indexOf("/") === 0 ? "" : "/") + tocUrl;
+    }
+
     var response = Http.get(tocUrl).string();
     if (response) {
         var res = JSON.parse(response);
         if (res.status && res.data) {
-            return Response.success(res.data);
+            var list = res.data || [];
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].url && list[i].url.indexOf("http") !== 0) {
+                    list[i].url = CONFIG_URL + (list[i].url.indexOf("/") === 0 ? "" : "/") + list[i].url;
+                }
+            }
+            return Response.success(list);
         }
     }
     return Response.error("Không thể tải mục lục từ NovelHub");
 }
+

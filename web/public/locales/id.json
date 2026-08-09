@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "Plugin VBook",
     "subtitle": "Pasang plugin NovelHub di aplikasi VBook untuk menjelajah dan membaca perpustakaan Anda dari ponsel.",
-    "entry_label": "URL entri plugin VBook",
+    "entry_label": "URL Plugin VBook (plugin.json)",
     "show_qr": "Tampilkan kode QR",
     "guide_title": "Cara memasang di VBook:",
-    "step1": "Buka VBook → Lainnya → Tambah ekstensi → Pindai kode QR atau tempel URL entri.",
-    "step2": "VBook mengunduh plugin dan terhubung ke server NovelHub pribadi Anda.",
-    "step3": "Jika server Anda memerlukan login, konfigurasikan kredensial NovelHub di pengaturan ekstensi."
+    "step1": "Klik 'Unduh ZIP' di atas untuk menyimpan file plugin.zip.",
+    "step2": "Buka VBook → Ketuk tiga titik vertikal (⋮) → Pilih 'Impor Ekstensi' → Pilih file plugin.zip yang diunduh.",
+    "download": "Unduh ZIP",
+    "download_zip": "Unduh file plugin.zip"
   }
 }

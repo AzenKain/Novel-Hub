@@ -211,18 +211,6 @@ func (c *VBookController) GetPluginJSON(ctx fiber.Ctx) error {
 	return ctx.JSON(plugin)
 }
 
-func (c *VBookController) GetEntryJSON(ctx fiber.Ctx) error {
-	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	entry, err := c.vbookService.GetEntryJSON(reqCtx, getBaseURL(ctx, c.settingsService))
-	if err != nil {
-		return apperrors.HandleError(ctx, err)
-	}
-
-	return ctx.JSON(entry)
-}
-
 func (c *VBookController) GetPluginZip(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

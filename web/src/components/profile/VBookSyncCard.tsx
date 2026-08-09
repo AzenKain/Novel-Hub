@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, QrCode, BookOpen, Smartphone } from "lucide-react";
+import { Copy, Check, QrCode, BookOpen, Smartphone, Download } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
 
@@ -10,7 +10,8 @@ export const VBookSyncCard: React.FC = () => {
   const [showQr, setShowQr] = useState(false);
 
   const origin = window.location.origin;
-  const entryUrl = `${origin}/api/v1/vbook/entry.json`;
+  const pluginUrl = `${origin}/api/v1/vbook/plugin.json`;
+  const pluginZipUrl = `${origin}/api/v1/vbook/plugin.zip`;
 
   const copyToClipboard = (url: string, label: string) => {
     navigator.clipboard.writeText(url);
@@ -39,27 +40,39 @@ export const VBookSyncCard: React.FC = () => {
       </div>
 
       <div className="space-y-4">
+        {/* Primary Action: Download plugin.zip */}
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5 text-primary" />
-              {t("vbook.entry_label", "VBook Plugin Entry URL")}
-            </label>
-          </div>
+          <a
+            href={pluginZipUrl}
+            download="plugin.zip"
+            className="btn btn-primary w-full gap-2 text-sm shadow-sm"
+            title={t("vbook.download_zip", "Download plugin.zip")}
+          >
+            <Download className="h-4 w-4" />
+            <span>{t("vbook.download_zip", "Download plugin.zip")}</span>
+          </a>
+        </div>
+
+        {/* Secondary Section: Copy / QR Code for plugin.json URL */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
+            <Smartphone className="h-3.5 w-3.5 text-primary" />
+            {t("vbook.entry_label", "VBook Plugin URL (plugin.json)")}
+          </label>
           <div className="flex items-center gap-2">
             <input
               type="text"
               readOnly
-              value={entryUrl}
+              value={pluginUrl}
               className="input input-bordered w-full font-mono text-xs bg-base-200/50"
             />
             <button
               type="button"
-              onClick={() => copyToClipboard(entryUrl, "VBook Entry URL")}
+              onClick={() => copyToClipboard(pluginUrl, "VBook Plugin URL")}
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === entryUrl ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === pluginUrl ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
             </button>
             <button
               type="button"
@@ -72,14 +85,14 @@ export const VBookSyncCard: React.FC = () => {
           </div>
         </div>
 
-        {showQr && <CustomQRCode value={entryUrl} label={entryUrl} size={180} />}
+        {showQr && <CustomQRCode value={pluginUrl} label={pluginUrl} size={180} />}
 
+        {/* Guide steps */}
         <div className="rounded-xl bg-base-200/50 p-4 text-xs space-y-2">
           <p className="font-bold text-base-content/80">{t("vbook.guide_title", "How to install in VBook:")}</p>
           <ul className="list-disc list-inside space-y-1 text-base-content/70">
-            <li>{t("vbook.step1", "Open VBook → More → Add extension → Scan the QR code or paste the entry URL.")}</li>
-            <li>{t("vbook.step2", "VBook downloads the plugin and connects to your personal NovelHub server.")}</li>
-            <li>{t("vbook.step3", "If your server requires login, configure your NovelHub credentials in the extension settings.")}</li>
+            <li>{t("vbook.step1", "Click 'Download ZIP' above to save the plugin.zip file.")}</li>
+            <li>{t("vbook.step2", "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file.")}</li>
           </ul>
         </div>
       </div>

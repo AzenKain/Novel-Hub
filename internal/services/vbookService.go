@@ -25,8 +25,7 @@ type VBookService interface {
 	GetBookDetail(ctx context.Context, bookID string) (*response.VBookBookDetailResponse, error)
 	GetTOC(ctx context.Context, bookID string) ([]*response.VBookTOCItem, error)
 	GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error)
-	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookPluginResponse, error)
-	GetEntryJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
+	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
 	GetPluginZip(ctx context.Context, baseURL string) ([]byte, error)
 }
 
@@ -220,31 +219,7 @@ func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, cha
 
 const vbookDescription = "Tiện ích đọc sách cá nhân tự lưu trữ từ máy chủ NovelHub của bạn"
 
-func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookPluginResponse, error) {
-	return &response.VBookPluginResponse{
-		Metadata: response.VBookPluginMetadata{
-			Name:        "NovelHub",
-			Author:      "NovelHub",
-			Version:     1,
-			Source:      baseURL,
-			Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
-			Description: vbookDescription,
-			Locale:      "vi_VN",
-			Language:    "javascript",
-			Type:        "novel",
-		},
-		Script: response.VBookPluginScript{
-			Home:   "home.js",
-			Genre:  "genre.js",
-			Detail: "detail.js",
-			Search: "search.js",
-			Toc:    "toc.js",
-			Chap:   "chap.js",
-		},
-	}, nil
-}
-
-func (s *vbookService) GetEntryJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error) {
+func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error) {
 	return &response.VBookRegistryResponse{
 		Metadata: response.VBookRegistryMetadata{
 			Author:      "NovelHub",
@@ -286,11 +261,28 @@ func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte
 }
 
 func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]byte, error) {
-	plugin, err := s.GetPluginJSON(ctx, baseURL)
-	if err != nil {
-		return nil, err
+	pluginManifest := &response.VBookPluginResponse{
+		Metadata: response.VBookPluginMetadata{
+			Name:        "NovelHub",
+			Author:      "NovelHub",
+			Version:     1,
+			Source:      baseURL,
+			Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
+			Description: vbookDescription,
+			Locale:      "vi_VN",
+			Language:    "javascript",
+			Type:        "novel",
+		},
+		Script: response.VBookPluginScript{
+			Home:   "home.js",
+			Genre:  "genre.js",
+			Detail: "detail.js",
+			Search: "search.js",
+			Toc:    "toc.js",
+			Chap:   "chap.js",
+		},
 	}
-	pluginJSON, err := jsonx.Marshal(plugin)
+	pluginJSON, err := jsonx.Marshal(pluginManifest)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 	}

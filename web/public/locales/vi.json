@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "Plugin VBook",
     "subtitle": "Cài plugin NovelHub trong ứng dụng VBook để duyệt và đọc thư viện của bạn từ điện thoại.",
-    "entry_label": "URL Plugin VBook",
+    "entry_label": "URL Plugin VBook (plugin.json)",
     "show_qr": "Hiện mã QR",
+    "download": "Tải file ZIP",
+    "download_zip": "Tải file plugin.zip",
     "guide_title": "Cách cài đặt trong VBook:",
-    "step1": "Mở VBook → Thêm… → Thêm extension → Quét mã QR hoặc dán URL entry.",
-    "step2": "VBook tải plugin và kết nối đến máy chủ NovelHub cá nhân của bạn.",
-    "step3": "Nếu máy chủ yêu cầu đăng nhập, hãy cấu hình thông tin NovelHub trong cài đặt extension."
+    "step1": "Bấm 'Tải file ZIP' ở trên để tải file plugin.zip về máy.",
+    "step2": "Mở VBook → Chọn dấu 3 chấm dọc (⋮) → Chọn 'Nhập phần mở rộng' → Chọn file plugin.zip vừa tải."
   }
 }

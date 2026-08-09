@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "VBookプラグイン",
     "subtitle": "VBookアプリにNovelHubプラグインをインストールして、スマホからライブラリを閲覧・閲覧できます。",
-    "entry_label": "VBookプラグインエントリURL",
+    "entry_label": "VBook プラグイン URL (plugin.json)",
     "show_qr": "QRコードを表示",
     "guide_title": "VBookでのインストール方法:",
-    "step1": "VBookを開く → その他 → 拡張機能を追加 → QRコードをスキャンまたはエントリURLを貼り付け。",
-    "step2": "VBookがプラグインをダウンロードし、あなたのNovelHubサーバーに接続します。",
-    "step3": "サーバーがログインを要求する場合、拡張機能の設定でNovelHubの認証情報を設定してください。"
+    "step1": "上の「ZIPをダウンロード」をクリックして plugin.zip を保存します。",
+    "step2": "VBookを開く → 縦3点リーダー (⋮) をタップ → 「拡張機能をインポート」を選択 → ダウンロードした plugin.zip を選択。",
+    "download": "ZIPをダウンロード",
+    "download_zip": "plugin.zip をダウンロード"
   }
 }

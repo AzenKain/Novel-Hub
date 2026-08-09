@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "VBook Plugin",
     "subtitle": "Install the NovelHub plugin in VBook to browse & read your library from your phone.",
-    "entry_label": "VBook Plugin Entry URL",
+    "entry_label": "VBook Plugin URL (plugin.json)",
     "show_qr": "Show QR Code",
+    "download": "Download ZIP",
+    "download_zip": "Download plugin.zip",
     "guide_title": "How to install in VBook:",
-    "step1": "Open VBook → More → Add extension → Scan the QR code or paste the entry URL.",
-    "step2": "VBook downloads the plugin and connects to your personal NovelHub server.",
-    "step3": "If your server requires login, configure your NovelHub credentials in the extension settings."
+    "step1": "Click 'Download ZIP' above to save the plugin.zip file.",
+    "step2": "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file."
   }
 }

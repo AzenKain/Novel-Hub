@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "VBook 플러그인",
     "subtitle": "VBook 앱에 NovelHub 플러그인을 설치하여 휴대폰에서 라이브러리를 탐색하고 읽으세요.",
-    "entry_label": "VBook 플러그인 항목 URL",
+    "entry_label": "VBook 플러그인 URL (plugin.json)",
     "show_qr": "QR 코드 표시",
     "guide_title": "VBook에 설치하는 방법:",
-    "step1": "VBook 열기 → 더보기 → 확장 프로그램 추가 → QR 코드 스캔 또는 항목 URL 붙여넣기.",
-    "step2": "VBook이 플러그인을 다운로드하고 개인 NovelHub 서버에 연결합니다.",
-    "step3": "서버가 로그인을 요구하면 확장 프로그램 설정에서 NovelHub 자격 증명을 구성하세요."
+    "step1": "상단의 'ZIP 다운로드'를 클릭하여 plugin.zip 파일을 저장합니다.",
+    "step2": "VBook 열기 → 세로 점 3개 메뉴(⋮) 클릭 → '확장 프로그램 가져오기' 선택 → 다운로드한 plugin.zip 선택.",
+    "download": "ZIP 다운로드",
+    "download_zip": "plugin.zip 다운로드"
   }
 }

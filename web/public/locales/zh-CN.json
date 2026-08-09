@@ -1009,11 +1009,12 @@
   "vbook": {
     "title": "VBook 插件",
     "subtitle": "在 VBook 应用中安装 NovelHub 插件，在手机上浏览和阅读您的书库。",
-    "entry_label": "VBook 插件条目 URL",
+    "entry_label": "VBook 插件 URL (plugin.json)",
     "show_qr": "显示二维码",
     "guide_title": "如何在 VBook 中安装：",
-    "step1": "打开 VBook → 更多 → 添加扩展 → 扫描二维码或粘贴条目 URL。",
-    "step2": "VBook 将下载插件并连接到您的个人 NovelHub 服务器。",
-    "step3": "如果服务器需要登录，请在扩展设置中配置您的 NovelHub 凭据。"
+    "step1": "点击上方“下载 ZIP”保存 plugin.zip 文件。",
+    "step2": "打开 VBook → 点击竖排三点菜单 (⋮) → 选择“导入扩展” → 选择下载的 plugin.zip 文件。",
+    "download": "下载 ZIP",
+    "download_zip": "下载 plugin.zip 文件"
   }
 }
