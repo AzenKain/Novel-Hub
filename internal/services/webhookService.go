@@ -381,13 +381,14 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 		}
 
 		color := 3447003 // Blue for created
-		if eventType == "book.deleted" {
+		switch eventType {
+		case "book.deleted":
 			color = 15158332 // Red
-		} else if eventType == "reading.completed" {
+		case "reading.completed":
 			color = 3066993 // Green
-		} else if eventType == "metadata.updated" {
+		case "metadata.updated":
 			color = 15844367 // Gold
-		} else if eventType == "job.failed" {
+		case "job.failed":
 			color = 15158332 // Red
 		}
 
