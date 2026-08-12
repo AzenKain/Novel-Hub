@@ -302,7 +302,7 @@ func (s *trackerService) SyncMyAnimeListProgress(ctx context.Context, userID str
 }
 
 func (s *trackerService) SaveUserTracker(ctx context.Context, userID string, provider string, accessToken string) error {
-	_, err := s.repo.UpsertUserTracker(ctx, userID, provider, accessToken)
+	_, err := s.repo.UpsertUserTracker(ctx, userID, provider, accessToken, nil, nil)
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("failed to save tracker for user: %v", err))
 	}

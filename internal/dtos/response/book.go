@@ -51,6 +51,15 @@ type DuplicateGroupResponse struct {
 	Files          []*DuplicateFileDetailResponse `json:"files"`
 }
 
+type PotentialDuplicateResponse struct {
+	SourceID    string  `json:"source_id"`
+	SourceTitle string  `json:"source_title"`
+	TargetID    string  `json:"target_id"`
+	TargetTitle string  `json:"target_title"`
+	AuthorName  string  `json:"author_name"`
+	Similarity  float64 `json:"similarity"`
+}
+
 type ChapterResponse struct {
 	ID           string    `json:"id"`
 	BookID       string    `json:"book_id"`
@@ -94,4 +103,21 @@ type ReaderBootstrapResponse struct {
 
 type ReaderAssetResponse struct {
 	ContentType string `json:"content_type"`
+}
+
+type BookmarkedBooksPageResponse struct {
+	Books      []*BookResponse `json:"books"`
+	NextCursor string          `json:"next_cursor"`
+}
+
+type BookSearchSnippetResponse struct {
+	ChapterID    string `json:"chapter_id"`
+	ChapterTitle string `json:"chapter_title"`
+	ChapterIndex int64  `json:"chapter_index"`
+	Snippet      string `json:"snippet"`
+	Offset       int    `json:"offset"`
+}
+
+type CoverUpdateResponse struct {
+	CoverURL string `json:"cover_url"`
 }

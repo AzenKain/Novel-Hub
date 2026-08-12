@@ -149,7 +149,7 @@ func (ctrl *KoboController) ArchiveBook(c fiber.Ctx) error {
 	if err := ctrl.koboService.ArchiveBook(ctx, userID, c.Params("uuid"), getOptionalClaims(c)); err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{})
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true})
 }
 
 

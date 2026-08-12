@@ -177,6 +177,7 @@
         "prune_audit_logs": "Purger les journaux d'audit",
         "prune_finished_jobs": "Purger les tâches terminées",
         "merge_audio": "Fusionner les fichiers audio",
+        "convert_book": "Convertir le fichier du livre",
         "podcast_refresh": "Actualiser les podcasts",
         "podcast_download": "Télécharger un épisode"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{count}} livres sur {{total}} téléversés. Traitement des métadonnées...",
     "upload_done": "{{count}} livres téléversés. Traitement des métadonnées...",
     "upload_all_failed": "Aucun fichier n'a pu être téléversé : {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Fusionner « {{source}} » dans « {{target}} » ? Tous les chapitres, fichiers et données de lecture du premier livre seront regroupés dans le second, puis le premier sera supprimé.",
+    "confirm_merge_title": "Fusionner les livres",
+    "merge_books_success": "Livres fusionnés",
+    "confirm_keep_one_msg": "Êtes-vous sûr de vouloir conserver cette copie et supprimer {{count}} copie(s) doublon(s) ?"
   },
   "auth": {
     "login_to_account": "Connectez-vous à votre compte",
@@ -537,7 +542,13 @@
     "random_books_hint": "Actualisez l'étagère quand vous voulez une surprise.",
     "shuffle_books": "Mélanger",
     "top_books": "Livres à la une",
-    "top_books_hint": "Les livres les plus lus de votre bibliothèque."
+    "top_books_hint": "Les livres les plus lus de votre bibliothèque.",
+    "merge_into": "fusionner dans",
+    "merge_into_source": "Fusionner dans le premier",
+    "merge_into_target": "Fusionner dans le second",
+    "no_potential_matches": "Aucune correspondance potentielle trouvée.",
+    "potential_matches": "Correspondances potentielles",
+    "potential_matches_desc": "Même titre et même auteur avec de légères différences — fusionnez les doublons en un seul livre."
   },
   "user": {
     "profile": "Profil",
@@ -722,7 +733,11 @@
     "no_description": "Aucune description disponible.",
     "next_in_series": "Suivant dans la série",
     "in_same_series": "Livres de cette série",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Convertir en…",
+    "convert_queued": "Conversion en file (tâche {{job_id}})",
+    "convert_done": "Conversion terminée",
+    "convert_failed": "Échec de la conversion"
   },
   "settings": {
     "title": "Paramètres",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Avis de configuration : Assurez-vous de configurer le même URI de redirection dans cette page de paramètres et dans la console de développement correspondante de chaque fournisseur d'identité. Les secrets sont chiffrés au repos."
-    }
+    },
+    "hardcover_tracking": "Activer le scrobbling Hardcover",
+    "hardcover_tracking_desc": "Permet aux utilisateurs de se connecter à Hardcover et de synchroniser leur progression de lecture. Nécessite une application développeur Hardcover (ID client et secret OAuth).",
+    "hardcover_client_id": "ID client",
+    "hardcover_client_secret": "Secret client",
+    "hardcover_client_secret_placeholder": "Laisser vide pour conserver le secret actuel",
+    "hardcover_dev_link": "Créer une application développeur Hardcover ↗"
   },
   "email": {
     "invalid": "Veuillez saisir une adresse e-mail valide",
@@ -935,7 +956,12 @@
     "select_btn": "Sélectionner",
     "no_search_results": "Aucune correspondance AniList trouvée",
     "selected_label": "Sélectionné",
-    "connect_new_token": "Utiliser un nouveau jeton"
+    "connect_new_token": "Utiliser un nouveau jeton",
+    "hardcover_title": "Scrobbling Hardcover",
+    "hardcover_subtitle": "Enregistre automatiquement votre progression de lecture sur votre profil Hardcover.",
+    "hardcover_connect_btn": "Connecter Hardcover",
+    "hardcover_connect_failed": "Impossible de démarrer la connexion à Hardcover",
+    "hardcover_dev_link": "Enregistrer une application développeur ↗"
   },
   "opds": {
     "title": "Catalogue OPDS 2.0 et synchronisation de la progression de lecture",
@@ -1178,5 +1204,19 @@
     "load_failed": "Échec du chargement des podcasts",
     "update_failed": "Échec de la mise à jour",
     "actions": "Actions"
+  },
+  "highlights_export": {
+    "title": "Exporter les surlignages",
+    "subtitle": "Envoyez les surlignages de ce livre vers Readwise, ou téléchargez-les en Markdown pour Obsidian / Logseq.",
+    "token_label": "Jeton API Readwise",
+    "token_placeholder": "Collez votre jeton Readwise",
+    "connect_btn": "Connecter",
+    "connect_failed": "Échec de la connexion à Readwise",
+    "connected": "Readwise connecté",
+    "enter_token": "Saisissez votre jeton API Readwise",
+    "export_btn": "Exporter vers Readwise",
+    "export_failed": "Échec de l'export des surlignages",
+    "exported": "{{count}} surlignages exportés vers Readwise",
+    "markdown_btn": "Télécharger .md"
   }
 }

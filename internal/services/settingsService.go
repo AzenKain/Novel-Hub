@@ -65,6 +65,7 @@ type SettingsService interface {
 	SMTP(ctx context.Context) (mailer.SMTPConfig, error)
 	TestSMTP(ctx context.Context, dto *request.SMTPTestDto) error
 	OAuthProviderConfig(ctx context.Context, provider string) (*models.OAuthProviderConfig, error)
+	HardcoverConfig(ctx context.Context) (*models.HardcoverConfig, error)
 }
 
 type settingsService struct {
@@ -235,7 +236,36 @@ func (s *settingsService) Admin(ctx context.Context) (*models.AdminSettings, err
 		ServerURL:      serverURLFromRaw(raw),
 		ProxyAuth:      proxyAuthSettingsFromRaw(raw),
 		OAuth:          oauthSettingsFromRaw(raw),
+		Hardcover:      hardcoverSettingsFromRaw(raw),
 	}, nil
+}
+
+func hardcoverSettingsFromRaw(raw map[string]any) models.HardcoverSettingsAdmin {
+	return models.HardcoverSettingsAdmin{
+		Enabled:         rawBool(raw, "hardcover.enabled", false),
+		ClientID:        rawString(raw, "hardcover.client_id", ""),
+		ClientSecretSet: rawString(raw, "hardcover.client_secret", "") != "",
+	}
+}
+
+func (s *settingsService) HardcoverConfig(ctx context.Context) (*models.HardcoverConfig, error) {
+	s.mu.RLock()
+	raw := s.raw
+	s.mu.RUnlock()
+
+	config := &models.HardcoverConfig{
+		Enabled:  rawBool(raw, "hardcover.enabled", false),
+		ClientID: rawString(raw, "hardcover.client_id", ""),
+	}
+	ciphertext := rawString(raw, "hardcover.client_secret", "")
+	if ciphertext != "" {
+		decrypted, err := crypto.DecryptAES(ciphertext)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to decrypt Hardcover client secret")
+		}
+		config.ClientSecret = decrypted
+	}
+	return config, nil
 }
 
 func proxyAuthSettingsFromRaw(raw map[string]any) models.ProxyAuthSettings {
@@ -449,6 +479,7 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	settings.EnableAniListTracking = rawBool(raw, "tracker.anilist_enabled", true)
+	settings.EnableHardcoverScrobbling = rawBool(raw, "hardcover.enabled", false)
 	settings.EnableAutoEnrich = rawBool(raw, "metadata.auto_enrich_enabled", false)
 	settings.EnableWebpCover = rawBool(raw, "metadata.webp_cover_enabled", false)
 	settings.RequireEmailVerify = rawBool(raw, "auth.require_email_verify", false)
@@ -642,7 +673,8 @@ func secretSettingKey(key string) bool {
 		key == "oauth.google.client_secret" ||
 		key == "oauth.github.client_secret" ||
 		key == "oauth.discord.client_secret" ||
-		key == "oauth.oidc.client_secret"
+		key == "oauth.oidc.client_secret" ||
+		key == "hardcover.client_secret"
 }
 
 // A slice rather than a switch so a test can walk it and check every entry against
@@ -712,6 +744,10 @@ var allowedSettingKeys = []string{
 	"oauth.oidc.client_secret",
 	"oauth.oidc.redirect_uri",
 	"oauth.oidc.scopes",
+
+	"hardcover.enabled",
+	"hardcover.client_id",
+	"hardcover.client_secret",
 }
 
 func oauthSettingsFromRaw(raw map[string]any) models.OAuthSettingsAdmin {

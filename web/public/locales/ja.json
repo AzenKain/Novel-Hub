@@ -177,6 +177,7 @@
         "prune_audit_logs": "監査ログを整理",
         "prune_finished_jobs": "完了ジョブの削除",
         "merge_audio": "音声ファイルを結合",
+        "convert_book": "本ファイルを変換",
         "podcast_refresh": "ポッドキャストを更新",
         "podcast_download": "ポッドキャストのエピソードをダウンロード"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{total}}冊中{{count}}冊をアップロードしました。メタデータを処理中...",
     "upload_done": "{{count}}冊をアップロードしました。メタデータを処理中...",
     "upload_all_failed": "ファイルを1つもアップロードできませんでした: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "「{{source}}」を「{{target}}」に統合しますか？ 最初の書籍の全チャプター・ファイル・読書データが2冊目に統合され、その後最初の書籍は削除されます。",
+    "confirm_merge_title": "書籍の統合",
+    "merge_books_success": "書籍を統合しました",
+    "confirm_keep_one_msg": "このコピーを保持し、{{count}}個の重複コピーを削除してもよろしいですか？"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -537,7 +542,13 @@
     "random_books_hint": "思いがけない本を見つけたいときは、棚を更新してください。",
     "shuffle_books": "シャッフル",
     "top_books": "トップ本",
-    "top_books_hint": "ライブラリで最も読まれている本。"
+    "top_books_hint": "ライブラリで最も読まれている本。",
+    "merge_into": "に統合",
+    "merge_into_source": "1冊目に統合",
+    "merge_into_target": "2冊目に統合",
+    "no_potential_matches": "類似が見つかりませんでした。",
+    "potential_matches": "類似の可能性がある項目",
+    "potential_matches_desc": "タイトルと著者が同じで細部が異なる項目 — 重複を1冊にまとめます。"
   },
   "user": {
     "profile": "プロフィール",
@@ -722,7 +733,11 @@
     "no_description": "あらすじはありません。",
     "next_in_series": "シリーズの次の巻",
     "in_same_series": "同じシリーズの書籍",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "変換…",
+    "convert_queued": "変換をキューに入れました (ジョブ {{job_id}})",
+    "convert_done": "変換が完了しました",
+    "convert_failed": "変換に失敗しました"
   },
   "settings": {
     "title": "設定",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "設定に関する注意事項：この設定ページと各IDプロバイダーの対応する開発者コンソールの両方で、同じリダイレクトURIを設定してください。シークレットは保存時に暗号化されます。"
-    }
+    },
+    "hardcover_tracking": "ハードカバーのスコロブルを有効にする",
+    "hardcover_tracking_desc": "ユーザーがHardcoverに接続して読書進捗を同期できるようにします。Hardcoverデベロッパーアプリ（OAuthクライアントIDとシークレット）が必要です。",
+    "hardcover_client_id": "クライアントID",
+    "hardcover_client_secret": "クライアントシークレット",
+    "hardcover_client_secret_placeholder": "空白のままにすると現在のシークレットを維持します",
+    "hardcover_dev_link": "Hardcoverデベロッパーアプリを作成 ↗"
   },
   "email": {
     "invalid": "有効なメールアドレスを入力してください",
@@ -935,7 +956,12 @@
     "select_btn": "選択",
     "no_search_results": "AniList の一致は見つかりませんでした",
     "selected_label": "選択中",
-    "connect_new_token": "新しいトークンを使用"
+    "connect_new_token": "新しいトークンを使用",
+    "hardcover_title": "ハードカバーのスコロブル",
+    "hardcover_subtitle": "読書進捗を自動的にHardcoverプロフィールに記録します。",
+    "hardcover_connect_btn": "Hardcoverに接続",
+    "hardcover_connect_failed": "Hardcoverの接続を開始できませんでした",
+    "hardcover_dev_link": "デベロッパーアプリを登録 ↗"
   },
   "opds": {
     "title": "OPDS 2.0 カタログ & 2方向読書進捗同期",
@@ -1178,5 +1204,19 @@
     "load_failed": "ポッドキャストを読み込めませんでした",
     "update_failed": "更新に失敗しました",
     "actions": "操作"
+  },
+  "highlights_export": {
+    "title": "ハイライトを書き出す",
+    "subtitle": "この本のハイライトをReadwiseへ送信するか、Obsidian / Logseq用にMarkdownでダウンロードします。",
+    "token_label": "Readwise APIトークン",
+    "token_placeholder": "Readwiseトークンを貼り付け",
+    "connect_btn": "接続",
+    "connect_failed": "Readwiseへの接続に失敗",
+    "connected": "Readwiseに接続済み",
+    "enter_token": "Readwise APIトークンを入力してください",
+    "export_btn": "Readwiseに書き出し",
+    "export_failed": "ハイライトの書き出しに失敗",
+    "exported": "{{count}}件のハイライトをReadwiseに書き出しました",
+    "markdown_btn": ".mdをダウンロード"
   }
 }

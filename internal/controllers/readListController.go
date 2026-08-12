@@ -53,7 +53,7 @@ func (c *ReadListController) GetReadLists(ctx fiber.Ctx) error {
 		next := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 		nextCursor = &next
 	}
-	return ctx.JSON(fiber.Map{"status": true, "data": lists, "next_cursor": nextCursor})
+	return ctx.JSON(response.CursorPaginatedResponse{Status: true, Data: lists, NextCursor: nextCursor})
 }
 
 func (c *ReadListController) GetReadList(ctx fiber.Ctx) error {

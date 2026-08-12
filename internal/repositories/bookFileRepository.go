@@ -36,6 +36,7 @@ type BookFileRepository interface {
 	ResolveCoverPath(ctx context.Context, bookID, coverURL string) (string, error)
 	HashSHA256(ctx context.Context, path string) (string, error)
 	Exists(ctx context.Context, path string) bool
+	MoveBookFiles(ctx context.Context, sourceID, targetID string) error
 	RemoveBookDir(ctx context.Context, bookID string) error
 	RemoveEmptyBookDirs(ctx context.Context) (int, error)
 }
@@ -339,6 +340,48 @@ func removeAllWithRetry(ctx context.Context, remove func() error) error {
 		case <-timer.C:
 		}
 	}
+}
+
+func (r *localBookFileRepository) MoveBookFiles(ctx context.Context, sourceID, targetID string) error {
+	sourceID, err := safeBookID(sourceID)
+	if err != nil {
+		return err
+	}
+	targetID, err = safeBookID(targetID)
+	if err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// Mirrors the SQL merge: a filename the target already owns is skipped (INSERT OR
+	// IGNORE dropped that row), target copy wins. meta.json is per-book state and must
+	// not overwrite the target's.
+	entries, err := os.ReadDir(filepath.Join(r.baseDir, sourceID))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	return r.withRoot(func(root *os.Root) error {
+		if err := root.MkdirAll(targetID, 0750); err != nil {
+			return err
+		}
+		for _, e := range entries {
+			if e.IsDir() || e.Name() == "meta.json" {
+				continue
+			}
+			dst := path.Join(targetID, e.Name())
+			if _, err := root.Stat(dst); err == nil {
+				continue
+			}
+			if err := root.Rename(path.Join(sourceID, e.Name()), dst); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *localBookFileRepository) RemoveBookDir(ctx context.Context, bookID string) error {

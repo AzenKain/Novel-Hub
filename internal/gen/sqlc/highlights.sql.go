@@ -78,6 +78,153 @@ func (q *Queries) DeleteHighlight(ctx context.Context, arg DeleteHighlightParams
 	return err
 }
 
+const getHighlightBooksByIDs = `-- name: GetHighlightBooksByIDs :many
+SELECT h.id, h.user_id, h.book_id, h.chapter_id, h.text_content, h.start_index, h.end_index, h.color, h.note, h.created_at, h.updated_at, h.cfi_range,
+       b.title AS book_title, COALESCE(a.name, '') AS author_name
+FROM highlights h
+JOIN books b ON b.id = h.book_id
+LEFT JOIN authors a ON a.id = b.author_id
+WHERE h.id IN (/*SLICE:ids*/?)
+`
+
+type GetHighlightBooksByIDsRow struct {
+	ID          string         `json:"id"`
+	UserID      string         `json:"user_id"`
+	BookID      string         `json:"book_id"`
+	ChapterID   string         `json:"chapter_id"`
+	TextContent string         `json:"text_content"`
+	StartIndex  int64          `json:"start_index"`
+	EndIndex    int64          `json:"end_index"`
+	Color       string         `json:"color"`
+	Note        sql.NullString `json:"note"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	CfiRange    sql.NullString `json:"cfi_range"`
+	BookTitle   string         `json:"book_title"`
+	AuthorName  string         `json:"author_name"`
+}
+
+// Same projection by explicit IDs, for the cache-by-IDs fetch path.
+func (q *Queries) GetHighlightBooksByIDs(ctx context.Context, ids []string) ([]GetHighlightBooksByIDsRow, error) {
+	query := getHighlightBooksByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetHighlightBooksByIDsRow{}
+	for rows.Next() {
+		var i GetHighlightBooksByIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.BookID,
+			&i.ChapterID,
+			&i.TextContent,
+			&i.StartIndex,
+			&i.EndIndex,
+			&i.Color,
+			&i.Note,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CfiRange,
+			&i.BookTitle,
+			&i.AuthorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getHighlightsByBook = `-- name: GetHighlightsByBook :many
+SELECT h.id, h.user_id, h.book_id, h.chapter_id, h.text_content, h.start_index, h.end_index, h.color, h.note, h.created_at, h.updated_at, h.cfi_range,
+       b.title AS book_title, COALESCE(a.name, '') AS author_name
+FROM highlights h
+JOIN books b ON b.id = h.book_id
+LEFT JOIN authors a ON a.id = b.author_id
+WHERE h.user_id = ? AND h.book_id = ?
+ORDER BY h.created_at ASC
+`
+
+type GetHighlightsByBookParams struct {
+	UserID string `json:"user_id"`
+	BookID string `json:"book_id"`
+}
+
+type GetHighlightsByBookRow struct {
+	ID          string         `json:"id"`
+	UserID      string         `json:"user_id"`
+	BookID      string         `json:"book_id"`
+	ChapterID   string         `json:"chapter_id"`
+	TextContent string         `json:"text_content"`
+	StartIndex  int64          `json:"start_index"`
+	EndIndex    int64          `json:"end_index"`
+	Color       string         `json:"color"`
+	Note        sql.NullString `json:"note"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	CfiRange    sql.NullString `json:"cfi_range"`
+	BookTitle   string         `json:"book_title"`
+	AuthorName  string         `json:"author_name"`
+}
+
+// Export surfaces (Readwise / markdown) join book title + author in one pass so
+// the exporter never issues a second query per book. Served by idx_highlights_user_book.
+func (q *Queries) GetHighlightsByBook(ctx context.Context, arg GetHighlightsByBookParams) ([]GetHighlightsByBookRow, error) {
+	rows, err := q.query(ctx, q.getHighlightsByBookStmt, getHighlightsByBook, arg.UserID, arg.BookID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetHighlightsByBookRow{}
+	for rows.Next() {
+		var i GetHighlightsByBookRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.BookID,
+			&i.ChapterID,
+			&i.TextContent,
+			&i.StartIndex,
+			&i.EndIndex,
+			&i.Color,
+			&i.Note,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CfiRange,
+			&i.BookTitle,
+			&i.AuthorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getHighlightsByChapter = `-- name: GetHighlightsByChapter :many
 SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at, cfi_range FROM highlights
 WHERE user_id = ? AND chapter_id = ?

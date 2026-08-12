@@ -177,6 +177,7 @@
         "prune_audit_logs": "감사 로그 정리",
         "prune_finished_jobs": "완료된 작업 정리",
         "merge_audio": "오디오 파일 병합",
+        "convert_book": "책 파일 변환",
         "podcast_refresh": "팟캐스트 새로고침",
         "podcast_download": "팟캐스트 에피소드 다운로드"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{total}}권 중 {{count}}권을 업로드했습니다. 메타데이터 처리 중...",
     "upload_done": "{{count}}권을 업로드했습니다. 메타데이터 처리 중...",
     "upload_all_failed": "파일을 하나도 업로드하지 못했습니다: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "\"{{source}}\"을(를) \"{{target}}\"에 병합하시겠습니까? 첫 번째 책의 모든 챕터, 파일, 읽기 데이터가 두 번째 책으로 합쳐지고 첫 번째 책이 삭제됩니다.",
+    "confirm_merge_title": "책 병합",
+    "merge_books_success": "책을 병합했습니다",
+    "confirm_keep_one_msg": "이 복사본을 유지하고 {{count}}개의 중복 복사본을 삭제하시겠습니까?"
   },
   "auth": {
     "login_to_account": "계정에 로그인",
@@ -537,7 +542,13 @@
     "random_books_hint": "의외의 책을 만나고 싶을 때 책장을 새로고침하세요.",
     "shuffle_books": "셔플",
     "top_books": "인기 책",
-    "top_books_hint": "라이브러리에서 가장 많이 읽은 책입니다."
+    "top_books_hint": "라이브러리에서 가장 많이 읽은 책입니다.",
+    "merge_into": "병합 대상",
+    "merge_into_source": "첫 번째 책으로 병합",
+    "merge_into_target": "두 번째 책으로 병합",
+    "no_potential_matches": "잠재적 일치 항목이 없습니다.",
+    "potential_matches": "잠재적 일치 항목",
+    "potential_matches_desc": "제목과 저자가 같고 세부 차이가 있는 항목 — 중복을 한 권으로 병합합니다."
   },
   "user": {
     "profile": "프로필",
@@ -722,7 +733,11 @@
     "no_description": "시놉시스가 없습니다.",
     "next_in_series": "시리즈 다음 권",
     "in_same_series": "같은 시리즈의 도서",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "변환…",
+    "convert_queued": "변환이 대기열에 추가됨 (작업 {{job_id}})",
+    "convert_done": "변환 완료",
+    "convert_failed": "변환 실패"
   },
   "settings": {
     "title": "설정",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "설정 안내: 이 설정 페이지와 각 ID 제공업체의 개발자 콘솔 모두에 동일한 리디렉션 URI를 구성해야 합니다. 보안 비밀은 저장 시 암호화됩니다."
-    }
+    },
+    "hardcover_tracking": "Hardcover 스크롤블링 활성화",
+    "hardcover_tracking_desc": "사용자가 Hardcover에 연결하여 독서 진행 상황을 동기화할 수 있게 합니다. Hardcover 개발자 앱(OAuth 클라이언트 ID 및 시크릿)이 필요합니다.",
+    "hardcover_client_id": "클라이언트 ID",
+    "hardcover_client_secret": "클라이언트 시크릿",
+    "hardcover_client_secret_placeholder": "비워 두면 현재 시크릿을 유지합니다",
+    "hardcover_dev_link": "Hardcover 개발자 앱 만들기 ↗"
   },
   "email": {
     "invalid": "유효한 이메일 주소를 입력해 주세요",
@@ -935,7 +956,12 @@
     "select_btn": "선택",
     "no_search_results": "일치하는 AniList 작품을 찾을 수 없습니다",
     "selected_label": "선택됨",
-    "connect_new_token": "새 토큰 사용"
+    "connect_new_token": "새 토큰 사용",
+    "hardcover_title": "Hardcover 스크롤블링",
+    "hardcover_subtitle": "독서 진행 상황을 Hardcover 프로필에 자동으로 기록합니다.",
+    "hardcover_connect_btn": "Hardcover 연결",
+    "hardcover_connect_failed": "Hardcover 연결을 시작하지 못했습니다",
+    "hardcover_dev_link": "개발자 앱 등록 ↗"
   },
   "opds": {
     "title": "OPDS 2.0 카탈로그 및 2방향 독서 진도 동기화",
@@ -1178,5 +1204,19 @@
     "load_failed": "팟캐스트를 불러오지 못했습니다",
     "update_failed": "업데이트 실패",
     "actions": "작업"
+  },
+  "highlights_export": {
+    "title": "하이라이트 내보내기",
+    "subtitle": "이 책의 하이라이트를 Readwise로 보내거나 Obsidian / Logseq용 Markdown으로 다운로드합니다.",
+    "token_label": "Readwise API 토큰",
+    "token_placeholder": "Readwise 토큰 붙여넣기",
+    "connect_btn": "연결",
+    "connect_failed": "Readwise 연결 실패",
+    "connected": "Readwise 연결됨",
+    "enter_token": "Readwise API 토큰을 입력하세요",
+    "export_btn": "Readwise로 내보내기",
+    "export_failed": "하이라이트 내보내기 실패",
+    "exported": "하이라이트 {{count}}개를 Readwise로 내보냈습니다",
+    "markdown_btn": ".md 다운로드"
   }
 }

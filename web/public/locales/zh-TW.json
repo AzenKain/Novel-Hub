@@ -177,6 +177,7 @@
         "prune_audit_logs": "清除稽核日誌",
         "prune_finished_jobs": "清除已完成的工作",
         "merge_audio": "合併音訊檔案",
+        "convert_book": "轉換圖書檔案",
         "podcast_refresh": "重新整理播客",
         "podcast_download": "下載播客單集"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "已上傳 {{total}} 本中的 {{count}} 本書。正在處理中繼資料...",
     "upload_done": "已上傳 {{count}} 本書。正在處理中繼資料...",
     "upload_all_failed": "沒有任何檔案能夠上傳：{{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "將「{{source}}」合併到「{{target}}」？第一本書的所有章節、檔案和閱讀資料將併入第二本，然後刪除第一本。",
+    "confirm_merge_title": "合併書籍",
+    "merge_books_success": "書籍已合併",
+    "confirm_keep_one_msg": "您確定要保留此副本並刪除 {{count}} 個重複副本嗎？"
   },
   "auth": {
     "login_to_account": "登入您的帳號",
@@ -537,7 +542,13 @@
     "random_books_hint": "想要一點意外的驚喜時，重新整理這個書架。",
     "shuffle_books": "隨機重排",
     "top_books": "熱門書籍",
-    "top_books_hint": "書庫中閱讀次數最多的書籍。"
+    "top_books_hint": "書庫中閱讀次數最多的書籍。",
+    "merge_into": "合併到",
+    "merge_into_source": "合併到第一本",
+    "merge_into_target": "合併到第二本",
+    "no_potential_matches": "找不到潛在相符項目。",
+    "potential_matches": "潛在相符項目",
+    "potential_matches_desc": "標題和作者相同但有些微差異的書籍 — 將重複項合併為一本書。"
   },
   "user": {
     "profile": "個人資料",
@@ -722,7 +733,11 @@
     "no_description": "沒有可用的簡介。",
     "next_in_series": "系列中的下一本",
     "in_same_series": "同系列的書籍",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "轉換為…",
+    "convert_queued": "轉換已排入佇列（任務 {{job_id}}）",
+    "convert_done": "轉換完成",
+    "convert_failed": "轉換失敗"
   },
   "settings": {
     "title": "設定",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "設定說明：請確保在此設定頁面以及每個身分識別提供者的對應開發者主控台中設定相同的重新導向 URI。敏感資訊在儲存時已加密。"
-    }
+    },
+    "hardcover_tracking": "啟用 Hardcover 記錄",
+    "hardcover_tracking_desc": "允許用戶連接 Hardcover 並同步閱讀進度。需要 Hardcover 開發者應用（OAuth 客戶端 ID 和密鑰）。",
+    "hardcover_client_id": "客戶端 ID",
+    "hardcover_client_secret": "客戶端密鑰",
+    "hardcover_client_secret_placeholder": "留空則保留當前密鑰",
+    "hardcover_dev_link": "建立 Hardcover 開發者應用 ↗"
   },
   "email": {
     "invalid": "請輸入有效的電子郵件地址",
@@ -935,7 +956,12 @@
     "select_btn": "選取",
     "no_search_results": "找不到符合的 AniList 項目",
     "selected_label": "已選取",
-    "connect_new_token": "使用新的權杖"
+    "connect_new_token": "使用新的權杖",
+    "hardcover_title": "Hardcover 記錄",
+    "hardcover_subtitle": "自動將閱讀進度記錄到你的 Hardcover 個人資料。",
+    "hardcover_connect_btn": "連接 Hardcover",
+    "hardcover_connect_failed": "無法開始連接 Hardcover",
+    "hardcover_dev_link": "註冊開發者應用 ↗"
   },
   "opds": {
     "title": "OPDS 2.0 目錄與閱讀進度同步",
@@ -1178,5 +1204,19 @@
     "load_failed": "載入播客失敗",
     "update_failed": "更新失敗",
     "actions": "操作"
+  },
+  "highlights_export": {
+    "title": "匯出劃線",
+    "subtitle": "將本書的劃線傳送到 Readwise，或下載為 Markdown 供 Obsidian / Logseq 使用。",
+    "token_label": "Readwise API 令牌",
+    "token_placeholder": "貼上您的 Readwise 令牌",
+    "connect_btn": "連接",
+    "connect_failed": "連接 Readwise 失敗",
+    "connected": "已連接 Readwise",
+    "enter_token": "請輸入您的 Readwise API 令牌",
+    "export_btn": "匯出到 Readwise",
+    "export_failed": "匯出劃線失敗",
+    "exported": "已將 {{count}} 條劃線匯出到 Readwise",
+    "markdown_btn": "下載 .md"
   }
 }

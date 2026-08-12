@@ -58,6 +58,7 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 			"prune_finished_jobs":   "Delete old completed and failed job rows",
 			"prune_audit_logs":      "Delete audit log entries older than 90 days",
 			"merge_audio":           "Merge multiple audio files into a chaptered M4B audiobook",
+			"convert_book":          "Convert a book file to another format (epub, fb2, txt, docx, cbz)",
 			"podcast_refresh":       "Refresh podcast feeds and download new episodes (auto-download only)",
 			"podcast_download":      "Download a podcast episode as a library book",
 		},

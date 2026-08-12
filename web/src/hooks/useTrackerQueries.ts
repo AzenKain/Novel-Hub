@@ -65,3 +65,32 @@ export function useSyncTrackerProgressMutation() {
     },
   });
 }
+
+export function useConnectHardcoverMutation() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await trackerService.connectHardcover();
+      if (!res.status || !res.data?.authorize_url) throw new Error(res.message || "Failed to start Hardcover connect");
+      return res.data.authorize_url;
+    },
+  });
+}
+
+export function useSyncHardcoverMutation() {
+  return useMutation<void, Error, { book_id: string; progress: number }>({
+    mutationFn: async (input) => {
+      const res = await trackerService.syncHardcoverProgress(input.book_id, input.progress);
+      if (!res.status) throw new Error(res.message || "Failed to sync Hardcover progress");
+    },
+  });
+}
+
+export function useExportHighlightsToReadwiseMutation() {
+  return useMutation<{ exported: number }, Error, string>({
+    mutationFn: async (book_id: string) => {
+      const res = await trackerService.exportHighlightsToReadwise(book_id);
+      if (!res.status || !res.data) throw new Error(res.message || "Failed to export highlights");
+      return res.data;
+    },
+  });
+}

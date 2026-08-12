@@ -15,6 +15,9 @@ interface SettingsAdminState {
   inBookSearch: boolean;
   customFontUpload: boolean;
   anilistTracking: boolean;
+  hardcoverEnabled: boolean;
+  hardcoverClientId: string;
+  hardcoverClientSecret: string;
   autoEnrich: boolean;
   webpCover: boolean;
   limits: RuntimeLimits | null;
@@ -38,6 +41,9 @@ interface SettingsAdminState {
   setInBookSearch: (enabled: boolean) => void;
   setCustomFontUpload: (enabled: boolean) => void;
   setAnilistTracking: (enabled: boolean) => void;
+  setHardcoverEnabled: (enabled: boolean) => void;
+  setHardcoverClientId: (id: string) => void;
+  setHardcoverClientSecret: (secret: string) => void;
   setAutoEnrich: (enabled: boolean) => void;
   setWebpCover: (enabled: boolean) => void;
   setLimits: (limits: RuntimeLimits) => void;
@@ -73,6 +79,9 @@ const initialState = {
   inBookSearch: false,
   customFontUpload: false,
   anilistTracking: true,
+  hardcoverEnabled: false,
+  hardcoverClientId: "",
+  hardcoverClientSecret: "",
   autoEnrich: false,
   webpCover: false,
   limits: null,
@@ -99,6 +108,9 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   setInBookSearch: (inBookSearch) => set({ inBookSearch }),
   setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
   setAnilistTracking: (anilistTracking) => set({ anilistTracking }),
+  setHardcoverEnabled: (hardcoverEnabled) => set({ hardcoverEnabled }),
+  setHardcoverClientId: (hardcoverClientId) => set({ hardcoverClientId }),
+  setHardcoverClientSecret: (hardcoverClientSecret) => set({ hardcoverClientSecret }),
   setAutoEnrich: (autoEnrich) => set({ autoEnrich }),
   setWebpCover: (webpCover) => set({ webpCover }),
   setLimits: (limits) => set({ limits }),
@@ -125,6 +137,9 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
       inBookSearch: s.enable_in_book_search || false,
       customFontUpload: s.enable_custom_font_upload || false,
       anilistTracking: s.enable_anilist_tracking ?? true,
+      hardcoverEnabled: s.enable_hardcover_scrobbling ?? false,
+      hardcoverClientId: s.hardcover?.client_id ?? "",
+      hardcoverClientSecret: "",
       autoEnrich: s.enable_auto_enrich ?? false,
       webpCover: s.enable_webp_cover ?? false,
       limits: s.limits,

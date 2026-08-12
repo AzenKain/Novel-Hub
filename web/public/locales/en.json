@@ -177,6 +177,7 @@
         "prune_audit_logs": "Prune audit logs",
         "prune_finished_jobs": "Prune finished jobs",
         "merge_audio": "Merge audio files",
+        "convert_book": "Convert book file",
         "podcast_refresh": "Refresh podcasts",
         "podcast_download": "Download podcast episode"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "Uploaded {{count}} of {{total}} books. Processing metadata...",
     "upload_done": "Uploaded {{count}} books. Processing metadata...",
     "upload_all_failed": "No file could be uploaded: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Merge \"{{source}}\" into \"{{target}}\"? All chapters, files and reading data of the first book will be folded into the second, then the first is deleted.",
+    "confirm_merge_title": "Merge Books",
+    "merge_books_success": "Books merged",
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
   },
   "auth": {
     "login_to_account": "Login to your account",
@@ -537,7 +542,13 @@
     "random_books_hint": "Refresh the shelf when you want something unexpected.",
     "shuffle_books": "Shuffle",
     "top_books": "Top books",
-    "top_books_hint": "Most read books in your library."
+    "top_books_hint": "Most read books in your library.",
+    "merge_into": "merge into",
+    "merge_into_source": "Merge into first",
+    "merge_into_target": "Merge into second",
+    "no_potential_matches": "No potential matches found.",
+    "potential_matches": "Potential Matches",
+    "potential_matches_desc": "Same title and author with minor differences — merge the duplicates into one book."
   },
   "user": {
     "profile": "Profile",
@@ -722,7 +733,11 @@
     "no_description": "No description available.",
     "next_in_series": "Next in series",
     "in_same_series": "Books in this Series",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Convert to…",
+    "convert_queued": "Conversion queued (job {{job_id}})",
+    "convert_done": "Conversion finished",
+    "convert_failed": "Conversion failed"
   },
   "settings": {
     "title": "Settings",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Configuration Notice: Make sure to configure the same Redirect URI in both this settings page and the corresponding developer console of each identity provider. Secrets are encrypted at rest."
-    }
+    },
+    "hardcover_tracking": "Enable Hardcover Scrobbling",
+    "hardcover_tracking_desc": "Allow users to connect Hardcover and sync reading progress. Requires a Hardcover developer app (OAuth client ID & secret).",
+    "hardcover_client_id": "Client ID",
+    "hardcover_client_secret": "Client Secret",
+    "hardcover_client_secret_placeholder": "Leave blank to keep current secret",
+    "hardcover_dev_link": "Create a Hardcover developer app ↗"
   },
   "email": {
     "invalid": "Please enter a valid email address",
@@ -935,7 +956,12 @@
     "select_btn": "Select",
     "no_search_results": "No AniList matches found",
     "selected_label": "Selected",
-    "connect_new_token": "Use new token"
+    "connect_new_token": "Use new token",
+    "hardcover_title": "Hardcover Scrobbling",
+    "hardcover_subtitle": "Scrobble your reading progress to your Hardcover profile automatically.",
+    "hardcover_connect_btn": "Connect Hardcover",
+    "hardcover_connect_failed": "Failed to start Hardcover connect",
+    "hardcover_dev_link": "Register a developer app ↗"
   },
   "opds": {
     "title": "OPDS 2.0 Catalog & Reading Progress Sync",
@@ -1178,5 +1204,19 @@
     "load_failed": "Failed to load podcasts",
     "update_failed": "Failed to update podcast",
     "actions": "Actions"
+  },
+  "highlights_export": {
+    "title": "Export Highlights",
+    "subtitle": "Send this book's highlights to Readwise, or download them as Markdown for Obsidian / Logseq.",
+    "token_label": "Readwise API token",
+    "token_placeholder": "Paste your Readwise token",
+    "connect_btn": "Connect",
+    "connect_failed": "Failed to connect Readwise",
+    "connected": "Readwise connected",
+    "enter_token": "Enter your Readwise API token",
+    "export_btn": "Export to Readwise",
+    "export_failed": "Failed to export highlights",
+    "exported": "Exported {{count}} highlights to Readwise",
+    "markdown_btn": "Download .md"
   }
 }

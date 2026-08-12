@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"novelhub/pkg/database"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -27,10 +26,6 @@ import (
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/worker"
 )
-
-var readerLinkAttrRegex = regexp.MustCompile(`(src|href)=["']([^"']+)["']`)
-var styleBlockRegex = regexp.MustCompile(`(?i)(<style[^>]*>)([\s\S]*?)(</style>)`)
-
 type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
 	GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error)
@@ -38,11 +33,11 @@ type BookService interface {
 	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
 	SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
 	SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
-	GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*models.BookEntity, error)
+	GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*response.BookResponse, error)
 	GetBookFileForDownload(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (string, string, error)
-	ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.BookFileEntity, error)
-	ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.ChapterEntity, error)
-	SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*models.BookSearchSnippet, error)
+	ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.BookFileResponse, error)
+	ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.ChapterResponse, error)
+	SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*response.BookSearchSnippetResponse, error)
 
 	ListChapters(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetBookFilePath(ctx context.Context, bookID string) (string, error)
@@ -51,13 +46,16 @@ type BookService interface {
 	UploadBookFiles(ctx context.Context, bookID string, files []*multipart.FileHeader) (*models.BookFileUploadResult, error)
 	ProcessSingleLocalFile(ctx context.Context, bookID string, filename string, localFilePath string) error
 	ExtractMetadata(ctx context.Context, bookID string) error
-	SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*models.FTSResultEntity, error)
+	SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*response.FTSResultResponse, error)
 	SearchInBook(ctx context.Context, bookID string, query string) ([]*models.BookSearchSnippet, error)
 	GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error)
 	GetDuplicateGroups(ctx context.Context) ([]*response.DuplicateGroupResponse, error)
+	PotentialDuplicateBooks(ctx context.Context) ([]*response.PotentialDuplicateResponse, error)
+	MergeBooks(ctx context.Context, sourceID string, targetID string) error
 	DeleteBookFile(ctx context.Context, fileID string) error
 	UpdateMetadata(ctx context.Context, bookID string, req *request.UpdateBookMetadataDto) error
 	GetReaderBootstrap(ctx context.Context, bookID string, fileID string) (*models.ReaderBootstrapEntity, error)
+	GetReaderBootstrapWithAccess(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*response.ReaderBootstrapResponse, error)
 	GetChapterHTML(ctx context.Context, bookID string, chapterID string, fileID string) (string, error)
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
@@ -69,6 +67,8 @@ type BookService interface {
 	DeleteBook(ctx context.Context, id string) error
 	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error
 	ExecuteSendBookEmailJob(ctx context.Context, payloadJSON string) error
+	ConvertBook(ctx context.Context, bookID string, fileID string, targetFormat string) (string, error)
+	ExecuteConvertBookJob(ctx context.Context, payloadJSON string) error
 
 	BulkDeleteBooks(ctx context.Context, dto *request.BulkDeleteBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 	BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
@@ -90,16 +90,16 @@ type bookService struct {
 	featureRepo    repositories.FeatureRepository
 	libraryRepo    repositories.LibraryRepository
 	fileRepo       repositories.BookFileRepository
-	parsers        *bookparser.Registry
+	parsers        bookparser.Registry
 	txManager      database.TxManager
 	settings       SettingsService
 	permissions    PermissionCache
 	jobQueue       *worker.Queue
 	webhookService WebhookService
-	assetCache     *cache.ByteCache
+	assetCache     cache.ByteCache
 }
 
-func NewBookService(repo repositories.BookDBRepository, featureRepo repositories.FeatureRepository, libraryRepo repositories.LibraryRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue, assetCache *cache.ByteCache) BookService {
+func NewBookService(repo repositories.BookDBRepository, featureRepo repositories.FeatureRepository, libraryRepo repositories.LibraryRepository, fileRepo repositories.BookFileRepository, parsers bookparser.Registry, txManager database.TxManager, settings SettingsService, permissions PermissionCache, jobQueue *worker.Queue, assetCache cache.ByteCache) BookService {
 	return &bookService{
 		bookRepo:    repo,
 		featureRepo: featureRepo,
@@ -244,7 +244,7 @@ func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.Sea
 	return response.BuildCursorPaginatedResponse(models.BookEntitiesToResponse(filtered), 0, int(queryDto.Limit), nextCursor), nil
 }
 
-func (s *bookService) GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*models.BookEntity, error) {
+func (s *bookService) GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*response.BookResponse, error) {
 	book, err := s.GetBook(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -255,7 +255,7 @@ func (s *bookService) GetBookWithAccess(ctx context.Context, id string, claims *
 	if !s.CanReadBook(ctx, book, claims) {
 		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
 	}
-	return book, nil
+	return book.ToResponse(), nil
 }
 
 func (s *bookService) GetBookFileForDownload(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (string, string, error) {
@@ -287,7 +287,7 @@ func (s *bookService) GetBookFileForDownload(ctx context.Context, bookID string,
 	return file.Path, downloadName, nil
 }
 
-func (s *bookService) ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.BookFileEntity, error) {
+func (s *bookService) ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.BookFileResponse, error) {
 	book, err := s.GetBook(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -302,10 +302,10 @@ func (s *bookService) ListBookFilesWithAccess(ctx context.Context, bookID string
 	if err != nil {
 		return nil, err
 	}
-	return files, nil
+	return models.BookFileEntitiesToResponse(files), nil
 }
 
-func (s *bookService) ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.ChapterEntity, error) {
+func (s *bookService) ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.ChapterResponse, error) {
 	book, err := s.GetBook(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -320,10 +320,10 @@ func (s *bookService) ListChaptersWithAccess(ctx context.Context, bookID string,
 	if err != nil {
 		return nil, err
 	}
-	return chapters, nil
+	return models.ChapterEntitiesToResponse(chapters), nil
 }
 
-func (s *bookService) SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*models.BookSearchSnippet, error) {
+func (s *bookService) SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*response.BookSearchSnippetResponse, error) {
 	publicSettings, err := s.settings.Public(ctx)
 	if err != nil {
 		return nil, err
@@ -347,7 +347,7 @@ func (s *bookService) SearchInBookWithAccess(ctx context.Context, bookID string,
 	if err != nil {
 		return nil, err
 	}
-	return results, nil
+	return models.BookSearchSnippetsToResponse(results), nil
 }
 
 func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntity) {
@@ -702,7 +702,7 @@ func (s *bookService) syncParsedMetadata(ctx context.Context, repo repositories.
 	return nil
 }
 
-func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*models.FTSResultEntity, error) {
+func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offset int64, claims *response.JWTClaims) ([]*response.FTSResultResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -748,7 +748,7 @@ func (s *bookService) SearchDeep(ctx context.Context, query string, limit, offse
 			break
 		}
 	}
-	return visible, nil
+	return models.FTSResultEntitiesToResponse(visible), nil
 }
 
 func (s *bookService) GetDuplicates(ctx context.Context) ([]*models.DuplicateFileEntity, error) {
@@ -901,6 +901,25 @@ func (s *bookService) GetReaderBootstrap(ctx context.Context, bookID string, fil
 		}
 	}
 	return &models.ReaderBootstrapEntity{Book: book, Chapters: chapters}, nil
+}
+
+func (s *bookService) GetReaderBootstrapWithAccess(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*response.ReaderBootstrapResponse, error) {
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, err
+	}
+	if !s.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+
+	bootstrap, err := s.GetReaderBootstrap(ctx, bookID, fileID)
+	if err != nil {
+		return nil, err
+	}
+	return bootstrap.ToResponse(), nil
 }
 
 func (s *bookService) parseFileChapters(file *models.BookFileEntity) ([]*models.ChapterEntity, error) {

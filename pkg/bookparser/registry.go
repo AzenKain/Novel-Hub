@@ -6,15 +6,24 @@ import (
 	"strings"
 )
 
-type Registry struct {
+type Registry interface {
+	Register(parser Parser, formats ...string)
+	ParserForFormat(format string) (Parser, bool)
+	ParserForPath(path string) (Parser, bool)
+	Parser(format string, path string) (Parser, error)
+	HasFormat(format string) bool
+	HasPath(path string) bool
+}
+
+type parserRegistry struct {
 	parsers map[string]Parser
 }
 
-func NewRegistry() *Registry {
-	return &Registry{parsers: make(map[string]Parser)}
+func NewRegistry() Registry {
+	return &parserRegistry{parsers: make(map[string]Parser)}
 }
 
-func (r *Registry) Register(parser Parser, formats ...string) {
+func (r *parserRegistry) Register(parser Parser, formats ...string) {
 	if r == nil || parser == nil {
 		return
 	}
@@ -27,7 +36,7 @@ func (r *Registry) Register(parser Parser, formats ...string) {
 	}
 }
 
-func (r *Registry) ParserForFormat(format string) (Parser, bool) {
+func (r *parserRegistry) ParserForFormat(format string) (Parser, bool) {
 	if r == nil {
 		return nil, false
 	}
@@ -35,11 +44,11 @@ func (r *Registry) ParserForFormat(format string) (Parser, bool) {
 	return parser, ok
 }
 
-func (r *Registry) ParserForPath(path string) (Parser, bool) {
+func (r *parserRegistry) ParserForPath(path string) (Parser, bool) {
 	return r.ParserForFormat(FormatFromPath(path))
 }
 
-func (r *Registry) Parser(format string, path string) (Parser, error) {
+func (r *parserRegistry) Parser(format string, path string) (Parser, error) {
 	if parser, ok := r.ParserForFormat(format); ok {
 		return parser, nil
 	}
@@ -53,12 +62,12 @@ func (r *Registry) Parser(format string, path string) (Parser, error) {
 	return nil, fmt.Errorf("no reader parser registered for format %q", name)
 }
 
-func (r *Registry) HasFormat(format string) bool {
+func (r *parserRegistry) HasFormat(format string) bool {
 	_, ok := r.ParserForFormat(format)
 	return ok
 }
 
-func (r *Registry) HasPath(path string) bool {
+func (r *parserRegistry) HasPath(path string) bool {
 	_, ok := r.ParserForPath(path)
 	return ok
 }

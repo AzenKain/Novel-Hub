@@ -55,6 +55,9 @@ func (m *MockSettingsService) TestSMTP(ctx context.Context, dto *request.SMTPTes
 func (m *MockSettingsService) OAuthProviderConfig(ctx context.Context, provider string) (*models.OAuthProviderConfig, error) {
 	return nil, nil
 }
+func (m *MockSettingsService) HardcoverConfig(ctx context.Context) (*models.HardcoverConfig, error) {
+	return nil, nil
+}
 
 // MockAuthService implements services.AuthService for testing
 type MockAuthService struct {

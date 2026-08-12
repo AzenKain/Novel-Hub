@@ -155,3 +155,29 @@ type BookmarkedBooksPage struct {
 	Books      []*BookEntity
 	NextCursor string
 }
+
+func (p *BookmarkedBooksPage) ToResponse() *response.BookmarkedBooksPageResponse {
+	if p == nil {
+		return nil
+	}
+	return &response.BookmarkedBooksPageResponse{
+		Books:      BookEntitiesToResponse(p.Books),
+		NextCursor: p.NextCursor,
+	}
+}
+
+// BookTitleAuthorEntity is the raw id/title/author dump used by the fuzzy
+// duplicate detector. It intentionally carries no files or stats — the scan
+// is O(n²) over the whole library, so it must stay narrow.
+type BookTitleAuthorEntity struct {
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	AuthorName string `json:"author_name"`
+}
+
+func (e *BookTitleAuthorEntity) FromSqlc(res sqlc.ListBooksTitleAuthorRow) *BookTitleAuthorEntity {
+	e.ID = res.ID
+	e.Title = res.Title
+	e.AuthorName = res.AuthorName
+	return e
+}

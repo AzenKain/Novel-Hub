@@ -18,13 +18,18 @@ const (
 // Stores []byte verbatim under its own budget. The shared Cache marshals through sonic, which
 // on a 1.4MB comic page costs 1.14ms and 1.33x inflation for no benefit, and would evict
 // book/series entities to make room.
-type ByteCache struct {
+type ByteCache interface {
+	GetOrLoad(key string, load func() ([]byte, error)) ([]byte, error)
+	Close()
+}
+
+type byteCache struct {
 	items *theine.Cache[string, []byte]
 	sf    singleflight.Group
 	ttl   time.Duration
 }
 
-func NewByteCache(maxCost int64, ttl time.Duration) (*ByteCache, error) {
+func NewByteCache(maxCost int64, ttl time.Duration) (ByteCache, error) {
 	if maxCost <= 0 {
 		maxCost = autoByteCacheMaxCost()
 	}
@@ -39,7 +44,7 @@ func NewByteCache(maxCost int64, ttl time.Duration) (*ByteCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ByteCache{items: items, ttl: ttl}, nil
+	return &byteCache{items: items, ttl: ttl}, nil
 }
 
 // Half the entity cache's share, capped at 512MB: past that the RAM is better left to the OS
@@ -64,7 +69,7 @@ func autoByteCacheMaxCost() int64 {
 
 // The returned slice is the cached buffer itself -- shared with every concurrent reader and
 // handed to fasthttp by fiber's Send without a copy -- so callers must not write to it.
-func (b *ByteCache) GetOrLoad(key string, load func() ([]byte, error)) ([]byte, error) {
+func (b *byteCache) GetOrLoad(key string, load func() ([]byte, error)) ([]byte, error) {
 	if data, ok := b.items.Get(key); ok {
 		return data, nil
 	}
@@ -89,6 +94,6 @@ func (b *ByteCache) GetOrLoad(key string, load func() ([]byte, error)) ([]byte, 
 	return res.([]byte), nil
 }
 
-func (b *ByteCache) Close() {
+func (b *byteCache) Close() {
 	b.items.Close()
 }

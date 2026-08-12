@@ -462,6 +462,7 @@ func (s *komgaService) MarkSeriesReadUpTo(ctx context.Context, seriesID string, 
 			return err
 		}
 	}
+	_ = s.repo.InvalidateSeriesProgress(ctx, claims.UId, seriesID)
 	return nil
 }
 

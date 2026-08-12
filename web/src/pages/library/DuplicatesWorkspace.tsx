@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useDuplicatesQuery, useDeleteBookFileMutation } from "@/hooks";
-import { Loader2, Trash2, Copy, CheckCircle, ShieldCheck } from "lucide-react";
+import { useDuplicatesQuery, useDeleteBookFileMutation, usePotentialDuplicatesQuery, useMergeBooksMutation } from "@/hooks";
+import { Loader2, Trash2, Copy, CheckCircle, ShieldCheck, GitMerge } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getMediaUrl } from "@/config/api";
@@ -10,12 +10,15 @@ import { DeleteConfirmModal } from "@/components/admin";
 type ConfirmState =
   | { type: "single"; file_id: string; title: string }
   | { type: "keepOne"; keepFileId: string; toDeleteFileIds: string[] }
+  | { type: "merge"; sourceId: string; sourceTitle: string; targetId: string; targetTitle: string }
   | null;
 
 export const DuplicatesWorkspace = () => {
   const { t } = useTranslation();
   const { data: duplicateGroups = [], isLoading: loading, refetch } = useDuplicatesQuery();
+  const { data: potentialDuplicates = [], isLoading: loadingPotential } = usePotentialDuplicatesQuery();
   const deleteFileMutation = useDeleteBookFileMutation();
+  const mergeMutation = useMergeBooksMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -68,6 +71,12 @@ export const DuplicatesWorkspace = () => {
         } else {
           toast.success(t("common.success", "Duplicates cleaned up"));
         }
+      } else if (confirmState.type === "merge") {
+        await mergeMutation.mutateAsync({
+          source_id: confirmState.sourceId,
+          target_id: confirmState.targetId,
+        });
+        toast.success(t("admin.merge_books_success", "Books merged"));
       }
       void refetch();
     } catch (err) {
@@ -91,11 +100,24 @@ export const DuplicatesWorkspace = () => {
         ),
       };
     }
+    if (confirmState.type === "keepOne") {
+      return {
+        title: t("admin.confirm_keep_one_title", "Keep Only This Copy"),
+        message: (
+          <span>
+            {t("admin.confirm_keep_one_msg", "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?", { count: confirmState.toDeleteFileIds.length })}
+          </span>
+        ),
+      };
+    }
     return {
-      title: t("admin.confirm_keep_one_title", "Keep Only This Copy"),
+      title: t("admin.confirm_merge_title", "Merge Books"),
       message: (
         <span>
-          {t("admin.confirm_keep_one_msg", `Are you sure you want to keep this copy and delete ${confirmState.toDeleteFileIds.length} duplicate copy(ies)?`)}
+          {t("admin.confirm_merge_msg", 'Merge "{{source}}" into "{{target}}"? All chapters, files and reading data of the first book will be folded into the second, then the first is deleted.', {
+            source: confirmState.sourceTitle,
+            target: confirmState.targetTitle,
+          })}
         </span>
       ),
     };
@@ -120,13 +142,73 @@ export const DuplicatesWorkspace = () => {
         <div className="flex justify-center p-12">
           <Loader2 className="animate-spin text-primary w-8 h-8" />
         </div>
-      ) : duplicateGroups.length === 0 ? (
-        <div className="text-center p-12 bg-base-100 rounded-2xl border border-base-200 shadow-sm flex flex-col items-center gap-3">
-          <CheckCircle className="w-12 h-12 text-success" />
-          <p className="font-semibold text-lg">{t("library.no_duplicates", "No duplicate files found. Your library is clean!")}</p>
-        </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <>
+          {/* Fuzzy title/author matches: not hash-identical, but likely the same work */}
+          <div className="card bg-base-100 shadow-sm border border-base-200">
+            <div className="card-body p-6 gap-4">
+              <div className="flex items-center gap-2 border-b border-base-200 pb-3">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <GitMerge className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-lg">{t("library.potential_matches", "Potential Matches")}</h2>
+                  <p className="text-xs opacity-60">{t("library.potential_matches_desc", "Same title and author with minor differences — merge the duplicates into one book.")}</p>
+                </div>
+              </div>
+
+              {loadingPotential ? (
+                <div className="flex justify-center p-6">
+                  <Loader2 className="animate-spin text-primary w-6 h-6" />
+                </div>
+              ) : potentialDuplicates.length === 0 ? (
+                <p className="text-center py-6 opacity-60">{t("library.no_potential_matches", "No potential matches found.")}</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {potentialDuplicates.map((pair, idx) => (
+                    <div key={idx} className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-3.5 rounded-xl border border-base-200 bg-base-200/40">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="badge badge-warning badge-sm font-bold gap-1">
+                            {Math.round(pair.similarity * 100)}%
+                          </span>
+                          {pair.author_name && <span className="text-xs opacity-60">{pair.author_name}</span>}
+                        </div>
+                        <div className="text-sm font-semibold truncate">{pair.source_title}</div>
+                        <div className="text-xs opacity-50">→ {t("library.merge_into", "merge into")} →</div>
+                        <div className="text-sm font-semibold truncate">{pair.target_title}</div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
+                        <button
+                          onClick={() => setConfirmState({ type: "merge", sourceId: pair.source_id, sourceTitle: pair.source_title, targetId: pair.target_id, targetTitle: pair.target_title })}
+                          disabled={mergeMutation.isPending}
+                          className="btn btn-primary btn-xs font-bold"
+                        >
+                          {mergeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitMerge className="w-3.5 h-3.5" />}
+                          {t("library.merge_into_target", "Merge into second")}
+                        </button>
+                        <button
+                          onClick={() => setConfirmState({ type: "merge", sourceId: pair.target_id, sourceTitle: pair.target_title, targetId: pair.source_id, targetTitle: pair.source_title })}
+                          disabled={mergeMutation.isPending}
+                          className="btn btn-ghost btn-xs"
+                        >
+                          {t("library.merge_into_source", "Merge into first")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {duplicateGroups.length === 0 ? (
+            <div className="text-center p-12 bg-base-100 rounded-2xl border border-base-200 shadow-sm flex flex-col items-center gap-3">
+              <CheckCircle className="w-12 h-12 text-success" />
+              <p className="font-semibold text-lg">{t("library.no_duplicates", "No duplicate files found. Your library is clean!")}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
           {duplicateGroups.map((group) => (
             <div key={group.hash} className="card bg-base-100 shadow-sm border border-base-200">
               <div className="card-body p-6 gap-4">
@@ -197,6 +279,8 @@ export const DuplicatesWorkspace = () => {
             </div>
           ))}
         </div>
+        )}
+        </>
       )}
 
       {/* Delete Confirmation Modal */}

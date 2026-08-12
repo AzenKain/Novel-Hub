@@ -28,6 +28,9 @@ type UpdateSettingsDto struct {
 	EnableInBookSearch      *bool                   `json:"reader.enable_in_book_search"`
 	EnableCustomFontUpload  *bool                   `json:"font.enable_custom_font_upload"`
 	EnableAniListTracking   *bool                   `json:"tracker.anilist_enabled"`
+	HardcoverEnabled        *bool                   `json:"hardcover.enabled"`
+	HardcoverClientID       *string                 `json:"hardcover.client_id" validate:"omitempty,max=500"`
+	HardcoverClientSecret   *string                 `json:"hardcover.client_secret" validate:"omitempty,max=1000"`
 	EnableAutoEnrich        *bool                   `json:"metadata.auto_enrich_enabled"`
 	EnableWebpCover         *bool                   `json:"metadata.webp_cover_enabled"`
 	RequireEmailVerify      *bool                   `json:"auth.require_email_verify"`
@@ -148,6 +151,9 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "reader.enable_in_book_search", d.EnableInBookSearch)
 	putPtr(values, "font.enable_custom_font_upload", d.EnableCustomFontUpload)
 	putPtr(values, "tracker.anilist_enabled", d.EnableAniListTracking)
+	putPtr(values, "hardcover.enabled", d.HardcoverEnabled)
+	putPtr(values, "hardcover.client_id", d.HardcoverClientID)
+	putPtr(values, "hardcover.client_secret", d.HardcoverClientSecret)
 	putPtr(values, "metadata.auto_enrich_enabled", d.EnableAutoEnrich)
 	putPtr(values, "metadata.webp_cover_enabled", d.EnableWebpCover)
 	putPtr(values, "auth.require_email_verify", d.RequireEmailVerify)
@@ -209,6 +215,9 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
 		"tracker.anilist_enabled":   true,
+		"hardcover.enabled":        true,
+		"hardcover.client_id":      true,
+		"hardcover.client_secret":  true,
 		"metadata.auto_enrich_enabled": true,
 		"metadata.webp_cover_enabled":  true,
 		"auth.require_email_verify": true, "auth.password_reset_enabled": true,

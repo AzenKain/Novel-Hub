@@ -11,7 +11,6 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
-	"novelhub/internal/models"
 	"novelhub/internal/services"
 	"novelhub/pkg/validator"
 )
@@ -57,7 +56,7 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: book.ToResponse()})
+	return c.JSON(response.CommonResponse{Status: true, Data: book})
 }
 
 func (h *BookController) GetBookSeries(c fiber.Ctx) error {
@@ -97,7 +96,7 @@ func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: models.BookFileEntitiesToResponse(files)})
+	return c.JSON(response.CommonResponse{Status: true, Data: files})
 }
 
 func (h *BookController) UploadBookFiles(c fiber.Ctx) error {
@@ -128,7 +127,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.JSON(response.CommonResponse{Status: true, Data: models.ChapterEntitiesToResponse(chapters)})
+	return c.JSON(response.CommonResponse{Status: true, Data: chapters})
 }
 
 func (h *BookController) SearchDeep(c fiber.Ctx) error {
@@ -147,7 +146,7 @@ func (h *BookController) SearchDeep(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	return c.JSON(response.CommonResponse{Status: true, Data: models.FTSResultEntitiesToResponse(results)})
+	return c.JSON(response.CommonResponse{Status: true, Data: results})
 }
 
 func (h *BookController) GetDuplicates(c fiber.Ctx) error {
@@ -159,6 +158,48 @@ func (h *BookController) GetDuplicates(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: results})
+}
+
+func (h *BookController) GetPotentialDuplicates(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	results, err := h.bookService.PotentialDuplicateBooks(ctx)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: results})
+}
+
+func (h *BookController) MergeBooks(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dto := &request.MergeBooksDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+	if err := h.bookService.MergeBooks(ctx, dto.SourceID, dto.TargetID); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Message: "Books merged"})
+}
+
+func (h *BookController) ConvertBook(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	id := c.Params("id")
+	dto := &request.ConvertBookDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	jobID, err := h.bookService.ConvertBook(ctx, id, dto.FileID, dto.TargetFormat)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: map[string]string{"job_id": jobID}})
 }
 
 func (h *BookController) DeleteBookFile(c fiber.Ctx) error {

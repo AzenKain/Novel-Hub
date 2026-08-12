@@ -22,6 +22,7 @@ type KomgaRepository interface {
 	GetBookSeries(ctx context.Context, bookID string) (*models.KomgaBookSeriesRefEntity, error)
 	SeriesProgress(ctx context.Context, userID, seriesID string, libraryIDs []string) (*models.KomgaSeriesProgressEntity, error)
 	SeriesProgressByIDs(ctx context.Context, userID string, seriesIDs []string, libraryIDs []string) (map[string]*models.KomgaSeriesProgressEntity, error)
+	InvalidateSeriesProgress(ctx context.Context, userID, seriesID string) error
 
 	WithTx(tx *sql.Tx) KomgaRepository
 }
@@ -352,4 +353,12 @@ func (r *komgaRepository) SeriesProgressByIDs(ctx context.Context, userID string
 	}
 
 	return out, nil
+}
+
+func (r *komgaRepository) InvalidateSeriesProgress(ctx context.Context, userID, seriesID string) error {
+	if r.c == nil {
+		return nil
+	}
+	pattern := cache.BuildKey("komga", "series_progress", userID, seriesID) + "*"
+	return r.c.DelByPattern(ctx, pattern)
 }

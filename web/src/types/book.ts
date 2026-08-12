@@ -97,6 +97,29 @@ export interface DuplicateGroupResult {
   files: DuplicateFileDetail[];
 }
 
+export interface PotentialDuplicateResult {
+  source_id: string;
+  source_title: string;
+  target_id: string;
+  target_title: string;
+  author_name: string;
+  similarity: number;
+}
+
+export interface MergeBooksPayload {
+  source_id: string;
+  target_id: string;
+}
+
+export interface ConvertBookPayload {
+  file_id: string;
+  target_format: string;
+}
+
+export interface ConvertBookResult {
+  job_id: string;
+}
+
 export interface DuplicateFileResult {
   hash: string;
   duplicate_count?: number;

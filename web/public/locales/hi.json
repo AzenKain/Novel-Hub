@@ -177,6 +177,7 @@
         "prune_audit_logs": "ऑडिट लॉग साफ़ करें",
         "prune_finished_jobs": "पूर्ण कार्य साफ़ करें",
         "merge_audio": "ऑडियो फ़ाइलें मर्ज करें",
+        "convert_book": "पुस्तक फ़ाइल कनवर्ट करें",
         "podcast_refresh": "पॉडकास्ट रीफ्रेश करें",
         "podcast_download": "पॉडकास्ट एपिसोड डाउनलोड करें"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{total}} में से {{count}} पुस्तकें अपलोड हुईं। मेटाडेटा संसाधित हो रहा है...",
     "upload_done": "{{count}} पुस्तकें अपलोड हुईं। मेटाडेटा संसाधित हो रहा है...",
     "upload_all_failed": "कोई भी फ़ाइल अपलोड नहीं हो सकी: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "\"{{source}}\" को \"{{target}}\" में मर्ज करें? पहली पुस्तक के सभी अध्याय, फ़ाइलें और पठन डेटा दूसरी में स्थानांतरित हो जाएँगे, फिर पहली हटा दी जाएगी।",
+    "confirm_merge_title": "पुस्तकें मर्ज करें",
+    "merge_books_success": "पुस्तकें मर्ज हो गईं",
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
   },
   "auth": {
     "login_to_account": "अपने खाते में साइन इन करें",
@@ -537,7 +542,13 @@
     "random_books_hint": "कुछ अनपेक्षित चाहिए तो शेल्फ़ ताज़ा करें।",
     "shuffle_books": "फेंटें",
     "top_books": "शीर्ष पुस्तकें",
-    "top_books_hint": "आपकी लाइब्रेरी की सर्वाधिक पढ़ी गई पुस्तकें।"
+    "top_books_hint": "आपकी लाइब्रेरी की सर्वाधिक पढ़ी गई पुस्तकें।",
+    "merge_into": "में मर्ज करें",
+    "merge_into_source": "पहली में मर्ज करें",
+    "merge_into_target": "दूसरी में मर्ज करें",
+    "no_potential_matches": "कोई संभावित मिलान नहीं मिला।",
+    "potential_matches": "संभावित मिलान",
+    "potential_matches_desc": "समान शीर्षक और लेखक मामूली अंतर के साथ — डुप्लिकेट को एक पुस्तक में मर्ज करें।"
   },
   "user": {
     "profile": "प्रोफ़ाइल",
@@ -722,7 +733,11 @@
     "no_description": "कोई विवरण उपलब्ध नहीं है।",
     "next_in_series": "श्रृंखला में अगली",
     "in_same_series": "इस श्रृंखला की पुस्तकें",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "इसमें कनवर्ट करें…",
+    "convert_queued": "रूपांतरण कतार में है (कार्य {{job_id}})",
+    "convert_done": "रूपांतरण पूर्ण",
+    "convert_failed": "रूपांतरण विफल"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "कॉन्फ़िगरेशन सूचना: सुनिश्चित करें कि आप इस सेटिंग पृष्ठ और प्रत्येक पहचान प्रदाता के संबंधित डेवलपर कंसोल दोनों में एक ही रीडायरेक्ट यूआरआई कॉन्फ़िगर करते हैं। रहस्य सुरक्षित रूप से एन्क्रिप्ट किए गए हैं।"
-    }
+    },
+    "hardcover_tracking": "Hardcover स्क्रॉबलिंग सक्षम करें",
+    "hardcover_tracking_desc": "उपयोगकर्ताओं को Hardcover से कनेक्ट करने और पठन प्रगति सिंक करने दें। Hardcover डेवलपर ऐप (OAuth क्लाइंट ID और सीक्रेट) आवश्यक है।",
+    "hardcover_client_id": "क्लाइंट ID",
+    "hardcover_client_secret": "क्लाइंट सीक्रेट",
+    "hardcover_client_secret_placeholder": "वर्तमान सीक्रेट रखने के लिए खाली छोड़ें",
+    "hardcover_dev_link": "Hardcover डेवलपर ऐप बनाएं ↗"
   },
   "email": {
     "invalid": "कृपया एक मान्य ईमेल पता डालें",
@@ -935,7 +956,12 @@
     "select_btn": "चुनें",
     "no_search_results": "AniList पर कोई मेल नहीं मिला",
     "selected_label": "चुना गया",
-    "connect_new_token": "नया टोकन उपयोग करें"
+    "connect_new_token": "नया टोकन उपयोग करें",
+    "hardcover_title": "Hardcover स्क्रॉबलिंग",
+    "hardcover_subtitle": "अपनी पठन प्रगति को Hardcover प्रोफ़ाइल पर स्वचालित रूप से दर्ज करें।",
+    "hardcover_connect_btn": "Hardcover से कनेक्ट करें",
+    "hardcover_connect_failed": "Hardcover कनेक्ट शुरू करने में विफल",
+    "hardcover_dev_link": "डेवलपर ऐप पंजीकृत करें ↗"
   },
   "opds": {
     "title": "OPDS 2.0 कैटलॉग और पठन प्रगति सिंक",
@@ -1178,5 +1204,19 @@
     "load_failed": "पॉडकास्ट लोड नहीं हुए",
     "update_failed": "अपडेट विफल",
     "actions": "क्रियाएँ"
+  },
+  "highlights_export": {
+    "title": "हाइलाइट्स निर्यात करें",
+    "subtitle": "इस पुस्तक के हाइलाइट्स Readwise को भेजें, या Obsidian / Logseq के लिए Markdown में डाउनलोड करें।",
+    "token_label": "Readwise API टोकन",
+    "token_placeholder": "अपना Readwise टोकन पेस्ट करें",
+    "connect_btn": "कनेक्ट करें",
+    "connect_failed": "Readwise से कनेक्ट नहीं हो सका",
+    "connected": "Readwise कनेक्ट हुआ",
+    "enter_token": "अपना Readwise API टोकन दर्ज करें",
+    "export_btn": "Readwise को निर्यात करें",
+    "export_failed": "हाइलाइट्स निर्यात नहीं हो सके",
+    "exported": "{{count}} हाइलाइट्स Readwise को निर्यात किए गए",
+    "markdown_btn": ".md डाउनलोड करें"
   }
 }

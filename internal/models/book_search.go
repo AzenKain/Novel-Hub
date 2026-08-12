@@ -4,6 +4,7 @@ import (
 	"html"
 	"strings"
 
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 )
 
@@ -38,4 +39,28 @@ func BookSearchSnippetsFromSqlc(rows []sqlc.SearchFTSInBookRow) []*BookSearchSni
 		results[i] = flat[i].FromSqlc(row)
 	}
 	return results
+}
+
+func (e *BookSearchSnippet) ToResponse() *response.BookSearchSnippetResponse {
+	if e == nil {
+		return nil
+	}
+	return &response.BookSearchSnippetResponse{
+		ChapterID:    e.ChapterID,
+		ChapterTitle: e.ChapterTitle,
+		ChapterIndex: e.ChapterIndex,
+		Snippet:      e.Snippet,
+		Offset:       e.Offset,
+	}
+}
+
+func BookSearchSnippetsToResponse(entities []*BookSearchSnippet) []*response.BookSearchSnippetResponse {
+	out := make([]*response.BookSearchSnippetResponse, 0, len(entities))
+	for _, e := range entities {
+		if e == nil {
+			continue
+		}
+		out = append(out, e.ToResponse())
+	}
+	return out
 }

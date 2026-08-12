@@ -4,9 +4,13 @@ import type {
   BookFile,
   BookSeriesContext,
   Chapter,
+  ConvertBookPayload,
+  ConvertBookResult,
   CursorPaginatedResponse,
   CommonResponse,
   DuplicateGroupResult,
+  MergeBooksPayload,
+  PotentialDuplicateResult,
   SearchBookParams,
   SearchDeepResult,
 } from "@/types";
@@ -115,6 +119,42 @@ export const bookService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
         return error.response.data as CommonResponse<DuplicateGroupResult[]>;
+      throw error;
+    }
+  },
+
+  async getPotentialDuplicates(): Promise<CommonResponse<PotentialDuplicateResult[]>> {
+    try {
+      const res = await api.get(`/books/potential-duplicates`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<PotentialDuplicateResult[]>;
+      throw error;
+    }
+  },
+
+  async mergeBooks(payload: MergeBooksPayload): Promise<CommonResponse<null>> {
+    try {
+      const res = await api.post(`/books/merge`, payload);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<null>;
+      throw error;
+    }
+  },
+
+  async convertBook(
+    id: string,
+    payload: ConvertBookPayload,
+  ): Promise<CommonResponse<ConvertBookResult>> {
+    try {
+      const res = await api.post(`/books/${id}/convert`, payload);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<ConvertBookResult>;
       throw error;
     }
   },

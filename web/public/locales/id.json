@@ -177,6 +177,7 @@
         "prune_audit_logs": "Pangkas log audit",
         "prune_finished_jobs": "Pangkas tugas selesai",
         "merge_audio": "Gabungkan file audio",
+        "convert_book": "Ubah file buku",
         "podcast_refresh": "Segarkan podcast",
         "podcast_download": "Unduh episode podcast"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{count}} dari {{total}} buku diunggah. Memproses metadata...",
     "upload_done": "{{count}} buku diunggah. Memproses metadata...",
     "upload_all_failed": "Tidak ada berkas yang berhasil diunggah: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Gabungkan \"{{source}}\" ke \"{{target}}\"? Semua bab, berkas, dan data baca buku pertama akan dipindahkan ke buku kedua, lalu buku pertama dihapus.",
+    "confirm_merge_title": "Gabungkan Buku",
+    "merge_books_success": "Buku berhasil digabungkan",
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
   },
   "auth": {
     "login_to_account": "Masuk ke akun Anda",
@@ -537,7 +542,13 @@
     "random_books_hint": "Segarkan raknya bila ingin sesuatu yang tak terduga.",
     "shuffle_books": "Acak",
     "top_books": "Buku teratas",
-    "top_books_hint": "Buku yang paling banyak dibaca di perpustakaan Anda."
+    "top_books_hint": "Buku yang paling banyak dibaca di perpustakaan Anda.",
+    "merge_into": "gabungkan ke",
+    "merge_into_source": "Gabungkan ke buku pertama",
+    "merge_into_target": "Gabungkan ke buku kedua",
+    "no_potential_matches": "Tidak ada kemungkinan kecocokan.",
+    "potential_matches": "Kemungkinan Kecocokan",
+    "potential_matches_desc": "Judul dan penulis sama dengan perbedaan kecil — gabungkan duplikat menjadi satu buku."
   },
   "user": {
     "profile": "Profil",
@@ -722,7 +733,11 @@
     "no_description": "Tidak ada deskripsi.",
     "next_in_series": "Berikutnya dalam seri",
     "in_same_series": "Buku dalam seri ini",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Ubah ke…",
+    "convert_queued": "Konversi dalam antrean (tugas {{job_id}})",
+    "convert_done": "Konversi selesai",
+    "convert_failed": "Konversi gagal"
   },
   "settings": {
     "title": "Pengaturan",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Pemberitahuan Konfigurasi: Pastikan untuk mengonfigurasi URI Pengalihan yang sama di halaman pengaturan ini dan konsol pengembang yang sesuai dari setiap penyedia identitas. Rahasia dienkripsi saat disimpan."
-    }
+    },
+    "hardcover_tracking": "Aktifkan Scrobbling Hardcover",
+    "hardcover_tracking_desc": "Izinkan pengguna menghubungkan Hardcover dan menyinkronkan progres membaca. Memerlukan aplikasi pengembang Hardcover (ID klien dan rahasia OAuth).",
+    "hardcover_client_id": "ID klien",
+    "hardcover_client_secret": "Rahasia klien",
+    "hardcover_client_secret_placeholder": "Biarkan kosong untuk mempertahankan rahasia saat ini",
+    "hardcover_dev_link": "Buat aplikasi pengembang Hardcover ↗"
   },
   "email": {
     "invalid": "Masukkan alamat email yang valid",
@@ -935,7 +956,12 @@
     "select_btn": "Pilih",
     "no_search_results": "Tidak ada kecocokan di AniList",
     "selected_label": "Terpilih",
-    "connect_new_token": "Gunakan token baru"
+    "connect_new_token": "Gunakan token baru",
+    "hardcover_title": "Scrobbling Hardcover",
+    "hardcover_subtitle": "Catat progres membaca Anda ke profil Hardcover secara otomatis.",
+    "hardcover_connect_btn": "Hubungkan Hardcover",
+    "hardcover_connect_failed": "Gagal memulai koneksi Hardcover",
+    "hardcover_dev_link": "Daftarkan aplikasi pengembang ↗"
   },
   "opds": {
     "title": "Katalog OPDS 2.0 & sinkronisasi kemajuan membaca",
@@ -1178,5 +1204,19 @@
     "load_failed": "Gagal memuat podcast",
     "update_failed": "Gagal memperbarui",
     "actions": "Aksi"
+  },
+  "highlights_export": {
+    "title": "Ekspor Sorotan",
+    "subtitle": "Kirim sorotan buku ini ke Readwise, atau unduh sebagai Markdown untuk Obsidian / Logseq.",
+    "token_label": "Token API Readwise",
+    "token_placeholder": "Tempel token Readwise Anda",
+    "connect_btn": "Hubungkan",
+    "connect_failed": "Gagal menghubungkan Readwise",
+    "connected": "Readwise terhubung",
+    "enter_token": "Masukkan token API Readwise Anda",
+    "export_btn": "Ekspor ke Readwise",
+    "export_failed": "Gagal mengekspor sorotan",
+    "exported": "{{count}} sorotan diekspor ke Readwise",
+    "markdown_btn": "Unduh .md"
   }
 }

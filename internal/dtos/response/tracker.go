@@ -26,3 +26,7 @@ type BookTrackerMappingResponse struct {
 	ExternalSeriesID string    `json:"external_series_id"`
 	CreatedAt        time.Time `json:"created_at"`
 }
+
+type TrackerSearchListResponse struct {
+	Results []TrackerSearchResultResponse `json:"results"`
+}

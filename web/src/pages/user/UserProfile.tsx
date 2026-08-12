@@ -9,6 +9,7 @@ import { CustomCSSCard } from "@/components/profile/CustomCSSCard";
 import { KidsModePinCard } from "@/components/profile/KidsModePinCard";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
+import { HardcoverTrackerCard } from "@/components/profile/HardcoverTrackerCard";
 import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
 import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
@@ -378,6 +379,9 @@ export const UserProfile = () => {
 
                 {/* AniList Tracker Connect Card */}
                 <TrackerConnectCard />
+
+                {/* Hardcover Scrobbling Card */}
+                <HardcoverTrackerCard />
               </>
             )}
           </div>

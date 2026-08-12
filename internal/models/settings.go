@@ -38,6 +38,7 @@ type PublicSettings struct {
 	EnableInBookSearch     bool                `json:"enable_in_book_search"`
 	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
 	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
+	EnableHardcoverScrobbling bool             `json:"enable_hardcover_scrobbling"`
 	EnableAutoEnrich       bool                `json:"enable_auto_enrich"`
 	EnableWebpCover        bool                `json:"enable_webp_cover"`
 	RequireEmailVerify     bool                `json:"require_email_verify"`
@@ -76,6 +77,18 @@ type OAuthSettingsAdmin struct {
 	Github  OAuthProviderAdmin `json:"github"`
 	Discord OAuthProviderAdmin `json:"discord"`
 	Oidc    OAuthProviderAdmin `json:"oidc"`
+}
+
+type HardcoverSettingsAdmin struct {
+	Enabled         bool   `json:"enabled"`
+	ClientID        string `json:"client_id"`
+	ClientSecretSet bool   `json:"client_secret_set"`
+}
+
+type HardcoverConfig struct {
+	Enabled      bool
+	ClientID     string
+	ClientSecret string
 }
 
 type ProxyAuthSettings struct {
@@ -123,6 +136,7 @@ type AdminSettings struct {
 	ServerURL string             `json:"server_url"`
 	ProxyAuth ProxyAuthSettings  `json:"proxy_auth"`
 	OAuth     OAuthSettingsAdmin `json:"oauth"`
+	Hardcover HardcoverSettingsAdmin `json:"hardcover"`
 }
 
 func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {

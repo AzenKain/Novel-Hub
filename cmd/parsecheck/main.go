@@ -54,7 +54,7 @@ func main() {
 	}
 }
 
-func newParserRegistry() *bookparser.Registry {
+func newParserRegistry() bookparser.Registry {
 	registry := bookparser.NewRegistry()
 	registry.Register(epub.NewParser(), "epub", "kepub.epub")
 	registry.Register(plain.NewParser(), "txt", "md", "markdown")
@@ -77,7 +77,7 @@ func newParserRegistry() *bookparser.Registry {
 	return registry
 }
 
-func checkPath(registry *bookparser.Registry, path string) (res result) {
+func checkPath(registry bookparser.Registry, path string) (res result) {
 	start := time.Now()
 	res = result{
 		Path:   filepath.ToSlash(path),

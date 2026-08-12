@@ -1,5 +1,5 @@
 import { adminService, bookService, featureService, libraryService } from "@/services";
-import type { Collection, DuplicateGroupResult, Library, LibraryStats, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
+import type { Collection, ConvertBookPayload, DuplicateGroupResult, Library, LibraryStats, MergeBooksPayload, PotentialDuplicateResult, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
 import i18n from "@/i18n";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -167,6 +167,32 @@ export function useDuplicatesQuery() {
   });
 }
 
+export function usePotentialDuplicatesQuery() {
+  return useQuery<PotentialDuplicateResult[]>({
+    queryKey: ["potential-duplicates"],
+    queryFn: async () => {
+      const res = await bookService.getPotentialDuplicates();
+      if (!res.status) throw new Error(res.message || "Failed to fetch potential duplicates");
+      return res.data || [];
+    },
+  });
+}
+
+export function useMergeBooksMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: MergeBooksPayload) => {
+      const res = await bookService.mergeBooks(payload);
+      if (!res.status) throw new Error(res.message || "Failed to merge books");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["duplicates"] });
+      void queryClient.invalidateQueries({ queryKey: ["potential-duplicates"] });
+    },
+  });
+}
+
 export function useDeleteBookFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -178,6 +204,28 @@ export function useDeleteBookFileMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["duplicates"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    },
+  });
+}
+
+export function useConvertBookMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: ConvertBookPayload;
+    }) => {
+      const res = await bookService.convertBook(id, payload);
+      if (!res.status) throw new Error(res.message || "Failed to convert book");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["book"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
     },
   });

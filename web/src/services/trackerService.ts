@@ -75,4 +75,40 @@ export const trackerService = {
       throw error;
     }
   },
+
+  async exportHighlightsToReadwise(book_id: string): Promise<CommonResponse<{ exported: number }>> {
+    try {
+      const res = await api.post("/trackers/readwise/export", { book_id });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<{ exported: number }>;
+      }
+      throw error;
+    }
+  },
+
+  async connectHardcover(): Promise<CommonResponse<{ authorize_url: string }>> {
+    try {
+      const res = await api.post("/scrobble/hardcover/connect");
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<{ authorize_url: string }>;
+      }
+      throw error;
+    }
+  },
+
+  async syncHardcoverProgress(book_id: string, progress: number): Promise<CommonResponse<void>> {
+    try {
+      const res = await api.post("/scrobble/hardcover/sync", { book_id, progress });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<void>;
+      }
+      throw error;
+    }
+  },
 };

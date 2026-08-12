@@ -177,6 +177,7 @@
         "prune_audit_logs": "تنظيف سجلات التدقيق",
         "prune_finished_jobs": "تنظيف المهام المنتهية",
         "merge_audio": "دمج ملفات الصوت",
+        "convert_book": "تحويل ملف الكتاب",
         "podcast_refresh": "تحديث البودكاست",
         "podcast_download": "تنزيل حلقة بودكاست"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "تم رفع {{count}} من أصل {{total}} كتاب. جارٍ معالجة البيانات الوصفية...",
     "upload_done": "تم رفع {{count}} كتاب. جارٍ معالجة البيانات الوصفية...",
     "upload_all_failed": "تعذّر رفع أي ملف: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "دمج «{{source}}» في «{{target}}»؟ سيتم نقل جميع الفصول والملفات وبيانات القراءة من الكتاب الأول إلى الثاني، ثم يُحذف الأول.",
+    "confirm_merge_title": "دمج الكتب",
+    "merge_books_success": "تم دمج الكتب",
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
   },
   "auth": {
     "login_to_account": "تسجيل الدخول إلى حسابك",
@@ -537,7 +542,13 @@
     "random_books_hint": "حدّث الرف عندما تبحث عن شيء غير متوقع.",
     "shuffle_books": "خلط",
     "top_books": "أفضل الكتب",
-    "top_books_hint": "الكتب الأكثر قراءة في مكتبتك."
+    "top_books_hint": "الكتب الأكثر قراءة في مكتبتك.",
+    "merge_into": "دمج في",
+    "merge_into_source": "دمج في الكتاب الأول",
+    "merge_into_target": "دمج في الكتاب الثاني",
+    "no_potential_matches": "لم يُعثر على تطابقات محتملة.",
+    "potential_matches": "تطابقات محتملة",
+    "potential_matches_desc": "نفس العنوان والمؤلف مع اختلافات طفيفة — ادمج النسخ المكررة في كتاب واحد."
   },
   "user": {
     "profile": "الملف الشخصي",
@@ -722,7 +733,11 @@
     "no_description": "لا يتوفر وصف.",
     "next_in_series": "التالي في السلسلة",
     "in_same_series": "كتب من هذه السلسلة",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "تحويل إلى…",
+    "convert_queued": "تمت إضافة التحويل إلى قائمة الانتظار (مهمة {{job_id}})",
+    "convert_done": "اكتمل التحويل",
+    "convert_failed": "فشل التحويل"
   },
   "settings": {
     "title": "الإعدادات",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "إشعار التكوين: تأكد من تكوين نفس عنوان URI لإعادة التوجيه في صفحة الإعدادات هذه وفي وحدة تحكم المطور المقابلة لكل موفر هوية. يتم تشفير الأسرار أثناء التخزين."
-    }
+    },
+    "hardcover_tracking": "تفعيل تسجيل Hardcover",
+    "hardcover_tracking_desc": "اسمح للمستخدمين بالاتصال بـ Hardcover ومزامنة تقدم القراءة. يتطلب تطبيق مطور Hardcover (معرف العميل وسر OAuth).",
+    "hardcover_client_id": "معرف العميل",
+    "hardcover_client_secret": "سر العميل",
+    "hardcover_client_secret_placeholder": "اتركه فارغًا للاحتفاظ بالسر الحالي",
+    "hardcover_dev_link": "إنشاء تطبيق مطور Hardcover ↗"
   },
   "email": {
     "invalid": "يرجى إدخال عنوان بريد إلكتروني صالح",
@@ -935,7 +956,12 @@
     "select_btn": "اختيار",
     "no_search_results": "لم يُعثر على تطابقات في AniList",
     "selected_label": "المحدد",
-    "connect_new_token": "استخدام رمز جديد"
+    "connect_new_token": "استخدام رمز جديد",
+    "hardcover_title": "تسجيل Hardcover",
+    "hardcover_subtitle": "قم بتسجيل تقدم القراءة بشكل تلقائي في ملفك الشخصي على Hardcover.",
+    "hardcover_connect_btn": "الاتصال بـ Hardcover",
+    "hardcover_connect_failed": "تعذر بدء الاتصال بـ Hardcover",
+    "hardcover_dev_link": "تسجيل تطبيق المطور ↗"
   },
   "opds": {
     "title": "كتالوج OPDS 2.0 ومزامنة تقدّم القراءة",
@@ -1178,5 +1204,19 @@
     "load_failed": "فشل تحميل البودكاست",
     "update_failed": "فشل التحديث",
     "actions": "إجراءات"
+  },
+  "highlights_export": {
+    "title": "تصدير التمييزات",
+    "subtitle": "أرسل تمييزات هذا الكتاب إلى Readwise أو نزّلها بصيغة Markdown لـ Obsidian / Logseq.",
+    "token_label": "رمز Readwise API",
+    "token_placeholder": "الصق رمز Readwise الخاص بك",
+    "connect_btn": "اتصال",
+    "connect_failed": "فشل الاتصال بـ Readwise",
+    "connected": "تم الاتصال بـ Readwise",
+    "enter_token": "أدخل رمز Readwise API الخاص بك",
+    "export_btn": "تصدير إلى Readwise",
+    "export_failed": "فشل تصدير التمييزات",
+    "exported": "تم تصدير {{count}} تمييز إلى Readwise",
+    "markdown_btn": "تنزيل .md"
   }
 }

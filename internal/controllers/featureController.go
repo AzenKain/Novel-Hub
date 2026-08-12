@@ -74,10 +74,10 @@ func (c *FeatureController) GetCollections(ctx fiber.Ctx) error {
 		next := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 		nextCursor = &next
 	}
-	return ctx.JSON(fiber.Map{
-		"status":      true,
-		"data":        collections,
-		"next_cursor": nextCursor,
+	return ctx.JSON(response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       collections,
+		NextCursor: nextCursor,
 	})
 }
 
@@ -214,10 +214,10 @@ func (c *FeatureController) GetRecentReadingHistory(ctx fiber.Ctx) error {
 		c := last.UpdatedAt.Format(time.RFC3339Nano) + "|" + last.BookID
 		nextCursor = &c
 	}
-	return ctx.JSON(fiber.Map{
-		"status":      true,
-		"data":        history,
-		"next_cursor": nextCursor,
+	return ctx.JSON(response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       history,
+		NextCursor: nextCursor,
 	})
 }
 
@@ -431,10 +431,10 @@ func (c *FeatureController) GetBookmarkedBooks(ctx fiber.Ctx) error {
 	if page.NextCursor != "" {
 		nextCursor = &page.NextCursor
 	}
-	return ctx.JSON(fiber.Map{
-		"status":      true,
-		"data":        models.BookEntitiesToResponse(page.Books),
-		"next_cursor": nextCursor,
+	return ctx.JSON(response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       page.Books,
+		NextCursor: nextCursor,
 	})
 }
 
@@ -602,10 +602,10 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 			nextCursor = &c
 		}
 	}
-	return ctx.JSON(fiber.Map{
-		"status":      true,
-		"data":        reviews,
-		"next_cursor": nextCursor,
+	return ctx.JSON(response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       reviews,
+		NextCursor: nextCursor,
 	})
 }
 

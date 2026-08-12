@@ -177,6 +177,7 @@
         "prune_audit_logs": "ล้างบันทึกตรวจสอบเก่า",
         "prune_finished_jobs": "ล้างงานที่เสร็จสิ้นแล้ว",
         "merge_audio": "รวมไฟล์เสียง",
+        "convert_book": "แปลงไฟล์หนังสือ",
         "podcast_refresh": "รีเฟรชพอดแคสต์",
         "podcast_download": "ดาวน์โหลดตอนพอดแคสต์"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "อัปโหลดหนังสือแล้ว {{count}} จาก {{total}} เล่ม กำลังประมวลผลข้อมูลเมตา...",
     "upload_done": "อัปโหลดหนังสือแล้ว {{count}} เล่ม กำลังประมวลผลข้อมูลเมตา...",
     "upload_all_failed": "ไม่สามารถอัปโหลดไฟล์ใดได้เลย: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "รวม \"{{source}}\" เข้า \"{{target}}\"? บท ไฟล์ และข้อมูลการอ่านทั้งหมดของเล่มแรกจะถูกรวมเข้าเล่มที่สอง จากนั้นลบเล่มแรก",
+    "confirm_merge_title": "รวมหนังสือ",
+    "merge_books_success": "รวมหนังสือแล้ว",
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
   },
   "auth": {
     "login_to_account": "เข้าสู่ระบบบัญชีของคุณ",
@@ -537,7 +542,13 @@
     "random_books_hint": "รีเฟรชชั้นหนังสือเมื่อคุณอยากเจออะไรที่ไม่คาดคิด",
     "shuffle_books": "สุ่มใหม่",
     "top_books": "หนังสือยอดนิยม",
-    "top_books_hint": "หนังสือที่ถูกอ่านมากที่สุดในคลังของคุณ"
+    "top_books_hint": "หนังสือที่ถูกอ่านมากที่สุดในคลังของคุณ",
+    "merge_into": "รวมเข้า",
+    "merge_into_source": "รวมเข้าเล่มแรก",
+    "merge_into_target": "รวมเข้าเล่มที่สอง",
+    "no_potential_matches": "ไม่พบรายการที่อาจตรงกัน",
+    "potential_matches": "รายการที่อาจตรงกัน",
+    "potential_matches_desc": "ชื่อและผู้แต่งเหมือนกันแต่ต่างกันเล็กน้อย — รวมรายการที่ซ้ำกันเป็นเล่มเดียว"
   },
   "user": {
     "profile": "โปรไฟล์",
@@ -722,7 +733,11 @@
     "no_description": "ไม่มีคำอธิบาย",
     "next_in_series": "เล่มถัดไปในชุด",
     "in_same_series": "หนังสือในชุดนี้",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "แปลงเป็น…",
+    "convert_queued": "การแปลงอยู่ในคิว (งาน {{job_id}})",
+    "convert_done": "การแปลงเสร็จสิ้น",
+    "convert_failed": "การแปลงล้มเหลว"
   },
   "settings": {
     "title": "การตั้งค่า",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "ประกาศเกี่ยวกับการตั้งค่า: โปรดตรวจสอบให้แน่ใจว่าได้กำหนดค่า Redirect URI เดียวกันทั้งในหน้าการตั้งค่านี้และในคอนโซลผู้พัฒนาที่เกี่ยวข้องของแต่ละผู้ให้บริการระบุตัวตน ข้อมูลลับจะถูกเข้ารหัสเมื่อไม่มีการใช้งาน"
-    }
+    },
+    "hardcover_tracking": "เปิดใช้งานการสคร็อบเบิลลิง Hardcover",
+    "hardcover_tracking_desc": "อนุญาตให้ผู้ใช้เชื่อมต่อ Hardcover และซิงค์ความคืบหน้าการอ่าน ต้องมีแอปนักพัฒนา Hardcover (Client ID และ secret ของ OAuth)",
+    "hardcover_client_id": "Client ID",
+    "hardcover_client_secret": "Client Secret",
+    "hardcover_client_secret_placeholder": "เว้นว่างเพื่อเก็บ secret ปัจจุบัน",
+    "hardcover_dev_link": "สร้างแอปนักพัฒนา Hardcover ↗"
   },
   "email": {
     "invalid": "กรุณากรอกที่อยู่อีเมลให้ถูกต้อง",
@@ -935,7 +956,12 @@
     "select_btn": "เลือก",
     "no_search_results": "ไม่พบรายการที่ตรงกันใน AniList",
     "selected_label": "เลือกแล้ว",
-    "connect_new_token": "ใช้โทเค็นใหม่"
+    "connect_new_token": "ใช้โทเค็นใหม่",
+    "hardcover_title": "การสคร็อบเบิลลิง Hardcover",
+    "hardcover_subtitle": "บันทึกความคืบหน้าการอ่านของคุณไปยังโปรไฟล์ Hardcover โดยอัตโนมัติ",
+    "hardcover_connect_btn": "เชื่อมต่อ Hardcover",
+    "hardcover_connect_failed": "ไม่สามารถเริ่มการเชื่อมต่อ Hardcover",
+    "hardcover_dev_link": "ลงทะเบียนแอปนักพัฒนา ↗"
   },
   "opds": {
     "title": "แคตตาล็อก OPDS 2.0 และการซิงก์ความคืบหน้าการอ่าน",
@@ -1178,5 +1204,19 @@
     "load_failed": "โหลดพอดแคสต์ไม่สำเร็จ",
     "update_failed": "อัปเดตไม่สำเร็จ",
     "actions": "การดำเนินการ"
+  },
+  "highlights_export": {
+    "title": "ส่งออกไฮไลต์",
+    "subtitle": "ส่งไฮไลต์ของหนังสือเล่มนี้ไปยัง Readwise หรือดาวน์โหลดเป็น Markdown สำหรับ Obsidian / Logseq",
+    "token_label": "โทเค็น API ของ Readwise",
+    "token_placeholder": "วางโทเค็น Readwise ของคุณ",
+    "connect_btn": "เชื่อมต่อ",
+    "connect_failed": "เชื่อมต่อ Readwise ไม่สำเร็จ",
+    "connected": "เชื่อมต่อ Readwise แล้ว",
+    "enter_token": "ป้อนโทเค็น API ของ Readwise",
+    "export_btn": "ส่งออกไปยัง Readwise",
+    "export_failed": "ส่งออกไฮไลต์ไม่สำเร็จ",
+    "exported": "ส่งออก {{count}} ไฮไลต์ไปยัง Readwise",
+    "markdown_btn": "ดาวน์โหลด .md"
   }
 }

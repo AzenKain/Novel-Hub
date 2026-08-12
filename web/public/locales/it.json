@@ -177,6 +177,7 @@
         "prune_audit_logs": "Elimina i log di audit",
         "prune_finished_jobs": "Elimina i job terminati",
         "merge_audio": "Unisci file audio",
+        "convert_book": "Converti file del libro",
         "podcast_refresh": "Aggiorna podcast",
         "podcast_download": "Scarica episodio podcast"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "Caricati {{count}} libri su {{total}}. Elaborazione dei metadati...",
     "upload_done": "Caricati {{count}} libri. Elaborazione dei metadati...",
     "upload_all_failed": "Non è stato possibile caricare alcun file: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Unire \"{{source}}\" in \"{{target}}\"? Tutti i capitoli, i file e i dati di lettura del primo libro verranno trasferiti nel secondo, poi il primo verrà eliminato.",
+    "confirm_merge_title": "Unisci libri",
+    "merge_books_success": "Libri uniti",
+    "confirm_keep_one_msg": "Sei sicuro di voler conservare questa copia e cancellare {{count}} copia/e duplicata/e?"
   },
   "auth": {
     "login_to_account": "Accedi al tuo account",
@@ -537,7 +542,13 @@
     "random_books_hint": "Aggiorna lo scaffale quando vuoi qualcosa di inaspettato.",
     "shuffle_books": "Mescola",
     "top_books": "Libri più letti",
-    "top_books_hint": "I libri più letti della tua libreria."
+    "top_books_hint": "I libri più letti della tua libreria.",
+    "merge_into": "unisci in",
+    "merge_into_source": "Unisci nel primo",
+    "merge_into_target": "Unisci nel secondo",
+    "no_potential_matches": "Nessuna corrispondenza potenziale trovata.",
+    "potential_matches": "Corrispondenze potenziali",
+    "potential_matches_desc": "Stesso titolo e autore con piccole differenze — unisci i duplicati in un unico libro."
   },
   "user": {
     "profile": "Profilo",
@@ -722,7 +733,11 @@
     "no_description": "Nessuna descrizione disponibile.",
     "next_in_series": "Prossimo della serie",
     "in_same_series": "Libri di questa serie",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Converti in…",
+    "convert_queued": "Conversione in coda (operazione {{job_id}})",
+    "convert_done": "Conversione completata",
+    "convert_failed": "Conversione non riuscita"
   },
   "settings": {
     "title": "Impostazioni",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Avviso di configurazione: Assicurarsi di configurare lo stesso URI di reindirizzamento sia in questa pagina delle impostazioni che nella console sviluppatore corrispondente di ciascun provider di identità. I segreti sono crittografati a riposo."
-    }
+    },
+    "hardcover_tracking": "Abilita lo scrobbling Hardcover",
+    "hardcover_tracking_desc": "Consente agli utenti di collegare Hardcover e sincronizzare i progressi di lettura. Richiede un'app per sviluppatori Hardcover (ID client e segreto OAuth).",
+    "hardcover_client_id": "ID client",
+    "hardcover_client_secret": "Segreto client",
+    "hardcover_client_secret_placeholder": "Lascia vuoto per mantenere il segreto attuale",
+    "hardcover_dev_link": "Crea un'app per sviluppatori Hardcover ↗"
   },
   "email": {
     "invalid": "Inserisci un indirizzo email valido",
@@ -935,7 +956,12 @@
     "select_btn": "Seleziona",
     "no_search_results": "Nessuna corrispondenza AniList trovata",
     "selected_label": "Selezionato",
-    "connect_new_token": "Usa un nuovo token"
+    "connect_new_token": "Usa un nuovo token",
+    "hardcover_title": "Scrobbling Hardcover",
+    "hardcover_subtitle": "Registra automaticamente i tuoi progressi di lettura sul tuo profilo Hardcover.",
+    "hardcover_connect_btn": "Connetti Hardcover",
+    "hardcover_connect_failed": "Impossibile avviare la connessione a Hardcover",
+    "hardcover_dev_link": "Registra un'app per sviluppatori ↗"
   },
   "opds": {
     "title": "Catalogo OPDS 2.0 e sincronizzazione dei progressi di lettura",
@@ -1178,5 +1204,19 @@
     "load_failed": "Impossibile caricare i podcast",
     "update_failed": "Aggiornamento fallito",
     "actions": "Azioni"
+  },
+  "highlights_export": {
+    "title": "Esporta evidenziazioni",
+    "subtitle": "Invia le evidenziazioni di questo libro a Readwise o scaricale come Markdown per Obsidian / Logseq.",
+    "token_label": "Token API Readwise",
+    "token_placeholder": "Incolla il tuo token Readwise",
+    "connect_btn": "Connetti",
+    "connect_failed": "Connessione a Readwise fallita",
+    "connected": "Readwise connesso",
+    "enter_token": "Inserisci il tuo token API Readwise",
+    "export_btn": "Esporta su Readwise",
+    "export_failed": "Esportazione evidenziazioni fallita",
+    "exported": "{{count}} evidenziazioni esportate su Readwise",
+    "markdown_btn": "Scarica .md"
   }
 }

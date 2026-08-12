@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"html"
 	"net/http"
 	"net/url"
@@ -9,6 +10,8 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+
+	nethtml "golang.org/x/net/html"
 )
 
 func fileChapterIndex(fileID string, chapterID string) (int, bool) {
@@ -32,41 +35,55 @@ func rewriteReaderHTML(content string, bookID string, contentPath string, fileID
 		baseDir = ""
 	}
 
-	rewritten := readerLinkAttrRegex.ReplaceAllStringFunc(content, func(match string) string {
-		matches := readerLinkAttrRegex.FindStringSubmatch(match)
-		if len(matches) < 3 {
-			return match
+	doc, err := nethtml.Parse(strings.NewReader(content))
+	if err != nil {
+		return content
+	}
+
+	var walk func(*nethtml.Node)
+	walk = func(n *nethtml.Node) {
+		if n.Type == nethtml.ElementNode {
+			for i, attr := range n.Attr {
+				if attr.Key == "src" || attr.Key == "href" || attr.Key == "xlink:href" || (attr.Namespace == "xlink" && attr.Key == "href") {
+					value := strings.TrimSpace(attr.Val)
+					lower := strings.ToLower(value)
+					if strings.HasPrefix(value, "#") {
+						continue
+					}
+					if strings.HasPrefix(lower, "http:") || strings.HasPrefix(lower, "https:") || strings.HasPrefix(lower, "data:") || strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "vbscript:") || strings.HasPrefix(value, "//") {
+						n.Attr[i].Val = "#"
+						continue
+					}
+
+					resolved := filepath.ToSlash(filepath.Join(baseDir, value))
+					assetURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/asset/` + escapeAssetPath(resolved)
+					if fileID != "" {
+						assetURL += `?file_id=` + url.QueryEscape(fileID)
+					}
+					n.Attr[i].Val = assetURL
+				}
+			}
+
+			if n.Data == "style" {
+				if n.FirstChild != nil && n.FirstChild.Type == nethtml.TextNode {
+					n.FirstChild.Data = scopeReaderCSS(n.FirstChild.Data)
+				}
+			}
 		}
 
-		attr := matches[1]
-		value := strings.TrimSpace(matches[2])
-		lower := strings.ToLower(value)
-		if strings.HasPrefix(value, "#") {
-			return match
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
 		}
-		if strings.HasPrefix(lower, "http:") || strings.HasPrefix(lower, "https:") || strings.HasPrefix(lower, "data:") || strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "vbscript:") || strings.HasPrefix(value, "//") {
-			return attr + `="#"`
-		}
+	}
 
-		resolved := filepath.ToSlash(filepath.Join(baseDir, value))
-		assetURL := `/api/v1/reader/` + url.PathEscape(bookID) + `/asset/` + escapeAssetPath(resolved)
-		if fileID != "" {
-			assetURL += `?file_id=` + url.QueryEscape(fileID)
-		}
-		return attr + `="` + assetURL + `"`
-	})
+	walk(doc)
 
-	// Scope inline CSS inside <style> tags to avoid bleeding layout styles into the global document
-	rewritten = styleBlockRegex.ReplaceAllStringFunc(rewritten, func(match string) string {
-		submatches := styleBlockRegex.FindStringSubmatch(match)
-		if len(submatches) < 4 {
-			return match
-		}
-		rewrittenCSS := scopeReaderCSS(submatches[2])
-		return submatches[1] + rewrittenCSS + submatches[3]
-	})
+	var buf bytes.Buffer
+	if err := nethtml.Render(&buf, doc); err != nil {
+		return content
+	}
 
-	return rewritten
+	return buf.String()
 }
 
 func escapeAssetPath(assetPath string) string {

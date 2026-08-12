@@ -177,6 +177,7 @@
         "prune_audit_logs": "清理审计日志",
         "prune_finished_jobs": "清理已完成任务",
         "merge_audio": "合并音频文件",
+        "convert_book": "转换图书文件",
         "podcast_refresh": "刷新播客",
         "podcast_download": "下载播客剧集"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "已上传 {{count}}/{{total}} 本书。正在处理元数据...",
     "upload_done": "已上传 {{count}} 本书。正在处理元数据...",
     "upload_all_failed": "没有文件上传成功：{{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "将\"{{source}}\"合并到\"{{target}}\"?第一本书的所有章节、文件和阅读数据将并入第二本，然后删除第一本。",
+    "confirm_merge_title": "合并书籍",
+    "merge_books_success": "书籍已合并",
+    "confirm_keep_one_msg": "您确定要保留此副本并删除 {{count}} 个重复副本吗？"
   },
   "auth": {
     "login_to_account": "登录到您的账户",
@@ -537,7 +542,13 @@
     "random_books_hint": "当你想看到一些意想不到的书籍时，请刷新此栏。",
     "shuffle_books": "洗牌",
     "top_books": "热门书籍",
-    "top_books_hint": "库中阅读量最高的书籍。"
+    "top_books_hint": "库中阅读量最高的书籍。",
+    "merge_into": "合并到",
+    "merge_into_source": "合并到第一本",
+    "merge_into_target": "合并到第二本",
+    "no_potential_matches": "未找到潜在匹配。",
+    "potential_matches": "潜在匹配",
+    "potential_matches_desc": "标题和作者相同但有细微差异的书籍 — 将重复项合并为一本书。"
   },
   "user": {
     "profile": "资料",
@@ -722,7 +733,11 @@
     "no_description": "暂无简介。",
     "next_in_series": "系列下一本",
     "in_same_series": "同系列图书",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "转换为…",
+    "convert_queued": "转换已排队（任务 {{job_id}}）",
+    "convert_done": "转换完成",
+    "convert_failed": "转换失败"
   },
   "settings": {
     "title": "设置",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "配置说明：请确保在此设置页面以及每个身份提供商的对应开发者控制台中配置相同的重定向 URI。机密在存储时已加密。"
-    }
+    },
+    "hardcover_tracking": "启用 Hardcover 记录",
+    "hardcover_tracking_desc": "允许用户连接 Hardcover 并同步阅读进度。需要 Hardcover 开发者应用（OAuth 客户端 ID 和密钥）。",
+    "hardcover_client_id": "客户端 ID",
+    "hardcover_client_secret": "客户端密钥",
+    "hardcover_client_secret_placeholder": "留空则保留当前密钥",
+    "hardcover_dev_link": "创建 Hardcover 开发者应用 ↗"
   },
   "email": {
     "invalid": "请输入有效的邮箱地址",
@@ -935,7 +956,12 @@
     "select_btn": "选择",
     "no_search_results": "未找到匹配的 AniList 作品",
     "selected_label": "已选择",
-    "connect_new_token": "使用新令牌"
+    "connect_new_token": "使用新令牌",
+    "hardcover_title": "Hardcover 记录",
+    "hardcover_subtitle": "自动将阅读进度记录到你的 Hardcover 个人资料。",
+    "hardcover_connect_btn": "连接 Hardcover",
+    "hardcover_connect_failed": "无法开始连接 Hardcover",
+    "hardcover_dev_link": "注册开发者应用 ↗"
   },
   "opds": {
     "title": "OPDS 2.0 目录与双向阅读进度同步",
@@ -1178,5 +1204,19 @@
     "load_failed": "加载播客失败",
     "update_failed": "更新失败",
     "actions": "操作"
+  },
+  "highlights_export": {
+    "title": "导出划线",
+    "subtitle": "将本书的划线发送到 Readwise，或下载为 Markdown 供 Obsidian / Logseq 使用。",
+    "token_label": "Readwise API 令牌",
+    "token_placeholder": "粘贴您的 Readwise 令牌",
+    "connect_btn": "连接",
+    "connect_failed": "连接 Readwise 失败",
+    "connected": "已连接 Readwise",
+    "enter_token": "请输入您的 Readwise API 令牌",
+    "export_btn": "导出到 Readwise",
+    "export_failed": "导出划线失败",
+    "exported": "已将 {{count}} 条划线导出到 Readwise",
+    "markdown_btn": "下载 .md"
   }
 }

@@ -95,12 +95,18 @@ type BookFTSRepository interface {
 	WithTx(tx *sql.Tx) BookDBRepository
 }
 
+type BookMergeRepository interface {
+	ListAllTitleAuthor(ctx context.Context) ([]*models.BookTitleAuthorEntity, error)
+	MergeBookData(ctx context.Context, sourceID, targetID string) error
+}
+
 type BookDBRepository interface {
 	BookCatalogRepository
 	BookFileRecordRepository
 	ChapterRepository
 	BookMetadataRepository
 	BookFTSRepository
+	BookMergeRepository
 	WithTx(tx *sql.Tx) BookDBRepository
 	FlushCache(ctx context.Context)
 }

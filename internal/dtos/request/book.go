@@ -52,3 +52,13 @@ type UpdateBookAgeRatingDto struct {
 	ContentWarningIDs []string `json:"content_warning_ids,omitempty" validate:"omitempty,dive"`
 }
 
+type MergeBooksDto struct {
+	SourceID string `json:"source_id" validate:"required"`
+	TargetID string `json:"target_id" validate:"required"`
+}
+
+type ConvertBookDto struct {
+	FileID       string `json:"file_id" validate:"required"`
+	TargetFormat string `json:"target_format" validate:"required"`
+}
+

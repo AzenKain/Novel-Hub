@@ -338,6 +338,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return audiobookService.ExecuteMergeAudioJob(ctx, payload)
 	})
 
+	jobQueue.RegisterHandler("convert_book", func(ctx context.Context, jobID string, payload string) error {
+		return bookService.ExecuteConvertBookJob(ctx, payload)
+	})
+
 	jobQueue.RegisterHandler("podcast_refresh", func(ctx context.Context, jobID string, payload string) error {
 		return podcastService.ExecutePodcastRefreshJob(ctx, payload)
 	})
@@ -483,6 +487,14 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	trackerService := services.NewTrackerService(trackerRepo)
 	trackerController := controllers.NewTrackerController(trackerService, featureService)
 	routes.TrackerRoutes(v1, trackerController, userRepo, permissionCache, settingsService)
+
+	integrationsService := services.NewIntegrationsService(highlightRepo, trackerRepo, bookRepo, permissionCache)
+	integrationsController := controllers.NewIntegrationsController(integrationsService)
+	routes.IntegrationRoutes(v1, integrationsController, userRepo, bookRepo, permissionCache)
+
+	scrobbleService := services.NewScrobbleService(trackerRepo, bookRepo, settingsService, ramCache, permissionCache)
+	scrobbleController := controllers.NewScrobbleController(scrobbleService)
+	routes.ScrobbleRoutes(v1, scrobbleController, userRepo, permissionCache)
 
 	serveEmbeddedFrontend(s.App)
 	routes.NotFoundRoute(s.App)

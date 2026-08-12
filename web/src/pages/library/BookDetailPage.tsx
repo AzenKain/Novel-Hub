@@ -35,7 +35,7 @@ import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
-import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, MergeAudiobookModal } from "@/components/book-detail";
+import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, MergeAudiobookModal, HighlightsExportCard } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
@@ -53,7 +53,8 @@ import {
   useOfflineBook,
   useBookSeriesQuery,
   useReadListsQuery,
-  useAddReadListBookMutation
+  useAddReadListBookMutation,
+  useConvertBookMutation
 } from "@/hooks";
 
 export const BookDetailPage: React.FC = () => {
@@ -67,6 +68,7 @@ export const BookDetailPage: React.FC = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
@@ -97,6 +99,7 @@ export const BookDetailPage: React.FC = () => {
   const readLists = readListsQuery.data?.pages.flatMap((page) => page.data || []) ?? [];
   const addReadListBookMutation = useAddReadListBookMutation();
   const removeBookFromColMutation = useRemoveBookFromCollectionMutation(book_id || "");
+  const convertMutation = useConvertBookMutation();
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
   const tags = toStringList(meta.subject);
@@ -114,7 +117,10 @@ export const BookDetailPage: React.FC = () => {
   const allowReview = hasPermission(user, "book.review.create", book?.library_id, guestPerms);
   const allowRead = hasPermission(user, "book.read", book?.library_id, guestPerms);
   const allowMerge = hasPermission(user, "book.upload", book?.library_id, guestPerms);
+  const allowConvert = hasPermission(user, "book.upload", book?.library_id, guestPerms);
   const allowStats = hasPermission(user, "user.stats.read", book?.library_id, guestPerms);
+
+  const convertTargets = ["epub", "fb2", "txt", "docx", "cbz"];
 
   const showReads = allowStats && allowRead;
   const showDownloads = allowStats && allowDownload;
@@ -588,6 +594,57 @@ export const BookDetailPage: React.FC = () => {
                         {t("audiobook.merge", "Merge into audiobook")}
                       </button>
                     )}
+
+                    {allowConvert && (
+                      <div className="dropdown dropdown-end shrink-0">
+                        <button
+                          tabIndex={0}
+                          onClick={() => setConvertOpen((v) => !v)}
+                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                          disabled={!book.files?.length || convertMutation.isPending}
+                        >
+                          {convertMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                          ) : (
+                            <FileText className="w-4 h-4 shrink-0" />
+                          )}
+                          {t("book.convert", "Convert to…")}
+                        </button>
+                        {convertOpen && (
+                          <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-50 w-44 shadow-lg border border-base-300 p-1">
+                            {convertTargets.map((target) => (
+                              <li key={target}>
+                                <button
+                                  className="text-sm py-2"
+                                  onClick={() => {
+                                    setConvertOpen(false);
+                                    const fileId = selectedFileId || book.files?.[0]?.id || "";
+                                    convertMutation.mutate(
+                                      { id: book.id, payload: { file_id: fileId, target_format: target } },
+                                      {
+                                        onSuccess: (res) => {
+                                          const jobId = res.data?.job_id;
+                                          toast.success(
+                                            jobId
+                                              ? t("book.convert_queued", "Conversion queued (job {{job_id}})", { job_id: jobId })
+                                              : t("book.convert_done", "Conversion finished")
+                                          );
+                                        },
+                                        onError: (err) => {
+                                          toast.error(err instanceof Error ? err.message : t("book.convert_failed", "Conversion failed"));
+                                        },
+                                      }
+                                    );
+                                  }}
+                                >
+                                  {target.toUpperCase()}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Reading Progress Subtitle Line (Dedicated Pill Bar) */}
@@ -739,6 +796,11 @@ export const BookDetailPage: React.FC = () => {
             {/* Reviews Section */}
             <div className="pt-2 border-t border-base-200 mt-2">
               <TrackerMapCard book_id={book.id!} title={book.title} />
+            </div>
+
+            {/* Highlights export Section */}
+            <div className="pt-2 border-t border-base-200 mt-2">
+              <HighlightsExportCard book_id={book.id!} />
             </div>
 
             {/* Audiobook chapters Section */}

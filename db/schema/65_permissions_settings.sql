@@ -161,7 +161,12 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('oauth.oidc.client_id', '""'),
     ('oauth.oidc.client_secret', '""'),
     ('oauth.oidc.redirect_uri', '""'),
-    ('oauth.oidc.scopes', '["openid", "profile", "email"]')
+    ('oauth.oidc.scopes', '["openid", "profile", "email"]'),
+
+    -- Hardcover scrobbling settings
+    ('hardcover.enabled', 'false'),
+    ('hardcover.client_id', '""'),
+    ('hardcover.client_secret', '""')
 ON CONFLICT(key) DO NOTHING;
 
 INSERT INTO app_settings (key, value_json) VALUES

@@ -100,7 +100,7 @@ func (ctrl *TrackerController) SearchAniList(c fiber.Ctx) error {
 
 	return c.JSON(response.CommonResponse{
 		Status: true,
-		Data:   fiber.Map{"results": results},
+		Data:   response.TrackerSearchListResponse{Results: results},
 	})
 }
 

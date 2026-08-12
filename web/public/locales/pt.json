@@ -177,6 +177,7 @@
         "prune_audit_logs": "Limpar registos de auditoria",
         "prune_finished_jobs": "Limpar tarefas concluídas",
         "merge_audio": "Mesclar arquivos de áudio",
+        "convert_book": "Converter arquivo de livro",
         "podcast_refresh": "Atualizar podcasts",
         "podcast_download": "Baixar episódio de podcast"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{count}} de {{total}} livros carregados. A processar metadados...",
     "upload_done": "{{count}} livros carregados. A processar metadados...",
     "upload_all_failed": "Não foi possível carregar nenhum ficheiro: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Fundir \"{{source}}\" em \"{{target}}\"? Todos os capítulos, ficheiros e dados de leitura do primeiro livro serão incorporados no segundo e depois o primeiro é eliminado.",
+    "confirm_merge_title": "Fundir livros",
+    "merge_books_success": "Livros fundidos",
+    "confirm_keep_one_msg": "Tem certeza de que deseja manter esta cópia e excluir {{count}} cópia(s) duplicada(s)?"
   },
   "auth": {
     "login_to_account": "Iniciar sessão na sua conta",
@@ -537,7 +542,13 @@
     "random_books_hint": "Atualize a prateleira quando quiser algo inesperado.",
     "shuffle_books": "Baralhar",
     "top_books": "Melhores livros",
-    "top_books_hint": "Os livros mais lidos da sua biblioteca."
+    "top_books_hint": "Os livros mais lidos da sua biblioteca.",
+    "merge_into": "fundir em",
+    "merge_into_source": "Fundir no primeiro",
+    "merge_into_target": "Fundir no segundo",
+    "no_potential_matches": "Nenhuma correspondência potencial encontrada.",
+    "potential_matches": "Correspondências potenciais",
+    "potential_matches_desc": "Mesmo título e autor com diferenças menores — funda os duplicados num único livro."
   },
   "user": {
     "profile": "Perfil",
@@ -722,7 +733,11 @@
     "no_description": "Não há descrição disponível.",
     "next_in_series": "Seguinte na série",
     "in_same_series": "Livros desta série",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Converter para…",
+    "convert_queued": "Conversão na fila (trabalho {{job_id}})",
+    "convert_done": "Conversão concluída",
+    "convert_failed": "Falha na conversão"
   },
   "settings": {
     "title": "Definições",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Aviso de configuração: Certifique-se de configurar o mesmo URI de redirecionamento nesta página de configurações e na consola de programador correspondente de cada fornecedor de identidade. Os segredos são encriptados em repouso."
-    }
+    },
+    "hardcover_tracking": "Ativar registro no Hardcover",
+    "hardcover_tracking_desc": "Permite que os usuários conectem o Hardcover e sincronizem o progresso de leitura. Exige um aplicativo de desenvolvedor Hardcover (ID do cliente e segredo OAuth).",
+    "hardcover_client_id": "ID do cliente",
+    "hardcover_client_secret": "Segredo do cliente",
+    "hardcover_client_secret_placeholder": "Deixe em branco para manter o segredo atual",
+    "hardcover_dev_link": "Criar um aplicativo de desenvolvedor Hardcover ↗"
   },
   "email": {
     "invalid": "Introduza um endereço de e-mail válido",
@@ -935,7 +956,12 @@
     "select_btn": "Selecionar",
     "no_search_results": "Nenhuma correspondência encontrada no AniList",
     "selected_label": "Selecionado",
-    "connect_new_token": "Usar um novo token"
+    "connect_new_token": "Usar um novo token",
+    "hardcover_title": "Registro no Hardcover",
+    "hardcover_subtitle": "Registra automaticamente seu progresso de leitura no seu perfil do Hardcover.",
+    "hardcover_connect_btn": "Conectar Hardcover",
+    "hardcover_connect_failed": "Não foi possível iniciar a conexão com o Hardcover",
+    "hardcover_dev_link": "Registrar um aplicativo de desenvolvedor ↗"
   },
   "opds": {
     "title": "Catálogo OPDS 2.0 e sincronização do progresso",
@@ -1178,5 +1204,19 @@
     "load_failed": "Falha ao carregar podcasts",
     "update_failed": "Falha ao atualizar",
     "actions": "Ações"
+  },
+  "highlights_export": {
+    "title": "Exportar destaques",
+    "subtitle": "Envie os destaques deste livro para o Readwise ou baixe-os como Markdown para Obsidian / Logseq.",
+    "token_label": "Token da API do Readwise",
+    "token_placeholder": "Cole seu token do Readwise",
+    "connect_btn": "Conectar",
+    "connect_failed": "Falha ao conectar ao Readwise",
+    "connected": "Readwise conectado",
+    "enter_token": "Digite seu token da API do Readwise",
+    "export_btn": "Exportar para o Readwise",
+    "export_failed": "Falha ao exportar destaques",
+    "exported": "{{count}} destaques exportados para o Readwise",
+    "markdown_btn": "Baixar .md"
   }
 }

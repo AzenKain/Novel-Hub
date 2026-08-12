@@ -177,6 +177,7 @@
         "prune_audit_logs": "Auditprotokolle bereinigen",
         "prune_finished_jobs": "Abgeschlossene Aufgaben bereinigen",
         "merge_audio": "Audiodateien zusammenführen",
+        "convert_book": "Buchdatei konvertieren",
         "podcast_refresh": "Podcasts aktualisieren",
         "podcast_download": "Podcast-Episode herunterladen"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "{{count}} von {{total}} Büchern hochgeladen. Metadaten werden verarbeitet ...",
     "upload_done": "{{count}} Bücher hochgeladen. Metadaten werden verarbeitet ...",
     "upload_all_failed": "Es konnte keine Datei hochgeladen werden: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "„{{source}}\" in „{{target}}\" zusammenführen? Alle Kapitel, Dateien und Lesedaten des ersten Buchs werden in das zweite übernommen, danach wird das erste gelöscht.",
+    "confirm_merge_title": "Bücher zusammenführen",
+    "merge_books_success": "Bücher zusammengeführt",
+    "confirm_keep_one_msg": "Sind Sie sicher, dass Sie diese Kopie behalten und {{count}} doppelte Kopie(n) löschen möchten?"
   },
   "auth": {
     "login_to_account": "Bei deinem Konto anmelden",
@@ -537,7 +542,13 @@
     "random_books_hint": "Aktualisiere das Regal, wenn du etwas Unerwartetes suchst.",
     "shuffle_books": "Mischen",
     "top_books": "Top-Bücher",
-    "top_books_hint": "Die meistgelesenen Bücher deiner Bibliothek."
+    "top_books_hint": "Die meistgelesenen Bücher deiner Bibliothek.",
+    "merge_into": "zusammenführen in",
+    "merge_into_source": "Ins erste zusammenführen",
+    "merge_into_target": "Ins zweite zusammenführen",
+    "no_potential_matches": "Keine möglichen Übereinstimmungen gefunden.",
+    "potential_matches": "Mögliche Übereinstimmungen",
+    "potential_matches_desc": "Gleicher Titel und Autor mit kleineren Unterschieden — führe die Duplikate zu einem Buch zusammen."
   },
   "user": {
     "profile": "Profil",
@@ -722,7 +733,11 @@
     "no_description": "Keine Beschreibung verfügbar.",
     "next_in_series": "Nächstes in der Reihe",
     "in_same_series": "Bücher dieser Reihe",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Konvertieren zu…",
+    "convert_queued": "Konvertierung in Warteschlange (Job {{job_id}})",
+    "convert_done": "Konvertierung abgeschlossen",
+    "convert_failed": "Konvertierung fehlgeschlagen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Konfigurationshinweis: Stellen Sie sicher, dass Sie dieselbe Redirect-URI sowohl auf dieser Einstellungsseite als auch in der entsprechenden Entwicklerkonsole des jeweiligen Identitätsanbieters konfigurieren. Geheimnisse werden im Ruhezustand verschlüsselt."
-    }
+    },
+    "hardcover_tracking": "Hardcover-Scrobbling aktivieren",
+    "hardcover_tracking_desc": "Ermöglicht Benutzern, sich mit Hardcover zu verbinden und den Lesefortschritt zu synchronisieren. Erfordert eine Hardcover-Entwickler-App (OAuth-Client-ID und -Geheimnis).",
+    "hardcover_client_id": "Client-ID",
+    "hardcover_client_secret": "Client-Geheimnis",
+    "hardcover_client_secret_placeholder": "Leer lassen, um das aktuelle Geheimnis zu behalten",
+    "hardcover_dev_link": "Hardcover-Entwickler-App erstellen ↗"
   },
   "email": {
     "invalid": "Bitte gib eine gültige E-Mail-Adresse ein",
@@ -935,7 +956,12 @@
     "select_btn": "Auswählen",
     "no_search_results": "Keine AniList-Übereinstimmungen gefunden",
     "selected_label": "Ausgewählt",
-    "connect_new_token": "Neues Token verwenden"
+    "connect_new_token": "Neues Token verwenden",
+    "hardcover_title": "Hardcover-Scrobbling",
+    "hardcover_subtitle": "Zeichnet deinen Lesefortschritt automatisch in deinem Hardcover-Profil auf.",
+    "hardcover_connect_btn": "Mit Hardcover verbinden",
+    "hardcover_connect_failed": "Verbindung zu Hardcover konnte nicht gestartet werden",
+    "hardcover_dev_link": "Entwickler-App registrieren ↗"
   },
   "opds": {
     "title": "OPDS-2.0-Katalog & Synchronisierung des Lesefortschritts",
@@ -1178,5 +1204,19 @@
     "load_failed": "Podcasts konnten nicht geladen werden",
     "update_failed": "Aktualisierung fehlgeschlagen",
     "actions": "Aktionen"
+  },
+  "highlights_export": {
+    "title": "Markierungen exportieren",
+    "subtitle": "Markierungen dieses Buchs an Readwise senden oder als Markdown für Obsidian / Logseq herunterladen.",
+    "token_label": "Readwise-API-Token",
+    "token_placeholder": "Readwise-Token einfügen",
+    "connect_btn": "Verbinden",
+    "connect_failed": "Verbindung zu Readwise fehlgeschlagen",
+    "connected": "Readwise verbunden",
+    "enter_token": "Readwise-API-Token eingeben",
+    "export_btn": "Nach Readwise exportieren",
+    "export_failed": "Export fehlgeschlagen",
+    "exported": "{{count}} Markierungen nach Readwise exportiert",
+    "markdown_btn": ".md herunterladen"
   }
 }

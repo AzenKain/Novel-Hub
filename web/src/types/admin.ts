@@ -175,6 +175,12 @@ export interface OAuthSettingsAdmin {
   oidc: OAuthProviderAdmin;
 }
 
+export interface HardcoverSettingsAdmin {
+  enabled: boolean;
+  client_id: string;
+  client_secret_set: boolean;
+}
+
 export interface AdminSettings extends Omit<PublicSettings, 'oauth'> {
   limits: RuntimeLimits;
   bounds: RuntimeLimitBounds;
@@ -182,6 +188,7 @@ export interface AdminSettings extends Omit<PublicSettings, 'oauth'> {
   server_url?: string;
   proxy_auth: ProxyAuthSettings;
   oauth?: OAuthSettingsAdmin;
+  hardcover?: HardcoverSettingsAdmin;
 }
 
 export interface PublicSettings {
@@ -196,6 +203,7 @@ export interface PublicSettings {
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
   enable_anilist_tracking?: boolean;
+  enable_hardcover_scrobbling?: boolean;
   enable_auto_enrich?: boolean;
   enable_webp_cover?: boolean;
   require_email_verify?: boolean;

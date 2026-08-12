@@ -40,11 +40,11 @@ func auditDB(tb testing.TB) *sql.DB {
 	return db
 }
 
-func auditBookService(tb testing.TB, db *sql.DB, dataDir string, reg *bookparser.Registry) (BookService, repositories.BookDBRepository) {
+func auditBookService(tb testing.TB, db *sql.DB, dataDir string, reg bookparser.Registry) (BookService, repositories.BookDBRepository) {
 	return auditBookServiceCache(tb, db, dataDir, reg, cache.NewRamCache())
 }
 
-func auditBookServiceCache(tb testing.TB, db *sql.DB, dataDir string, reg *bookparser.Registry, ram cache.Cache) (BookService, repositories.BookDBRepository) {
+func auditBookServiceCache(tb testing.TB, db *sql.DB, dataDir string, reg bookparser.Registry, ram cache.Cache) (BookService, repositories.BookDBRepository) {
 	tb.Helper()
 	bookRepo := repositories.NewBookDBRepository(db, ram)
 	diskRepo, err := repositories.NewBookFileRepository(dataDir)

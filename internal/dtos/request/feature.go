@@ -94,6 +94,15 @@ type UpdateHighlightNoteDto struct {
 	Color string  `json:"color" validate:"required"`
 }
 
+type ExportHighlightsDto struct {
+	BookID string `json:"book_id" validate:"required"`
+}
+
+type SyncHardcoverDto struct {
+	BookID   string `json:"book_id" validate:"required"`
+	Progress int    `json:"progress" validate:"gte=0"`
+}
+
 type RecordReadingSessionDto struct {
 	BookID      string `json:"book_id" validate:"required,uuid"`
 	Duration    int64  `json:"duration" validate:"required,min=1"`

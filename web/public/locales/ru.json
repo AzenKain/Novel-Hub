@@ -177,6 +177,7 @@
         "prune_audit_logs": "Очистить журналы аудита",
         "prune_finished_jobs": "Очистить завершённые задачи",
         "merge_audio": "Объединить аудиофайлы",
+        "convert_book": "Конвертировать файл книги",
         "podcast_refresh": "Обновить подкасты",
         "podcast_download": "Скачать выпуск подкаста"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "Загружено {{count}} из {{total}} книг. Обработка метаданных...",
     "upload_done": "Загружено книг: {{count}}. Обработка метаданных...",
     "upload_all_failed": "Не удалось загрузить ни одного файла: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Объединить «{{source}}» в «{{target}}»? Все главы, файлы и данные о чтении первой книги будут перенесены во вторую, после чего первая будет удалена.",
+    "confirm_merge_title": "Объединение книг",
+    "merge_books_success": "Книги объединены",
+    "confirm_keep_one_msg": "Вы уверены, что хотите сохранить эту копию и удалить {{count}} дубликатов?"
   },
   "auth": {
     "login_to_account": "Вход в вашу учётную запись",
@@ -537,7 +542,13 @@
     "random_books_hint": "Обновите полку, если хотите чего-то неожиданного.",
     "shuffle_books": "Перемешать",
     "top_books": "Лучшие книги",
-    "top_books_hint": "Самые читаемые книги вашей библиотеки."
+    "top_books_hint": "Самые читаемые книги вашей библиотеки.",
+    "merge_into": "объединить в",
+    "merge_into_source": "Объединить в первую",
+    "merge_into_target": "Объединить во вторую",
+    "no_potential_matches": "Возможных совпадений не найдено.",
+    "potential_matches": "Возможные совпадения",
+    "potential_matches_desc": "Одинаковые название и автор с небольшими различиями — объедините дубликаты в одну книгу."
   },
   "user": {
     "profile": "Профиль",
@@ -722,7 +733,11 @@
     "no_description": "Описание недоступно.",
     "next_in_series": "Следующая в серии",
     "in_same_series": "Книги этой серии",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Конвертировать в…",
+    "convert_queued": "Конвертация поставлена в очередь (задача {{job_id}})",
+    "convert_done": "Конвертация завершена",
+    "convert_failed": "Сбой конвертации"
   },
   "settings": {
     "title": "Настройки",
@@ -894,7 +909,13 @@
       "title": "OAuth & OIDC Settings",
       "subtitle": "Configure external identity providers for social and enterprise single sign-on",
       "setup_info": "Уведомление о настройке: обязательно настройте один и тот же URI перенаправления как на этой странице настроек, так и в соответствующей консоли разработчика каждого провайдера удостоверений. Секреты шифруются при хранении."
-    }
+    },
+    "hardcover_tracking": "Включить скробблинг Hardcover",
+    "hardcover_tracking_desc": "Позволяет пользователям подключать Hardcover и синхронизировать прогресс чтения. Требуется приложение разработчика Hardcover (ИД клиента и секрет OAuth).",
+    "hardcover_client_id": "ИД клиента",
+    "hardcover_client_secret": "Секрет клиента",
+    "hardcover_client_secret_placeholder": "Оставьте пустым, чтобы сохранить текущий секрет",
+    "hardcover_dev_link": "Создать приложение разработчика Hardcover ↗"
   },
   "email": {
     "invalid": "Введите действительный адрес электронной почты",
@@ -935,7 +956,12 @@
     "select_btn": "Выбрать",
     "no_search_results": "Совпадений в AniList не найдено",
     "selected_label": "Выбрано",
-    "connect_new_token": "Использовать новый токен"
+    "connect_new_token": "Использовать новый токен",
+    "hardcover_title": "Скробблинг Hardcover",
+    "hardcover_subtitle": "Автоматически записывает прогресс чтения в ваш профиль Hardcover.",
+    "hardcover_connect_btn": "Подключить Hardcover",
+    "hardcover_connect_failed": "Не удалось начать подключение к Hardcover",
+    "hardcover_dev_link": "Зарегистрировать приложение разработчика ↗"
   },
   "opds": {
     "title": "Каталог OPDS 2.0 и синхронизация прогресса",
@@ -1178,5 +1204,19 @@
     "load_failed": "Не удалось загрузить подкасты",
     "update_failed": "Не удалось обновить",
     "actions": "Действия"
+  },
+  "highlights_export": {
+    "title": "Экспорт выделений",
+    "subtitle": "Отправьте выделения этой книги в Readwise или скачайте в Markdown для Obsidian / Logseq.",
+    "token_label": "API-токен Readwise",
+    "token_placeholder": "Вставьте токен Readwise",
+    "connect_btn": "Подключить",
+    "connect_failed": "Не удалось подключиться к Readwise",
+    "connected": "Readwise подключён",
+    "enter_token": "Введите API-токен Readwise",
+    "export_btn": "Экспорт в Readwise",
+    "export_failed": "Не удалось экспортировать выделения",
+    "exported": "Экспортировано выделений в Readwise: {{count}}",
+    "markdown_btn": "Скачать .md"
   }
 }

@@ -81,3 +81,9 @@ func BuildCursorPaginatedResponse(data any, totalRecords int64, limit int, nextC
 		},
 	}
 }
+
+type CursorPaginatedResponse struct {
+	Status     bool    `json:"status"`
+	Data       any     `json:"data"`
+	NextCursor *string `json:"next_cursor,omitempty"`
+}

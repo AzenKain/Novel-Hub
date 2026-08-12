@@ -43,15 +43,12 @@ func (h *ReaderController) GetBootstrap(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	bootstrap, err := h.bookService.GetReaderBootstrap(ctx, bookID, fileDto.FileID)
+	bootstrap, err := h.bookService.GetReaderBootstrapWithAccess(ctx, bookID, fileDto.FileID, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	if !h.bookService.CanReadBook(ctx, bootstrap.Book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
-	}
 
-	return c.JSON(response.CommonResponse{Status: true, Data: bootstrap.ToResponse()})
+	return c.JSON(response.CommonResponse{Status: true, Data: bootstrap})
 }
 
 func (h *ReaderController) GetChapter(c fiber.Ctx) error {
@@ -215,7 +212,7 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	return c.JSON(response.CommonResponse{Status: true, Message: "Cover updated successfully", Data: fiber.Map{"cover_url": coverURLPath}})
+	return c.JSON(response.CommonResponse{Status: true, Message: "Cover updated successfully", Data: response.CoverUpdateResponse{CoverURL: coverURLPath}})
 }
 
 func rawFileContentType(filePath string) string {

@@ -43,13 +43,13 @@ type libraryService struct {
 	libraryRepo repositories.LibraryRepository
 	bookRepo    repositories.BookDBRepository
 	fileRepo    repositories.BookFileRepository
-	parsers     *bookparser.Registry
+	parsers     bookparser.Registry
 	permissions PermissionCache
 	settings    SettingsService
 	jobQueue    *worker.Queue
 }
 
-func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, permissions PermissionCache, settings SettingsService, jobQueue *worker.Queue) LibraryService {
+func NewLibraryService(repo repositories.LibraryRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers bookparser.Registry, permissions PermissionCache, settings SettingsService, jobQueue *worker.Queue) LibraryService {
 	return &libraryService{
 		libraryRepo: repo,
 		bookRepo:    bookRepo,

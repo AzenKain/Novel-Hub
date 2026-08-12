@@ -31,11 +31,11 @@ type maintenanceService struct {
 	bookRepo      repositories.BookDBRepository
 	fileRepo      repositories.BookFileRepository
 	magicCodeRepo repositories.MagicCodeRepository
-	parsers       *bookparser.Registry
+	parsers       bookparser.Registry
 	txManager     database.TxManager
 }
 
-func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, magicCodeRepo repositories.MagicCodeRepository, parsers *bookparser.Registry, txManager database.TxManager) MaintenanceService {
+func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, magicCodeRepo repositories.MagicCodeRepository, parsers bookparser.Registry, txManager database.TxManager) MaintenanceService {
 	return &maintenanceService{
 		bookRepo:      bookRepo,
 		fileRepo:      fileRepo,

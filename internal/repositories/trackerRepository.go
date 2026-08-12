@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
@@ -11,6 +12,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/convert"
 	"novelhub/pkg/crypto"
 	"novelhub/pkg/jsonx"
 )
@@ -19,7 +21,7 @@ type TrackerRepository interface {
 	GetByID(ctx context.Context, id string) (*models.UserTrackerEntity, error)
 	GetUserTracker(ctx context.Context, userID string, provider string) (*models.UserTrackerEntity, error)
 	GetUserTrackersByIDs(ctx context.Context, ids []string) ([]*models.UserTrackerEntity, error)
-	UpsertUserTracker(ctx context.Context, userID string, provider string, accessToken string) (*models.UserTrackerEntity, error)
+	UpsertUserTracker(ctx context.Context, userID string, provider string, accessToken string, refreshToken *string, expiresAt *time.Time) (*models.UserTrackerEntity, error)
 	DeleteUserTracker(ctx context.Context, userID string, provider string) error
 
 	GetMappingByID(ctx context.Context, id string) (*models.BookTrackerMappingEntity, error)
@@ -188,18 +190,28 @@ func (r *trackerRepository) GetUserTracker(ctx context.Context, userID string, p
 	return v.(*models.UserTrackerEntity), nil
 }
 
-func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID string, provider string, accessToken string) (*models.UserTrackerEntity, error) {
+func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID string, provider string, accessToken string, refreshToken *string, expiresAt *time.Time) (*models.UserTrackerEntity, error) {
 	encToken, err := crypto.EncryptAES(accessToken)
 	if err != nil {
 		return nil, err
 	}
+	var encRefreshToken sql.NullString
+	if refreshToken != nil {
+		encrypted, encErr := crypto.EncryptAES(*refreshToken)
+		if encErr != nil {
+			return nil, encErr
+		}
+		encRefreshToken = sql.NullString{String: encrypted, Valid: true}
+	}
 
 	// Consumed only when the upsert inserts; the conflict branch keeps the existing id.
 	res, err := r.q.UpsertUserTracker(ctx, sqlc.UpsertUserTrackerParams{
-		ID:          uuid.Must(uuid.NewV7()).String(),
-		UserID:      userID,
-		Provider:    provider,
-		AccessToken: encToken,
+		ID:           uuid.Must(uuid.NewV7()).String(),
+		UserID:       userID,
+		Provider:     provider,
+		AccessToken:  encToken,
+		RefreshToken: encRefreshToken,
+		ExpiresAt:    convert.TimePtrToNullTime(expiresAt),
 	})
 	if err != nil {
 		return nil, err

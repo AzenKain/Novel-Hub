@@ -45,6 +45,9 @@ export function Settings() {
     inBookSearch, setInBookSearch,
     customFontUpload, setCustomFontUpload,
     anilistTracking, setAnilistTracking,
+    hardcoverEnabled, setHardcoverEnabled,
+    hardcoverClientId, setHardcoverClientId,
+    hardcoverClientSecret, setHardcoverClientSecret,
     autoEnrich, setAutoEnrich,
     webpCover, setWebpCover,
     savingSection, setSavingSection,
@@ -68,6 +71,9 @@ export function Settings() {
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
     customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
     anilistTracking: state.anilistTracking, setAnilistTracking: state.setAnilistTracking,
+    hardcoverEnabled: state.hardcoverEnabled, setHardcoverEnabled: state.setHardcoverEnabled,
+    hardcoverClientId: state.hardcoverClientId, setHardcoverClientId: state.setHardcoverClientId,
+    hardcoverClientSecret: state.hardcoverClientSecret, setHardcoverClientSecret: state.setHardcoverClientSecret,
     autoEnrich: state.autoEnrich, setAutoEnrich: state.setAutoEnrich,
     webpCover: state.webpCover, setWebpCover: state.setWebpCover,
     savingSection: state.savingSection, setSavingSection: state.setSavingSection,
@@ -199,6 +205,9 @@ export function Settings() {
       "reader.enable_in_book_search": inBookSearch,
       "font.enable_custom_font_upload": customFontUpload,
       "tracker.anilist_enabled": anilistTracking,
+      "hardcover.enabled": hardcoverEnabled,
+      "hardcover.client_id": hardcoverClientId.trim(),
+      ...(hardcoverClientSecret.trim() ? { "hardcover.client_secret": hardcoverClientSecret.trim() } : {}),
     });
   }
 
@@ -580,6 +589,50 @@ export function Settings() {
                     <p className="text-xs text-base-content/50">{t("settings.anilist_tracking_desc", "Allow users to connect AniList and sync reading progress.")}</p>
                   </div>
                 </label>
+
+                <div className="p-3 bg-base-200/50 rounded-lg space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-primary"
+                      checked={hardcoverEnabled}
+                      onChange={(e) => setHardcoverEnabled(e.target.checked)}
+                    />
+                    <div>
+                      <span className="text-sm font-medium">{t("settings.hardcover_tracking", "Enable Hardcover Scrobbling")}</span>
+                      <p className="text-xs text-base-content/50">{t("settings.hardcover_tracking_desc", "Allow users to connect Hardcover and sync reading progress. Requires a Hardcover developer app (OAuth client ID & secret).")}</p>
+                    </div>
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wider text-base-content/70">{t("settings.hardcover_client_id", "Client ID")}</span>
+                      <input
+                        type="text"
+                        className="input input-bordered input-sm w-full mt-1"
+                        value={hardcoverClientId}
+                        onChange={(e) => setHardcoverClientId(e.target.value)}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wider text-base-content/70">{t("settings.hardcover_client_secret", "Client Secret")}</span>
+                      <input
+                        type="password"
+                        className="input input-bordered input-sm w-full mt-1"
+                        value={hardcoverClientSecret}
+                        onChange={(e) => setHardcoverClientSecret(e.target.value)}
+                        placeholder={t("settings.hardcover_client_secret_placeholder", "Leave blank to keep current secret")}
+                      />
+                    </label>
+                  </div>
+                  <a
+                    href="https://hardcover.app/account/developer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {t("settings.hardcover_dev_link", "Create a Hardcover developer app ↗")}
+                  </a>
+                </div>
               </div>
             </div>
           </div>

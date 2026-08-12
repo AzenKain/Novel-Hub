@@ -49,6 +49,9 @@ func (a *auditStubSettings) TestSMTP(ctx context.Context, dto *request.SMTPTestD
 func (a *auditStubSettings) OAuthProviderConfig(ctx context.Context, provider string) (*models.OAuthProviderConfig, error) {
 	return nil, nil
 }
+func (a *auditStubSettings) HardcoverConfig(ctx context.Context) (*models.HardcoverConfig, error) {
+	return nil, nil
+}
 
 // TestAuditCanReadBookIgnoresAgeRating proves task T0.3: CanReadBook does not
 // enforce age rating / kids mode.

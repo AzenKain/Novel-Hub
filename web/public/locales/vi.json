@@ -177,6 +177,7 @@
         "prune_audit_logs": "Dọn log kiểm toán",
         "prune_finished_jobs": "Dọn job đã hoàn tất",
         "merge_audio": "Gộp tệp âm thanh",
+        "convert_book": "Chuyển đổi tệp sách",
         "podcast_refresh": "Làm mới podcast",
         "podcast_download": "Tải tập podcast"
       },
@@ -239,7 +240,11 @@
     "upload_partial": "Đã tải lên {{count}}/{{total}} sách. Đang xử lý metadata...",
     "upload_done": "Đã tải lên {{count}} sách. Đang xử lý metadata...",
     "upload_all_failed": "Không tải lên được tệp nào: {{reason}}",
-    "oauth_settings": "OAuth & OIDC"
+    "oauth_settings": "OAuth & OIDC",
+    "confirm_merge_msg": "Gộp \"{{source}}\" vào \"{{target}}\"? Toàn bộ chương, tệp và dữ liệu đọc của cuốn đầu sẽ được dồn vào cuốn thứ hai, sau đó cuốn đầu bị xoá.",
+    "confirm_merge_title": "Gộp sách",
+    "merge_books_success": "Đã gộp sách",
+    "confirm_keep_one_msg": "Bạn có chắc chắn muốn giữ lại bản sao này và xóa {{count}} bản sao trùng lặp khác không?"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",
@@ -537,7 +542,13 @@
     "random_books_hint": "Làm mới kệ sách để thấy những đề xuất ngẫu nhiên bất ngờ.",
     "shuffle_books": "Xáo trộn",
     "top_books": "Sách nổi bật",
-    "top_books_hint": "Những sách được đọc nhiều nhất trong thư viện của bạn."
+    "top_books_hint": "Những sách được đọc nhiều nhất trong thư viện của bạn.",
+    "merge_into": "gộp vào",
+    "merge_into_source": "Gộp vào cuốn thứ nhất",
+    "merge_into_target": "Gộp vào cuốn thứ hai",
+    "no_potential_matches": "Không tìm thấy kết quả khớp tiềm năng.",
+    "potential_matches": "Khớp tiềm năng",
+    "potential_matches_desc": "Cùng tiêu đề và tác giả với khác biệt nhỏ — gộp các bản trùng thành một cuốn sách."
   },
   "user": {
     "profile": "Hồ sơ",
@@ -722,7 +733,11 @@
     "no_description": "Không có tóm tắt cho sách này.",
     "next_in_series": "Tiếp theo trong bộ",
     "in_same_series": "Cùng bộ truyện",
-    "author_unknown": "Unknown Author"
+    "author_unknown": "Unknown Author",
+    "convert": "Chuyển đổi sang…",
+    "convert_queued": "Đã xếp hàng chuyển đổi (job {{job_id}})",
+    "convert_done": "Hoàn tất chuyển đổi",
+    "convert_failed": "Chuyển đổi thất bại"
   },
   "settings": {
     "title": "Cài đặt",
@@ -894,7 +909,13 @@
       "title": "Cấu hình OAuth & OIDC",
       "subtitle": "Thiết lập đăng nhập thông qua các dịch vụ bên thứ ba",
       "setup_info": "Lưu ý cấu hình: Hãy đảm bảo Redirect URI ở đây trùng khớp với cấu hình trong trang quản lý nhà phát triển của bên thứ ba. Các thông tin nhạy cảm sẽ được mã hóa."
-    }
+    },
+    "hardcover_tracking": "Bật Hardcover Scrobbling",
+    "hardcover_tracking_desc": "Cho phép người dùng kết nối Hardcover và đồng bộ tiến độ đọc. Yêu cầu một ứng dụng developer Hardcover (Client ID & secret OAuth).",
+    "hardcover_client_id": "Client ID",
+    "hardcover_client_secret": "Client Secret",
+    "hardcover_client_secret_placeholder": "Để trống để giữ nguyên secret hiện tại",
+    "hardcover_dev_link": "Tạo ứng dụng developer Hardcover ↗"
   },
   "email": {
     "invalid": "Vui lòng nhập địa chỉ email hợp lệ",
@@ -935,7 +956,12 @@
     "select_btn": "Chọn",
     "no_search_results": "Không tìm thấy kết quả AniList nào",
     "selected_label": "Đã chọn",
-    "connect_new_token": "Dùng token mới"
+    "connect_new_token": "Dùng token mới",
+    "hardcover_title": "Hardcover Scrobbling",
+    "hardcover_subtitle": "Tự động ghi tiến độ đọc của bạn lên hồ sơ Hardcover.",
+    "hardcover_connect_btn": "Kết nối Hardcover",
+    "hardcover_connect_failed": "Không thể bắt đầu kết nối Hardcover",
+    "hardcover_dev_link": "Đăng ký ứng dụng developer ↗"
   },
   "opds": {
     "title": "Hệ sinh thái OPDS 2.0 & đồng bộ tiến độ đọc 2 chiều",
@@ -1178,5 +1204,19 @@
     "load_failed": "Không tải được podcast",
     "update_failed": "Cập nhật thất bại",
     "actions": "Thao tác"
+  },
+  "highlights_export": {
+    "title": "Xuất Highlight",
+    "subtitle": "Gửi highlight của sách này tới Readwise, hoặc tải xuống dạng Markdown cho Obsidian / Logseq.",
+    "token_label": "Token API Readwise",
+    "token_placeholder": "Dán token Readwise của bạn",
+    "connect_btn": "Kết nối",
+    "connect_failed": "Kết nối Readwise thất bại",
+    "connected": "Đã kết nối Readwise",
+    "enter_token": "Nhập token API Readwise của bạn",
+    "export_btn": "Xuất sang Readwise",
+    "export_failed": "Xuất highlight thất bại",
+    "exported": "Đã xuất {{count}} highlight sang Readwise",
+    "markdown_btn": "Tải xuống .md"
   }
 }

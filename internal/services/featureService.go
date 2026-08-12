@@ -41,7 +41,7 @@ type FeatureService interface {
 	GetBookEngagementStats(ctx context.Context, bookID string) (*response.BookEngagementStatsResponse, error)
 	RecordShare(ctx context.Context, input models.ShareInput) (*response.BookSocialStatsResponse, error)
 	SetBookmark(ctx context.Context, userID string, bookID string, bookmarked bool) (*response.BookmarkResponse, error)
-	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*models.BookmarkedBooksPage, error)
+	GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*response.BookmarkedBooksPageResponse, error)
 	GetBookUserState(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.BookUserStateResponse, error)
 	UpsertBookReview(ctx context.Context, userID string, bookID string, rating int64, review string) (*response.BookReviewResponse, error)
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
@@ -373,7 +373,7 @@ func (s *featureService) SetBookmark(ctx context.Context, userID string, bookID 
 	return bm.ToResponse(), nil
 }
 
-func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*models.BookmarkedBooksPage, error) {
+func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, cursor *time.Time, cursorID string, limit int64) (*response.BookmarkedBooksPageResponse, error) {
 	if userID == "" {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
@@ -412,7 +412,7 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, 
 		last := bookmarkRows[len(bookmarkRows)-1]
 		result.NextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.BookID
 	}
-	return result, nil
+	return result.ToResponse(), nil
 }
 
 func (s *featureService) GetBookUserState(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.BookUserStateResponse, error) {

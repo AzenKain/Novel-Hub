@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"time"
 
 	"novelhub/internal/dtos/response"
@@ -24,19 +25,10 @@ type HighlightEntity struct {
 }
 
 func (e *HighlightEntity) FromSqlc(res sqlc.Highlight) *HighlightEntity {
-	e.ID = res.ID
-	e.UserID = res.UserID
-	e.BookID = res.BookID
-	e.ChapterID = res.ChapterID
-	e.TextContent = res.TextContent
-	e.StartIndex = res.StartIndex
-	e.EndIndex = res.EndIndex
-	e.Color = res.Color
-	e.Note = convert.NullStringToStrPtr(res.Note)
-	e.CfiRange = convert.NullStringToStrPtr(res.CfiRange)
-	e.CreatedAt = convert.NullTimeToTimePtr(res.CreatedAt)
-	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
-	return e
+	return e.fillFromHighlightRow(
+		res.ID, res.UserID, res.BookID, res.ChapterID, res.TextContent, res.StartIndex,
+		res.EndIndex, res.Color, res.Note, res.CfiRange, res.CreatedAt, res.UpdatedAt,
+	)
 }
 
 type HighlightEntities []*HighlightEntity
@@ -86,4 +78,49 @@ func HighlightEntitiesToResponse(entities []*HighlightEntity) []*response.Highli
 		out = append(out, h.ToResponse())
 	}
 	return out
+}
+
+// HighlightBookEntity decorates a highlight with its book title + author, from the
+// export JOINs. Kept as a separate type so the chapter-scoped path never pays for
+// the join.
+type HighlightBookEntity struct {
+	HighlightEntity
+	BookTitle  string
+	AuthorName string
+}
+
+func (e *HighlightBookEntity) FromSqlc(res sqlc.GetHighlightsByBookRow) *HighlightBookEntity {
+	(&e.HighlightEntity).fillFromHighlightRow(
+		res.ID, res.UserID, res.BookID, res.ChapterID, res.TextContent, res.StartIndex,
+		res.EndIndex, res.Color, res.Note, res.CfiRange, res.CreatedAt, res.UpdatedAt,
+	)
+	e.BookTitle = res.BookTitle
+	e.AuthorName = res.AuthorName
+	return e
+}
+
+func (e *HighlightBookEntity) FromSqlcByIDs(res sqlc.GetHighlightBooksByIDsRow) *HighlightBookEntity {
+	(&e.HighlightEntity).fillFromHighlightRow(
+		res.ID, res.UserID, res.BookID, res.ChapterID, res.TextContent, res.StartIndex,
+		res.EndIndex, res.Color, res.Note, res.CfiRange, res.CreatedAt, res.UpdatedAt,
+	)
+	e.BookTitle = res.BookTitle
+	e.AuthorName = res.AuthorName
+	return e
+}
+
+func (e *HighlightEntity) fillFromHighlightRow(id, userID, bookID, chapterID, textContent string, startIndex, endIndex int64, color string, note, cfiRange sql.NullString, createdAt, updatedAt sql.NullTime) *HighlightEntity {
+	e.ID = id
+	e.UserID = userID
+	e.BookID = bookID
+	e.ChapterID = chapterID
+	e.TextContent = textContent
+	e.StartIndex = startIndex
+	e.EndIndex = endIndex
+	e.Color = color
+	e.Note = convert.NullStringToStrPtr(note)
+	e.CfiRange = convert.NullStringToStrPtr(cfiRange)
+	e.CreatedAt = convert.NullTimeToTimePtr(createdAt)
+	e.UpdatedAt = convert.NullTimeToTimePtr(updatedAt)
+	return e
 }
