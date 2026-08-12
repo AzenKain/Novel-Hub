@@ -52,6 +52,7 @@ const (
 	PermKoboSync     = "kobo.sync"
 	PermKomgaSync    = "komga.sync"
 	PermCalibreSync  = "calibre.sync"
+	PermPodcastManage = "podcast.manage"
 
 	//System Administration
 	PermAdminAccess   = "admin.access"
@@ -136,6 +137,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermKoboSync,
 			PermKomgaSync,
 			PermCalibreSync,
+			PermPodcastManage,
 			PermAdminAccess,
 			PermJobRead,
 		}
@@ -145,7 +147,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermBookBookmark, PermBookCollection, PermBookHighlight, PermBookReviewCreate, PermBookReviewDelete, PermUserStatsRead, PermTrackerSync,
 			PermBookUpload, PermBookEdit, PermBookMetadataFetch, PermBookDelete, PermBookDuplicateManage, PermBookArchive, PermBookBulkManage,
 			PermLibraryRead, PermLibraryManage,
-			PermOPDSRead, PermOPDSDownload, PermKoboSync, PermKomgaSync, PermCalibreSync,
+			PermOPDSRead, PermOPDSDownload, PermKoboSync, PermKomgaSync, PermCalibreSync, PermPodcastManage,
 			PermAdminAccess, PermUserManage, PermRoleManage, PermSettingManage, PermJobRead, PermJobManage, PermSystemLogRead, PermSystemBackup, PermWebhookManage,
 		}
 	default:

@@ -40,38 +40,21 @@ func (r *deviceRepository) WithTx(tx *sql.Tx) DeviceRepository {
 	}
 	return &deviceRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sf: r.sf}
 }
-
-func deviceCacheKey(id string) string {
-	return cache.BuildKey("user_device", "id", id)
-}
-
-func deviceUserListCacheKey(userID string, cursor *time.Time, cursorID string, limit int64) string {
-	cursorStr := ""
-	if cursor != nil {
-		cursorStr = cursor.Format(time.RFC3339Nano)
-	}
-	return cache.BuildKey("user_device", "user", userID, fmt.Sprintf("%s_%s_%d", cursorStr, cursorID, limit))
-}
-
-func (r *deviceRepository) invalidate(ctx context.Context, id string, userID string) {
-	if r.c != nil {
-		_ = r.c.Del(ctx, deviceCacheKey(id))
-		_ = r.c.DelByPattern(ctx, cache.BuildKey("user_device", "user", userID, "*"))
-	}
-}
-
 func (r *deviceRepository) Create(ctx context.Context, params sqlc.CreateUserDeviceParams) (*models.UserDeviceEntity, error) {
 	row, err := r.q.CreateUserDevice(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 	entity := (&models.UserDeviceEntity{}).FromSqlc(row)
-	r.invalidate(ctx, entity.ID, entity.UserID)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("user_device", "id", entity.ID))
+		_ = r.c.DelByPattern(ctx, cache.BuildKey("user_device", "user", entity.UserID, "*"))
+	}
 	return entity, nil
 }
 
 func (r *deviceRepository) GetByID(ctx context.Context, id string) (*models.UserDeviceEntity, error) {
-	key := deviceCacheKey(id)
+	key := cache.BuildKey("user_device", "id", id)
 	if r.c != nil && !r.inTx {
 		var cached models.UserDeviceEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
@@ -101,7 +84,11 @@ func (r *deviceRepository) ListByUserID(ctx context.Context, userID string, curs
 		limit = 20
 	}
 
-	listKey := deviceUserListCacheKey(userID, cursor, cursorID, limit)
+	cursorStr := ""
+	if cursor != nil {
+		cursorStr = cursor.Format(time.RFC3339Nano)
+	}
+	listKey := cache.BuildKey("user_device", "user", userID, fmt.Sprintf("%s_%s_%d", cursorStr, cursorID, limit))
 	var ids []string
 
 	if r.c != nil && !r.inTx {
@@ -141,7 +128,7 @@ func (r *deviceRepository) ListByUserID(ctx context.Context, userID string, curs
 	missingIndices := make([]int, 0)
 
 	for i, id := range ids {
-		key := deviceCacheKey(id)
+		key := cache.BuildKey("user_device", "id", id)
 		if r.c != nil && !r.inTx {
 			var cached models.UserDeviceEntity
 			if err := r.c.Get(ctx, key, &cached); err == nil {
@@ -164,7 +151,7 @@ func (r *deviceRepository) ListByUserID(ctx context.Context, userID string, curs
 			if r.c != nil && !r.inTx {
 				pairs := make(map[string]any, len(fetchedEntities))
 				for _, entity := range fetchedEntities {
-					pairs[deviceCacheKey(entity.ID)] = entity
+					pairs[cache.BuildKey("user_device", "id", entity.ID)] = entity
 				}
 				_ = r.c.MSet(ctx, pairs, constants.NormalCacheDuration)
 			}
@@ -201,6 +188,9 @@ func (r *deviceRepository) Delete(ctx context.Context, id string, userID string)
 	if err := r.q.DeleteUserDevice(ctx, sqlc.DeleteUserDeviceParams{ID: id, UserID: userID}); err != nil {
 		return err
 	}
-	r.invalidate(ctx, id, userID)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("user_device", "id", id))
+		_ = r.c.DelByPattern(ctx, cache.BuildKey("user_device", "user", userID, "*"))
+	}
 	return nil
 }

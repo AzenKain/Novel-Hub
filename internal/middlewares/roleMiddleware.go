@@ -152,3 +152,13 @@ func BookFileLibraryAttr(bookRepo repositories.BookDBRepository, param string) P
 		return map[string]any{"library_id": book.LibraryID}, nil
 	}
 }
+
+func PodcastLibraryAttr(podcastRepo repositories.PodcastRepository, param string) PermissionAttrResolver {
+	return func(c fiber.Ctx) (map[string]any, error) {
+		podcast, err := podcastRepo.GetPodcast(c.Context(), c.Params(param))
+		if err != nil || podcast == nil {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Podcast not found")
+		}
+		return map[string]any{"library_id": podcast.LibraryID}, nil
+	}
+}

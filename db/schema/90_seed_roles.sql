@@ -96,6 +96,7 @@ JOIN permissions p ON p.key IN (
     'kobo.sync',
     'komga.sync',
     'calibre.sync',
+    'podcast.manage',
     'admin.access',
     'job.read'
 )

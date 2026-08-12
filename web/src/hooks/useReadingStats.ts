@@ -5,7 +5,7 @@ import { useAuthStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import type { ReadingGoal } from "@/types";
+import type { LibraryBreakdown, ReadingETA, ReadingGoal, ReadingStatsSummary } from "@/types";
 
 export const useReadingStats = (book_id: string | undefined, isActive: boolean) => {
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
@@ -70,6 +70,29 @@ export function useReadingGoalQuery() {
   return useQuery<ReadingGoal | undefined>({
     queryKey: ["reader", "goal"],
     queryFn: async () => (await readerService.getReadingGoal()).data,
+  });
+}
+export function useReadingStatsSummaryQuery() {
+  return useQuery<ReadingStatsSummary | undefined>({
+    queryKey: ["reader", "statsSummary"],
+    queryFn: async () => (await readerService.getReadingStatsSummary()).data,
+  });
+}
+export function useReaderETAQuery(book_id?: string) {
+  return useQuery<ReadingETA | undefined>({
+    queryKey: ["reader", "eta", book_id],
+    queryFn: async () => {
+      if (!book_id) return undefined;
+      return (await readerService.getReaderETA(book_id)).data;
+    },
+    enabled: !!book_id,
+    staleTime: 60000,
+  });
+}
+export function useLibraryBreakdownQuery() {
+  return useQuery<LibraryBreakdown | undefined>({
+    queryKey: ["library", "breakdown"],
+    queryFn: async () => (await readerService.getLibraryBreakdown()).data,
   });
 }
 export function useUpsertReadingGoalMutation() {

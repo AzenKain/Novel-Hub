@@ -16,3 +16,5 @@ export * from "./useReadListQueries";
 export * from "./useAgeRatingQueries";
 export * from "./useMagicCodeQueries";
 export * from "./useSmartFilters";
+export * from "./useAudiobookQueries";
+export * from "./usePodcastQueries";

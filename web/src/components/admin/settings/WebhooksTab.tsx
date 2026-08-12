@@ -16,8 +16,13 @@ import { WebhookModal } from "./WebhookModal";
 
 export const WebhooksTab: React.FC = () => {
   const { t } = useTranslation();
+  const [page, setPage] = React.useState(1);
+  const pageSize = 10;
+  const offset = (page - 1) * pageSize;
 
-  const { data: webhooks = [], isLoading } = useWebhooksQuery();
+  const { data, isLoading } = useWebhooksQuery(pageSize, offset);
+  const webhooks = data?.webhooks || [];
+  const totalPages = data?.totalPages || 1;
   const createWebhookMutation = useCreateWebhookMutation();
   const updateWebhookMutation = useUpdateWebhookMutation();
   const deleteWebhookMutation = useDeleteWebhookMutation();
@@ -188,6 +193,27 @@ export const WebhooksTab: React.FC = () => {
               </div>
             </div>
           ))}
+          {totalPages > 1 && (
+            <div className="flex justify-end gap-2 mt-4 items-center">
+              <button
+                className="btn btn-sm btn-outline"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                {t("common.previous", "Previous")}
+              </button>
+              <span className="text-xs font-semibold px-2 text-base-content/75">
+                {t("admin.page_of", "Page {{page}} of {{totalPages}}", { page, totalPages })}
+              </span>
+              <button
+                className="btn btn-sm btn-outline"
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                {t("common.next", "Next")}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

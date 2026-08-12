@@ -1,6 +1,6 @@
 import { api } from "@/config/api";
 import { offlineStore } from "@/lib/offlineStore";
-import type { BootstrapResponse, CommonResponse, ReadingGoal, SearchSnippet } from "@/types";
+import type { BootstrapResponse, CommonResponse, LibraryBreakdown, ReadingETA, ReadingGoal, ReadingStatsSummary, SearchSnippet } from "@/types";
 import axios from "axios";
 
 export const readerService = {
@@ -69,6 +69,36 @@ export const readerService = {
   async getReadingHeatmap(): Promise<CommonResponse<Record<string, { duration: number; words: number }>>> {
     try {
       const res = await api.get('/reader/stats/heatmap');
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<any>;
+      throw error;
+    }
+  },
+
+  async getReadingStatsSummary(): Promise<CommonResponse<ReadingStatsSummary>> {
+    try {
+      const res = await api.get('/reader/stats/summary');
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<any>;
+      throw error;
+    }
+  },
+
+  async getReaderETA(book_id: string): Promise<CommonResponse<ReadingETA>> {
+    try {
+      const res = await api.get(`/reader/stats/eta/${encodeURIComponent(book_id)}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<any>;
+      throw error;
+    }
+  },
+
+  async getLibraryBreakdown(): Promise<CommonResponse<LibraryBreakdown>> {
+    try {
+      const res = await api.get('/library/stats/breakdown');
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<any>;

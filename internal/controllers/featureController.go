@@ -733,6 +733,73 @@ func (c *FeatureController) GetReadingHeatmap(ctx fiber.Ctx) error {
 	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
 }
 
+func (c *FeatureController) GetReadingStatsSummary(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	res, err := c.service.GetReadingStatsSummary(reqCtx, userID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (c *FeatureController) GetReaderETA(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+	claims, ok := getUserClaims(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	res, err := c.service.GetReaderETA(reqCtx, userID, ctx.Params("book_id"), claims)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (c *FeatureController) GetLibraryBreakdown(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	res, err := c.service.GetLibraryBreakdown(reqCtx, userID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{Status: true, Data: res})
+}
+
 func (c *FeatureController) GetReadingGoal(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

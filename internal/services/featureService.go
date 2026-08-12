@@ -57,6 +57,9 @@ type FeatureService interface {
 	ShareActorKey(clientID string, ip string, userAgent string) string
 	RecordReadingSession(ctx context.Context, userID string, bookID string, duration int64, words int64, sessionDate string, claims *response.JWTClaims) error
 	GetReadingHeatmap(ctx context.Context, userID string) (map[string]map[string]int64, error)
+	GetReadingStatsSummary(ctx context.Context, userID string) (*response.ReadingStatsSummaryResponse, error)
+	GetReaderETA(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.ReadingETAResponse, error)
+	GetLibraryBreakdown(ctx context.Context, userID string) (*response.LibraryBreakdownResponse, error)
 	GetReadingGoal(ctx context.Context, userID string) (*response.ReadingGoalResponse, error)
 	UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*response.ReadingGoalResponse, error)
 	ListSmartCollections(ctx context.Context, userID string) ([]*response.SmartCollectionResponse, error)
@@ -690,6 +693,194 @@ func (s *featureService) GetReadingHeatmap(ctx context.Context, userID string) (
 		}
 	}
 	return result, nil
+}
+
+func computeStreaks(active map[string]struct{}, today time.Time) (current, longest int64) {
+	day := func(t time.Time) string { return t.Format("2006-01-02") }
+
+	start := today
+	if _, ok := active[day(today)]; !ok {
+		start = today.AddDate(0, 0, -1)
+	}
+	for {
+		if _, ok := active[day(start)]; !ok {
+			break
+		}
+		current++
+		start = start.AddDate(0, 0, -1)
+	}
+
+	earliest := today.AddDate(0, 0, -364)
+	for d := earliest; !d.After(today); d = d.AddDate(0, 0, 1) {
+		if _, ok := active[day(d)]; !ok {
+			continue
+		}
+		run := int64(1)
+		for {
+			next := d.AddDate(0, 0, 1)
+			if _, ok := active[day(next)]; !ok {
+				break
+			}
+			run++
+			d = next
+		}
+		if run > longest {
+			longest = run
+		}
+	}
+	return current, longest
+}
+
+func (s *featureService) GetReadingStatsSummary(ctx context.Context, userID string) (*response.ReadingStatsSummaryResponse, error) {
+	rows, err := s.repo.GetReadingHeatmap(ctx, userID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get reading stats")
+	}
+
+	active := make(map[string]struct{}, len(rows))
+	now := time.Now()
+	todayStr := now.Format("2006-01-02")
+	var totalWords, totalMinutes, wordsToday int64
+	for _, r := range rows {
+		dateStr := r.Date.Format("2006-01-02")
+		active[dateStr] = struct{}{}
+		totalWords += r.WordsRead
+		totalMinutes += r.DurationSeconds / 60
+		if dateStr == todayStr {
+			wordsToday += r.WordsRead
+		}
+	}
+
+	current, longest := computeStreaks(active, now)
+
+	goal, err := s.repo.GetReadingGoal(ctx, userID)
+	if err != nil {
+		if !apperrors.IsNotFound(err) {
+			return nil, err
+		}
+		goal = nil
+	}
+	targetWords := int64(defaultTargetWordsPerDay)
+	targetBooks := int64(defaultTargetBooksPerYear)
+	if goal != nil {
+		targetWords = goal.TargetWordsPerDay
+		targetBooks = goal.TargetBooksPerYear
+	}
+
+	return &response.ReadingStatsSummaryResponse{
+		CurrentStreakDays:  current,
+		LongestStreakDays:  longest,
+		TotalActiveDays:    int64(len(active)),
+		TotalWords:         totalWords,
+		TotalMinutes:       totalMinutes,
+		WordsToday:         wordsToday,
+		WordsTodayTarget:   targetWords,
+		BooksPerYearTarget: targetBooks,
+	}, nil
+}
+
+func (s *featureService) GetReaderETA(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (*response.ReadingETAResponse, error) {
+	book, err := s.bookRepo.GetBook(ctx, bookID)
+	resolved := resolveClaims(claims)
+	if !readingSessionBookAccessible(book, err, s.permissions, resolved) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Book is not accessible")
+	}
+
+	stats, err := s.repo.GetReadingStatsByBook(ctx, userID, bookID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get reading stats")
+	}
+
+	wordsRead := int64(0)
+	totalMinutes := int64(0)
+	if stats != nil {
+		wordsRead = stats.TotalWords
+		totalMinutes = stats.TotalDuration / 60
+	}
+
+	pace := float64(0)
+	if stats == nil || totalMinutes == 0 {
+		global, gerr := s.repo.GetReadingStatsSince(ctx, userID, time.Now().AddDate(0, 0, -30))
+		if gerr != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get reading stats")
+		}
+		if global.TotalDuration > 0 {
+			pace = float64(global.TotalWords) / (float64(global.TotalDuration) / 60)
+		}
+	} else {
+		pace = float64(wordsRead) / float64(totalMinutes)
+	}
+
+	res := &response.ReadingETAResponse{
+		PaceWordsPerMin: pace,
+		WordsRead:       wordsRead,
+	}
+
+	progress, err := s.repo.GetReadingProgress(ctx, userID, bookID)
+	if err == nil && progress != nil && progress.ProgressPercent != nil && *progress.ProgressPercent > 0 {
+		percent := *progress.ProgressPercent
+		estTotal := float64(wordsRead) / (percent / 100)
+		remaining := estTotal * (100 - percent) / 100
+		if remaining < 0 {
+			remaining = 0
+		}
+		res.Percent = percent
+		res.RemainingWords = int64(remaining)
+		if pace > 0 {
+			res.EtaMinutes = int64(remaining / pace)
+		}
+	}
+	return res, nil
+}
+
+func nameCountsToResponse(entities []*models.NameCountEntity) []response.NameCountResponse {
+	out := make([]response.NameCountResponse, 0, len(entities))
+	for _, e := range entities {
+		if e == nil {
+			continue
+		}
+		out = append(out, response.NameCountResponse{Name: e.Name, Count: e.Count})
+	}
+	return out
+}
+
+func (s *featureService) GetLibraryBreakdown(ctx context.Context, userID string) (*response.LibraryBreakdownResponse, error) {
+	breakdown, err := s.repo.GetLibraryBreakdown(ctx)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get library breakdown")
+	}
+
+	listening, err := s.repo.GetListeningHistory(ctx, userID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get listening history")
+	}
+
+	listeningStats, err := s.repo.GetListeningStats(ctx, userID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get listening stats")
+	}
+
+	res := &response.LibraryBreakdownResponse{
+		Formats:    nameCountsToResponse(breakdown.Formats),
+		Tags:       nameCountsToResponse(breakdown.Tags),
+		Authors:    nameCountsToResponse(breakdown.Authors),
+		Publishers: nameCountsToResponse(breakdown.Publishers),
+		Languages:  nameCountsToResponse(breakdown.Languages),
+		Listening:  make([]response.ListeningMonthCount, 0, len(listening)),
+	}
+	if listeningStats != nil && listeningStats.TotalDuration > 0 {
+		res.AvgSpeedWpm = float64(listeningStats.TotalWords) / (float64(listeningStats.TotalDuration) / 60)
+	}
+	for _, l := range listening {
+		if l == nil {
+			continue
+		}
+		res.Listening = append(res.Listening, response.ListeningMonthCount{
+			Month: l.Month,
+			Hours: l.TotalSeconds / 3600,
+		})
+	}
+	return res, nil
 }
 
 // Defaults mirror the reading_goals table (db/schema/58_reading_goals.sql). A user

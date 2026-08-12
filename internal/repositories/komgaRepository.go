@@ -248,19 +248,38 @@ func (r *komgaRepository) GetBookSeries(ctx context.Context, bookID string) (*mo
 }
 
 func (r *komgaRepository) SeriesProgress(ctx context.Context, userID, seriesID string, libraryIDs []string) (*models.KomgaSeriesProgressEntity, error) {
-	scope, err := jsonx.MarshalString(libraryIDs)
-	if err != nil {
-		return nil, err
+	scopeKey := strings.Join(libraryIDs, ",")
+	key := cache.BuildKey("komga", "series_progress", userID, seriesID, scopeKey)
+	if r.c != nil && !r.inTx {
+		var cached models.KomgaSeriesProgressEntity
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return &cached, nil
+		}
 	}
-	row, err := r.q.GetKomgaSeriesProgress(ctx, sqlc.GetKomgaSeriesProgressParams{
-		UserID:     userID,
-		SeriesID:   seriesID,
-		LibraryIds: scope,
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		scope, err := jsonx.MarshalString(libraryIDs)
+		if err != nil {
+			return nil, err
+		}
+		row, err := r.q.GetKomgaSeriesProgress(ctx, sqlc.GetKomgaSeriesProgressParams{
+			UserID:     userID,
+			SeriesID:   seriesID,
+			LibraryIds: scope,
+		})
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.KomgaSeriesProgressEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return (&models.KomgaSeriesProgressEntity{}).FromSqlc(row), nil
+	return v.(*models.KomgaSeriesProgressEntity), nil
 }
 
 func (r *komgaRepository) SeriesProgressByIDs(ctx context.Context, userID string, seriesIDs []string, libraryIDs []string) (map[string]*models.KomgaSeriesProgressEntity, error) {
@@ -268,24 +287,69 @@ func (r *komgaRepository) SeriesProgressByIDs(ctx context.Context, userID string
 	if len(seriesIDs) == 0 {
 		return out, nil
 	}
-	scope, err := jsonx.MarshalString(libraryIDs)
-	if err != nil {
-		return nil, err
+	scopeKey := strings.Join(libraryIDs, ",")
+	keys := make([]string, len(seriesIDs))
+	for i, id := range seriesIDs {
+		keys[i] = cache.BuildKey("komga", "series_progress", userID, id, scopeKey)
 	}
-	wanted, err := jsonx.MarshalString(seriesIDs)
-	if err != nil {
-		return nil, err
+
+	missingIDs := []string{}
+	missingKeys := []string{}
+
+	if r.c != nil && !r.inTx {
+		for i, bytes := range r.c.MGet(ctx, keys...) {
+			if len(bytes) > 0 {
+				var entity models.KomgaSeriesProgressEntity
+				if err := jsonx.Unmarshal(bytes, &entity); err == nil {
+					out[seriesIDs[i]] = &entity
+					continue
+				}
+			}
+			missingIDs = append(missingIDs, seriesIDs[i])
+			missingKeys = append(missingKeys, keys[i])
+		}
+	} else {
+		missingIDs = seriesIDs
+		missingKeys = keys
 	}
-	rows, err := r.q.ListKomgaSeriesProgress(ctx, sqlc.ListKomgaSeriesProgressParams{
-		UserID:     userID,
-		SeriesIds:  wanted,
-		LibraryIds: scope,
-	})
-	if err != nil {
-		return nil, err
+
+	if len(missingIDs) > 0 {
+		scope, err := jsonx.MarshalString(libraryIDs)
+		if err != nil {
+			return nil, err
+		}
+		wanted, err := jsonx.MarshalString(missingIDs)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := r.q.ListKomgaSeriesProgress(ctx, sqlc.ListKomgaSeriesProgressParams{
+			UserID:     userID,
+			SeriesIds:  wanted,
+			LibraryIds: scope,
+		})
+		if err != nil {
+			return nil, err
+		}
+		
+		fetchedMap := make(map[string]*models.KomgaSeriesProgressEntity, len(rows))
+		for _, row := range rows {
+			entity := (&models.KomgaSeriesProgressEntity{}).FromSqlcList(row)
+			out[row.SeriesID] = entity
+			fetchedMap[row.SeriesID] = entity
+		}
+
+		if r.c != nil && !r.inTx {
+			toCache := make(map[string]any)
+			for i, id := range missingIDs {
+				if entity, ok := fetchedMap[id]; ok {
+					toCache[missingKeys[i]] = entity
+				}
+			}
+			if len(toCache) > 0 {
+				_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+			}
+		}
 	}
-	for _, row := range rows {
-		out[row.SeriesID] = (&models.KomgaSeriesProgressEntity{}).FromSqlcList(row)
-	}
+
 	return out, nil
 }

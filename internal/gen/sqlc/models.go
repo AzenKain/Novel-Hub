@@ -15,6 +15,18 @@ type AppSetting struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
+type AudiobookChapter struct {
+	ID           string          `json:"id"`
+	BookID       string          `json:"book_id"`
+	FileID       sql.NullString  `json:"file_id"`
+	ChapterIndex int64           `json:"chapter_index"`
+	Title        string          `json:"title"`
+	StartSec     float64         `json:"start_sec"`
+	EndSec       sql.NullFloat64 `json:"end_sec"`
+	CreatedAt    sql.NullTime    `json:"created_at"`
+	UpdatedAt    sql.NullTime    `json:"updated_at"`
+}
+
 type AuditLog struct {
 	ID          string         `json:"id"`
 	ActorID     sql.NullString `json:"actor_id"`
@@ -290,6 +302,35 @@ type Permission struct {
 	Description string `json:"description"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
+}
+
+type Podcast struct {
+	ID            string         `json:"id"`
+	LibraryID     string         `json:"library_id"`
+	FeedUrl       string         `json:"feed_url"`
+	Title         string         `json:"title"`
+	Description   sql.NullString `json:"description"`
+	CoverUrl      sql.NullString `json:"cover_url"`
+	Author        sql.NullString `json:"author"`
+	AutoDownload  int64          `json:"auto_download"`
+	LastCheckedAt sql.NullTime   `json:"last_checked_at"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
+}
+
+type PodcastEpisode struct {
+	ID          string         `json:"id"`
+	PodcastID   string         `json:"podcast_id"`
+	Guid        string         `json:"guid"`
+	Title       string         `json:"title"`
+	Description sql.NullString `json:"description"`
+	AudioUrl    string         `json:"audio_url"`
+	DurationSec sql.NullInt64  `json:"duration_sec"`
+	PublishedAt sql.NullTime   `json:"published_at"`
+	Downloaded  int64          `json:"downloaded"`
+	BookID      sql.NullString `json:"book_id"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
 
 type Publisher struct {

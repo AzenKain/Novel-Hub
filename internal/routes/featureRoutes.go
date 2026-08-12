@@ -18,6 +18,7 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	highlightGroup.Delete("/:id", highlightController.DeleteHighlight)
 
 	app.Get("/library/stats", featureController.GetLibraryStats)
+	app.Get("/library/stats/breakdown", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryRead), featureController.GetLibraryBreakdown)
 
 	historyGroup := app.Group("/reader/history", middlewares.JwtAccess(userRepo))
 	historyGroup.Get("/", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetRecentReadingHistory)
@@ -27,6 +28,8 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	statsGroup := app.Group("/reader/stats", middlewares.JwtAccess(userRepo))
 	statsGroup.Post("/session", featureController.RecordReadingSession)
 	statsGroup.Get("/heatmap", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingHeatmap)
+	statsGroup.Get("/summary", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingStatsSummary)
+	statsGroup.Get("/eta/:book_id", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReaderETA)
 
 	goalGroup := app.Group("/reader/goals", middlewares.JwtAccess(userRepo))
 	goalGroup.Get("/", middlewares.RequirePermission(permissionCache, constants.PermUserStatsRead), featureController.GetReadingGoal)

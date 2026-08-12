@@ -8,7 +8,19 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
+
+const countWebhooks = `-- name: CountWebhooks :one
+SELECT COUNT(*) FROM webhooks
+`
+
+func (q *Queries) CountWebhooks(ctx context.Context) (int64, error) {
+	row := q.queryRow(ctx, q.countWebhooksStmt, countWebhooks)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const createWebhook = `-- name: CreateWebhook :one
 INSERT INTO webhooks (
@@ -91,14 +103,24 @@ func (q *Queries) GetWebhookByID(ctx context.Context, id string) (Webhook, error
 	return i, err
 }
 
-const listActiveWebhooks = `-- name: ListActiveWebhooks :many
+const getWebhooksByIDs = `-- name: GetWebhooksByIDs :many
 SELECT id, name, url, template_type, secret, custom_headers, events, is_active, created_at, updated_at
 FROM webhooks
-WHERE is_active = 1
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) ListActiveWebhooks(ctx context.Context) ([]Webhook, error) {
-	rows, err := q.query(ctx, q.listActiveWebhooksStmt, listActiveWebhooks)
+func (q *Queries) GetWebhooksByIDs(ctx context.Context, ids []string) ([]Webhook, error) {
+	query := getWebhooksByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.query(ctx, nil, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,36 +153,67 @@ func (q *Queries) ListActiveWebhooks(ctx context.Context) ([]Webhook, error) {
 	return items, nil
 }
 
-const listAllWebhooks = `-- name: ListAllWebhooks :many
-SELECT id, name, url, template_type, secret, custom_headers, events, is_active, created_at, updated_at
+const listActiveWebhookIDs = `-- name: ListActiveWebhookIDs :many
+SELECT id
 FROM webhooks
+WHERE is_active = 1
 ORDER BY created_at DESC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListAllWebhooks(ctx context.Context) ([]Webhook, error) {
-	rows, err := q.query(ctx, q.listAllWebhooksStmt, listAllWebhooks)
+type ListActiveWebhookIDsParams struct {
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListActiveWebhookIDs(ctx context.Context, arg ListActiveWebhookIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listActiveWebhookIDsStmt, listActiveWebhookIDs, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Webhook{}
+	items := []string{}
 	for rows.Next() {
-		var i Webhook
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Url,
-			&i.TemplateType,
-			&i.Secret,
-			&i.CustomHeaders,
-			&i.Events,
-			&i.IsActive,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllWebhookIDs = `-- name: ListAllWebhookIDs :many
+SELECT id
+FROM webhooks
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListAllWebhookIDsParams struct {
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListAllWebhookIDs(ctx context.Context, arg ListAllWebhookIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listAllWebhookIDsStmt, listAllWebhookIDs, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

@@ -41,18 +41,8 @@ func (r *totpRepository) WithTx(tx *sql.Tx) TOTPRepository {
 	return &totpRepository{q: r.q.WithTx(tx), c: r.c, inTx: true, sf: r.sf}
 }
 
-func totpCacheKey(userID string) string {
-	return cache.BuildKey("totp", "user", userID)
-}
-
-func (r *totpRepository) invalidate(ctx context.Context, userID string) {
-	if r.c != nil {
-		_ = r.c.Del(ctx, totpCacheKey(userID))
-	}
-}
-
 func (r *totpRepository) Get(ctx context.Context, userID string) (*models.TOTPEntity, error) {
-	key := totpCacheKey(userID)
+	key := cache.BuildKey("totp", "user", userID)
 	if r.c != nil && !r.inTx {
 		var cached models.TOTPEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
@@ -82,7 +72,9 @@ func (r *totpRepository) Upsert(ctx context.Context, userID string, secret strin
 	if err != nil {
 		return nil, err
 	}
-	r.invalidate(ctx, userID)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("totp", "user", userID))
+	}
 	return models.TOTPFromSqlc(row), nil
 }
 
@@ -91,7 +83,9 @@ func (r *totpRepository) Confirm(ctx context.Context, userID string) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	r.invalidate(ctx, userID)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("totp", "user", userID))
+	}
 	return affected > 0, nil
 }
 
@@ -102,7 +96,9 @@ func (r *totpRepository) Delete(ctx context.Context, userID string) error {
 	if err := r.q.DeleteRecoveryCodes(ctx, userID); err != nil {
 		return err
 	}
-	r.invalidate(ctx, userID)
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("totp", "user", userID))
+	}
 	return nil
 }
 

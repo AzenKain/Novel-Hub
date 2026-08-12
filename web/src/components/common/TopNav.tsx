@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore, useLibraryStore } from "@/stores";
-import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload, ListOrdered, X, BookOpen, ChevronRight, Loader2 } from "lucide-react";
+import { Menu, Search, LayoutDashboard, BarChart3, User, LogOut, CloudDownload, ListOrdered, X, BookOpen, ChevronRight, Loader2, Podcast } from "lucide-react";
 import { ThemeController, LanguageSwitcher } from "@/components/ui";
 import { useShallow } from "zustand/react/shallow";
 import { hasPermission } from "@/utils/permission";
@@ -293,6 +293,18 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
               aria-label={t("library.readlists", "Read Lists")}
             >
               <ListOrdered className="w-5 h-5" />
+            </Link>
+          </div>
+        )}
+
+        {user && hasPermission(user, "podcast.manage") && (
+          <div className="tooltip tooltip-bottom" data-tip={t("podcasts.title", "Podcasts")}>
+            <Link
+              to="/podcasts"
+              className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
+              aria-label={t("podcasts.title", "Podcasts")}
+            >
+              <Podcast className="w-5 h-5" />
             </Link>
           </div>
         )}

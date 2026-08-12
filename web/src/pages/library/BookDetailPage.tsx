@@ -27,14 +27,15 @@ import {
   CloudDownload,
   CheckCircle2,
   Send,
-  FileText
+  FileText,
+  AudioLines
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
-import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection } from "@/components/book-detail";
+import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, MergeAudiobookModal } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
@@ -65,6 +66,7 @@ export const BookDetailPage: React.FC = () => {
   
   const [shareOpen, setShareOpen] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
@@ -111,6 +113,7 @@ export const BookDetailPage: React.FC = () => {
   const offlineSizeBytes = (book?.files || []).find((file) => file.id === (selectedFileId || book?.files?.[0]?.id))?.size_bytes;
   const allowReview = hasPermission(user, "book.review.create", book?.library_id, guestPerms);
   const allowRead = hasPermission(user, "book.read", book?.library_id, guestPerms);
+  const allowMerge = hasPermission(user, "book.upload", book?.library_id, guestPerms);
   const allowStats = hasPermission(user, "user.stats.read", book?.library_id, guestPerms);
 
   const showReads = allowStats && allowRead;
@@ -575,6 +578,16 @@ export const BookDetailPage: React.FC = () => {
                         );
                       })}
                     </select>
+
+                    {allowMerge && (
+                      <button
+                        onClick={() => setMergeOpen(true)}
+                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2 shrink-0"
+                      >
+                        <AudioLines className="w-4 h-4 shrink-0" />
+                        {t("audiobook.merge", "Merge into audiobook")}
+                      </button>
+                    )}
                   </div>
 
                   {/* Reading Progress Subtitle Line (Dedicated Pill Bar) */}
@@ -728,6 +741,11 @@ export const BookDetailPage: React.FC = () => {
               <TrackerMapCard book_id={book.id!} title={book.title} />
             </div>
 
+            {/* Audiobook chapters Section */}
+            <div className="pt-2 border-t border-base-200 mt-2">
+              <AudiobookChaptersCard book_id={book.id!} />
+            </div>
+
             {allowReview && (
               <div className="pt-2 border-t border-base-200 mt-2">
                 <ReviewSection book_id={book.id!} userReview={userState?.my_review} />
@@ -754,6 +772,16 @@ export const BookDetailPage: React.FC = () => {
           book={book}
           t={t}
           onClose={() => setSendModalOpen(false)}
+        />
+      )}
+
+      {allowMerge && (
+        <MergeAudiobookModal
+          open={mergeOpen}
+          book_id={book.id!}
+          title={book.title}
+          files={book.files || []}
+          onClose={() => setMergeOpen(false)}
         />
       )}
 

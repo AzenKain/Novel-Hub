@@ -123,3 +123,42 @@ export interface ReadingActivityResult {
   counted: boolean;
   cooldown_seconds: number;
 }
+
+export interface ReadingStatsSummary {
+  current_streak_days: number;
+  longest_streak_days: number;
+  total_active_days: number;
+  total_words: number;
+  total_minutes: number;
+  words_today: number;
+  words_today_target: number;
+  books_per_year_target: number;
+}
+
+export interface ReadingETA {
+  pace_words_per_min: number;
+  words_read: number;
+  remaining_words: number;
+  eta_minutes: number;
+  percent: number;
+}
+
+export interface NameCount {
+  name: string;
+  count: number;
+}
+
+export interface ListeningMonthCount {
+  month: string;
+  hours: number;
+}
+
+export interface LibraryBreakdown {
+  formats: NameCount[];
+  tags: NameCount[];
+  authors: NameCount[];
+  publishers: NameCount[];
+  languages: NameCount[];
+  listening: ListeningMonthCount[];
+  avg_speed_wpm: number;
+}

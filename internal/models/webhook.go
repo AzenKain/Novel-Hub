@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"novelhub/internal/gen/sqlc"
+	"novelhub/internal/dtos/response"
 	"novelhub/pkg/convert"
 )
 
@@ -21,7 +22,7 @@ type WebhookEntity struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-func WebhookFromSqlc(row sqlc.Webhook) *WebhookEntity {
+func (e *WebhookEntity) FromSqlc(row sqlc.Webhook) *WebhookEntity {
 	var events []string
 	if strings.TrimSpace(row.Events) != "" {
 		parts := strings.Split(row.Events, ",")
@@ -36,16 +37,42 @@ func WebhookFromSqlc(row sqlc.Webhook) *WebhookEntity {
 		events = []string{}
 	}
 
-	return &WebhookEntity{
-		ID:            row.ID,
-		Name:          row.Name,
-		URL:           row.Url,
-		TemplateType:  row.TemplateType,
-		Secret:        convert.NullStringToStrPtr(row.Secret),
-		CustomHeaders: convert.NullStringToStrPtr(row.CustomHeaders),
-		Events:        events,
-		IsActive:      row.IsActive == 1,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+	e.ID = row.ID
+	e.Name = row.Name
+	e.URL = row.Url
+	e.TemplateType = row.TemplateType
+	e.Secret = convert.NullStringToStrPtr(row.Secret)
+	e.CustomHeaders = convert.NullStringToStrPtr(row.CustomHeaders)
+	e.Events = events
+	e.IsActive = row.IsActive == 1
+	e.CreatedAt = row.CreatedAt.Time
+	e.UpdatedAt = row.UpdatedAt.Time
+
+	return e
+}
+
+func (e *WebhookEntity) ToResponse() *response.WebhookResponse {
+	return &response.WebhookResponse{
+		ID:            e.ID,
+		Name:          e.Name,
+		URL:           e.URL,
+		TemplateType:  e.TemplateType,
+		Secret:        e.Secret,
+		CustomHeaders: e.CustomHeaders,
+		Events:        e.Events,
+		IsActive:      e.IsActive,
+		CreatedAt:     e.CreatedAt,
+		UpdatedAt:     e.UpdatedAt,
 	}
+}
+
+type WebhookEntities []*WebhookEntity
+
+func (e *WebhookEntities) FromSqlc(rows []sqlc.Webhook) []*WebhookEntity {
+	slice := make([]*WebhookEntity, len(rows))
+	flat := make([]WebhookEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromSqlc(row)
+	}
+	return slice
 }

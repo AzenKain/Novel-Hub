@@ -22,14 +22,20 @@ func NewWebhookController(service services.WebhookService) *WebhookController {
 }
 
 func (h *WebhookController) ListWebhooks(c fiber.Ctx) error {
+	dto := request.PaginationDto{Limit: 20}
+	if errs := validator.ValidateQueryDto(c, &dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: errs})
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	list, err := h.service.ListAll(ctx)
+	list, total, err := h.service.ListAll(ctx, int64(dto.Limit), int64(dto.Offset))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: list})
+	page := int(dto.Offset/dto.Limit) + 1
+	return c.Status(fiber.StatusOK).JSON(response.BuildPaginatedResponse(list, total, page, int(dto.Limit)))
 }
 
 func (h *WebhookController) CreateWebhook(c fiber.Ctx) error {

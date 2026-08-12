@@ -1,0 +1,225 @@
+package format
+
+import (
+	"fmt"
+
+	"novelhub/pkg/waxflow/codec"
+	"novelhub/pkg/waxflow/codec/aac"
+	"novelhub/pkg/waxflow/codec/alac"
+	"novelhub/pkg/waxflow/codec/flac"
+	"novelhub/pkg/waxflow/codec/mp3"
+	"novelhub/pkg/waxflow/codec/opus"
+	"novelhub/pkg/waxflow/codec/pcm"
+	"novelhub/pkg/waxflow/codec/vorbis"
+	"novelhub/pkg/waxflow/container"
+	"novelhub/pkg/waxflow/container/adts"
+	"novelhub/pkg/waxflow/container/aiff"
+	"novelhub/pkg/waxflow/container/flacn"
+	"novelhub/pkg/waxflow/container/mka"
+	"novelhub/pkg/waxflow/container/mp4"
+	"novelhub/pkg/waxflow/container/mpa"
+	"novelhub/pkg/waxflow/container/ogg"
+	"novelhub/pkg/waxflow/container/riff"
+	"novelhub/pkg/waxflow/waxerr"
+)
+
+// driver is one row of the ordered sniff table.
+type driver struct {
+	name  string
+	match func(head []byte) bool
+	// need is how many leading bytes match requires. The sniff read is
+	// sized to the largest registered need (capped at sniffLen), so
+	// probing only ever reads what the current table can use.
+	need int
+	exts []string
+	// mediaType is the container's HTTP media type; direct play serves it
+	// from here so no handler maintains its own container-to-type switch.
+	mediaType string
+	open      func(src container.Source, opts *Options) (container.Demuxer, error)
+}
+
+// drivers is the explicit ordered magic table (no blank-import
+// registration). The full v1.0 order is: fLaC, RIFF, FORM, OggS, ftyp,
+// EBML, ADTS syncword, MPEG syncword last (it false-positives); entries
+// appear here as their containers land. flac, wav, aiff, and ogg are in.
+var drivers = []driver{
+	{
+		name:      "flac",
+		match:     flacn.Match,
+		need:      4,
+		exts:      []string{"flac"},
+		mediaType: "audio/flac",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return flacn.NewDemuxer(src, &flacn.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "wav",
+		match:     riff.Match,
+		need:      12,
+		exts:      []string{"wav", "wave", "rf64", "bw64"},
+		mediaType: "audio/wav",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return riff.NewDemuxer(src, &riff.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "aiff",
+		match:     aiff.Match,
+		need:      12,
+		exts:      []string{"aif", "aiff", "aifc", "afc"},
+		mediaType: "audio/aiff",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return aiff.NewDemuxer(src, &aiff.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "ogg",
+		match:     ogg.Match,
+		need:      4,
+		exts:      []string{"ogg", "oga", "opus"},
+		mediaType: "audio/ogg",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return ogg.NewDemuxer(src, &ogg.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "mp4",
+		match:     mp4.Match,
+		need:      mp4.MatchNeed,
+		exts:      []string{"m4a", "m4b", "mp4", "m4r", "mov"},
+		mediaType: "audio/mp4",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return mp4.NewDemuxer(src, &mp4.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "mka",
+		match:     mka.Match,
+		need:      mka.MatchNeed,
+		exts:      []string{"mka", "mkv", "webm"},
+		mediaType: "audio/x-matroska",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return mka.NewDemuxer(src, &mka.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	{
+		name:      "adts",
+		match:     adts.Match,
+		need:      adts.MatchNeed,
+		exts:      []string{"aac", "adts"},
+		mediaType: "audio/aac",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return adts.NewDemuxer(src, &adts.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+	// The MPEG sync word stays last: it is twelve set bits anywhere in a
+	// window, which false-positives on other formats' payloads.
+	{
+		name:      "mp3",
+		match:     mpa.Match,
+		need:      mpa.MatchNeed,
+		exts:      []string{"mp3", "mpga"},
+		mediaType: "audio/mpeg",
+		open: func(src container.Source, opts *Options) (container.Demuxer, error) {
+			return mpa.NewDemuxer(src, &mpa.DemuxerOptions{Strict: opts != nil && opts.Strict})
+		},
+	},
+}
+
+// Inputs lists the registered container drivers in sniff order: the
+// read-side capability surface /caps advertises. Probe and /caps never
+// claim what does not work because this is the same table Probe resolves
+// against.
+func Inputs() []string {
+	names := make([]string, len(drivers))
+	for i := range drivers {
+		names[i] = drivers[i].name
+	}
+	return names
+}
+
+// MediaTypeFor returns the HTTP media type for a registered container
+// name, or application/octet-stream for anything unregistered.
+func MediaTypeFor(name string) string {
+	for i := range drivers {
+		if drivers[i].name == name {
+			return drivers[i].mediaType
+		}
+	}
+	return "application/octet-stream"
+}
+
+// decoders is the codec registry: one table drives both wiring and the
+// Decoders capability list, so the two cannot drift.
+var decoders = []struct {
+	id    codec.ID
+	build func(t container.Track) (codec.Decoder, error)
+}{
+	{codec.PCM, func(t container.Track) (codec.Decoder, error) {
+		cfg, err := pcm.ParseConfig(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return pcm.NewDecoder(cfg, t.Fmt)
+	}},
+	{codec.FLAC, func(t container.Track) (codec.Decoder, error) {
+		si, err := flac.ParseStreamInfo(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return flac.NewDecoder(si, t.Fmt)
+	}},
+	{codec.MP3, func(t container.Track) (codec.Decoder, error) {
+		return mp3.NewDecoder(t.Fmt)
+	}},
+	{codec.ALAC, func(t container.Track) (codec.Decoder, error) {
+		cfg, err := alac.ParseMagicCookie(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return alac.NewDecoder(cfg, t.Fmt)
+	}},
+	{codec.AACLC, func(t container.Track) (codec.Decoder, error) {
+		cfg, err := aac.ParseASC(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return aac.NewDecoder(cfg, t.Fmt)
+	}},
+	{codec.Vorbis, func(t container.Track) (codec.Decoder, error) {
+		cfg, err := vorbis.ParseConfig(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return vorbis.NewDecoder(cfg, t.Fmt)
+	}},
+	{codec.Opus, func(t container.Track) (codec.Decoder, error) {
+		cfg, err := opus.ParseOpusHead(t.CodecConfig)
+		if err != nil {
+			return nil, err
+		}
+		return opus.NewDecoder(cfg, t.Fmt)
+	}},
+}
+
+// Decoders lists the codecs with registered decoders, in registry order.
+func Decoders() []codec.ID {
+	ids := make([]codec.ID, len(decoders))
+	for i := range decoders {
+		ids[i] = decoders[i].id
+	}
+	return ids
+}
+
+// newDecoder builds a decoder for a track, capability-gated the same way
+// the driver table is.
+func newDecoder(t container.Track) (codec.Decoder, error) {
+	for i := range decoders {
+		if decoders[i].id == t.Codec {
+			return decoders[i].build(t)
+		}
+	}
+	return nil, waxerr.New(waxerr.CodeUnsupportedFormat,
+		fmt.Sprintf("format: no decoder registered for codec %q", t.Codec))
+}

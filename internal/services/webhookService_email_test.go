@@ -187,7 +187,7 @@ func TestWebhookListAllStillWorksWithoutSettings(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	list, err := svc.ListAll(ctx)
+	list, _, err := svc.ListAll(ctx, 20, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

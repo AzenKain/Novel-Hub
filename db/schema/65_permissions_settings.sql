@@ -94,6 +94,7 @@ INSERT INTO permissions (key, description) VALUES
     ('kobo.sync', 'Sync reading progress with Kobo devices'),
     ('komga.sync', 'Sync manga and reading progress with Mihon/Tachiyomi'),
     ('calibre.sync', 'Sync and import from Calibre server'),
+    ('podcast.manage', 'Manage podcast subscriptions and downloads'),
     ('admin.access', 'Access admin dashboard'),
     ('user.manage', 'Manage user accounts and roles'),
     ('role.manage', 'Manage roles and permissions'),

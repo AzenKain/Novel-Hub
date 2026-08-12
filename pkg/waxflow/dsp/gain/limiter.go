@@ -1,0 +1,436 @@
+package gain
+
+import (
+	"fmt"
+	"math"
+	"time"
+
+	"novelhub/pkg/waxflow/dsp/internal/firwin"
+	"novelhub/pkg/waxflow/waxerr"
+)
+
+// LimiterVersion is the limiter node's revision for cache keys: bump on
+// any change to detection, smoothing constants, or the clamp (plan
+// section 10).
+//
+// limiter-2 is the settle horizon (see Horizon). The kernel's arithmetic
+// did not change, so a whole-file transcode is byte-identical to
+// limiter-1's; a segmented run starting mid-stream is not, because the old
+// flat 100 ms priming left the gain envelope short of convergence and the
+// segments it produced were not the ones a continuous run produces. This
+// constant is the right one to bump for that even so: it is in the cache
+// key exactly when the limiter is in the chain, which is exactly when the
+// bytes change.
+//
+// limiter-3 replaces the one-pole attack with the min-hold envelope on
+// Limiter. Output bytes change wherever the limiter engages.
+const LimiterVersion = "limiter-3"
+
+// limiterRelease is the gain-recovery time constant: 50 ms to climb back
+// after a peak passes. It is the limiter's slow pole, so it sets Horizon.
+const limiterRelease = 50 * time.Millisecond
+
+// DefaultCeilingDB is the default limiter ceiling in dBTP. -1 dB is the
+// EBU R128 s1 headroom convention and leaves margin for the 4x detector's
+// small underestimate of true inter-sample peaks.
+const DefaultCeilingDB = -1.0
+
+// Limiter is a look-ahead true-peak limiter: peaks are detected on a 4x
+// oversampled estimate (BS.1770-4 style), the gain falls before each peak
+// arrives over a 5 ms look-ahead window and releases over 50 ms after it
+// passes, all channels sharing one gain so the stereo image cannot shift.
+//
+// The ceiling holds by construction. With L the look-ahead window and
+// r[k] = min(1, ceil/peak[k]):
+//
+//	m[n]    = min of r[k] over k in [n, n+L]        // min-hold
+//	gRel[n] = min(m[n], gRel[n-1] + (1-gRel[n-1])*aRel)
+//	g[n]    = sum of h[d]*gRel[n-d] over d in [0, L]
+//
+// h is non-negative, sums to 1, and its support fits inside L (two cascaded
+// box averages), so every tap was already constrained by the peak at n:
+// g[n] <= r[n] = ceil/peak[n], at every sample. The sample clamp below is a
+// float-rounding backstop and is inert. See docs/quality-gates.md.
+//
+// Latency is fully compensated, and an under-ceiling signal passes through
+// bit-exactly. Deterministic, not safe for concurrent use.
+type Limiter struct {
+	channels int
+	ceil     float64
+	look     int // look-ahead window W in frames
+	aRel     float64
+
+	// 4x interpolator phases 1..3 (phase 0 is the sample itself). Fixed
+	// size so the detect loop's bounds are compile-time constants.
+	interp [3][interpTaps]float32
+
+	// Pending samples occupy buf[c][:have]; buf[c][0] is absolute input
+	// index start. peaks is index-aligned with buf. All cursors are
+	// absolute input indices, so window math survives compaction.
+	buf   [][]float32
+	peaks []float32
+	start int64 // absolute index of buf[c][0]
+	base  int64 // absolute index of the next frame to emit
+	have  int
+	pk    int64 // absolute index up to which peaks are computed (exclusive)
+
+	deque    []maxEntry // sliding-max candidates, values decreasing
+	dqHead   int
+	pushed   int64 // absolute index up to which peaks were offered to the deque
+	gRel     float64
+	box1     boxAvg // the two cascaded box averages that make up h
+	box2     boxAvg
+	primed   bool // the smoother's pre-stream history has been filled
+	draining bool
+
+	clamped int // samples the ceiling clamp modified; inert by construction
+}
+
+// boxAvg is a running box average, the building block of the gain smoother.
+// The sum is fixed point because an int64 sum is exact, making the average a
+// pure function of the window's contents: a float64 running sum drifts with
+// history, which leaves a restarted segment permanently a few ulps off the
+// continuous run it must rejoin. See TestLimiterSettlerRejoin.
+type boxAvg struct {
+	ring []int64
+	sum  int64
+	idx  int
+}
+
+// boxScale is the smoother's fixed-point unit: a 2^-40 quantum on a gain in
+// [0, 1], five orders below float32 output resolution.
+const boxScale = 1 << 40
+
+// maxLimiterRate bounds the accepted rate (ADR-0005). audio.Format.Valid
+// rejects only a non-positive one and RIFF carries 32 bits, but past ~3.28 MHz
+// the len(ring)*boxScale divisor wraps negative and silently inverts the gain.
+const maxLimiterRate = 1 << 20
+
+// quantizeGain maps a gain in [0, 1] onto the fixed-point grid, rounding down
+// so q(v) <= v and the ceiling bound survives quantization.
+func quantizeGain(v float64) int64 {
+	switch {
+	case v <= 0:
+		return 0
+	case v >= 1:
+		return boxScale
+	}
+	return int64(v * boxScale) // truncates toward zero
+}
+
+// fill sets the whole window to v, so the next step returns v (quantized).
+func (b *boxAvg) fill(v float64) {
+	q := quantizeGain(v)
+	for i := range b.ring {
+		b.ring[i] = q
+	}
+	b.sum = q * int64(len(b.ring))
+	b.idx = 0
+}
+
+func (b *boxAvg) step(v float64) float64 {
+	q := quantizeGain(v)
+	b.sum += q - b.ring[b.idx]
+	b.ring[b.idx] = q
+	if b.idx++; b.idx == len(b.ring) {
+		b.idx = 0
+	}
+	return float64(b.sum) / float64(int64(len(b.ring))*boxScale)
+}
+
+type maxEntry struct {
+	idx int64
+	v   float32
+}
+
+// interpTaps is the per-phase tap count of the 4x true-peak interpolator
+// (16 taps reach 8 input samples on either side of the evaluation point).
+const interpTaps = 16
+
+// NewLimiter returns a limiter for one stream. ceilingDB is the true-peak
+// ceiling in dBTP, at most 0; pass DefaultCeilingDB unless the caller has
+// a reason not to.
+func NewLimiter(rate, channels int, ceilingDB float64) (*Limiter, error) {
+	if rate <= 0 {
+		return nil, waxerr.New(waxerr.CodeInvalidRequest,
+			fmt.Sprintf("gain: limiter rate %d must be positive", rate))
+	}
+	if channels < 1 {
+		return nil, waxerr.New(waxerr.CodeInvalidRequest,
+			fmt.Sprintf("gain: limiter channel count %d must be positive", channels))
+	}
+	if rate > maxLimiterRate {
+		return nil, waxerr.New(waxerr.CodeInvalidRequest,
+			fmt.Sprintf("gain: limiter rate %d above the %d ceiling", rate, maxLimiterRate))
+	}
+	if ceilingDB > 0 {
+		return nil, waxerr.New(waxerr.CodeInvalidRequest,
+			fmt.Sprintf("gain: limiter ceiling %+.2f dB is above full scale", ceilingDB))
+	}
+	l := &Limiter{
+		channels: channels,
+		ceil:     FromDB(ceilingDB),
+		look:     max(rate/200, 32), // 5 ms
+	}
+	l.aRel = 1 - math.Exp(-1/(limiterRelease.Seconds()*float64(rate)))
+	// Two boxes of look/2+1 taps cascade to a triangular kernel spanning
+	// delays 0..look, which is what keeps the bound inside the window.
+	box := l.look/2 + 1
+	l.box1.ring = make([]int64, box)
+	l.box2.ring = make([]int64, box)
+	l.designInterp()
+
+	capFrames := l.look + interpTaps + 4096
+	l.buf = make([][]float32, channels)
+	for c := range l.buf {
+		l.buf[c] = make([]float32, capFrames)
+	}
+	l.peaks = make([]float32, capFrames)
+	l.Reset()
+	return l, nil
+}
+
+// Horizon reports the pre-roll a restarted run needs before its output
+// rejoins a continuous run's bit-exactly (dsp.Settler): 2 s, from the 50 ms
+// release. See Compressor.Horizon; the smoother's 5 ms of history sits far
+// inside it.
+func (l *Limiter) Horizon() time.Duration {
+	return time.Duration(settleTimeConstants * float64(limiterRelease))
+}
+
+// Reset clears all state for a new stream segment.
+func (l *Limiter) Reset() {
+	l.start, l.base, l.have, l.pk, l.pushed = 0, 0, 0, 0, 0
+	l.deque = l.deque[:0]
+	l.dqHead = 0
+	l.gRel = 1
+	// The boxes are filled by the first emit, from gRel[0].
+	l.primed = false
+	l.clamped = 0
+	l.draining = false
+}
+
+// Process consumes frames from src and produces limited frames into dst,
+// per channel, in lockstep, returning the counts written and consumed.
+// Output lags input by the look-ahead window until Drain flushes the
+// tail, so a Process call can produce less than it consumes (or nothing).
+func (l *Limiter) Process(dst, src [][]float32) (produced, consumed int) {
+	if l.draining {
+		panic("gain: limiter Process after Drain")
+	}
+	if len(dst) != l.channels || len(src) != l.channels {
+		panic("gain: limiter channel count mismatch")
+	}
+	checkFrames("limiter source", src)
+	space := checkFrames("limiter destination", dst)
+	for {
+		// Append what fits after sliding out the emitted prefix.
+		l.compact()
+		take := min(len(l.buf[0])-l.have, len(src[0])-consumed)
+		for c := range l.buf {
+			copy(l.buf[c][l.have:], src[c][consumed:consumed+take])
+		}
+		l.have += take
+		consumed += take
+
+		l.detect(false)
+		produced += l.emit(dst, produced, space, false)
+		if produced >= space || consumed >= len(src[0]) {
+			return produced, consumed
+		}
+	}
+}
+
+// Drain flushes the delayed tail after the final Process call. Call
+// repeatedly with non-empty dst slices until it returns 0.
+func (l *Limiter) Drain(dst [][]float32) (produced int) {
+	if len(dst) != l.channels {
+		panic("gain: limiter channel count mismatch")
+	}
+	checkFrames("limiter drain destination", dst)
+	l.draining = true
+	l.detect(true)
+	return l.emit(dst, 0, len(dst[0]), true)
+}
+
+// compact drops emitted frames from the buffer front. The emit cursor is
+// the low-water mark: emission trails detection by the look-ahead window
+// (base <= pk-look-1), and detection reads at most interpTaps/2-1 samples
+// behind pk, so nothing below base is ever read again.
+func (l *Limiter) compact() {
+	drop := int(l.base - l.start)
+	if drop <= 0 {
+		return
+	}
+	for c := range l.buf {
+		copy(l.buf[c], l.buf[c][drop:l.have])
+	}
+	copy(l.peaks, l.peaks[drop:l.have])
+	l.have -= drop
+	l.start = l.base
+}
+
+// detect advances peak computation. The peak at index j reads samples
+// j-7..j+8 through the interpolator, so it needs 8 samples of future;
+// draining treats past-the-end samples as silence.
+//
+// The steady-state path re-slices the window to the interpolator's
+// fixed length, so the tap loops carry no bounds checks; only the first
+// half-window of a stream and the draining tail take the guarded path.
+func (l *Limiter) detect(draining bool) {
+	const half = interpTaps / 2
+	end := l.have - half // last index with a full future window, exclusive
+	if draining {
+		end = l.have
+	}
+	for j := int(l.pk - l.start); j < end; j++ {
+		var peak float32
+		for c := range l.buf {
+			buf := l.buf[c]
+			if v := abs32(buf[j]); v > peak {
+				peak = v
+			}
+			if lo := j - half + 1; lo >= 0 && j+half < l.have {
+				win := (*[interpTaps]float32)(buf[lo : lo+interpTaps])
+				for p := range l.interp {
+					phase := &l.interp[p]
+					var acc float32
+					for t := 0; t < interpTaps; t++ {
+						acc += phase[t] * win[t]
+					}
+					if a := abs32(acc); a > peak {
+						peak = a
+					}
+				}
+			} else {
+				peak = l.detectEdge(buf, j, peak)
+			}
+		}
+		l.peaks[j] = peak
+		l.pk++
+	}
+}
+
+// detectEdge is detect's guarded path for windows that spill past the
+// buffered samples: the stream head (history is silence) and the
+// draining tail (the future is silence).
+func (l *Limiter) detectEdge(buf []float32, j int, peak float32) float32 {
+	const half = interpTaps / 2
+	for p := range l.interp {
+		phase := &l.interp[p]
+		var acc float32
+		for t := 0; t < interpTaps; t++ {
+			if i := j - half + 1 + t; i >= 0 && i < l.have {
+				acc += phase[t] * buf[i]
+			}
+		}
+		if a := abs32(acc); a > peak {
+			peak = a
+		}
+	}
+	return peak
+}
+
+// emit produces limited output frames starting at dst offset off. Each
+// output needs the peak window [n, n+look] fully detected; draining
+// shrinks the window at the stream tail.
+func (l *Limiter) emit(dst [][]float32, off, space int, draining bool) (produced int) {
+	ceil := float32(l.ceil)
+	for off+produced < space {
+		n := l.base
+		winEnd := n + int64(l.look)
+		if !draining && l.pk <= winEnd {
+			return produced
+		}
+		if draining && n >= l.pk {
+			return produced
+		}
+
+		// Offer newly detected peaks up to the window end to the deque,
+		// then drop entries that fell out of the window front.
+		for ; l.pushed < min(winEnd+1, l.pk); l.pushed++ {
+			v := l.peaks[l.pushed-l.start]
+			for len(l.deque) > l.dqHead && l.deque[len(l.deque)-1].v <= v {
+				l.deque = l.deque[:len(l.deque)-1]
+			}
+			l.deque = append(l.deque, maxEntry{l.pushed, v})
+		}
+		for l.dqHead < len(l.deque) && l.deque[l.dqHead].idx < n {
+			l.dqHead++
+		}
+		if l.dqHead > 0 && l.dqHead*2 > len(l.deque) {
+			n := copy(l.deque, l.deque[l.dqHead:])
+			l.deque = l.deque[:n]
+			l.dqHead = 0
+		}
+
+		// The deque head is the largest peak in [n, n+look], so this is m[n].
+		m := 1.0
+		if env := float64(l.deque[l.dqHead].v); env > l.ceil {
+			m = l.ceil / env
+		}
+		// gRel falls to the min-hold at once, recovers at the release pole.
+		if rel := l.gRel + (1-l.gRel)*l.aRel; rel < m {
+			l.gRel = rel
+		} else {
+			l.gRel = m
+		}
+
+		// The smoother's pre-stream history is fictitious. Unity breaks the
+		// bound (the taps hold g[0] near 1 while gRel has already fallen);
+		// gRel[0] == m[0] is the smallest gain required in [0, look], so it is
+		// at or below r[n] for every n the history can reach.
+		if !l.primed {
+			l.box1.fill(l.gRel)
+			l.box2.fill(l.gRel)
+			l.primed = true
+		}
+
+		i := int(n - l.start)
+		g := float32(l.box2.step(l.box1.step(l.gRel)))
+		for c := range l.buf {
+			v := l.buf[c][i] * g
+			if v > ceil {
+				v, l.clamped = ceil, l.clamped+1
+			} else if v < -ceil {
+				v, l.clamped = -ceil, l.clamped+1
+			}
+			dst[c][off+produced] = v
+		}
+		produced++
+		l.base++
+	}
+	return produced
+}
+
+// designInterp builds the three fractional phases of the 4x Kaiser
+// windowed-sinc interpolator (the integer phase is the sample itself).
+// Modest attenuation is plenty for a peak detector; the ceiling's
+// headroom absorbs the estimate error.
+func (l *Limiter) designInterp() {
+	const beta = 3.67 // Kaiser for ~42 dB stopband at this length
+	half := interpTaps / 2
+	i0 := firwin.BesselI0(beta)
+	for p := 1; p <= 3; p++ {
+		c := &l.interp[p-1]
+		frac := float64(p) / 4
+		var sum float64
+		for t := 0; t < interpTaps; t++ {
+			// Tap t weighs sample j-half+1+t for the value at j+frac.
+			x := frac - float64(t-half+1)
+			w := firwin.BesselI0(beta*math.Sqrt(1-(x/float64(half))*(x/float64(half)))) / i0
+			c[t] = float32(firwin.Sinc(x) * w)
+			sum += float64(c[t])
+		}
+		for t := range c {
+			c[t] = float32(float64(c[t]) / sum) // unity DC gain per phase
+		}
+	}
+}
+
+func abs32(x float32) float32 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}

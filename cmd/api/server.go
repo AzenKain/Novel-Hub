@@ -245,11 +245,17 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	magicCodeService := services.NewMagicCodeService(magicCodeRepo, userRepo, authService)
 	ageRatingRepo := repositories.NewAgeRatingRepository(db, ramCache)
 	ageRatingService := services.NewAgeRatingService(ageRatingRepo)
+	audiobookRepo := repositories.NewAudiobookRepository(db, ramCache)
+	audiobookService := services.NewAudiobookService(audiobookRepo, bookRepo, bookFileRepo, jobQueue)
+	podcastRepo := repositories.NewPodcastRepository(db, ramCache)
+	podcastService := services.NewPodcastService(podcastRepo, bookRepo, bookFileRepo, libraryRepo, jobQueue)
 
 	authController := controllers.NewAuthController(authService)
 	oauthController := controllers.NewOAuthController(authService, settingsService)
 	magicCodeController := controllers.NewMagicCodeController(magicCodeService, settingsService)
 	ageRatingController := controllers.NewAgeRatingController(ageRatingService)
+	audiobookController := controllers.NewAudiobookController(audiobookService)
+	podcastController := controllers.NewPodcastController(podcastService)
 	userController := controllers.NewUserController(userService, auditService)
 	roleController := controllers.NewRoleController(roleService, auditService)
 	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache, auditService)
@@ -326,6 +332,18 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	jobQueue.RegisterHandler("prune_finished_jobs", func(ctx context.Context, jobID string, payload string) error {
 		return jobService.PruneFinishedJobs(ctx)
+	})
+
+	jobQueue.RegisterHandler("merge_audio", func(ctx context.Context, jobID string, payload string) error {
+		return audiobookService.ExecuteMergeAudioJob(ctx, payload)
+	})
+
+	jobQueue.RegisterHandler("podcast_refresh", func(ctx context.Context, jobID string, payload string) error {
+		return podcastService.ExecutePodcastRefreshJob(ctx, payload)
+	})
+
+	jobQueue.RegisterHandler("podcast_download", func(ctx context.Context, jobID string, payload string) error {
+		return podcastService.ExecutePodcastDownloadJob(ctx, payload)
 	})
 
 	jobQueue.RegisterHandler("prune_audit_logs", func(ctx context.Context, jobID string, payload string) error {
@@ -413,6 +431,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.AuthRoutes(v1, authController, oauthController, userRepo, settingsService)
 	routes.MagicCodeRoutes(v1, magicCodeController, userRepo, settingsService)
 	routes.AgeRatingRoutes(v1, ageRatingController, userRepo, permissionCache)
+	routes.AudiobookRoutes(v1, audiobookController, userRepo, bookRepo, permissionCache)
+	routes.PodcastRoutes(v1, podcastController, userRepo, podcastRepo, permissionCache)
 	routes.UserRoutes(v1, userController, userRepo, permissionCache)
 	routes.RoleRoutes(v1, roleController, userRepo, permissionCache)
 	routes.BookRoutes(v1, bookController, userRepo, bookRepo, permissionCache)

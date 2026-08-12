@@ -57,6 +57,45 @@ type ReadingHeatmapResponse struct {
 	WordsRead       int64     `json:"words_read"`
 }
 
+type ReadingStatsSummaryResponse struct {
+	CurrentStreakDays  int64 `json:"current_streak_days"`
+	LongestStreakDays  int64 `json:"longest_streak_days"`
+	TotalActiveDays    int64 `json:"total_active_days"`
+	TotalWords         int64 `json:"total_words"`
+	TotalMinutes       int64 `json:"total_minutes"`
+	WordsToday         int64 `json:"words_today"`
+	WordsTodayTarget   int64 `json:"words_today_target"`
+	BooksPerYearTarget int64 `json:"books_per_year_target"`
+}
+
+type ReadingETAResponse struct {
+	PaceWordsPerMin float64 `json:"pace_words_per_min"`
+	WordsRead       int64   `json:"words_read"`
+	RemainingWords  int64   `json:"remaining_words"`
+	EtaMinutes      int64   `json:"eta_minutes"`
+	Percent         float64 `json:"percent"`
+}
+
+type NameCountResponse struct {
+	Name  string `json:"name"`
+	Count int64  `json:"count"`
+}
+
+type LibraryBreakdownResponse struct {
+	Formats    []NameCountResponse   `json:"formats"`
+	Tags       []NameCountResponse   `json:"tags"`
+	Authors    []NameCountResponse   `json:"authors"`
+	Publishers []NameCountResponse   `json:"publishers"`
+	Languages  []NameCountResponse   `json:"languages"`
+	Listening  []ListeningMonthCount `json:"listening"`
+	AvgSpeedWpm float64               `json:"avg_speed_wpm"`
+}
+
+type ListeningMonthCount struct {
+	Month string `json:"month"`
+	Hours int64  `json:"hours"`
+}
+
 type CollectionResponse struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`

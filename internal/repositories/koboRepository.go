@@ -50,16 +50,36 @@ func (r *koboRepository) UpsertAuthToken(ctx context.Context, token, userID stri
 	if err != nil {
 		return nil, err
 	}
-	r.invalidate(ctx, userID)
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKoboTokenPattern)
+		_ = r.c.Del(ctx, cache.BuildKey("kobo", "user", userID))
+	}
 	return (&models.KoboAuthTokenEntity{}).FromSqlc(row), nil
 }
 
 func (r *koboRepository) GetAuthTokenByUser(ctx context.Context, userID string) (*models.KoboAuthTokenEntity, error) {
-	row, err := r.q.GetKoboAuthToken(ctx, userID)
+	key := cache.BuildKey("kobo", "user", userID)
+	if r.c != nil && !r.inTx {
+		var entity models.KoboAuthTokenEntity
+		if err := r.c.Get(ctx, key, &entity); err == nil {
+			return &entity, nil
+		}
+	}
+	value, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.q.GetKoboAuthToken(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		entity := (&models.KoboAuthTokenEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
+		}
+		return entity, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	return (&models.KoboAuthTokenEntity{}).FromSqlc(row), nil
+	return value.(*models.KoboAuthTokenEntity), nil
 }
 
 // ResolveToken runs on every single device request, so it is cached by token. The token is
@@ -97,32 +117,77 @@ func (r *koboRepository) DeleteAuthToken(ctx context.Context, userID string) err
 	if err := r.q.DeleteKoboAuthToken(ctx, userID); err != nil {
 		return err
 	}
-	r.invalidate(ctx, userID)
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKoboTokenPattern)
+		_ = r.c.Del(ctx, cache.BuildKey("kobo", "user", userID))
+	}
 	return nil
 }
 
 func (r *koboRepository) MarkBookSynced(ctx context.Context, userID, bookID string) error {
-	return r.q.MarkKoboBookSynced(ctx, sqlc.MarkKoboBookSyncedParams{UserID: userID, BookID: bookID})
+	if err := r.q.MarkKoboBookSynced(ctx, sqlc.MarkKoboBookSyncedParams{UserID: userID, BookID: bookID}); err != nil {
+		return err
+	}
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("kobo", "synced_ids", userID), cache.BuildKey("kobo", "synced_count", userID))
+	}
+	return nil
 }
 
 func (r *koboRepository) SyncedBookIDs(ctx context.Context, userID string) ([]string, error) {
-	return r.q.ListKoboSyncedBookIDs(ctx, userID)
+	key := cache.BuildKey("kobo", "synced_ids", userID)
+	if r.c != nil && !r.inTx {
+		var cached []string
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return cached, nil
+		}
+	}
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		ids, err := r.q.ListKoboSyncedBookIDs(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.NormalCacheDuration)
+		}
+		return ids, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]string), nil
 }
 
 func (r *koboRepository) CountSyncedBooks(ctx context.Context, userID string) (int64, error) {
-	return r.q.CountKoboSyncedBooks(ctx, userID)
+	key := cache.BuildKey("kobo", "synced_count", userID)
+	if r.c != nil && !r.inTx {
+		var count int64
+		if err := r.c.Get(ctx, key, &count); err == nil {
+			return count, nil
+		}
+	}
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		count, err := r.q.CountKoboSyncedBooks(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, count, constants.NormalCacheDuration)
+		}
+		return count, nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return v.(int64), nil
 }
 
 func (r *koboRepository) ResetSyncedBooks(ctx context.Context, userID string) error {
-	return r.q.DeleteKoboSyncedBooks(ctx, userID)
-}
-
-// invalidate drops the token cache. The old token string is not known here, so the whole
-// kobo token namespace is cleared — it holds one entry per paired device, so this is cheap.
-func (r *koboRepository) invalidate(ctx context.Context, userID string) {
-	if r.c == nil {
-		return
+	if err := r.q.DeleteKoboSyncedBooks(ctx, userID); err != nil {
+		return err
 	}
-	_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKoboTokenPattern)
-	_ = r.c.Del(ctx, cache.BuildKey("kobo", "user", userID))
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("kobo", "synced_ids", userID), cache.BuildKey("kobo", "synced_count", userID))
+	}
+	return nil
 }

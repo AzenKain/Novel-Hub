@@ -99,6 +99,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countBooksInReadListsStmt, err = db.PrepareContext(ctx, countBooksInReadLists); err != nil {
 		return nil, fmt.Errorf("error preparing query CountBooksInReadLists: %w", err)
 	}
+	if q.countCompletedBooksThisYearStmt, err = db.PrepareContext(ctx, countCompletedBooksThisYear); err != nil {
+		return nil, fmt.Errorf("error preparing query CountCompletedBooksThisYear: %w", err)
+	}
 	if q.countFilesForBookStmt, err = db.PrepareContext(ctx, countFilesForBook); err != nil {
 		return nil, fmt.Errorf("error preparing query CountFilesForBook: %w", err)
 	}
@@ -122,6 +125,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.countUsersFTSStmt, err = db.PrepareContext(ctx, countUsersFTS); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUsersFTS: %w", err)
+	}
+	if q.countWebhooksStmt, err = db.PrepareContext(ctx, countWebhooks); err != nil {
+		return nil, fmt.Errorf("error preparing query CountWebhooks: %w", err)
 	}
 	if q.createAuditLogStmt, err = db.PrepareContext(ctx, createAuditLog); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateAuditLog: %w", err)
@@ -162,6 +168,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createMagicCodeStmt, err = db.PrepareContext(ctx, createMagicCode); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateMagicCode: %w", err)
 	}
+	if q.createPodcastStmt, err = db.PrepareContext(ctx, createPodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query CreatePodcast: %w", err)
+	}
 	if q.createPublisherStmt, err = db.PrepareContext(ctx, createPublisher); err != nil {
 		return nil, fmt.Errorf("error preparing query CreatePublisher: %w", err)
 	}
@@ -197,6 +206,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.databaseHealthCheckStmt, err = db.PrepareContext(ctx, databaseHealthCheck); err != nil {
 		return nil, fmt.Errorf("error preparing query DatabaseHealthCheck: %w", err)
+	}
+	if q.deleteAudiobookChapterStmt, err = db.PrepareContext(ctx, deleteAudiobookChapter); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteAudiobookChapter: %w", err)
+	}
+	if q.deleteAudiobookChaptersForBookStmt, err = db.PrepareContext(ctx, deleteAudiobookChaptersForBook); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteAudiobookChaptersForBook: %w", err)
 	}
 	if q.deleteBookStmt, err = db.PrepareContext(ctx, deleteBook); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteBook: %w", err)
@@ -240,6 +255,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteLibraryStmt, err = db.PrepareContext(ctx, deleteLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteLibrary: %w", err)
 	}
+	if q.deletePodcastStmt, err = db.PrepareContext(ctx, deletePodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query DeletePodcast: %w", err)
+	}
 	if q.deleteReadListStmt, err = db.PrepareContext(ctx, deleteReadList); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteReadList: %w", err)
 	}
@@ -278,6 +296,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getAppSettingsByKeysStmt, err = db.PrepareContext(ctx, getAppSettingsByKeys); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAppSettingsByKeys: %w", err)
+	}
+	if q.getAudiobookChapterStmt, err = db.PrepareContext(ctx, getAudiobookChapter); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAudiobookChapter: %w", err)
 	}
 	if q.getAuthorByIdStmt, err = db.PrepareContext(ctx, getAuthorById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAuthorById: %w", err)
@@ -420,6 +441,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getLibraryStatsStmt, err = db.PrepareContext(ctx, getLibraryStats); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLibraryStats: %w", err)
 	}
+	if q.getListeningHistoryStmt, err = db.PrepareContext(ctx, getListeningHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query GetListeningHistory: %w", err)
+	}
+	if q.getListeningStatsStmt, err = db.PrepareContext(ctx, getListeningStats); err != nil {
+		return nil, fmt.Errorf("error preparing query GetListeningStats: %w", err)
+	}
 	if q.getMagicCodeByCodeStmt, err = db.PrepareContext(ctx, getMagicCodeByCode); err != nil {
 		return nil, fmt.Errorf("error preparing query GetMagicCodeByCode: %w", err)
 	}
@@ -434,6 +461,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getPermissionsByKeysStmt, err = db.PrepareContext(ctx, getPermissionsByKeys); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPermissionsByKeys: %w", err)
+	}
+	if q.getPodcastStmt, err = db.PrepareContext(ctx, getPodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPodcast: %w", err)
+	}
+	if q.getPodcastByFeedURLStmt, err = db.PrepareContext(ctx, getPodcastByFeedURL); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPodcastByFeedURL: %w", err)
+	}
+	if q.getPodcastEpisodeStmt, err = db.PrepareContext(ctx, getPodcastEpisode); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPodcastEpisode: %w", err)
 	}
 	if q.getPublisherByNameStmt, err = db.PrepareContext(ctx, getPublisherByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPublisherByName: %w", err)
@@ -452,6 +488,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getReadingProgressStmt, err = db.PrepareContext(ctx, getReadingProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query GetReadingProgress: %w", err)
+	}
+	if q.getReadingStatsByBookStmt, err = db.PrepareContext(ctx, getReadingStatsByBook); err != nil {
+		return nil, fmt.Errorf("error preparing query GetReadingStatsByBook: %w", err)
+	}
+	if q.getReadingStatsSinceStmt, err = db.PrepareContext(ctx, getReadingStatsSince); err != nil {
+		return nil, fmt.Errorf("error preparing query GetReadingStatsSince: %w", err)
 	}
 	if q.getRecentReadingHistoryStmt, err = db.PrepareContext(ctx, getRecentReadingHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRecentReadingHistory: %w", err)
@@ -546,6 +588,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getWebhookByIDStmt, err = db.PrepareContext(ctx, getWebhookByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetWebhookByID: %w", err)
 	}
+	if q.getWebhooksByIDsStmt, err = db.PrepareContext(ctx, getWebhooksByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetWebhooksByIDs: %w", err)
+	}
 	if q.insertFTSChapterStmt, err = db.PrepareContext(ctx, insertFTSChapter); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertFTSChapter: %w", err)
 	}
@@ -558,8 +603,8 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.linkBookSeriesStmt, err = db.PrepareContext(ctx, linkBookSeries); err != nil {
 		return nil, fmt.Errorf("error preparing query LinkBookSeries: %w", err)
 	}
-	if q.listActiveWebhooksStmt, err = db.PrepareContext(ctx, listActiveWebhooks); err != nil {
-		return nil, fmt.Errorf("error preparing query ListActiveWebhooks: %w", err)
+	if q.listActiveWebhookIDsStmt, err = db.PrepareContext(ctx, listActiveWebhookIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListActiveWebhookIDs: %w", err)
 	}
 	if q.listAllFilesStmt, err = db.PrepareContext(ctx, listAllFiles); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAllFiles: %w", err)
@@ -567,11 +612,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listAllReviewsStmt, err = db.PrepareContext(ctx, listAllReviews); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAllReviews: %w", err)
 	}
-	if q.listAllWebhooksStmt, err = db.PrepareContext(ctx, listAllWebhooks); err != nil {
-		return nil, fmt.Errorf("error preparing query ListAllWebhooks: %w", err)
+	if q.listAllWebhookIDsStmt, err = db.PrepareContext(ctx, listAllWebhookIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAllWebhookIDs: %w", err)
 	}
 	if q.listAppSettingKeysStmt, err = db.PrepareContext(ctx, listAppSettingKeys); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAppSettingKeys: %w", err)
+	}
+	if q.listAudiobookChaptersStmt, err = db.PrepareContext(ctx, listAudiobookChapters); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAudiobookChapters: %w", err)
 	}
 	if q.listAuditActionsStmt, err = db.PrepareContext(ctx, listAuditActions); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAuditActions: %w", err)
@@ -599,6 +647,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listDueJobScheduleIDsStmt, err = db.PrepareContext(ctx, listDueJobScheduleIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListDueJobScheduleIDs: %w", err)
+	}
+	if q.listEpisodeGuidsByPodcastStmt, err = db.PrepareContext(ctx, listEpisodeGuidsByPodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query ListEpisodeGuidsByPodcast: %w", err)
+	}
+	if q.listEpisodesByPodcastStmt, err = db.PrepareContext(ctx, listEpisodesByPodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query ListEpisodesByPodcast: %w", err)
 	}
 	if q.listFileIDsByBookIdStmt, err = db.PrepareContext(ctx, listFileIDsByBookId); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFileIDsByBookId: %w", err)
@@ -638,6 +692,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listPermissionsStmt, err = db.PrepareContext(ctx, listPermissions); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPermissions: %w", err)
+	}
+	if q.listPodcastIDsStmt, err = db.PrepareContext(ctx, listPodcastIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListPodcastIDs: %w", err)
+	}
+	if q.listPodcastsWithCountsStmt, err = db.PrepareContext(ctx, listPodcastsWithCounts); err != nil {
+		return nil, fmt.Errorf("error preparing query ListPodcastsWithCounts: %w", err)
 	}
 	if q.listPublishersWithCountStmt, err = db.PrepareContext(ctx, listPublishersWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPublishersWithCount: %w", err)
@@ -744,6 +804,21 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setReadListBookPositionStmt, err = db.PrepareContext(ctx, setReadListBookPosition); err != nil {
 		return nil, fmt.Errorf("error preparing query SetReadListBookPosition: %w", err)
 	}
+	if q.statsByAuthorStmt, err = db.PrepareContext(ctx, statsByAuthor); err != nil {
+		return nil, fmt.Errorf("error preparing query StatsByAuthor: %w", err)
+	}
+	if q.statsByFormatStmt, err = db.PrepareContext(ctx, statsByFormat); err != nil {
+		return nil, fmt.Errorf("error preparing query StatsByFormat: %w", err)
+	}
+	if q.statsByLanguageStmt, err = db.PrepareContext(ctx, statsByLanguage); err != nil {
+		return nil, fmt.Errorf("error preparing query StatsByLanguage: %w", err)
+	}
+	if q.statsByPublisherStmt, err = db.PrepareContext(ctx, statsByPublisher); err != nil {
+		return nil, fmt.Errorf("error preparing query StatsByPublisher: %w", err)
+	}
+	if q.statsByTagStmt, err = db.PrepareContext(ctx, statsByTag); err != nil {
+		return nil, fmt.Errorf("error preparing query StatsByTag: %w", err)
+	}
 	if q.touchKoboAuthTokenStmt, err = db.PrepareContext(ctx, touchKoboAuthToken); err != nil {
 		return nil, fmt.Errorf("error preparing query TouchKoboAuthToken: %w", err)
 	}
@@ -755,6 +830,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateCollectionStmt, err = db.PrepareContext(ctx, updateCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateCollection: %w", err)
+	}
+	if q.updateEpisodeDownloadedStmt, err = db.PrepareContext(ctx, updateEpisodeDownloaded); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateEpisodeDownloaded: %w", err)
 	}
 	if q.updateFileHashStmt, err = db.PrepareContext(ctx, updateFileHash); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateFileHash: %w", err)
@@ -770,6 +848,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateLibraryStmt, err = db.PrepareContext(ctx, updateLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateLibrary: %w", err)
+	}
+	if q.updatePodcastStmt, err = db.PrepareContext(ctx, updatePodcast); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdatePodcast: %w", err)
 	}
 	if q.updateProfileStmt, err = db.PrepareContext(ctx, updateProfile); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateProfile: %w", err)
@@ -822,6 +903,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertAppSettingStmt, err = db.PrepareContext(ctx, upsertAppSetting); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertAppSetting: %w", err)
 	}
+	if q.upsertAudiobookChapterStmt, err = db.PrepareContext(ctx, upsertAudiobookChapter); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertAudiobookChapter: %w", err)
+	}
 	if q.upsertBookDownloadStatsStmt, err = db.PrepareContext(ctx, upsertBookDownloadStats); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertBookDownloadStats: %w", err)
 	}
@@ -845,6 +929,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.upsertKoboAuthTokenStmt, err = db.PrepareContext(ctx, upsertKoboAuthToken); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertKoboAuthToken: %w", err)
+	}
+	if q.upsertPodcastEpisodeStmt, err = db.PrepareContext(ctx, upsertPodcastEpisode); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertPodcastEpisode: %w", err)
 	}
 	if q.upsertReadingProgressStmt, err = db.PrepareContext(ctx, upsertReadingProgress); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertReadingProgress: %w", err)
@@ -1000,6 +1087,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing countBooksInReadListsStmt: %w", cerr)
 		}
 	}
+	if q.countCompletedBooksThisYearStmt != nil {
+		if cerr := q.countCompletedBooksThisYearStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countCompletedBooksThisYearStmt: %w", cerr)
+		}
+	}
 	if q.countFilesForBookStmt != nil {
 		if cerr := q.countFilesForBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countFilesForBookStmt: %w", cerr)
@@ -1038,6 +1130,11 @@ func (q *Queries) Close() error {
 	if q.countUsersFTSStmt != nil {
 		if cerr := q.countUsersFTSStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countUsersFTSStmt: %w", cerr)
+		}
+	}
+	if q.countWebhooksStmt != nil {
+		if cerr := q.countWebhooksStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countWebhooksStmt: %w", cerr)
 		}
 	}
 	if q.createAuditLogStmt != nil {
@@ -1105,6 +1202,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createMagicCodeStmt: %w", cerr)
 		}
 	}
+	if q.createPodcastStmt != nil {
+		if cerr := q.createPodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createPodcastStmt: %w", cerr)
+		}
+	}
 	if q.createPublisherStmt != nil {
 		if cerr := q.createPublisherStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createPublisherStmt: %w", cerr)
@@ -1163,6 +1265,16 @@ func (q *Queries) Close() error {
 	if q.databaseHealthCheckStmt != nil {
 		if cerr := q.databaseHealthCheckStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing databaseHealthCheckStmt: %w", cerr)
+		}
+	}
+	if q.deleteAudiobookChapterStmt != nil {
+		if cerr := q.deleteAudiobookChapterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteAudiobookChapterStmt: %w", cerr)
+		}
+	}
+	if q.deleteAudiobookChaptersForBookStmt != nil {
+		if cerr := q.deleteAudiobookChaptersForBookStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteAudiobookChaptersForBookStmt: %w", cerr)
 		}
 	}
 	if q.deleteBookStmt != nil {
@@ -1235,6 +1347,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteLibraryStmt: %w", cerr)
 		}
 	}
+	if q.deletePodcastStmt != nil {
+		if cerr := q.deletePodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deletePodcastStmt: %w", cerr)
+		}
+	}
 	if q.deleteReadListStmt != nil {
 		if cerr := q.deleteReadListStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteReadListStmt: %w", cerr)
@@ -1298,6 +1415,11 @@ func (q *Queries) Close() error {
 	if q.getAppSettingsByKeysStmt != nil {
 		if cerr := q.getAppSettingsByKeysStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getAppSettingsByKeysStmt: %w", cerr)
+		}
+	}
+	if q.getAudiobookChapterStmt != nil {
+		if cerr := q.getAudiobookChapterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAudiobookChapterStmt: %w", cerr)
 		}
 	}
 	if q.getAuthorByIdStmt != nil {
@@ -1535,6 +1657,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getLibraryStatsStmt: %w", cerr)
 		}
 	}
+	if q.getListeningHistoryStmt != nil {
+		if cerr := q.getListeningHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getListeningHistoryStmt: %w", cerr)
+		}
+	}
+	if q.getListeningStatsStmt != nil {
+		if cerr := q.getListeningStatsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getListeningStatsStmt: %w", cerr)
+		}
+	}
 	if q.getMagicCodeByCodeStmt != nil {
 		if cerr := q.getMagicCodeByCodeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getMagicCodeByCodeStmt: %w", cerr)
@@ -1558,6 +1690,21 @@ func (q *Queries) Close() error {
 	if q.getPermissionsByKeysStmt != nil {
 		if cerr := q.getPermissionsByKeysStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPermissionsByKeysStmt: %w", cerr)
+		}
+	}
+	if q.getPodcastStmt != nil {
+		if cerr := q.getPodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPodcastStmt: %w", cerr)
+		}
+	}
+	if q.getPodcastByFeedURLStmt != nil {
+		if cerr := q.getPodcastByFeedURLStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPodcastByFeedURLStmt: %w", cerr)
+		}
+	}
+	if q.getPodcastEpisodeStmt != nil {
+		if cerr := q.getPodcastEpisodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPodcastEpisodeStmt: %w", cerr)
 		}
 	}
 	if q.getPublisherByNameStmt != nil {
@@ -1588,6 +1735,16 @@ func (q *Queries) Close() error {
 	if q.getReadingProgressStmt != nil {
 		if cerr := q.getReadingProgressStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getReadingProgressStmt: %w", cerr)
+		}
+	}
+	if q.getReadingStatsByBookStmt != nil {
+		if cerr := q.getReadingStatsByBookStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getReadingStatsByBookStmt: %w", cerr)
+		}
+	}
+	if q.getReadingStatsSinceStmt != nil {
+		if cerr := q.getReadingStatsSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getReadingStatsSinceStmt: %w", cerr)
 		}
 	}
 	if q.getRecentReadingHistoryStmt != nil {
@@ -1745,6 +1902,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getWebhookByIDStmt: %w", cerr)
 		}
 	}
+	if q.getWebhooksByIDsStmt != nil {
+		if cerr := q.getWebhooksByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getWebhooksByIDsStmt: %w", cerr)
+		}
+	}
 	if q.insertFTSChapterStmt != nil {
 		if cerr := q.insertFTSChapterStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertFTSChapterStmt: %w", cerr)
@@ -1765,9 +1927,9 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing linkBookSeriesStmt: %w", cerr)
 		}
 	}
-	if q.listActiveWebhooksStmt != nil {
-		if cerr := q.listActiveWebhooksStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing listActiveWebhooksStmt: %w", cerr)
+	if q.listActiveWebhookIDsStmt != nil {
+		if cerr := q.listActiveWebhookIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listActiveWebhookIDsStmt: %w", cerr)
 		}
 	}
 	if q.listAllFilesStmt != nil {
@@ -1780,14 +1942,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listAllReviewsStmt: %w", cerr)
 		}
 	}
-	if q.listAllWebhooksStmt != nil {
-		if cerr := q.listAllWebhooksStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing listAllWebhooksStmt: %w", cerr)
+	if q.listAllWebhookIDsStmt != nil {
+		if cerr := q.listAllWebhookIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAllWebhookIDsStmt: %w", cerr)
 		}
 	}
 	if q.listAppSettingKeysStmt != nil {
 		if cerr := q.listAppSettingKeysStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listAppSettingKeysStmt: %w", cerr)
+		}
+	}
+	if q.listAudiobookChaptersStmt != nil {
+		if cerr := q.listAudiobookChaptersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAudiobookChaptersStmt: %w", cerr)
 		}
 	}
 	if q.listAuditActionsStmt != nil {
@@ -1833,6 +2000,16 @@ func (q *Queries) Close() error {
 	if q.listDueJobScheduleIDsStmt != nil {
 		if cerr := q.listDueJobScheduleIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listDueJobScheduleIDsStmt: %w", cerr)
+		}
+	}
+	if q.listEpisodeGuidsByPodcastStmt != nil {
+		if cerr := q.listEpisodeGuidsByPodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listEpisodeGuidsByPodcastStmt: %w", cerr)
+		}
+	}
+	if q.listEpisodesByPodcastStmt != nil {
+		if cerr := q.listEpisodesByPodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listEpisodesByPodcastStmt: %w", cerr)
 		}
 	}
 	if q.listFileIDsByBookIdStmt != nil {
@@ -1898,6 +2075,16 @@ func (q *Queries) Close() error {
 	if q.listPermissionsStmt != nil {
 		if cerr := q.listPermissionsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listPermissionsStmt: %w", cerr)
+		}
+	}
+	if q.listPodcastIDsStmt != nil {
+		if cerr := q.listPodcastIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listPodcastIDsStmt: %w", cerr)
+		}
+	}
+	if q.listPodcastsWithCountsStmt != nil {
+		if cerr := q.listPodcastsWithCountsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listPodcastsWithCountsStmt: %w", cerr)
 		}
 	}
 	if q.listPublishersWithCountStmt != nil {
@@ -2075,6 +2262,31 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setReadListBookPositionStmt: %w", cerr)
 		}
 	}
+	if q.statsByAuthorStmt != nil {
+		if cerr := q.statsByAuthorStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing statsByAuthorStmt: %w", cerr)
+		}
+	}
+	if q.statsByFormatStmt != nil {
+		if cerr := q.statsByFormatStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing statsByFormatStmt: %w", cerr)
+		}
+	}
+	if q.statsByLanguageStmt != nil {
+		if cerr := q.statsByLanguageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing statsByLanguageStmt: %w", cerr)
+		}
+	}
+	if q.statsByPublisherStmt != nil {
+		if cerr := q.statsByPublisherStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing statsByPublisherStmt: %w", cerr)
+		}
+	}
+	if q.statsByTagStmt != nil {
+		if cerr := q.statsByTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing statsByTagStmt: %w", cerr)
+		}
+	}
 	if q.touchKoboAuthTokenStmt != nil {
 		if cerr := q.touchKoboAuthTokenStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing touchKoboAuthTokenStmt: %w", cerr)
@@ -2093,6 +2305,11 @@ func (q *Queries) Close() error {
 	if q.updateCollectionStmt != nil {
 		if cerr := q.updateCollectionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateCollectionStmt: %w", cerr)
+		}
+	}
+	if q.updateEpisodeDownloadedStmt != nil {
+		if cerr := q.updateEpisodeDownloadedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateEpisodeDownloadedStmt: %w", cerr)
 		}
 	}
 	if q.updateFileHashStmt != nil {
@@ -2118,6 +2335,11 @@ func (q *Queries) Close() error {
 	if q.updateLibraryStmt != nil {
 		if cerr := q.updateLibraryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateLibraryStmt: %w", cerr)
+		}
+	}
+	if q.updatePodcastStmt != nil {
+		if cerr := q.updatePodcastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updatePodcastStmt: %w", cerr)
 		}
 	}
 	if q.updateProfileStmt != nil {
@@ -2205,6 +2427,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertAppSettingStmt: %w", cerr)
 		}
 	}
+	if q.upsertAudiobookChapterStmt != nil {
+		if cerr := q.upsertAudiobookChapterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertAudiobookChapterStmt: %w", cerr)
+		}
+	}
 	if q.upsertBookDownloadStatsStmt != nil {
 		if cerr := q.upsertBookDownloadStatsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertBookDownloadStatsStmt: %w", cerr)
@@ -2243,6 +2470,11 @@ func (q *Queries) Close() error {
 	if q.upsertKoboAuthTokenStmt != nil {
 		if cerr := q.upsertKoboAuthTokenStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertKoboAuthTokenStmt: %w", cerr)
+		}
+	}
+	if q.upsertPodcastEpisodeStmt != nil {
+		if cerr := q.upsertPodcastEpisodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertPodcastEpisodeStmt: %w", cerr)
 		}
 	}
 	if q.upsertReadingProgressStmt != nil {
@@ -2349,6 +2581,7 @@ type Queries struct {
 	countAdminUsersStmt                *sql.Stmt
 	countAuditLogsStmt                 *sql.Stmt
 	countBooksInReadListsStmt          *sql.Stmt
+	countCompletedBooksThisYearStmt    *sql.Stmt
 	countFilesForBookStmt              *sql.Stmt
 	countJobsStmt                      *sql.Stmt
 	countKoboSyncedBooksStmt           *sql.Stmt
@@ -2357,6 +2590,7 @@ type Queries struct {
 	countUnusedRecoveryCodesStmt       *sql.Stmt
 	countUsersStmt                     *sql.Stmt
 	countUsersFTSStmt                  *sql.Stmt
+	countWebhooksStmt                  *sql.Stmt
 	createAuditLogStmt                 *sql.Stmt
 	createAuthorStmt                   *sql.Stmt
 	createBookStmt                     *sql.Stmt
@@ -2370,6 +2604,7 @@ type Queries struct {
 	createLanguageStmt                 *sql.Stmt
 	createLibraryStmt                  *sql.Stmt
 	createMagicCodeStmt                *sql.Stmt
+	createPodcastStmt                  *sql.Stmt
 	createPublisherStmt                *sql.Stmt
 	createReadListStmt                 *sql.Stmt
 	createRecoveryCodeStmt             *sql.Stmt
@@ -2382,6 +2617,8 @@ type Queries struct {
 	createUserRoleStmt                 *sql.Stmt
 	createWebhookStmt                  *sql.Stmt
 	databaseHealthCheckStmt            *sql.Stmt
+	deleteAudiobookChapterStmt         *sql.Stmt
+	deleteAudiobookChaptersForBookStmt *sql.Stmt
 	deleteBookStmt                     *sql.Stmt
 	deleteBookReviewStmt               *sql.Stmt
 	deleteBookmarkStmt                 *sql.Stmt
@@ -2396,6 +2633,7 @@ type Queries struct {
 	deleteKoboAuthTokenStmt            *sql.Stmt
 	deleteKoboSyncedBooksStmt          *sql.Stmt
 	deleteLibraryStmt                  *sql.Stmt
+	deletePodcastStmt                  *sql.Stmt
 	deleteReadListStmt                 *sql.Stmt
 	deleteRecoveryCodesStmt            *sql.Stmt
 	deleteRoleStmt                     *sql.Stmt
@@ -2409,6 +2647,7 @@ type Queries struct {
 	deleteWebhookStmt                  *sql.Stmt
 	getAppSettingStmt                  *sql.Stmt
 	getAppSettingsByKeysStmt           *sql.Stmt
+	getAudiobookChapterStmt            *sql.Stmt
 	getAuthorByIdStmt                  *sql.Stmt
 	getAuthorByNameStmt                *sql.Stmt
 	getAuthorsByIDsStmt                *sql.Stmt
@@ -2456,17 +2695,24 @@ type Queries struct {
 	getLibrariesByIDsStmt              *sql.Stmt
 	getLibraryStmt                     *sql.Stmt
 	getLibraryStatsStmt                *sql.Stmt
+	getListeningHistoryStmt            *sql.Stmt
+	getListeningStatsStmt              *sql.Stmt
 	getMagicCodeByCodeStmt             *sql.Stmt
 	getMagicCodeByPollTokenStmt        *sql.Stmt
 	getNextBookInSeriesStmt            *sql.Stmt
 	getNextInReadListStmt              *sql.Stmt
 	getPermissionsByKeysStmt           *sql.Stmt
+	getPodcastStmt                     *sql.Stmt
+	getPodcastByFeedURLStmt            *sql.Stmt
+	getPodcastEpisodeStmt              *sql.Stmt
 	getPublisherByNameStmt             *sql.Stmt
 	getRandomBookIDsStmt               *sql.Stmt
 	getReadListBookIDsStmt             *sql.Stmt
 	getReadListsByIDsStmt              *sql.Stmt
 	getReadingHeatmapStmt              *sql.Stmt
 	getReadingProgressStmt             *sql.Stmt
+	getReadingStatsByBookStmt          *sql.Stmt
+	getReadingStatsSinceStmt           *sql.Stmt
 	getRecentReadingHistoryStmt        *sql.Stmt
 	getRecentReadingHistoryBookIDsStmt *sql.Stmt
 	getRoleByIDStmt                    *sql.Stmt
@@ -2498,15 +2744,17 @@ type Queries struct {
 	getUserTrackersByIDsStmt           *sql.Stmt
 	getUsersByIDsStmt                  *sql.Stmt
 	getWebhookByIDStmt                 *sql.Stmt
+	getWebhooksByIDsStmt               *sql.Stmt
 	insertFTSChapterStmt               *sql.Stmt
 	linkBookLanguageStmt               *sql.Stmt
 	linkBookPublisherStmt              *sql.Stmt
 	linkBookSeriesStmt                 *sql.Stmt
-	listActiveWebhooksStmt             *sql.Stmt
+	listActiveWebhookIDsStmt           *sql.Stmt
 	listAllFilesStmt                   *sql.Stmt
 	listAllReviewsStmt                 *sql.Stmt
-	listAllWebhooksStmt                *sql.Stmt
+	listAllWebhookIDsStmt              *sql.Stmt
 	listAppSettingKeysStmt             *sql.Stmt
+	listAudiobookChaptersStmt          *sql.Stmt
 	listAuditActionsStmt               *sql.Stmt
 	listAuditLogsStmt                  *sql.Stmt
 	listAuthorsWithCountStmt           *sql.Stmt
@@ -2516,6 +2764,8 @@ type Queries struct {
 	listChapterIDsByBookStmt           *sql.Stmt
 	listContentWarningIDsStmt          *sql.Stmt
 	listDueJobScheduleIDsStmt          *sql.Stmt
+	listEpisodeGuidsByPodcastStmt      *sql.Stmt
+	listEpisodesByPodcastStmt          *sql.Stmt
 	listFileIDsByBookIdStmt            *sql.Stmt
 	listFilteredJobIDsStmt             *sql.Stmt
 	listFormatsWithCountStmt           *sql.Stmt
@@ -2529,6 +2779,8 @@ type Queries struct {
 	listLibraryIDsStmt                 *sql.Stmt
 	listPermissionKeysStmt             *sql.Stmt
 	listPermissionsStmt                *sql.Stmt
+	listPodcastIDsStmt                 *sql.Stmt
+	listPodcastsWithCountsStmt         *sql.Stmt
 	listPublishersWithCountStmt        *sql.Stmt
 	listRolePermissionIDsStmt          *sql.Stmt
 	listRolePermissionsStmt            *sql.Stmt
@@ -2564,15 +2816,22 @@ type Queries struct {
 	searchUserIDsStmt                  *sql.Stmt
 	searchUserIDsFTSStmt               *sql.Stmt
 	setReadListBookPositionStmt        *sql.Stmt
+	statsByAuthorStmt                  *sql.Stmt
+	statsByFormatStmt                  *sql.Stmt
+	statsByLanguageStmt                *sql.Stmt
+	statsByPublisherStmt               *sql.Stmt
+	statsByTagStmt                     *sql.Stmt
 	touchKoboAuthTokenStmt             *sql.Stmt
 	updateBookStmt                     *sql.Stmt
 	updateBookAgeRatingStmt            *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
+	updateEpisodeDownloadedStmt        *sql.Stmt
 	updateFileHashStmt                 *sql.Stmt
 	updateHighlightNoteStmt            *sql.Stmt
 	updateJobScheduleStmt              *sql.Stmt
 	updateJobStatusStmt                *sql.Stmt
 	updateLibraryStmt                  *sql.Stmt
+	updatePodcastStmt                  *sql.Stmt
 	updateProfileStmt                  *sql.Stmt
 	updateReadListStmt                 *sql.Stmt
 	updateRoleStmt                     *sql.Stmt
@@ -2590,6 +2849,7 @@ type Queries struct {
 	updateUserTokenVersionStmt         *sql.Stmt
 	updateWebhookStmt                  *sql.Stmt
 	upsertAppSettingStmt               *sql.Stmt
+	upsertAudiobookChapterStmt         *sql.Stmt
 	upsertBookDownloadStatsStmt        *sql.Stmt
 	upsertBookFileStmt                 *sql.Stmt
 	upsertBookReadStatsStmt            *sql.Stmt
@@ -2598,6 +2858,7 @@ type Queries struct {
 	upsertBookTrackerMappingStmt       *sql.Stmt
 	upsertBookmarkStmt                 *sql.Stmt
 	upsertKoboAuthTokenStmt            *sql.Stmt
+	upsertPodcastEpisodeStmt           *sql.Stmt
 	upsertReadingProgressStmt          *sql.Stmt
 	upsertReadingSessionStmt           *sql.Stmt
 	upsertRolePermissionStmt           *sql.Stmt
@@ -2637,6 +2898,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countAdminUsersStmt:                q.countAdminUsersStmt,
 		countAuditLogsStmt:                 q.countAuditLogsStmt,
 		countBooksInReadListsStmt:          q.countBooksInReadListsStmt,
+		countCompletedBooksThisYearStmt:    q.countCompletedBooksThisYearStmt,
 		countFilesForBookStmt:              q.countFilesForBookStmt,
 		countJobsStmt:                      q.countJobsStmt,
 		countKoboSyncedBooksStmt:           q.countKoboSyncedBooksStmt,
@@ -2645,6 +2907,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countUnusedRecoveryCodesStmt:       q.countUnusedRecoveryCodesStmt,
 		countUsersStmt:                     q.countUsersStmt,
 		countUsersFTSStmt:                  q.countUsersFTSStmt,
+		countWebhooksStmt:                  q.countWebhooksStmt,
 		createAuditLogStmt:                 q.createAuditLogStmt,
 		createAuthorStmt:                   q.createAuthorStmt,
 		createBookStmt:                     q.createBookStmt,
@@ -2658,6 +2921,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createLanguageStmt:                 q.createLanguageStmt,
 		createLibraryStmt:                  q.createLibraryStmt,
 		createMagicCodeStmt:                q.createMagicCodeStmt,
+		createPodcastStmt:                  q.createPodcastStmt,
 		createPublisherStmt:                q.createPublisherStmt,
 		createReadListStmt:                 q.createReadListStmt,
 		createRecoveryCodeStmt:             q.createRecoveryCodeStmt,
@@ -2670,6 +2934,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createUserRoleStmt:                 q.createUserRoleStmt,
 		createWebhookStmt:                  q.createWebhookStmt,
 		databaseHealthCheckStmt:            q.databaseHealthCheckStmt,
+		deleteAudiobookChapterStmt:         q.deleteAudiobookChapterStmt,
+		deleteAudiobookChaptersForBookStmt: q.deleteAudiobookChaptersForBookStmt,
 		deleteBookStmt:                     q.deleteBookStmt,
 		deleteBookReviewStmt:               q.deleteBookReviewStmt,
 		deleteBookmarkStmt:                 q.deleteBookmarkStmt,
@@ -2684,6 +2950,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteKoboAuthTokenStmt:            q.deleteKoboAuthTokenStmt,
 		deleteKoboSyncedBooksStmt:          q.deleteKoboSyncedBooksStmt,
 		deleteLibraryStmt:                  q.deleteLibraryStmt,
+		deletePodcastStmt:                  q.deletePodcastStmt,
 		deleteReadListStmt:                 q.deleteReadListStmt,
 		deleteRecoveryCodesStmt:            q.deleteRecoveryCodesStmt,
 		deleteRoleStmt:                     q.deleteRoleStmt,
@@ -2697,6 +2964,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteWebhookStmt:                  q.deleteWebhookStmt,
 		getAppSettingStmt:                  q.getAppSettingStmt,
 		getAppSettingsByKeysStmt:           q.getAppSettingsByKeysStmt,
+		getAudiobookChapterStmt:            q.getAudiobookChapterStmt,
 		getAuthorByIdStmt:                  q.getAuthorByIdStmt,
 		getAuthorByNameStmt:                q.getAuthorByNameStmt,
 		getAuthorsByIDsStmt:                q.getAuthorsByIDsStmt,
@@ -2744,17 +3012,24 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getLibrariesByIDsStmt:              q.getLibrariesByIDsStmt,
 		getLibraryStmt:                     q.getLibraryStmt,
 		getLibraryStatsStmt:                q.getLibraryStatsStmt,
+		getListeningHistoryStmt:            q.getListeningHistoryStmt,
+		getListeningStatsStmt:              q.getListeningStatsStmt,
 		getMagicCodeByCodeStmt:             q.getMagicCodeByCodeStmt,
 		getMagicCodeByPollTokenStmt:        q.getMagicCodeByPollTokenStmt,
 		getNextBookInSeriesStmt:            q.getNextBookInSeriesStmt,
 		getNextInReadListStmt:              q.getNextInReadListStmt,
 		getPermissionsByKeysStmt:           q.getPermissionsByKeysStmt,
+		getPodcastStmt:                     q.getPodcastStmt,
+		getPodcastByFeedURLStmt:            q.getPodcastByFeedURLStmt,
+		getPodcastEpisodeStmt:              q.getPodcastEpisodeStmt,
 		getPublisherByNameStmt:             q.getPublisherByNameStmt,
 		getRandomBookIDsStmt:               q.getRandomBookIDsStmt,
 		getReadListBookIDsStmt:             q.getReadListBookIDsStmt,
 		getReadListsByIDsStmt:              q.getReadListsByIDsStmt,
 		getReadingHeatmapStmt:              q.getReadingHeatmapStmt,
 		getReadingProgressStmt:             q.getReadingProgressStmt,
+		getReadingStatsByBookStmt:          q.getReadingStatsByBookStmt,
+		getReadingStatsSinceStmt:           q.getReadingStatsSinceStmt,
 		getRecentReadingHistoryStmt:        q.getRecentReadingHistoryStmt,
 		getRecentReadingHistoryBookIDsStmt: q.getRecentReadingHistoryBookIDsStmt,
 		getRoleByIDStmt:                    q.getRoleByIDStmt,
@@ -2786,15 +3061,17 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getUserTrackersByIDsStmt:           q.getUserTrackersByIDsStmt,
 		getUsersByIDsStmt:                  q.getUsersByIDsStmt,
 		getWebhookByIDStmt:                 q.getWebhookByIDStmt,
+		getWebhooksByIDsStmt:               q.getWebhooksByIDsStmt,
 		insertFTSChapterStmt:               q.insertFTSChapterStmt,
 		linkBookLanguageStmt:               q.linkBookLanguageStmt,
 		linkBookPublisherStmt:              q.linkBookPublisherStmt,
 		linkBookSeriesStmt:                 q.linkBookSeriesStmt,
-		listActiveWebhooksStmt:             q.listActiveWebhooksStmt,
+		listActiveWebhookIDsStmt:           q.listActiveWebhookIDsStmt,
 		listAllFilesStmt:                   q.listAllFilesStmt,
 		listAllReviewsStmt:                 q.listAllReviewsStmt,
-		listAllWebhooksStmt:                q.listAllWebhooksStmt,
+		listAllWebhookIDsStmt:              q.listAllWebhookIDsStmt,
 		listAppSettingKeysStmt:             q.listAppSettingKeysStmt,
+		listAudiobookChaptersStmt:          q.listAudiobookChaptersStmt,
 		listAuditActionsStmt:               q.listAuditActionsStmt,
 		listAuditLogsStmt:                  q.listAuditLogsStmt,
 		listAuthorsWithCountStmt:           q.listAuthorsWithCountStmt,
@@ -2804,6 +3081,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listChapterIDsByBookStmt:           q.listChapterIDsByBookStmt,
 		listContentWarningIDsStmt:          q.listContentWarningIDsStmt,
 		listDueJobScheduleIDsStmt:          q.listDueJobScheduleIDsStmt,
+		listEpisodeGuidsByPodcastStmt:      q.listEpisodeGuidsByPodcastStmt,
+		listEpisodesByPodcastStmt:          q.listEpisodesByPodcastStmt,
 		listFileIDsByBookIdStmt:            q.listFileIDsByBookIdStmt,
 		listFilteredJobIDsStmt:             q.listFilteredJobIDsStmt,
 		listFormatsWithCountStmt:           q.listFormatsWithCountStmt,
@@ -2817,6 +3096,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listLibraryIDsStmt:                 q.listLibraryIDsStmt,
 		listPermissionKeysStmt:             q.listPermissionKeysStmt,
 		listPermissionsStmt:                q.listPermissionsStmt,
+		listPodcastIDsStmt:                 q.listPodcastIDsStmt,
+		listPodcastsWithCountsStmt:         q.listPodcastsWithCountsStmt,
 		listPublishersWithCountStmt:        q.listPublishersWithCountStmt,
 		listRolePermissionIDsStmt:          q.listRolePermissionIDsStmt,
 		listRolePermissionsStmt:            q.listRolePermissionsStmt,
@@ -2852,15 +3133,22 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		searchUserIDsStmt:                  q.searchUserIDsStmt,
 		searchUserIDsFTSStmt:               q.searchUserIDsFTSStmt,
 		setReadListBookPositionStmt:        q.setReadListBookPositionStmt,
+		statsByAuthorStmt:                  q.statsByAuthorStmt,
+		statsByFormatStmt:                  q.statsByFormatStmt,
+		statsByLanguageStmt:                q.statsByLanguageStmt,
+		statsByPublisherStmt:               q.statsByPublisherStmt,
+		statsByTagStmt:                     q.statsByTagStmt,
 		touchKoboAuthTokenStmt:             q.touchKoboAuthTokenStmt,
 		updateBookStmt:                     q.updateBookStmt,
 		updateBookAgeRatingStmt:            q.updateBookAgeRatingStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,
+		updateEpisodeDownloadedStmt:        q.updateEpisodeDownloadedStmt,
 		updateFileHashStmt:                 q.updateFileHashStmt,
 		updateHighlightNoteStmt:            q.updateHighlightNoteStmt,
 		updateJobScheduleStmt:              q.updateJobScheduleStmt,
 		updateJobStatusStmt:                q.updateJobStatusStmt,
 		updateLibraryStmt:                  q.updateLibraryStmt,
+		updatePodcastStmt:                  q.updatePodcastStmt,
 		updateProfileStmt:                  q.updateProfileStmt,
 		updateReadListStmt:                 q.updateReadListStmt,
 		updateRoleStmt:                     q.updateRoleStmt,
@@ -2878,6 +3166,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateUserTokenVersionStmt:         q.updateUserTokenVersionStmt,
 		updateWebhookStmt:                  q.updateWebhookStmt,
 		upsertAppSettingStmt:               q.upsertAppSettingStmt,
+		upsertAudiobookChapterStmt:         q.upsertAudiobookChapterStmt,
 		upsertBookDownloadStatsStmt:        q.upsertBookDownloadStatsStmt,
 		upsertBookFileStmt:                 q.upsertBookFileStmt,
 		upsertBookReadStatsStmt:            q.upsertBookReadStatsStmt,
@@ -2886,6 +3175,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertBookTrackerMappingStmt:       q.upsertBookTrackerMappingStmt,
 		upsertBookmarkStmt:                 q.upsertBookmarkStmt,
 		upsertKoboAuthTokenStmt:            q.upsertKoboAuthTokenStmt,
+		upsertPodcastEpisodeStmt:           q.upsertPodcastEpisodeStmt,
 		upsertReadingProgressStmt:          q.upsertReadingProgressStmt,
 		upsertReadingSessionStmt:           q.upsertReadingSessionStmt,
 		upsertRolePermissionStmt:           q.upsertRolePermissionStmt,

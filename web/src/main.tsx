@@ -4,6 +4,7 @@ import { AdminLayout, Books, Duplicates, OAuthSettings, Operations, Reviews, Rol
 import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
 import { ActivateMagicCodePage } from "@/pages/auth/ActivateMagicCodePage";
 import { LibraryWorkspace, ReadListPage } from "@/pages/library";
+import { PodcastsPage } from "@/pages/podcasts/PodcastsPage";
 import { AdvancedSearchPage } from "@/pages/library/AdvancedSearchPage";
 import { ReaderWorkspace } from "@/pages/reader";
 import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
@@ -124,6 +125,9 @@ function App() {
               <Route path="/books/:book_id" element={<LibraryWorkspace />} />
               <Route path="/reader/:book_id" element={<ReaderWorkspace />} />
               <Route path="/read-lists" element={<ReadListPage />} />
+              <Route element={<ProtectedRoute requiredPermission="podcast.manage" />}>
+                <Route path="/podcasts" element={<PodcastsPage />} />
+              </Route>
               <Route element={<ProtectedRoute requiredPermission="user.stats.read" />}>
                 <Route path="/analytics" element={<ReadingAnalyticsPage />} />
               </Route>

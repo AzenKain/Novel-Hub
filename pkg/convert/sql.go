@@ -34,6 +34,13 @@ func NullStringToString(ns sql.NullString) string {
 	return ns.String
 }
 
+func IntPtrToNullInt64(value *int64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *value, Valid: true}
+}
+
 func FloatPtrToNullFloat64(value *float64) sql.NullFloat64 {
 	if value == nil {
 		return sql.NullFloat64{}

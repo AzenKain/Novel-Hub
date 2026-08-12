@@ -841,7 +841,7 @@ func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType
 
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = metadataCountKey(entityType, scope, id)
+		keys[i] = cache.QueryKeyParts(scope, "metadata_count", entityType, "id", id)
 	}
 
 	cachedBytes := r.c.MGet(ctx, keys...)
@@ -861,17 +861,13 @@ func (r *bookDBRepository) getMetadataCountByIDs(ctx context.Context, entityType
 	return ordered, true
 }
 
-func metadataCountKey(entityType, scope, id string) string {
-	return cache.QueryKeyParts(scope, "metadata_count", entityType, "id", id)
-}
-
 func (r *bookDBRepository) cacheMetadataCountEntities(ctx context.Context, entityType, scope string, entities []*models.MetadataCountEntity) {
 	if r.c == nil || len(entities) == 0 {
 		return
 	}
 	toCache := make(map[string]any, len(entities))
 	for _, entity := range entities {
-		toCache[metadataCountKey(entityType, scope, entity.ID)] = entity
+		toCache[cache.QueryKeyParts(scope, "metadata_count", entityType, "id", entity.ID)] = entity
 	}
 	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }

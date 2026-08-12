@@ -95,8 +95,8 @@ func TestAuditMetadataFacetKeyIncludesLibraryScope(t *testing.T) {
 	t.Logf("guest key = %q", guest.cacheKey("authors"))
 
 	// The per-entity layer underneath holds the counts, and it must be scoped too.
-	adminEntity := metadataCountKey("author", admin.scopeKey(), "au-1")
-	guestEntity := metadataCountKey("author", guest.scopeKey(), "au-1")
+	adminEntity := cache.QueryKeyParts(admin.scopeKey(), "metadata_count", "author", "id", "au-1")
+	guestEntity := cache.QueryKeyParts(guest.scopeKey(), "metadata_count", "author", "id", "au-1")
 	if adminEntity == guestEntity {
 		t.Errorf("SECURITY: entity layer is scope-free: %q is shared by every caller", adminEntity)
 	}
@@ -150,7 +150,7 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 	}
 	t.Logf("2. admin reads: book_count=%d (correct -- 4 books across both libraries); this "+
 		"overwrote the shared entity key %q", adminRows[0].BookCount,
-		metadataCountKey("author", guestFilter.scopeKey(), "au-1"))
+		cache.QueryKeyParts(guestFilter.scopeKey(), "metadata_count", "author", "id", "au-1"))
 
 	// 3. Guest browses again. Their ID list is a cache HIT, so getMetadataCountByIDs serves the
 	//    entity straight from the scope-free key -- now holding the admin's count.
@@ -167,7 +167,7 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 		t.Errorf("SECURITY: guest read book_count=%d from the admin-warmed, scope-free key %q. "+
 			"Correct value under the guest's scope is 1. The count discloses how many books exist "+
 			"in a library the guest has no permission to read.",
-			guestSecond[0].BookCount, metadataCountKey("author", guestFilter.scopeKey(), "au-1"))
+			guestSecond[0].BookCount, cache.QueryKeyParts(guestFilter.scopeKey(), "metadata_count", "author", "id", "au-1"))
 	}
 }
 

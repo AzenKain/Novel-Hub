@@ -58,6 +58,13 @@ func (r *trackerRepository) WithTx(tx *sql.Tx) TrackerRepository {
 
 func (r *trackerRepository) GetByID(ctx context.Context, id string) (*models.UserTrackerEntity, error) {
 	key := cache.BuildKey("user_tracker", "secret", "id", id)
+	if r.c != nil && !r.inTx {
+		var entity models.UserTrackerEntity
+		if err := r.c.Get(ctx, key, &entity); err == nil {
+			return &entity, nil
+		}
+	}
+
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		rows, err := r.q.GetUserTrackersByIDs(ctx, []string{id})
 		if err != nil {
@@ -66,7 +73,14 @@ func (r *trackerRepository) GetByID(ctx context.Context, id string) (*models.Use
 		if len(rows) == 0 {
 			return nil, sql.ErrNoRows
 		}
-		return (&models.UserTrackerEntity{}).FromSqlc(rows[0])
+		entity, err := (&models.UserTrackerEntity{}).FromSqlc(rows[0])
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
+		}
+		return entity, nil
 	})
 	if err != nil {
 		return nil, err
@@ -78,20 +92,63 @@ func (r *trackerRepository) GetUserTrackersByIDs(ctx context.Context, ids []stri
 	if len(ids) == 0 {
 		return []*models.UserTrackerEntity{}, nil
 	}
-	rows, err := queryInChunks(ids, func(chunk []string) ([]sqlc.UserTracker, error) {
-		return r.q.GetUserTrackersByIDs(ctx, chunk)
-	})
-	if err != nil {
-		return nil, err
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = cache.BuildKey("user_tracker", "secret", "id", id)
 	}
-	byID := make(map[string]*models.UserTrackerEntity, len(rows))
-	for _, row := range rows {
-		entity, err := (&models.UserTrackerEntity{}).FromSqlc(row)
+
+	byID := make(map[string]*models.UserTrackerEntity, len(ids))
+	missingIDs := make([]string, 0, len(ids))
+	missingKeys := make([]string, 0, len(ids))
+
+	if r.c != nil && !r.inTx {
+		raws := r.c.MGet(ctx, keys...)
+		for i, raw := range raws {
+			if len(raw) > 0 {
+				var entity models.UserTrackerEntity
+				if err := jsonx.Unmarshal(raw, &entity); err == nil {
+					byID[entity.ID] = &entity
+					continue
+				}
+			}
+			missingIDs = append(missingIDs, ids[i])
+			missingKeys = append(missingKeys, keys[i])
+		}
+	} else {
+		missingIDs = ids
+		missingKeys = keys
+	}
+
+	if len(missingIDs) > 0 {
+		rows, err := queryInChunks(missingIDs, func(chunk []string) ([]sqlc.UserTracker, error) {
+			return r.q.GetUserTrackersByIDs(ctx, chunk)
+		})
 		if err != nil {
 			return nil, err
 		}
-		byID[entity.ID] = entity
+		fetched := make(map[string]*models.UserTrackerEntity, len(rows))
+		for _, row := range rows {
+			entity, err := (&models.UserTrackerEntity{}).FromSqlc(row)
+			if err != nil {
+				return nil, err
+			}
+			byID[entity.ID] = entity
+			fetched[entity.ID] = entity
+		}
+
+		if r.c != nil && !r.inTx {
+			toCache := make(map[string]any, len(fetched))
+			for i, missingID := range missingIDs {
+				if entity, ok := fetched[missingID]; ok {
+					toCache[missingKeys[i]] = entity
+				}
+			}
+			if len(toCache) > 0 {
+				_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
+			}
+		}
 	}
+
 	ordered := make([]*models.UserTrackerEntity, 0, len(ids))
 	for _, id := range ids {
 		if entity := byID[id]; entity != nil {
@@ -103,12 +160,27 @@ func (r *trackerRepository) GetUserTrackersByIDs(ctx context.Context, ids []stri
 
 func (r *trackerRepository) GetUserTracker(ctx context.Context, userID string, provider string) (*models.UserTrackerEntity, error) {
 	key := cache.BuildKey("user_tracker", "secret", "user_provider", userID, provider)
+	if r.c != nil && !r.inTx {
+		var entity models.UserTrackerEntity
+		if err := r.c.Get(ctx, key, &entity); err == nil {
+			return &entity, nil
+		}
+	}
+
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
 		res, err := r.q.GetUserTracker(ctx, sqlc.GetUserTrackerParams{UserID: userID, Provider: provider})
 		if err != nil {
 			return nil, err
 		}
-		return (&models.UserTrackerEntity{}).FromSqlc(res)
+		entity, err := (&models.UserTrackerEntity{}).FromSqlc(res)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, entity, constants.NormalCacheDuration)
+			_ = r.c.Set(ctx, cache.BuildKey("user_tracker", "secret", "id", entity.ID), entity, constants.NormalCacheDuration)
+		}
+		return entity, nil
 	})
 	if err != nil {
 		return nil, err
@@ -136,6 +208,10 @@ func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID string
 	if err != nil {
 		return nil, err
 	}
+	if r.c != nil && !r.inTx {
+		_ = r.c.Set(ctx, cache.BuildKey("user_tracker", "secret", "user_provider", userID, provider), entity, constants.NormalCacheDuration)
+		_ = r.c.Set(ctx, cache.BuildKey("user_tracker", "secret", "id", entity.ID), entity, constants.NormalCacheDuration)
+	}
 	return entity, nil
 }
 
@@ -147,10 +223,10 @@ func (r *trackerRepository) DeleteUserTracker(ctx context.Context, userID string
 		Provider: provider,
 	})
 	if err == nil && r.c != nil {
-		key := cache.BuildKey("user_tracker", "user_provider", userID, provider)
+		key := cache.BuildKey("user_tracker", "secret", "user_provider", userID, provider)
 		_ = r.c.Del(ctx, key)
 		if existing != nil {
-			idKey := cache.BuildKey("user_tracker", "id", existing.ID)
+			idKey := cache.BuildKey("user_tracker", "secret", "id", existing.ID)
 			_ = r.c.Del(ctx, idKey)
 		}
 	}

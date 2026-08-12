@@ -32,6 +32,8 @@ import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useReadListNextQuery } from "@/hooks/useReadListQueries";
 import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
+import { useAudiobookChaptersQuery } from "@/hooks/useAudiobookQueries";
+import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
 import { isVisualChapter } from "@/utils/readerHtml";
 
@@ -162,6 +164,7 @@ export const ReaderWorkspace = () => {
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.library_id, guestPerms);
   const allowHighlights = Boolean(user && hasPermission(user, "book.highlight", book?.library_id, guestPerms));
+  const { data: readerETA } = useReaderETAQuery(user && hasPermission(user, "user.stats.read") ? book_id : undefined);
   const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
 
   useEffect(() => {
@@ -694,6 +697,7 @@ export const ReaderWorkspace = () => {
     }).catch(reportProgressFailure);
   }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length]);
   const { data: seriesContext } = useBookSeriesQuery(book_id || "");
+  const { data: audiobookChapters } = useAudiobookChaptersQuery(book_id || "");
   const readListNext = useReadListNextQuery(readListId, book_id).data;
 
   const canGoPrev = currentChapterIndex > 0;
@@ -899,11 +903,12 @@ export const ReaderWorkspace = () => {
                   />
                 ) : isAudio ? (
                   <div className="flex-1 w-full h-full pb-32">
-                    <AudioPlayer 
+                    <AudioPlayer
                       rawUrl={offlineRawUrl || rawFileUrl}
                       title={book.title}
                       author={book.author_name || "Unknown"}
                       cover_url={book.cover_url || `/api/v1/books/${book.id}/cover`}
+                      chapters={audiobookChapters?.map((c) => ({ title: c.title, start_sec: c.start_sec, end_sec: c.end_sec }))}
                       initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
                       onTimeUpdate={(time) => {
                         pendingFragmentRef.current = `audio:${time}`;
@@ -925,6 +930,11 @@ export const ReaderWorkspace = () => {
                         }).catch(() => {});
                       }}
                     />
+                    {readerETA && readerETA.eta_minutes > 0 && (
+                      <p className="text-center text-xs text-base-content/50 mt-2">
+                        {t("reader.eta_left", "~{{minutes}} min left", { minutes: Math.max(1, readerETA.eta_minutes) })}
+                      </p>
+                    )}
                   </div>
                 ) : htmlContent && effectiveReadingMode === "webtoon" ? (
                   <ComicReader
@@ -1003,6 +1013,11 @@ export const ReaderWorkspace = () => {
                     onPrev={handlePrev}
                     onNext={handleNext}
                   />
+                )}
+                {!isPdf && scrollLayout && readerETA && readerETA.eta_minutes > 0 && (
+                  <p className="text-center text-xs text-base-content/50 mt-2">
+                    {t("reader.eta_left", "~{{minutes}} min left", { minutes: Math.max(1, readerETA.eta_minutes) })}
+                  </p>
                 )}
               </div>
 

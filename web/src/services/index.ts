@@ -17,3 +17,5 @@ export * from "./readListService";
 export * from "./magicCodeService";
 export * from "./ageRatingService";
 export * from "./smartFilterService";
+export * from "./audiobookService";
+export * from "./podcastService";

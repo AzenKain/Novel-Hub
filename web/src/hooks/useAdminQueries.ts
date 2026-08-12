@@ -292,13 +292,18 @@ export function useDeleteReviewMutation() {
 }
 
 // Webhooks
-export function useWebhooksQuery() {
-  return useQuery<Webhook[]>({
-    queryKey: ["admin", "webhooks"],
+export function useWebhooksQuery(limit: number = 20, offset: number = 0) {
+  return useQuery<{ webhooks: Webhook[]; total: number; totalPages: number; currentPage: number }>({
+    queryKey: ["admin", "webhooks", limit, offset],
     queryFn: async () => {
-      const res = await webhookService.listWebhooks();
+      const res = await webhookService.listWebhooks(limit, offset);
       if (!res.status) throw new Error(res.message || "Failed to fetch webhooks");
-      return res.data || [];
+      return {
+        webhooks: res.data || [],
+        total: res.pagination?.total_records || 0,
+        totalPages: res.pagination?.total_pages || 1,
+        currentPage: res.pagination?.current_page || 1,
+      };
     },
     retry: 1,
   });

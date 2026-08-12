@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
@@ -27,10 +28,10 @@ import (
 )
 
 type WebhookService interface {
-	Create(ctx context.Context, req *request.CreateWebhookDto) (*models.WebhookEntity, error)
-	GetByID(ctx context.Context, id string) (*models.WebhookEntity, error)
-	ListAll(ctx context.Context) ([]*models.WebhookEntity, error)
-	Update(ctx context.Context, id string, req *request.UpdateWebhookDto) (*models.WebhookEntity, error)
+	Create(ctx context.Context, req *request.CreateWebhookDto) (*response.WebhookResponse, error)
+	GetByID(ctx context.Context, id string) (*response.WebhookResponse, error)
+	ListAll(ctx context.Context, limit, offset int64) ([]*response.WebhookResponse, int64, error)
+	Update(ctx context.Context, id string, req *request.UpdateWebhookDto) (*response.WebhookResponse, error)
 	Delete(ctx context.Context, id string) error
 	TestPing(ctx context.Context, id string) error
 	DispatchEvent(ctx context.Context, eventType string, payload any)
@@ -71,7 +72,7 @@ func validateTarget(templateType string, target string) error {
 	return nil
 }
 
-func (s *webhookService) Create(ctx context.Context, req *request.CreateWebhookDto) (*models.WebhookEntity, error) {
+func (s *webhookService) Create(ctx context.Context, req *request.CreateWebhookDto) (*response.WebhookResponse, error) {
 	id := uuid.Must(uuid.NewV7()).String()
 	templateType := strings.ToLower(req.TemplateType)
 	if templateType == "" {
@@ -97,22 +98,38 @@ func (s *webhookService) Create(ctx context.Context, req *request.CreateWebhookD
 		IsActive:      isActive,
 	}
 
-	return s.repo.Create(ctx, entity)
+	created, err := s.repo.Create(ctx, entity)
+	if err != nil {
+		return nil, err
+	}
+	return created.ToResponse(), nil
 }
 
-func (s *webhookService) GetByID(ctx context.Context, id string) (*models.WebhookEntity, error) {
+func (s *webhookService) GetByID(ctx context.Context, id string) (*response.WebhookResponse, error) {
 	entity, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "webhook not found")
 	}
-	return entity, nil
+	return entity.ToResponse(), nil
 }
 
-func (s *webhookService) ListAll(ctx context.Context) ([]*models.WebhookEntity, error) {
-	return s.repo.ListAll(ctx)
+func (s *webhookService) ListAll(ctx context.Context, limit, offset int64) ([]*response.WebhookResponse, int64, error) {
+	entities, err := s.repo.ListAll(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	count, err := s.repo.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	res := make([]*response.WebhookResponse, len(entities))
+	for i, entity := range entities {
+		res[i] = entity.ToResponse()
+	}
+	return res, count, nil
 }
 
-func (s *webhookService) Update(ctx context.Context, id string, req *request.UpdateWebhookDto) (*models.WebhookEntity, error) {
+func (s *webhookService) Update(ctx context.Context, id string, req *request.UpdateWebhookDto) (*response.WebhookResponse, error) {
 	_, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrNotFound, "webhook not found")
@@ -137,7 +154,11 @@ func (s *webhookService) Update(ctx context.Context, id string, req *request.Upd
 		IsActive:      req.IsActive,
 	}
 
-	return s.repo.Update(ctx, entity)
+	updated, err := s.repo.Update(ctx, entity)
+	if err != nil {
+		return nil, err
+	}
+	return updated.ToResponse(), nil
 }
 
 func (s *webhookService) Delete(ctx context.Context, id string) error {
@@ -172,8 +193,21 @@ func (s *webhookService) DispatchEvent(ctx context.Context, eventType string, pa
 		return
 	}
 
-	activeWebhooks, err := s.repo.ListActive(ctx)
-	if err != nil || len(activeWebhooks) == 0 {
+	var activeWebhooks []*models.WebhookEntity
+	limit := int64(100)
+	offset := int64(0)
+	for {
+		page, err := s.repo.ListActive(ctx, limit, offset)
+		if err != nil || len(page) == 0 {
+			break
+		}
+		activeWebhooks = append(activeWebhooks, page...)
+		if int64(len(page)) < limit {
+			break
+		}
+		offset += limit
+	}
+	if len(activeWebhooks) == 0 {
 		return
 	}
 

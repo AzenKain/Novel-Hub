@@ -2,6 +2,12 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 
+export interface AudioChapter {
+  title: string;
+  start_sec: number;
+  end_sec?: number | null;
+}
+
 interface AudioPlayerProps {
   rawUrl: string;
   initialTime?: number;
@@ -9,6 +15,7 @@ interface AudioPlayerProps {
   title?: string;
   author?: string;
   cover_url?: string;
+  chapters?: AudioChapter[];
 }
 
 export function AudioPlayer({
@@ -18,6 +25,7 @@ export function AudioPlayer({
   title,
   author,
   cover_url,
+  chapters,
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -99,6 +107,18 @@ export function AudioPlayer({
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const currentChapter = chapters?.find((c, i) => {
+    const next = chapters[i + 1];
+    return currentTime >= c.start_sec && (!next || currentTime < next.start_sec);
+  });
+
+  const jump = (dir: 1 | -1) => {
+    if (!audioRef.current || !chapters?.length) return;
+    const idx = chapters.findIndex((c, i) => currentTime >= c.start_sec && (i === chapters.length - 1 || currentTime < chapters[i + 1].start_sec));
+    const target = chapters[idx + dir];
+    if (target) audioRef.current.currentTime = target.start_sec;
+  };
+
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-[var(--reader-ui-surface)] text-[var(--reader-ui-text)] p-6">
       <audio
@@ -121,7 +141,7 @@ export function AudioPlayer({
           <p className="opacity-70 mt-2">{author || t("common.unknown")}</p>
         </div>
 
-        <div className="w-full flex items-center gap-4 text-sm font-medium mb-6">
+        <div className="w-full flex items-center gap-4 text-sm font-medium mb-4">
           <span>{formatTime(currentTime)}</span>
           <input
             type="range"
@@ -133,6 +153,28 @@ export function AudioPlayer({
           />
           <span>{formatTime(duration)}</span>
         </div>
+
+        {chapters && chapters.length > 0 && (
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <button
+              className="btn btn-circle btn-xs btn-ghost"
+              onClick={() => jump(-1)}
+              aria-label={t("reader.prev_chapter")}
+            >
+              <SkipBack size={16} />
+            </button>
+            <span className="text-sm opacity-80 truncate max-w-[16rem]">
+              {currentChapter?.title || t("reader.no_chapter", "No chapter")}
+            </span>
+            <button
+              className="btn btn-circle btn-xs btn-ghost"
+              onClick={() => jump(1)}
+              aria-label={t("reader.next_chapter")}
+            >
+              <SkipForward size={16} />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center justify-center gap-6 mb-6">
           <button className="btn btn-circle btn-ghost" onClick={() => skip(-15)} aria-label={t("reader.skip_back_15_seconds")}>

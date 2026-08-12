@@ -76,38 +76,6 @@ func (r *readListRepository) WithTx(tx *sql.Tx) ReadListRepository {
 	}
 }
 
-func readListEntityKey(id string) string {
-	return cache.BuildKey("read_list", "id", id)
-}
-
-func readListItemsKey(id string) string {
-	return cache.BuildKey("read_list", "items", id)
-}
-
-// The list key carries the page limit, so eviction has to sweep the prefix rather than delete one
-// exact string — that mismatch is what leaves the collections first page stale until its TTL.
-func (r *readListRepository) invalidateUser(ctx context.Context, userID string) {
-	if r.c == nil || r.inTx {
-		return
-	}
-	_ = r.c.DelByPattern(context.Background(), cache.BuildKey("read_list", "user", userID)+"*")
-	_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListOwnedPattern)
-}
-
-// The grouped count is keyed by the whole page of ids, so a single list changing size cannot be
-// evicted by name — the counts namespace has to be swept wholesale alongside the item list.
-//
-// Inside a transaction this is skipped: a concurrent reader that misses would re-cache the state
-// from before the uncommitted write and keep serving it. Callers commit first, then call
-// InvalidateReadListCache.
-func (r *readListRepository) invalidateItems(ctx context.Context, readListID string) {
-	if r.c == nil || r.inTx {
-		return
-	}
-	_ = r.c.Del(ctx, readListItemsKey(readListID))
-	_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
-}
-
 // InvalidateReadListCache drops every cached view of one list. Call it after tx.Commit() for
 // mutations made through WithTx, whose own invalidation is deferred for the reason above.
 // Pass "" for userID when the owner is not at hand — the list-scoped entries still go.
@@ -115,7 +83,7 @@ func (r *readListRepository) InvalidateReadListCache(ctx context.Context, readLi
 	if r.c == nil {
 		return
 	}
-	_ = r.c.Del(ctx, readListItemsKey(readListID), readListEntityKey(readListID))
+	_ = r.c.Del(ctx, cache.BuildKey("read_list", "items", readListID), cache.BuildKey("read_list", "id", readListID))
 	_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
 	if userID != "" {
 		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("read_list", "user", userID)+"*")
@@ -135,8 +103,9 @@ func (r *readListRepository) CreateReadList(ctx context.Context, id, userID, nam
 	}
 	result := (&models.ReadListEntity{}).FromSqlc(row)
 	if r.c != nil && !r.inTx {
-		r.invalidateUser(ctx, userID)
-		_ = r.c.Set(ctx, readListEntityKey(result.ID), result, constants.NormalCacheDuration)
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("read_list", "user", userID)+"*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListOwnedPattern)
+		_ = r.c.Set(ctx, cache.BuildKey("read_list", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
 }
@@ -153,8 +122,9 @@ func (r *readListRepository) UpdateReadList(ctx context.Context, id, userID, nam
 	}
 	result := (&models.ReadListEntity{}).FromSqlc(row)
 	if r.c != nil && !r.inTx {
-		r.invalidateUser(ctx, userID)
-		_ = r.c.Set(ctx, readListEntityKey(result.ID), result, constants.NormalCacheDuration)
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("read_list", "user", userID)+"*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListOwnedPattern)
+		_ = r.c.Set(ctx, cache.BuildKey("read_list", "id", result.ID), result, constants.NormalCacheDuration)
 	}
 	return result, nil
 }
@@ -164,9 +134,11 @@ func (r *readListRepository) DeleteReadList(ctx context.Context, id, userID stri
 		return err
 	}
 	if r.c != nil && !r.inTx {
-		r.invalidateUser(ctx, userID)
-		r.invalidateItems(ctx, id)
-		_ = r.c.Del(ctx, readListEntityKey(id))
+		_ = r.c.DelByPattern(context.Background(), cache.BuildKey("read_list", "user", userID)+"*")
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListOwnedPattern)
+		_ = r.c.Del(ctx, cache.BuildKey("read_list", "items", id))
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
+		_ = r.c.Del(ctx, cache.BuildKey("read_list", "id", id))
 	}
 	return nil
 }
@@ -245,7 +217,7 @@ func (r *readListRepository) GetReadListsByIDs(ctx context.Context, ids []string
 
 	keys := make([]string, len(ids))
 	for i, id := range ids {
-		keys[i] = readListEntityKey(id)
+		keys[i] = cache.BuildKey("read_list", "id", id)
 	}
 
 	byID := make(map[string]*models.ReadListEntity, len(ids))
@@ -307,7 +279,7 @@ func (r *readListRepository) GetReadListsByIDs(ctx context.Context, ids []string
 }
 
 func (r *readListRepository) GetReadListBookIDs(ctx context.Context, readListID string) ([]string, error) {
-	key := readListItemsKey(readListID)
+	key := cache.BuildKey("read_list", "items", readListID)
 	if r.c != nil && !r.inTx {
 		var ids []string
 		if err := r.c.Get(ctx, key, &ids); err == nil {
@@ -382,7 +354,10 @@ func (r *readListRepository) AppendBookToReadList(ctx context.Context, readListI
 	}); err != nil {
 		return err
 	}
-	r.invalidateItems(ctx, readListID)
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("read_list", "items", readListID))
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
+	}
 	return nil
 }
 
@@ -393,7 +368,10 @@ func (r *readListRepository) RemoveBookFromReadList(ctx context.Context, readLis
 	}); err != nil {
 		return err
 	}
-	r.invalidateItems(ctx, readListID)
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("read_list", "items", readListID))
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
+	}
 	return nil
 }
 
@@ -407,7 +385,10 @@ func (r *readListRepository) ReplaceReadListOrder(ctx context.Context, readListI
 			return err
 		}
 	}
-	r.invalidateItems(ctx, readListID)
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("read_list", "items", readListID))
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyReadListCountsPattern)
+	}
 	return nil
 }
 

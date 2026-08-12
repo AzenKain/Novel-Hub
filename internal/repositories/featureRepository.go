@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -51,6 +52,11 @@ type FeatureRepository interface {
 	GetReadingHeatmap(ctx context.Context, userID string) ([]*models.ReadingHeatmapEntity, error)
 	GetReadingGoal(ctx context.Context, userID string) (*models.ReadingGoalEntity, error)
 	UpsertReadingGoal(ctx context.Context, userID string, wordsPerDay int64, booksPerYear int64) (*models.ReadingGoalEntity, error)
+	GetReadingStatsByBook(ctx context.Context, userID string, bookID string) (*models.ReadingStatsByBookEntity, error)
+	GetReadingStatsSince(ctx context.Context, userID string, since time.Time) (*models.ReadingStatsSinceEntity, error)
+	GetListeningHistory(ctx context.Context, userID string) ([]*models.ListeningHistoryEntity, error)
+	GetListeningStats(ctx context.Context, userID string) (*models.ListeningStatsEntity, error)
+	GetLibraryBreakdown(ctx context.Context) (*models.LibraryBreakdownEntity, error)
 	ListSmartCollections(ctx context.Context, userID string) ([]*models.SmartCollectionEntity, error)
 	GetSmartCollection(ctx context.Context, id string, userID string) (*models.SmartCollectionEntity, error)
 	CreateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error)
@@ -375,6 +381,159 @@ func (r *featureRepository) GetReadingProgress(ctx context.Context, userID strin
 		return nil, err
 	}
 	return v.(*models.ReadingProgressEntity), nil
+}
+
+func (r *featureRepository) GetReadingStatsByBook(ctx context.Context, userID string, bookID string) (*models.ReadingStatsByBookEntity, error) {
+	key := cache.BuildKey("feature", "reading_stats_by_book", "user", userID, "book", bookID)
+	if r.c != nil && !r.inTx {
+		var stats models.ReadingStatsByBookEntity
+		if err := r.c.Get(ctx, key, &stats); err == nil {
+			return &stats, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetReadingStatsByBook(ctx, sqlc.GetReadingStatsByBookParams{
+			UserID: userID,
+			BookID: bookID,
+		})
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		result := (&models.ReadingStatsByBookEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if v == nil {
+		return nil, nil
+	}
+	return v.(*models.ReadingStatsByBookEntity), nil
+}
+
+func (r *featureRepository) GetReadingStatsSince(ctx context.Context, userID string, since time.Time) (*models.ReadingStatsSinceEntity, error) {
+	key := cache.BuildKey("feature", "reading_stats_since", "user", userID, "since", since.Format("2006-01-02"))
+	if r.c != nil && !r.inTx {
+		var stats models.ReadingStatsSinceEntity
+		if err := r.c.Get(ctx, key, &stats); err == nil {
+			return &stats, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetReadingStatsSince(ctx, sqlc.GetReadingStatsSinceParams{
+			UserID:      userID,
+			SessionDate: since,
+		})
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.ReadingStatsSinceEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*models.ReadingStatsSinceEntity), nil
+}
+
+func (r *featureRepository) GetListeningHistory(ctx context.Context, userID string) ([]*models.ListeningHistoryEntity, error) {
+	key := cache.BuildKey("feature", "listening_history", "user", userID)
+	if r.c != nil && !r.inTx {
+		var history models.ListeningHistoryEntities
+		if err := r.c.Get(ctx, key, &history); err == nil {
+			return history, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		rows, err := r.queries.GetListeningHistory(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.ListeningHistoryEntities{}).FromSqlc(rows)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]*models.ListeningHistoryEntity), nil
+}
+
+func (r *featureRepository) GetListeningStats(ctx context.Context, userID string) (*models.ListeningStatsEntity, error) {
+	key := cache.BuildKey("feature", "listening_stats", "user", userID)
+	if r.c != nil && !r.inTx {
+		var stats models.ListeningStatsEntity
+		if err := r.c.Get(ctx, key, &stats); err == nil {
+			return &stats, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetListeningStats(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.ListeningStatsEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*models.ListeningStatsEntity), nil
+}
+
+func (r *featureRepository) GetLibraryBreakdown(ctx context.Context) (*models.LibraryBreakdownEntity, error) {
+	key := cache.BuildKey("feature", "library_breakdown")
+	if r.c != nil && !r.inTx {
+		var breakdown models.LibraryBreakdownEntity
+		if err := r.c.Get(ctx, key, &breakdown); err == nil {
+			return &breakdown, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		result := &models.LibraryBreakdownEntity{}
+		if formats, err := r.queries.StatsByFormat(ctx); err == nil {
+			result.AddFormat(formats)
+		}
+		if tags, err := r.queries.StatsByTag(ctx); err == nil {
+			result.AddTags(tags)
+		}
+		if authors, err := r.queries.StatsByAuthor(ctx); err == nil {
+			result.AddAuthors(authors)
+		}
+		if publishers, err := r.queries.StatsByPublisher(ctx); err == nil {
+			result.AddPublishers(publishers)
+		}
+		if languages, err := r.queries.StatsByLanguage(ctx); err == nil {
+			result.AddLanguages(languages)
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*models.LibraryBreakdownEntity), nil
 }
 
 func (r *featureRepository) UpsertReadingProgress(ctx context.Context, progress *models.ReadingProgressEntity) (*models.ReadingProgressEntity, error) {
@@ -1146,15 +1305,8 @@ func (r *featureRepository) UpsertReadingGoal(ctx context.Context, userID string
 	return result, nil
 }
 
-// ponytail: one cache entry holds the whole list — a user's smart collections are
-// a handful of rows and the query has no cursor. Move to the Cache-by-IDs pattern
-// if anyone ever accumulates enough of these to want pagination.
-func smartCollectionCacheKey(userID string) string {
-	return cache.BuildKey("smart_collection", "user", userID)
-}
-
 func (r *featureRepository) ListSmartCollections(ctx context.Context, userID string) ([]*models.SmartCollectionEntity, error) {
-	key := smartCollectionCacheKey(userID)
+	key := cache.BuildKey("smart_collection", "user", userID)
 	if r.c != nil && !r.inTx {
 		var cached []*models.SmartCollectionEntity
 		if err := r.c.Get(ctx, key, &cached); err == nil {
@@ -1181,11 +1333,29 @@ func (r *featureRepository) ListSmartCollections(ctx context.Context, userID str
 }
 
 func (r *featureRepository) GetSmartCollection(ctx context.Context, id string, userID string) (*models.SmartCollectionEntity, error) {
-	row, err := r.queries.GetSmartCollection(ctx, sqlc.GetSmartCollectionParams{ID: id, UserID: userID})
+	key := cache.BuildKey("smart_collection", "id", id)
+	if r.c != nil && !r.inTx {
+		var cached models.SmartCollectionEntity
+		if err := r.c.Get(ctx, key, &cached); err == nil {
+			return &cached, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		row, err := r.queries.GetSmartCollection(ctx, sqlc.GetSmartCollectionParams{ID: id, UserID: userID})
+		if err != nil {
+			return nil, err
+		}
+		result := (&models.SmartCollectionEntity{}).FromSqlc(row)
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, result, constants.NormalCacheDuration)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+	return v.(*models.SmartCollectionEntity), nil
 }
 
 func (r *featureRepository) CreateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error) {
@@ -1198,10 +1368,12 @@ func (r *featureRepository) CreateSmartCollection(ctx context.Context, id string
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil {
-		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	result := (&models.SmartCollectionEntity{}).FromSqlc(row)
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_collection", "user", userID))
+		_ = r.c.Set(ctx, cache.BuildKey("smart_collection", "id", result.ID), result, constants.NormalCacheDuration)
 	}
-	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+	return result, nil
 }
 
 func (r *featureRepository) UpdateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error) {
@@ -1214,18 +1386,19 @@ func (r *featureRepository) UpdateSmartCollection(ctx context.Context, id string
 	if err != nil {
 		return nil, err
 	}
-	if r.c != nil {
-		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	result := (&models.SmartCollectionEntity{}).FromSqlc(row)
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_collection", "user", userID), cache.BuildKey("smart_collection", "id", id))
 	}
-	return (&models.SmartCollectionEntity{}).FromSqlc(row), nil
+	return result, nil
 }
 
 func (r *featureRepository) DeleteSmartCollection(ctx context.Context, id string, userID string) error {
 	if err := r.queries.DeleteSmartCollection(ctx, sqlc.DeleteSmartCollectionParams{ID: id, UserID: userID}); err != nil {
 		return err
 	}
-	if r.c != nil {
-		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
+	if r.c != nil && !r.inTx {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_collection", "user", userID), cache.BuildKey("smart_collection", "id", id))
 	}
 	return nil
 }

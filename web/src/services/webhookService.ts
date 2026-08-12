@@ -1,15 +1,17 @@
 import { api } from "@/config/api";
-import type { CommonResponse, CreateWebhookInput, Webhook } from "@/types";
+import type { CommonResponse, CreateWebhookInput, PaginatedResponse, Webhook } from "@/types";
 import axios from "axios";
 
 export const webhookService = {
-  async listWebhooks(): Promise<CommonResponse<Webhook[]>> {
+  async listWebhooks(limit?: number, offset?: number): Promise<PaginatedResponse<Webhook>> {
     try {
-      const res = await api.get("/admin/webhooks");
+      const res = await api.get("/admin/webhooks", {
+        params: { limit, offset },
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<Webhook[]>;
+        return error.response.data as PaginatedResponse<Webhook>;
       }
       throw error;
     }

@@ -3,9 +3,11 @@ package audiobook
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dhowden/tag"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/jsonx"
 )
 
 type AudiobookParser struct{}
@@ -32,6 +34,19 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 		Title:  m.Title(),
 		Author: m.Artist(),
 		Series: m.Album(),
+	}
+
+	// ASIN: MP4 ITunes tagging exposes `----:com.apple.iTunes:ASIN`, ID3v2 `TXXX:ASIN`.
+	// dhowden Raw() is a flat map; match case-insensitively so both hit.
+	if raw := m.Raw(); raw != nil {
+		for k, v := range raw {
+			if strings.Contains(strings.ToLower(k), "asin") {
+				if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
+					meta.MetadataJSON, _ = jsonx.MarshalString(map[string]string{"asin": strings.TrimSpace(s)})
+					break
+				}
+			}
+		}
 	}
 
 	if meta.Title == "" {

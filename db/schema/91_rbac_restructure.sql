@@ -38,6 +38,7 @@ INSERT INTO permissions (key, description) VALUES
     ('kobo.sync', 'Sync reading progress with Kobo devices'),
     ('komga.sync', 'Sync manga and reading progress with Mihon/Tachiyomi'),
     ('calibre.sync', 'Sync and import from Calibre server'),
+    ('podcast.manage', 'Manage podcast subscriptions and downloads'),
     ('admin.access', 'Access admin dashboard'),
     ('user.manage', 'Manage user accounts and roles'),
     ('role.manage', 'Manage roles and permissions'),
@@ -82,6 +83,7 @@ JOIN permissions p ON p.key IN (
     'book.upload', 'book.edit', 'book.metadata.fetch', 'book.delete',
     'book.duplicate.manage', 'book.archive', 'book.bulk.manage', 'library.read',
     'library.manage', 'opds.read', 'opds.download', 'kobo.sync', 'komga.sync', 'calibre.sync',
+    'podcast.manage',
     'admin.access', 'job.read'
 )
 WHERE r.name = 'MOD'

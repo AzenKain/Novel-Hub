@@ -11,15 +11,18 @@ SELECT id, name, url, template_type, secret, custom_headers, events, is_active, 
 FROM webhooks
 WHERE id = ?;
 
--- name: ListActiveWebhooks :many
-SELECT id, name, url, template_type, secret, custom_headers, events, is_active, created_at, updated_at
+-- name: ListActiveWebhookIDs :many
+SELECT id
 FROM webhooks
-WHERE is_active = 1;
+WHERE is_active = 1
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
 
--- name: ListAllWebhooks :many
-SELECT id, name, url, template_type, secret, custom_headers, events, is_active, created_at, updated_at
+-- name: ListAllWebhookIDs :many
+SELECT id
 FROM webhooks
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
 
 -- name: UpdateWebhook :one
 UPDATE webhooks
@@ -37,3 +40,11 @@ RETURNING id, name, url, template_type, secret, custom_headers, events, is_activ
 -- name: DeleteWebhook :exec
 DELETE FROM webhooks
 WHERE id = ?;
+
+-- name: GetWebhooksByIDs :many
+SELECT id, name, url, template_type, secret, custom_headers, events, is_active, created_at, updated_at
+FROM webhooks
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: CountWebhooks :one
+SELECT COUNT(*) FROM webhooks;
