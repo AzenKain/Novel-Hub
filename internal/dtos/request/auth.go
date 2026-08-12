@@ -52,3 +52,16 @@ type SetupDto struct {
 	ReadLibraryIDs      []string `json:"read_library_ids"`
 	SidebarVisibleItems []string `json:"sidebar_visible_items"`
 }
+
+type RequestMagicCodeDto struct {
+	DeviceInfo string `json:"device_info" validate:"omitempty,max=255"`
+}
+
+type ActivateMagicCodeDto struct {
+	Code string `json:"code" validate:"required,min=6,max=10"`
+}
+
+type PollMagicCodeDto struct {
+	PollToken string `json:"poll_token" validate:"required"`
+}
+

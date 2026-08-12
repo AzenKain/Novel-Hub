@@ -1,3 +1,5 @@
+import { resolveCfiRange } from "./epubCfi";
+
 /**
  * Helper functions for reader text extraction, word highlighting and text selection offsets.
  */
@@ -611,6 +613,7 @@ export interface HighlightEntity {
   start_index: number;
   end_index: number;
   color: string;
+  cfi_range?: string;
 }
 
 export const applyUserHighlights = (
@@ -641,7 +644,11 @@ export const applyUserHighlights = (
     if (!h.text_content || !h.text_content.trim()) continue;
     let range: Range | null = null;
 
-    if (h.start_index >= 0 && h.end_index > h.start_index) {
+    if (h.cfi_range) {
+      range = resolveCfiRange(container, h.cfi_range);
+    }
+
+    if (!range && h.start_index >= 0 && h.end_index > h.start_index) {
       range = createRangeFromCharOffset(container, h.start_index, h.end_index);
       if (range) {
         const normRange = range.toString().replace(/\s+/g, " ").trim();

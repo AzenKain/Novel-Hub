@@ -26,6 +26,8 @@ func BookRoutes(app fiber.Router, bookController *controllers.BookController, us
 	bookGroup.Get("/:id/series", middlewares.OptionalJwtAccess(userRepo), bookController.GetBookSeries)
 	bookGroup.Get("/:id/search", middlewares.OptionalJwtAccess(userRepo), bookController.SearchInBook)
 	bookGroup.Put("/:id/metadata", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.UpdateMetadata)
+	bookGroup.Post("/:id/enrich", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.EnrichBook)
+	bookGroup.Post("/batch-enrich", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BatchEnrichBooks)
 	bookGroup.Patch("/:id/archive", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookArchive, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.ArchiveBook)
 	bookGroup.Post("/:id/send-email", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookSendEmail, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.SendBookToEmail)
 	bookGroup.Post("/bulk-delete", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkDeleteBooks)

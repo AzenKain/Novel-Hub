@@ -39,6 +39,10 @@ type AuthService interface {
 	RequestOTP(ctx context.Context, dto *request.RequestOTPDto) (*response.OTPRequestResponse, error)
 	VerifyOTP(ctx context.Context, dto *request.VerifyOTPDto) (*response.OTPVerifyResponse, error)
 	ResetPasswordWithOTP(ctx context.Context, dto *request.ResetPasswordWithOTPDto) error
+	GenToken(user *models.UserEntity) (*response.AuthResponse, error)
+	SigninOrRegisterOAuth(ctx context.Context, provider string, email string, name string, avatarURL string, oauth2ID string) (*response.AuthResponse, error)
+	BuildOAuthURL(ctx context.Context, provider string, redirect string) (authURL string, stateUUID string, err error)
+	HandleOAuthCallback(ctx context.Context, provider string, code string, stateParam string, cookieState string) (*response.OAuthCallbackResponse, error)
 }
 
 type authService struct {
@@ -128,6 +132,10 @@ func (a *authService) genToken(user *models.UserEntity) (*response.AuthResponse,
 	}
 
 	return &response.AuthResponse{AccessToken: access, RefreshToken: refresh}, nil
+}
+
+func (a *authService) GenToken(user *models.UserEntity) (*response.AuthResponse, error) {
+	return a.genToken(user)
 }
 
 func (a *authService) authenticate(ctx context.Context, dto *request.SignInDto) (*models.UserEntity, error) {

@@ -168,6 +168,7 @@
         "database_health_check": "データベース確認",
         "database_backup": "データベースバックアップ",
         "database_books_backup": "DB＋書籍バックアップ",
+        "scan_metadata_enrich": "メタデータをスキャンして充実化",
         "scan_library_inbox": "受信フォルダーをスキャン",
         "extract_metadata": "メタデータ抽出",
         "hash_file": "ファイルハッシュ",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "{{deleted}} 件のファイルを削除しました。{{failed}} 件が失敗: {{reason}}",
     "upload_partial": "{{total}}冊中{{count}}冊をアップロードしました。メタデータを処理中...",
     "upload_done": "{{count}}冊をアップロードしました。メタデータを処理中...",
-    "upload_all_failed": "ファイルを1つもアップロードできませんでした: {{reason}}"
+    "upload_all_failed": "ファイルを1つもアップロードできませんでした: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "メールによるパスワード再設定は現在無効です。管理者にパスワードの再設定を依頼してください。",
     "totp_prompt": "認証アプリの6桁のコード、またはリカバリコードを入力してください。",
     "totp_code": "認証コード",
-    "totp_verify": "確認してサインイン"
+    "totp_verify": "確認してサインイン",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "キャンセル",
@@ -315,7 +323,37 @@
     "current": "現在の巻",
     "load_more": "もっと読み込む",
     "previous": "前へ",
-    "next": "次へ"
+    "next": "次へ",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "読む準備ができました",
@@ -666,7 +704,8 @@
     "collections": "コレクション数",
     "no_description": "あらすじはありません。",
     "next_in_series": "シリーズの次の巻",
-    "in_same_series": "同じシリーズの書籍"
+    "in_same_series": "同じシリーズの書籍",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "設定",
@@ -705,6 +744,13 @@
     "anilist_tracking": "AniList追跡を有効化",
     "anilist_tracking_desc": "ユーザーがAniListアカウントを連携し、読書進捗を同期できるようにします。",
     "save_reader": "リーダー設定を保存",
+    "metadata_covers": "メタデータとカバー",
+    "metadata_covers_desc": "自動メタデータ充実化とカバー画像最適化を設定します。",
+    "save_metadata": "設定を保存",
+    "auto_enrich": "書籍メタデータの自動充実化",
+    "auto_enrich_desc": "インポート時にAniList、OpenLibrary、Google Books APIからメタデータを自動取得します。",
+    "webp_cover": "カバーをWebPに圧縮",
+    "webp_cover_desc": "書籍ファイルのアップロードまたは抽出時に、カバー画像を高性能なWebP形式に圧縮します。",
     "registration_guest": "登録とゲストアクセス",
     "registration_guest_desc": "新規登録とゲスト閲覧範囲を制御します。",
     "public_registration": "公開新規登録を有効化",
@@ -826,7 +872,12 @@
     "needs_smtp": "有効にするには下の SMTP を設定してください。",
     "template_email": "メール (SMTP)",
     "email_recipients": "宛先",
-    "email_recipients_hint": "mailto: の後にカンマ区切りでアドレスを指定します。SMTP の設定が必要です。"
+    "email_recipients_hint": "mailto: の後にカンマ区切りでアドレスを指定します。SMTP の設定が必要です。",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "設定に関する注意事項：この設定ページと各IDプロバイダーの対応する開発者コンソールの両方で、同じリダイレクトURIを設定してください。シークレットは保存時に暗号化されます。"
+    }
   },
   "email": {
     "invalid": "有効なメールアドレスを入力してください",
@@ -982,7 +1033,16 @@
     "manual_email": "手動メール入力",
     "no_devices": "保存済みデバイスはありません。",
     "add_device_tip": "手動メールを入力するか設定でデバイスを登録してください。",
-    "push": "送信"
+    "push": "送信",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "詳細検索",
@@ -1016,5 +1076,40 @@
     "step2": "VBookを開く → 縦3点リーダー (⋮) をタップ → 「拡張機能をインポート」を選択 → ダウンロードした plugin.zip を選択。",
     "download": "ZIPをダウンロード",
     "download_zip": "plugin.zip をダウンロード"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

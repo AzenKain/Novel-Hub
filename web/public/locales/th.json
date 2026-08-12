@@ -168,6 +168,7 @@
         "database_health_check": "ตรวจสอบสุขภาพฐานข้อมูล",
         "database_backup": "สำรองฐานข้อมูล",
         "database_books_backup": "สำรองฐานข้อมูล + หนังสือ",
+        "scan_metadata_enrich": "สแกนและเพิ่มข้อมูลเมทาดาตา",
         "scan_library_inbox": "สแกนกล่องรับไฟล์ของคลังหนังสือ",
         "extract_metadata": "ดึงข้อมูลเมตา",
         "hash_file": "คำนวณแฮชไฟล์",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "ลบไฟล์แล้ว {{deleted}} ไฟล์, ล้มเหลว {{failed}} ไฟล์: {{reason}}",
     "upload_partial": "อัปโหลดหนังสือแล้ว {{count}} จาก {{total}} เล่ม กำลังประมวลผลข้อมูลเมตา...",
     "upload_done": "อัปโหลดหนังสือแล้ว {{count}} เล่ม กำลังประมวลผลข้อมูลเมตา...",
-    "upload_all_failed": "ไม่สามารถอัปโหลดไฟล์ใดได้เลย: {{reason}}"
+    "upload_all_failed": "ไม่สามารถอัปโหลดไฟล์ใดได้เลย: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "เข้าสู่ระบบบัญชีของคุณ",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "ขณะนี้ปิดการรีเซ็ตรหัสผ่านทางอีเมลไว้ กรุณาติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่านของคุณ",
     "totp_prompt": "กรอกรหัส 6 หลักจากแอป authenticator ของคุณ หรือรหัสสำรอง",
     "totp_code": "รหัสยืนยันตัวตน",
-    "totp_verify": "ยืนยันและเข้าสู่ระบบ"
+    "totp_verify": "ยืนยันและเข้าสู่ระบบ",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "ยกเลิก",
@@ -315,7 +323,37 @@
     "current": "ปัจจุบัน",
     "load_more": "โหลดเพิ่มเติม",
     "previous": "ก่อนหน้า",
-    "next": "ถัดไป"
+    "next": "ถัดไป",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "พร้อมอ่าน",
@@ -666,7 +704,8 @@
     "collections": "คอลเลกชัน",
     "no_description": "ไม่มีคำอธิบาย",
     "next_in_series": "เล่มถัดไปในชุด",
-    "in_same_series": "หนังสือในชุดนี้"
+    "in_same_series": "หนังสือในชุดนี้",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "การตั้งค่า",
@@ -705,6 +744,13 @@
     "anilist_tracking": "เปิดใช้การติดตามผ่าน AniList",
     "anilist_tracking_desc": "อนุญาตให้ผู้ใช้เชื่อมต่อบัญชี AniList และซิงก์ความคืบหน้าการอ่าน",
     "save_reader": "บันทึกการตั้งค่าตัวอ่าน",
+    "metadata_covers": "ข้อมูลเมตาและหน้าปก",
+    "metadata_covers_desc": "กำหนดค่าการดึงข้อมูลเมตาอัตโนมัติและการปรับแต่งภาพปกหนังสือ",
+    "save_metadata": "บันทึกการตั้งค่า",
+    "auto_enrich": "เพิ่มข้อมูลเมตาของหนังสืออัตโนมัติ",
+    "auto_enrich_desc": "ดึงข้อมูลเมตาโดยอัตโนมัติจาก API ของ AniList, OpenLibrary และ Google Books เมื่อนำเข้าหนังสือ",
+    "webp_cover": "บีบอัดหน้าปกเป็น WebP",
+    "webp_cover_desc": "บีบอัดภาพปกเป็นรูปแบบ WebP ประสิทธิภาพสูงเมื่อแยกข้อมูลหรืออัปโหลดไฟล์หนังสือ",
     "registration_guest": "การสมัครสมาชิกและการเข้าถึงแบบผู้เยี่ยมชม",
     "registration_guest_desc": "ควบคุมว่าใครสามารถสมัครสมาชิกได้ และผู้เยี่ยมชมมองเห็นอะไรได้บ้าง",
     "public_registration": "เปิดให้สมัครสมาชิกแบบสาธารณะ",
@@ -826,7 +872,12 @@
     "needs_smtp": "ตั้งค่า SMTP ด้านล่างเพื่อเปิดใช้งานคุณสมบัตินี้",
     "template_email": "อีเมล (SMTP)",
     "email_recipients": "ผู้รับ",
-    "email_recipients_hint": "ที่อยู่อีเมลคั่นด้วยเครื่องหมายจุลภาคต่อท้าย mailto: ต้องตั้งค่า SMTP ไว้ก่อน"
+    "email_recipients_hint": "ที่อยู่อีเมลคั่นด้วยเครื่องหมายจุลภาคต่อท้าย mailto: ต้องตั้งค่า SMTP ไว้ก่อน",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "ประกาศเกี่ยวกับการตั้งค่า: โปรดตรวจสอบให้แน่ใจว่าได้กำหนดค่า Redirect URI เดียวกันทั้งในหน้าการตั้งค่านี้และในคอนโซลผู้พัฒนาที่เกี่ยวข้องของแต่ละผู้ให้บริการระบุตัวตน ข้อมูลลับจะถูกเข้ารหัสเมื่อไม่มีการใช้งาน"
+    }
   },
   "email": {
     "invalid": "กรุณากรอกที่อยู่อีเมลให้ถูกต้อง",
@@ -982,7 +1033,16 @@
     "manual_email": "กรอกอีเมลเอง",
     "no_devices": "ไม่พบอุปกรณ์ที่บันทึกไว้",
     "add_device_tip": "ใช้การกรอกอีเมลเอง หรือลงทะเบียนอุปกรณ์ในหน้าตั้งค่า",
-    "push": "ส่งไปยังอุปกรณ์"
+    "push": "ส่งไปยังอุปกรณ์",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "ค้นหาขั้นสูง",
@@ -1016,5 +1076,40 @@
     "step2": "เปิด VBook → แตะจุดสามจุดแนวตั้ง (⋮) → เลือก 'นำเข้าส่วนขยาย' → เลือกไฟล์ plugin.zip ที่ดาวน์โหลด",
     "download": "ดาวน์โหลด ZIP",
     "download_zip": "ดาวน์โหลดไฟล์ plugin.zip"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

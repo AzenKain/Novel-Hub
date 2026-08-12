@@ -56,6 +56,15 @@ type FeatureRepository interface {
 	CreateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error)
 	UpdateSmartCollection(ctx context.Context, id string, userID string, name string, ruleJson string) (*models.SmartCollectionEntity, error)
 	DeleteSmartCollection(ctx context.Context, id string, userID string) error
+	ListSmartFilters(ctx context.Context, userID string) ([]*models.SmartFilterEntity, error)
+	GetSmartFilter(ctx context.Context, id string, userID string) (*models.SmartFilterEntity, error)
+	GetSmartFiltersByIDs(ctx context.Context, ids []string) ([]*models.SmartFilterEntity, error)
+	CreateSmartFilter(ctx context.Context, id string, userID string, name string, rulesJson string, isPinnedSidebar bool, isPinnedHome bool, homePosition int64) (*models.SmartFilterEntity, error)
+	UpdateSmartFilter(ctx context.Context, id string, userID string, name string, rulesJson string, isPinnedSidebar bool, isPinnedHome bool) (*models.SmartFilterEntity, error)
+	DeleteSmartFilter(ctx context.Context, id string, userID string) error
+	UpdateSmartFilterPinSidebar(ctx context.Context, id string, userID string, isPinned bool) (*models.SmartFilterEntity, error)
+	UpdateSmartFilterPinHome(ctx context.Context, id string, userID string, isPinned bool) (*models.SmartFilterEntity, error)
+	UpdateSmartFilterHomePosition(ctx context.Context, id string, userID string, position int64) (*models.SmartFilterEntity, error)
 	WithTx(tx *sql.Tx) FeatureRepository
 }
 
@@ -1219,4 +1228,211 @@ func (r *featureRepository) DeleteSmartCollection(ctx context.Context, id string
 		_ = r.c.Del(ctx, smartCollectionCacheKey(userID))
 	}
 	return nil
+}
+
+func (r *featureRepository) ListSmartFilters(ctx context.Context, userID string) ([]*models.SmartFilterEntity, error) {
+	listKey := cache.BuildKey("smart_filter_list", userID)
+	
+	var ids []string
+	if r.c != nil && !r.inTx {
+		if err := r.c.Get(ctx, listKey, &ids); err == nil {
+			return r.GetSmartFiltersByIDs(ctx, ids)
+		}
+	}
+
+	v, err, _ := r.sfg.Do(listKey, func() (any, error) {
+		dbIDs, err := r.queries.ListSmartFilterIDsByUser(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, listKey, dbIDs, constants.ListCacheDuration)
+		}
+		return dbIDs, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r.GetSmartFiltersByIDs(ctx, v.([]string))
+}
+
+func (r *featureRepository) GetSmartFilter(ctx context.Context, id string, userID string) (*models.SmartFilterEntity, error) {
+	entities, err := r.GetSmartFiltersByIDs(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+	if len(entities) == 0 {
+		return nil, sql.ErrNoRows
+	}
+	entity := entities[0]
+	if entity.UserID != userID {
+		return nil, sql.ErrNoRows
+	}
+	return entity, nil
+}
+
+func (r *featureRepository) GetSmartFiltersByIDs(ctx context.Context, ids []string) ([]*models.SmartFilterEntity, error) {
+	if len(ids) == 0 {
+		return []*models.SmartFilterEntity{}, nil
+	}
+
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = cache.BuildKey("smart_filter", id)
+	}
+
+	resultMap := make(map[string]*models.SmartFilterEntity, len(ids))
+	missingIDs := make([]string, 0, len(ids))
+
+	if r.c != nil && !r.inTx {
+		cachedBytes := r.c.MGet(ctx, keys...)
+		for i, bytes := range cachedBytes {
+			if len(bytes) > 0 {
+				var entity models.SmartFilterEntity
+				if err := jsonx.Unmarshal(bytes, &entity); err == nil {
+					resultMap[ids[i]] = &entity
+					continue
+				}
+			}
+			missingIDs = append(missingIDs, ids[i])
+		}
+	} else {
+		missingIDs = ids
+	}
+
+	if len(missingIDs) > 0 {
+		sfgKey := "smart_filters:ids:" + strings.Join(missingIDs, ",")
+		v, err, _ := r.sfg.Do(sfgKey, func() (any, error) {
+			rows, err := r.queries.GetSmartFiltersByIDs(ctx, missingIDs)
+			if err != nil {
+				return nil, err
+			}
+			fetchedMap := make(map[string]*models.SmartFilterEntity, len(rows))
+			cachePairs := make(map[string]any, len(rows))
+			for _, row := range rows {
+				entity := (&models.SmartFilterEntity{}).FromSqlc(row)
+				fetchedMap[row.ID] = entity
+				cachePairs[cache.BuildKey("smart_filter", row.ID)] = entity
+			}
+
+			if r.c != nil && !r.inTx && len(cachePairs) > 0 {
+				_ = r.c.MSet(ctx, cachePairs, 1*time.Hour)
+			}
+			return fetchedMap, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		if fetched, ok := v.(map[string]*models.SmartFilterEntity); ok {
+			for k, val := range fetched {
+				resultMap[k] = val
+			}
+		}
+	}
+
+	out := make([]*models.SmartFilterEntity, 0, len(ids))
+	for _, id := range ids {
+		if entity, ok := resultMap[id]; ok && entity != nil {
+			out = append(out, entity)
+		}
+	}
+	return out, nil
+}
+
+func (r *featureRepository) CreateSmartFilter(ctx context.Context, id string, userID string, name string, rulesJson string, isPinnedSidebar bool, isPinnedHome bool, homePosition int64) (*models.SmartFilterEntity, error) {
+	row, err := r.queries.CreateSmartFilter(ctx, sqlc.CreateSmartFilterParams{
+		ID:              id,
+		UserID:          userID,
+		Name:            name,
+		RulesJson:       rulesJson,
+		IsPinnedSidebar: isPinnedSidebar,
+		IsPinnedHome:    isPinnedHome,
+		HomePosition:    homePosition,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return (&models.SmartFilterEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) UpdateSmartFilter(ctx context.Context, id string, userID string, name string, rulesJson string, isPinnedSidebar bool, isPinnedHome bool) (*models.SmartFilterEntity, error) {
+	row, err := r.queries.UpdateSmartFilter(ctx, sqlc.UpdateSmartFilterParams{
+		ID:              id,
+		UserID:          userID,
+		Name:            name,
+		RulesJson:       rulesJson,
+		IsPinnedSidebar: isPinnedSidebar,
+		IsPinnedHome:    isPinnedHome,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return (&models.SmartFilterEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) DeleteSmartFilter(ctx context.Context, id string, userID string) error {
+	if err := r.queries.DeleteSmartFilter(ctx, sqlc.DeleteSmartFilterParams{ID: id, UserID: userID}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return nil
+}
+
+func (r *featureRepository) UpdateSmartFilterPinSidebar(ctx context.Context, id string, userID string, isPinned bool) (*models.SmartFilterEntity, error) {
+	row, err := r.queries.UpdateSmartFilterPinSidebar(ctx, sqlc.UpdateSmartFilterPinSidebarParams{
+		IsPinnedSidebar: isPinned,
+		ID:              id,
+		UserID:          userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return (&models.SmartFilterEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) UpdateSmartFilterPinHome(ctx context.Context, id string, userID string, isPinned bool) (*models.SmartFilterEntity, error) {
+	row, err := r.queries.UpdateSmartFilterPinHome(ctx, sqlc.UpdateSmartFilterPinHomeParams{
+		IsPinnedHome: isPinned,
+		ID:           id,
+		UserID:       userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return (&models.SmartFilterEntity{}).FromSqlc(row), nil
+}
+
+func (r *featureRepository) UpdateSmartFilterHomePosition(ctx context.Context, id string, userID string, position int64) (*models.SmartFilterEntity, error) {
+	row, err := r.queries.UpdateSmartFilterHomePosition(ctx, sqlc.UpdateSmartFilterHomePositionParams{
+		HomePosition: position,
+		ID:           id,
+		UserID:       userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter_list", userID))
+		_ = r.c.Del(ctx, cache.BuildKey("smart_filter", id))
+	}
+	return (&models.SmartFilterEntity{}).FromSqlc(row), nil
 }

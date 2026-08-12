@@ -9,24 +9,33 @@ import (
 )
 
 type BookEntity struct {
-	ID           string            `json:"id"`
-	LibraryID    string            `json:"library_id"`
-	Title        string            `json:"title"`
-	AuthorID     *string           `json:"author_id"`
-	AuthorName   *string           `json:"author_name,omitempty"`
-	Description  *string           `json:"description"`
-	CoverURL     *string           `json:"cover_url"`
-	Status       string            `json:"status"`
-	MetadataJSON *string           `json:"metadata_json"`
-	Files        []*BookFileEntity `json:"files,omitempty"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
+	ID              string            `json:"id"`
+	LibraryID       string            `json:"library_id"`
+	Title           string            `json:"title"`
+	AuthorID        *string           `json:"author_id"`
+	AuthorName      *string           `json:"author_name,omitempty"`
+	Description     *string           `json:"description"`
+	CoverURL        *string           `json:"cover_url"`
+	Status          string            `json:"status"`
+	AgeRating       string            `json:"age_rating"`
+	ContentWarnings []string          `json:"content_warnings,omitempty"`
+	MetadataJSON    *string           `json:"metadata_json"`
+	GoogleBooksID   *string           `json:"google_books_id"`
+	AnilistID       *string           `json:"anilist_id"`
+	OpenLibraryID   *string           `json:"openlibrary_id"`
+	Files           []*BookFileEntity `json:"files,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 func (e *BookEntity) FromSqlc(res sqlc.Book) *BookEntity {
 	status := ""
 	if res.Status.Valid {
 		status = res.Status.String
+	}
+	ageRating := "G"
+	if res.AgeRating != "" {
+		ageRating = res.AgeRating
 	}
 	e.ID = res.ID
 	e.LibraryID = res.LibraryID
@@ -35,7 +44,11 @@ func (e *BookEntity) FromSqlc(res sqlc.Book) *BookEntity {
 	e.Description = convert.NullStringToStrPtr(res.Description)
 	e.CoverURL = convert.NullStringToStrPtr(res.CoverUrl)
 	e.Status = status
+	e.AgeRating = ageRating
 	e.MetadataJSON = convert.NullStringToStrPtr(res.MetadataJson)
+	e.GoogleBooksID = convert.NullStringToStrPtr(res.GoogleBooksID)
+	e.AnilistID = convert.NullStringToStrPtr(res.AnilistID)
+	e.OpenLibraryID = convert.NullStringToStrPtr(res.OpenlibraryID)
 	e.CreatedAt = res.CreatedAt
 	e.UpdatedAt = res.UpdatedAt.Time
 	return e
@@ -61,18 +74,23 @@ func (e *BookEntity) ToResponse() *response.BookResponse {
 		files = BookFileEntitiesToResponse(e.Files)
 	}
 	return &response.BookResponse{
-		ID:           e.ID,
-		LibraryID:    e.LibraryID,
-		Title:        e.Title,
-		AuthorID:     e.AuthorID,
-		AuthorName:   e.AuthorName,
-		Description:  e.Description,
-		CoverURL:     e.CoverURL,
-		Status:       e.Status,
-		MetadataJSON: e.MetadataJSON,
-		Files:        files,
-		CreatedAt:    e.CreatedAt,
-		UpdatedAt:    e.UpdatedAt,
+		ID:              e.ID,
+		LibraryID:       e.LibraryID,
+		Title:           e.Title,
+		AuthorID:        e.AuthorID,
+		AuthorName:      e.AuthorName,
+		Description:     e.Description,
+		CoverURL:        e.CoverURL,
+		Status:          e.Status,
+		AgeRating:       e.AgeRating,
+		ContentWarnings: e.ContentWarnings,
+		MetadataJSON:    e.MetadataJSON,
+		GoogleBooksID:   e.GoogleBooksID,
+		AnilistID:       e.AnilistID,
+		OpenLibraryID:   e.OpenLibraryID,
+		Files:           files,
+		CreatedAt:       e.CreatedAt,
+		UpdatedAt:       e.UpdatedAt,
 	}
 }
 

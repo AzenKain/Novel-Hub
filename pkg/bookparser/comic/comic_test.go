@@ -212,3 +212,60 @@ func createSevenZipEntries(t *testing.T, path string, count int) error {
 	}
 	return nil
 }
+
+func TestRARParserOrdersPagesAndReadsAssets(t *testing.T) {
+	realCBR := realCBRPath(t)
+	parser := NewParser("rar")
+	images, err := parser.ListImages(realCBR)
+	if err != nil {
+		t.Fatalf("ListImages failed: %v", err)
+	}
+	if len(images) == 0 {
+		t.Fatal("expected at least one page in RAR archive")
+	}
+	data, err := parser.GetAsset(realCBR, images[0])
+	if err != nil {
+		t.Fatalf("GetAsset failed for first page: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("extracted page asset data is empty")
+	}
+}
+
+func TestSevenZipParserOrdersPagesAndReadsAssets(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "comic.7z")
+	staging := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staging, "page2.jpg"), []byte("two"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staging, "page10.jpg"), []byte("ten"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staging, "notes.txt"), []byte("skip"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	
+	if _, err := exec.LookPath("7z"); err != nil {
+		t.Skip("7z command line not found, skipping 7z parser test")
+	}
+	out, err := exec.Command("7z", "a", "-bso0", "-bsp0", path, staging+string(os.PathSeparator)+".").CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to create 7z fixture: %v: %s", err, out)
+	}
+
+	parser := NewParser("7z")
+	images, err := parser.ListImages(path)
+	if err != nil {
+		t.Fatalf("ListImages failed: %v", err)
+	}
+	if len(images) != 2 || images[0] != "page2.jpg" || images[1] != "page10.jpg" {
+		t.Fatalf("unexpected image order: %+v", images)
+	}
+	data, err := parser.GetAsset(path, "page10.jpg")
+	if err != nil {
+		t.Fatalf("GetAsset failed: %v", err)
+	}
+	if string(data) != "ten" {
+		t.Fatalf("asset = %q, want ten", string(data))
+	}
+}

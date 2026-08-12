@@ -19,6 +19,7 @@ type UserEntity struct {
 	AvatarUrl    string        `json:"avatar_url"`
 	TokenVersion int32         `json:"token_version"`
 	AuthProvider string        `json:"auth_provider"`
+	Oauth2ID     string        `json:"oauth2_id"`
 	RefreshToken string        `json:"-"`
 	IsDeleted    bool          `json:"is_deleted"`
 	CreatedAt    string        `json:"created_at"`
@@ -45,6 +46,7 @@ func (u *UserEntity) ToResponse() *response.UserResponse {
 		FullName:     u.FullName,
 		AvatarUrl:    u.AvatarUrl,
 		AuthProvider: u.AuthProvider,
+		Oauth2ID:     u.Oauth2ID,
 		IsDeleted:    u.IsDeleted,
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.UpdatedAt,
@@ -81,6 +83,7 @@ func (u *UserEntity) FromSqlc(row sqlc.User) *UserEntity {
 	u.FullName = convert.NullStringToString(row.FullName)
 	u.AvatarUrl = convert.NullStringToString(row.AvatarUrl)
 	u.AuthProvider = row.AuthProvider
+	u.Oauth2ID = convert.NullStringToString(row.Oauth2ID)
 	u.TokenVersion = int32(row.TokenVersion) // #nosec G115
 	u.RefreshToken = convert.NullStringToString(row.RefreshToken)
 	u.IsDeleted = row.IsDeleted != 0

@@ -135,11 +135,11 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 	switch format {
 	case "cbz":
 		return getZipAsset(filePath, assetPath)
-	case "cbr":
+	case "cbr", "rar":
 		return getRARAsset(filePath, assetPath)
 	case "cbt":
 		return getTarAsset(filePath, assetPath)
-	case "cb7":
+	case "cb7", "7z":
 		return getSevenZipAsset(filePath, assetPath)
 	default:
 		return nil, fmt.Errorf("comic parser does not support %q", format)
@@ -154,11 +154,11 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 	switch format {
 	case "cbz":
 		return listZipImages(filePath)
-	case "cbr":
+	case "cbr", "rar":
 		return listRARImages(filePath)
 	case "cbt":
 		return listTarImages(filePath)
-	case "cb7":
+	case "cb7", "7z":
 		return listSevenZipImages(filePath)
 	default:
 		return nil, fmt.Errorf("comic parser does not support %q", format)

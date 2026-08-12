@@ -4,9 +4,11 @@ import {
   getCharacterOffsetOfRange,
   getTextFromHereFromSaved,
   saveSelection,
+  createRangeFromCharOffset,
   type SavedSelection,
   type TtsStartPoint,
 } from "@/lib/readerHighlight";
+import { generateCfiRange } from "@/lib/epubCfi";
 
 type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
 
@@ -24,13 +26,16 @@ export function getToolbarPosition(rect: ToolbarRect, viewportWidth: number) {
     left,
   };
 }
-type UseReaderSelectionArgs = {  columnsRef: RefObject<HTMLDivElement | null>;
+type UseReaderSelectionArgs = {
+  columnsRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
   savedSelectionRef: RefObject<SavedSelection | null>;
   ttsStartPointRef: RefObject<TtsStartPoint | null>;
-  addHighlight: (text: string, start: number, end: number, color: string) => Promise<unknown>;
+  addHighlight: (text: string, start: number, end: number, color: string, cfi_range?: string) => Promise<unknown>;
   speak: (text: string) => void;
   stop: () => void;
+  chapterIndex?: number;
+  chapterId?: string;
 };
 
 /**
@@ -47,6 +52,8 @@ export function useReaderSelection({
   addHighlight,
   speak,
   stop,
+  chapterIndex,
+  chapterId,
 }: UseReaderSelectionArgs) {
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
@@ -141,7 +148,20 @@ export function useReaderSelection({
       end = offset.end;
     }
 
-    await addHighlight(selectedText, start, end, color);
+    let cfiRange: string | undefined = undefined;
+    if (container && chapterId) {
+      let range: Range | null = null;
+      if (saved && saved.endIndex > saved.startIndex && saved.selectedText.trim()) {
+        range = createRangeFromCharOffset(container, saved.startIndex, saved.endIndex);
+      } else if (selectionRange) {
+        range = selectionRange;
+      }
+      if (range) {
+        cfiRange = generateCfiRange(container, range, chapterIndex || 0, chapterId);
+      }
+    }
+
+    await addHighlight(selectedText, start, end, color, cfiRange);
     window.getSelection()?.removeAllRanges();
     savedSelectionRef.current = null;
     setSelectionRange(null);

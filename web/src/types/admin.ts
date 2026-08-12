@@ -141,17 +141,54 @@ export type SmtpTestRequest = {
   allow_private_networks?: boolean;
 };
 
-export interface AdminSettings extends PublicSettings {
+export interface ProxyAuthSettings {
+  enabled: boolean;
+  header_names: string[];
+  trusted_proxies: string[];
+  auto_create: boolean;
+}
+
+export interface OAuthProviderPublic {
+  id: string;
+  display_name: string;
+  enabled: boolean;
+}
+
+export interface OAuthSettingsPublic {
+  providers: OAuthProviderPublic[];
+}
+
+export interface OAuthProviderAdmin {
+  enabled: boolean;
+  client_id: string;
+  client_secret_set: boolean;
+  redirect_uri: string;
+  name?: string;
+  issuer_url?: string;
+  scopes?: string[];
+}
+
+export interface OAuthSettingsAdmin {
+  google: OAuthProviderAdmin;
+  github: OAuthProviderAdmin;
+  discord: OAuthProviderAdmin;
+  oidc: OAuthProviderAdmin;
+}
+
+export interface AdminSettings extends Omit<PublicSettings, 'oauth'> {
   limits: RuntimeLimits;
   bounds: RuntimeLimitBounds;
   smtp: SmtpSettings;
   server_url?: string;
+  proxy_auth: ProxyAuthSettings;
+  oauth?: OAuthSettingsAdmin;
 }
 
 export interface PublicSettings {
   site: SiteSettings;
   sidebar_visible_items: string[];
   home_sections: HomeSectionSettings;
+  oauth?: OAuthSettingsPublic;
   registration_enabled: boolean;
   guest_login_required: boolean;
   guest_access: LibraryPolicy;
@@ -159,6 +196,8 @@ export interface PublicSettings {
   enable_in_book_search?: boolean;
   enable_custom_font_upload?: boolean;
   enable_anilist_tracking?: boolean;
+  enable_auto_enrich?: boolean;
+  enable_webp_cover?: boolean;
   require_email_verify?: boolean;
   password_reset_enabled?: boolean;
   smtp_enabled?: boolean;
@@ -166,6 +205,7 @@ export interface PublicSettings {
   available_sidebar_items: string[];
   available_home_sections: string[];
   available_guest_modes: string[];
+  proxy_auth_enabled?: boolean;
 }
 
 export interface Webhook {

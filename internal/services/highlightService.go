@@ -107,7 +107,7 @@ func roleTypeStrings(roles []constants.RoleType) []string {
 }
 
 func (s *highlightService) CreateHighlight(ctx context.Context, userID string, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
-	if dto.StartIndex >= dto.EndIndex {
+	if (dto.CfiRange == nil || *dto.CfiRange == "") && dto.StartIndex >= dto.EndIndex {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid text selection range")
 	}
 	if !s.canHighlight(ctx, dto.BookID, dto.ChapterID, claims) {
@@ -125,6 +125,7 @@ func (s *highlightService) CreateHighlight(ctx context.Context, userID string, d
 		EndIndex:    int64(dto.EndIndex),
 		Color:       dto.Color,
 		Note:        convert.StrPtrToNullString(dto.Note),
+		CfiRange:    convert.StrPtrToNullString(dto.CfiRange),
 	})
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to create highlight")

@@ -28,18 +28,20 @@ type MaintenanceService interface {
 }
 
 type maintenanceService struct {
-	bookRepo  repositories.BookDBRepository
-	fileRepo  repositories.BookFileRepository
-	parsers   *bookparser.Registry
-	txManager database.TxManager
+	bookRepo      repositories.BookDBRepository
+	fileRepo      repositories.BookFileRepository
+	magicCodeRepo repositories.MagicCodeRepository
+	parsers       *bookparser.Registry
+	txManager     database.TxManager
 }
 
-func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, parsers *bookparser.Registry, txManager database.TxManager) MaintenanceService {
+func NewMaintenanceService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, magicCodeRepo repositories.MagicCodeRepository, parsers *bookparser.Registry, txManager database.TxManager) MaintenanceService {
 	return &maintenanceService{
-		bookRepo:  bookRepo,
-		fileRepo:  fileRepo,
-		parsers:   parsers,
-		txManager: txManager,
+		bookRepo:      bookRepo,
+		fileRepo:      fileRepo,
+		magicCodeRepo: magicCodeRepo,
+		parsers:       parsers,
+		txManager:     txManager,
 	}
 }
 
@@ -247,11 +249,17 @@ func (s *maintenanceService) RunMaintenance(ctx context.Context) error {
 		case <-time.After(50 * time.Millisecond):
 		}
 	}
-
 	if err := s.CleanOrphanUploads(ctx); err != nil {
 		return err
 	}
-	return s.CleanEmptyBookDirs(ctx)
+	if err := s.CleanEmptyBookDirs(ctx); err != nil {
+		return err
+	}
+	if err := s.magicCodeRepo.DeleteExpired(ctx); err != nil {
+		log.Warn().Err(err).Msg("failed to delete expired magic codes")
+	}
+
+	return nil
 }
 
 func (s *maintenanceService) removeMissingFile(ctx context.Context, fileID, bookID string) (bool, error) {

@@ -62,10 +62,11 @@ function execute(url) {
 
 function makeAbsolute(html) {
     if (!html) return html;
-    return html.replace(/src\s*=\s*"([^"]+)"/g, function (m, url) {
-        if (url.indexOf("http") === 0 || url.indexOf("//") === 0 || url.indexOf("data:") === 0 || url.charAt(0) === "#") {
+    return html.replace(/(src|xlink:href|href|poster)\s*=\s*(["'])([^"']+)\2/gi, function (m, attr, q, url) {
+        if (url.indexOf("http") === 0 || url.indexOf("//") === 0 || url.indexOf("data:") === 0 || url.indexOf("blob:") === 0 || url.charAt(0) === "#") {
             return m;
         }
-        return m.replace('"' + url + '"', '"' + CONFIG_URL + (url.charAt(0) === "/" ? "" : "/") + url + '"');
+        var absUrl = CONFIG_URL + (url.charAt(0) === "/" ? "" : "/") + url;
+        return m.replace(q + url + q, function () { return q + absUrl + q; });
     });
 }

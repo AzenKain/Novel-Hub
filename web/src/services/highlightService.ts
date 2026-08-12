@@ -10,7 +10,8 @@ export const highlightService = {
     start_index: number,
     end_index: number,
     color: string,
-    note?: string
+    note?: string,
+    cfi_range?: string
   ): Promise<CommonResponse<Highlight>> {
     try {
       const res = await api.post("/highlights", {
@@ -21,6 +22,7 @@ export const highlightService = {
         end_index,
         color,
         note,
+        cfi_range,
       });
       return res.data;
     } catch (error) {

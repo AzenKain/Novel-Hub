@@ -168,6 +168,7 @@
         "database_health_check": "Kiểm tra database",
         "database_backup": "Sao lưu database",
         "database_books_backup": "Sao lưu database + sách",
+        "scan_metadata_enrich": "Quét và cập nhật thông tin sách",
         "scan_library_inbox": "Quét thư mục inbox",
         "extract_metadata": "Trích xuất metadata",
         "hash_file": "Tạo hash tệp",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "Đã xoá {{deleted}} tệp, {{failed}} tệp thất bại: {{reason}}",
     "upload_partial": "Đã tải lên {{count}}/{{total}} sách. Đang xử lý metadata...",
     "upload_done": "Đã tải lên {{count}} sách. Đang xử lý metadata...",
-    "upload_all_failed": "Không tải lên được tệp nào: {{reason}}"
+    "upload_all_failed": "Không tải lên được tệp nào: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "Đăng nhập vào tài khoản của bạn",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "Tính năng đặt lại mật khẩu qua email đang tắt. Hãy nhờ admin đặt lại mật khẩu cho bạn.",
     "totp_prompt": "Nhập mã 6 số từ ứng dụng xác thực, hoặc một mã dự phòng.",
     "totp_code": "Mã xác thực",
-    "totp_verify": "Xác minh và đăng nhập"
+    "totp_verify": "Xác minh và đăng nhập",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Hoặc đăng nhập bằng",
+    "sign_in_with_provider": "Đăng nhập bằng {{provider}}"
   },
   "common": {
     "cancel": "Hủy",
@@ -315,7 +323,37 @@
     "current": "Hiện tại",
     "load_more": "Tải thêm",
     "previous": "Trước",
-    "next": "Sau"
+    "next": "Sau",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
@@ -666,7 +704,8 @@
     "collections": "Bộ sưu tập",
     "no_description": "Không có tóm tắt cho sách này.",
     "next_in_series": "Tiếp theo trong bộ",
-    "in_same_series": "Cùng bộ truyện"
+    "in_same_series": "Cùng bộ truyện",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "Cài đặt",
@@ -705,6 +744,13 @@
     "anilist_tracking": "Bật theo dõi AniList",
     "anilist_tracking_desc": "Cho phép người dùng liên kết tài khoản AniList và đồng bộ tiến độ đọc.",
     "save_reader": "Lưu cài đặt đọc",
+    "metadata_covers": "Thông tin & Ảnh bìa",
+    "metadata_covers_desc": "Cấu hình tự động bổ sung metadata và tối ưu hóa hình ảnh bìa.",
+    "save_metadata": "Lưu cài đặt",
+    "auto_enrich": "Tự động bổ sung metadata",
+    "auto_enrich_desc": "Tự động lấy thông tin từ AniList, OpenLibrary và Google Books khi thêm sách mới.",
+    "webp_cover": "Nén bìa thành WebP",
+    "webp_cover_desc": "Nén hình ảnh bìa sang định dạng WebP hiệu năng cao khi tải lên hoặc trích xuất.",
     "registration_guest": "Đăng ký & truy cập khách",
     "registration_guest_desc": "Kiểm soát ai được đăng ký và những gì khách xem được.",
     "public_registration": "Cho phép đăng ký công khai",
@@ -826,7 +872,12 @@
     "needs_smtp": "Cấu hình SMTP bên dưới để bật mục này.",
     "template_email": "Email (SMTP)",
     "email_recipients": "Người nhận",
-    "email_recipients_hint": "Các địa chỉ cách nhau bằng dấu phẩy, đặt sau mailto:. Cần cấu hình SMTP trước."
+    "email_recipients_hint": "Các địa chỉ cách nhau bằng dấu phẩy, đặt sau mailto:. Cần cấu hình SMTP trước.",
+    "oauth": {
+      "title": "Cấu hình OAuth & OIDC",
+      "subtitle": "Thiết lập đăng nhập thông qua các dịch vụ bên thứ ba",
+      "setup_info": "Lưu ý cấu hình: Hãy đảm bảo Redirect URI ở đây trùng khớp với cấu hình trong trang quản lý nhà phát triển của bên thứ ba. Các thông tin nhạy cảm sẽ được mã hóa."
+    }
   },
   "email": {
     "invalid": "Vui lòng nhập địa chỉ email hợp lệ",
@@ -982,7 +1033,16 @@
     "manual_email": "Nhập email thủ công",
     "no_devices": "Chưa có thiết bị nào được lưu.",
     "add_device_tip": "Nhập email thủ công hoặc đăng ký thiết bị trong cài đặt.",
-    "push": "Gửi ngay"
+    "push": "Gửi ngay",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "Tìm kiếm nâng cao",
@@ -1016,5 +1076,40 @@
     "guide_title": "Cách cài đặt trong VBook:",
     "step1": "Bấm 'Tải file ZIP' ở trên để tải file plugin.zip về máy.",
     "step2": "Mở VBook → Chọn dấu 3 chấm dọc (⋮) → Chọn 'Nhập phần mở rộng' → Chọn file plugin.zip vừa tải."
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

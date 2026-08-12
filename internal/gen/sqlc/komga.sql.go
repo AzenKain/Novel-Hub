@@ -53,7 +53,6 @@ type GetKomgaBookSeriesRow struct {
 	NumberSort  float64        `json:"number_sort"`
 }
 
-// The reverse lookup: the extension fetches a book directly and the response must name its series.
 func (q *Queries) GetKomgaBookSeries(ctx context.Context, bookID string) (GetKomgaBookSeriesRow, error) {
 	row := q.queryRow(ctx, q.getKomgaBookSeriesStmt, getKomgaBookSeries, bookID)
 	var i GetKomgaBookSeriesRow
@@ -92,9 +91,6 @@ type GetKomgaSeriesByIDsRow struct {
 	LibraryID    string `json:"library_id"`
 }
 
-// Both id lists arrive as JSON arrays: sqlc.slice expands to N placeholders but leaves other
-// sqlc.arg positions numbered as if it were one, so mixing the two misbinds every later param.
-// library_id is aggregated because Komga's libraryId is a single value per series.
 func (q *Queries) GetKomgaSeriesByIDs(ctx context.Context, arg GetKomgaSeriesByIDsParams) ([]GetKomgaSeriesByIDsRow, error) {
 	rows, err := q.query(ctx, q.getKomgaSeriesByIDsStmt, getKomgaSeriesByIDs, arg.SeriesIds, arg.LibraryIds)
 	if err != nil {
@@ -155,8 +151,6 @@ type GetKomgaSeriesProgressRow struct {
 	MaxNumberSort        float64 `json:"max_number_sort"`
 }
 
-// Drives both the read-progress endpoint and the booksReadCount/booksUnreadCount fields the
-// tracker requires. 99.5 is the same "read" threshold books.sql uses for filter_read.
 func (q *Queries) GetKomgaSeriesProgress(ctx context.Context, arg GetKomgaSeriesProgressParams) (GetKomgaSeriesProgressRow, error) {
 	row := q.queryRow(ctx, q.getKomgaSeriesProgressStmt, getKomgaSeriesProgress, arg.UserID, arg.SeriesID, arg.LibraryIds)
 	var i GetKomgaSeriesProgressRow
@@ -199,8 +193,6 @@ type ListKomgaSeriesBooksRow struct {
 	NumberSort  float64        `json:"number_sort"`
 }
 
-// Ordered the same way GetNextBookInSeries orders: numeric series_index first, then created_at,
-// so a series with unparseable indexes still has a stable order.
 func (q *Queries) ListKomgaSeriesBooks(ctx context.Context, arg ListKomgaSeriesBooksParams) ([]ListKomgaSeriesBooksRow, error) {
 	rows, err := q.query(ctx, q.listKomgaSeriesBooksStmt, listKomgaSeriesBooks, arg.SeriesID, arg.LibraryIds)
 	if err != nil {
@@ -235,7 +227,6 @@ func (q *Queries) ListKomgaSeriesBooks(ctx context.Context, arg ListKomgaSeriesB
 }
 
 const listKomgaSeriesIDs = `-- name: ListKomgaSeriesIDs :many
-
 SELECT s.id
 FROM series s
 WHERE (?1 IS NULL OR s.name LIKE '%' || ?1 || '%')
@@ -257,17 +248,6 @@ type ListKomgaSeriesIDsParams struct {
 	Limit      int64       `json:"limit"`
 }
 
-// Komga-compatible API for the Mihon/Tachiyomi Komga extension. See internal/routes/komgaRoutes.go
-// for why this shape exists: the extension and Mihon's built-in tracker are two separate HTTP
-// clients with differing DTOs for the same endpoint, so responses emit the union of both.
-//
-// Paging is offset-based here, unlike the cursor paging used everywhere else, because the
-// extension sends ?page=N (0-based) and needs totalPages/totalElements to know when to stop.
-// Returns ids only; the rows are hydrated per id so a series cached by one listing is reused
-// by the next (cache-by-ids, see internal/repositories/jobScheduleRepository.go).
-// Driven from series with EXISTS rather than joining books and de-duplicating: a JOIN forces a
-// temp b-tree over every book in the library for both GROUP BY and ORDER BY, which cost 190ms
-// per page at 100k books regardless of offset. EXISTS lets ORDER BY ride the name index.
 func (q *Queries) ListKomgaSeriesIDs(ctx context.Context, arg ListKomgaSeriesIDsParams) ([]string, error) {
 	rows, err := q.query(ctx, q.listKomgaSeriesIDsStmt, listKomgaSeriesIDs,
 		arg.Search,
@@ -330,8 +310,6 @@ type ListKomgaSeriesProgressRow struct {
 	MaxNumberSort        float64 `json:"max_number_sort"`
 }
 
-// Batch form of GetKomgaSeriesProgress: the series listing needs read counts for every row it
-// returns, and one query per series dominated the endpoint (measured in komgaRepository_bench_test.go).
 func (q *Queries) ListKomgaSeriesProgress(ctx context.Context, arg ListKomgaSeriesProgressParams) ([]ListKomgaSeriesProgressRow, error) {
 	rows, err := q.query(ctx, q.listKomgaSeriesProgressStmt, listKomgaSeriesProgress, arg.UserID, arg.SeriesIds, arg.LibraryIds)
 	if err != nil {

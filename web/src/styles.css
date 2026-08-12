@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: winter --default, night --prefersdark, cupcake, coffee;
+  themes: winter --default, night --prefersdark, cupcake, coffee, nord, dracula, sunset, cyberpunk, catppuccin, emerald, retro, synthwave, dim, silk;
 }
 
 @tailwind utilities;
@@ -1070,3 +1070,83 @@ label.btn-primary:hover:not(:disabled) {
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Responsive application layout zoom to fit desktop resolutions beautifully */
+:root {
+  --zoom-ratio: 1;
+}
+
+@media (min-width: 1024px) {
+  html:not(:has(.reader-ui)) {
+    --zoom-ratio: 0.85;
+    zoom: var(--zoom-ratio);
+  }
+}
+
+@media (min-width: 1280px) {
+  html:not(:has(.reader-ui)) {
+    --zoom-ratio: 0.8;
+    zoom: var(--zoom-ratio);
+  }
+}
+
+@media (min-width: 1536px) {
+  html:not(:has(.reader-ui)) {
+    --zoom-ratio: 0.75;
+    zoom: var(--zoom-ratio);
+  }
+}
+
+/* Adjust viewport height values to span full physical screen under zoom */
+html:not(:has(.reader-ui)) {
+  --vh-unit: calc(100vh / var(--zoom-ratio));
+}
+
+html:not(:has(.reader-ui)) .h-screen {
+  height: var(--vh-unit) !important;
+}
+
+html:not(:has(.reader-ui)) .min-h-screen {
+  min-height: var(--vh-unit) !important;
+}
+
+html:not(:has(.reader-ui)) .max-h-screen {
+  max-height: var(--vh-unit) !important;
+}
+
+html:not(:has(.reader-ui)) .drawer-side,
+html:not(:has(.reader-ui)) .drawer-overlay {
+  height: var(--vh-unit) !important;
+}
+
+/* Handle broken and dummy images inside reader content */
+.reader-content img[src="#"],
+.reader-content img[src=""] {
+  display: none !important;
+}
+
+.reader-content img {
+  position: relative;
+}
+
+.reader-content img::after {
+  content: "🖼️";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--color-base-content);
+  opacity: 0.5;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 80px;
+  min-height: 60px;
+  background-color: var(--color-base-200);
+  border: 1px dashed var(--color-base-300);
+  border-radius: 6px;
+}
+
+

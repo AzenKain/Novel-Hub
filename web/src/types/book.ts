@@ -39,7 +39,12 @@ export interface Book {
   cover_url?: string;
   file_path?: string;
   status: string;
+  age_rating?: string;
+  content_warnings?: string[];
   metadata_json?: string;
+  google_books_id?: string;
+  anilist_id?: string;
+  openlibrary_id?: string;
   files?: BookFile[];
   created_at: string;
   updated_at: string;
@@ -159,6 +164,7 @@ export interface Highlight {
   end_index: number;
   color: string;
   note?: string;
+  cfi_range?: string;
   created_at: string;
   updated_at: string;
 }

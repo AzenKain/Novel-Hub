@@ -12,7 +12,34 @@ import (
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/tiff"
 	_ "golang.org/x/image/webp"
+
+	"github.com/deepteams/webp"
 )
+
+// ConvertToWebP converts image data to WebP format if it results in a smaller file size.
+// It decodes the image, runs WebP encoder at quality 75, and returns the WebP data
+// along with a boolean indicating if WebP data is actually smaller.
+func ConvertToWebP(data []byte) ([]byte, bool, error) {
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, false, err
+	}
+
+	var buf bytes.Buffer
+	err = webp.Encode(&buf, img, &webp.EncoderOptions{
+		Quality: 75,
+		Method:  4,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	webpData := buf.Bytes()
+	if len(webpData) < len(data) {
+		return webpData, true, nil
+	}
+	return data, false, nil
+}
 
 const maxImagePixels = 40_000_000
 

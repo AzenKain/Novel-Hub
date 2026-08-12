@@ -37,7 +37,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
 - **Data Boundaries**:
   - Service functions **MUST** take input arguments and return results using structures defined under the [`internal/dtos`](./internal/dtos) package (`request/` and `response/`).
   - Services **MUST NOT** leak raw SQL structures (`sqlc`) or internal domain models directly to the controllers.
-  - **No Trivial Wrapper Functions**: Avoid creating 1-line helper functions in services (e.g. converting types or wrappers around simple conversions). Use package helpers directly.
+  - **No Trivial Wrapper Functions / Helper Overkill**: Avoid creating 1-line helper functions or private wrapper methods (e.g. `magicCodeKeyByCode`, `invalidate(...)`). Inline cache key creations (`cache.BuildKey(...)`) and cache deletions (`r.c.Del(...)`) directly inside the parent methods.
   - Wrap database `sql.ErrNoRows` in `apperrors.New(apperrors.ErrNotFound, ...)` and validation failures in `apperrors.New(apperrors.ErrBadRequest, ...)` to ensure clean HTTP status mapping.
 
 ### C. Repository Layer (`internal/repositories`)
@@ -98,6 +98,8 @@ All utility logic must be centralized within the `pkg/` directory:
 
 ## 🎨 3. Frontend Guidelines (`web/src` & `web/public`)
 
+- **Package Manager Mandatory (Bun Only)**:
+  - Frontend development, dependency installation, typechecking, and production builds **MUST** use `bun` (`bun run build`, `bun run typecheck`, `bun add <pkg>`). Using `npm` or `yarn` is strictly forbidden.
 - **Component Organization**:
   - Component files must be modularized under `web/src/components/` categorized by domain (`admin`, `book-detail`, `common`, `library`, `profile`, `reader`, `ui`).
   - Do not create monolithic 1,000+ line JSX files. Extract sub-views into dedicated, focused components (~200-400 lines max).
@@ -151,3 +153,6 @@ All utility logic must be centralized within the `pkg/` directory:
 - **Ordered Reading Lists**: `read_lists` / `read_list_books` already provide per-user lists with an explicit `position`, drag reordering, a next-book handoff in the reader, and ComicRack `.cbl` import (`pkg/bookparser/comic/cbl.go`), all gated by `book.collection`. `position` is deliberately NOT `UNIQUE` — swapping adjacent entries must pass through a duplicate value mid-transaction.
 - **Core Engine Mechanics**: The codebase already handles **Chunked Uploads** (for files >100MB), **Smart Garbage Collection** for orphaned uploads, and **Native Audio Streaming** (MP3, M4B, FLAC) without FFmpeg/HLS. Do NOT propose adding FFmpeg or HLS back into the project.
 - **Codebase Review**: You **MUST** thoroughly search the codebase and database schemas (`db/schema/*.sql`) to verify if a feature or schema exists before planning to build it.
+- **eReader Standards & Detailed Test Cases**:
+  - All eReader integration features (OPDS feeds, Kobo Sync, Kindle Send-to-Kindle, eReader Passwordless/QR Login, eReader Web view) **MUST** study and reference established implementation patterns from [Calibre-Web (`janeczku/calibre-web`)](https://github.com/janeczku/calibre-web).
+  - Every eReader and core system feature **MUST** be backed by comprehensive, detailed unit tests (`*_test.go` or `*.test.ts`) covering success, failure, edge cases, and pagination behavior. Laziness, skipping test cases, or breaking project rules is strictly prohibited.

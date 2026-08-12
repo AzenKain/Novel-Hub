@@ -6,7 +6,7 @@ import { featureService } from "@/services";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
 import { usePublicSettings } from "@/hooks/useSettings";
-import type { Collection, SmartCollection, SmartCollectionRule, User } from "@/types";
+import type { Collection, SmartCollection, SmartCollectionRule, User, SmartFilter } from "@/types";
 import type { MetadataFacetSection } from "./MetadataIndexView";
 
 export type LibraryNavItem = {
@@ -34,6 +34,12 @@ type LibrarySidebarProps = {
   smartCollections?: SmartCollection[];
   onSmartCollectionClick?: (rule: SmartCollectionRule) => void;
   onDeleteSmartCollection?: (id: string) => void;
+  smartFilters?: SmartFilter[];
+  onSmartFilterClick?: (id: string) => void;
+  onEditSmartFilter?: (filter: SmartFilter) => void;
+  onDeleteSmartFilter?: (id: string) => void;
+  onNewSmartFilter?: () => void;
+  activeSmartFilterId?: string;
 };
 
 import { useLibraryStore } from "@/stores";
@@ -58,6 +64,12 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   smartCollections = [],
   onSmartCollectionClick,
   onDeleteSmartCollection,
+  smartFilters = [],
+  onSmartFilterClick,
+  onEditSmartFilter,
+  onDeleteSmartFilter,
+  onNewSmartFilter,
+  activeSmartFilterId,
 }) => {
   const queryClient = useQueryClient();
   const settings = usePublicSettings();
@@ -319,6 +331,69 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                   </div>
                 </li>
               ))}
+            </ul>
+          </div>
+        )}
+
+        {user && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between px-2 pb-2">
+              <div className="flex items-center gap-1.5">
+                <Filter className="h-3.5 w-3.5 text-base-content/40" />
+                <span className="menu-title !p-0 text-xs font-bold uppercase tracking-wider text-base-content/40">
+                  {t("library.smart_filters", "Smart Filters")}
+                </span>
+              </div>
+              {onNewSmartFilter && (
+                <button
+                  onClick={onNewSmartFilter}
+                  className="btn btn-ghost btn-xs btn-square hover:bg-base-350"
+                  title={t("library.new_smart_filter", "New Smart Filter")}
+                >
+                  <Plus className="w-3.5 h-3.5 text-base-content/60" />
+                </button>
+              )}
+            </div>
+            <ul className="menu menu-md w-full gap-1 p-0">
+              {smartFilters
+                .filter((sf) => sf.is_pinned_sidebar)
+                .map((sf) => (
+                  <li key={sf.id}>
+                    <div className={`group flex items-center justify-between !p-0 ${activeSmartFilterId === sf.id ? "bg-primary/10 text-primary font-semibold" : ""}`}>
+                      <button
+                        className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
+                        onClick={() => onSmartFilterClick?.(sf.id)}
+                      >
+                        <span className="truncate">{sf.name}</span>
+                      </button>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mr-1">
+                        {onEditSmartFilter && (
+                          <button
+                            className="btn btn-ghost btn-xs btn-square text-base-content/60"
+                            onClick={() => onEditSmartFilter(sf)}
+                            title={t("common.edit", "Edit")}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        )}
+                        {onDeleteSmartFilter && (
+                          <button
+                            className="btn btn-ghost btn-xs btn-square text-error"
+                            onClick={() => onDeleteSmartFilter(sf.id)}
+                            title={t("common.delete", "Delete")}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              {smartFilters.filter((sf) => sf.is_pinned_sidebar).length === 0 && (
+                <li className="px-3 py-1.5 text-xs text-base-content/40 italic">
+                  {t("library.no_pinned_filters", "No pinned filters")}
+                </li>
+              )}
             </ul>
           </div>
         )}

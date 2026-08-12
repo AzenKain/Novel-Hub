@@ -72,6 +72,8 @@ func newParserRegistry() *bookparser.Registry {
 	registry.Register(comic.NewParser("cbr"), "cbr")
 	registry.Register(comic.NewParser("cbt"), "cbt")
 	registry.Register(comic.NewParser("cb7"), "cb7")
+	registry.Register(comic.NewParser("rar"), "rar")
+	registry.Register(comic.NewParser("7z"), "7z")
 	return registry
 }
 

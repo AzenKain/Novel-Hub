@@ -12,6 +12,8 @@ export function RegisterPage() {
   const registerMutation = useRegisterMutation();
 
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [validationError, setValidationError] = useState("");
   const [ticket, setTicket] = useState("");
 
   const verifyRequired = settings?.require_email_verify ?? false;
@@ -19,6 +21,11 @@ export function RegisterPage() {
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    setValidationError("");
+    if (form.password !== confirmPassword) {
+      setValidationError(t('settings.password_mismatch', "New passwords do not match"));
+      return;
+    }
     registerMutation.mutate(
       {
         email: form.email,
@@ -116,12 +123,25 @@ export function RegisterPage() {
                   />
                   {form.password.length > 0 && <PasswordStrength password={form.password} />}
                 </div>
+                <div className="form-control">
+                  <label className="label"><span className="label-text font-semibold">{t("settings.confirm_password", "Confirm new password")}</span></label>
+                  <input
+                    type="password"
+                    placeholder={t("auth.password_min", "Minimum 8 characters")}
+                    className="input input-bordered w-full"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
 
-                {registerMutation.error && (
+                {(validationError || registerMutation.error) && (
                   <div className="alert alert-error py-2 text-sm rounded-lg">
-                    {registerMutation.error instanceof Error
+                    {validationError || (registerMutation.error instanceof Error
                       ? registerMutation.error.message
-                      : String(registerMutation.error)}
+                      : String(registerMutation.error))}
                   </div>
                 )}
 

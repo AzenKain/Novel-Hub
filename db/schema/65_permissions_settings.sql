@@ -126,7 +126,41 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('limits.upload_bytes', '8589934592'),
     ('limits.upload_session_ttl_seconds', '21600'),
     ('limits.cover_bytes', '33554432'),
-    ('limits.site_asset_bytes', '10485760')
+    ('limits.site_asset_bytes', '10485760'),
+
+    -- Metadata enrichment settings
+    ('metadata.auto_enrich_enabled', 'false'),
+    ('metadata.webp_cover_enabled', 'false'),
+
+    -- Reverse proxy header authentication settings
+    ('auth.proxy_auth_enabled', 'false'),
+    ('auth.proxy_auth_headers', '["X-Forwarded-User", "Remote-User", "X-Forwarded-Email"]'),
+    ('auth.proxy_auth_trusted_proxies', '["127.0.0.1", "::1"]'),
+    ('auth.proxy_auth_auto_create', 'false'),
+
+    -- OAuth/OIDC settings
+    ('oauth.google.enabled', 'false'),
+    ('oauth.google.client_id', '""'),
+    ('oauth.google.client_secret', '""'),
+    ('oauth.google.redirect_uri', '""'),
+
+    ('oauth.github.enabled', 'false'),
+    ('oauth.github.client_id', '""'),
+    ('oauth.github.client_secret', '""'),
+    ('oauth.github.redirect_uri', '""'),
+
+    ('oauth.discord.enabled', 'false'),
+    ('oauth.discord.client_id', '""'),
+    ('oauth.discord.client_secret', '""'),
+    ('oauth.discord.redirect_uri', '""'),
+
+    ('oauth.oidc.enabled', 'false'),
+    ('oauth.oidc.name', '"OpenID Connect"'),
+    ('oauth.oidc.issuer_url', '""'),
+    ('oauth.oidc.client_id', '""'),
+    ('oauth.oidc.client_secret', '""'),
+    ('oauth.oidc.redirect_uri', '""'),
+    ('oauth.oidc.scopes', '["openid", "profile", "email"]')
 ON CONFLICT(key) DO NOTHING;
 
 INSERT INTO app_settings (key, value_json) VALUES

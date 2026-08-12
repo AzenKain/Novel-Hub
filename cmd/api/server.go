@@ -181,6 +181,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	parserRegistry.Register(comic.NewParser("cbr"), "cbr")
 	parserRegistry.Register(comic.NewParser("cbt"), "cbt")
 	parserRegistry.Register(comic.NewParser("cb7"), "cb7")
+	parserRegistry.Register(comic.NewParser("rar"), "rar")
+	parserRegistry.Register(comic.NewParser("7z"), "7z")
 	parserRegistry.Register(audiobook.New(), "mp3", "m4a", "m4b", "flac")
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
@@ -221,7 +223,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobScheduleRepo := repositories.NewJobScheduleRepository(db, ramCache)
 	jobScheduleService := services.NewJobScheduleService(jobScheduleRepo, jobService)
 	s.Scheduler = jobScheduleService
-	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, parserRegistry, txManager)
+	magicCodeRepo := repositories.NewMagicCodeRepository(db, ramCache)
+	maintenanceService := services.NewMaintenanceService(bookRepo, bookFileRepo, magicCodeRepo, parserRegistry, txManager)
 	dataDir := config.GetConfigWithDefault("DATA_DIR", "./data")
 	logService := services.NewSystemLogService(filepath.Join(dataDir, "logs"))
 	backupService := services.NewBackupService(db, dataDir, config.GetBoolConfigWithDefault("RESTORE_AUTO_RESTART", false), func() {
@@ -230,7 +233,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		default:
 		}
 	}, maintenanceGate)
-	calibreService := services.NewCalibreSyncService(bookRepo, bookFileRepo, txManager)
+	calibreService := services.NewCalibreSyncService(bookRepo, bookFileRepo, txManager, settingsService)
 	calibreController := controllers.NewCalibreController(calibreService)
 	webhookService := services.NewWebhookService(webhookRepo, jobQueue, settingsService)
 	webhookController := controllers.NewWebhookController(webhookService)
@@ -239,8 +242,14 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	jobService.SetWebhookService(webhookService)
 	uploadService := services.NewUploadService(libraryService, bookService, libraryRepo, permissionCache, settingsService)
 	deviceService := services.NewDeviceService(deviceRepo, bookRepo, bookService, settingsService, permissionCache, jobQueue)
+	magicCodeService := services.NewMagicCodeService(magicCodeRepo, userRepo, authService)
+	ageRatingRepo := repositories.NewAgeRatingRepository(db, ramCache)
+	ageRatingService := services.NewAgeRatingService(ageRatingRepo)
 
 	authController := controllers.NewAuthController(authService)
+	oauthController := controllers.NewOAuthController(authService, settingsService)
+	magicCodeController := controllers.NewMagicCodeController(magicCodeService, settingsService)
+	ageRatingController := controllers.NewAgeRatingController(ageRatingService)
 	userController := controllers.NewUserController(userService, auditService)
 	roleController := controllers.NewRoleController(roleService, auditService)
 	bookController := controllers.NewBookController(bookService, featureService, settingsService, permissionCache, auditService)
@@ -249,6 +258,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	systemOperationsController := controllers.NewSystemOperationsController(logService, backupService, auditService, ramCache)
 	readerController := controllers.NewReaderController(bookService, settingsService, permissionCache)
 	featureController := controllers.NewFeatureController(featureService, bookService, settingsService, permissionCache)
+	smartFilterController := controllers.NewSmartFilterController(featureService, bookService)
 	readListController := controllers.NewReadListController(readListService)
 	highlightController := controllers.NewHighlightController(highlightService)
 	metadataController := controllers.NewMetadataController(metadataService)
@@ -342,6 +352,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return err
 	})
 
+	jobQueue.RegisterHandler("scan_metadata_enrich", func(ctx context.Context, jobID string, payload string) error {
+		return bookService.BatchEnrichBooks(ctx)
+	})
+
 	jobQueue.RegisterHandler("webhook.dispatch", func(ctx context.Context, jobID string, payload string) error {
 		var jobData struct {
 			WebhookID string `json:"webhook_id"`
@@ -383,7 +397,8 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return c.SendFile(safePath)
 	})
 
-	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService))
+	proxyAuthMiddleware := middlewares.ProxyAuth(settingsService, authService, userRepo, roleRepo, txManager)
+	api := s.App.Group("/api", middlewares.RequestBodyLimit(settingsService), proxyAuthMiddleware)
 	v1 := api.Group("/v1")
 
 	v1.Get("/health", func(c fiber.Ctx) error {
@@ -395,7 +410,9 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "ok"})
 	})
 
-	routes.AuthRoutes(v1, authController, userRepo, settingsService)
+	routes.AuthRoutes(v1, authController, oauthController, userRepo, settingsService)
+	routes.MagicCodeRoutes(v1, magicCodeController, userRepo, settingsService)
+	routes.AgeRatingRoutes(v1, ageRatingController, userRepo, permissionCache)
 	routes.UserRoutes(v1, userController, userRepo, permissionCache)
 	routes.RoleRoutes(v1, roleController, userRepo, permissionCache)
 	routes.BookRoutes(v1, bookController, userRepo, bookRepo, permissionCache)
@@ -404,6 +421,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.SystemOperationsRoutes(v1, systemOperationsController, userRepo, permissionCache)
 	routes.SetupReaderRoutes(v1, readerController, userRepo, bookRepo, permissionCache)
 	routes.FeatureRoutes(v1, featureController, highlightController, readListController, userRepo, bookRepo, permissionCache)
+	routes.SmartFilterRoutes(v1, smartFilterController, userRepo, permissionCache)
 	routes.RegisterMetadataRoutes(v1, metadataController, userRepo)
 	routes.SettingsRoutes(v1, settingsController, userRepo, permissionCache)
 	routes.AuditRoutes(v1, auditController, userRepo, permissionCache)

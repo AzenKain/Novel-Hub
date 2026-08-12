@@ -12,6 +12,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/bookparser"
 	"novelhub/pkg/calibre"
 	"novelhub/pkg/config"
 	"novelhub/pkg/convert"
@@ -28,13 +29,19 @@ type calibreSyncService struct {
 	bookRepo  repositories.BookDBRepository
 	fileRepo  repositories.BookFileRepository
 	txManager database.TxManager
+	settings  SettingsService
 }
 
-func NewCalibreSyncService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, txManager database.TxManager) CalibreSyncService {
+func NewCalibreSyncService(bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, txManager database.TxManager, settings ...SettingsService) CalibreSyncService {
+	var settingsSvc SettingsService
+	if len(settings) > 0 {
+		settingsSvc = settings[0]
+	}
 	return &calibreSyncService{
 		bookRepo:  bookRepo,
 		fileRepo:  fileRepo,
 		txManager: txManager,
+		settings:  settingsSvc,
 	}
 }
 
@@ -163,7 +170,16 @@ func (s *calibreSyncService) importCalibreBook(ctx context.Context, libraryID st
 		return false
 	}
 	if cover, readErr := os.ReadFile(coverPath); readErr == nil && len(cover) > 0 {
-		coverURL, _, saveErr := s.fileRepo.SaveCover(ctx, bookID, ".jpg", cover)
+		ext := ".jpg"
+		if s.settings != nil {
+			if pub, err := s.settings.Public(ctx); err == nil && pub != nil && pub.EnableWebpCover {
+				if webpData, ok, err := bookparser.ConvertToWebP(cover); err == nil && ok {
+					cover = webpData
+					ext = ".webp"
+				}
+			}
+		}
+		coverURL, _, saveErr := s.fileRepo.SaveCover(ctx, bookID, ext, cover)
 		if saveErr != nil {
 			committed = false
 			return false

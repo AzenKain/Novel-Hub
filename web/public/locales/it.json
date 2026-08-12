@@ -168,6 +168,7 @@
         "database_health_check": "Controllo dello stato del database",
         "database_backup": "Backup del database",
         "database_books_backup": "Backup del database e dei libri",
+        "scan_metadata_enrich": "Scansiona e arricchisci i metadati",
         "scan_library_inbox": "Scansiona la cartella in entrata della libreria",
         "extract_metadata": "Estrai i metadati",
         "hash_file": "Calcola l'hash del file",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "Eliminati {{deleted}} file, {{failed}} non riusciti: {{reason}}",
     "upload_partial": "Caricati {{count}} libri su {{total}}. Elaborazione dei metadati...",
     "upload_done": "Caricati {{count}} libri. Elaborazione dei metadati...",
-    "upload_all_failed": "Non è stato possibile caricare alcun file: {{reason}}"
+    "upload_all_failed": "Non è stato possibile caricare alcun file: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "Accedi al tuo account",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "La reimpostazione della password via email è attualmente disattivata. Chiedi a un amministratore di reimpostare la tua password.",
     "totp_prompt": "Inserisci il codice di 6 cifre della tua app di autenticazione oppure un codice di recupero.",
     "totp_code": "Codice di autenticazione",
-    "totp_verify": "Verifica e accedi"
+    "totp_verify": "Verifica e accedi",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "Annulla",
@@ -315,7 +323,37 @@
     "current": "Attuale",
     "load_more": "Carica altro",
     "previous": "Precedente",
-    "next": "Successivo"
+    "next": "Successivo",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "Pronto da leggere",
@@ -666,7 +704,8 @@
     "collections": "Raccolte",
     "no_description": "Nessuna descrizione disponibile.",
     "next_in_series": "Prossimo della serie",
-    "in_same_series": "Libri di questa serie"
+    "in_same_series": "Libri di questa serie",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "Impostazioni",
@@ -705,6 +744,13 @@
     "anilist_tracking": "Abilita il tracciamento AniList",
     "anilist_tracking_desc": "Consente agli utenti di collegare il proprio account AniList e di sincronizzare i progressi di lettura.",
     "save_reader": "Salva impostazioni del lettore",
+    "metadata_covers": "Metadati & Copertine",
+    "metadata_covers_desc": "Configura l'arricchimento automatico dei metadati e l'ottimizzazione delle copertine.",
+    "save_metadata": "Salva Impostazioni",
+    "auto_enrich": "Arricchisci metadati automaticamente",
+    "auto_enrich_desc": "Ottieni automaticamente i metadati dalle API di AniList, OpenLibrary e Google Books all'importazione.",
+    "webp_cover": "Comprimi copertine in WebP",
+    "webp_cover_desc": "Comprimi le copertine nel formato ad alte prestazioni WebP durante il caricamento o l'estrazione.",
     "registration_guest": "Registrazione e accesso ospiti",
     "registration_guest_desc": "Controlla chi può registrarsi e cosa possono vedere gli ospiti.",
     "public_registration": "Abilita la registrazione pubblica",
@@ -826,7 +872,12 @@
     "needs_smtp": "Configura SMTP qui sotto per abilitare questa opzione.",
     "template_email": "Email (SMTP)",
     "email_recipients": "Destinatari",
-    "email_recipients_hint": "Indirizzi separati da virgola dopo mailto:. Richiede la configurazione di SMTP."
+    "email_recipients_hint": "Indirizzi separati da virgola dopo mailto:. Richiede la configurazione di SMTP.",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "Avviso di configurazione: Assicurarsi di configurare lo stesso URI di reindirizzamento sia in questa pagina delle impostazioni che nella console sviluppatore corrispondente di ciascun provider di identità. I segreti sono crittografati a riposo."
+    }
   },
   "email": {
     "invalid": "Inserisci un indirizzo email valido",
@@ -982,7 +1033,16 @@
     "manual_email": "Email manuale",
     "no_devices": "Nessun dispositivo salvato.",
     "add_device_tip": "Usa Email manuale oppure registra i dispositivi nelle impostazioni.",
-    "push": "Push"
+    "push": "Push",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "Ricerca avanzata",
@@ -1016,5 +1076,40 @@
     "step2": "Apri VBook → Tocca i tre punti verticali (⋮) → Seleziona 'Importa estensione' → Scegli il file plugin.zip scaricato.",
     "download": "Scarica ZIP",
     "download_zip": "Scarica plugin.zip"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

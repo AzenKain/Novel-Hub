@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/rs/zerolog/log"
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
@@ -21,6 +21,8 @@ import (
 	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
+
+	"github.com/rs/zerolog/log"
 )
 
 type FeatureService interface {
@@ -61,6 +63,14 @@ type FeatureService interface {
 	CreateSmartCollection(ctx context.Context, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
 	UpdateSmartCollection(ctx context.Context, id string, userID string, dto request.UpsertSmartCollectionDto) (*response.SmartCollectionResponse, error)
 	DeleteSmartCollection(ctx context.Context, id string, userID string) error
+	ListSmartFilters(ctx context.Context, userID string) ([]*response.SmartFilterResponse, error)
+	GetSmartFilter(ctx context.Context, id string, userID string) (*response.SmartFilterResponse, error)
+	CreateSmartFilter(ctx context.Context, userID string, dto request.UpsertSmartFilterDto) (*response.SmartFilterResponse, error)
+	UpdateSmartFilter(ctx context.Context, id string, userID string, dto request.UpsertSmartFilterDto) (*response.SmartFilterResponse, error)
+	DeleteSmartFilter(ctx context.Context, id string, userID string) error
+	UpdateSmartFilterPinSidebar(ctx context.Context, id string, userID string, isPinned bool) (*response.SmartFilterResponse, error)
+	UpdateSmartFilterPinHome(ctx context.Context, id string, userID string, isPinned bool) (*response.SmartFilterResponse, error)
+	ReorderSmartFiltersHome(ctx context.Context, userID string, dto request.ReorderHomeShelvesDto) error
 	SetWebhookService(webhook WebhookService)
 }
 
@@ -770,4 +780,117 @@ func (s *featureService) UpdateSmartCollection(ctx context.Context, id string, u
 
 func (s *featureService) DeleteSmartCollection(ctx context.Context, id string, userID string) error {
 	return s.repo.DeleteSmartCollection(ctx, id, userID)
+}
+
+func (s *featureService) ListSmartFilters(ctx context.Context, userID string) ([]*response.SmartFilterResponse, error) {
+	entities, err := s.repo.ListSmartFilters(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*response.SmartFilterResponse, len(entities))
+	for i, entity := range entities {
+		out[i] = entity.ToResponse()
+	}
+	return out, nil
+}
+
+func (s *featureService) GetSmartFilter(ctx context.Context, id string, userID string) (*response.SmartFilterResponse, error) {
+	entity, err := s.repo.GetSmartFilter(ctx, id, userID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
+func (s *featureService) CreateSmartFilter(ctx context.Context, userID string, dto request.UpsertSmartFilterDto) (*response.SmartFilterResponse, error) {
+	rulesJson, err := jsonx.Marshal(dto.Rules)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid smart filter rules")
+	}
+	id := uuid.Must(uuid.NewV7()).String()
+
+	// Get current list of smart filters to compute next position
+	filters, err := s.repo.ListSmartFilters(ctx, userID)
+	var nextPos int64 = 0
+	if err == nil {
+		for _, f := range filters {
+			if f.HomePosition >= nextPos {
+				nextPos = f.HomePosition + 1
+			}
+		}
+	}
+
+	entity, err := s.repo.CreateSmartFilter(ctx, id, userID, dto.Name, string(rulesJson), dto.IsPinnedSidebar, dto.IsPinnedHome, nextPos)
+	if err != nil {
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
+func (s *featureService) UpdateSmartFilter(ctx context.Context, id string, userID string, dto request.UpsertSmartFilterDto) (*response.SmartFilterResponse, error) {
+	rulesJson, err := jsonx.Marshal(dto.Rules)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid smart filter rules")
+	}
+	entity, err := s.repo.UpdateSmartFilter(ctx, id, userID, dto.Name, string(rulesJson), dto.IsPinnedSidebar, dto.IsPinnedHome)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
+func (s *featureService) DeleteSmartFilter(ctx context.Context, id string, userID string) error {
+	_, err := s.repo.GetSmartFilter(ctx, id, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return err
+	}
+	return s.repo.DeleteSmartFilter(ctx, id, userID)
+}
+
+func (s *featureService) UpdateSmartFilterPinSidebar(ctx context.Context, id string, userID string, isPinned bool) (*response.SmartFilterResponse, error) {
+	entity, err := s.repo.UpdateSmartFilterPinSidebar(ctx, id, userID, isPinned)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
+func (s *featureService) UpdateSmartFilterPinHome(ctx context.Context, id string, userID string, isPinned bool) (*response.SmartFilterResponse, error) {
+	entity, err := s.repo.UpdateSmartFilterPinHome(ctx, id, userID, isPinned)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return nil, err
+	}
+	return entity.ToResponse(), nil
+}
+
+func (s *featureService) ReorderSmartFiltersHome(ctx context.Context, userID string, dto request.ReorderHomeShelvesDto) error {
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	txRepo := s.repo.WithTx(tx)
+	for _, shelf := range dto.Shelves {
+		_, err := txRepo.UpdateSmartFilterHomePosition(ctx, shelf.ID, userID, shelf.Position)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

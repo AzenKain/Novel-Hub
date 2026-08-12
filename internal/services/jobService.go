@@ -47,8 +47,9 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 		repo:  repo,
 		queue: queue,
 		tasks: map[string]string{
-			"maintenance":           "Run full library maintenance",
-			"scan_library_inbox":    "Scan library inbox folders for new files",
+			"maintenance":          "Run full library maintenance",
+			"scan_library_inbox":   "Scan library inbox folders for new files",
+			"scan_metadata_enrich": "Scan and enrich metadata from online APIs (AniList, OpenLibrary, Google Books)",
 			"clean_empty_book_dirs": "Remove empty managed book directories",
 			"clean_orphan_uploads":  "Remove stale upload chunks",
 			"database_health_check": "Check database connectivity and schema access",
@@ -85,6 +86,7 @@ func (s *jobService) ListTasks() []*response.JobTaskResponse {
 	order := []string{
 		"maintenance",
 		"scan_library_inbox",
+		"scan_metadata_enrich",
 		"clean_empty_book_dirs",
 		"clean_orphan_uploads",
 		"prune_finished_jobs",

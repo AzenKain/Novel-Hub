@@ -38,7 +38,7 @@ func (q *Queries) CountActiveAdminUsers(ctx context.Context) (int64, error) {
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (id, name, description, is_system, is_admin, auto_assign)
 VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+RETURNING id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type CreateRoleParams struct {
@@ -64,6 +64,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.MaxAllowedAgeRating,
 		&i.IsSystem,
 		&i.IsAdmin,
 		&i.IsBanned,
@@ -185,7 +186,7 @@ func (q *Queries) GetPermissionsByKeys(ctx context.Context, keys []string) ([]Pe
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+SELECT id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE id = ? AND is_deleted = 0
 `
@@ -197,6 +198,7 @@ func (q *Queries) GetRoleByID(ctx context.Context, id string) (Role, error) {
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.MaxAllowedAgeRating,
 		&i.IsSystem,
 		&i.IsAdmin,
 		&i.IsBanned,
@@ -210,7 +212,7 @@ func (q *Queries) GetRoleByID(ctx context.Context, id string) (Role, error) {
 }
 
 const getRoleByName = `-- name: GetRoleByName :one
-SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+SELECT id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles
 WHERE name = ? AND is_deleted = 0
 `
@@ -222,6 +224,7 @@ func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) 
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.MaxAllowedAgeRating,
 		&i.IsSystem,
 		&i.IsAdmin,
 		&i.IsBanned,
@@ -375,7 +378,7 @@ func (q *Queries) GetRolePermissionsByIDs(ctx context.Context, ids []string) ([]
 }
 
 const getRolesByIDs = `-- name: GetRolesByIDs :many
-SELECT id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+SELECT id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 FROM roles WHERE id IN (/*SLICE:ids*/?)
 `
 
@@ -402,6 +405,7 @@ func (q *Queries) GetRolesByIDs(ctx context.Context, ids []string) ([]Role, erro
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.MaxAllowedAgeRating,
 			&i.IsSystem,
 			&i.IsAdmin,
 			&i.IsBanned,
@@ -552,7 +556,7 @@ const updateRole = `-- name: UpdateRole :one
 UPDATE roles
 SET name = ?, description = ?, auto_assign = ?
 WHERE id = ? AND is_deleted = 0 AND is_system = 0
-RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+RETURNING id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type UpdateRoleParams struct {
@@ -574,6 +578,7 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, e
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.MaxAllowedAgeRating,
 		&i.IsSystem,
 		&i.IsAdmin,
 		&i.IsBanned,
@@ -606,7 +611,7 @@ const updateSystemRoleDescription = `-- name: UpdateSystemRoleDescription :one
 UPDATE roles
 SET description = ?, auto_assign = ?
 WHERE id = ? AND is_deleted = 0 AND is_system = 1 AND is_admin = 0
-RETURNING id, name, description, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
+RETURNING id, name, description, max_allowed_age_rating, is_system, is_admin, is_banned, auto_assign, position, is_deleted, created_at, updated_at
 `
 
 type UpdateSystemRoleDescriptionParams struct {
@@ -622,6 +627,7 @@ func (q *Queries) UpdateSystemRoleDescription(ctx context.Context, arg UpdateSys
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.MaxAllowedAgeRating,
 		&i.IsSystem,
 		&i.IsAdmin,
 		&i.IsBanned,

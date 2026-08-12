@@ -8,3 +8,6 @@ export * from "./tracker";
 export * from "./kobo";
 export * from "./device";
 export * from "./readList";
+export * from "./ageRating";
+export * from "./magicCode";
+export * from "./smartFilter";

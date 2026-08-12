@@ -35,3 +35,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC, id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id, created_at DESC);
+
+-- Insert a default schedule for metadata enrichment (runs daily, disabled by default)
+INSERT INTO job_schedules (id, name, task_type, payload_json, interval_minutes, enabled, next_run_at)
+VALUES ('sched-metadata-enrich', 'Auto-enrich Books Metadata', 'scan_metadata_enrich', NULL, 1440, 0, CURRENT_TIMESTAMP)
+ON CONFLICT(id) DO NOTHING;
+

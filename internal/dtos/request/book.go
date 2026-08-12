@@ -46,3 +46,9 @@ type SearchInBookQueryDto struct {
 type BookFileQueryDto struct {
 	FileID string `json:"file_id,omitempty" query:"file_id" validate:"omitempty"`
 }
+
+type UpdateBookAgeRatingDto struct {
+	AgeRating          string   `json:"age_rating" validate:"required,oneof=G PG PG-13 R17+ R18+"`
+	ContentWarningIDs []string `json:"content_warning_ids,omitempty" validate:"omitempty,dive"`
+}
+

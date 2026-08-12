@@ -1,7 +1,8 @@
 import { ProtectedRoute, UpdatePrompt } from "@/components/common";
 import "@/i18n";
-import { AdminLayout, Books, Duplicates, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
+import { AdminLayout, Books, Duplicates, OAuthSettings, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
+import { ActivateMagicCodePage } from "@/pages/auth/ActivateMagicCodePage";
 import { LibraryWorkspace, ReadListPage } from "@/pages/library";
 import { AdvancedSearchPage } from "@/pages/library/AdvancedSearchPage";
 import { ReaderWorkspace } from "@/pages/reader";
@@ -9,12 +10,16 @@ import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
 import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
 import { useSettingsStore } from "@/stores";
 import React, { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import "./styles.css";
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
-  const theme = useSettingsStore((state) => state.theme);
+  const { theme, customCss } = useSettingsStore(useShallow((state) => ({
+    theme: state.theme,
+    customCss: state.customCss,
+  })));
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -37,6 +42,20 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
       root.setAttribute("data-theme", theme);
     }
   }, [theme]);
+
+  useEffect(() => {
+    let styleTag = document.getElementById("novelhub-custom-css");
+    if (customCss && customCss.trim()) {
+      if (!styleTag) {
+        styleTag = document.createElement("style");
+        styleTag.id = "novelhub-custom-css";
+        document.head.appendChild(styleTag);
+      }
+      styleTag.textContent = customCss;
+    } else if (styleTag) {
+      styleTag.remove();
+    }
+  }, [customCss]);
 
   return <>{children}</>;
 }
@@ -125,6 +144,7 @@ function App() {
                   </Route>
                   <Route element={<ProtectedRoute requiredPermission="setting.manage" />}>
                     <Route path="settings" element={<Settings />} />
+                    <Route path="oauth" element={<OAuthSettings />} />
                   </Route>
                   <Route element={<ProtectedRoute requiredPermission="book.duplicate.manage" />}>
                     <Route path="duplicates" element={<Duplicates />} />
@@ -140,6 +160,7 @@ function App() {
             </Route>
 
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/activate" element={<ActivateMagicCodePage />} />
             <Route path="/setup" element={<SetupWizard />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

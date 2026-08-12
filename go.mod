@@ -20,14 +20,19 @@ require (
 	github.com/richardlehane/mscfb v1.0.7
 	github.com/rs/zerolog v1.35.1
 	github.com/yuin/goldmark v1.8.5
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.57.0
 	golang.org/x/sync v0.22.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	modernc.org/sqlite v1.56.0
 )
 
-require golang.org/x/image v0.44.0
+require (
+	github.com/deepteams/webp v1.2.7
+	golang.org/x/image v0.45.0
+)
+
+require golang.org/x/oauth2 v0.36.0
 
 require (
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
@@ -42,7 +47,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/gofiber/schema v1.8.3 // indirect
+	github.com/gofiber/schema v1.8.4 // indirect
 	github.com/gofiber/utils/v2 v2.4.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
@@ -70,7 +75,7 @@ require (
 	golang.org/x/arch v0.30.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.75.2 // indirect
+	modernc.org/libc v1.75.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.0 // indirect
 )

@@ -168,6 +168,7 @@
         "database_health_check": "数据库检查",
         "database_backup": "数据库备份",
         "database_books_backup": "数据库和书籍备份",
+        "scan_metadata_enrich": "扫描并丰富元数据",
         "scan_library_inbox": "扫描收件文件夹",
         "extract_metadata": "提取元数据",
         "hash_file": "文件哈希",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "已删除 {{deleted}} 个文件，{{failed}} 个失败：{{reason}}",
     "upload_partial": "已上传 {{count}}/{{total}} 本书。正在处理元数据...",
     "upload_done": "已上传 {{count}} 本书。正在处理元数据...",
-    "upload_all_failed": "没有文件上传成功：{{reason}}"
+    "upload_all_failed": "没有文件上传成功：{{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "登录到您的账户",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "通过邮件重置密码的功能当前已停用。请联系管理员为你重置密码。",
     "totp_prompt": "请输入验证器应用中的 6 位验证码，或一个恢复码。",
     "totp_code": "验证码",
-    "totp_verify": "验证并登录"
+    "totp_verify": "验证并登录",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "取消",
@@ -315,7 +323,37 @@
     "current": "当前",
     "load_more": "加载更多",
     "previous": "上一页",
-    "next": "下一页"
+    "next": "下一页",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "准备阅读",
@@ -666,7 +704,8 @@
     "collections": "合集数",
     "no_description": "暂无简介。",
     "next_in_series": "系列下一本",
-    "in_same_series": "同系列图书"
+    "in_same_series": "同系列图书",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "设置",
@@ -705,6 +744,13 @@
     "anilist_tracking": "启用 AniList 追踪",
     "anilist_tracking_desc": "允许用户关联 AniList 账号并同步阅读进度。",
     "save_reader": "保存阅读器设置",
+    "metadata_covers": "元数据与封面",
+    "metadata_covers_desc": "配置自动丰富元数据和封面图片优化。",
+    "save_metadata": "保存设置",
+    "auto_enrich": "自动丰富书籍元数据",
+    "auto_enrich_desc": "在导入书籍时自动从 AniList、OpenLibrary 和 Google Books API 获取元数据。",
+    "webp_cover": "将封面压缩为 WebP",
+    "webp_cover_desc": "在上传或提取书籍文件时，将封面图片压缩为高性能的 WebP 格式。",
     "registration_guest": "注册与访客权限",
     "registration_guest_desc": "控制用户注册与访客可见范围。",
     "public_registration": "启用公开注册",
@@ -826,7 +872,12 @@
     "needs_smtp": "请先配置下方的 SMTP 才能启用。",
     "template_email": "邮件 (SMTP)",
     "email_recipients": "收件人",
-    "email_recipients_hint": "在 mailto: 之后填写以逗号分隔的地址。需要先配置 SMTP。"
+    "email_recipients_hint": "在 mailto: 之后填写以逗号分隔的地址。需要先配置 SMTP。",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "配置说明：请确保在此设置页面以及每个身份提供商的对应开发者控制台中配置相同的重定向 URI。机密在存储时已加密。"
+    }
   },
   "email": {
     "invalid": "请输入有效的邮箱地址",
@@ -982,7 +1033,16 @@
     "manual_email": "手动输入邮箱",
     "no_devices": "暂无已保存的设备。",
     "add_device_tip": "使用手动输入邮箱或在设置中注册设备。",
-    "push": "推送"
+    "push": "推送",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "高级搜索",
@@ -1016,5 +1076,40 @@
     "step2": "打开 VBook → 点击竖排三点菜单 (⋮) → 选择“导入扩展” → 选择下载的 plugin.zip 文件。",
     "download": "下载 ZIP",
     "download_zip": "下载 plugin.zip 文件"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

@@ -725,7 +725,9 @@ func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
 		}
 		var page struct {
 			Status     bool   `json:"status"`
-			NextCursor string `json:"next_cursor"`
+			Pagination struct {
+				NextCursor string `json:"next_cursor"`
+			} `json:"pagination"`
 			Data       []struct {
 				Title string `json:"title"`
 			} `json:"data"`
@@ -740,13 +742,13 @@ func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
 		for _, book := range page.Data {
 			seen[book.Title] = true
 		}
-		if page.NextCursor == "" {
+		if page.Pagination.NextCursor == "" {
 			break
 		}
-		if page.NextCursor == cursor {
+		if page.Pagination.NextCursor == cursor {
 			t.Fatalf("round %d: cursor did not advance (%q); the client would loop forever", round, cursor)
 		}
-		cursor = page.NextCursor
+		cursor = page.Pagination.NextCursor
 	}
 
 	for _, title := range []string{"Book 0", "Book 2", "Book 4"} {

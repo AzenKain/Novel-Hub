@@ -15,8 +15,11 @@ interface SettingsAdminState {
   inBookSearch: boolean;
   customFontUpload: boolean;
   anilistTracking: boolean;
+  autoEnrich: boolean;
+  webpCover: boolean;
   limits: RuntimeLimits | null;
   limitBounds: RuntimeLimitBounds | null;
+  proxyAuth: { enabled: boolean; header_names: string[]; trusted_proxies: string[]; auto_create: boolean };
 
   savingSection: string | null;
   uploadingLogo: boolean;
@@ -35,9 +38,12 @@ interface SettingsAdminState {
   setInBookSearch: (enabled: boolean) => void;
   setCustomFontUpload: (enabled: boolean) => void;
   setAnilistTracking: (enabled: boolean) => void;
+  setAutoEnrich: (enabled: boolean) => void;
+  setWebpCover: (enabled: boolean) => void;
   setLimits: (limits: RuntimeLimits) => void;
   setGuestMode: (mode: string) => void;
   setGuestLibraryIds: (ids: string[] | ((prev: string[]) => string[])) => void;
+  setProxyAuth: (proxyAuth: { enabled: boolean; header_names: string[]; trusted_proxies: string[]; auto_create: boolean } | ((prev: any) => any)) => void;
 
   setSavingSection: (section: string | null) => void;
   setUploadingLogo: (uploading: boolean) => void;
@@ -51,6 +57,7 @@ interface SettingsAdminState {
 
 const initialSite = { title: "", description: "", favicon: "", logo: "", meta_description: "" };
 const initialHomeSections = { random_books: true, top_books: true };
+const initialProxyAuth = { enabled: false, header_names: ["X-Forwarded-User", "Remote-User", "X-Forwarded-Email"], trusted_proxies: ["127.0.0.1", "::1"], auto_create: false };
 
 const initialState = {
   site: initialSite,
@@ -66,8 +73,11 @@ const initialState = {
   inBookSearch: false,
   customFontUpload: false,
   anilistTracking: true,
+  autoEnrich: false,
+  webpCover: false,
   limits: null,
   limitBounds: null,
+  proxyAuth: initialProxyAuth,
   savingSection: null,
   uploadingLogo: false,
   uploadingFavicon: false,
@@ -89,9 +99,12 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
   setInBookSearch: (inBookSearch) => set({ inBookSearch }),
   setCustomFontUpload: (customFontUpload) => set({ customFontUpload }),
   setAnilistTracking: (anilistTracking) => set({ anilistTracking }),
+  setAutoEnrich: (autoEnrich) => set({ autoEnrich }),
+  setWebpCover: (webpCover) => set({ webpCover }),
   setLimits: (limits) => set({ limits }),
   setGuestMode: (guestMode) => set({ guestMode }),
   setGuestLibraryIds: (guestLibraryIds) => set((state) => ({ guestLibraryIds: typeof guestLibraryIds === "function" ? guestLibraryIds(state.guestLibraryIds) : guestLibraryIds })),
+  setProxyAuth: (proxyAuth) => set((state) => ({ proxyAuth: typeof proxyAuth === "function" ? proxyAuth(state.proxyAuth) : proxyAuth })),
 
   setSavingSection: (savingSection) => set({ savingSection }),
   setUploadingLogo: (uploadingLogo) => set({ uploadingLogo }),
@@ -112,10 +125,13 @@ export const useSettingsAdminStore = create<SettingsAdminState>((set) => ({
       inBookSearch: s.enable_in_book_search || false,
       customFontUpload: s.enable_custom_font_upload || false,
       anilistTracking: s.enable_anilist_tracking ?? true,
+      autoEnrich: s.enable_auto_enrich ?? false,
+      webpCover: s.enable_webp_cover ?? false,
       limits: s.limits,
       limitBounds: s.bounds,
       guestMode: s.guest_access?.mode || "all",
       guestLibraryIds: s.guest_access?.library_ids || [],
+      proxyAuth: s.proxy_auth || initialProxyAuth,
     }),
 
   reset: () => set(initialState),

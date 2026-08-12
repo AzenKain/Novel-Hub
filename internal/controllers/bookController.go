@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"context"
-	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"novelhub/pkg/apperrors"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -40,55 +40,12 @@ func (h *BookController) ListBooks(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	var books []*models.BookEntity
-	var err error
-
-	var libID *string
-	if dto.LibraryID != "" {
-		libID = &dto.LibraryID
-	}
-	var searchStr *string
-	if dto.Search != "" {
-		searchStr = &dto.Search
-	}
-
-	// Cursor is "<rfc3339>|<id>": the id tiebreaker disambiguates books sharing a
-	// created_at timestamp (SQLite CURRENT_TIMESTAMP has second resolution), so pages no
-	// longer drop books inserted in the same second. A bare timestamp still works for
-	// older clients — we fall back to no tiebreaker.
-	var cursorTime *time.Time
-	var cursorID string
-	if dto.Cursor != "" {
-		if parts := strings.SplitN(dto.Cursor, "|", 2); len(parts) == 2 {
-			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
-				cursorTime = &t
-				cursorID = parts[1]
-			}
-		} else if t, err := time.Parse(time.RFC3339Nano, dto.Cursor); err == nil {
-			cursorTime = &t
-		}
-	}
-	books, err = h.bookService.SearchBooks(ctx, libID, searchStr, dto.Nav, dto.Collection, dto.Chip, dto.Facet, dto.FacetID, cursorTime, cursorID, int64(dto.Limit))
-
+	res, err := h.bookService.SearchBooksPage(ctx, dto, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
-	filtered, allowed := h.bookService.FilterReadableBooks(ctx, books, getOptionalClaims(c))
-	if !allowed {
-		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Login required"})
-	}
-	var nextCursor *string
-	if len(books) >= int(dto.Limit) && len(books) > 0 {
-		last := books[len(books)-1]
-		nc := last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
-		nextCursor = &nc
-	}
-	return c.JSON(fiber.Map{
-		"status":      true,
-		"data":        models.BookEntitiesToResponse(filtered),
-		"next_cursor": nextCursor,
-	})
+	return c.JSON(res)
 }
 
 func (h *BookController) GetBook(c fiber.Ctx) error {
@@ -96,12 +53,9 @@ func (h *BookController) GetBook(c fiber.Ctx) error {
 	defer cancel()
 
 	id := c.Params("id")
-	book, err := h.bookService.GetBook(ctx, id)
+	book, err := h.bookService.GetBookWithAccess(ctx, id, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
-	}
-	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}
 	return c.JSON(response.CommonResponse{Status: true, Data: book.ToResponse()})
 }
@@ -122,44 +76,24 @@ func (h *BookController) DownloadBook(c fiber.Ctx) error {
 	defer cancel()
 
 	id := c.Params("id")
-	book, err := h.bookService.GetBook(ctx, id)
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	if !h.bookService.CanDownloadBook(ctx, book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "Downloads are not allowed"})
-	}
-
 	fileDto := &request.BookFileQueryDto{}
 	if err := validator.ValidateQueryDto(c, fileDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	file, err := h.bookService.GetBookFile(ctx, id, fileDto.FileID)
+	filePath, downloadName, err := h.bookService.GetBookFileForDownload(ctx, id, fileDto.FileID, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	_ = h.featureService.RecordDownload(ctx, id)
 
-	ext := strings.ToLower(filepath.Ext(file.Path))
-	if ext == "" {
-		ext = ".epub"
-	}
-	return c.Download(file.Path, h.bookService.SafeDownloadFilename(book.Title, ext))
+	return c.Download(filePath, downloadName)
 }
 
 func (h *BookController) ListBookFiles(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	book, err := h.bookService.GetBook(ctx, c.Params("id"))
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
-	}
-	files, err := h.bookService.ListBookFiles(ctx, c.Params("id"))
+	files, err := h.bookService.ListBookFilesWithAccess(ctx, c.Params("id"), getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -190,14 +124,7 @@ func (h *BookController) ListChapters(c fiber.Ctx) error {
 	defer cancel()
 
 	id := c.Params("id")
-	book, err := h.bookService.GetBook(ctx, id)
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
-	}
-	chapters, err := h.bookService.ListChapters(ctx, id)
+	chapters, err := h.bookService.ListChaptersWithAccess(ctx, id, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -299,32 +226,13 @@ func (h *BookController) SearchInBook(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	publicSettings, err := h.settings.Public(ctx)
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	if publicSettings == nil || !publicSettings.EnableInBookSearch {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
-			Status:  false,
-			Message: "in-book search is disabled by system administrator",
-		})
-	}
-
 	bookID := c.Params("id")
-	book, err := h.bookService.GetBook(ctx, bookID)
-	if err != nil {
-		return apperrors.HandleError(c, err)
-	}
-	if !h.bookService.CanReadBook(ctx, book, getOptionalClaims(c)) {
-		return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
-	}
-
 	searchDto := &request.SearchInBookQueryDto{}
 	if err := validator.ValidateQueryDto(c, searchDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	results, err := h.bookService.SearchInBook(ctx, bookID, searchDto.Query)
+	results, err := h.bookService.SearchInBookWithAccess(ctx, bookID, searchDto.Query, getOptionalClaims(c))
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -344,11 +252,39 @@ func (h *BookController) SendBookToEmail(c fiber.Ctx) error {
 
 	claims, ok := getUserClaims(c)
 	if !ok {
-		return fiber.ErrUnauthorized
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Unauthorized"))
 	}
 	if err := h.bookService.SendBookToEmail(ctx, bookID, dto.RecipientEmail, claims); err != nil {
 		return apperrors.HandleError(c, err)
 	}
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Email dispatched successfully"})
+}
+
+func (h *BookController) EnrichBook(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	bookID := c.Params("id")
+	if bookID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Missing book ID"})
+	}
+
+	if err := h.bookService.AutoEnrichBook(ctx, bookID); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Book metadata enriched successfully"})
+}
+
+func (h *BookController) BatchEnrichBooks(c fiber.Ctx) error {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		if err := h.bookService.BatchEnrichBooks(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to run batch book enrichment")
+		}
+	}()
+
+	return c.JSON(response.CommonResponse{Status: true, Message: "Batch enrichment job started in background"})
 }

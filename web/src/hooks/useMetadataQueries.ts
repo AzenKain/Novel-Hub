@@ -14,6 +14,8 @@ const fetchers: Record<MetadataFacet, (params: MetadataFacetParams) => ReturnTyp
   formats: (params) => metadataService.listFormats(params),
 };
 
+const EMPTY_ARRAY: any[] = [];
+
 export function useMetadataFacetQuery(
   facet: MetadataFacet,
   filters: { search?: string; alpha?: string } = {},
@@ -35,7 +37,7 @@ export function useMetadataFacetQuery(
   });
 
   const items = useMemo<MetadataCount[]>(
-    () => query.data?.pages.flatMap((page) => page.data || []) ?? [],
+    () => query.data?.pages.flatMap((page) => page.data || []) ?? EMPTY_ARRAY,
     [query.data]
   );
 

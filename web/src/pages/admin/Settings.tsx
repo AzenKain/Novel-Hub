@@ -13,7 +13,9 @@ import {
   Loader2,
   RefreshCw,
   Save,
+  Sparkles,
   UserPlus,
+  Shield,
 } from "lucide-react";
 import { SyntheticEvent, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -43,12 +45,15 @@ export function Settings() {
     inBookSearch, setInBookSearch,
     customFontUpload, setCustomFontUpload,
     anilistTracking, setAnilistTracking,
+    autoEnrich, setAutoEnrich,
+    webpCover, setWebpCover,
     savingSection, setSavingSection,
     uploadingLogo, setUploadingLogo,
     uploadingFavicon, setUploadingFavicon,
     selectedCropImage, setSelectedCropImage,
     cropTarget, setCropTarget,
     initFromSettings,
+    proxyAuth, setProxyAuth,
   } = useSettingsAdminStore(useShallow((state) => ({
     site: state.site, setSite: state.setSite,
     serverUrl: state.serverUrl, setServerUrl: state.setServerUrl,
@@ -63,12 +68,15 @@ export function Settings() {
     inBookSearch: state.inBookSearch, setInBookSearch: state.setInBookSearch,
     customFontUpload: state.customFontUpload, setCustomFontUpload: state.setCustomFontUpload,
     anilistTracking: state.anilistTracking, setAnilistTracking: state.setAnilistTracking,
+    autoEnrich: state.autoEnrich, setAutoEnrich: state.setAutoEnrich,
+    webpCover: state.webpCover, setWebpCover: state.setWebpCover,
     savingSection: state.savingSection, setSavingSection: state.setSavingSection,
     uploadingLogo: state.uploadingLogo, setUploadingLogo: state.setUploadingLogo,
     uploadingFavicon: state.uploadingFavicon, setUploadingFavicon: state.setUploadingFavicon,
     selectedCropImage: state.selectedCropImage, setSelectedCropImage: state.setSelectedCropImage,
     cropTarget: state.cropTarget, setCropTarget: state.setCropTarget,
     initFromSettings: state.initFromSettings,
+    proxyAuth: state.proxyAuth, setProxyAuth: state.setProxyAuth,
   })));
 
   const loading = settingsLoading || librariesLoading;
@@ -194,6 +202,13 @@ export function Settings() {
     });
   }
 
+  function handleMetadataSave() {
+    void saveSection("Metadata settings", {
+      "metadata.auto_enrich_enabled": autoEnrich,
+      "metadata.webp_cover_enabled": webpCover,
+    });
+  }
+
   function handleRegistrationSave() {
     void saveSection("Registration & Guest", {
       "auth.registration_enabled": registration,
@@ -202,6 +217,15 @@ export function Settings() {
       "auth.password_reset_enabled": passwordResetEnabled,
       "guest_access.mode": guestMode,
       "guest_access.library_ids": guestMode === "selected_libraries" ? guestLibraryIds : [],
+    });
+  }
+
+  function handleProxyAuthSave() {
+    void saveSection("Proxy Auth", {
+      "auth.proxy_auth_enabled": proxyAuth.enabled,
+      "auth.proxy_auth_headers": proxyAuth.header_names,
+      "auth.proxy_auth_trusted_proxies": proxyAuth.trusted_proxies,
+      "auth.proxy_auth_auto_create": proxyAuth.auto_create,
     });
   }
 
@@ -560,6 +584,56 @@ export function Settings() {
             </div>
           </div>
 
+          {/* ────── Metadata & Covers ────── */}
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.metadata_covers", "Metadata & Covers")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">{t("settings.metadata_covers_desc", "Configure automatic metadata enrichment and cover image optimization.")}</p>
+                </div>
+                <button
+                  onClick={handleMetadataSave}
+                  disabled={isSaving("Metadata settings")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Metadata settings") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_metadata", "Save Settings")}
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={autoEnrich}
+                    onChange={(e) => setAutoEnrich(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.auto_enrich", "Auto-enrich Book Metadata")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.auto_enrich_desc", "Automatically retrieve metadata from AniList, OpenLibrary, and Google Books APIs on book import.")}</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={webpCover}
+                    onChange={(e) => setWebpCover(e.target.checked)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settings.webp_cover", "Compress Covers to WebP")}</span>
+                    <p className="text-xs text-base-content/50">{t("settings.webp_cover_desc", "Compress cover images to high-performance WebP format when extracting or uploading book files.")}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* ────── Registration & Guest ────── */}
           <div className="card bg-base-100 border border-base-200 shadow-sm">
             <div className="card-body p-4 sm:p-5">
@@ -678,6 +752,105 @@ export function Settings() {
           <div className="card bg-base-100 border border-base-200 shadow-sm">
             <div className="card-body p-4 sm:p-5">
               <SmtpSettingsTab settings={adminSettings} />
+            </div>
+          </div>
+
+          {/* ────── Reverse Proxy Auth Settings ────── */}
+          <div className="card bg-base-100 border border-base-200 shadow-sm">
+            <div className="card-body p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <h2 className="card-title text-lg">{t("settings.proxy_auth", "Reverse Proxy Header Authentication")}</h2>
+                  </div>
+                  <p className="text-xs text-base-content/50">
+                    {t("settings.proxy_auth_desc", "Authenticate users automatically via HTTP headers behind Authelia/NGINX/Caddy.")}
+                  </p>
+                </div>
+                <button
+                  onClick={handleProxyAuthSave}
+                  disabled={isSaving("Proxy Auth")}
+                  className="btn btn-primary btn-sm gap-1 shrink-0 self-start sm:self-center"
+                >
+                  {isSaving("Proxy Auth") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t("settings.save_proxy_auth", "Save Settings")}
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={proxyAuth.enabled}
+                    onChange={(e) => setProxyAuth((prev) => ({ ...prev, enabled: e.target.checked }))}
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{t("settings.enable_proxy_auth", "Enable Proxy Header Login")}</span>
+                    <span className="text-xs text-base-content/60">{t("settings.enable_proxy_auth_desc", "Trust headers from configured reverse proxies to authenticate users.")}</span>
+                  </div>
+                </label>
+
+                {proxyAuth.enabled && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">
+                        {t("settings.proxy_headers", "HTTP Header Names")}
+                      </label>
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        placeholder="X-Forwarded-User, Remote-User"
+                        value={proxyAuth.header_names.join(", ")}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const list = val.split(",").map(s => s.trim()).filter(Boolean);
+                          setProxyAuth((prev) => ({ ...prev, header_names: list }));
+                        }}
+                      />
+                      <span className="text-xs text-base-content/50 pl-1">
+                        {t("settings.proxy_headers_desc", "Comma-separated list of headers checked in order for user identifiers (email or username).")}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">
+                        {t("settings.trusted_proxies", "Trusted Proxy IPs")}
+                      </label>
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        placeholder="127.0.0.1, ::1"
+                        value={proxyAuth.trusted_proxies.join(", ")}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const list = val.split(",").map(s => s.trim()).filter(Boolean);
+                          setProxyAuth((prev) => ({ ...prev, trusted_proxies: list }));
+                        }}
+                      />
+                      <span className="text-xs text-base-content/50 pl-1">
+                        {t("settings.trusted_proxies_desc", "Comma-separated list of IP addresses or subnets (CIDR) permitted to send proxy authentication headers.")}
+                      </span>
+                    </div>
+
+                    <label className="flex items-center gap-3 cursor-pointer p-3 bg-base-200/50 rounded-lg">
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary"
+                        checked={proxyAuth.auto_create}
+                        onChange={(e) => setProxyAuth((prev) => ({ ...prev, auto_create: e.target.checked }))}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{t("settings.proxy_auto_create", "Automatic User Provisioning")}</span>
+                        <span className="text-xs text-base-content/60">
+                          {t("settings.proxy_auto_create_desc", "Create a new user account with default role automatically if user does not exist in NovelHub database.")}
+                        </span>
+                      </div>
+                    </label>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

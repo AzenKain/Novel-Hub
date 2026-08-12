@@ -8,12 +8,15 @@ import { BulkActionToolbar, BulkDeleteModal, BulkMoveModal, BulkTagModal } from 
 import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
-import type { Book, MetadataCount, SmartCollectionRule } from "@/types";
+import type { Book, MetadataCount, SmartCollectionRule, SmartFilter } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
+
+import { SmartFilterBuilderModal } from "@/components/library/SmartFilterBuilderModal";
+import { SmartFilterShelf } from "@/components/library/SmartFilterShelf";
 
 import { settingsKeyToNavId } from "@/constants";
 import {
@@ -30,6 +33,10 @@ import {
   useRandomBooksQuery,
   useReadingHistoryQuery,
   useSmartCollectionsQuery,
+  useSmartFiltersQuery,
+  useSmartFilterBooksInfiniteQuery,
+  useDeleteSmartFilterMutation,
+  useReorderSmartFiltersHomeMutation,
 } from "@/hooks";
 import {
   alphabetFilters,
@@ -67,6 +74,8 @@ function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
   if (!visibleKeys || visibleKeys.length === 0) return true;
   return visibleKeys.some((key) => (settingsKeyToNavId[key] || key) === id);
 }
+
+const EMPTY_ARRAY: any[] = [];
 
 export const LibraryWorkspace = () => {
   const navigate = useNavigate();
@@ -114,6 +123,8 @@ export const LibraryWorkspace = () => {
     setMetadataAlpha,
     metadataSort,
     setMetadataSort,
+    activeSmartFilterId,
+    setActiveSmartFilterId,
   } = useLibraryStore(useShallow((state) => ({
     books: state.books,
     setBooks: state.setBooks,
@@ -154,7 +165,10 @@ export const LibraryWorkspace = () => {
     setMetadataAlpha: state.setMetadataAlpha,
     metadataSort: state.metadataSort,
     setMetadataSort: state.setMetadataSort,
+    activeSmartFilterId: state.activeSmartFilterId,
+    setActiveSmartFilterId: state.setActiveSmartFilterId,
   })));
+  
   const publicSettings = usePublicSettings();
   const [selectedBookIds, setSelectedBookIds] = React.useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
@@ -176,6 +190,7 @@ export const LibraryWorkspace = () => {
   };
 
   const handleNavClick = (nav: string) => {
+    setActiveSmartFilterId(null);
     setActiveNav(nav);
     setActiveCollection("");
     setActiveFacet(null);
@@ -190,6 +205,7 @@ export const LibraryWorkspace = () => {
   };
 
   const handleCollectionClick = (collection: string) => {
+    setActiveSmartFilterId(null);
     setActiveCollection(collection);
     setActiveNav("");
     setActiveFacet(null);
@@ -205,6 +221,7 @@ export const LibraryWorkspace = () => {
 
   // Filters live in the Zustand store and sync with URL search params for SEO & shareable links.
   const handleSmartCollectionClick = (rule: SmartCollectionRule) => {
+    setActiveSmartFilterId(null);
     setSearch(rule.search || "");
     setActiveNav(rule.nav || "");
     setActiveCollection(rule.collection || "");
@@ -215,7 +232,19 @@ export const LibraryWorkspace = () => {
     if (book_id) navigate("/");
   };
 
+  const handleSmartFilterClick = (id: string) => {
+    setActiveSmartFilterId(id);
+    setActiveNav("");
+    setActiveCollection("");
+    setActiveFacet(null);
+    setActiveChip("All");
+    setMetadataQuery("");
+    setMetadataAlpha("All");
+    if (book_id) navigate("/");
+  };
+
   const handleFacetClick = (type: string, item: MetadataCount, nav: string) => {
+    setActiveSmartFilterId(null);
     setActiveNav(nav);
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
@@ -232,6 +261,46 @@ export const LibraryWorkspace = () => {
     navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData("text/plain", id);
+    setDraggedShelfId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain") || draggedShelfId;
+    if (!sourceId || sourceId === targetId) return;
+
+    const pinnedFilters = smartFilters
+      .filter((sf) => sf.is_pinned_home)
+      .sort((a, b) => a.home_position - b.home_position);
+
+    const sourceIndex = pinnedFilters.findIndex((sf) => sf.id === sourceId);
+    const targetIndex = pinnedFilters.findIndex((sf) => sf.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    const updatedFilters = [...pinnedFilters];
+    const [draggedItem] = updatedFilters.splice(sourceIndex, 1);
+    updatedFilters.splice(targetIndex, 0, draggedItem);
+
+    const reorderPayload = updatedFilters.map((sf, idx) => ({
+      id: sf.id,
+      position: idx,
+    }));
+
+    reorderHomeMutation.mutate(reorderPayload, {
+      onSuccess: () => {
+        toast.success(t("library.shelves_reordered", "Homepage shelves reordered"));
+      },
+    });
+
+    setDraggedShelfId(null);
+  };
+
   const queryClient = useQueryClient();
   const isMetadataNav = metadataNavIds.includes(activeNav) && !activeFacet;
 
@@ -240,6 +309,32 @@ export const LibraryWorkspace = () => {
   const { data: smartCollections = [] } = useSmartCollectionsQuery(!!user);
   const createSmartCollection = useCreateSmartCollectionMutation();
   const deleteSmartCollection = useDeleteSmartCollectionMutation();
+
+  const [showSmartFilterModal, setShowSmartFilterModal] = useState(false);
+  const [editingSmartFilter, setEditingSmartFilter] = useState<SmartFilter | null>(null);
+  const [draggedShelfId, setDraggedShelfId] = useState<string | null>(null);
+
+  const { data: smartFilters = [] } = useSmartFiltersQuery();
+  const deleteSmartFilter = useDeleteSmartFilterMutation();
+  const reorderHomeMutation = useReorderSmartFiltersHomeMutation();
+
+  const { data: smartFilterBooksRaw, isLoading: sfLoading, fetchNextPage: fetchNextSfBooks, hasNextPage: hasMoreSfBooks, isFetchingNextPage: isFetchingMoreSfBooks } = useSmartFilterBooksInfiniteQuery(
+    activeSmartFilterId || "",
+    undefined,
+    20,
+    !!activeSmartFilterId
+  );
+
+  const smartFilterBooksData = useMemo(() => {
+    if (!smartFilterBooksRaw) return EMPTY_ARRAY;
+    const all = smartFilterBooksRaw.pages.flatMap((p) => p.data || []);
+    const seen = new Set<string>();
+    return all.filter((b) => {
+      if (!b || !b.id || seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+  }, [smartFilterBooksRaw]);
 
   const searchParams = useMemo(() => ({
     search: debouncedSearch,
@@ -252,10 +347,10 @@ export const LibraryWorkspace = () => {
 
   const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
     searchParams,
-    !isMetadataNav && activeNav !== "bookmarks"
+    !isMetadataNav && activeNav !== "bookmarks" && !activeSmartFilterId
   );
   const booksData = useMemo(() => {
-    if (!booksDataRaw) return [];
+    if (!booksDataRaw) return EMPTY_ARRAY;
     const all = booksDataRaw.pages.flatMap((p) => p.data || []);
     const seen = new Set<string>();
     return all.filter((b) => {
@@ -269,7 +364,7 @@ export const LibraryWorkspace = () => {
     activeNav === "bookmarks" && !!user
   );
   const bookmarkedBooksData = useMemo(() => {
-    if (!bookmarkedBooksRaw) return [];
+    if (!bookmarkedBooksRaw) return EMPTY_ARRAY;
     const all = bookmarkedBooksRaw.pages.flatMap((p) => p.data || []);
     const seen = new Set<string>();
     return all.filter((b) => {
@@ -282,7 +377,7 @@ export const LibraryWorkspace = () => {
   const { data: statsData } = useLibraryStatsQuery();
   const { data: collectionsData, fetchNextPage: fetchNextCollections, hasNextPage: hasMoreCollections, isFetchingNextPage: isFetchingMoreCollections } = useCollectionsQuery(!!user);
   const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
-  const historyData = useMemo(() => (historyRaw?.pages.flatMap(p => p.data || []) || []) as import("@/types").ReadingHistory[], [historyRaw]);
+  const historyData = useMemo(() => (historyRaw?.pages.flatMap(p => p.data || []) || EMPTY_ARRAY) as import("@/types").ReadingHistory[], [historyRaw]);
 
   const activeFacetNav = (["authors", "series", "tags", "publishers", "languages", "formats"] as const)
     .find((nav) => nav === activeNav);
@@ -306,6 +401,13 @@ export const LibraryWorkspace = () => {
           setSelectedBook(bookmarkedBooksData[0]);
         }
       }
+    } else if (activeSmartFilterId) {
+      if (smartFilterBooksData) {
+        setBooks(smartFilterBooksData);
+        if (smartFilterBooksData.length > 0 && !selectedBook) {
+          setSelectedBook(smartFilterBooksData[0]);
+        }
+      }
     } else {
       if (booksData) {
         setBooks(booksData);
@@ -314,11 +416,13 @@ export const LibraryWorkspace = () => {
         }
       }
     }
-  }, [isMetadataNav, activeNav, booksData, bookmarkedBooksData, setBooks, setSelectedBook]);
+  }, [isMetadataNav, activeNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, setBooks, setSelectedBook]);
 
   useEffect(() => {
     if (activeNav === "bookmarks") {
       setLoading(bookmarksLoading);
+    } else if (activeSmartFilterId) {
+      setLoading(sfLoading);
     } else {
       setLoading(normalLoading);
     }
@@ -481,14 +585,17 @@ export const LibraryWorkspace = () => {
     (section) => section.nav === activeNav,
   );
   const isMetadataIndex = !!currentFacetSection && !activeFacet;
-  const isCatalogPage = !!currentFacetSection;
+  const isCatalogPage = !!currentFacetSection || !!activeSmartFilterId || activeNav === "bookmarks";
   const activeNavLabel =
     primaryNavItems.find((item) => item.id === activeNav)?.label ||
     currentFacetSection?.label ||
     secondaryNavItems.find((item) => item.id === activeNav)?.label;
-  const bookListTitle = activeFacet
-    ? `${currentFacetSection?.label || activeNavLabel}: ${activeFacet.name}`
-    : activeNavLabel || t("library.all_books", "All books");
+  const activeSmartFilter = smartFilters.find((sf) => sf.id === activeSmartFilterId);
+  const bookListTitle = activeSmartFilter
+    ? activeSmartFilter.name
+    : activeFacet
+      ? `${currentFacetSection?.label || activeNavLabel}: ${activeFacet.name}`
+      : activeNavLabel || t("library.all_books", "All books");
   const filteredMetadataItems = useMemo(
     () => sortMetadataItems(currentFacetSection?.items || [], metadataSort),
     [currentFacetSection, metadataSort],
@@ -776,6 +883,24 @@ export const LibraryWorkspace = () => {
               )}
             </section>
           )}
+          {smartFilters
+            .filter((sf) => sf.is_pinned_home)
+            .sort((a, b) => a.home_position - b.home_position)
+            .map((sf) => (
+              <SmartFilterShelf
+                key={sf.id}
+                filter={sf}
+                onEdit={(filter) => {
+                  setEditingSmartFilter(filter);
+                  setShowSmartFilterModal(true);
+                }}
+                onDelete={(id) => deleteSmartFilter.mutate(id)}
+                onBookClick={openBookDetail}
+                onDragStart={(e) => handleDragStart(e, sf.id)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, sf.id)}
+              />
+            ))}
         </>
       )}
 
@@ -953,6 +1078,27 @@ export const LibraryWorkspace = () => {
         smartCollections={smartCollections}
         onSmartCollectionClick={handleSmartCollectionClick}
         onDeleteSmartCollection={(id) => deleteSmartCollection.mutate(id)}
+        smartFilters={smartFilters}
+        onSmartFilterClick={handleSmartFilterClick}
+        onEditSmartFilter={(sf) => {
+          setEditingSmartFilter(sf);
+          setShowSmartFilterModal(true);
+        }}
+        onDeleteSmartFilter={(id) => deleteSmartFilter.mutate(id)}
+        onNewSmartFilter={() => {
+          setEditingSmartFilter(null);
+          setShowSmartFilterModal(true);
+        }}
+        activeSmartFilterId={activeSmartFilterId || undefined}
+      />
+
+      <SmartFilterBuilderModal
+        isOpen={showSmartFilterModal}
+        onClose={() => {
+          setShowSmartFilterModal(false);
+          setEditingSmartFilter(null);
+        }}
+        filterToEdit={editingSmartFilter}
       />
 
       <LoginView />

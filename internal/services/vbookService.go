@@ -122,7 +122,7 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 		}
 	}
 
-	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, nil, "", int64(limit*page))
+	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, nil, "", int64(limit*page+1))
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 	}
@@ -137,7 +137,8 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 	if end < len(books) {
 		nextStr := strconv.Itoa(page + 1)
 		nextPage = &nextStr
-	} else {
+	}
+	if end > len(books) {
 		end = len(books)
 	}
 

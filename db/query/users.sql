@@ -4,24 +4,27 @@ INSERT INTO users (
     email,
     password_hash,
     auth_provider,
+    oauth2_id,
     full_name,
     avatar_url
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 )
 ON CONFLICT(email)
 DO UPDATE SET
+    oauth2_id = COALESCE(excluded.oauth2_id, users.oauth2_id),
     full_name = COALESCE(excluded.full_name, users.full_name),
     avatar_url = COALESCE(excluded.avatar_url, users.avatar_url)
-RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at;
+RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at;
 
 -- name: UpdateProfile :one
 UPDATE users
 SET
     full_name = COALESCE(sqlc.narg('full_name'), full_name),
-    avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url)
+    avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
+    oauth2_id = COALESCE(sqlc.narg('oauth2_id'), oauth2_id)
 WHERE id = sqlc.arg('id') AND is_deleted = 0
-RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at;
+RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at;
 
 -- name: UpdateUserPassword :exec
 UPDATE users
@@ -61,17 +64,17 @@ SET token_version = ?
 WHERE id = ? AND is_deleted = 0;
 
 -- name: GetUserByID :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ? AND is_deleted = 0;
 
 -- name: GetUserByIDWithoutDeleted :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ?;
 
 -- name: GetUserByEmail :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE email = ? AND is_deleted = 0;
 
@@ -120,7 +123,7 @@ WHERE
     );
 
 -- name: GetUsersByIDs :many
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id IN (sqlc.slice('ids'));
 

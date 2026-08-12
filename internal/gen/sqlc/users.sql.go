@@ -103,7 +103,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id string) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE email = ? AND is_deleted = 0
 `
@@ -118,6 +118,10 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.AvatarUrl,
 		&i.PasswordHash,
 		&i.AuthProvider,
+		&i.Oauth2ID,
+		&i.MaxAllowedAgeRating,
+		&i.KidsModePinHash,
+		&i.IsKidsMode,
 		&i.IsDeleted,
 		&i.TokenVersion,
 		&i.RefreshToken,
@@ -128,7 +132,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ? AND is_deleted = 0
 `
@@ -143,6 +147,10 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.AvatarUrl,
 		&i.PasswordHash,
 		&i.AuthProvider,
+		&i.Oauth2ID,
+		&i.MaxAllowedAgeRating,
+		&i.KidsModePinHash,
+		&i.IsKidsMode,
 		&i.IsDeleted,
 		&i.TokenVersion,
 		&i.RefreshToken,
@@ -153,7 +161,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 }
 
 const getUserByIDWithoutDeleted = `-- name: GetUserByIDWithoutDeleted :one
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id = ?
 `
@@ -168,6 +176,10 @@ func (q *Queries) GetUserByIDWithoutDeleted(ctx context.Context, id string) (Use
 		&i.AvatarUrl,
 		&i.PasswordHash,
 		&i.AuthProvider,
+		&i.Oauth2ID,
+		&i.MaxAllowedAgeRating,
+		&i.KidsModePinHash,
+		&i.IsKidsMode,
 		&i.IsDeleted,
 		&i.TokenVersion,
 		&i.RefreshToken,
@@ -236,7 +248,7 @@ func (q *Queries) GetUserTokenVersion(ctx context.Context, id string) (int64, er
 }
 
 const getUsersByIDs = `-- name: GetUsersByIDs :many
-SELECT id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+SELECT id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 FROM users
 WHERE id IN (/*SLICE:ids*/?)
 `
@@ -267,6 +279,10 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, ids []string) ([]User, erro
 			&i.AvatarUrl,
 			&i.PasswordHash,
 			&i.AuthProvider,
+			&i.Oauth2ID,
+			&i.MaxAllowedAgeRating,
+			&i.KidsModePinHash,
+			&i.IsKidsMode,
 			&i.IsDeleted,
 			&i.TokenVersion,
 			&i.RefreshToken,
@@ -479,19 +495,26 @@ const updateProfile = `-- name: UpdateProfile :one
 UPDATE users
 SET
     full_name = COALESCE(?1, full_name),
-    avatar_url = COALESCE(?2, avatar_url)
-WHERE id = ?3 AND is_deleted = 0
-RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+    avatar_url = COALESCE(?2, avatar_url),
+    oauth2_id = COALESCE(?3, oauth2_id)
+WHERE id = ?4 AND is_deleted = 0
+RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 `
 
 type UpdateProfileParams struct {
 	FullName  sql.NullString `json:"full_name"`
 	AvatarUrl sql.NullString `json:"avatar_url"`
+	Oauth2ID  sql.NullString `json:"oauth2_id"`
 	ID        string         `json:"id"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (User, error) {
-	row := q.queryRow(ctx, q.updateProfileStmt, updateProfile, arg.FullName, arg.AvatarUrl, arg.ID)
+	row := q.queryRow(ctx, q.updateProfileStmt, updateProfile,
+		arg.FullName,
+		arg.AvatarUrl,
+		arg.Oauth2ID,
+		arg.ID,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -500,6 +523,10 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (U
 		&i.AvatarUrl,
 		&i.PasswordHash,
 		&i.AuthProvider,
+		&i.Oauth2ID,
+		&i.MaxAllowedAgeRating,
+		&i.KidsModePinHash,
+		&i.IsKidsMode,
 		&i.IsDeleted,
 		&i.TokenVersion,
 		&i.RefreshToken,
@@ -563,16 +590,18 @@ INSERT INTO users (
     email,
     password_hash,
     auth_provider,
+    oauth2_id,
     full_name,
     avatar_url
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 )
 ON CONFLICT(email)
 DO UPDATE SET
+    oauth2_id = COALESCE(excluded.oauth2_id, users.oauth2_id),
     full_name = COALESCE(excluded.full_name, users.full_name),
     avatar_url = COALESCE(excluded.avatar_url, users.avatar_url)
-RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, is_deleted, token_version, refresh_token, created_at, updated_at
+RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 `
 
 type UpsertUserParams struct {
@@ -580,6 +609,7 @@ type UpsertUserParams struct {
 	Email        string         `json:"email"`
 	PasswordHash sql.NullString `json:"password_hash"`
 	AuthProvider string         `json:"auth_provider"`
+	Oauth2ID     sql.NullString `json:"oauth2_id"`
 	FullName     sql.NullString `json:"full_name"`
 	AvatarUrl    sql.NullString `json:"avatar_url"`
 }
@@ -590,6 +620,7 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		arg.Email,
 		arg.PasswordHash,
 		arg.AuthProvider,
+		arg.Oauth2ID,
 		arg.FullName,
 		arg.AvatarUrl,
 	)
@@ -601,6 +632,10 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.AvatarUrl,
 		&i.PasswordHash,
 		&i.AuthProvider,
+		&i.Oauth2ID,
+		&i.MaxAllowedAgeRating,
+		&i.KidsModePinHash,
+		&i.IsKidsMode,
 		&i.IsDeleted,
 		&i.TokenVersion,
 		&i.RefreshToken,

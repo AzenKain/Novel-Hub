@@ -43,6 +43,7 @@ type Book struct {
 	Description   sql.NullString  `json:"description"`
 	CoverUrl      sql.NullString  `json:"cover_url"`
 	Status        sql.NullString  `json:"status"`
+	AgeRating     string          `json:"age_rating"`
 	MetadataJson  sql.NullString  `json:"metadata_json"`
 	DownloadCount sql.NullInt64   `json:"download_count"`
 	AverageRating sql.NullFloat64 `json:"average_rating"`
@@ -51,6 +52,14 @@ type Book struct {
 	OpenCount     sql.NullInt64   `json:"open_count"`
 	CreatedAt     time.Time       `json:"created_at"`
 	UpdatedAt     sql.NullTime    `json:"updated_at"`
+	GoogleBooksID sql.NullString  `json:"google_books_id"`
+	AnilistID     sql.NullString  `json:"anilist_id"`
+	OpenlibraryID sql.NullString  `json:"openlibrary_id"`
+}
+
+type BookContentWarning struct {
+	BookID    string `json:"book_id"`
+	WarningID string `json:"warning_id"`
 }
 
 type BookDownloadStat struct {
@@ -167,6 +176,13 @@ type CollectionBook struct {
 	AddedAt      sql.NullTime `json:"added_at"`
 }
 
+type ContentWarning struct {
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+}
+
 type FtsChapter struct {
 	BookID    string `json:"book_id"`
 	ChapterID string `json:"chapter_id"`
@@ -202,6 +218,7 @@ type Highlight struct {
 	Note        sql.NullString `json:"note"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
 	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	CfiRange    sql.NullString `json:"cfi_range"`
 }
 
 type Job struct {
@@ -254,6 +271,18 @@ type Library struct {
 	Name      string       `json:"name"`
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+type MagicCode struct {
+	ID         string         `json:"id"`
+	Code       string         `json:"code"`
+	PollToken  string         `json:"poll_token"`
+	DeviceInfo string         `json:"device_info"`
+	UserID     sql.NullString `json:"user_id"`
+	JwtToken   string         `json:"jwt_token"`
+	Status     string         `json:"status"`
+	ExpiresAt  time.Time      `json:"expires_at"`
+	CreatedAt  time.Time      `json:"created_at"`
 }
 
 type Permission struct {
@@ -322,17 +351,18 @@ type ReadingSession struct {
 }
 
 type Role struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	IsSystem    int64  `json:"is_system"`
-	IsAdmin     int64  `json:"is_admin"`
-	IsBanned    int64  `json:"is_banned"`
-	AutoAssign  int64  `json:"auto_assign"`
-	Position    int64  `json:"position"`
-	IsDeleted   int64  `json:"is_deleted"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+	Description         string `json:"description"`
+	MaxAllowedAgeRating string `json:"max_allowed_age_rating"`
+	IsSystem            int64  `json:"is_system"`
+	IsAdmin             int64  `json:"is_admin"`
+	IsBanned            int64  `json:"is_banned"`
+	AutoAssign          int64  `json:"auto_assign"`
+	Position            int64  `json:"position"`
+	IsDeleted           int64  `json:"is_deleted"`
+	CreatedAt           string `json:"created_at"`
+	UpdatedAt           string `json:"updated_at"`
 }
 
 type RolePermission struct {
@@ -366,6 +396,18 @@ type SmartCollection struct {
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
+type SmartFilter struct {
+	ID              string       `json:"id"`
+	UserID          string       `json:"user_id"`
+	Name            string       `json:"name"`
+	RulesJson       string       `json:"rules_json"`
+	IsPinnedSidebar bool         `json:"is_pinned_sidebar"`
+	IsPinnedHome    bool         `json:"is_pinned_home"`
+	HomePosition    int64        `json:"home_position"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+}
+
 type Tag struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`
@@ -373,17 +415,21 @@ type Tag struct {
 }
 
 type User struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	FullName     sql.NullString `json:"full_name"`
-	AvatarUrl    sql.NullString `json:"avatar_url"`
-	PasswordHash sql.NullString `json:"password_hash"`
-	AuthProvider string         `json:"auth_provider"`
-	IsDeleted    int64          `json:"is_deleted"`
-	TokenVersion int64          `json:"token_version"`
-	RefreshToken sql.NullString `json:"refresh_token"`
-	CreatedAt    string         `json:"created_at"`
-	UpdatedAt    string         `json:"updated_at"`
+	ID                  string         `json:"id"`
+	Email               string         `json:"email"`
+	FullName            sql.NullString `json:"full_name"`
+	AvatarUrl           sql.NullString `json:"avatar_url"`
+	PasswordHash        sql.NullString `json:"password_hash"`
+	AuthProvider        string         `json:"auth_provider"`
+	Oauth2ID            sql.NullString `json:"oauth2_id"`
+	MaxAllowedAgeRating string         `json:"max_allowed_age_rating"`
+	KidsModePinHash     sql.NullString `json:"kids_mode_pin_hash"`
+	IsKidsMode          int64          `json:"is_kids_mode"`
+	IsDeleted           int64          `json:"is_deleted"`
+	TokenVersion        int64          `json:"token_version"`
+	RefreshToken        sql.NullString `json:"refresh_token"`
+	CreatedAt           string         `json:"created_at"`
+	UpdatedAt           string         `json:"updated_at"`
 }
 
 type UserDevice struct {

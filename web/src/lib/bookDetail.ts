@@ -23,6 +23,8 @@ const READABLE_FORMATS = new Set([
   "cbr",
   "cbt",
   "cb7",
+  "rar",
+  "7z",
 ]);
 
 export const emptyEngagement = (book_id: string): BookEngagementStats => ({

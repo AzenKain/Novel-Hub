@@ -168,6 +168,7 @@
         "database_health_check": "Проверка состояния базы данных",
         "database_backup": "Резервная копия базы данных",
         "database_books_backup": "Резервная копия базы данных и книг",
+        "scan_metadata_enrich": "Сканировать и дополнить метаданные",
         "scan_library_inbox": "Сканировать входящую папку библиотеки",
         "extract_metadata": "Извлечь метаданные",
         "hash_file": "Вычислить хеш файла",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "Удалено файлов: {{deleted}}, не удалось: {{failed}}: {{reason}}",
     "upload_partial": "Загружено {{count}} из {{total}} книг. Обработка метаданных...",
     "upload_done": "Загружено книг: {{count}}. Обработка метаданных...",
-    "upload_all_failed": "Не удалось загрузить ни одного файла: {{reason}}"
+    "upload_all_failed": "Не удалось загрузить ни одного файла: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "Вход в вашу учётную запись",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "Сброс пароля по электронной почте сейчас отключён. Попросите администратора сбросить ваш пароль.",
     "totp_prompt": "Введите 6-значный код из приложения-аутентификатора или код восстановления.",
     "totp_code": "Код аутентификации",
-    "totp_verify": "Подтвердить и войти"
+    "totp_verify": "Подтвердить и войти",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "Отмена",
@@ -315,7 +323,37 @@
     "current": "Текущий",
     "load_more": "Загрузить ещё",
     "previous": "Назад",
-    "next": "Далее"
+    "next": "Далее",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "Готово к чтению",
@@ -666,7 +704,8 @@
     "collections": "Подборки",
     "no_description": "Описание недоступно.",
     "next_in_series": "Следующая в серии",
-    "in_same_series": "Книги этой серии"
+    "in_same_series": "Книги этой серии",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "Настройки",
@@ -705,6 +744,13 @@
     "anilist_tracking": "Включить отслеживание в AniList",
     "anilist_tracking_desc": "Позволяет пользователям подключать учётную запись AniList и синхронизировать прогресс чтения.",
     "save_reader": "Сохранить настройки читалки",
+    "metadata_covers": "Метаданные и обложки",
+    "metadata_covers_desc": "Настройте автоматическое получение метаданных и оптимизацию изображений обложек.",
+    "save_metadata": "Сохранить настройки",
+    "auto_enrich": "Автоматически дополнять метаданные",
+    "auto_enrich_desc": "Автоматически получать метаданные из API AniList, OpenLibrary и Google Books при импорте книг.",
+    "webp_cover": "Сжимать обложки в WebP",
+    "webp_cover_desc": "Сжимать изображения обложек в высокопроизводительный формат WebP при загрузке или извлечении.",
     "registration_guest": "Регистрация и гостевой доступ",
     "registration_guest_desc": "Определите, кто может регистрироваться и что видят гости.",
     "public_registration": "Включить открытую регистрацию",
@@ -826,7 +872,12 @@
     "needs_smtp": "Настройте SMTP ниже, чтобы включить это.",
     "template_email": "Электронная почта (SMTP)",
     "email_recipients": "Получатели",
-    "email_recipients_hint": "Адреса через запятую после mailto:. Требуется настройка SMTP."
+    "email_recipients_hint": "Адреса через запятую после mailto:. Требуется настройка SMTP.",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "Уведомление о настройке: обязательно настройте один и тот же URI перенаправления как на этой странице настроек, так и в соответствующей консоли разработчика каждого провайдера удостоверений. Секреты шифруются при хранении."
+    }
   },
   "email": {
     "invalid": "Введите действительный адрес электронной почты",
@@ -982,7 +1033,16 @@
     "manual_email": "Ввести адрес вручную",
     "no_devices": "Сохранённые устройства не найдены.",
     "add_device_tip": "Используйте «Ввести адрес вручную» или зарегистрируйте устройства в настройках.",
-    "push": "Отправить"
+    "push": "Отправить",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "Расширенный поиск",
@@ -1016,5 +1076,40 @@
     "step2": "Откройте VBook → Нажмите вертикальные три точки (⋮) → Выберите 'Импортировать расширение' → Выберите скачанный файл plugin.zip.",
     "download": "Скачать ZIP",
     "download_zip": "Скачать plugin.zip"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

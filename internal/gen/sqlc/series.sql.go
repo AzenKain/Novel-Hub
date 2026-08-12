@@ -24,8 +24,6 @@ type GetBookSeriesRow struct {
 	SeriesIndex sql.NullString `json:"series_index"`
 }
 
-// The chip on the book page needs the series id, not just the name: the catalog filter matches
-// on facet_id and silently returns every book when only a name is supplied.
 func (q *Queries) GetBookSeries(ctx context.Context, bookID string) ([]GetBookSeriesRow, error) {
 	rows, err := q.query(ctx, q.getBookSeriesStmt, getBookSeries, bookID)
 	if err != nil {
@@ -85,8 +83,6 @@ type GetNextBookInSeriesRow struct {
 	SeriesIndex sql.NullString `json:"series_index"`
 }
 
-// Ordered the same way ListSeriesWithCount picks a cover: numeric series_index first, then
-// created_at, so a series with unparseable indexes still has a stable order rather than none.
 func (q *Queries) GetNextBookInSeries(ctx context.Context, arg GetNextBookInSeriesParams) (GetNextBookInSeriesRow, error) {
 	row := q.queryRow(ctx, q.getNextBookInSeriesStmt, getNextBookInSeries, arg.SeriesID, arg.CurrentBookID)
 	var i GetNextBookInSeriesRow

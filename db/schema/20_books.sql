@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS books (
     description TEXT,
     cover_url TEXT,
     status TEXT DEFAULT 'processing', -- processing, active, inactive, error
+    age_rating TEXT NOT NULL DEFAULT 'G',
     metadata_json TEXT, -- Extracted metadata in JSON format
     download_count INTEGER DEFAULT 0,
     average_rating REAL DEFAULT 0.0,
@@ -31,6 +32,9 @@ CREATE TABLE IF NOT EXISTS books (
     open_count INTEGER DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    google_books_id TEXT,
+    anilist_id TEXT,
+    openlibrary_id TEXT,
     FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE SET NULL
 );

@@ -168,6 +168,7 @@
         "database_health_check": "فحص سلامة قاعدة البيانات",
         "database_backup": "نسخ احتياطي لقاعدة البيانات",
         "database_books_backup": "نسخ احتياطي لقاعدة البيانات والكتب",
+        "scan_metadata_enrich": "فحص وإثراء البيانات الوصفية",
         "scan_library_inbox": "فحص صندوق وارد المكتبة",
         "extract_metadata": "استخراج البيانات الوصفية",
         "hash_file": "حساب بصمة الملف",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "حُذف {{deleted}} ملف، وفشل {{failed}}: {{reason}}",
     "upload_partial": "تم رفع {{count}} من أصل {{total}} كتاب. جارٍ معالجة البيانات الوصفية...",
     "upload_done": "تم رفع {{count}} كتاب. جارٍ معالجة البيانات الوصفية...",
-    "upload_all_failed": "تعذّر رفع أي ملف: {{reason}}"
+    "upload_all_failed": "تعذّر رفع أي ملف: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "تسجيل الدخول إلى حسابك",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "إعادة تعيين كلمة المرور بالبريد الإلكتروني معطَّلة حاليًا. اطلب من أحد المديرين إعادة تعيين كلمة مرورك.",
     "totp_prompt": "أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة أو أحد رموز الاسترداد.",
     "totp_code": "رمز المصادقة",
-    "totp_verify": "التحقق وتسجيل الدخول"
+    "totp_verify": "التحقق وتسجيل الدخول",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "إلغاء",
@@ -315,7 +323,37 @@
     "current": "الحالي",
     "load_more": "تحميل المزيد",
     "previous": "السابق",
-    "next": "التالي"
+    "next": "التالي",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "جاهز للقراءة",
@@ -666,7 +704,8 @@
     "collections": "المجموعات",
     "no_description": "لا يتوفر وصف.",
     "next_in_series": "التالي في السلسلة",
-    "in_same_series": "كتب من هذه السلسلة"
+    "in_same_series": "كتب من هذه السلسلة",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "الإعدادات",
@@ -705,6 +744,13 @@
     "anilist_tracking": "تفعيل المتابعة عبر AniList",
     "anilist_tracking_desc": "يتيح للمستخدمين ربط حساب AniList ومزامنة تقدّم القراءة.",
     "save_reader": "حفظ إعدادات القارئ",
+    "metadata_covers": "البيانات الوصفية والأغلفة",
+    "metadata_covers_desc": "تكوين إثراء البيانات الوصفية التلقائي وتحسين صور الأغلفة.",
+    "save_metadata": "حفظ الإعدادات",
+    "auto_enrich": "إثراء البيانات الوصفية تلقائيًا",
+    "auto_enrich_desc": "استرداد البيانات الوصفية تلقائيًا من AniList و OpenLibrary و Google Books عند استيراد الكتب.",
+    "webp_cover": "ضغط الأغلفة إلى WebP",
+    "webp_cover_desc": "ضغط صور الأغلفة إلى صيغة WebP عالية الأداء عند استخراج أو تحميل ملفات الكتب.",
     "registration_guest": "التسجيل ووصول الضيوف",
     "registration_guest_desc": "حدّد من يمكنه التسجيل وما يمكن للضيوف رؤيته.",
     "public_registration": "تفعيل التسجيل العام",
@@ -826,7 +872,12 @@
     "needs_smtp": "اضبط SMTP أدناه لتفعيل هذا الخيار.",
     "template_email": "البريد الإلكتروني (SMTP)",
     "email_recipients": "المستلمون",
-    "email_recipients_hint": "عناوين مفصولة بفواصل بعد mailto:‎. يتطلب تهيئة SMTP."
+    "email_recipients_hint": "عناوين مفصولة بفواصل بعد mailto:‎. يتطلب تهيئة SMTP.",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "إشعار التكوين: تأكد من تكوين نفس عنوان URI لإعادة التوجيه في صفحة الإعدادات هذه وفي وحدة تحكم المطور المقابلة لكل موفر هوية. يتم تشفير الأسرار أثناء التخزين."
+    }
   },
   "email": {
     "invalid": "يرجى إدخال عنوان بريد إلكتروني صالح",
@@ -982,7 +1033,16 @@
     "manual_email": "بريد يدوي",
     "no_devices": "لم يُعثر على أجهزة محفوظة.",
     "add_device_tip": "استخدم «بريد يدوي» أو سجّل الأجهزة من الإعدادات.",
-    "push": "إرسال"
+    "push": "إرسال",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "بحث متقدم",
@@ -1016,5 +1076,40 @@
     "step2": "افتح VBook ← اضغط على النقاط الثلاث الرأسية (⋮) ← حدد 'استيراد ملحق' ← اختر ملف plugin.zip الذي تم تنزيله.",
     "download": "تنزيل ZIP",
     "download_zip": "تنزيل ملف plugin.zip"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

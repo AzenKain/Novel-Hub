@@ -38,6 +38,8 @@ type PublicSettings struct {
 	EnableInBookSearch     bool                `json:"enable_in_book_search"`
 	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
 	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
+	EnableAutoEnrich       bool                `json:"enable_auto_enrich"`
+	EnableWebpCover        bool                `json:"enable_webp_cover"`
 	RequireEmailVerify     bool                `json:"require_email_verify"`
 	PasswordResetEnabled   bool                `json:"password_reset_enabled"`
 	SMTPEnabled            bool                `json:"smtp_enabled"`
@@ -45,6 +47,42 @@ type PublicSettings struct {
 	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
 	AvailableHomeSections  []string            `json:"available_home_sections"`
 	AvailableGuestModes    []string            `json:"available_guest_modes"`
+	ProxyAuthEnabled       bool                `json:"proxy_auth_enabled"`
+	OAuth                  OAuthSettingsPublic `json:"oauth"`
+}
+
+type OAuthProviderPublic struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+	Enabled     bool   `json:"enabled"`
+}
+
+type OAuthSettingsPublic struct {
+	Providers []OAuthProviderPublic `json:"providers"`
+}
+
+type OAuthProviderAdmin struct {
+	Enabled         bool     `json:"enabled"`
+	ClientID        string   `json:"client_id"`
+	ClientSecretSet bool     `json:"client_secret_set"`
+	RedirectURI     string   `json:"redirect_uri"`
+	Name            string   `json:"name,omitempty"`
+	IssuerURL       string   `json:"issuer_url,omitempty"`
+	Scopes          []string `json:"scopes,omitempty"`
+}
+
+type OAuthSettingsAdmin struct {
+	Google  OAuthProviderAdmin `json:"google"`
+	Github  OAuthProviderAdmin `json:"github"`
+	Discord OAuthProviderAdmin `json:"discord"`
+	Oidc    OAuthProviderAdmin `json:"oidc"`
+}
+
+type ProxyAuthSettings struct {
+	Enabled        bool     `json:"enabled"`
+	HeaderNames    []string `json:"header_names"`
+	TrustedProxies []string `json:"trusted_proxies"`
+	AutoCreate     bool     `json:"auto_create"`
 }
 
 type RuntimeLimits struct {
@@ -83,6 +121,8 @@ type AdminSettings struct {
 	Bounds    RuntimeLimitBounds `json:"bounds"`
 	SMTP      SMTPSettings       `json:"smtp"`
 	ServerURL string             `json:"server_url"`
+	ProxyAuth ProxyAuthSettings  `json:"proxy_auth"`
+	OAuth     OAuthSettingsAdmin `json:"oauth"`
 }
 
 func (s *AppSettingEntity) FromSqlc(row sqlc.AppSetting) *AppSettingEntity {
@@ -101,4 +141,14 @@ func (e *AppSettingEntities) FromSqlc(rows []sqlc.AppSetting) []*AppSettingEntit
 		slice[i] = flat[i].FromSqlc(row)
 	}
 	return slice
+}
+
+type OAuthProviderConfig struct {
+	Enabled      bool     `json:"enabled"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	RedirectURI  string   `json:"redirect_uri"`
+	Name         string   `json:"name,omitempty"`
+	IssuerURL    string   `json:"issuer_url,omitempty"`
+	Scopes       []string `json:"scopes,omitempty"`
 }

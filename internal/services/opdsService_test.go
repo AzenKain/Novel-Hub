@@ -41,7 +41,8 @@ func setupOPDSFullTestEnv(t *testing.T) (OPDSService, *sql.DB, *response.JWTClai
 		"../../db/schema/55_reading_activity.sql",
 		"../../db/schema/65_permissions_settings.sql",
 		"../../db/schema/90_seed_roles.sql",
-		"../../db/schema/95_rbac_restructure.sql",
+		"../../db/schema/91_rbac_restructure.sql",
+		"../../db/schema/85_operations.sql",
 	}
 
 	for _, sf := range schemaFiles {

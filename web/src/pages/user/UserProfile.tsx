@@ -4,6 +4,9 @@ import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
 import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
+import { EReaderMagicCodeCard } from "@/components/profile/EReaderMagicCodeCard";
+import { CustomCSSCard } from "@/components/profile/CustomCSSCard";
+import { KidsModePinCard } from "@/components/profile/KidsModePinCard";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
@@ -351,6 +354,15 @@ export const UserProfile = () => {
                   </div>
                   <ReadingHeatmap showTitle={false} />
                 </div>
+
+                {/* eReader Magic Code Quick Login Card */}
+                <EReaderMagicCodeCard />
+
+                {/* Custom CSS Injector Card */}
+                <CustomCSSCard />
+
+                {/* Kids Mode & Parental Control PIN Card */}
+                <KidsModePinCard />
 
                 {/* OPDS 2.0 & Progress Sync Card */}
                 <OPDSSyncCard />

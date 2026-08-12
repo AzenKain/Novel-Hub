@@ -28,6 +28,8 @@ type UpdateSettingsDto struct {
 	EnableInBookSearch      *bool                   `json:"reader.enable_in_book_search"`
 	EnableCustomFontUpload  *bool                   `json:"font.enable_custom_font_upload"`
 	EnableAniListTracking   *bool                   `json:"tracker.anilist_enabled"`
+	EnableAutoEnrich        *bool                   `json:"metadata.auto_enrich_enabled"`
+	EnableWebpCover         *bool                   `json:"metadata.webp_cover_enabled"`
 	RequireEmailVerify      *bool                   `json:"auth.require_email_verify"`
 	PasswordResetEnabled    *bool                   `json:"auth.password_reset_enabled"`
 	UploadChunkBytes        *int64                  `json:"limits.upload_chunk_bytes"`
@@ -50,6 +52,34 @@ type UpdateSettingsDto struct {
 	SMTPTLSMode              *string `json:"smtp.tls_mode" validate:"omitempty,oneof=none starttls implicit_tls"`
 	SMTPAllowPrivateNetworks *bool   `json:"smtp.allow_private_networks"`
 	SMTPMaxAttachmentMB      *int    `json:"smtp.max_attachment_mb" validate:"omitempty,min=1,max=500"`
+
+	ProxyAuthEnabled        *bool     `json:"auth.proxy_auth_enabled"`
+	ProxyAuthHeaders        *[]string `json:"auth.proxy_auth_headers"`
+	ProxyAuthTrustedProxies *[]string `json:"auth.proxy_auth_trusted_proxies"`
+	ProxyAuthAutoCreate     *bool     `json:"auth.proxy_auth_auto_create"`
+
+	OAuthGoogleEnabled      *bool     `json:"oauth.google.enabled"`
+	OAuthGoogleClientID     *string   `json:"oauth.google.client_id" validate:"omitempty,max=500"`
+	OAuthGoogleClientSecret *string   `json:"oauth.google.client_secret" validate:"omitempty,max=1000"`
+	OAuthGoogleRedirectURI  *string   `json:"oauth.google.redirect_uri" validate:"omitempty,max=2048"`
+
+	OAuthGithubEnabled      *bool     `json:"oauth.github.enabled"`
+	OAuthGithubClientID     *string   `json:"oauth.github.client_id" validate:"omitempty,max=500"`
+	OAuthGithubClientSecret *string   `json:"oauth.github.client_secret" validate:"omitempty,max=1000"`
+	OAuthGithubRedirectURI  *string   `json:"oauth.github.redirect_uri" validate:"omitempty,max=2048"`
+
+	OAuthDiscordEnabled      *bool     `json:"oauth.discord.enabled"`
+	OAuthDiscordClientID     *string   `json:"oauth.discord.client_id" validate:"omitempty,max=500"`
+	OAuthDiscordClientSecret *string   `json:"oauth.discord.client_secret" validate:"omitempty,max=1000"`
+	OAuthDiscordRedirectURI  *string   `json:"oauth.discord.redirect_uri" validate:"omitempty,max=2048"`
+
+	OAuthOidcEnabled      *bool     `json:"oauth.oidc.enabled"`
+	OAuthOidcName         *string   `json:"oauth.oidc.name" validate:"omitempty,max=200"`
+	OAuthOidcIssuerURL    *string   `json:"oauth.oidc.issuer_url" validate:"omitempty,max=2048"`
+	OAuthOidcClientID     *string   `json:"oauth.oidc.client_id" validate:"omitempty,max=500"`
+	OAuthOidcClientSecret *string   `json:"oauth.oidc.client_secret" validate:"omitempty,max=1000"`
+	OAuthOidcRedirectURI  *string   `json:"oauth.oidc.redirect_uri" validate:"omitempty,max=2048"`
+	OAuthOidcScopes       *[]string `json:"oauth.oidc.scopes" validate:"omitempty,max=50"`
 
 	present map[string]bool
 }
@@ -118,6 +148,8 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "reader.enable_in_book_search", d.EnableInBookSearch)
 	putPtr(values, "font.enable_custom_font_upload", d.EnableCustomFontUpload)
 	putPtr(values, "tracker.anilist_enabled", d.EnableAniListTracking)
+	putPtr(values, "metadata.auto_enrich_enabled", d.EnableAutoEnrich)
+	putPtr(values, "metadata.webp_cover_enabled", d.EnableWebpCover)
 	putPtr(values, "auth.require_email_verify", d.RequireEmailVerify)
 	putPtr(values, "auth.password_reset_enabled", d.PasswordResetEnabled)
 	putPtr(values, "limits.upload_chunk_bytes", d.UploadChunkBytes)
@@ -138,6 +170,34 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "smtp.tls_mode", d.SMTPTLSMode)
 	putPtr(values, "smtp.allow_private_networks", d.SMTPAllowPrivateNetworks)
 	putPtr(values, "smtp.max_attachment_mb", d.SMTPMaxAttachmentMB)
+	putPtr(values, "auth.proxy_auth_enabled", d.ProxyAuthEnabled)
+	putPtr(values, "auth.proxy_auth_headers", d.ProxyAuthHeaders)
+	putPtr(values, "auth.proxy_auth_trusted_proxies", d.ProxyAuthTrustedProxies)
+	putPtr(values, "auth.proxy_auth_auto_create", d.ProxyAuthAutoCreate)
+
+	putPtr(values, "oauth.google.enabled", d.OAuthGoogleEnabled)
+	putPtr(values, "oauth.google.client_id", d.OAuthGoogleClientID)
+	putPtr(values, "oauth.google.client_secret", d.OAuthGoogleClientSecret)
+	putPtr(values, "oauth.google.redirect_uri", d.OAuthGoogleRedirectURI)
+
+	putPtr(values, "oauth.github.enabled", d.OAuthGithubEnabled)
+	putPtr(values, "oauth.github.client_id", d.OAuthGithubClientID)
+	putPtr(values, "oauth.github.client_secret", d.OAuthGithubClientSecret)
+	putPtr(values, "oauth.github.redirect_uri", d.OAuthGithubRedirectURI)
+
+	putPtr(values, "oauth.discord.enabled", d.OAuthDiscordEnabled)
+	putPtr(values, "oauth.discord.client_id", d.OAuthDiscordClientID)
+	putPtr(values, "oauth.discord.client_secret", d.OAuthDiscordClientSecret)
+	putPtr(values, "oauth.discord.redirect_uri", d.OAuthDiscordRedirectURI)
+
+	putPtr(values, "oauth.oidc.enabled", d.OAuthOidcEnabled)
+	putPtr(values, "oauth.oidc.name", d.OAuthOidcName)
+	putPtr(values, "oauth.oidc.issuer_url", d.OAuthOidcIssuerURL)
+	putPtr(values, "oauth.oidc.client_id", d.OAuthOidcClientID)
+	putPtr(values, "oauth.oidc.client_secret", d.OAuthOidcClientSecret)
+	putPtr(values, "oauth.oidc.redirect_uri", d.OAuthOidcRedirectURI)
+	putPtr(values, "oauth.oidc.scopes", d.OAuthOidcScopes)
+
 	return values
 }
 
@@ -149,6 +209,8 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
 		"tracker.anilist_enabled":   true,
+		"metadata.auto_enrich_enabled": true,
+		"metadata.webp_cover_enabled":  true,
 		"auth.require_email_verify": true, "auth.password_reset_enabled": true,
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
@@ -157,6 +219,29 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"smtp.enabled": true, "smtp.host": true, "smtp.port": true, "smtp.username": true,
 		"smtp.password": true, "smtp.from_email": true, "smtp.tls_mode": true,
 		"smtp.allow_private_networks": true, "smtp.max_attachment_mb": true,
+		"auth.proxy_auth_enabled":         true,
+		"auth.proxy_auth_headers":         true,
+		"auth.proxy_auth_trusted_proxies": true,
+		"auth.proxy_auth_auto_create":      true,
+		"oauth.google.enabled":            true,
+		"oauth.google.client_id":          true,
+		"oauth.google.client_secret":      true,
+		"oauth.google.redirect_uri":       true,
+		"oauth.github.enabled":            true,
+		"oauth.github.client_id":          true,
+		"oauth.github.client_secret":      true,
+		"oauth.github.redirect_uri":       true,
+		"oauth.discord.enabled":           true,
+		"oauth.discord.client_id":         true,
+		"oauth.discord.client_secret":     true,
+		"oauth.discord.redirect_uri":      true,
+		"oauth.oidc.enabled":              true,
+		"oauth.oidc.name":                 true,
+		"oauth.oidc.issuer_url":           true,
+		"oauth.oidc.client_id":            true,
+		"oauth.oidc.client_secret":        true,
+		"oauth.oidc.redirect_uri":         true,
+		"oauth.oidc.scopes":               true,
 	}
 	unknown := make([]string, 0)
 	for key := range d.present {

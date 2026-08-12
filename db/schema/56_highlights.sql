@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS highlights (
     color TEXT NOT NULL DEFAULT 'yellow',
     note TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    cfi_range TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_highlights_user_book ON highlights(user_id, book_id);

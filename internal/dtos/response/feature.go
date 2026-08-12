@@ -16,6 +16,7 @@ type HighlightResponse struct {
 	EndIndex    int64     `json:"end_index"`
 	Color       string    `json:"color"`
 	Note        *string   `json:"note,omitempty"`
+	CfiRange    *string   `json:"cfi_range,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -172,4 +173,16 @@ type ReadingActivityResponse struct {
 	Stats           *BookReadStatsResponse   `json:"stats,omitempty"`
 	Counted         bool                     `json:"counted"`
 	CooldownSeconds int64                    `json:"cooldown_seconds"`
+}
+
+type SmartFilterResponse struct {
+	ID              string                         `json:"id"`
+	UserID          string                         `json:"user_id"`
+	Name            string                         `json:"name"`
+	Rules           []request.SmartFilterRuleItemDto `json:"rules"`
+	IsPinnedSidebar bool                           `json:"is_pinned_sidebar"`
+	IsPinnedHome    bool                           `json:"is_pinned_home"`
+	HomePosition    int64                          `json:"home_position"`
+	CreatedAt       time.Time                      `json:"created_at"`
+	UpdatedAt       time.Time                      `json:"updated_at"`
 }

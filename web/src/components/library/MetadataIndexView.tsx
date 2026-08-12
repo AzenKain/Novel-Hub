@@ -60,7 +60,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
           </p>
         </div>
       ) : isSeries ? (
-        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 items-start">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 min-[1900px]:grid-cols-10 items-start">
           {filteredItems.map((item) => {
             const cover_url = item.cover_url ? getMediaUrl(item.cover_url) : "";
             return (

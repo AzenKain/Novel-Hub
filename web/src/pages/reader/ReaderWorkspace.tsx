@@ -22,6 +22,7 @@ import { useReaderPaging } from "@/hooks/useReaderPaging";
 import { useReaderSelection } from "@/hooks/useReaderSelection";
 import { queryClient } from "@/config/queryClient";
 import { applyUserHighlights, clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { generateCfi, resolveCfi } from "@/lib/epubCfi";
 import { BookOpen, ChevronRight } from "lucide-react";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -225,6 +226,10 @@ export const ReaderWorkspace = () => {
     }
   }, [isPlaying, isPaused]);
 
+  const currentChapterIndex = chapters.findIndex(
+    (chapter) => chapter.id === currentChapter?.id,
+  );
+
   const {
     selectionRange,
     setSelectionRange,
@@ -241,6 +246,8 @@ export const ReaderWorkspace = () => {
     addHighlight,
     speak,
     stop,
+    chapterIndex: currentChapterIndex >= 0 ? currentChapterIndex : 0,
+    chapterId: currentChapter?.id,
   });
 
   const handleSelectHighlight = (highlight: Highlight) => {
@@ -442,7 +449,9 @@ export const ReaderWorkspace = () => {
               const found = sorted.find(ch => ch.id === progress.chapter_id);
               if (found) {
                 targetChapter = found;
-                if (progress.location_type === "scroll" && progress.location_cfi) {
+                if (progress.location_cfi && progress.location_cfi.startsWith("epubcfi(")) {
+                  location_cfi = progress.location_cfi;
+                } else if (progress.location_type === "scroll" && progress.location_cfi) {
                   location_cfi = `scroll:${progress.location_cfi}`;
                 } else if (progress.location_type === "page" && progress.location_cfi) {
                   location_cfi = `page:${progress.location_cfi}`;
@@ -499,7 +508,34 @@ export const ReaderWorkspace = () => {
     const fragment = pendingFragmentRef.current;
     pendingFragmentRef.current = null;
     requestAnimationFrame(() => {
-      if (fragment.startsWith("scroll:") && contentRef.current) {
+      if (fragment.startsWith("epubcfi(")) {
+        const container = columnsRef.current || contentRef.current;
+        if (container) {
+          const resolved = resolveCfi(container, fragment);
+          if (resolved) {
+            const el = resolved.node.nodeType === Node.ELEMENT_NODE
+              ? (resolved.node as HTMLElement)
+              : resolved.node.parentElement;
+            if (el) {
+              if (scrollLayout) {
+                el.scrollIntoView({ block: "center", behavior: "auto" });
+              } else {
+                const scrollStep = container.clientWidth + READER_PAGE_GAP;
+                if (scrollStep > 0) {
+                  let offsetLeft = el.offsetLeft;
+                  let parent = el.offsetParent as HTMLElement;
+                  while (parent && container.contains(parent) && parent !== container) {
+                    offsetLeft += parent.offsetLeft;
+                    parent = parent.offsetParent as HTMLElement;
+                  }
+                  const pIndex = Math.floor(offsetLeft / scrollStep);
+                  scrollToPageIndex(pIndex, true);
+                }
+              }
+            }
+          }
+        }
+      } else if (fragment.startsWith("scroll:") && contentRef.current) {
         contentRef.current.scrollTop = parseInt(fragment.slice(7), 10) || 0;
       } else if (fragment.startsWith("page:")) {
         const pIndex = parseInt(fragment.slice(5), 10) || 0;
@@ -565,6 +601,50 @@ export const ReaderWorkspace = () => {
     }).catch(reportProgressFailure);
   }, [user, book_id, file_id, currentChapter?.id, chapters.length]);
 
+  const getVisibleCfi = (): string => {
+    const container = scrollLayout ? contentRef.current : columnsRef.current;
+    if (!container || !currentChapter) return "";
+
+    const children = Array.from(container.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, figure, img, div"));
+    const containerRect = container.getBoundingClientRect();
+
+    let visibleNode: Node | null = null;
+    for (const child of children) {
+      if (child.tagName === "DIV" && child.querySelector("p, h1, h2, h3, h4, h5, h6, li, figure, img")) {
+        continue;
+      }
+      const rect = child.getBoundingClientRect();
+      if (!scrollLayout) {
+        if (rect.right > containerRect.left && rect.left < containerRect.right) {
+          visibleNode = child;
+          break;
+        }
+      } else {
+        if (rect.bottom > containerRect.top && rect.top < containerRect.bottom) {
+          visibleNode = child;
+          break;
+        }
+      }
+    }
+
+    if (!visibleNode) {
+      const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+      visibleNode = treeWalker.nextNode() || container;
+    }
+
+    let targetNode = visibleNode;
+    if (visibleNode.nodeType === Node.ELEMENT_NODE) {
+      const treeWalker = document.createTreeWalker(visibleNode, NodeFilter.SHOW_TEXT, null);
+      const firstText = treeWalker.nextNode();
+      if (firstText) {
+        targetNode = firstText;
+      }
+    }
+
+    const currentChapterIndex = chapters.findIndex((c) => c.id === currentChapter.id);
+    return generateCfi(container, targetNode, 0, currentChapterIndex >= 0 ? currentChapterIndex : 0, currentChapter.id);
+  };
+
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
@@ -585,7 +665,7 @@ export const ReaderWorkspace = () => {
         chapter_title: currentChapter.title,
         chapter_index: currentChapter.chapter_index,
         progress_percent,
-        location_cfi: String(scrollTop),
+        location_cfi: getVisibleCfi(),
         location_type: "scroll",
         event_type: "progress_update",
       }).then(() => {
@@ -606,7 +686,7 @@ export const ReaderWorkspace = () => {
       chapter_title: currentChapter.title,
       chapter_index: currentChapter.chapter_index,
       progress_percent,
-      location_cfi: String(pageIndex),
+      location_cfi: getVisibleCfi(),
       location_type: "page",
       event_type: "progress_update",
     }).then(() => {
@@ -616,9 +696,6 @@ export const ReaderWorkspace = () => {
   const { data: seriesContext } = useBookSeriesQuery(book_id || "");
   const readListNext = useReadListNextQuery(readListId, book_id).data;
 
-  const currentChapterIndex = chapters.findIndex(
-    (chapter) => chapter.id === currentChapter?.id,
-  );
   const canGoPrev = currentChapterIndex > 0;
   const hasNextChapter =
     currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1;

@@ -20,7 +20,12 @@ var (
 	_, docIPv6, _   = net.ParseCIDR("2001:db8::/32")
 )
 
+var AllowPrivateIPsInTest = false
+
 func IsPrivateIP(ip net.IP) bool {
+	if AllowPrivateIPsInTest {
+		return false
+	}
 	if ip == nil {
 		return true
 	}

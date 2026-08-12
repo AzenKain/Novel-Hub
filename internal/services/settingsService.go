@@ -64,6 +64,7 @@ type SettingsService interface {
 	SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error)
 	SMTP(ctx context.Context) (mailer.SMTPConfig, error)
 	TestSMTP(ctx context.Context, dto *request.SMTPTestDto) error
+	OAuthProviderConfig(ctx context.Context, provider string) (*models.OAuthProviderConfig, error)
 }
 
 type settingsService struct {
@@ -153,6 +154,7 @@ func defaultPublicSettings() *models.PublicSettings {
 		AvailableSidebarItems: append([]string(nil), availableSidebarItems...),
 		AvailableHomeSections: append([]string(nil), availableHomeSections...),
 		AvailableGuestModes:   append([]string(nil), availableGuestModes...),
+		ProxyAuthEnabled:      false,
 	}
 }
 
@@ -231,7 +233,18 @@ func (s *settingsService) Admin(ctx context.Context) (*models.AdminSettings, err
 		Bounds:         runtimeLimitBounds(),
 		SMTP:           smtpSettingsFromRaw(raw),
 		ServerURL:      serverURLFromRaw(raw),
+		ProxyAuth:      proxyAuthSettingsFromRaw(raw),
+		OAuth:          oauthSettingsFromRaw(raw),
 	}, nil
+}
+
+func proxyAuthSettingsFromRaw(raw map[string]any) models.ProxyAuthSettings {
+	return models.ProxyAuthSettings{
+		Enabled:        rawBool(raw, "auth.proxy_auth_enabled", false),
+		HeaderNames:    rawStringSlice(raw, "auth.proxy_auth_headers", []string{"X-Forwarded-User", "Remote-User", "X-Forwarded-Email"}),
+		TrustedProxies: rawStringSlice(raw, "auth.proxy_auth_trusted_proxies", []string{"127.0.0.1", "::1"}),
+		AutoCreate:     rawBool(raw, "auth.proxy_auth_auto_create", false),
+	}
 }
 
 func (s *settingsService) Limits() models.RuntimeLimits {
@@ -436,9 +449,13 @@ func settingsFromRaw(raw map[string]any) *models.PublicSettings {
 	settings.EnableInBookSearch = rawBool(raw, "reader.enable_in_book_search", false)
 	settings.EnableCustomFontUpload = rawBool(raw, "font.enable_custom_font_upload", false)
 	settings.EnableAniListTracking = rawBool(raw, "tracker.anilist_enabled", true)
+	settings.EnableAutoEnrich = rawBool(raw, "metadata.auto_enrich_enabled", false)
+	settings.EnableWebpCover = rawBool(raw, "metadata.webp_cover_enabled", false)
 	settings.RequireEmailVerify = rawBool(raw, "auth.require_email_verify", false)
 	settings.PasswordResetEnabled = rawBool(raw, "auth.password_reset_enabled", false)
 	settings.SMTPEnabled = rawBool(raw, "smtp.enabled", false)
+	settings.ProxyAuthEnabled = rawBool(raw, "auth.proxy_auth_enabled", false)
+	settings.OAuth = oauthPublicSettingsFromRaw(raw)
 	return settings
 }
 
@@ -621,7 +638,11 @@ func filterKnown(items []string, known []string) []string {
 // the audit trail, because every other key is already visible via GET /settings, so redacting
 // them would cost the trail its usefulness without protecting anything.
 func secretSettingKey(key string) bool {
-	return key == "smtp.password"
+	return key == "smtp.password" ||
+		key == "oauth.google.client_secret" ||
+		key == "oauth.github.client_secret" ||
+		key == "oauth.discord.client_secret" ||
+		key == "oauth.oidc.client_secret"
 }
 
 // A slice rather than a switch so a test can walk it and check every entry against
@@ -642,6 +663,8 @@ var allowedSettingKeys = []string{
 	"reader.enable_in_book_search",
 	"font.enable_custom_font_upload",
 	"tracker.anilist_enabled",
+	"metadata.auto_enrich_enabled",
+	"metadata.webp_cover_enabled",
 	"auth.require_email_verify",
 	"auth.password_reset_enabled",
 	"limits.upload_chunk_bytes",
@@ -662,6 +685,93 @@ var allowedSettingKeys = []string{
 	"smtp.tls_mode",
 	"smtp.allow_private_networks",
 	"smtp.max_attachment_mb",
+	"auth.proxy_auth_enabled",
+	"auth.proxy_auth_headers",
+	"auth.proxy_auth_trusted_proxies",
+	"auth.proxy_auth_auto_create",
+
+	"oauth.google.enabled",
+	"oauth.google.client_id",
+	"oauth.google.client_secret",
+	"oauth.google.redirect_uri",
+
+	"oauth.github.enabled",
+	"oauth.github.client_id",
+	"oauth.github.client_secret",
+	"oauth.github.redirect_uri",
+
+	"oauth.discord.enabled",
+	"oauth.discord.client_id",
+	"oauth.discord.client_secret",
+	"oauth.discord.redirect_uri",
+
+	"oauth.oidc.enabled",
+	"oauth.oidc.name",
+	"oauth.oidc.issuer_url",
+	"oauth.oidc.client_id",
+	"oauth.oidc.client_secret",
+	"oauth.oidc.redirect_uri",
+	"oauth.oidc.scopes",
+}
+
+func oauthSettingsFromRaw(raw map[string]any) models.OAuthSettingsAdmin {
+	return models.OAuthSettingsAdmin{
+		Google: models.OAuthProviderAdmin{
+			Enabled:         rawBool(raw, "oauth.google.enabled", false),
+			ClientID:        rawString(raw, "oauth.google.client_id", ""),
+			ClientSecretSet: rawString(raw, "oauth.google.client_secret", "") != "",
+			RedirectURI:     rawString(raw, "oauth.google.redirect_uri", ""),
+		},
+		Github: models.OAuthProviderAdmin{
+			Enabled:         rawBool(raw, "oauth.github.enabled", false),
+			ClientID:        rawString(raw, "oauth.github.client_id", ""),
+			ClientSecretSet: rawString(raw, "oauth.github.client_secret", "") != "",
+			RedirectURI:     rawString(raw, "oauth.github.redirect_uri", ""),
+		},
+		Discord: models.OAuthProviderAdmin{
+			Enabled:         rawBool(raw, "oauth.discord.enabled", false),
+			ClientID:        rawString(raw, "oauth.discord.client_id", ""),
+			ClientSecretSet: rawString(raw, "oauth.discord.client_secret", "") != "",
+			RedirectURI:     rawString(raw, "oauth.discord.redirect_uri", ""),
+		},
+		Oidc: models.OAuthProviderAdmin{
+			Enabled:         rawBool(raw, "oauth.oidc.enabled", false),
+			Name:            rawString(raw, "oauth.oidc.name", "OpenID Connect"),
+			IssuerURL:       rawString(raw, "oauth.oidc.issuer_url", ""),
+			ClientID:        rawString(raw, "oauth.oidc.client_id", ""),
+			ClientSecretSet: rawString(raw, "oauth.oidc.client_secret", "") != "",
+			RedirectURI:     rawString(raw, "oauth.oidc.redirect_uri", ""),
+			Scopes:          rawStringSlice(raw, "oauth.oidc.scopes", []string{"openid", "profile", "email"}),
+		},
+	}
+}
+
+func oauthPublicSettingsFromRaw(raw map[string]any) models.OAuthSettingsPublic {
+	providers := []models.OAuthProviderPublic{
+		{
+			ID:          "google",
+			DisplayName: "Google",
+			Enabled:     rawBool(raw, "oauth.google.enabled", false),
+		},
+		{
+			ID:          "github",
+			DisplayName: "GitHub",
+			Enabled:     rawBool(raw, "oauth.github.enabled", false),
+		},
+		{
+			ID:          "discord",
+			DisplayName: "Discord",
+			Enabled:     rawBool(raw, "oauth.discord.enabled", false),
+		},
+		{
+			ID:          "oidc",
+			DisplayName: rawString(raw, "oauth.oidc.name", "OpenID Connect"),
+			Enabled:     rawBool(raw, "oauth.oidc.enabled", false),
+		},
+	}
+	return models.OAuthSettingsPublic{
+		Providers: providers,
+	}
 }
 
 func allowedSettingKey(key string) bool {
@@ -723,4 +833,40 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 	}
 
 	return "", apperrors.New(apperrors.ErrBadRequest, "Provide a file or URL")
+}
+
+func (s *settingsService) OAuthProviderConfig(ctx context.Context, provider string) (*models.OAuthProviderConfig, error) {
+	s.mu.RLock()
+	raw := s.raw
+	s.mu.RUnlock()
+
+	prefix := "oauth." + provider + "."
+	enabled := rawBool(raw, prefix+"enabled", false)
+	clientID := rawString(raw, prefix+"client_id", "")
+	ciphertext := rawString(raw, prefix+"client_secret", "")
+	redirectURI := rawString(raw, prefix+"redirect_uri", "")
+
+	clientSecret := ""
+	if ciphertext != "" {
+		decrypted, err := crypto.DecryptAES(ciphertext)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to decrypt client secret")
+		}
+		clientSecret = decrypted
+	}
+
+	config := &models.OAuthProviderConfig{
+		Enabled:      enabled,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURI:  redirectURI,
+	}
+
+	if provider == "oidc" {
+		config.Name = rawString(raw, "oauth.oidc.name", "OpenID Connect")
+		config.IssuerURL = rawString(raw, "oauth.oidc.issuer_url", "")
+		config.Scopes = rawStringSlice(raw, "oauth.oidc.scopes", []string{"openid", "profile", "email"})
+	}
+
+	return config, nil
 }

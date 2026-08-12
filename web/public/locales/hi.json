@@ -168,6 +168,7 @@
         "database_health_check": "डेटाबेस स्वास्थ्य जाँच",
         "database_backup": "डेटाबेस बैकअप",
         "database_books_backup": "डेटाबेस और पुस्तकों का बैकअप",
+        "scan_metadata_enrich": "मेटाडेटा स्कैन और समृद्ध करें",
         "scan_library_inbox": "लाइब्रेरी इनबॉक्स स्कैन करें",
         "extract_metadata": "मेटाडेटा निकालें",
         "hash_file": "फ़ाइल हैश निकालें",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "{{deleted}} फ़ाइलें हटाई गईं, {{failed}} विफल रहीं: {{reason}}",
     "upload_partial": "{{total}} में से {{count}} पुस्तकें अपलोड हुईं। मेटाडेटा संसाधित हो रहा है...",
     "upload_done": "{{count}} पुस्तकें अपलोड हुईं। मेटाडेटा संसाधित हो रहा है...",
-    "upload_all_failed": "कोई भी फ़ाइल अपलोड नहीं हो सकी: {{reason}}"
+    "upload_all_failed": "कोई भी फ़ाइल अपलोड नहीं हो सकी: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "अपने खाते में साइन इन करें",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "ईमेल से पासवर्ड रीसेट करना अभी बंद है। अपना पासवर्ड रीसेट कराने के लिए किसी प्रशासक से कहें।",
     "totp_prompt": "अपने ऑथेंटिकेटर ऐप का 6 अंकों का कोड या कोई रिकवरी कोड डालें।",
     "totp_code": "प्रमाणीकरण कोड",
-    "totp_verify": "सत्यापित करके लॉग इन करें"
+    "totp_verify": "सत्यापित करके लॉग इन करें",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "रद्द करें",
@@ -315,7 +323,37 @@
     "current": "वर्तमान",
     "load_more": "और लोड करें",
     "previous": "पिछला",
-    "next": "अगला"
+    "next": "अगला",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "पढ़ने के लिए तैयार",
@@ -666,7 +704,8 @@
     "collections": "संग्रह",
     "no_description": "कोई विवरण उपलब्ध नहीं है।",
     "next_in_series": "श्रृंखला में अगली",
-    "in_same_series": "इस श्रृंखला की पुस्तकें"
+    "in_same_series": "इस श्रृंखला की पुस्तकें",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -705,6 +744,13 @@
     "anilist_tracking": "AniList ट्रैकिंग सक्षम करें",
     "anilist_tracking_desc": "उपयोगकर्ताओं को अपना AniList खाता जोड़कर पठन प्रगति सिंक करने देता है।",
     "save_reader": "रीडर सेटिंग्स सहेजें",
+    "metadata_covers": "मेटाडेटा और कवर",
+    "metadata_covers_desc": "स्वचालित मेटाडेटा संवर्धन और कवर छवि अनुकूलन कॉन्फ़िगर करें।",
+    "save_metadata": "सेटिंग्स सहेजें",
+    "auto_enrich": "मेटाडेटा स्वचालित रूप से समृद्ध करें",
+    "auto_enrich_desc": "पुस्तक आयात पर AniList, OpenLibrary और Google Books API से स्वचालित रूप से मेटाडेटा प्राप्त करें।",
+    "webp_cover": "कवर को WebP में संपीड़ित करें",
+    "webp_cover_desc": "पुस्तक फ़ाइलें अपलोड या निकालने पर कवर छवियों को उच्च प्रदर्शन वाले WebP प्रारूप में संपीड़ित करें।",
     "registration_guest": "पंजीकरण और अतिथि पहुँच",
     "registration_guest_desc": "तय करें कि कौन पंजीकरण कर सकता है और अतिथि क्या देख सकते हैं।",
     "public_registration": "सार्वजनिक पंजीकरण सक्षम करें",
@@ -826,7 +872,12 @@
     "needs_smtp": "इसे सक्षम करने के लिए नीचे SMTP कॉन्फ़िगर करें।",
     "template_email": "ईमेल (SMTP)",
     "email_recipients": "प्राप्तकर्ता",
-    "email_recipients_hint": "mailto: के बाद अल्पविराम से अलग किए गए पते। SMTP कॉन्फ़िगरेशन आवश्यक है।"
+    "email_recipients_hint": "mailto: के बाद अल्पविराम से अलग किए गए पते। SMTP कॉन्फ़िगरेशन आवश्यक है।",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "कॉन्फ़िगरेशन सूचना: सुनिश्चित करें कि आप इस सेटिंग पृष्ठ और प्रत्येक पहचान प्रदाता के संबंधित डेवलपर कंसोल दोनों में एक ही रीडायरेक्ट यूआरआई कॉन्फ़िगर करते हैं। रहस्य सुरक्षित रूप से एन्क्रिप्ट किए गए हैं।"
+    }
   },
   "email": {
     "invalid": "कृपया एक मान्य ईमेल पता डालें",
@@ -982,7 +1033,16 @@
     "manual_email": "ईमेल हाथ से डालें",
     "no_devices": "कोई सहेजा गया डिवाइस नहीं मिला।",
     "add_device_tip": "“ईमेल हाथ से डालें” का उपयोग करें या सेटिंग्स में डिवाइस पंजीकृत करें।",
-    "push": "भेजें"
+    "push": "भेजें",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "उन्नत खोज",
@@ -1016,5 +1076,40 @@
     "step2": "VBook खोलें → वर्टिकल तीन बिंदुओं (⋮) पर टैप करें → 'एक्सटेंशन इंपोर्ट करें' चुनें → डाउनलोड की गई plugin.zip फ़ाइल चुनें।",
     "download": "ZIP डाउनलोड करें",
     "download_zip": "plugin.zip डाउनलोड करें"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

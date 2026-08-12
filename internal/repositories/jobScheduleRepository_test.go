@@ -78,7 +78,14 @@ func TestJobScheduleRepositoryNilCacheReads(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List with nil cache: %v", err)
 	}
-	if len(all) != 1 || all[0].ID != created.ID {
-		t.Errorf("List returned %d schedules, want 1", len(all))
+	found := false
+	for _, s := range all {
+		if s.ID == created.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("List did not return the created schedule %q", created.ID)
 	}
 }

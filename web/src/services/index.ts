@@ -14,3 +14,6 @@ export * from "./trackerService";
 export * from "./koboService";
 export * from "./deviceService";
 export * from "./readListService";
+export * from "./magicCodeService";
+export * from "./ageRatingService";
+export * from "./smartFilterService";

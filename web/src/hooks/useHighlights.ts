@@ -22,9 +22,9 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
   });
 
   const addMutation = useMutation({
-    mutationFn: async ({ text_content, start_index, end_index, color }: { text_content: string; start_index: number; end_index: number; color: string }) => {
+    mutationFn: async ({ text_content, start_index, end_index, color, cfi_range }: { text_content: string; start_index: number; end_index: number; color: string; cfi_range?: string }) => {
       if (!chapter_id || !book_id) throw new Error("Missing chapter_id or book_id");
-      const res = await highlightService.createHighlight(book_id, chapter_id, text_content, start_index, end_index, color);
+      const res = await highlightService.createHighlight(book_id, chapter_id, text_content, start_index, end_index, color, undefined, cfi_range);
       if (!res.status) throw new Error(res.message || "Failed to create highlight");
       return res.data;
     },
@@ -54,9 +54,9 @@ export const useHighlights = (book_id: string, chapter_id: string | undefined, e
     },
   });
 
-  const addHighlight = async (text_content: string, start_index: number, end_index: number, color: string = 'yellow') => {
+  const addHighlight = async (text_content: string, start_index: number, end_index: number, color: string = 'yellow', cfi_range?: string) => {
     try {
-      return await addMutation.mutateAsync({ text_content, start_index, end_index, color });
+      return await addMutation.mutateAsync({ text_content, start_index, end_index, color, cfi_range });
     } catch (err) {
       toast.error(i18n.t('reader.highlight_create_failed', 'Could not save the highlight'));
       console.error("Failed to create highlight", err);

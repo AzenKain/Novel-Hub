@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"novelhub/pkg/database"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,6 +35,14 @@ type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
 	GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error)
 	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
+	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
+	SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*models.BookEntity, error)
+	GetBookFileForDownload(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (string, string, error)
+	ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.BookFileEntity, error)
+	ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.ChapterEntity, error)
+	SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*models.BookSearchSnippet, error)
 
 	ListChapters(ctx context.Context, bookID string) ([]*models.ChapterEntity, error)
 	GetBookFilePath(ctx context.Context, bookID string) (string, error)
@@ -51,6 +62,8 @@ type BookService interface {
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
 	UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error)
+	AutoEnrichBook(ctx context.Context, bookID string) error
+	BatchEnrichBooks(ctx context.Context) error
 	ProxyCover(ctx context.Context, coverURL string) ([]byte, string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error
@@ -124,6 +137,217 @@ func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search
 	}
 	s.enrichBooks(ctx, books)
 	return books, nil
+}
+
+func (s *bookService) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	books, err := s.bookRepo.SearchSmartFilterBooks(ctx, libraryID, rules, cursor, cursorID, limit)
+	if err != nil {
+		return nil, err
+	}
+	s.enrichBooks(ctx, books)
+	return books, nil
+}
+
+func (s *bookService) SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	filter, err := s.featureRepo.GetSmartFilter(ctx, filterID, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Smart filter not found")
+		}
+		return nil, err
+	}
+
+	var rules []request.SmartFilterRuleItemDto
+	if err := jsonx.Unmarshal([]byte(filter.RulesJson), &rules); err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to parse filter rules")
+	}
+
+	var cursorTime *time.Time
+	var cursorID string
+	if queryDto.Cursor != "" {
+		if parts := strings.SplitN(queryDto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, queryDto.Cursor); err == nil {
+			cursorTime = &t
+		}
+	}
+
+	var libID *string
+	if queryDto.LibraryID != "" {
+		libID = &queryDto.LibraryID
+	}
+
+	books, err := s.SearchSmartFilterBooks(ctx, libID, rules, cursorTime, cursorID, int64(queryDto.Limit))
+	if err != nil {
+		return nil, err
+	}
+
+	filtered, allowed := s.FilterReadableBooks(ctx, books, claims)
+	if !allowed {
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Access denied")
+	}
+
+	var nextCursor string
+	if len(books) >= int(queryDto.Limit) && len(books) > 0 {
+		last := books[len(books)-1]
+		nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
+	}
+
+	return response.BuildCursorPaginatedResponse(models.BookEntitiesToResponse(filtered), 0, int(queryDto.Limit), nextCursor), nil
+}
+
+func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	var libID *string
+	if queryDto.LibraryID != "" {
+		libID = &queryDto.LibraryID
+	}
+	var searchStr *string
+	if queryDto.Search != "" {
+		searchStr = &queryDto.Search
+	}
+
+	var cursorTime *time.Time
+	var cursorID string
+	if queryDto.Cursor != "" {
+		if parts := strings.SplitN(queryDto.Cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		} else if t, err := time.Parse(time.RFC3339Nano, queryDto.Cursor); err == nil {
+			cursorTime = &t
+		}
+	}
+
+	books, err := s.SearchBooks(ctx, libID, searchStr, queryDto.Nav, queryDto.Collection, queryDto.Chip, queryDto.Facet, queryDto.FacetID, cursorTime, cursorID, int64(queryDto.Limit))
+	if err != nil {
+		return nil, err
+	}
+
+	filtered, allowed := s.FilterReadableBooks(ctx, books, claims)
+	if !allowed {
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Login required")
+	}
+
+	var nextCursor string
+	if len(books) >= int(queryDto.Limit) && len(books) > 0 {
+		last := books[len(books)-1]
+		nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
+	}
+
+	return response.BuildCursorPaginatedResponse(models.BookEntitiesToResponse(filtered), 0, int(queryDto.Limit), nextCursor), nil
+}
+
+func (s *bookService) GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*models.BookEntity, error) {
+	book, err := s.GetBook(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, err
+	}
+	if !s.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+	return book, nil
+}
+
+func (s *bookService) GetBookFileForDownload(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (string, string, error) {
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return "", "", err
+	}
+	if !s.CanDownloadBook(ctx, book, claims) {
+		return "", "", apperrors.New(apperrors.ErrForbidden, "Downloads are not allowed")
+	}
+
+	file, err := s.GetBookFile(ctx, bookID, fileID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", apperrors.New(apperrors.ErrNotFound, "Book file not found")
+		}
+		return "", "", err
+	}
+	_ = s.featureRepo.UpsertBookDownloadStats(ctx, bookID, 1)
+
+	ext := strings.ToLower(filepath.Ext(file.Path))
+	if ext == "" {
+		ext = ".epub"
+	}
+	downloadName := s.SafeDownloadFilename(book.Title, ext)
+	return file.Path, downloadName, nil
+}
+
+func (s *bookService) ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.BookFileEntity, error) {
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, err
+	}
+	if !s.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+	files, err := s.ListBookFiles(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+func (s *bookService) ListChaptersWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*models.ChapterEntity, error) {
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, err
+	}
+	if !s.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+	chapters, err := s.ListChapters(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	return chapters, nil
+}
+
+func (s *bookService) SearchInBookWithAccess(ctx context.Context, bookID string, query string, claims *response.JWTClaims) ([]*models.BookSearchSnippet, error) {
+	publicSettings, err := s.settings.Public(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if publicSettings == nil || !publicSettings.EnableInBookSearch {
+		return nil, apperrors.New(apperrors.ErrForbidden, "in-book search is disabled by system administrator")
+	}
+
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, err
+	}
+	if !s.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+
+	results, err := s.SearchInBook(ctx, bookID, query)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntity) {
@@ -246,7 +470,7 @@ func (s *bookService) parserForFile(file *models.BookFileEntity) (bookparser.Par
 
 func isAllowedBookFormat(ext string) bool {
 	switch strings.ToLower(ext) {
-	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7":
+	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z":
 		return true
 	default:
 		return false
@@ -306,6 +530,7 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 
 	if len(meta.CoverData) > 0 {
 		ext := coverExtFromContent(meta.CoverType, meta.CoverData)
+		ext, meta.CoverData = s.optimizeCoverIfEnabled(ctx, ext, meta.CoverData)
 		if coverURL, _, err := s.fileRepo.SaveCover(ctx, bookID, ext, meta.CoverData); err == nil {
 			book.CoverURL = &coverURL
 		} else {
@@ -366,6 +591,24 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 		return err
 	}
 	txRepo.FlushCache(ctx)
+
+	// Trigger auto enrichment if enabled
+	var settings *models.PublicSettings
+	if s.settings != nil {
+		if pub, err := s.settings.Public(ctx); err == nil {
+			settings = pub
+		}
+	}
+	if settings != nil && settings.EnableAutoEnrich {
+		go func() {
+			ctxBg, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := s.AutoEnrichBook(ctxBg, bookID); err != nil {
+				log.Warn().Err(err).Str("book_id", bookID).Msg("failed to auto-enrich book metadata on import")
+			}
+		}()
+	}
+
 	return nil
 }
 

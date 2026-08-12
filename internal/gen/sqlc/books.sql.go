@@ -59,22 +59,26 @@ func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (Aut
 
 const createBook = `-- name: CreateBook :one
 INSERT INTO books (
-    id, library_id, title, author_id, description, cover_url, status, metadata_json
+    id, library_id, title, author_id, description, cover_url, status, metadata_json,
+    google_books_id, anilist_id, openlibrary_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at
+RETURNING id, library_id, title, author_id, description, cover_url, status, age_rating, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at, google_books_id, anilist_id, openlibrary_id
 `
 
 type CreateBookParams struct {
-	ID           string         `json:"id"`
-	LibraryID    string         `json:"library_id"`
-	Title        string         `json:"title"`
-	AuthorID     sql.NullString `json:"author_id"`
-	Description  sql.NullString `json:"description"`
-	CoverUrl     sql.NullString `json:"cover_url"`
-	Status       sql.NullString `json:"status"`
-	MetadataJson sql.NullString `json:"metadata_json"`
+	ID            string         `json:"id"`
+	LibraryID     string         `json:"library_id"`
+	Title         string         `json:"title"`
+	AuthorID      sql.NullString `json:"author_id"`
+	Description   sql.NullString `json:"description"`
+	CoverUrl      sql.NullString `json:"cover_url"`
+	Status        sql.NullString `json:"status"`
+	MetadataJson  sql.NullString `json:"metadata_json"`
+	GoogleBooksID sql.NullString `json:"google_books_id"`
+	AnilistID     sql.NullString `json:"anilist_id"`
+	OpenlibraryID sql.NullString `json:"openlibrary_id"`
 }
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
@@ -87,6 +91,9 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		arg.CoverUrl,
 		arg.Status,
 		arg.MetadataJson,
+		arg.GoogleBooksID,
+		arg.AnilistID,
+		arg.OpenlibraryID,
 	)
 	var i Book
 	err := row.Scan(
@@ -97,6 +104,7 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.Description,
 		&i.CoverUrl,
 		&i.Status,
+		&i.AgeRating,
 		&i.MetadataJson,
 		&i.DownloadCount,
 		&i.AverageRating,
@@ -105,6 +113,9 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.OpenCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GoogleBooksID,
+		&i.AnilistID,
+		&i.OpenlibraryID,
 	)
 	return i, err
 }
@@ -278,7 +289,7 @@ func (q *Queries) GetAuthorsByIDs(ctx context.Context, ids []string) ([]Author, 
 }
 
 const getBook = `-- name: GetBook :one
-SELECT id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at FROM books
+SELECT id, library_id, title, author_id, description, cover_url, status, age_rating, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at, google_books_id, anilist_id, openlibrary_id FROM books
 WHERE id = ? LIMIT 1
 `
 
@@ -293,6 +304,7 @@ func (q *Queries) GetBook(ctx context.Context, id string) (Book, error) {
 		&i.Description,
 		&i.CoverUrl,
 		&i.Status,
+		&i.AgeRating,
 		&i.MetadataJson,
 		&i.DownloadCount,
 		&i.AverageRating,
@@ -301,12 +313,15 @@ func (q *Queries) GetBook(ctx context.Context, id string) (Book, error) {
 		&i.OpenCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GoogleBooksID,
+		&i.AnilistID,
+		&i.OpenlibraryID,
 	)
 	return i, err
 }
 
 const getBooksByIDs = `-- name: GetBooksByIDs :many
-SELECT id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at FROM books WHERE id IN (/*SLICE:ids*/?)
+SELECT id, library_id, title, author_id, description, cover_url, status, age_rating, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at, google_books_id, anilist_id, openlibrary_id FROM books WHERE id IN (/*SLICE:ids*/?)
 `
 
 func (q *Queries) GetBooksByIDs(ctx context.Context, ids []string) ([]Book, error) {
@@ -336,6 +351,7 @@ func (q *Queries) GetBooksByIDs(ctx context.Context, ids []string) ([]Book, erro
 			&i.Description,
 			&i.CoverUrl,
 			&i.Status,
+			&i.AgeRating,
 			&i.MetadataJson,
 			&i.DownloadCount,
 			&i.AverageRating,
@@ -344,6 +360,9 @@ func (q *Queries) GetBooksByIDs(ctx context.Context, ids []string) ([]Book, erro
 			&i.OpenCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.GoogleBooksID,
+			&i.AnilistID,
+			&i.OpenlibraryID,
 		); err != nil {
 			return nil, err
 		}
@@ -660,21 +679,94 @@ func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([
 	return items, nil
 }
 
+const searchSmartFilterBookIDs = `-- name: SearchSmartFilterBookIDs :many
+SELECT b.id FROM books b
+WHERE
+    (b.created_at <= COALESCE(CAST(?1 AS TEXT), '9999-12-31 23:59:59')
+     AND (?1 IS NULL OR b.created_at < CAST(?1 AS TEXT) OR b.id < ?2)) AND
+    (?3 IS NULL OR b.library_id = ?3) AND
+    (?4 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?4))) AND
+    (?5 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (?6 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (?7 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (?8 IS NULL OR b.average_rating >= ?8) AND
+    (?9 IS NULL OR b.author_id = ?9) AND
+    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?10)) AND
+    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?11))
+ORDER BY
+    b.created_at DESC, b.id DESC
+LIMIT ?12
+`
+
+type SearchSmartFilterBookIDsParams struct {
+	CursorCreatedAt sql.NullString `json:"cursor_created_at"`
+	CursorID        sql.NullString `json:"cursor_id"`
+	LibraryID       interface{}    `json:"library_id"`
+	FileFormat      interface{}    `json:"file_format"`
+	StatusUnread    interface{}    `json:"status_unread"`
+	StatusRead      interface{}    `json:"status_read"`
+	StatusReading   interface{}    `json:"status_reading"`
+	RatingGte       interface{}    `json:"rating_gte"`
+	AuthorID        interface{}    `json:"author_id"`
+	SeriesID        interface{}    `json:"series_id"`
+	TagID           interface{}    `json:"tag_id"`
+	Limit           int64          `json:"limit"`
+}
+
+func (q *Queries) SearchSmartFilterBookIDs(ctx context.Context, arg SearchSmartFilterBookIDsParams) ([]string, error) {
+	rows, err := q.query(ctx, q.searchSmartFilterBookIDsStmt, searchSmartFilterBookIDs,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.LibraryID,
+		arg.FileFormat,
+		arg.StatusUnread,
+		arg.StatusRead,
+		arg.StatusReading,
+		arg.RatingGte,
+		arg.AuthorID,
+		arg.SeriesID,
+		arg.TagID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateBook = `-- name: UpdateBook :one
 UPDATE books
-SET title = ?, author_id = ?, description = ?, cover_url = ?, status = ?, metadata_json = ?, updated_at = CURRENT_TIMESTAMP
+SET title = ?, author_id = ?, description = ?, cover_url = ?, status = ?, metadata_json = ?, google_books_id = ?, anilist_id = ?, openlibrary_id = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ?
-RETURNING id, library_id, title, author_id, description, cover_url, status, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at
+RETURNING id, library_id, title, author_id, description, cover_url, status, age_rating, metadata_json, download_count, average_rating, rating_count, read_count, open_count, created_at, updated_at, google_books_id, anilist_id, openlibrary_id
 `
 
 type UpdateBookParams struct {
-	Title        string         `json:"title"`
-	AuthorID     sql.NullString `json:"author_id"`
-	Description  sql.NullString `json:"description"`
-	CoverUrl     sql.NullString `json:"cover_url"`
-	Status       sql.NullString `json:"status"`
-	MetadataJson sql.NullString `json:"metadata_json"`
-	ID           string         `json:"id"`
+	Title         string         `json:"title"`
+	AuthorID      sql.NullString `json:"author_id"`
+	Description   sql.NullString `json:"description"`
+	CoverUrl      sql.NullString `json:"cover_url"`
+	Status        sql.NullString `json:"status"`
+	MetadataJson  sql.NullString `json:"metadata_json"`
+	GoogleBooksID sql.NullString `json:"google_books_id"`
+	AnilistID     sql.NullString `json:"anilist_id"`
+	OpenlibraryID sql.NullString `json:"openlibrary_id"`
+	ID            string         `json:"id"`
 }
 
 func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, error) {
@@ -685,6 +777,9 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		arg.CoverUrl,
 		arg.Status,
 		arg.MetadataJson,
+		arg.GoogleBooksID,
+		arg.AnilistID,
+		arg.OpenlibraryID,
 		arg.ID,
 	)
 	var i Book
@@ -696,6 +791,7 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		&i.Description,
 		&i.CoverUrl,
 		&i.Status,
+		&i.AgeRating,
 		&i.MetadataJson,
 		&i.DownloadCount,
 		&i.AverageRating,
@@ -704,6 +800,9 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		&i.OpenCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GoogleBooksID,
+		&i.AnilistID,
+		&i.OpenlibraryID,
 	)
 	return i, err
 }

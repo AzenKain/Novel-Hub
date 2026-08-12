@@ -13,3 +13,6 @@ export * from "./useOfflineAssets";
 export * from "./useOfflineBook";
 export * from "./useDeviceQueries";
 export * from "./useReadListQueries";
+export * from "./useAgeRatingQueries";
+export * from "./useMagicCodeQueries";
+export * from "./useSmartFilters";

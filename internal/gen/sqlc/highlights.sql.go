@@ -13,10 +13,10 @@ import (
 
 const createHighlight = `-- name: CreateHighlight :one
 INSERT INTO highlights (
-    id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note
+    id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, cfi_range
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?
-) RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+) RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at, cfi_range
 `
 
 type CreateHighlightParams struct {
@@ -29,6 +29,7 @@ type CreateHighlightParams struct {
 	EndIndex    int64          `json:"end_index"`
 	Color       string         `json:"color"`
 	Note        sql.NullString `json:"note"`
+	CfiRange    sql.NullString `json:"cfi_range"`
 }
 
 func (q *Queries) CreateHighlight(ctx context.Context, arg CreateHighlightParams) (Highlight, error) {
@@ -42,6 +43,7 @@ func (q *Queries) CreateHighlight(ctx context.Context, arg CreateHighlightParams
 		arg.EndIndex,
 		arg.Color,
 		arg.Note,
+		arg.CfiRange,
 	)
 	var i Highlight
 	err := row.Scan(
@@ -56,6 +58,7 @@ func (q *Queries) CreateHighlight(ctx context.Context, arg CreateHighlightParams
 		&i.Note,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CfiRange,
 	)
 	return i, err
 }
@@ -76,7 +79,7 @@ func (q *Queries) DeleteHighlight(ctx context.Context, arg DeleteHighlightParams
 }
 
 const getHighlightsByChapter = `-- name: GetHighlightsByChapter :many
-SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at FROM highlights
+SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at, cfi_range FROM highlights
 WHERE user_id = ? AND chapter_id = ?
 ORDER BY start_index ASC
 `
@@ -107,6 +110,7 @@ func (q *Queries) GetHighlightsByChapter(ctx context.Context, arg GetHighlightsB
 			&i.Note,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CfiRange,
 		); err != nil {
 			return nil, err
 		}
@@ -122,7 +126,7 @@ func (q *Queries) GetHighlightsByChapter(ctx context.Context, arg GetHighlightsB
 }
 
 const getHighlightsByIDs = `-- name: GetHighlightsByIDs :many
-SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at FROM highlights
+SELECT id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at, cfi_range FROM highlights
 WHERE id IN (/*SLICE:ids*/?)
 `
 
@@ -157,6 +161,7 @@ func (q *Queries) GetHighlightsByIDs(ctx context.Context, ids []string) ([]Highl
 			&i.Note,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CfiRange,
 		); err != nil {
 			return nil, err
 		}
@@ -175,7 +180,7 @@ const updateHighlightNote = `-- name: UpdateHighlightNote :one
 UPDATE highlights
 SET note = ?, color = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?
-RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at
+RETURNING id, user_id, book_id, chapter_id, text_content, start_index, end_index, color, note, created_at, updated_at, cfi_range
 `
 
 type UpdateHighlightNoteParams struct {
@@ -205,6 +210,7 @@ func (q *Queries) UpdateHighlightNote(ctx context.Context, arg UpdateHighlightNo
 		&i.Note,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CfiRange,
 	)
 	return i, err
 }

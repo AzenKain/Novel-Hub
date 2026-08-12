@@ -62,18 +62,23 @@ type ChapterResponse struct {
 }
 
 type BookResponse struct {
-	ID           string              `json:"id"`
-	LibraryID    string              `json:"library_id"`
-	Title        string              `json:"title"`
-	AuthorID     *string             `json:"author_id,omitempty"`
-	AuthorName   *string             `json:"author_name,omitempty"`
-	Description  *string             `json:"description,omitempty"`
-	CoverURL     *string             `json:"cover_url,omitempty"`
-	Status       string              `json:"status"`
-	MetadataJSON *string             `json:"metadata_json,omitempty"`
-	Files        []*BookFileResponse `json:"files,omitempty"`
-	CreatedAt    time.Time           `json:"created_at"`
-	UpdatedAt    time.Time           `json:"updated_at"`
+	ID              string              `json:"id"`
+	LibraryID       string              `json:"library_id"`
+	Title           string              `json:"title"`
+	AuthorID        *string             `json:"author_id,omitempty"`
+	AuthorName      *string             `json:"author_name,omitempty"`
+	Description     *string             `json:"description,omitempty"`
+	CoverURL        *string             `json:"cover_url,omitempty"`
+	Status          string              `json:"status"`
+	AgeRating       string              `json:"age_rating"`
+	ContentWarnings []string            `json:"content_warnings,omitempty"`
+	MetadataJSON    *string             `json:"metadata_json,omitempty"`
+	GoogleBooksID   *string             `json:"google_books_id,omitempty"`
+	AnilistID       *string             `json:"anilist_id,omitempty"`
+	OpenLibraryID   *string             `json:"openlibrary_id,omitempty"`
+	Files           []*BookFileResponse `json:"files,omitempty"`
+	CreatedAt       time.Time           `json:"created_at"`
+	UpdatedAt       time.Time           `json:"updated_at"`
 }
 
 type FTSResultResponse struct {

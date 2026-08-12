@@ -43,3 +43,13 @@ type SearchUserDto struct {
 	CreatedFrom  *time.Time `json:"created_from,omitempty" query:"created_from" validate:"omitempty"`
 	CreatedTo    *time.Time `json:"created_to,omitempty" query:"created_to" validate:"omitempty"`
 }
+
+type SetKidsModePinDto struct {
+	Pin string `json:"pin" validate:"required,len=6,numeric"`
+}
+
+type ToggleKidsModeDto struct {
+	Enable bool   `json:"enable"`
+	Pin    string `json:"pin,omitempty" validate:"omitempty,len=6,numeric"`
+}
+

@@ -240,11 +240,11 @@ func rawFileContentType(filePath string) string {
 		return "application/zip"
 	case ".cbz":
 		return "application/vnd.comicbook+zip"
-	case ".cbr":
+	case ".cbr", ".rar":
 		return "application/vnd.comicbook-rar"
 	case ".cbt":
 		return "application/x-tar"
-	case ".cb7":
+	case ".cb7", ".7z":
 		return "application/x-7z-compressed"
 	case ".mobi", ".azw", ".azw3", ".amz":
 		return "application/octet-stream"

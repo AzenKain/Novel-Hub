@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/models"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/netx"
@@ -24,6 +25,8 @@ func (s *bookService) UpdateCover(ctx context.Context, bookID string, input requ
 	if err != nil {
 		return "", err
 	}
+
+	ext, coverData = s.optimizeCoverIfEnabled(ctx, ext, coverData)
 
 	coverURLPath, _, err := s.fileRepo.SaveCover(ctx, bookID, ext, coverData)
 	if err != nil {
@@ -191,4 +194,22 @@ func (s *bookService) ProxyCover(ctx context.Context, coverURL string) ([]byte, 
 	}
 
 	return data, resolvedContentType, nil
+}
+
+func (s *bookService) optimizeCoverIfEnabled(ctx context.Context, ext string, data []byte) (string, []byte) {
+	if ext == ".svg" || len(data) == 0 {
+		return ext, data
+	}
+	var settings *models.PublicSettings
+	if s.settings != nil {
+		if pub, err := s.settings.Public(ctx); err == nil {
+			settings = pub
+		}
+	}
+	if settings != nil && settings.EnableWebpCover {
+		if webpData, ok, err := bookparser.ConvertToWebP(data); err == nil && ok {
+			return ".webp", webpData
+		}
+	}
+	return ext, data
 }

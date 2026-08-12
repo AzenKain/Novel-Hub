@@ -750,11 +750,12 @@ func TestAuditIndexRedundantWriteCost(t *testing.T) {
 // The two-arm deep-page test conflated two independent non-sargable constructs, so it could
 // not attribute cost. There are three suspects in ListBookIDs' WHERE clause and they must be
 // separated before any of them is reported as the cause:
-//   a) datetime(created_at) -- a function on the column; no index on created_at can seek it.
-//   b) the `?1 IS NULL OR ...` disjunction sqlc emits for every narg cursor -- a disjunction
-//      over a non-column term also blocks a range seek.
-//   c) ORDER BY created_at DESC, id DESC against an index that stores created_at only, which
-//      forces the "LAST TERM OF ORDER BY" temp b-tree regardless of the WHERE clause.
+//
+//	a) datetime(created_at) -- a function on the column; no index on created_at can seek it.
+//	b) the `?1 IS NULL OR ...` disjunction sqlc emits for every narg cursor -- a disjunction
+//	   over a non-column term also blocks a range seek.
+//	c) ORDER BY created_at DESC, id DESC against an index that stores created_at only, which
+//	   forces the "LAST TERM OF ORDER BY" temp b-tree regardless of the WHERE clause.
 func TestAuditIndexKeysetDecompose(t *testing.T) {
 	for _, n := range []int{10000, 40000} {
 		db := auditIndexSeedBooks(t, n)

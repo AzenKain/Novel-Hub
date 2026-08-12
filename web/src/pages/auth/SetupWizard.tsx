@@ -13,6 +13,7 @@ export function SetupWizard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [setupRequired, setSetupRequired] = useState(false);
 
   const [form, setForm] = useState({
@@ -50,6 +51,10 @@ export function SetupWizard() {
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setError("");
+    if (form.password !== confirmPassword) {
+      setError(t('settings.password_mismatch', "New passwords do not match"));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await settingsService.submitSetup({
@@ -206,6 +211,17 @@ export function SetupWizard() {
                   minLength={8}
                 />
                 {form.password.length > 0 && <PasswordStrength password={form.password} />}
+              </div>
+              <div className="flex flex-col gap-1 w-full">
+                <input
+                  type="password"
+                  placeholder={t('settings.confirm_password', "Confirm new password")}
+                  className="input input-bordered w-full"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
               </div>
             </fieldset>
 

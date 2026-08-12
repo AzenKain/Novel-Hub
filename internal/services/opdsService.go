@@ -440,8 +440,10 @@ func getMimeTypeForFormat(format string) string {
 		return "application/x-fb2+zip"
 	case "cbz":
 		return "application/x-cbz"
-	case "cbr":
+	case "cbr", "rar":
 		return "application/x-cbr"
+	case "cb7", "7z":
+		return "application/x-cb7"
 	case "mp3":
 		return "audio/mpeg"
 	case "m4b":

@@ -45,8 +45,9 @@ func setupKoboTestEnv(t *testing.T) (KoboService, *sql.DB, cache.Cache, *respons
 		"../../db/schema/57_reading_sessions.sql",
 		"../../db/schema/65_permissions_settings.sql",
 		"../../db/schema/90_seed_roles.sql",
-		"../../db/schema/95_rbac_restructure.sql",
-		"../../db/schema/98_kobo_auth.sql",
+		"../../db/schema/91_rbac_restructure.sql",
+		"../../db/schema/92_kobo_auth.sql",
+		"../../db/schema/85_operations.sql",
 	}
 
 	for _, sf := range schemaFiles {

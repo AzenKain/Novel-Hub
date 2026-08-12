@@ -168,6 +168,7 @@
         "database_health_check": "Pemeriksaan kesehatan basis data",
         "database_backup": "Cadangkan basis data",
         "database_books_backup": "Cadangkan basis data & buku",
+        "scan_metadata_enrich": "Pindai dan perkaya metadata",
         "scan_library_inbox": "Pindai kotak masuk perpustakaan",
         "extract_metadata": "Ekstrak metadata",
         "hash_file": "Hitung hash berkas",
@@ -234,7 +235,8 @@
     "duplicates_partial_cleanup": "{{deleted}} berkas dihapus, {{failed}} gagal: {{reason}}",
     "upload_partial": "{{count}} dari {{total}} buku diunggah. Memproses metadata...",
     "upload_done": "{{count}} buku diunggah. Memproses metadata...",
-    "upload_all_failed": "Tidak ada berkas yang berhasil diunggah: {{reason}}"
+    "upload_all_failed": "Tidak ada berkas yang berhasil diunggah: {{reason}}",
+    "oauth_settings": "OAuth & OIDC"
   },
   "auth": {
     "login_to_account": "Masuk ke akun Anda",
@@ -276,7 +278,13 @@
     "reset_disabled_desc": "Pengaturan ulang kata sandi lewat email sedang dinonaktifkan. Minta administrator untuk mengatur ulang kata sandi Anda.",
     "totp_prompt": "Masukkan kode 6 digit dari aplikasi autentikator Anda, atau salah satu kode pemulihan.",
     "totp_code": "Kode autentikasi",
-    "totp_verify": "Verifikasi & masuk"
+    "totp_verify": "Verifikasi & masuk",
+    "already_have_account": "Already have an account?",
+    "login_required": "Login Required",
+    "login_to_activate_ereader": "Please log in to your NovelHub account first to activate this eReader.",
+    "login_now": "Log In Now",
+    "or_sign_in_with": "Or sign in with",
+    "sign_in_with_provider": "Sign in with {{provider}}"
   },
   "common": {
     "cancel": "Batal",
@@ -315,7 +323,37 @@
     "current": "Saat ini",
     "load_more": "Muat lagi",
     "previous": "Sebelumnya",
-    "next": "Berikutnya"
+    "next": "Berikutnya",
+    "reset": "Reset",
+    "saved": "Saved!",
+    "save_changes": "Save CSS",
+    "active": "Active",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "connected": "Connected",
+    "clear": "Clear",
+    "back_to_library": "Back to Library"
   },
   "library": {
     "ready_to_read": "Siap dibaca",
@@ -666,7 +704,8 @@
     "collections": "Koleksi",
     "no_description": "Tidak ada deskripsi.",
     "next_in_series": "Berikutnya dalam seri",
-    "in_same_series": "Buku dalam seri ini"
+    "in_same_series": "Buku dalam seri ini",
+    "author_unknown": "Unknown Author"
   },
   "settings": {
     "title": "Pengaturan",
@@ -705,6 +744,13 @@
     "anilist_tracking": "Aktifkan pelacakan AniList",
     "anilist_tracking_desc": "Memungkinkan pengguna menghubungkan akun AniList untuk menyinkronkan kemajuan membaca.",
     "save_reader": "Simpan pengaturan pembaca",
+    "metadata_covers": "Metadata & Sampul",
+    "metadata_covers_desc": "Konfigurasi pengayaan metadata otomatis dan pengoptimalan gambar sampul.",
+    "save_metadata": "Simpan Pengaturan",
+    "auto_enrich": "Perkaya Metadata Buku Otomatis",
+    "auto_enrich_desc": "Secara otomatis mengambil metadata dari API AniList, OpenLibrary, dan Google Books saat mengimpor buku.",
+    "webp_cover": "Kompres Sampul ke WebP",
+    "webp_cover_desc": "Kompres gambar sampul ke format WebP berkinerja tinggi saat mengekstrak atau mengunggah berkas buku.",
     "registration_guest": "Pendaftaran & akses tamu",
     "registration_guest_desc": "Atur siapa yang boleh mendaftar dan apa yang boleh dilihat tamu.",
     "public_registration": "Aktifkan pendaftaran publik",
@@ -826,7 +872,12 @@
     "needs_smtp": "Konfigurasikan SMTP di bawah untuk mengaktifkan ini.",
     "template_email": "Email (SMTP)",
     "email_recipients": "Penerima",
-    "email_recipients_hint": "Alamat dipisahkan koma setelah mailto:. Perlu konfigurasi SMTP."
+    "email_recipients_hint": "Alamat dipisahkan koma setelah mailto:. Perlu konfigurasi SMTP.",
+    "oauth": {
+      "title": "OAuth & OIDC Settings",
+      "subtitle": "Configure external identity providers for social and enterprise single sign-on",
+      "setup_info": "Pemberitahuan Konfigurasi: Pastikan untuk mengonfigurasi URI Pengalihan yang sama di halaman pengaturan ini dan konsol pengembang yang sesuai dari setiap penyedia identitas. Rahasia dienkripsi saat disimpan."
+    }
   },
   "email": {
     "invalid": "Masukkan alamat email yang valid",
@@ -982,7 +1033,16 @@
     "manual_email": "Masukkan email manual",
     "no_devices": "Tidak ada perangkat tersimpan.",
     "add_device_tip": "Gunakan \"Masukkan email manual\" atau daftarkan perangkat di Pengaturan.",
-    "push": "Kirim"
+    "push": "Kirim",
+    "management": "Multi-Device Delivery Center",
+    "management_desc": "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+    "add_new": "Add Device",
+    "register_device": "Register New Reading Device",
+    "name_label": "Device Name",
+    "type_label": "Device Type",
+    "endpoint_label": "HTTP Endpoint",
+    "email_label": "Device Email",
+    "no_saved_devices": "No reading devices registered yet."
   },
   "search": {
     "advanced_title": "Pencarian Lanjutan",
@@ -1016,5 +1076,40 @@
     "step2": "Buka VBook → Ketuk tiga titik vertikal (⋮) → Pilih 'Impor Ekstensi' → Pilih file plugin.zip yang diunduh.",
     "download": "Unduh ZIP",
     "download_zip": "Unduh file plugin.zip"
+  },
+  "profile": {
+    "custom_css_saved": "Custom CSS updated successfully!",
+    "custom_css_reset": "Custom CSS cleared",
+    "custom_css_title": "Custom CSS Injector",
+    "custom_css_desc": "Inject custom CSS styles into NovelHub UI for personalized themes.",
+    "ereader_activated": "Device activated successfully!",
+    "ereader_activate_failed": "Failed to activate eReader code",
+    "ereader_login_title": "eReader Quick Login",
+    "ereader_login_desc": "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+    "activate_device": "Activate Device",
+    "device_activated_heading": "Device Activated!",
+    "device_activated_desc": "Your eReader device is now authenticated and logged in. You can close this window.",
+    "enter_6_digit_code": "Enter 6-Digit Code displayed on eReader",
+    "confirm_activation": "Confirm & Connect eReader"
+  },
+  "kids_mode": {
+    "pin_must_be_6_digits": "PIN must be exactly 6 digits",
+    "pins_do_not_match": "PINs do not match",
+    "pin_saved": "6-digit Kids Mode PIN updated successfully!",
+    "pin_save_failed": "Failed to update PIN",
+    "parental_control_title": "Parental Control & Kids Mode PIN",
+    "parental_control_desc": "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+    "new_6_digit_pin": "New 6-Digit PIN",
+    "enter_6_digit_pin_label": "Set 6-Digit PIN",
+    "confirm_6_digit_pin": "Confirm 6-Digit PIN",
+    "pin_is_active": "Status: 6-digit PIN active",
+    "no_pin_set": "Status: No PIN configured",
+    "update_pin": "Update PIN",
+    "save_pin": "Save 6-Digit PIN",
+    "disabled_success": "Kids Mode disabled",
+    "incorrect_pin": "Incorrect 6-digit PIN",
+    "enter_pin_title": "Enter 6-Digit PIN",
+    "enter_pin_desc": "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+    "unlock": "Unlock"
   }
 }

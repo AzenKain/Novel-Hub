@@ -83,9 +83,10 @@ type CreateHighlightDto struct {
 	ChapterID   string  `json:"chapter_id" validate:"required"`
 	TextContent string  `json:"text_content" validate:"required"`
 	StartIndex  int     `json:"start_index" validate:"gte=0"`
-	EndIndex    int     `json:"end_index" validate:"gtfield=StartIndex"`
+	EndIndex    int     `json:"end_index" validate:"gte=0"`
 	Color       string  `json:"color" validate:"required"`
 	Note        *string `json:"note,omitempty"`
+	CfiRange    *string `json:"cfi_range,omitempty"`
 }
 
 type UpdateHighlightNoteDto struct {
@@ -118,4 +119,26 @@ type SmartCollectionRuleDto struct {
 type UpsertSmartCollectionDto struct {
 	Name string                 `json:"name" validate:"required,min=1,max=100"`
 	Rule SmartCollectionRuleDto `json:"rule"`
+}
+
+type SmartFilterRuleItemDto struct {
+	Field    string `json:"field" validate:"required,oneof=status format rating_gte author_id series_id tag_id"`
+	Operator string `json:"operator" validate:"required,oneof=eq gte lte"`
+	Value    string `json:"value" validate:"required"`
+}
+
+type UpsertSmartFilterDto struct {
+	Name            string                   `json:"name" validate:"required,min=1,max=100"`
+	Rules           []SmartFilterRuleItemDto `json:"rules" validate:"required,dive"`
+	IsPinnedSidebar bool                     `json:"is_pinned_sidebar"`
+	IsPinnedHome    bool                     `json:"is_pinned_home"`
+}
+
+type ReorderHomeShelfItemDto struct {
+	ID       string `json:"id" validate:"required"`
+	Position int64  `json:"position" validate:"gte=0"`
+}
+
+type ReorderHomeShelvesDto struct {
+	Shelves []ReorderHomeShelfItemDto `json:"shelves" validate:"required,dive"`
 }

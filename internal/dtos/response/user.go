@@ -6,6 +6,7 @@ type UserResponse struct {
 	FullName     string `json:"full_name"`
 	AvatarUrl    string `json:"avatar_url"`
 	AuthProvider string `json:"auth_provider"`
+	Oauth2ID     string `json:"oauth2_id,omitempty"`
 	TokenVersion int32  `json:"token_version"`
 	IsDeleted    bool   `json:"is_deleted"`
 	// IsOwner marks the root admin recorded at setup. IDs are UUIDs, so the UI

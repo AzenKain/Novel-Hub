@@ -3,28 +3,33 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
-	"sort"
 )
 
 func (r *bookDBRepository) CreateBook(ctx context.Context, book *models.BookEntity) error {
 	params := sqlc.CreateBookParams{
-		ID:           book.ID,
-		LibraryID:    book.LibraryID,
-		Title:        book.Title,
-		AuthorID:     convert.StrPtrToNullString(book.AuthorID),
-		Description:  convert.StrPtrToNullString(book.Description),
-		CoverUrl:     convert.StrPtrToNullString(book.CoverURL),
-		Status:       convert.StrPtrToNullString(&book.Status),
-		MetadataJson: convert.StrPtrToNullString(book.MetadataJSON),
+		ID:            book.ID,
+		LibraryID:     book.LibraryID,
+		Title:         book.Title,
+		AuthorID:      convert.StrPtrToNullString(book.AuthorID),
+		Description:   convert.StrPtrToNullString(book.Description),
+		CoverUrl:      convert.StrPtrToNullString(book.CoverURL),
+		Status:        convert.StrPtrToNullString(&book.Status),
+		MetadataJson:  convert.StrPtrToNullString(book.MetadataJSON),
+		GoogleBooksID: convert.StrPtrToNullString(book.GoogleBooksID),
+		AnilistID:     convert.StrPtrToNullString(book.AnilistID),
+		OpenlibraryID: convert.StrPtrToNullString(book.OpenLibraryID),
 	}
 	res, err := r.queries.CreateBook(ctx, params)
 	if err != nil {
@@ -273,6 +278,70 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 	return r.GetBooksByIDs(ctx, value.([]string))
 }
 
+func (r *bookDBRepository) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
+	var libID any
+	if libraryID != nil && *libraryID != "" {
+		libID = *libraryID
+	}
+
+	params := sqlc.SearchSmartFilterBookIDsParams{
+		LibraryID:       libID,
+		CursorCreatedAt: cursorTimeArg(cursor),
+		CursorID:        convert.StrPtrToNullString(&cursorID),
+		Limit:           limit,
+	}
+
+	for _, rule := range rules {
+		val := strings.TrimSpace(rule.Value)
+		switch rule.Field {
+		case "format":
+			params.FileFormat = val
+		case "status":
+			switch val {
+			case "unread":
+				params.StatusUnread = 1
+			case "read":
+				params.StatusRead = 1
+			case "reading":
+				params.StatusReading = 1
+			}
+		case "rating_gte":
+			if rVal, err := strconv.ParseFloat(val, 64); err == nil {
+				params.RatingGte = rVal
+			}
+		case "author_id":
+			params.AuthorID = val
+		case "series_id":
+			params.SeriesID = val
+		case "tag_id":
+			params.TagID = val
+		}
+	}
+
+	queryKey := cache.QueryKey("book:search:smartfilter", params)
+	if r.c != nil && !r.inTx {
+		var ids []string
+		if err := r.c.Get(ctx, queryKey, &ids); err == nil {
+			return r.GetBooksByIDs(ctx, ids)
+		}
+	}
+
+	value, err, _ := r.sfg.Do(queryKey, func() (any, error) {
+		ids, err := r.queries.SearchSmartFilterBookIDs(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, queryKey, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r.GetBooksByIDs(ctx, value.([]string))
+}
+
 type bookSearchFilters struct {
 	Valid           bool
 	MissingMetadata any
@@ -377,13 +446,16 @@ func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSe
 
 func (r *bookDBRepository) UpdateBook(ctx context.Context, book *models.BookEntity) error {
 	params := sqlc.UpdateBookParams{
-		ID:           book.ID,
-		Title:        book.Title,
-		AuthorID:     convert.StrPtrToNullString(book.AuthorID),
-		Description:  convert.StrPtrToNullString(book.Description),
-		CoverUrl:     convert.StrPtrToNullString(book.CoverURL),
-		Status:       convert.StrPtrToNullString(&book.Status),
-		MetadataJson: convert.StrPtrToNullString(book.MetadataJSON),
+		ID:            book.ID,
+		Title:         book.Title,
+		AuthorID:      convert.StrPtrToNullString(book.AuthorID),
+		Description:   convert.StrPtrToNullString(book.Description),
+		CoverUrl:      convert.StrPtrToNullString(book.CoverURL),
+		Status:        convert.StrPtrToNullString(&book.Status),
+		MetadataJson:  convert.StrPtrToNullString(book.MetadataJSON),
+		GoogleBooksID: convert.StrPtrToNullString(book.GoogleBooksID),
+		AnilistID:     convert.StrPtrToNullString(book.AnilistID),
+		OpenlibraryID: convert.StrPtrToNullString(book.OpenLibraryID),
 	}
 	res, err := r.queries.UpdateBook(ctx, params)
 	if err != nil {

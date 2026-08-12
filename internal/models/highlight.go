@@ -18,6 +18,7 @@ type HighlightEntity struct {
 	EndIndex    int64      `json:"end_index"`
 	Color       string     `json:"color"`
 	Note        *string    `json:"note,omitempty"`
+	CfiRange    *string    `json:"cfi_range,omitempty"`
 	CreatedAt   *time.Time `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
 }
@@ -32,6 +33,7 @@ func (e *HighlightEntity) FromSqlc(res sqlc.Highlight) *HighlightEntity {
 	e.EndIndex = res.EndIndex
 	e.Color = res.Color
 	e.Note = convert.NullStringToStrPtr(res.Note)
+	e.CfiRange = convert.NullStringToStrPtr(res.CfiRange)
 	e.CreatedAt = convert.NullTimeToTimePtr(res.CreatedAt)
 	e.UpdatedAt = convert.NullTimeToTimePtr(res.UpdatedAt)
 	return e
@@ -69,6 +71,7 @@ func (e *HighlightEntity) ToResponse() *response.HighlightResponse {
 		EndIndex:    e.EndIndex,
 		Color:       e.Color,
 		Note:        e.Note,
+		CfiRange:    e.CfiRange,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}

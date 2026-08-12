@@ -9,7 +9,7 @@ import (
 	"novelhub/internal/services"
 )
 
-func AuthRoutes(app fiber.Router, controller *controllers.AuthController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
+func AuthRoutes(app fiber.Router, controller *controllers.AuthController, oauthController *controllers.OAuthController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
 	route := app.Group("/auth")
 
 	authLimiter := middlewares.RateLimit(settingsService, middlewares.RateLimitAuth)
@@ -22,5 +22,20 @@ func AuthRoutes(app fiber.Router, controller *controllers.AuthController, userRe
 	route.Post("/refresh", middlewares.JwtRefresh(userRepo), controller.RefreshToken)
 	route.Post("/logout", middlewares.JwtAccess(userRepo), controller.Logout)
 
+	// OAuth2 and OIDC routes
+	route.Get("/oauth2/:provider/login", authLimiter, oauthController.OAuth2Login)
+	route.Get("/oauth2/:provider/callback", authLimiter, oauthController.OAuth2Callback)
+
 	app.Post("/setup", authLimiter, controller.SubmitSetup)
 }
+
+func MagicCodeRoutes(app fiber.Router, controller *controllers.MagicCodeController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
+	route := app.Group("/auth/magic-code")
+
+	authLimiter := middlewares.RateLimit(settingsService, middlewares.RateLimitAuth)
+
+	route.Post("/request", authLimiter, controller.RequestCode)
+	route.Post("/poll", authLimiter, controller.PollCode)
+	route.Post("/activate", middlewares.JwtAccess(userRepo), controller.ActivateCode)
+}
+

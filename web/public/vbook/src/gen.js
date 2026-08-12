@@ -53,7 +53,9 @@ function execute(url, page) {
     if (fetchUrl.indexOf("http") !== 0) {
         fetchUrl = CONFIG_URL + (fetchUrl.indexOf("/") === 0 ? "" : "/") + fetchUrl;
     }
-    if (fetchUrl.indexOf("?") >= 0) {
+    if (fetchUrl.indexOf("page=") >= 0) {
+        fetchUrl = fetchUrl.replace(/([?&])page=[^&]*/, "$1page=" + page);
+    } else if (fetchUrl.indexOf("?") >= 0) {
         fetchUrl += "&page=" + page;
     } else {
         fetchUrl += "?page=" + page;
