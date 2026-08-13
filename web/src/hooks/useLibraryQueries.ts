@@ -205,6 +205,8 @@ export function useDeleteBookFileMutation() {
       void queryClient.invalidateQueries({ queryKey: ["duplicates"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
       void queryClient.invalidateQueries({ queryKey: ["library"] });
+      void queryClient.invalidateQueries({ queryKey: ["podcasts"] });
+      void queryClient.invalidateQueries({ queryKey: ["podcastEpisodes"] });
     },
   });
 }

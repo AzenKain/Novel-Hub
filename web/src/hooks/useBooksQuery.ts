@@ -80,6 +80,8 @@ export function useBulkDeleteBooksMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["podcasts"] });
+      void queryClient.invalidateQueries({ queryKey: ["podcastEpisodes"] });
     },
   });
 }

@@ -92,6 +92,7 @@ export function useDownloadEpisodeMutation(podcastId: string) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["podcastEpisodes", podcastId] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
     },
   });
 }
