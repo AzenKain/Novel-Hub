@@ -1138,7 +1138,9 @@
     "step1": "上の「ZIPをダウンロード」をクリックして plugin.zip を保存します。",
     "step2": "VBookを開く → 縦3点リーダー (⋮) をタップ → 「拡張機能をインポート」を選択 → ダウンロードした plugin.zip を選択。",
     "download": "ZIPをダウンロード",
-    "download_zip": "plugin.zip をダウンロード"
+    "download_zip": "plugin.zip をダウンロード",
+    "download_novel_zip": "小説プラグインをダウンロード",
+    "download_audio_zip": "オーディオプラグインをダウンロード"
   },
   "profile": {
     "custom_css_saved": "カスタム CSS が正常に更新されました。",

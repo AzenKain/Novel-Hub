@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, QrCode, BookOpen, Smartphone, Download } from "lucide-react";
+import { Copy, Check, QrCode, BookOpen, Smartphone, Download, Headphones } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
 
@@ -12,6 +12,7 @@ export const VBookSyncCard: React.FC = () => {
   const origin = window.location.origin;
   const pluginUrl = `${origin}/api/v1/vbook/plugin.json`;
   const pluginZipUrl = `${origin}/api/v1/vbook/plugin.zip`;
+  const pluginAudioZipUrl = `${origin}/api/v1/vbook/plugin-audio.zip`;
 
   const copyToClipboard = (url: string, label: string) => {
     navigator.clipboard.writeText(url);
@@ -40,16 +41,25 @@ export const VBookSyncCard: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {/* Primary Action: Download plugin.zip */}
-        <div>
+        {/* Primary Action: Download plugin.zip (Novel + Audio) */}
+        <div className="flex flex-wrap gap-2">
           <a
             href={pluginZipUrl}
             download="plugin.zip"
-            className="btn btn-primary w-full gap-2 text-sm shadow-sm"
-            title={t("vbook.download_zip", "Download plugin.zip")}
+            className="btn btn-primary flex-1 min-w-[140px] gap-2 text-sm shadow-sm"
+            title={t("vbook.download_novel_zip", "Download Novel Plugin")}
           >
-            <Download className="h-4 w-4" />
-            <span>{t("vbook.download_zip", "Download plugin.zip")}</span>
+            <Download className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t("vbook.download_novel_zip", "Download Novel Plugin")}</span>
+          </a>
+          <a
+            href={pluginAudioZipUrl}
+            download="plugin.zip"
+            className="btn btn-secondary flex-1 min-w-[140px] gap-2 text-sm shadow-sm"
+            title={t("vbook.download_audio_zip", "Download Audio Plugin")}
+          >
+            <Headphones className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t("vbook.download_audio_zip", "Download Audio Plugin")}</span>
           </a>
         </div>
 

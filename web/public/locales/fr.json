@@ -1138,7 +1138,9 @@
     "step1": "Cliquez sur 'Télécharger le ZIP' ci-dessus pour enregistrer le fichier plugin.zip.",
     "step2": "Ouvrez VBook → Appuyez sur les trois points verticaux (⋮) → Sélectionnez 'Importer une extension' → Choisissez le fichier plugin.zip téléchargé.",
     "download": "Télécharger le ZIP",
-    "download_zip": "Télécharger plugin.zip"
+    "download_zip": "Télécharger plugin.zip",
+    "download_novel_zip": "Télécharger le plugin Roman",
+    "download_audio_zip": "Télécharger le plugin Audio"
   },
   "profile": {
     "custom_css_saved": "CSS personnalisé mis à jour avec succès !",

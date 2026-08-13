@@ -1138,7 +1138,9 @@
     "step1": "點擊上方「下載 ZIP」儲存 plugin.zip 檔案。",
     "step2": "開啟 VBook → 點擊直排三點選單 (⋮) → 選擇「匯入擴充功能」 → 選擇下載的 plugin.zip 檔案。",
     "download": "下載 ZIP",
-    "download_zip": "下載 plugin.zip 檔案"
+    "download_zip": "下載 plugin.zip 檔案",
+    "download_novel_zip": "下載小說插件",
+    "download_audio_zip": "下載有聲書插件"
   },
   "profile": {
     "custom_css_saved": "自訂 CSS 更新成功！",

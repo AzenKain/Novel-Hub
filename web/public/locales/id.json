@@ -1138,7 +1138,9 @@
     "step1": "Klik 'Unduh ZIP' di atas untuk menyimpan file plugin.zip.",
     "step2": "Buka VBook → Ketuk tiga titik vertikal (⋮) → Pilih 'Impor Ekstensi' → Pilih file plugin.zip yang diunduh.",
     "download": "Unduh ZIP",
-    "download_zip": "Unduh file plugin.zip"
+    "download_zip": "Unduh file plugin.zip",
+    "download_novel_zip": "Unduh Plugin Novel",
+    "download_audio_zip": "Unduh Plugin Audio"
   },
   "profile": {
     "custom_css_saved": "CSS khusus berhasil diperbarui!",

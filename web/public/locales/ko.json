@@ -1138,7 +1138,9 @@
     "step1": "상단의 'ZIP 다운로드'를 클릭하여 plugin.zip 파일을 저장합니다.",
     "step2": "VBook 열기 → 세로 점 3개 메뉴(⋮) 클릭 → '확장 프로그램 가져오기' 선택 → 다운로드한 plugin.zip 선택.",
     "download": "ZIP 다운로드",
-    "download_zip": "plugin.zip 다운로드"
+    "download_zip": "plugin.zip 다운로드",
+    "download_novel_zip": "소설 플러그인 다운로드",
+    "download_audio_zip": "오디오 플러그인 다운로드"
   },
   "profile": {
     "custom_css_saved": "맞춤 CSS가 업데이트되었습니다.",

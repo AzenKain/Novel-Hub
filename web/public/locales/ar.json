@@ -1138,7 +1138,9 @@
     "step1": "انقر فوق 'تنزيل ZIP' أعلاه لحفظ ملف plugin.zip.",
     "step2": "افتح VBook ← اضغط على النقاط الثلاث الرأسية (⋮) ← حدد 'استيراد ملحق' ← اختر ملف plugin.zip الذي تم تنزيله.",
     "download": "تنزيل ZIP",
-    "download_zip": "تنزيل ملف plugin.zip"
+    "download_zip": "تنزيل ملف plugin.zip",
+    "download_novel_zip": "تنزيل إضافة الروايات",
+    "download_audio_zip": "تنزيل إضافة الكتب الصوتية"
   },
   "profile": {
     "custom_css_saved": "تم تحديث CSS المخصص بنجاح!",

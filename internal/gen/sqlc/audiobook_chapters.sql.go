@@ -94,7 +94,14 @@ func (q *Queries) ListAudiobookChapters(ctx context.Context, bookID string) ([]A
 const listBooksWithAudioChapters = `-- name: ListBooksWithAudioChapters :many
 SELECT DISTINCT b.id
 FROM books b
-WHERE EXISTS (SELECT 1 FROM audiobook_chapters ac WHERE ac.book_id = b.id)
+WHERE (
+    EXISTS (SELECT 1 FROM audiobook_chapters ac WHERE ac.book_id = b.id)
+    OR EXISTS (
+      SELECT 1 FROM book_files bf
+      WHERE bf.book_id = b.id
+        AND LOWER(bf.format) IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')
+    )
+  )
   AND (b.updated_at <= COALESCE(CAST(?1 AS TEXT), '9999-12-31 23:59:59')
        AND (?1 IS NULL OR b.updated_at < CAST(?1 AS TEXT) OR b.id < ?2))
 ORDER BY b.updated_at DESC, b.id DESC

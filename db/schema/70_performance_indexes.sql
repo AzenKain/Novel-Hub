@@ -17,3 +17,4 @@ CREATE INDEX IF NOT EXISTS idx_book_reviews_book_updated ON book_reviews(book_id
 CREATE INDEX IF NOT EXISTS idx_book_reviews_user ON book_reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_book_reviews_updated ON book_reviews(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_book_share_events_book ON book_share_events(book_id);
+CREATE INDEX IF NOT EXISTS idx_books_updated_at ON books(updated_at DESC, id DESC);

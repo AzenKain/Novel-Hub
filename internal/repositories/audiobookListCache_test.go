@@ -37,8 +37,8 @@ func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 			id, "Book "+id, time.Now().UTC().Format("2006-01-02 15:04:05")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec(`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES (?, ?, ?, 'mp3', 1, ?)`,
-			id+"f", id, "/tmp/"+id+".mp3", time.Now().UTC()); err != nil {
+		if _, err := db.Exec(`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES (?, ?, ?, 'epub', 1, ?)`,
+			id+"f", id, "/tmp/"+id+".epub", time.Now().UTC()); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -1138,7 +1138,9 @@
     "download_zip": "Tải file plugin.zip",
     "guide_title": "Cách cài đặt trong VBook:",
     "step1": "Bấm 'Tải file ZIP' ở trên để tải file plugin.zip về máy.",
-    "step2": "Mở VBook → Chọn dấu 3 chấm dọc (⋮) → Chọn 'Nhập phần mở rộng' → Chọn file plugin.zip vừa tải."
+    "step2": "Mở VBook → Chọn dấu 3 chấm dọc (⋮) → Chọn 'Nhập phần mở rộng' → Chọn file plugin.zip vừa tải.",
+    "download_novel_zip": "Tải Plugin Tiểu Thuyết",
+    "download_audio_zip": "Tải Plugin Sách Nói"
   },
   "profile": {
     "custom_css_saved": "CSS tùy chỉnh đã được cập nhật thành công!",

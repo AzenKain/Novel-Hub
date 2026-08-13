@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -348,6 +349,27 @@ func (s *vbookService) GetAudioPlaylist(ctx context.Context, bookID string) ([]*
 	}
 	flush()
 
+	// Fallback: if no audiobook_chapters exist, build tracks from audio book_files directly.
+	if len(tracks) == 0 {
+		files, err := s.bookService.ListBookFiles(ctx, bookID)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio files")
+		}
+		for i, f := range files {
+			if !isAudioFormat(f.Format) {
+				continue
+			}
+			name := strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path))
+			if name == "" {
+				name = fmt.Sprintf("Track %d", i+1)
+			}
+			tracks = append(tracks, &response.VBookAudioTrack{
+				Name: name,
+				URL:  "/api/v1/vbook/audio/stream?book_id=" + url.QueryEscape(bookID) + "&file_id=" + url.QueryEscape(f.ID),
+			})
+		}
+	}
+
 	if len(tracks) == 0 {
 		return nil, apperrors.New(apperrors.ErrNotFound, "No audio tracks")
 	}
@@ -633,4 +655,13 @@ func zipVBookPlugin(vbookFS fs.FS, baseURL string, manifest *response.VBookPlugi
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 	}
 	return buf.Bytes(), nil
+}
+
+func isAudioFormat(format string) bool {
+	switch strings.ToLower(format) {
+	case "mp3", "m4a", "m4b", "flac", "ogg", "opus", "wav", "aac":
+		return true
+	default:
+		return false
+	}
 }

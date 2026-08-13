@@ -1138,7 +1138,9 @@
     "step1": "Нажмите 'Скачать ZIP' выше, чтобы сохранить файл plugin.zip.",
     "step2": "Откройте VBook → Нажмите вертикальные три точки (⋮) → Выберите 'Импортировать расширение' → Выберите скачанный файл plugin.zip.",
     "download": "Скачать ZIP",
-    "download_zip": "Скачать plugin.zip"
+    "download_zip": "Скачать plugin.zip",
+    "download_novel_zip": "Скачать плагин для романов",
+    "download_audio_zip": "Скачать аудиоплагин"
   },
   "profile": {
     "custom_css_saved": "Пользовательский CSS успешно обновлен!",

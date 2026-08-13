@@ -1138,7 +1138,9 @@
     "download_zip": "Download plugin.zip",
     "guide_title": "How to install in VBook:",
     "step1": "Click 'Download ZIP' above to save the plugin.zip file.",
-    "step2": "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file."
+    "step2": "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file.",
+    "download_novel_zip": "Download Novel Plugin",
+    "download_audio_zip": "Download Audio Plugin"
   },
   "profile": {
     "custom_css_saved": "Custom CSS updated successfully!",
