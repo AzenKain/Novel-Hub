@@ -46,7 +46,7 @@ func (s *highlightService) resolveBookIDFromChapterID(ctx context.Context, chapt
 	// Try virtual chapter format: fileID:index
 	lastColon := strings.LastIndex(chapterID, ":")
 	if lastColon <= 0 {
-		log.Warn().Str("chapter_id", chapterID).Msg("resolveBookIDFromChapterID: not a DB chapter and no ':' separator")
+		log.Debug().Str("chapter_id", chapterID).Msg("resolveBookIDFromChapterID: not a DB chapter and no ':' separator")
 		return "", false
 	}
 	fileID := chapterID[:lastColon]

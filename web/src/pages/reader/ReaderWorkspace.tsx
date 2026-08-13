@@ -164,8 +164,9 @@ export const ReaderWorkspace = () => {
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.library_id, guestPerms);
   const allowHighlights = Boolean(user && hasPermission(user, "book.highlight", book?.library_id, guestPerms));
+  const currentChapterExists = Boolean(currentChapter && chapters.some((c) => c.id === currentChapter.id));
   const { data: readerETA } = useReaderETAQuery(user && hasPermission(user, "user.stats.read") ? book_id : undefined);
-  const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights);
+  const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights && currentChapterExists);
 
   useEffect(() => {
     return () => {
