@@ -1,10 +1,10 @@
 # NovelHub
 
 <p align="center">
-  <img src="docs/assets/banner.png" alt="NovelHub Banner" width="100%" />
+  <img src="docs/assets/novelhub_demo.gif" alt="NovelHub Demo Walkthrough" width="100%" />
 </p>
 
-Self-hosted, local-first digital book library manager. Organize, read, and manage your entire digital book collection — EPUB, MOBI, PDF, DOCX, FB2, and more — from a single, high-performance web interface.
+Self-hosted, local-first digital book, audiobook, and podcast library manager. Organize, read, and listen to your entire collection — EPUB, MOBI, PDF, audiobooks, podcasts, and more — from a single, high-performance web interface.
 
 **Docs:** [English](docs/en/configuration.md) · [Tiếng Việt](docs/vi/configuration.md) · [日本語](docs/ja/configuration.md) · [한국어](docs/ko/configuration.md) · [简体中文](docs/zh/configuration.md)
 
@@ -62,22 +62,6 @@ Self-hosted, local-first digital book library manager. Organize, read, and manag
 - **Admin System Logs**: Live tail log viewer with rotating log files
 - **First-Run Setup Wizard**: Intuitive administrator setup and logo/favicon cropper
 - **Multi-Language UI**: i18n support for 16 languages
-
----
-
-## Screenshots
-
-<p align="center">
-  <img src="docs/screenshots/01_dashboard.png" alt="NovelHub Dashboard" width="49%" />
-  <img src="docs/screenshots/02_book_detail.png" alt="NovelHub Book Detail" width="49%" />
-</p>
-<p align="center">
-  <img src="docs/screenshots/03_light_novel_reader.png" alt="NovelHub Light Novel Reader" width="49%" />
-  <img src="docs/screenshots/04_manga_reader.png" alt="NovelHub Manga Reader" width="49%" />
-</p>
-<p align="center">
-  <img src="docs/screenshots/05_tts_settings.png" alt="NovelHub TTS Settings" width="50%" />
-</p>
 
 ---
 

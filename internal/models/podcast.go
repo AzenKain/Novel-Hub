@@ -108,7 +108,7 @@ func (e *PodcastEpisodeEntity) FromSqlc(r sqlc.PodcastEpisode) *PodcastEpisodeEn
 		e.DurationSec = &v
 	}
 	e.PublishedAt = convert.NullTimeToTimePtr(r.PublishedAt)
-	e.Downloaded = r.Downloaded != 0
+	e.Downloaded = r.Downloaded != 0 && r.BookID.Valid
 	e.BookID = convert.NullStringToStrPtr(r.BookID)
 	e.CreatedAt = convert.NullTimeToTimePtr(r.CreatedAt)
 	e.UpdatedAt = convert.NullTimeToTimePtr(r.UpdatedAt)

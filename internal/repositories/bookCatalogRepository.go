@@ -509,6 +509,7 @@ func (r *bookDBRepository) DeleteBook(ctx context.Context, id string) error {
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
+		_ = r.c.DelByPattern(context.Background(), "podcasts:*")
 	}
 	return nil
 }
@@ -656,6 +657,7 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 		// book_tracker_mappings.book_id is ON DELETE CASCADE; a stale mapping would make
 		// tracker sync push progress for a book that no longer exists.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
+		_ = r.c.DelByPattern(context.Background(), "podcasts:*")
 	}
 	return nil
 }
