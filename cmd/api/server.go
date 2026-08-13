@@ -460,7 +460,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
 
 	vbookFS, _ := fs.Sub(embeddedDist, "dist/vbook")
-	vbookService := services.NewVBookService(bookRepo, bookRepo, bookService, vbookFS, ramCache)
+	vbookService := services.NewVBookService(bookRepo, bookRepo, audiobookRepo, bookService, vbookFS, ramCache)
 	vbookController := controllers.NewVBookController(vbookService, settingsService)
 	routes.VBookRoutes(api, vbookController, authService, settingsService, userRepo)
 

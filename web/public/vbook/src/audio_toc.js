@@ -47,18 +47,29 @@ function loginError() {
     return Response.error("Cần đăng nhập NovelHub: mở trình duyệt trong app, truy cập " + CONFIG_URL + "/login, đăng nhập rồi quay lại thử");
 }
 
-function execute() {
-    var url = CONFIG_URL + "/api/v1/vbook/genres";
-    var res = fetchJson(url);
+function execute(url) {
+    // url is something like /api/v1/vbook/audio/playlist?book_id=xxx
+    var bookId = null;
+    var match = url.match(/[?&]book_id=([^&]+)/);
+    if (match) bookId = match[1];
+    if (!bookId) {
+        match = url.match(/[?&]id=([^&]+)/);
+        if (match) bookId = match[1];
+    }
+    if (!bookId) {
+        return Response.error("Không tìm thấy book_id");
+    }
+    var fetchUrl = CONFIG_URL + "/api/v1/vbook/audio/playlist?book_id=" + bookId;
+    var res = fetchJson(fetchUrl);
     if (res && res.status && res.data) {
-        var genres = res.data;
-        for (var i = 0; i < genres.length; i++) {
-            if (genres[i].input && genres[i].input.indexOf("http") !== 0) {
-                genres[i].input = CONFIG_URL + (genres[i].input.indexOf("/") === 0 ? "" : "/") + genres[i].input;
+        var tracks = res.data || [];
+        for (var i = 0; i < tracks.length; i++) {
+            if (tracks[i].url && tracks[i].url.indexOf("http") !== 0) {
+                tracks[i].url = CONFIG_URL + (tracks[i].url.indexOf("/") === 0 ? "" : "/") + tracks[i].url;
             }
         }
-        return Response.success(genres);
+        return Response.success(tracks);
     }
     if (res && res.needsLogin) return loginError();
-    return Response.error("Không thể tải danh mục thể loại từ NovelHub");
+    return Response.error("Không thể tải playlist từ NovelHub");
 }

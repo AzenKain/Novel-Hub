@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"novelhub/internal/dtos/response"
+	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/cache"
@@ -21,30 +23,36 @@ import (
 type VBookService interface {
 	GetHomeSections(ctx context.Context, baseURL string) ([]*response.VBookHomeItem, error)
 	GetGenres(ctx context.Context, baseURL string) ([]*response.VBookGenreItem, error)
-	GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error)
-	SearchBooks(ctx context.Context, baseURL string, query string, page int, limit int) (*response.VBookBookListResponse, error)
+	GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int) (*response.VBookBookListResponse, error)
+	SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int) (*response.VBookBookListResponse, error)
 	GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error)
 	GetTOC(ctx context.Context, baseURL string, bookID string) ([]*response.VBookTOCItem, error)
 	GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error)
+	GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int) (*response.VBookBookListResponse, error)
+	GetAudioPlaylist(ctx context.Context, bookID string) ([]*response.VBookAudioTrack, error)
+	ResolveAudioStream(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*models.BookFileEntity, error)
 	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
 	GetPluginZip(ctx context.Context, baseURL string) ([]byte, error)
+	GetPluginZipAudio(ctx context.Context, baseURL string) ([]byte, error)
 }
 
 type vbookService struct {
 	bookRepo     repositories.BookCatalogRepository
 	metadataRepo repositories.BookMetadataRepository
+	audiobookRepo repositories.AudiobookRepository
 	bookService  BookService
 	vbookFS      fs.FS
 	cache        cache.Cache
 }
 
-func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo repositories.BookMetadataRepository, bookService BookService, vbookFS fs.FS, ramCache cache.Cache) VBookService {
+func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo repositories.BookMetadataRepository, audiobookRepo repositories.AudiobookRepository, bookService BookService, vbookFS fs.FS, ramCache cache.Cache) VBookService {
 	return &vbookService{
-		bookRepo:     bookRepo,
-		metadataRepo: metadataRepo,
-		bookService:  bookService,
-		vbookFS:      vbookFS,
-		cache:        ramCache,
+		bookRepo:      bookRepo,
+		metadataRepo:  metadataRepo,
+		audiobookRepo: audiobookRepo,
+		bookService:   bookService,
+		vbookFS:       vbookFS,
+		cache:         ramCache,
 	}
 }
 
@@ -52,17 +60,17 @@ func (s *vbookService) GetHomeSections(ctx context.Context, baseURL string) ([]*
 	return []*response.VBookHomeItem{
 		{
 			Title:  "Sách mới cập nhật",
-			Input:  baseURL + "/api/v1/vbook/books?sort=updated",
+			Input:  "/api/v1/vbook/books?sort=updated",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Sách xem nhiều",
-			Input:  baseURL + "/api/v1/vbook/books?sort=hot",
+			Input:  "/api/v1/vbook/books?sort=hot",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Mới thêm gần đây",
-			Input:  baseURL + "/api/v1/vbook/books?sort=created",
+			Input:  "/api/v1/vbook/books?sort=created",
 			Script: "gen.js",
 		},
 	}, nil
@@ -72,38 +80,100 @@ func (s *vbookService) GetGenres(ctx context.Context, baseURL string) ([]*respon
 	return []*response.VBookGenreItem{
 		{
 			Title:  "Tất cả sách",
-			Input:  baseURL + "/api/v1/vbook/books",
+			Input:  "/api/v1/vbook/books",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Sê-ri",
-			Input:  baseURL + "/api/v1/vbook/books?facet=series",
+			Input:  "/api/v1/vbook/books?facet=series",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Tác giả",
-			Input:  baseURL + "/api/v1/vbook/books?facet=authors",
+			Input:  "/api/v1/vbook/books?facet=authors",
 			Script: "gen.js",
 		},
 		{
 			Title:  "Thẻ / Nhãn",
-			Input:  baseURL + "/api/v1/vbook/books?facet=tags",
+			Input:  "/api/v1/vbook/books?facet=tags",
 			Script: "gen.js",
 		},
 	}, nil
 }
 
-func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, page int, limit int) (*response.VBookBookListResponse, error) {
+func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	if page <= 0 {
-		page = 1
+
+	var cursorTime *time.Time
+	var cursorID string
+
+	// If pageStr is a cursor (contains '|')
+	if strings.Contains(pageStr, "|") {
+		parts := strings.SplitN(pageStr, "|", 2)
+		if len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		}
+	} else if pageStr != "" && pageStr != "1" {
+		// Fallback: if it's a page number greater than 1, we can calculate offset
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 1 {
+			nav := ""
+			if sort == "hot" {
+				nav = "hot"
+			} else if sort == "random" {
+				nav = "random"
+			} else if facetID == "" {
+				switch facet {
+				case "series":
+					nav = "series"
+				case "authors":
+					nav = "authors"
+				case "tags":
+					nav = "tags"
+				}
+			} else {
+				switch facet {
+				case "authors":
+					facet = "author"
+				case "tags":
+					facet = "tag"
+				}
+			}
+			books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, nil, "", int64(limit*p+1))
+			if err != nil {
+				return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
+			}
+			start := (p - 1) * limit
+			if start >= len(books) {
+				return &response.VBookBookListResponse{List: []*response.VBookBookItem{}}, nil
+			}
+			end := start + limit
+			var nextPage *string
+			if end < len(books) {
+				nextStr := strconv.Itoa(p + 1)
+				nextPage = &nextStr
+			}
+			if end > len(books) {
+				end = len(books)
+			}
+			slice := books[start:end]
+			items := mapBooksToItems(slice, baseURL)
+			return &response.VBookBookListResponse{
+				List: items,
+				Next: nextPage,
+			}, nil
+		}
 	}
 
 	nav := ""
 	if sort == "hot" {
 		nav = "hot"
+	} else if sort == "random" {
+		nav = "random"
 	} else if facetID == "" {
 		switch facet {
 		case "series":
@@ -122,29 +192,34 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 		}
 	}
 
-	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, nil, "", int64(limit*page+1))
+	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "", facet, facetID, cursorTime, cursorID, int64(limit+1))
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 	}
 
-	start := (page - 1) * limit
-	if start >= len(books) {
-		return &response.VBookBookListResponse{List: []*response.VBookBookItem{}}, nil
-	}
-
-	end := start + limit
 	var nextPage *string
-	if end < len(books) {
-		nextStr := strconv.Itoa(page + 1)
-		nextPage = &nextStr
-	}
-	if end > len(books) {
+	end := limit
+	if len(books) < end {
 		end = len(books)
 	}
+	if sort != "random" && len(books) > limit {
+		lastBook := books[limit-1]
+		nextStr := lastBook.CreatedAt.Format(time.RFC3339Nano) + "|" + lastBook.ID
+		nextPage = &nextStr
+	}
 
-	slice := books[start:end]
-	items := make([]*response.VBookBookItem, 0, len(slice))
-	for _, b := range slice {
+	slice := books[:end]
+	items := mapBooksToItems(slice, baseURL)
+
+	return &response.VBookBookListResponse{
+		List: items,
+		Next: nextPage,
+	}, nil
+}
+
+func mapBooksToItems(books []*models.BookEntity, baseURL string) []*response.VBookBookItem {
+	items := make([]*response.VBookBookItem, 0, len(books))
+	for _, b := range books {
 		author := "Chưa rõ"
 		if b.AuthorName != nil && *b.AuthorName != "" {
 			author = *b.AuthorName
@@ -162,21 +237,147 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 
 		items = append(items, &response.VBookBookItem{
 			Name:        b.Title,
-			Link:        baseURL + "/api/v1/vbook/detail?id=" + b.ID,
+			Link:        "/api/v1/vbook/detail?id=" + b.ID,
 			Cover:       cover,
 			Description: fmt.Sprintf("Tác giả: %s | %s", author, desc),
 			Host:        baseURL,
 		})
 	}
+	return items
+}
+
+func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	// vbook pages by cursor "time|id" like GetBooks; no offset paging.
+	var cursorTime *time.Time
+	var cursorID string
+	if strings.Contains(pageStr, "|") {
+		parts := strings.SplitN(pageStr, "|", 2)
+		if len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+				cursorID = parts[1]
+			}
+		}
+	}
+
+	ids, err := s.audiobookRepo.ListBooksWithAudio(ctx, cursorTime, cursorID, int64(limit+1))
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio books")
+	}
+
+	books, err := s.bookRepo.GetBooksByIDs(ctx, ids)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio books")
+	}
+
+	// GetBooksByIDs is cache-backed and not order-preserving; re-sort by ids.
+	byID := make(map[string]*models.BookEntity, len(books))
+	for _, b := range books {
+		byID[b.ID] = b
+	}
+	ordered := make([]*models.BookEntity, 0, len(ids))
+	for _, id := range ids {
+		if b, ok := byID[id]; ok {
+			ordered = append(ordered, b)
+		}
+	}
+
+	end := limit
+	if len(ordered) < end {
+		end = len(ordered)
+	}
+	slice := ordered[:end]
+
+	var nextPage *string
+	if len(ordered) > limit && len(slice) > 0 {
+		last := slice[len(slice)-1]
+		nextStr := last.UpdatedAt.Format(time.RFC3339Nano) + "|" + last.ID
+		nextPage = &nextStr
+	}
 
 	return &response.VBookBookListResponse{
-		List: items,
+		List: mapBooksToItems(slice, baseURL),
 		Next: nextPage,
 	}, nil
 }
 
-func (s *vbookService) SearchBooks(ctx context.Context, baseURL string, query string, page int, limit int) (*response.VBookBookListResponse, error) {
-	return s.GetBooks(ctx, baseURL, &query, "", "", "", page, limit)
+func (s *vbookService) GetAudioPlaylist(ctx context.Context, bookID string) ([]*response.VBookAudioTrack, error) {
+	chapters, err := s.audiobookRepo.ListChapters(ctx, bookID)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio playlist")
+	}
+
+	var tracks []*response.VBookAudioTrack
+	var curFileID string
+	var runTitles []string
+	flush := func() {
+		if curFileID == "" || len(runTitles) == 0 {
+			return
+		}
+		name := runTitles[0]
+		desc := ""
+		if len(runTitles) > 1 {
+			name += fmt.Sprintf(" (+%d)", len(runTitles)-1)
+			desc = fmt.Sprintf("%d chương", len(runTitles))
+		}
+		tracks = append(tracks, &response.VBookAudioTrack{
+			Name:        name,
+			URL:         "/api/v1/vbook/audio/stream?book_id=" + url.QueryEscape(bookID) + "&file_id=" + url.QueryEscape(curFileID),
+			Description: desc,
+		})
+	}
+	for _, c := range chapters {
+		if c.FileID == nil || *c.FileID == "" {
+			continue
+		}
+		fid := *c.FileID
+		if fid != curFileID {
+			flush()
+			curFileID = fid
+			runTitles = runTitles[:0]
+		}
+		title := c.Title
+		if title == "" {
+			title = fmt.Sprintf("Chương %d", c.ChapterIndex+1)
+		}
+		runTitles = append(runTitles, title)
+	}
+	flush()
+
+	if len(tracks) == 0 {
+		return nil, apperrors.New(apperrors.ErrNotFound, "No audio tracks")
+	}
+	return tracks, nil
+}
+
+func (s *vbookService) ResolveAudioStream(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*models.BookFileEntity, error) {
+	book, err := s.bookService.GetBook(ctx, bookID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load book")
+	}
+	if !s.bookService.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
+	}
+
+	file, err := s.bookService.GetBookFile(ctx, bookID, fileID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Audio file not found")
+		}
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio file")
+	}
+	return file, nil
+}
+
+func (s *vbookService) SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
+	return s.GetBooks(ctx, baseURL, &query, "", "", "", pageStr, limit)
 }
 
 func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error) {
@@ -231,7 +432,7 @@ func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string
 		}
 		items = append(items, &response.VBookTOCItem{
 			Name: title,
-			URL:  baseURL + "/api/v1/vbook/chap?book_id=" + bookID + "&chapter_id=" + c.ID,
+			URL:  "/api/v1/vbook/chap?book_id=" + bookID + "&chapter_id=" + c.ID,
 			Host: baseURL,
 		})
 	}
@@ -250,6 +451,7 @@ func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, cha
 }
 
 const vbookDescription = "Tiện ích đọc sách cá nhân tự lưu trữ từ máy chủ NovelHub của bạn"
+const vbookAudioDescription = "Nghe audiobook tự lưu trữ từ máy chủ NovelHub của bạn"
 
 func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error) {
 	return &response.VBookRegistryResponse{
@@ -270,11 +472,32 @@ func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*resp
 				Type:        "novel",
 				Locale:      "vi_VN",
 			},
+			{
+				Name:        "NovelHub Audio",
+				Author:      "NovelHub",
+				Path:        baseURL + "/api/v1/vbook/plugin-audio.zip",
+				Lib:         baseURL + "/api/v1/vbook/plugin.json",
+				Version:     3,
+				Source:      baseURL,
+				Icon:        baseURL + "/vbook/icon.png",
+				Description: vbookAudioDescription,
+				Type:        "audio",
+				Locale:      "vi_VN",
+			},
 		},
 	}, nil
 }
 
-var vbookScripts = []string{"chap", "detail", "gen", "genre", "home", "search", "toc"}
+var vbookScripts = []string{"chap", "detail", "gen", "home", "search", "toc"}
+var audioScripts = map[string]string{
+	"home":   "audio_home",
+	"gen":    "gen",
+	"search": "search",
+	"detail": "audio_detail",
+	"toc":    "audio_toc",
+	"chap":   "audio_chap",
+	"track":  "track",
+}
 
 func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte, error) {
 	if s.vbookFS == nil {
@@ -293,29 +516,89 @@ func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte
 	return s.buildPluginZip(ctx, baseURL)
 }
 
-func (s *vbookService) buildPluginZip(_ context.Context, baseURL string) ([]byte, error) {
-	pluginManifest := &response.VBookPluginResponse{
-		Metadata: response.VBookPluginMetadata{
-			Name:        "NovelHub",
-			Author:      "NovelHub",
-			Version:     2,
-			Source:      baseURL,
-			Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
-			Description: vbookDescription,
-			Locale:      "vi_VN",
-			Language:    "javascript",
-			Type:        "novel",
-		},
-		Script: response.VBookPluginScript{
-			Home:   "home.js",
-			Genre:  "genre.js",
-			Detail: "detail.js",
-			Search: "search.js",
-			Toc:    "toc.js",
-			Chap:   "chap.js",
-		},
+// ponytail: audio ext shares the same fs; zip cache key suffixed -audio
+// so the two plugin variants don't clobber each other.
+func (s *vbookService) GetPluginZipAudio(ctx context.Context, baseURL string) ([]byte, error) {
+	if s.vbookFS == nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "VBook assets are not available")
 	}
-	pluginJSON, err := jsonx.Marshal(pluginManifest)
+
+	var cached []byte
+	if s.cache != nil {
+		key := fmt.Sprintf(constants.CacheKeyVBookPlugin+"-audio", baseURL)
+		if err := s.cache.GetOrFetch(ctx, key, &cached, 24*time.Hour, func() (any, error) {
+			return s.buildAudioPluginZip(ctx, baseURL)
+		}); err == nil && len(cached) > 0 {
+			return cached, nil
+		}
+	}
+	return s.buildAudioPluginZip(ctx, baseURL)
+}
+
+func (s *vbookService) buildPluginZip(_ context.Context, baseURL string) ([]byte, error) {
+	return zipVBookPlugin(s.vbookFS, baseURL,
+		&response.VBookPluginResponse{
+			Metadata: response.VBookPluginMetadata{
+				Name:        "NovelHub",
+				Author:      "NovelHub",
+				Version:     2,
+				Source:      baseURL,
+				Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
+				Description: vbookDescription,
+				Locale:      "vi_VN",
+				Language:    "javascript",
+				Type:        "novel",
+			},
+			Script: response.VBookPluginScript{
+				Home:   "home.js",
+				Detail: "detail.js",
+				Search: "search.js",
+				Toc:    "toc.js",
+				Chap:   "chap.js",
+			},
+		},
+		vbookFiles())
+}
+
+func (s *vbookService) buildAudioPluginZip(_ context.Context, baseURL string) ([]byte, error) {
+	return zipVBookPlugin(s.vbookFS, baseURL,
+		&response.VBookPluginResponse{
+			Metadata: response.VBookPluginMetadata{
+				Name:        "NovelHub Audio",
+				Author:      "NovelHub",
+				Version:     3,
+				Source:      baseURL,
+				Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
+				Description: vbookAudioDescription,
+				Locale:      "vi_VN",
+				Language:    "javascript",
+				Type:        "audio",
+			},
+			Script: response.VBookPluginScript{
+				Home:   "home.js",
+				Detail: "detail.js",
+				Search: "search.js",
+				Toc:    "toc.js",
+				Chap:   "chap.js",
+				Track:  "track.js",
+			},
+		},
+		audioScripts)
+}
+
+// vbookFiles maps zip src/ name -> disk src/ name (identity for the novel pack).
+func vbookFiles() map[string]string {
+	out := make(map[string]string, len(vbookScripts))
+	for _, name := range vbookScripts {
+		out[name] = name
+	}
+	return out
+}
+
+// zipVBookPlugin writes plugin.json + icon + all script files into a zip.
+// srcFiles maps the zip entry base name -> disk src/<name>.js.
+func zipVBookPlugin(vbookFS fs.FS, baseURL string, manifest *response.VBookPluginResponse, srcFiles map[string]string) ([]byte, error) {
+	pluginJSON, err := jsonx.Marshal(manifest)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 	}
@@ -327,18 +610,18 @@ func (s *vbookService) buildPluginZip(_ context.Context, baseURL string) ([]byte
 	} else if _, err := w.Write(pluginJSON); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 	}
-	if iconData, err := fs.ReadFile(s.vbookFS, "icon.png"); err == nil {
+	if iconData, err := fs.ReadFile(vbookFS, "icon.png"); err == nil {
 		if w, err := zw.Create("icon.png"); err == nil {
 			_, _ = w.Write(iconData)
 		}
 	}
-	for _, name := range vbookScripts {
-		data, err := fs.ReadFile(s.vbookFS, "src/"+name+".js")
+	for dest, src := range srcFiles {
+		data, err := fs.ReadFile(vbookFS, "src/"+src+".js")
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 		}
 		script := strings.ReplaceAll(string(data), "{{BASE_URL}}", baseURL)
-		w, err := zw.Create("src/" + name + ".js")
+		w, err := zw.Create("src/" + dest + ".js")
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build VBook plugin")
 		}

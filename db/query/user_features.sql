@@ -51,9 +51,6 @@ INSERT INTO collection_books (
 DELETE FROM collection_books
 WHERE collection_id = ? AND book_id = ?;
 
--- Keyset paged on the same (created_at, id) pair as SearchBookIDs, so the collection filter no
--- longer has to load every member and page in Go. created_at is second-resolution, hence the id
--- tiebreaker: without it a bulk upload's tied rows straddle the page boundary and one is skipped.
 -- name: GetBookIDsInCollection :many
 SELECT b.id
 FROM books b

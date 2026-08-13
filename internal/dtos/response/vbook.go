@@ -45,6 +45,14 @@ type VBookChapterContentResponse struct {
 	Content string `json:"content"`
 }
 
+type VBookAudioTrack struct {
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Description string `json:"description,omitempty"`
+	Lock        bool   `json:"lock"`
+	Pay         bool   `json:"pay"`
+}
+
 type VBookPluginMetadata struct {
 	Name        string `json:"name"`
 	Author      string `json:"author"`
@@ -59,11 +67,12 @@ type VBookPluginMetadata struct {
 
 type VBookPluginScript struct {
 	Home   string `json:"home"`
-	Genre  string `json:"genre"`
+	Genre  string `json:"genre,omitempty"`
 	Detail string `json:"detail"`
 	Search string `json:"search"`
 	Toc    string `json:"toc"`
 	Chap   string `json:"chap"`
+	Track  string `json:"track,omitempty"`
 }
 
 type VBookPluginResponse struct {

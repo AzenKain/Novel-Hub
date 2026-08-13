@@ -6,8 +6,6 @@ INSERT INTO read_lists (
 )
 RETURNING id, user_id, name, description, created_at, updated_at;
 
--- Keyset paged on (created_at, id): CURRENT_TIMESTAMP is second-resolution, so without the id
--- tiebreaker two lists created in the same second straddle the page boundary and one is skipped.
 -- name: GetUserReadListIDs :many
 SELECT id FROM read_lists
 WHERE user_id = sqlc.arg('user_id') AND
@@ -87,8 +85,6 @@ WHERE rlb.read_list_id = sqlc.arg('read_list_id')
 ORDER BY rlb.position ASC
 LIMIT 1;
 
--- Series name is matched case-insensitively because .cbl files are hand-edited and their casing
--- does not survive round trips through the comic community's tooling.
 -- name: MatchBooksBySeriesNames :many
 SELECT LOWER(s.name) AS series_key, bs.series_index, bs.book_id
 FROM book_series bs

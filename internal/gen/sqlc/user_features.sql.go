@@ -226,9 +226,6 @@ type GetBookIDsInCollectionParams struct {
 	Limit           int64          `json:"limit"`
 }
 
-// Keyset paged on the same (created_at, id) pair as SearchBookIDs, so the collection filter no
-// longer has to load every member and page in Go. created_at is second-resolution, hence the id
-// tiebreaker: without it a bulk upload's tied rows straddle the page boundary and one is skipped.
 func (q *Queries) GetBookIDsInCollection(ctx context.Context, arg GetBookIDsInCollectionParams) ([]string, error) {
 	rows, err := q.query(ctx, q.getBookIDsInCollectionStmt, getBookIDsInCollection,
 		arg.CollectionID,

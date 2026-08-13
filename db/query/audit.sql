@@ -4,8 +4,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, actor_id, actor_email, action, target_type, target_id, target_label, ip, created_at;
 
 -- name: ListAuditLogs :many
--- Keyset pagination on (created_at DESC, id ASC), the same shape SearchUserIDs uses, so
--- rows inserted while an admin is paging cannot shift the window and duplicate a row.
 SELECT id, actor_id, actor_email, action, target_type, target_id, target_label, ip, created_at
 FROM audit_logs
 WHERE
@@ -29,7 +27,5 @@ WHERE
 SELECT DISTINCT action FROM audit_logs ORDER BY action ASC;
 
 -- name: PruneAuditLogs :execrows
--- Age-based, unlike PruneFinishedJobs which keeps a row count: an audit trail is only
--- useful if "the last 90 days" means the same thing on a busy and a quiet instance.
 DELETE FROM audit_logs
 WHERE created_at < datetime('now', '-' || CAST(sqlc.arg('keep_days') AS TEXT) || ' days');

@@ -122,8 +122,6 @@ type ListAuditLogsParams struct {
 	Limit           int64          `json:"limit"`
 }
 
-// Keyset pagination on (created_at DESC, id ASC), the same shape SearchUserIDs uses, so
-// rows inserted while an admin is paging cannot shift the window and duplicate a row.
 func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error) {
 	rows, err := q.query(ctx, q.listAuditLogsStmt, listAuditLogs,
 		arg.Action,
@@ -168,8 +166,6 @@ DELETE FROM audit_logs
 WHERE created_at < datetime('now', '-' || CAST(?1 AS TEXT) || ' days')
 `
 
-// Age-based, unlike PruneFinishedJobs which keeps a row count: an audit trail is only
-// useful if "the last 90 days" means the same thing on a busy and a quiet instance.
 func (q *Queries) PruneAuditLogs(ctx context.Context, keepDays string) (int64, error) {
 	result, err := q.exec(ctx, q.pruneAuditLogsStmt, pruneAuditLogs, keepDays)
 	if err != nil {

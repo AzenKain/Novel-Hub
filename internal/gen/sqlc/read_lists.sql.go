@@ -259,8 +259,6 @@ type GetUserReadListIDsParams struct {
 	Limit           int64          `json:"limit"`
 }
 
-// Keyset paged on (created_at, id): CURRENT_TIMESTAMP is second-resolution, so without the id
-// tiebreaker two lists created in the same second straddle the page boundary and one is skipped.
 func (q *Queries) GetUserReadListIDs(ctx context.Context, arg GetUserReadListIDsParams) ([]string, error) {
 	rows, err := q.query(ctx, q.getUserReadListIDsStmt, getUserReadListIDs,
 		arg.UserID,
@@ -304,8 +302,6 @@ type MatchBooksBySeriesNamesRow struct {
 	BookID      string         `json:"book_id"`
 }
 
-// Series name is matched case-insensitively because .cbl files are hand-edited and their casing
-// does not survive round trips through the comic community's tooling.
 func (q *Queries) MatchBooksBySeriesNames(ctx context.Context, seriesKeys interface{}) ([]MatchBooksBySeriesNamesRow, error) {
 	rows, err := q.query(ctx, q.matchBooksBySeriesNamesStmt, matchBooksBySeriesNames, seriesKeys)
 	if err != nil {

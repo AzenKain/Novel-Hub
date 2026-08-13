@@ -17,9 +17,6 @@ FROM reading_progress
 WHERE user_id = ? AND progress_percent >= 99.5 AND updated_at >= datetime('now', 'start of year')
 `
 
-// ponytail: updated_at is the last sync, not a completion timestamp, so a book
-// finished before the year and reopened this year counts here. Good enough for a
-// goal gauge; a real completion date would need a new column.
 func (q *Queries) CountCompletedBooksThisYear(ctx context.Context, userID string) (int64, error) {
 	row := q.queryRow(ctx, q.countCompletedBooksThisYearStmt, countCompletedBooksThisYear, userID)
 	var completed_count int64
@@ -42,8 +39,6 @@ type GetListeningHistoryRow struct {
 	TotalDuration sql.NullFloat64 `json:"total_duration"`
 }
 
-// Listening minutes per month, restricted to audio formats. EXISTS (not a JOIN) so
-// a book with several audio files does not multiply each session's duration.
 func (q *Queries) GetListeningHistory(ctx context.Context, userID string) ([]GetListeningHistoryRow, error) {
 	rows, err := q.query(ctx, q.getListeningHistoryStmt, getListeningHistory, userID)
 	if err != nil {
@@ -80,7 +75,6 @@ type GetListeningStatsRow struct {
 	TotalWords    interface{} `json:"total_words"`
 }
 
-// All-time listening sums (average speed = total_words / (total_duration/60)).
 func (q *Queries) GetListeningStats(ctx context.Context, userID string) (GetListeningStatsRow, error) {
 	row := q.queryRow(ctx, q.getListeningStatsStmt, getListeningStats, userID)
 	var i GetListeningStatsRow
@@ -106,7 +100,6 @@ type GetReadingStatsByBookRow struct {
 	TotalWords    interface{} `json:"total_words"`
 }
 
-// Per-book session aggregates for the ETA pace (one user, one book).
 func (q *Queries) GetReadingStatsByBook(ctx context.Context, arg GetReadingStatsByBookParams) (GetReadingStatsByBookRow, error) {
 	row := q.queryRow(ctx, q.getReadingStatsByBookStmt, getReadingStatsByBook, arg.UserID, arg.BookID)
 	var i GetReadingStatsByBookRow
@@ -130,7 +123,6 @@ type GetReadingStatsSinceRow struct {
 	TotalWords    interface{} `json:"total_words"`
 }
 
-// User session aggregates over a date window (global pace fallback).
 func (q *Queries) GetReadingStatsSince(ctx context.Context, arg GetReadingStatsSinceParams) (GetReadingStatsSinceRow, error) {
 	row := q.queryRow(ctx, q.getReadingStatsSinceStmt, getReadingStatsSince, arg.UserID, arg.SessionDate)
 	var i GetReadingStatsSinceRow
@@ -189,7 +181,6 @@ type StatsByFormatRow struct {
 	BookCount int64  `json:"book_count"`
 }
 
-// Library-wide breakdowns (also used by the admin dashboard).
 func (q *Queries) StatsByFormat(ctx context.Context) ([]StatsByFormatRow, error) {
 	rows, err := q.query(ctx, q.statsByFormatStmt, statsByFormat)
 	if err != nil {

@@ -717,6 +717,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listBooksTitleAuthorStmt, err = db.PrepareContext(ctx, listBooksTitleAuthor); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBooksTitleAuthor: %w", err)
 	}
+	if q.listBooksWithAudioChaptersStmt, err = db.PrepareContext(ctx, listBooksWithAudioChapters); err != nil {
+		return nil, fmt.Errorf("error preparing query ListBooksWithAudioChapters: %w", err)
+	}
 	if q.listChapterIDsByBookStmt, err = db.PrepareContext(ctx, listChapterIDsByBook); err != nil {
 		return nil, fmt.Errorf("error preparing query ListChapterIDsByBook: %w", err)
 	}
@@ -2261,6 +2264,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listBooksTitleAuthorStmt: %w", cerr)
 		}
 	}
+	if q.listBooksWithAudioChaptersStmt != nil {
+		if cerr := q.listBooksWithAudioChaptersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listBooksWithAudioChaptersStmt: %w", cerr)
+		}
+	}
 	if q.listChapterIDsByBookStmt != nil {
 		if cerr := q.listChapterIDsByBookStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listChapterIDsByBookStmt: %w", cerr)
@@ -3171,6 +3179,7 @@ type Queries struct {
 	listBookReviewCompositeKeysStmt    *sql.Stmt
 	listBookReviewsStmt                *sql.Stmt
 	listBooksTitleAuthorStmt           *sql.Stmt
+	listBooksWithAudioChaptersStmt     *sql.Stmt
 	listChapterIDsByBookStmt           *sql.Stmt
 	listContentWarningIDsStmt          *sql.Stmt
 	listDueJobScheduleIDsStmt          *sql.Stmt
@@ -3536,6 +3545,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listBookReviewCompositeKeysStmt:    q.listBookReviewCompositeKeysStmt,
 		listBookReviewsStmt:                q.listBookReviewsStmt,
 		listBooksTitleAuthorStmt:           q.listBooksTitleAuthorStmt,
+		listBooksWithAudioChaptersStmt:     q.listBooksWithAudioChaptersStmt,
 		listChapterIDsByBookStmt:           q.listChapterIDsByBookStmt,
 		listContentWarningIDsStmt:          q.listContentWarningIDsStmt,
 		listDueJobScheduleIDsStmt:          q.listDueJobScheduleIDsStmt,

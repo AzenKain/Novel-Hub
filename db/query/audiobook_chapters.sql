@@ -8,9 +8,6 @@ ORDER BY chapter_index ASC;
 SELECT id, book_id, file_id, chapter_index, title, start_sec, end_sec, created_at, updated_at
 FROM audiobook_chapters
 WHERE id = ?;
-
--- Upsert keyed on (book_id, chapter_index): editing a chapter keeps its id,
--- re-inserting with the same index overwrites in place.
 -- name: UpsertAudiobookChapter :one
 INSERT INTO audiobook_chapters (id, book_id, file_id, chapter_index, title, start_sec, end_sec)
 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -27,3 +24,12 @@ DELETE FROM audiobook_chapters WHERE id = ?;
 
 -- name: DeleteAudiobookChaptersForBook :exec
 DELETE FROM audiobook_chapters WHERE book_id = ?;
+
+-- name: ListBooksWithAudioChapters :many
+SELECT DISTINCT b.id
+FROM books b
+WHERE EXISTS (SELECT 1 FROM audiobook_chapters ac WHERE ac.book_id = b.id)
+  AND (b.updated_at <= COALESCE(CAST(sqlc.narg('cursor_time') AS TEXT), '9999-12-31 23:59:59')
+       AND (sqlc.narg('cursor_time') IS NULL OR b.updated_at < CAST(sqlc.narg('cursor_time') AS TEXT) OR b.id < sqlc.narg('cursor_id')))
+ORDER BY b.updated_at DESC, b.id DESC
+LIMIT sqlc.arg('limit');

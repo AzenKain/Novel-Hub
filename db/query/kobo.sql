@@ -1,7 +1,4 @@
--- Kobo device sync. See db/schema/98_kobo_auth.sql for why auth is a path token.
-
 -- name: UpsertKoboAuthToken :one
--- Regenerating replaces the previous token, which is how a user revokes a lost device.
 INSERT INTO kobo_auth_tokens (token, user_id)
 VALUES (?, ?)
 ON CONFLICT (user_id) DO UPDATE SET
@@ -20,8 +17,6 @@ SELECT token, user_id, created_at, last_used_at FROM kobo_auth_tokens
 WHERE token = ? LIMIT 1;
 
 -- name: TouchKoboAuthToken :exec
--- Records that a device actually used the token, so a user can tell a paired reader from a
--- token they generated and never applied.
 UPDATE kobo_auth_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token = ?;
 
 -- name: DeleteKoboAuthToken :exec

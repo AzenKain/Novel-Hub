@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 let fetching = false;
+let initialFetchDone = false;
 
 function applySiteSettingsToDOM(settings: PublicSettings | null) {
   if (!settings?.site) return;
@@ -37,16 +38,17 @@ export function usePublicSettings(): PublicSettings | null {
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
 
-    if (publicSettings || fetching) return;
+    if (initialFetchDone || fetching) return;
     fetching = true;
 
     settingsService.getPublic().then((res) => {
       useSettingsStore.getState().setPublicSettings(res.data || null);
+      initialFetchDone = true;
       fetching = false;
     }).catch(() => {
       fetching = false;
     });
-  }, [user, publicSettings]);
+  }, [user]);
 
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
@@ -62,6 +64,7 @@ export async function invalidatePublicSettings(): Promise<void> {
     const res = await settingsService.getPublic();
     useSettingsStore.getState().setPublicSettings(res.data || null);
     applySiteSettingsToDOM(res.data || null);
+    initialFetchDone = true;
   } catch {
     useSettingsStore.getState().setPublicSettings(null);
   }

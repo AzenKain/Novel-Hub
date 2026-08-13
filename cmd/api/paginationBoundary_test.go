@@ -185,9 +185,7 @@ func TestCollectionPagingKeepsBooksSharingATimestamp(t *testing.T) {
 			Data []struct {
 				ID string `json:"id"`
 			} `json:"data"`
-			Pagination struct {
-				NextCursor string `json:"next_cursor"`
-			} `json:"pagination"`
+			NextCursor string `json:"next_cursor"`
 		}
 		if err := json.Unmarshal(body, &payload); err != nil {
 			t.Fatalf("page %d decode: %v (%s)", page, err, body)
@@ -195,10 +193,10 @@ func TestCollectionPagingKeepsBooksSharingATimestamp(t *testing.T) {
 		for _, item := range payload.Data {
 			seen[item.ID] = true
 		}
-		if payload.Pagination.NextCursor == "" || payload.Pagination.NextCursor == cursor {
+		if payload.NextCursor == "" || payload.NextCursor == cursor {
 			break
 		}
-		cursor = payload.Pagination.NextCursor
+		cursor = payload.NextCursor
 	}
 
 	for i, id := range bookIDs {

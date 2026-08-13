@@ -70,12 +70,7 @@ func (c *VBookController) GetBooks(ctx fiber.Ctx) error {
 	facetID := strings.TrimSpace(ctx.Query("facet_id"))
 	sort := strings.TrimSpace(ctx.Query("sort"))
 
-	page := 1
-	if pStr := strings.TrimSpace(ctx.Query("page")); pStr != "" {
-		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
-			page = p
-		}
-	}
+	pageStr := strings.TrimSpace(ctx.Query("page"))
 
 	limit := 20
 	if lStr := strings.TrimSpace(ctx.Query("limit")); lStr != "" {
@@ -84,7 +79,7 @@ func (c *VBookController) GetBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.GetBooks(reqCtx, getBaseURL(ctx, c.settingsService), searchPtr, sort, facet, facetID, page, limit)
+	result, err := c.vbookService.GetBooks(reqCtx, getBaseURL(ctx, c.settingsService), searchPtr, sort, facet, facetID, pageStr, limit)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -104,12 +99,7 @@ func (c *VBookController) SearchBooks(ctx fiber.Ctx) error {
 		query = strings.TrimSpace(ctx.Query("keyword"))
 	}
 
-	page := 1
-	if pStr := strings.TrimSpace(ctx.Query("page")); pStr != "" {
-		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
-			page = p
-		}
-	}
+	pageStr := strings.TrimSpace(ctx.Query("page"))
 
 	limit := 20
 	if lStr := strings.TrimSpace(ctx.Query("limit")); lStr != "" {
@@ -118,7 +108,7 @@ func (c *VBookController) SearchBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.SearchBooks(reqCtx, getBaseURL(ctx, c.settingsService), query, page, limit)
+	result, err := c.vbookService.SearchBooks(reqCtx, getBaseURL(ctx, c.settingsService), query, pageStr, limit)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -223,4 +213,86 @@ func (c *VBookController) GetPluginZip(ctx fiber.Ctx) error {
 
 	ctx.Set(fiber.HeaderContentType, "application/zip")
 	return ctx.Send(data)
+}
+
+func (c *VBookController) GetPluginZipAudio(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	data, err := c.vbookService.GetPluginZipAudio(reqCtx, getBaseURL(ctx, c.settingsService))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	ctx.Set(fiber.HeaderContentType, "application/zip")
+	return ctx.Send(data)
+}
+
+func (c *VBookController) GetAudioBooks(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pageStr := strings.TrimSpace(ctx.Query("page"))
+
+	limit := 20
+	if lStr := strings.TrimSpace(ctx.Query("limit")); lStr != "" {
+		if l, err := strconv.Atoi(lStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	result, err := c.vbookService.GetAudioBooks(reqCtx, getBaseURL(ctx, c.settingsService), pageStr, limit)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		Status: true,
+		Data:   result,
+	})
+}
+
+func (c *VBookController) GetAudioPlaylist(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	bookID := strings.TrimSpace(ctx.Query("book_id"))
+	if bookID == "" {
+		bookID = strings.TrimSpace(ctx.Query("id"))
+	}
+	if bookID == "" {
+		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
+	}
+
+	tracks, err := c.vbookService.GetAudioPlaylist(reqCtx, bookID)
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		Status: true,
+		Data:   tracks,
+	})
+}
+
+func (c *VBookController) StreamAudio(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	bookID := strings.TrimSpace(ctx.Query("book_id"))
+	fileID := strings.TrimSpace(ctx.Query("file_id"))
+	if bookID == "" || fileID == "" {
+		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "book_id and file_id are required"))
+	}
+
+	file, err := c.vbookService.ResolveAudioStream(reqCtx, bookID, fileID, getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	contentType := rawFileContentType(file.Path)
+	ctx.Set("Content-Type", contentType)
+	ctx.Set("X-Content-Type-Options", "nosniff")
+	ctx.Set("Accept-Ranges", "bytes")
+	return ctx.SendFile(file.Path, fiber.SendFile{ByteRange: true})
 }

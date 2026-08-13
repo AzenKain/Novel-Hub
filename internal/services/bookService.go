@@ -32,8 +32,8 @@ type BookService interface {
 	GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error)
 	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
 	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
-	SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
-	SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error)
+	SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error)
 	GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*response.BookResponse, error)
 	GetBookFileForDownload(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (string, string, error)
 	ListBookFilesWithAccess(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.BookFileResponse, error)
@@ -153,7 +153,7 @@ func (s *bookService) SearchSmartFilterBooks(ctx context.Context, libraryID *str
 	return books, nil
 }
 
-func (s *bookService) SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+func (s *bookService) SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error) {
 	filter, err := s.featureRepo.GetSmartFilter(ctx, filterID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -201,10 +201,19 @@ func (s *bookService) SearchSmartFilterBooksByFilter(ctx context.Context, filter
 		nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 	}
 
-	return response.BuildCursorPaginatedResponse(models.BookEntitiesToResponse(filtered), 0, int(queryDto.Limit), nextCursor), nil
+	var nextPtr *string
+	if nextCursor != "" {
+		nextPtr = &nextCursor
+	}
+
+	return &response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       models.BookEntitiesToResponse(filtered),
+		NextCursor: nextPtr,
+	}, nil
 }
 
-func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error) {
 	var libID *string
 	if queryDto.LibraryID != "" {
 		libID = &queryDto.LibraryID
@@ -243,7 +252,16 @@ func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.Sea
 		nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 	}
 
-	return response.BuildCursorPaginatedResponse(models.BookEntitiesToResponse(filtered), 0, int(queryDto.Limit), nextCursor), nil
+	var nextPtr *string
+	if nextCursor != "" {
+		nextPtr = &nextCursor
+	}
+
+	return &response.CursorPaginatedResponse{
+		Status:     true,
+		Data:       models.BookEntitiesToResponse(filtered),
+		NextCursor: nextPtr,
+	}, nil
 }
 
 func (s *bookService) GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*response.BookResponse, error) {

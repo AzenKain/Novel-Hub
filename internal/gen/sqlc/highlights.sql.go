@@ -104,7 +104,6 @@ type GetHighlightBooksByIDsRow struct {
 	AuthorName  string         `json:"author_name"`
 }
 
-// Same projection by explicit IDs, for the cache-by-IDs fetch path.
 func (q *Queries) GetHighlightBooksByIDs(ctx context.Context, ids []string) ([]GetHighlightBooksByIDsRow, error) {
 	query := getHighlightBooksByIDs
 	var queryParams []interface{}
@@ -185,8 +184,6 @@ type GetHighlightsByBookRow struct {
 	AuthorName  string         `json:"author_name"`
 }
 
-// Export surfaces (Readwise / markdown) join book title + author in one pass so
-// the exporter never issues a second query per book. Served by idx_highlights_user_book.
 func (q *Queries) GetHighlightsByBook(ctx context.Context, arg GetHighlightsByBookParams) ([]GetHighlightsByBookRow, error) {
 	rows, err := q.query(ctx, q.getHighlightsByBookStmt, getHighlightsByBook, arg.UserID, arg.BookID)
 	if err != nil {

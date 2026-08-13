@@ -4,16 +4,12 @@ FROM books b
 LEFT JOIN authors a ON a.id = b.author_id
 ORDER BY b.title;
 
--- Plain re-attribute: no UNIQUE constraint on book_id.
 -- name: MergeChapters :exec
 UPDATE chapters SET book_id = sqlc.arg('target_id') WHERE book_id = sqlc.arg('source_id');
 
 -- name: MergeHighlights :exec
 UPDATE highlights SET book_id = sqlc.arg('target_id') WHERE book_id = sqlc.arg('source_id');
 
--- Composite-PK link tables: INSERT OR IGNORE fires the FTS triggers on
--- 45_metadata_fts.sql (tags/series/publishers/languages) so the target's
--- aggregated fts_metadata row is recomputed; a bare UPDATE would leave it stale.
 -- name: MergeBookTags :exec
 INSERT OR IGNORE INTO book_tags (book_id, tag_id)
 SELECT sqlc.arg('target_id'), bt.tag_id FROM book_tags bt WHERE bt.book_id = sqlc.arg('source_id');
@@ -43,10 +39,6 @@ SELECT sqlc.arg('target_id'), bl.language_id FROM book_languages bl WHERE bl.boo
 DELETE FROM book_languages WHERE book_id = sqlc.arg('source_id');
 
 -- name: MergeBookFilesRest :exec
--- UPDATE in place keeps the file id, so audiobook_chapters/reading_progress
--- file_id references stay valid. Paths are <baseDir>/<bookID>/<filename>; the
--- bookID segment is rewritten. A row whose rewritten path already exists on the
--- target (hash-identical collision) is left behind and dropped by DeleteBookFiles.
 UPDATE book_files SET
   book_id = sqlc.arg('target_id'),
   path = substr(book_files.path, 1, instr(book_files.path, sqlc.arg('source_id')) - 1) || sqlc.arg('target_id') || substr(book_files.path, instr(book_files.path, sqlc.arg('source_id')) + length(sqlc.arg('source_id')))
@@ -134,8 +126,6 @@ FROM audiobook_chapters ac WHERE ac.book_id = sqlc.arg('source_id');
 -- name: DeleteAudiobookChapters :exec
 DELETE FROM audiobook_chapters WHERE book_id = sqlc.arg('source_id');
 
--- Reading sessions: rows without a same-date target row move over, the rest fold
--- their counters into the target's same-date row, then all source rows are dropped.
 -- name: MergeReadingSessionsRest :exec
 UPDATE reading_sessions SET book_id = sqlc.arg('target_id')
 WHERE reading_sessions.book_id = sqlc.arg('source_id')
@@ -172,7 +162,6 @@ WHERE reading_sessions.book_id = sqlc.arg('target_id')
 -- name: DeleteReadingSessions :exec
 DELETE FROM reading_sessions WHERE book_id = sqlc.arg('source_id');
 
--- Per-book stats: ensure the target row exists, fold source counters in, drop source.
 -- name: EnsureBookReadStats :exec
 INSERT INTO book_read_stats (book_id, total_open_count, qualified_read_count)
 VALUES (sqlc.arg('target_id'), 0, 0)

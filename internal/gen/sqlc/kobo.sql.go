@@ -119,15 +119,12 @@ const touchKoboAuthToken = `-- name: TouchKoboAuthToken :exec
 UPDATE kobo_auth_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token = ?
 `
 
-// Records that a device actually used the token, so a user can tell a paired reader from a
-// token they generated and never applied.
 func (q *Queries) TouchKoboAuthToken(ctx context.Context, token string) error {
 	_, err := q.exec(ctx, q.touchKoboAuthTokenStmt, touchKoboAuthToken, token)
 	return err
 }
 
 const upsertKoboAuthToken = `-- name: UpsertKoboAuthToken :one
-
 INSERT INTO kobo_auth_tokens (token, user_id)
 VALUES (?, ?)
 ON CONFLICT (user_id) DO UPDATE SET
@@ -142,8 +139,6 @@ type UpsertKoboAuthTokenParams struct {
 	UserID string `json:"user_id"`
 }
 
-// Kobo device sync. See db/schema/98_kobo_auth.sql for why auth is a path token.
-// Regenerating replaces the previous token, which is how a user revokes a lost device.
 func (q *Queries) UpsertKoboAuthToken(ctx context.Context, arg UpsertKoboAuthTokenParams) (KoboAuthToken, error) {
 	row := q.queryRow(ctx, q.upsertKoboAuthTokenStmt, upsertKoboAuthToken, arg.Token, arg.UserID)
 	var i KoboAuthToken

@@ -402,7 +402,9 @@ func facetLegacyPlan(tb testing.TB, db *sql.DB, query string, f MetadataFacetFil
 		if err := rows.Scan(&a, &b, &c, &detail); err != nil {
 			tb.Fatal(err)
 		}
-		out.WriteString("  " + detail + "\n")
+		out.WriteString("  ")
+		out.WriteString(detail)
+		out.WriteString("\n")
 	}
 	return out.String()
 }

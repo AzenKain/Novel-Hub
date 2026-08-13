@@ -197,7 +197,6 @@ VALUES (?1, 0, 0)
 ON CONFLICT (book_id) DO NOTHING
 `
 
-// Per-book stats: ensure the target row exists, fold source counters in, drop source.
 func (q *Queries) EnsureBookReadStats(ctx context.Context, targetID string) error {
 	_, err := q.exec(ctx, q.ensureBookReadStatsStmt, ensureBookReadStats, targetID)
 	return err
@@ -353,10 +352,6 @@ type MergeBookFilesRestParams struct {
 	SourceID string `json:"source_id"`
 }
 
-// UPDATE in place keeps the file id, so audiobook_chapters/reading_progress
-// file_id references stay valid. Paths are <baseDir>/<bookID>/<filename>; the
-// bookID segment is rewritten. A row whose rewritten path already exists on the
-// target (hash-identical collision) is left behind and dropped by DeleteBookFiles.
 func (q *Queries) MergeBookFilesRest(ctx context.Context, arg MergeBookFilesRestParams) error {
 	_, err := q.exec(ctx, q.mergeBookFilesRestStmt, mergeBookFilesRest, arg.TargetID, arg.SourceID)
 	return err
@@ -499,9 +494,6 @@ type MergeBookTagsParams struct {
 	SourceID string `json:"source_id"`
 }
 
-// Composite-PK link tables: INSERT OR IGNORE fires the FTS triggers on
-// 45_metadata_fts.sql (tags/series/publishers/languages) so the target's
-// aggregated fts_metadata row is recomputed; a bare UPDATE would leave it stale.
 func (q *Queries) MergeBookTags(ctx context.Context, arg MergeBookTagsParams) error {
 	_, err := q.exec(ctx, q.mergeBookTagsStmt, mergeBookTags, arg.TargetID, arg.SourceID)
 	return err
@@ -546,7 +538,6 @@ type MergeChaptersParams struct {
 	SourceID string `json:"source_id"`
 }
 
-// Plain re-attribute: no UNIQUE constraint on book_id.
 func (q *Queries) MergeChapters(ctx context.Context, arg MergeChaptersParams) error {
 	_, err := q.exec(ctx, q.mergeChaptersStmt, mergeChapters, arg.TargetID, arg.SourceID)
 	return err
@@ -657,8 +648,6 @@ type MergeReadingSessionsRestParams struct {
 	SourceID string `json:"source_id"`
 }
 
-// Reading sessions: rows without a same-date target row move over, the rest fold
-// their counters into the target's same-date row, then all source rows are dropped.
 func (q *Queries) MergeReadingSessionsRest(ctx context.Context, arg MergeReadingSessionsRestParams) error {
 	_, err := q.exec(ctx, q.mergeReadingSessionsRestStmt, mergeReadingSessionsRest, arg.TargetID, arg.SourceID)
 	return err

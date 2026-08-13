@@ -47,32 +47,31 @@ function loginError() {
     return Response.error("Cần đăng nhập NovelHub: mở trình duyệt trong app, truy cập " + CONFIG_URL + "/login, đăng nhập rồi quay lại thử");
 }
 
-function execute() {
-    return Response.success([
-        {
-            title: "Mới thêm gần đây",
-            input: CONFIG_URL + "/api/v1/vbook/books?sort=created",
-            script: "gen.js"
-        },
-        {
-            title: "Sách xem nhiều",
-            input: CONFIG_URL + "/api/v1/vbook/books?sort=hot",
-            script: "gen.js"
-        },
-        {
-            title: "Sách ngẫu nhiên",
-            input: CONFIG_URL + "/api/v1/vbook/books?sort=random",
-            script: "gen.js"
-        },
-        {
-            title: "Sách mới cập nhật",
-            input: CONFIG_URL + "/api/v1/vbook/books?sort=updated",
-            script: "gen.js"
-        },
-        {
-            title: "Tất cả sách",
-            input: CONFIG_URL + "/api/v1/vbook/books",
-            script: "gen.js"
+function execute(url) {
+    // url is something like /api/v1/vbook/audio/playlist?book_id=xxx
+    // Extract book_id
+    var bookId = null;
+    var match = url.match(/[?&]book_id=([^&]+)/);
+    if (match) bookId = match[1];
+    if (!bookId) {
+        match = url.match(/[?&]id=([^&]+)/);
+        if (match) bookId = match[1];
+    }
+    if (!bookId) {
+        return Response.error("Không tìm thấy book_id");
+    }
+    var fetchUrl = CONFIG_URL + "/api/v1/vbook/detail?id=" + bookId;
+    var res = fetchJson(fetchUrl);
+    if (res && res.status && res.data) {
+        var detail = res.data;
+        if (detail.cover && detail.cover.indexOf("http") !== 0) {
+            detail.cover = CONFIG_URL + (detail.cover.indexOf("/") === 0 ? "" : "/") + detail.cover;
         }
-    ]);
+        detail.url = url;
+        detail.type = "audio";
+        detail.format = "album";
+        return Response.success(detail);
+    }
+    if (res && res.needsLogin) return loginError();
+    return Response.error("Không thể tải thông tin sách từ NovelHub");
 }

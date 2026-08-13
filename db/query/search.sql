@@ -31,4 +31,4 @@ JOIN chapters
 WHERE content MATCH ?
     AND fts_chapters.book_id = ?
 ORDER BY rank, chapters.chapter_index
-LIMIT ? OFFSET ? /* capped at 50 by repository */;
+LIMIT ? OFFSET ?;

@@ -91,6 +91,45 @@ func (q *Queries) ListAudiobookChapters(ctx context.Context, bookID string) ([]A
 	return items, nil
 }
 
+const listBooksWithAudioChapters = `-- name: ListBooksWithAudioChapters :many
+SELECT DISTINCT b.id
+FROM books b
+WHERE EXISTS (SELECT 1 FROM audiobook_chapters ac WHERE ac.book_id = b.id)
+  AND (b.updated_at <= COALESCE(CAST(?1 AS TEXT), '9999-12-31 23:59:59')
+       AND (?1 IS NULL OR b.updated_at < CAST(?1 AS TEXT) OR b.id < ?2))
+ORDER BY b.updated_at DESC, b.id DESC
+LIMIT ?3
+`
+
+type ListBooksWithAudioChaptersParams struct {
+	CursorTime sql.NullString `json:"cursor_time"`
+	CursorID   sql.NullString `json:"cursor_id"`
+	Limit      int64          `json:"limit"`
+}
+
+func (q *Queries) ListBooksWithAudioChapters(ctx context.Context, arg ListBooksWithAudioChaptersParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listBooksWithAudioChaptersStmt, listBooksWithAudioChapters, arg.CursorTime, arg.CursorID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertAudiobookChapter = `-- name: UpsertAudiobookChapter :one
 INSERT INTO audiobook_chapters (id, book_id, file_id, chapter_index, title, start_sec, end_sec)
 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -113,8 +152,6 @@ type UpsertAudiobookChapterParams struct {
 	EndSec       sql.NullFloat64 `json:"end_sec"`
 }
 
-// Upsert keyed on (book_id, chapter_index): editing a chapter keeps its id,
-// re-inserting with the same index overwrites in place.
 func (q *Queries) UpsertAudiobookChapter(ctx context.Context, arg UpsertAudiobookChapterParams) (AudiobookChapter, error) {
 	row := q.queryRow(ctx, q.upsertAudiobookChapterStmt, upsertAudiobookChapter,
 		arg.ID,
