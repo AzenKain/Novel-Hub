@@ -933,6 +933,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.searchBookIDsStmt, err = db.PrepareContext(ctx, searchBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchBookIDs: %w", err)
 	}
+	if q.searchBookIDsOrderBySeriesStmt, err = db.PrepareContext(ctx, searchBookIDsOrderBySeries); err != nil {
+		return nil, fmt.Errorf("error preparing query SearchBookIDsOrderBySeries: %w", err)
+	}
+	if q.searchBookIDsOrderByTitleStmt, err = db.PrepareContext(ctx, searchBookIDsOrderByTitle); err != nil {
+		return nil, fmt.Errorf("error preparing query SearchBookIDsOrderByTitle: %w", err)
+	}
 	if q.searchFTSStmt, err = db.PrepareContext(ctx, searchFTS); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchFTS: %w", err)
 	}
@@ -2624,6 +2630,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing searchBookIDsStmt: %w", cerr)
 		}
 	}
+	if q.searchBookIDsOrderBySeriesStmt != nil {
+		if cerr := q.searchBookIDsOrderBySeriesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing searchBookIDsOrderBySeriesStmt: %w", cerr)
+		}
+	}
+	if q.searchBookIDsOrderByTitleStmt != nil {
+		if cerr := q.searchBookIDsOrderByTitleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing searchBookIDsOrderByTitleStmt: %w", cerr)
+		}
+	}
 	if q.searchFTSStmt != nil {
 		if cerr := q.searchFTSStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing searchFTSStmt: %w", cerr)
@@ -3251,6 +3267,8 @@ type Queries struct {
 	restoreUserStmt                    *sql.Stmt
 	rotateUserRefreshTokenStmt         *sql.Stmt
 	searchBookIDsStmt                  *sql.Stmt
+	searchBookIDsOrderBySeriesStmt     *sql.Stmt
+	searchBookIDsOrderByTitleStmt      *sql.Stmt
 	searchFTSStmt                      *sql.Stmt
 	searchFTSInBookStmt                *sql.Stmt
 	searchSmartFilterBookIDsStmt       *sql.Stmt
@@ -3617,6 +3635,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		restoreUserStmt:                    q.restoreUserStmt,
 		rotateUserRefreshTokenStmt:         q.rotateUserRefreshTokenStmt,
 		searchBookIDsStmt:                  q.searchBookIDsStmt,
+		searchBookIDsOrderBySeriesStmt:     q.searchBookIDsOrderBySeriesStmt,
+		searchBookIDsOrderByTitleStmt:      q.searchBookIDsOrderByTitleStmt,
 		searchFTSStmt:                      q.searchFTSStmt,
 		searchFTSInBookStmt:                q.searchFTSInBookStmt,
 		searchSmartFilterBookIDsStmt:       q.searchSmartFilterBookIDsStmt,

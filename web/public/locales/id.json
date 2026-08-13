@@ -373,7 +373,8 @@
     "clear": "Jernih",
     "back_to_library": "Kembali ke Perpustakaan",
     "title": "Judul",
-    "actions": "Tindakan"
+    "actions": "Tindakan",
+    "view_analytics": "Analisis →"
   },
   "library": {
     "ready_to_read": "Siap dibaca",
@@ -710,7 +711,8 @@
     "top_languages": "Bahasa Teratas",
     "listening_history": "Mendengarkan per Bulan",
     "no_data": "Belum ada data",
-    "avg_speed": "Kecepatan mendengarkan rata-rata: {{wpm}} kpm"
+    "avg_speed": "Kecepatan mendengarkan rata-rata: {{wpm}} kpm",
+    "short_title": "Aktivitas"
   },
   "review": {
     "submitted": "Ulasan berhasil dikirim",

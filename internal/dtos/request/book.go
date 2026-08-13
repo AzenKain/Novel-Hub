@@ -9,6 +9,7 @@ type SearchBookDto struct {
 	Chip       string `json:"chip,omitempty" query:"chip" validate:"omitempty"`
 	Facet      string `json:"facet,omitempty" query:"facet" validate:"omitempty"`
 	FacetID    string `json:"facet_id,omitempty" query:"facet_id" validate:"omitempty"`
+	Sort       string `json:"sort,omitempty" query:"sort" validate:"omitempty"`
 }
 
 type SearchDeepDto struct {

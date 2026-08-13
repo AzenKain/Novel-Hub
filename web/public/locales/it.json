@@ -373,7 +373,8 @@
     "clear": "Chiaro",
     "back_to_library": "Ritorno alla Biblioteca",
     "title": "Titolo",
-    "actions": "Azioni"
+    "actions": "Azioni",
+    "view_analytics": "Analisi →"
   },
   "library": {
     "ready_to_read": "Pronto da leggere",
@@ -710,7 +711,8 @@
     "top_languages": "Lingue principali",
     "listening_history": "Ascolto per mese",
     "no_data": "Nessun dato ancora",
-    "avg_speed": "Velocità media di ascolto: {{wpm}} ppm"
+    "avg_speed": "Velocità media di ascolto: {{wpm}} ppm",
+    "short_title": "Attività"
   },
   "review": {
     "submitted": "Recensione inviata con successo",

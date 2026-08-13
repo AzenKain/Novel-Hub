@@ -71,6 +71,7 @@ export interface SearchBookParams {
   facet?: string;
   facet_id?: string;
   t?: number;
+  sort?: string;
 }
 
 export interface SearchDeepResult {

@@ -125,6 +125,8 @@ export const LibraryWorkspace = () => {
     setMetadataSort,
     activeSmartFilterId,
     setActiveSmartFilterId,
+    sort,
+    setSort,
   } = useLibraryStore(useShallow((state) => ({
     books: state.books,
     setBooks: state.setBooks,
@@ -167,6 +169,8 @@ export const LibraryWorkspace = () => {
     setMetadataSort: state.setMetadataSort,
     activeSmartFilterId: state.activeSmartFilterId,
     setActiveSmartFilterId: state.setActiveSmartFilterId,
+    sort: state.sort,
+    setSort: state.setSort,
   })));
   
   const publicSettings = usePublicSettings();
@@ -201,6 +205,7 @@ export const LibraryWorkspace = () => {
     const params = new URLSearchParams();
     if (nav && nav !== "books") params.set("nav", nav);
     if (search) params.set("search", search);
+    if (sort && sort !== "recently_added") params.set("sort", sort);
     navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
@@ -216,6 +221,7 @@ export const LibraryWorkspace = () => {
     const params = new URLSearchParams();
     if (collection) params.set("collection", collection);
     if (search) params.set("search", search);
+    if (sort && sort !== "recently_added") params.set("sort", sort);
     navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
@@ -257,6 +263,7 @@ export const LibraryWorkspace = () => {
     if (item.name) params.set("name", item.name);
     if (item.id) params.set("facet_id", item.id);
     if (search) params.set("search", search);
+    if (sort && sort !== "recently_added") params.set("sort", sort);
 
     navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
@@ -343,7 +350,8 @@ export const LibraryWorkspace = () => {
     chip: activeChip,
     facet: activeFacet?.type,
     facet_id: activeFacet?.id,
-  }), [debouncedSearch, activeNav, activeCollection, activeChip, activeFacet]);
+    sort,
+  }), [debouncedSearch, activeNav, activeCollection, activeChip, activeFacet, sort]);
 
   const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
     searchParams,
@@ -610,6 +618,7 @@ export const LibraryWorkspace = () => {
     const searchParam = params.get("search") || params.get("q") || "";
     const collectionParam = params.get("collection") || "";
     const chipParam = params.get("chip") || "";
+    const sortParam = params.get("sort") || "recently_added";
 
     if (searchParam !== search) {
       setSearch(searchParam);
@@ -621,6 +630,9 @@ export const LibraryWorkspace = () => {
     }
     if (chipParam && chipParam !== activeChip) {
       setActiveChip(chipParam);
+    }
+    if (sortParam !== sort) {
+      setSort(sortParam as any);
     }
 
     if (!nav && !rawFacet) return;
@@ -956,10 +968,24 @@ export const LibraryWorkspace = () => {
               <span className="hidden sm:inline">{t("library.save_search", "Save current search")}</span>
             </button>
           )}
-          <select className="select select-bordered select-sm w-full sm:w-auto bg-base-100">
-            <option>{t("library.recently_added", "Recently added")}</option>
-            <option>{t("library.title_az", "Title A-Z")}</option>
-            <option>{t("library.series_order", "Series order")}</option>
+          <select
+            className="select select-bordered select-sm w-full sm:w-auto bg-base-100"
+            value={sort}
+            onChange={(e) => {
+              const newSort = e.target.value as any;
+              setSort(newSort);
+              const params = new URLSearchParams(location.search);
+              if (newSort && newSort !== "recently_added") {
+                params.set("sort", newSort);
+              } else {
+                params.delete("sort");
+              }
+              navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+            }}
+          >
+            <option value="recently_added">{t("library.recently_added", "Recently added")}</option>
+            <option value="title_az">{t("library.title_az", "Title A-Z")}</option>
+            <option value="series_order">{t("library.series_order", "Series order")}</option>
           </select>
         </div>
       </div>

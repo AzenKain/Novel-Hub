@@ -373,7 +373,8 @@
     "clear": "清除",
     "back_to_library": "返回图书馆",
     "title": "标题",
-    "actions": "行动"
+    "actions": "行动",
+    "view_analytics": "分析 →"
   },
   "library": {
     "ready_to_read": "准备阅读",
@@ -710,7 +711,8 @@
     "top_languages": "热门语言",
     "listening_history": "每月收听",
     "no_data": "暂无数据",
-    "avg_speed": "平均收听速度：{{wpm}} 词/分钟"
+    "avg_speed": "平均收听速度：{{wpm}} 词/分钟",
+    "short_title": "活动"
   },
   "review": {
     "submitted": "评论提交成功",

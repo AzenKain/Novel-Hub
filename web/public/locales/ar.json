@@ -373,7 +373,8 @@
     "clear": "واضح",
     "back_to_library": "العودة إلى المكتبة",
     "title": "عنوان",
-    "actions": "الإجراءات"
+    "actions": "الإجراءات",
+    "view_analytics": "التحليلات →"
   },
   "library": {
     "ready_to_read": "جاهز للقراءة",
@@ -710,7 +711,8 @@
     "top_languages": "أفضل اللغات",
     "listening_history": "الاستماع شهريًا",
     "no_data": "لا توجد بيانات بعد",
-    "avg_speed": "متوسط سرعة الاستماع: {{wpm}} كلمة/دقيقة"
+    "avg_speed": "متوسط سرعة الاستماع: {{wpm}} كلمة/دقيقة",
+    "short_title": "النشاط"
   },
   "review": {
     "submitted": "تم إرسال المراجعة بنجاح",

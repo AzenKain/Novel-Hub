@@ -373,7 +373,8 @@
     "clear": "ชัดเจน",
     "back_to_library": "กลับไปที่ห้องสมุด",
     "title": "ชื่อ",
-    "actions": "การดำเนินการ"
+    "actions": "การดำเนินการ",
+    "view_analytics": "ข้อมูลวิเคราะห์ →"
   },
   "library": {
     "ready_to_read": "พร้อมอ่าน",
@@ -710,7 +711,8 @@
     "top_languages": "ภาษายอดนิยม",
     "listening_history": "การฟังรายเดือน",
     "no_data": "ยังไม่มีข้อมูล",
-    "avg_speed": "ความเร็วการฟังเฉลี่ย: {{wpm}} คำ/นาที"
+    "avg_speed": "ความเร็วการฟังเฉลี่ย: {{wpm}} คำ/นาที",
+    "short_title": "กิจกรรม"
   },
   "review": {
     "submitted": "ส่งรีวิวสำเร็จแล้ว",

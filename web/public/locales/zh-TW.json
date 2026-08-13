@@ -373,7 +373,8 @@
     "clear": "清除",
     "back_to_library": "返回圖書館",
     "title": "標題",
-    "actions": "行動"
+    "actions": "行動",
+    "view_analytics": "分析 →"
   },
   "library": {
     "ready_to_read": "可以開始閱讀",
@@ -710,7 +711,8 @@
     "top_languages": "熱門語言",
     "listening_history": "每月收聽",
     "no_data": "暫無資料",
-    "avg_speed": "平均收聽速度：{{wpm}} 詞/分鐘"
+    "avg_speed": "平均收聽速度：{{wpm}} 詞/分鐘",
+    "short_title": "活動"
   },
   "review": {
     "submitted": "已成功送出評論",

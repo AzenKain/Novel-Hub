@@ -682,6 +682,288 @@ func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([
 	return items, nil
 }
 
+const searchBookIDsOrderBySeries = `-- name: SearchBookIDsOrderBySeries :many
+SELECT b.id, COALESCE(s.name, '') AS series_name, COALESCE(bs.series_index, '') AS series_index
+FROM books b
+LEFT JOIN book_series bs ON bs.book_id = b.id
+LEFT JOIN series s ON s.id = bs.series_id
+WHERE
+    (
+        ?1 IS NULL OR
+        (CASE WHEN s.name IS NULL THEN 1 ELSE 0 END > CASE WHEN ?1 = '' THEN 1 ELSE 0 END) OR
+        (
+            COALESCE(s.name, '') = ?1 AND
+            (
+                CAST(COALESCE(bs.series_index, '0') AS REAL) > CAST(?2 AS REAL) OR
+                (
+                    CAST(COALESCE(bs.series_index, '0') AS REAL) = CAST(?2 AS REAL) AND
+                    b.id > ?3
+                )
+            )
+        )
+    ) AND
+    (?4 IS NULL OR b.library_id = ?4) AND
+    (
+        ?5 IS NULL OR
+        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH ?5 ORDER BY rank)
+    ) AND
+    (?6 IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
+    (?7 IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
+    (?8 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?9 IS NULL OR b.author_id IS NOT NULL) AND
+    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
+    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
+    (?12 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
+    (?13 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
+    (?14 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (?16 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (?17 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (?18 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?19 IS NULL OR b.download_count > 0) AND
+    (?20 IS NULL OR b.rating_count > 0) AND
+    (?21 IS NULL OR b.status = 'archived') AND
+    (?22 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?23)) AND
+    (?24 IS NULL OR b.author_id = ?24) AND
+    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?25)) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?26)) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?27)) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?28)) AND
+    (?29 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?29))) AND
+    (?30 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
+ORDER BY
+    CASE WHEN s.name IS NULL THEN 1 ELSE 0 END ASC,
+    s.name COLLATE NOCASE ASC,
+    CAST(COALESCE(bs.series_index, '0') AS REAL) ASC,
+    b.title COLLATE NOCASE ASC,
+    b.id ASC
+LIMIT ?31
+`
+
+type SearchBookIDsOrderBySeriesParams struct {
+	CursorSeriesName      interface{}     `json:"cursor_series_name"`
+	CursorSeriesIndex     sql.NullFloat64 `json:"cursor_series_index"`
+	CursorID              sql.NullString  `json:"cursor_id"`
+	LibraryID             interface{}     `json:"library_id"`
+	Search                interface{}     `json:"search"`
+	FilterMissingMetadata interface{}     `json:"filter_missing_metadata"`
+	FilterNoCover         interface{}     `json:"filter_no_cover"`
+	FilterHasFiles        interface{}     `json:"filter_has_files"`
+	FilterHasAuthor       interface{}     `json:"filter_has_author"`
+	FilterHasSeries       interface{}     `json:"filter_has_series"`
+	FilterHasTags         interface{}     `json:"filter_has_tags"`
+	FilterHasPublishers   interface{}     `json:"filter_has_publishers"`
+	FilterHasLanguages    interface{}     `json:"filter_has_languages"`
+	FilterHasFormats      interface{}     `json:"filter_has_formats"`
+	FilterReading         interface{}     `json:"filter_reading"`
+	FilterRead            interface{}     `json:"filter_read"`
+	FilterUnread          interface{}     `json:"filter_unread"`
+	FilterHot             interface{}     `json:"filter_hot"`
+	FilterTopDownloaded   interface{}     `json:"filter_top_downloaded"`
+	FilterTopRated        interface{}     `json:"filter_top_rated"`
+	FilterArchived        interface{}     `json:"filter_archived"`
+	FilterBookmarked      interface{}     `json:"filter_bookmarked"`
+	UserID                sql.NullString  `json:"user_id"`
+	AuthorID              interface{}     `json:"author_id"`
+	SeriesID              interface{}     `json:"series_id"`
+	TagID                 interface{}     `json:"tag_id"`
+	PublisherID           interface{}     `json:"publisher_id"`
+	LanguageID            interface{}     `json:"language_id"`
+	FileFormat            interface{}     `json:"file_format"`
+	ExcludeAudiobooks     interface{}     `json:"exclude_audiobooks"`
+	Limit                 int64           `json:"limit"`
+}
+
+type SearchBookIDsOrderBySeriesRow struct {
+	ID          string `json:"id"`
+	SeriesName  string `json:"series_name"`
+	SeriesIndex string `json:"series_index"`
+}
+
+func (q *Queries) SearchBookIDsOrderBySeries(ctx context.Context, arg SearchBookIDsOrderBySeriesParams) ([]SearchBookIDsOrderBySeriesRow, error) {
+	rows, err := q.query(ctx, q.searchBookIDsOrderBySeriesStmt, searchBookIDsOrderBySeries,
+		arg.CursorSeriesName,
+		arg.CursorSeriesIndex,
+		arg.CursorID,
+		arg.LibraryID,
+		arg.Search,
+		arg.FilterMissingMetadata,
+		arg.FilterNoCover,
+		arg.FilterHasFiles,
+		arg.FilterHasAuthor,
+		arg.FilterHasSeries,
+		arg.FilterHasTags,
+		arg.FilterHasPublishers,
+		arg.FilterHasLanguages,
+		arg.FilterHasFormats,
+		arg.FilterReading,
+		arg.FilterRead,
+		arg.FilterUnread,
+		arg.FilterHot,
+		arg.FilterTopDownloaded,
+		arg.FilterTopRated,
+		arg.FilterArchived,
+		arg.FilterBookmarked,
+		arg.UserID,
+		arg.AuthorID,
+		arg.SeriesID,
+		arg.TagID,
+		arg.PublisherID,
+		arg.LanguageID,
+		arg.FileFormat,
+		arg.ExcludeAudiobooks,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchBookIDsOrderBySeriesRow{}
+	for rows.Next() {
+		var i SearchBookIDsOrderBySeriesRow
+		if err := rows.Scan(&i.ID, &i.SeriesName, &i.SeriesIndex); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchBookIDsOrderByTitle = `-- name: SearchBookIDsOrderByTitle :many
+SELECT b.id FROM books b
+WHERE
+    (
+        ?1 IS NULL OR 
+        b.title COLLATE NOCASE > ?1 OR
+        (b.title COLLATE NOCASE = ?1 AND b.id > ?2)
+    ) AND
+    (?3 IS NULL OR b.library_id = ?3) AND
+    (
+        ?4 IS NULL OR
+        b.id IN (SELECT book_id FROM fts_metadata WHERE fts_metadata MATCH ?4 ORDER BY rank)
+    ) AND
+    (?5 IS NULL OR b.metadata_json IS NULL OR b.metadata_json = '' OR b.metadata_json = '{}') AND
+    (?6 IS NULL OR b.cover_url IS NULL OR b.cover_url = '') AND
+    (?7 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?8 IS NULL OR b.author_id IS NOT NULL) AND
+    (?9 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id)) AND
+    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id)) AND
+    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
+    (?12 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
+    (?13 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
+    (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
+    (?16 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (?17 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?18 IS NULL OR b.download_count > 0) AND
+    (?19 IS NULL OR b.rating_count > 0) AND
+    (?20 IS NULL OR b.status = 'archived') AND
+    (?21 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?22)) AND
+    (?23 IS NULL OR b.author_id = ?23) AND
+    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?24)) AND
+    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?25)) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?26)) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?27)) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28))) AND
+    (?29 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
+ORDER BY
+    b.title COLLATE NOCASE ASC, b.id ASC
+LIMIT ?30
+`
+
+type SearchBookIDsOrderByTitleParams struct {
+	CursorTitle           interface{}    `json:"cursor_title"`
+	CursorID              sql.NullString `json:"cursor_id"`
+	LibraryID             interface{}    `json:"library_id"`
+	Search                interface{}    `json:"search"`
+	FilterMissingMetadata interface{}    `json:"filter_missing_metadata"`
+	FilterNoCover         interface{}    `json:"filter_no_cover"`
+	FilterHasFiles        interface{}    `json:"filter_has_files"`
+	FilterHasAuthor       interface{}    `json:"filter_has_author"`
+	FilterHasSeries       interface{}    `json:"filter_has_series"`
+	FilterHasTags         interface{}    `json:"filter_has_tags"`
+	FilterHasPublishers   interface{}    `json:"filter_has_publishers"`
+	FilterHasLanguages    interface{}    `json:"filter_has_languages"`
+	FilterHasFormats      interface{}    `json:"filter_has_formats"`
+	FilterReading         interface{}    `json:"filter_reading"`
+	FilterRead            interface{}    `json:"filter_read"`
+	FilterUnread          interface{}    `json:"filter_unread"`
+	FilterHot             interface{}    `json:"filter_hot"`
+	FilterTopDownloaded   interface{}    `json:"filter_top_downloaded"`
+	FilterTopRated        interface{}    `json:"filter_top_rated"`
+	FilterArchived        interface{}    `json:"filter_archived"`
+	FilterBookmarked      interface{}    `json:"filter_bookmarked"`
+	UserID                sql.NullString `json:"user_id"`
+	AuthorID              interface{}    `json:"author_id"`
+	SeriesID              interface{}    `json:"series_id"`
+	TagID                 interface{}    `json:"tag_id"`
+	PublisherID           interface{}    `json:"publisher_id"`
+	LanguageID            interface{}    `json:"language_id"`
+	FileFormat            interface{}    `json:"file_format"`
+	ExcludeAudiobooks     interface{}    `json:"exclude_audiobooks"`
+	Limit                 int64          `json:"limit"`
+}
+
+func (q *Queries) SearchBookIDsOrderByTitle(ctx context.Context, arg SearchBookIDsOrderByTitleParams) ([]string, error) {
+	rows, err := q.query(ctx, q.searchBookIDsOrderByTitleStmt, searchBookIDsOrderByTitle,
+		arg.CursorTitle,
+		arg.CursorID,
+		arg.LibraryID,
+		arg.Search,
+		arg.FilterMissingMetadata,
+		arg.FilterNoCover,
+		arg.FilterHasFiles,
+		arg.FilterHasAuthor,
+		arg.FilterHasSeries,
+		arg.FilterHasTags,
+		arg.FilterHasPublishers,
+		arg.FilterHasLanguages,
+		arg.FilterHasFormats,
+		arg.FilterReading,
+		arg.FilterRead,
+		arg.FilterUnread,
+		arg.FilterHot,
+		arg.FilterTopDownloaded,
+		arg.FilterTopRated,
+		arg.FilterArchived,
+		arg.FilterBookmarked,
+		arg.UserID,
+		arg.AuthorID,
+		arg.SeriesID,
+		arg.TagID,
+		arg.PublisherID,
+		arg.LanguageID,
+		arg.FileFormat,
+		arg.ExcludeAudiobooks,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchSmartFilterBookIDs = `-- name: SearchSmartFilterBookIDs :many
 SELECT b.id FROM books b
 WHERE

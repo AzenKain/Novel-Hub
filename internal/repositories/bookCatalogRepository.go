@@ -141,7 +141,7 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 	return v.(*models.BookEntity), nil
 }
 
-func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
+func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error) {
 	if nav == "random" {
 		var libID any
 		libStr := ""
@@ -177,7 +177,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 	}
 
 	if collection != "" && collection != "Missing metadata" {
-		colKey := cache.BuildKey("book_ids", "collection", collection, cursor, cursorID, limit)
+		colKey := cache.BuildKey("book_ids", "collection", collection, cursor, limit)
 		if r.c != nil && !r.inTx {
 			var cachedIDs []string
 			if err := r.c.Get(ctx, colKey, &cachedIDs); err == nil {
@@ -186,9 +186,29 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		}
 
 		value, err, _ := r.sfg.Do(colKey, func() (any, error) {
+			var cursorTime *time.Time
+			var cursorID string
+			if cursor != "" {
+				if parts := convert.DecodeCursor(cursor); len(parts) == 2 {
+					if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+						cursorTime = &t
+					} else if t, err := time.Parse(time.RFC3339, parts[0]); err == nil {
+						cursorTime = &t
+					}
+					cursorID = parts[1]
+				} else if parts := strings.SplitN(cursor, "|", 2); len(parts) == 2 {
+					if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+						cursorTime = &t
+					} else if t, err := time.Parse(time.RFC3339, parts[0]); err == nil {
+						cursorTime = &t
+					}
+					cursorID = parts[1]
+				}
+			}
+
 			ids, err := r.queries.GetBookIDsInCollection(ctx, sqlc.GetBookIDsInCollectionParams{
 				CollectionID:    collection,
-				CursorCreatedAt: cursorTimeArg(cursor),
+				CursorCreatedAt: cursorTimeArg(cursorTime),
 				CursorID:        convert.StrPtrToNullString(&cursorID),
 				Limit:           limit,
 			})
@@ -225,6 +245,192 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		}
 	}
 
+	if sort == "title_az" {
+		var cursorTitle *string
+		var cursorID string
+		if cursor != "" {
+			if parts := convert.DecodeCursor(cursor); len(parts) == 2 {
+				cursorTitle = &parts[0]
+				cursorID = parts[1]
+			} else if parts := strings.SplitN(cursor, "|", 2); len(parts) == 2 {
+				cursorTitle = &parts[0]
+				cursorID = parts[1]
+			}
+		}
+
+		params := sqlc.SearchBookIDsOrderByTitleParams{
+			LibraryID:             libID,
+			Search:                searchStr,
+			FilterMissingMetadata: filters.MissingMetadata,
+			FilterNoCover:         filters.NoCover,
+			FilterHasFiles:        filters.HasFiles,
+			FilterHasAuthor:       filters.HasAuthor,
+			FilterHasSeries:       filters.HasSeries,
+			FilterHasTags:         filters.HasTags,
+			FilterHasPublishers:   filters.HasPublishers,
+			FilterHasLanguages:    filters.HasLanguages,
+			FilterHasFormats:      filters.HasFormats,
+			FilterReading:         filters.Reading,
+			FilterRead:            filters.Read,
+			FilterUnread:          filters.Unread,
+			FilterHot:             filters.Hot,
+			FilterTopDownloaded:   filters.TopDownloaded,
+			FilterTopRated:        filters.TopRated,
+			FilterArchived:        filters.Archived,
+			FilterBookmarked:      filters.Bookmarked,
+			UserID:                filters.UserID,
+			AuthorID:              filters.AuthorID,
+			SeriesID:              filters.SeriesID,
+			TagID:                 filters.TagID,
+			PublisherID:           filters.PublisherID,
+			LanguageID:            filters.LanguageID,
+			FileFormat:            filters.FileFormat,
+			ExcludeAudiobooks:     filters.ExcludeAudiobooks,
+			CursorTitle:           convert.StrPtrToNullString(cursorTitle),
+			CursorID:              convert.StrPtrToNullString(&cursorID),
+			Limit:                 limit,
+		}
+
+		queryKey := cache.QueryKey("book:search:cursor:title", params)
+		if r.c != nil && !r.inTx {
+			var ids []string
+			if err := r.c.Get(ctx, queryKey, &ids); err == nil {
+				return r.GetBooksByIDs(ctx, ids)
+			}
+		}
+
+		value, err, _ := r.sfg.Do(queryKey, func() (any, error) {
+			ids, err := r.queries.SearchBookIDsOrderByTitle(ctx, params)
+			if err != nil {
+				return nil, err
+			}
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, queryKey, ids, constants.ListCacheDuration)
+			}
+			return ids, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return r.GetBooksByIDs(ctx, value.([]string))
+	}
+
+	if sort == "series_order" {
+		var cursorSeriesName *string
+		var cursorSeriesIndex *string
+		var cursorID string
+		if cursor != "" {
+			if parts := convert.DecodeCursor(cursor); len(parts) == 2 {
+				subParts := strings.SplitN(parts[0], "|", 2)
+				if len(subParts) == 2 {
+					cursorSeriesName = &subParts[0]
+					cursorSeriesIndex = &subParts[1]
+				} else {
+					cursorSeriesName = &parts[0]
+				}
+				cursorID = parts[1]
+			} else if parts := strings.SplitN(cursor, "|", 2); len(parts) == 2 {
+				subParts := strings.SplitN(parts[0], "|", 2)
+				if len(subParts) == 2 {
+					cursorSeriesName = &subParts[0]
+					cursorSeriesIndex = &subParts[1]
+				} else {
+					cursorSeriesName = &parts[0]
+				}
+				cursorID = parts[1]
+			}
+		}
+
+		var cursorSeriesIndexFloat sql.NullFloat64
+		if cursorSeriesIndex != nil && *cursorSeriesIndex != "" {
+			if f, err := strconv.ParseFloat(*cursorSeriesIndex, 64); err == nil {
+				cursorSeriesIndexFloat.Float64 = f
+				cursorSeriesIndexFloat.Valid = true
+			}
+		}
+
+		params := sqlc.SearchBookIDsOrderBySeriesParams{
+			LibraryID:             libID,
+			Search:                searchStr,
+			FilterMissingMetadata: filters.MissingMetadata,
+			FilterNoCover:         filters.NoCover,
+			FilterHasFiles:        filters.HasFiles,
+			FilterHasAuthor:       filters.HasAuthor,
+			FilterHasSeries:       filters.HasSeries,
+			FilterHasTags:         filters.HasTags,
+			FilterHasPublishers:   filters.HasPublishers,
+			FilterHasLanguages:    filters.HasLanguages,
+			FilterHasFormats:      filters.HasFormats,
+			FilterReading:         filters.Reading,
+			FilterRead:            filters.Read,
+			FilterUnread:          filters.Unread,
+			FilterHot:             filters.Hot,
+			FilterTopDownloaded:   filters.TopDownloaded,
+			FilterTopRated:        filters.TopRated,
+			FilterArchived:        filters.Archived,
+			FilterBookmarked:      filters.Bookmarked,
+			UserID:                filters.UserID,
+			AuthorID:              filters.AuthorID,
+			SeriesID:              filters.SeriesID,
+			TagID:                 filters.TagID,
+			PublisherID:           filters.PublisherID,
+			LanguageID:            filters.LanguageID,
+			FileFormat:            filters.FileFormat,
+			ExcludeAudiobooks:     filters.ExcludeAudiobooks,
+			CursorSeriesName:      convert.StrPtrToNullString(cursorSeriesName),
+			CursorSeriesIndex:     cursorSeriesIndexFloat,
+			CursorID:              convert.StrPtrToNullString(&cursorID),
+			Limit:                 limit,
+		}
+
+		queryKey := cache.QueryKey("book:search:cursor:series", params)
+		if r.c != nil && !r.inTx {
+			var ids []string
+			if err := r.c.Get(ctx, queryKey, &ids); err == nil {
+				return r.GetBooksByIDs(ctx, ids)
+			}
+		}
+
+		value, err, _ := r.sfg.Do(queryKey, func() (any, error) {
+			rows, err := r.queries.SearchBookIDsOrderBySeries(ctx, params)
+			if err != nil {
+				return nil, err
+			}
+			ids := make([]string, len(rows))
+			for i, row := range rows {
+				ids[i] = row.ID
+			}
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, queryKey, ids, constants.ListCacheDuration)
+			}
+			return ids, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return r.GetBooksByIDs(ctx, value.([]string))
+	}
+
+	var cursorTime *time.Time
+	var cursorID string
+	if cursor != "" {
+		if parts := convert.DecodeCursor(cursor); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+			} else if t, err := time.Parse(time.RFC3339, parts[0]); err == nil {
+				cursorTime = &t
+			}
+			cursorID = parts[1]
+		} else if parts := strings.SplitN(cursor, "|", 2); len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
+				cursorTime = &t
+			} else if t, err := time.Parse(time.RFC3339, parts[0]); err == nil {
+				cursorTime = &t
+			}
+			cursorID = parts[1]
+		}
+	}
+
 	params := sqlc.SearchBookIDsParams{
 		LibraryID:             libID,
 		Search:                searchStr,
@@ -253,10 +459,11 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		LanguageID:            filters.LanguageID,
 		FileFormat:            filters.FileFormat,
 		ExcludeAudiobooks:     filters.ExcludeAudiobooks,
-		CursorCreatedAt:       cursorTimeArg(cursor),
+		CursorCreatedAt:       cursorTimeArg(cursorTime),
 		CursorID:              convert.StrPtrToNullString(&cursorID),
 		Limit:                 limit,
 	}
+
 	queryKey := cache.QueryKey("book:search:cursor", params)
 	if r.c != nil && !r.inTx {
 		var ids []string

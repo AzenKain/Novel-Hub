@@ -373,7 +373,8 @@
     "clear": "Clear",
     "back_to_library": "Back to Library",
     "title": "Title",
-    "actions": "Actions"
+    "actions": "Actions",
+    "view_analytics": "Analytics →"
   },
   "library": {
     "ready_to_read": "Ready to read",
@@ -710,7 +711,8 @@
     "top_languages": "Top Languages",
     "listening_history": "Listening by Month",
     "no_data": "No data yet",
-    "avg_speed": "Avg listening speed: {{wpm}} wpm"
+    "avg_speed": "Avg listening speed: {{wpm}} wpm",
+    "short_title": "Activity"
   },
   "review": {
     "submitted": "Review submitted successfully",

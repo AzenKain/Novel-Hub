@@ -1,6 +1,6 @@
 import { bookService, featureService } from "@/services";
 import type { Book, SearchBookParams } from "@/types";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 
 export function useBooksQuery(params: SearchBookParams, enabled = true) {
   return useInfiniteQuery({
@@ -17,6 +17,7 @@ export function useBooksQuery(params: SearchBookParams, enabled = true) {
         ? 3000
         : false,
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 

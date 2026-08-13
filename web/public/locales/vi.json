@@ -373,7 +373,8 @@
     "clear": "Thông thoáng",
     "back_to_library": "Quay lại Thư viện",
     "title": "Tiêu đề",
-    "actions": "hành động"
+    "actions": "hành động",
+    "view_analytics": "Phân tích →"
   },
   "library": {
     "ready_to_read": "Sẵn sàng đọc",
@@ -710,7 +711,8 @@
     "top_languages": "Ngôn ngữ hàng đầu",
     "listening_history": "Nghe theo tháng",
     "no_data": "Chưa có dữ liệu",
-    "avg_speed": "Tốc độ nghe trung bình: {{wpm}} từ/phút"
+    "avg_speed": "Tốc độ nghe trung bình: {{wpm}} từ/phút",
+    "short_title": "Hoạt động"
   },
   "review": {
     "submitted": "Gửi đánh giá thành công",

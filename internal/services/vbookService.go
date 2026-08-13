@@ -144,7 +144,7 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 					facet = "tag"
 				}
 			}
-			books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, nil, "", int64(limit*p+1))
+			books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, "", int64(limit*p+1))
 			if err != nil {
 				return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 			}
@@ -193,7 +193,11 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 		}
 	}
 
-	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, cursorTime, cursorID, int64(limit+1))
+	cursorStr := ""
+	if cursorTime != nil {
+		cursorStr = cursorTime.Format(time.RFC3339Nano) + "|" + cursorID
+	}
+	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, cursorStr, int64(limit+1))
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 	}

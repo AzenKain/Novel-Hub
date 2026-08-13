@@ -341,7 +341,11 @@ func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string,
 	var cursor *time.Time
 	cursorID := ""
 	for {
-		books, searchErr := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", cursor, cursorID, 100)
+		cursorStr := ""
+		if cursor != nil {
+			cursorStr = cursor.Format(time.RFC3339Nano) + "|" + cursorID
+		}
+		books, searchErr := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", "", cursorStr, 100)
 		if searchErr != nil {
 			return searchErr
 		}

@@ -373,7 +373,8 @@
     "clear": "クリア",
     "back_to_library": "ライブラリに戻る",
     "title": "タイトル",
-    "actions": "アクション"
+    "actions": "アクション",
+    "view_analytics": "分析 →"
   },
   "library": {
     "ready_to_read": "読む準備ができました",
@@ -710,7 +711,8 @@
     "top_languages": "上位言語",
     "listening_history": "月別リスニング",
     "no_data": "データがありません",
-    "avg_speed": "平均リスニング速度: {{wpm}} wpm"
+    "avg_speed": "平均リスニング速度: {{wpm}} wpm",
+    "short_title": "アクティビティ"
   },
   "review": {
     "submitted": "レビューが正常に送信されました",

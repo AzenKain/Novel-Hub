@@ -41,6 +41,7 @@ interface LibraryState {
   metadataSort: "name-asc" | "name-desc" | "count-desc";
   topBooks: BookType[];
   activeSmartFilterId: string | null;
+  sort: "recently_added" | "title_az" | "series_order";
 
   setBooks: (books: BookType[]) => void;
   setLoading: (loading: boolean) => void;
@@ -71,6 +72,7 @@ interface LibraryState {
   setMetadataSort: (sort: "name-asc" | "name-desc" | "count-desc") => void;
   setTopBooks: (books: BookType[]) => void;
   setActiveSmartFilterId: (id: string | null) => void;
+  setSort: (sort: "recently_added" | "title_az" | "series_order") => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
@@ -106,6 +108,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   metadataSort: "name-asc",
   topBooks: [],
   activeSmartFilterId: null,
+  sort: "recently_added",
 
   setBooks: (books) => set({ books }),
   setCollections: (collections) => set({ collections }),
@@ -157,4 +160,5 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   setMetadataSort: (metadataSort) => set({ metadataSort }),
   setTopBooks: (topBooks) => set({ topBooks }),
   setActiveSmartFilterId: (activeSmartFilterId) => set({ activeSmartFilterId }),
+  setSort: (sort) => set({ sort }),
 }));

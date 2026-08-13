@@ -373,7 +373,8 @@
     "clear": "स्पष्ट",
     "back_to_library": "लाइब्रेरी को लौटें",
     "title": "शीर्षक",
-    "actions": "कार्रवाई"
+    "actions": "कार्रवाई",
+    "view_analytics": "विश्लेषण →"
   },
   "library": {
     "ready_to_read": "पढ़ने के लिए तैयार",
@@ -710,7 +711,8 @@
     "top_languages": "शीर्ष भाषाएँ",
     "listening_history": "महीने के अनुसार सुनना",
     "no_data": "अभी कोई डेटा नहीं",
-    "avg_speed": "औसत सुनने की गति: {{wpm}} शब्द/मिनट"
+    "avg_speed": "औसत सुनने की गति: {{wpm}} शब्द/मिनट",
+    "short_title": "गतिविधि"
   },
   "review": {
     "submitted": "समीक्षा सफलतापूर्वक जमा हुई",

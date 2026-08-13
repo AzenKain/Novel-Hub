@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"time"
+
 	_ "modernc.org/sqlite"
 
 	"novelhub/pkg/cache"
@@ -48,7 +50,7 @@ func TestExportManyBooksInClause(t *testing.T) {
 	}
 
 	lib := "lib1"
-	books, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", nil, "", 1000000)
+	books, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "", "", 1000000)
 	if err != nil {
 		t.Fatalf("export-style SearchBooks failed with %d books: %v", n, err)
 	}
@@ -150,7 +152,7 @@ func TestSearchBooksCursorTiebreaker(t *testing.T) {
 
 	lib := "lib1"
 	// Page 1: limit 3 → newest 3 by (created_at DESC, id DESC): b5, b4, b3
-	page1, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", nil, "", 3)
+	page1, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "", "", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +164,8 @@ func TestSearchBooksCursorTiebreaker(t *testing.T) {
 	cursorID := last.ID
 
 	// Page 2 from the tie point must return the remaining b2, b1 — not empty.
-	page2, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", &cursorTime, cursorID, 3)
+	cursorStr := cursorTime.Format(time.RFC3339Nano) + "|" + cursorID
+	page2, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "", cursorStr, 3)
 	if err != nil {
 		t.Fatal(err)
 	}

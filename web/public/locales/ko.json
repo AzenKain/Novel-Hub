@@ -373,7 +373,8 @@
     "clear": "분명한",
     "back_to_library": "도서관으로 돌아가기",
     "title": "제목",
-    "actions": "행위"
+    "actions": "행위",
+    "view_analytics": "분석 →"
   },
   "library": {
     "ready_to_read": "읽을 준비 완료",
@@ -710,7 +711,8 @@
     "top_languages": "인기 언어",
     "listening_history": "월별 청취",
     "no_data": "데이터 없음",
-    "avg_speed": "평균 청취 속도: {{wpm}} wpm"
+    "avg_speed": "평균 청취 속도: {{wpm}} wpm",
+    "short_title": "활동"
   },
   "review": {
     "submitted": "리뷰가 성공적으로 제출되었습니다",
