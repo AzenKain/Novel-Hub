@@ -220,7 +220,9 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		libID = *libraryID
 	}
 	if search != nil && *search != "" {
-		searchStr = *search
+		if match, ok := ftsMatchQuery(*search); ok {
+			searchStr = match
+		}
 	}
 
 	params := sqlc.SearchBookIDsParams{

@@ -11,8 +11,12 @@ import (
 )
 
 func (r *bookDBRepository) SearchFTS(ctx context.Context, query string, limit, offset int64) ([]*models.FTSResultEntity, error) {
+	match, ok := ftsMatchQuery(query)
+	if !ok {
+		return []*models.FTSResultEntity{}, nil
+	}
 	params := sqlc.SearchFTSParams{
-		Content: query,
+		Content: match,
 		Limit:   limit,
 		Offset:  offset,
 	}
@@ -83,7 +87,11 @@ func (r *bookDBRepository) getFTSResultsByIDs(ctx context.Context, ids []string)
 }
 
 func (r *bookDBRepository) SearchFTSInBook(ctx context.Context, bookID, query string) ([]*models.BookSearchSnippet, error) {
-	params := sqlc.SearchFTSInBookParams{Content: query, BookID: bookID, Limit: 50, Offset: 0}
+	match, ok := ftsMatchQuery(query)
+	if !ok {
+		return []*models.BookSearchSnippet{}, nil
+	}
+	params := sqlc.SearchFTSInBookParams{Content: match, BookID: bookID, Limit: 50, Offset: 0}
 	key := cache.QueryKey("fts:book-search", params)
 	if r.c != nil && !r.inTx {
 		var ids []string
