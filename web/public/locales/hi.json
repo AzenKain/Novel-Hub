@@ -133,7 +133,7 @@
     "delete_selected_books": "चुने गए हटाएँ",
     "primary_copy": "मुख्य प्रति",
     "keep_this_only": "केवल यही रखें",
-    "confirm_delete_file": "क्या आप वाकई यह फ़ाइल हटाना चाहते हैं?",
+    "confirm_delete_file": "क्या आप वाकई इस फ़ाइल प्रारूप को हटाना चाहते हैं?",
     "confirm_keep_one": "यह फ़ाइल रखें और डुप्लिकेट प्रतियाँ हटाएँ?",
     "confirm_delete_selected": "चुनी गई डुप्लिकेट फ़ाइलें हटाएँ?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "\"{{source}}\" को \"{{target}}\" में मर्ज करें? पहली पुस्तक के सभी अध्याय, फ़ाइलें और पठन डेटा दूसरी में स्थानांतरित हो जाएँगे, फिर पहली हटा दी जाएगी।",
     "confirm_merge_title": "पुस्तकें मर्ज करें",
     "merge_books_success": "पुस्तकें मर्ज हो गईं",
-    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?",
+    "delete_file": "फ़ाइल प्रारूप हटाएँ"
   },
   "auth": {
     "login_to_account": "अपने खाते में साइन इन करें",
@@ -571,7 +572,9 @@
     "profile_update_failed": "आपकी प्रोफ़ाइल सहेजी नहीं जा सकी",
     "password_change_failed": "आपका पासवर्ड बदला नहीं जा सका",
     "password_relogin_note": "पासवर्ड बदलने के बाद आप लॉग आउट हो जाएँगे।",
-    "update_password": "पासवर्ड अद्यतन करें"
+    "update_password": "पासवर्ड अद्यतन करें",
+    "avatar_updated_success": "प्रोफ़ाइल चित्र सफलतापूर्वक अपडेट किया गया!",
+    "avatar_removed_success": "प्रोफ़ाइल चित्र सफलतापूर्वक हटा दिया गया!"
   },
   "reader": {
     "readlist_next": "आगे: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "इसमें कनवर्ट करें…",
     "convert_queued": "रूपांतरण कतार में है (कार्य {{job_id}})",
     "convert_done": "रूपांतरण पूर्ण",
-    "convert_failed": "रूपांतरण विफल"
+    "convert_failed": "रूपांतरण विफल",
+    "manage": "प्रबंधन",
+    "convert_format": "प्रारूप बदलें",
+    "convert_title": "पुस्तक प्रारूप बदलें",
+    "select_source_file": "स्रोत फ़ाइल",
+    "select_target_format": "लक्ष्य प्रारूप",
+    "start_conversion": "रूपांतरण शुरू करें",
+    "convert_no_file": "कृपया रूपांतरित करने के लिए एक फ़ाइल चुनें",
+    "convert_replace_warning": "इस पुस्तक में पहले से ही एक {{format}} फ़ाइल है। आगे बढ़ने पर मौजूदा फ़ाइल बदल दी जाएगी।",
+    "convert_confirm_replace": "हाँ, मौजूदा फ़ाइल को बदलें",
+    "bulk_convert_title": "पुस्तकों का थोक रूपांतरण",
+    "bulk_convert_global_format": "सभी चयनित पुस्तकों के लिए लक्ष्य प्रारूप सेट करें:",
+    "bulk_convert_start": "थोक रूपांतरण प्रारंभ करें",
+    "bulk_convert_success": "{{count}} रूपांतरण कार्य सफलतापूर्वक कतारबद्ध किए गए",
+    "bulk_convert_failed": "कुछ रूपांतरण कार्य प्रारंभ करने में विफल रहे",
+    "no_files_convert": "रूपांतरित करने के लिए कोई फ़ाइल उपलब्ध नहीं है"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -1176,7 +1194,20 @@
     "start_merge": "मर्ज शुरू करें",
     "merge_need_two": "कम से कम 2 ऑडियो फ़ाइलें चुनें",
     "merge_queued": "मर्ज कार्य शुरू हुआ",
-    "merge_failed": "मर्ज शुरू नहीं हो सका"
+    "merge_failed": "मर्ज शुरू नहीं हो सका",
+    "merge_not_ready": "ऑडियो डिकोड हो रहा है — सभी सेगमेंट की अवधि आने तक प्रतीक्षा करें",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "पॉडकास्ट",

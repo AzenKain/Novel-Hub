@@ -8,10 +8,11 @@ import (
 )
 
 // SupportedTargets lists the output formats the pure-Go converters can write.
-// PDF/MOBI/AZW3 output is not supported: writing those binary formats correctly
-// needs a full layout engine / MOBI encoder, which is out of scope for a
-// self-contained converter. Reading them as *input* works (bookparser).
-var SupportedTargets = []string{"epub", "fb2", "txt", "docx", "cbz"}
+// PDF/MOBI/AZW output is a real (if minimal) writer; azw3/KF8 is not supported
+// because its proprietary container (rawml + duplicate sections) needs a
+// dedicated encoder that is out of scope. Reading those as *input* works
+// (bookparser).
+var SupportedTargets = []string{"epub", "fb2", "txt", "docx", "cbz", "kepub.epub", "mobi", "azw", "pdf"}
 
 // Image is one embedded asset carried from the source into a target format.
 type Image struct {
@@ -49,9 +50,15 @@ func Convert(reg bookparser.Registry, format string, path string, target string)
 	case "txt":
 		return writeTXT(book)
 	case "docx":
-		return writeDOCX(book)
+		return writeDOCX(book, images)
 	case "cbz":
 		return writeCBZ(images)
+	case "kepub.epub":
+		return writeKEPUB(book, images)
+	case "mobi", "azw":
+		return writeMOBI(book, images)
+	case "pdf":
+		return writePDF(book, images)
 	}
 	return nil, fmt.Errorf("target format %q is not supported", target)
 }

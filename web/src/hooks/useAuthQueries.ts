@@ -128,6 +128,16 @@ export function useUpdateProfileMutation() {
   });
 }
 
+export function useUploadAvatarMutation() {
+  return useMutation({
+    mutationFn: async (file: File | Blob) => {
+      const res = await authService.uploadAvatar(file);
+      if (!res.status || !res.data) throw new Error(res.message || "Failed to upload avatar");
+      return res.data.url;
+    },
+  });
+}
+
 export function useRequestOTPMutation() {
   return useMutation({
     mutationFn: async ({ email, purpose }: { email: string; purpose: OTPPurpose }) => {

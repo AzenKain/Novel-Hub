@@ -1,5 +1,5 @@
 import { adminService, bookService, featureService, libraryService } from "@/services";
-import type { Collection, ConvertBookPayload, DuplicateGroupResult, Library, LibraryStats, MergeBooksPayload, PotentialDuplicateResult, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
+import type { Collection, ConvertBookPayload, BulkConvertPayload, DuplicateGroupResult, Library, LibraryStats, MergeBooksPayload, PotentialDuplicateResult, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
 import i18n from "@/i18n";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -222,6 +222,22 @@ export function useConvertBookMutation() {
       const res = await bookService.convertBook(id, payload);
       if (!res.status) throw new Error(res.message || "Failed to convert book");
       return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+      void queryClient.invalidateQueries({ queryKey: ["book"] });
+      void queryClient.invalidateQueries({ queryKey: ["library"] });
+    },
+  });
+}
+
+export function useBulkConvertBookMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: BulkConvertPayload) => {
+      const res = await bookService.bulkConvertBooks(payload);
+      if (!res.status) throw new Error(res.message || "Failed to convert books");
+      return res.data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["books"] });

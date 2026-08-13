@@ -133,7 +133,7 @@
     "delete_selected_books": "선택 항목 삭제",
     "primary_copy": "원본 복사본",
     "keep_this_only": "이 파일만 유지",
-    "confirm_delete_file": "이 파일을 삭제하시겠습니까?",
+    "confirm_delete_file": "이 파일 형식을 삭제하시겠습니까?",
     "confirm_keep_one": "이 파일만 유지하고 다른 중복 복사본을 삭제하시겠습니까?",
     "confirm_delete_selected": "선택한 중복 파일을 삭제하시겠습니까?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "\"{{source}}\"을(를) \"{{target}}\"에 병합하시겠습니까? 첫 번째 책의 모든 챕터, 파일, 읽기 데이터가 두 번째 책으로 합쳐지고 첫 번째 책이 삭제됩니다.",
     "confirm_merge_title": "책 병합",
     "merge_books_success": "책을 병합했습니다",
-    "confirm_keep_one_msg": "이 복사본을 유지하고 {{count}}개의 중복 복사본을 삭제하시겠습니까?"
+    "confirm_keep_one_msg": "이 복사본을 유지하고 {{count}}개의 중복 복사본을 삭제하시겠습니까?",
+    "delete_file": "파일 형식 삭제"
   },
   "auth": {
     "login_to_account": "계정에 로그인",
@@ -571,7 +572,9 @@
     "profile_update_failed": "프로필을 저장하지 못했습니다",
     "password_change_failed": "비밀번호를 변경하지 못했습니다",
     "password_relogin_note": "비밀번호를 변경하면 로그아웃됩니다.",
-    "update_password": "비밀번호 업데이트"
+    "update_password": "비밀번호 업데이트",
+    "avatar_updated_success": "프로필 이미지가 성공적으로 업데이트되었습니다!",
+    "avatar_removed_success": "프로필 이미지가 성공적으로 삭제되었습니다!"
   },
   "reader": {
     "readlist_next": "다음: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "변환…",
     "convert_queued": "변환이 대기열에 추가됨 (작업 {{job_id}})",
     "convert_done": "변환 완료",
-    "convert_failed": "변환 실패"
+    "convert_failed": "변환 실패",
+    "manage": "관리",
+    "convert_format": "형식 변환",
+    "convert_title": "책 형식 변환",
+    "select_source_file": "원본 파일",
+    "select_target_format": "대상 형식",
+    "start_conversion": "변환 시작",
+    "convert_no_file": "변환할 파일을 선택하십시오",
+    "convert_replace_warning": "이 책에는 이미 {{format}} 파일이 있습니다. 계속하면 기존 파일이 대체됩니다.",
+    "convert_confirm_replace": "예, 기존 파일 교체",
+    "bulk_convert_title": "일괄 도서 변환",
+    "bulk_convert_global_format": "선택한 모든 도서의 대상 형식 설정:",
+    "bulk_convert_start": "일괄 변환 시작",
+    "bulk_convert_success": "{{count}}개의 변환 작업이 대기열에 성공적으로 추가되었습니다",
+    "bulk_convert_failed": "일부 변환 작업을 시작하지 못했습니다",
+    "no_files_convert": "변환할 수 있는 파일이 없습니다"
   },
   "settings": {
     "title": "설정",
@@ -1176,7 +1194,20 @@
     "start_merge": "병합 시작",
     "merge_need_two": "오디오 파일을 2개 이상 선택하세요",
     "merge_queued": "병합 작업이 시작되었습니다",
-    "merge_failed": "병합을 시작하지 못했습니다"
+    "merge_failed": "병합을 시작하지 못했습니다",
+    "merge_not_ready": "오디오 디코딩 중 — 모든 세그먼트에 재생 시간이 생기까지 기다려 주세요",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "팟캐스트",

@@ -47,7 +47,8 @@ func TestAutoEnrichBook_Success(t *testing.T) {
 	// Set up local mock API server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/anilist" {
+		switch r.URL.Path {
+case "/anilist":
 			w.Write([]byte(`{
 				"data": {
 					"Page": {
@@ -80,11 +81,11 @@ func TestAutoEnrichBook_Success(t *testing.T) {
 					}
 				}
 			}`))
-		} else if r.URL.Path == "/openlibrary" {
+		case "/openlibrary":
 			w.WriteHeader(http.StatusNotFound)
-		} else if r.URL.Path == "/googlebooks" {
+		case "/googlebooks":
 			w.WriteHeader(http.StatusNotFound)
-		} else {
+		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))

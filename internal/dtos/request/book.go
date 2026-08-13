@@ -62,3 +62,13 @@ type ConvertBookDto struct {
 	TargetFormat string `json:"target_format" validate:"required"`
 }
 
+type BulkConvertItemDto struct {
+	BookID       string `json:"book_id" validate:"required"`
+	FileID       string `json:"file_id" validate:"required"`
+	TargetFormat string `json:"target_format" validate:"required"`
+}
+
+type BulkConvertDto struct {
+	Items []BulkConvertItemDto `json:"items" validate:"required,dive"`
+}
+

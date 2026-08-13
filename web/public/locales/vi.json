@@ -1,5 +1,7 @@
 {
   "admin": {
+    "confirm_delete_file": "Bạn có chắc chắn muốn xóa tệp này?",
+    "delete_file": "Xóa định dạng tệp",
     "library": "Thư viện",
     "books": "Sách",
     "users": "Người dùng",
@@ -133,7 +135,6 @@
     "delete_selected_books": "Xóa mục đã chọn",
     "primary_copy": "Bản gốc",
     "keep_this_only": "Giữ duy nhất bản này",
-    "confirm_delete_file": "Bạn có chắc chắn muốn xóa tệp này?",
     "confirm_keep_one": "Bạn có muốn giữ lại tệp này và xóa tất cả bản trùng lặp khác?",
     "confirm_delete_selected": "Xóa các tệp đã chọn?",
     "operations": {
@@ -571,7 +572,9 @@
     "profile_update_failed": "Không lưu được hồ sơ",
     "password_change_failed": "Không đổi được mật khẩu",
     "password_relogin_note": "Bạn sẽ bị đăng xuất sau khi đổi mật khẩu.",
-    "update_password": "Cập nhật mật khẩu"
+    "update_password": "Cập nhật mật khẩu",
+    "avatar_updated_success": "Cập nhật ảnh đại diện thành công!",
+    "avatar_removed_success": "Xóa ảnh đại diện thành công!"
   },
   "reader": {
     "readlist_next": "Tiếp: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Chuyển đổi sang…",
     "convert_queued": "Đã xếp hàng chuyển đổi (job {{job_id}})",
     "convert_done": "Hoàn tất chuyển đổi",
-    "convert_failed": "Chuyển đổi thất bại"
+    "convert_failed": "Chuyển đổi thất bại",
+    "manage": "Quản lý",
+    "convert_format": "Chuyển đổi định dạng",
+    "convert_title": "Chuyển đổi định dạng sách",
+    "select_source_file": "Tệp nguồn",
+    "select_target_format": "Định dạng đầu ra",
+    "start_conversion": "Bắt đầu chuyển đổi",
+    "convert_no_file": "Vui lòng chọn một tệp để chuyển đổi",
+    "convert_replace_warning": "Sách này đã có tệp {{format}}. Tiếp tục sẽ ghi đè lên tệp cũ.",
+    "convert_confirm_replace": "Tôi đồng ý ghi đè lên tệp cũ",
+    "bulk_convert_title": "Chuyển đổi định dạng hàng loạt",
+    "bulk_convert_global_format": "Thiết lập định dạng đầu ra cho tất cả các sách đã chọn:",
+    "bulk_convert_start": "Bắt đầu chuyển đổi hàng loạt",
+    "bulk_convert_success": "Đã thêm thành công {{count}} yêu cầu chuyển đổi vào hàng chờ",
+    "bulk_convert_failed": "Một số yêu cầu chuyển đổi không thể bắt đầu",
+    "no_files_convert": "Không có tệp sách để chuyển đổi"
   },
   "settings": {
     "title": "Cài đặt",
@@ -1176,7 +1194,20 @@
     "start_merge": "Bắt đầu gộp",
     "merge_need_two": "Chọn ít nhất 2 tệp âm thanh",
     "merge_queued": "Đã bắt đầu tác vụ gộp",
-    "merge_failed": "Không thể bắt đầu gộp"
+    "merge_failed": "Không thể bắt đầu gộp",
+    "merge_not_ready": "Đang giải mã âm thanh — hãy đợi cho đến khi tất cả các đoạn có thời lượng",
+    "timeline": "Dòng thời gian âm thanh",
+    "zoom_out": "Thu nhỏ",
+    "zoom_in": "Phóng to",
+    "remove_segment": "Xóa đoạn này",
+    "playhead": "Thanh tua",
+    "split_track_desc": "Tách đoạn tại vị trí hiện tại",
+    "split_track": "Tách đoạn",
+    "total_duration": "Tổng thời lượng",
+    "remove_from_timeline": "Xóa khỏi timeline",
+    "cannot_split_close": "Không thể tách quá gần ranh giới đoạn (tối thiểu 0.5s từ cạnh)",
+    "timeline_split_success": "Đã tách đoạn trên dòng thời gian!",
+    "submitting_merge": "Đang gửi yêu cầu gộp lên máy chủ..."
   },
   "podcasts": {
     "title": "Podcast",

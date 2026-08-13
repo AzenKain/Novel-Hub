@@ -133,7 +133,7 @@
     "delete_selected_books": "Auswahl löschen",
     "primary_copy": "Hauptkopie",
     "keep_this_only": "Nur diese behalten",
-    "confirm_delete_file": "Soll die Datei wirklich gelöscht werden?",
+    "confirm_delete_file": "Sind Sie sicher, dass Sie dieses Dateiformat löschen möchten?",
     "confirm_keep_one": "Diese Datei behalten und die doppelten Kopien löschen?",
     "confirm_delete_selected": "Ausgewählte doppelte Dateien löschen?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "„{{source}}\" in „{{target}}\" zusammenführen? Alle Kapitel, Dateien und Lesedaten des ersten Buchs werden in das zweite übernommen, danach wird das erste gelöscht.",
     "confirm_merge_title": "Bücher zusammenführen",
     "merge_books_success": "Bücher zusammengeführt",
-    "confirm_keep_one_msg": "Sind Sie sicher, dass Sie diese Kopie behalten und {{count}} doppelte Kopie(n) löschen möchten?"
+    "confirm_keep_one_msg": "Sind Sie sicher, dass Sie diese Kopie behalten und {{count}} doppelte Kopie(n) löschen möchten?",
+    "delete_file": "Dateiformat löschen"
   },
   "auth": {
     "login_to_account": "Bei deinem Konto anmelden",
@@ -571,7 +572,9 @@
     "profile_update_failed": "Dein Profil konnte nicht gespeichert werden",
     "password_change_failed": "Dein Passwort konnte nicht geändert werden",
     "password_relogin_note": "Nach der Passwortänderung wirst du abgemeldet.",
-    "update_password": "Passwort aktualisieren"
+    "update_password": "Passwort aktualisieren",
+    "avatar_updated_success": "Profilbild erfolgreich aktualisiert!",
+    "avatar_removed_success": "Profilbild erfolgreich entfernt!"
   },
   "reader": {
     "readlist_next": "Als Nächstes: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Konvertieren zu…",
     "convert_queued": "Konvertierung in Warteschlange (Job {{job_id}})",
     "convert_done": "Konvertierung abgeschlossen",
-    "convert_failed": "Konvertierung fehlgeschlagen"
+    "convert_failed": "Konvertierung fehlgeschlagen",
+    "manage": "Verwalten",
+    "convert_format": "Format konvertieren",
+    "convert_title": "Buchformat konvertieren",
+    "select_source_file": "Quelldatei",
+    "select_target_format": "Zielformat",
+    "start_conversion": "Konvertierung starten",
+    "convert_no_file": "Bitte wählen Sie eine Datei zum Konvertieren aus",
+    "convert_replace_warning": "Dieses Buch hat bereits eine {{format}}-Datei. Fortfahren wird die vorhandene Datei ersetzen.",
+    "convert_confirm_replace": "Ja, die vorhandene Datei ersetzen",
+    "bulk_convert_title": "Bücher massenhaft konvertieren",
+    "bulk_convert_global_format": "Zielformat für alle ausgewählten Bücher festlegen:",
+    "bulk_convert_start": "Massenkonvertierung starten",
+    "bulk_convert_success": "{{count}} Konvertierungsaufträge erfolgreich in die Warteschlange eingereiht",
+    "bulk_convert_failed": "Einige Konvertierungsaufträge konnten nicht gestartet werden",
+    "no_files_convert": "Keine Dateien zum Konvertieren verfügbar"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1176,7 +1194,20 @@
     "start_merge": "Zusammenführen starten",
     "merge_need_two": "Wählen Sie mindestens 2 Audiodateien aus",
     "merge_queued": "Zusammenführungsauftrag gestartet",
-    "merge_failed": "Zusammenführung konnte nicht gestartet werden"
+    "merge_failed": "Zusammenführung konnte nicht gestartet werden",
+    "merge_not_ready": "Audio wird noch dekodiert — warten Sie, bis alle Segmente eine Dauer haben",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcasts",

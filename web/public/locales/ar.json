@@ -133,7 +133,7 @@
     "delete_selected_books": "حذف المحدد",
     "primary_copy": "النسخة الأساسية",
     "keep_this_only": "الإبقاء على هذه فقط",
-    "confirm_delete_file": "هل تريد بالتأكيد حذف هذا الملف؟",
+    "confirm_delete_file": "هل أنت متأكد أنك تريد حذف تنسيق الملف هذا؟",
     "confirm_keep_one": "الإبقاء على هذا الملف وحذف النسخ المكررة؟",
     "confirm_delete_selected": "حذف الملفات المكررة المحددة؟",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "دمج «{{source}}» في «{{target}}»؟ سيتم نقل جميع الفصول والملفات وبيانات القراءة من الكتاب الأول إلى الثاني، ثم يُحذف الأول.",
     "confirm_merge_title": "دمج الكتب",
     "merge_books_success": "تم دمج الكتب",
-    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?",
+    "delete_file": "حذف تنسيق الملف"
   },
   "auth": {
     "login_to_account": "تسجيل الدخول إلى حسابك",
@@ -571,7 +572,9 @@
     "profile_update_failed": "تعذّر حفظ ملفك الشخصي",
     "password_change_failed": "تعذّر تغيير كلمة مرورك",
     "password_relogin_note": "سيتم تسجيل خروجك بعد تغيير كلمة المرور.",
-    "update_password": "تحديث كلمة المرور"
+    "update_password": "تحديث كلمة المرور",
+    "avatar_updated_success": "تم تحديث الصورة الشخصية بنجاح!",
+    "avatar_removed_success": "تم إزالة الصورة الشخصية بنجاح!"
   },
   "reader": {
     "readlist_next": "التالي: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "تحويل إلى…",
     "convert_queued": "تمت إضافة التحويل إلى قائمة الانتظار (مهمة {{job_id}})",
     "convert_done": "اكتمل التحويل",
-    "convert_failed": "فشل التحويل"
+    "convert_failed": "فشل التحويل",
+    "manage": "إدارة",
+    "convert_format": "تحويل التنسيق",
+    "convert_title": "تحويل تنسيق الكتاب",
+    "select_source_file": "الملف المصدر",
+    "select_target_format": "التنسيق المستهدف",
+    "start_conversion": "بدء التحويل",
+    "convert_no_file": "يرجى تحديد ملف لتحويله",
+    "convert_replace_warning": "يحتوي هذا الكتاب بالفعل على ملف {{format}}. المتابعة ستستبدل الملف الحالي.",
+    "convert_confirm_replace": "نعم، استبدل الملف الحالي",
+    "bulk_convert_title": "تحويل الكتب بالجملة",
+    "bulk_convert_global_format": "تعيين التنسيق المستهدف لجميع الكتب المحددة:",
+    "bulk_convert_start": "بدء التحويل بالجملة",
+    "bulk_convert_success": "تمت إضافة {{count}} من مهام التحويل إلى قائمة الانتظار بنجاح",
+    "bulk_convert_failed": "فشل بدء بعض مهام التحويل",
+    "no_files_convert": "لا توجد ملفات متاحة للتحويل"
   },
   "settings": {
     "title": "الإعدادات",
@@ -1176,7 +1194,20 @@
     "start_merge": "بدء الدمج",
     "merge_need_two": "اختر ملفين صوتيين على الأقل",
     "merge_queued": "بدأت مهمة الدمج",
-    "merge_failed": "تعذر بدء الدمج"
+    "merge_failed": "تعذر بدء الدمج",
+    "merge_not_ready": "ما زال التفكيك قائماً — انتظر حتى يكون لكل مقطع مدة",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "البودكاست",

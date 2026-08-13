@@ -35,7 +35,7 @@ import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
 import { useAudiobookChaptersQuery } from "@/hooks/useAudiobookQueries";
 import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
-import { isVisualChapter } from "@/utils/readerHtml";
+import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
 
 export const ReaderWorkspace = () => {
   const { book_id } = useParams<{ book_id: string }>();
@@ -443,14 +443,14 @@ export const ReaderWorkspace = () => {
           const sorted = [...loaded.chapters].sort((a, b) => a.chapter_index - b.chapter_index);
           setChapters(sorted);
           if (sorted.length > 0) {
-            let targetChapter = sorted[0];
+            let targetChapter = sorted.find((ch) => !isNavOnlyChapter(ch.title)) || sorted[0];
             let location_cfi: string | undefined = undefined;
             const startOver = searchParams.get("start_over") === "true";
 
             if (!startOver && progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
               const progress = progressRes.value.data;
               const found = sorted.find(ch => ch.id === progress.chapter_id);
-              if (found) {
+              if (found && !isNavOnlyChapter(found.title)) {
                 targetChapter = found;
                 if (progress.location_cfi && progress.location_cfi.startsWith("epubcfi(")) {
                   location_cfi = progress.location_cfi;
@@ -708,6 +708,13 @@ export const ReaderWorkspace = () => {
   const nextInSeries = !hasNextChapter && !nextInReadList && seriesContext?.next ? seriesContext.next : undefined;
   const canGoNext = hasNextChapter || !!nextInReadList || !!nextInSeries;
 
+  const nextTooltip = useMemo(() => {
+    if (hasNextChapter) return t("reader.next_chapter", "Next Chapter");
+    if (nextInReadList) return t("reader.readlist_next", "Next: {{title}}", { title: nextInReadList.title });
+    if (nextInSeries) return t("reader.readlist_next", "Next: {{title}}", { title: nextInSeries.title });
+    return undefined;
+  }, [hasNextChapter, nextInReadList, nextInSeries, t]);
+
   const goToNextInReadList = () => {
     if (!nextInReadList) return;
     navigate(`/reader/${nextInReadList.id}?readlist=${readListId}`);
@@ -862,6 +869,7 @@ export const ReaderWorkspace = () => {
             lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
             setSearchOpen(true);
           }}
+          nextTooltip={nextTooltip}
         />
 
         {/* Reader Scrollable Area */}
@@ -958,7 +966,7 @@ export const ReaderWorkspace = () => {
                   </div>
                 )}
                 
-                {nextInReadList && (
+                {!isPdf && !isAudio && scrollLayout && nextInReadList && (
                   <button
                     className="btn btn-primary btn-sm mx-auto mt-6 flex gap-1.5 rounded-xl"
                     onClick={goToNextInReadList}
@@ -967,7 +975,7 @@ export const ReaderWorkspace = () => {
                   </button>
                 )}
 
-                {!nextInReadList && nextInSeries && (
+                {!isPdf && !isAudio && scrollLayout && !nextInReadList && nextInSeries && (
                   <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-5 shadow-sm text-center">
                     <p className="text-xs font-bold uppercase tracking-wider text-primary">
                       {t("reader.series_next_label", "Next Volume in Series")}
@@ -1055,6 +1063,10 @@ export const ReaderWorkspace = () => {
         onUpdateHighlight={allowHighlights ? (id, color, note) => void updateHighlight(id, color, note) : undefined}
         onDeleteHighlight={allowHighlights ? (id) => void removeHighlight(id) : undefined}
         onSelectHighlight={handleSelectHighlight}
+        nextInSeries={seriesContext?.next}
+        nextInReadList={readListNext?.has_next ? readListNext.book : undefined}
+        onGoToNextInSeries={goToNextInSeries}
+        onGoToNextInReadList={goToNextInReadList}
       />
 
       {selectionRange && (

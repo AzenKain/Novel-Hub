@@ -51,6 +51,20 @@ export const authService = {
     }
   },
 
+  async uploadAvatar(file: File | Blob): Promise<CommonResponse<{ url: string }>> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/users/current/avatar", formData);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<{ url: string }>;
+      }
+      throw error;
+    }
+  },
+
   async changePassword(data: ChangePasswordRequest): Promise<CommonResponse<void>> {
     try {
       const response = await api.patch("/users/current/password", data);

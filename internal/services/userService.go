@@ -3,6 +3,11 @@ package services
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -16,8 +21,11 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/bookparser"
+	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/database"
+	"novelhub/pkg/localfs"
 
 	"novelhub/pkg/convert"
 	"novelhub/pkg/worker"
@@ -37,6 +45,7 @@ type UserService interface {
 	SendEmail(ctx context.Context, userID string, dto *request.SendUserEmailDto) error
 	ExecuteSendUserEmailJob(ctx context.Context, payloadJSON string) error
 	SetJobQueue(jobQueue *worker.Queue)
+	UploadAvatar(ctx context.Context, userID string, fileHeader *multipart.FileHeader) (string, error)
 }
 
 type userService struct {
@@ -653,4 +662,64 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	u.markOwner(ctx, items...)
 	u.describeRoles(items...)
 	return response.BuildCursorPaginatedResponse(items, total, dto.Limit, nextCursor), nil
+}
+
+func (s *userService) UploadAvatar(ctx context.Context, userID string, fileHeader *multipart.FileHeader) (string, error) {
+	if fileHeader == nil {
+		return "", apperrors.New(apperrors.ErrBadRequest, "No file uploaded")
+	}
+
+	limit := s.settings.Limits().SiteAssetBytes
+	if fileHeader.Size > limit {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Uploaded file exceeds size limit")
+	}
+
+	f, err := fileHeader.Open()
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to open uploaded file")
+	}
+	defer f.Close()
+
+	fileData, err := io.ReadAll(f)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to read uploaded file")
+	}
+
+	ext, err := bookparser.ValidateImage(fileData, limit)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Uploaded file must be a valid JPEG, PNG, or GIF image")
+	}
+
+	publicDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "public")
+	if err := os.MkdirAll(publicDir, 0755); err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to create public directory")
+	}
+
+	// Always overwrite the same file to prevent accumulation of old user avatars (junk files)
+	outFilename := fmt.Sprintf("avatar_%s%s", userID, ext)
+	destPath, err := localfs.SafeJoin(publicDir, outFilename)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Invalid file destination path")
+	}
+
+	if err := os.WriteFile(destPath, fileData, 0644); err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to save avatar file")
+	}
+
+	id, ferr := convert.ParseID(userID)
+	if ferr == nil {
+		if oldUser, err := s.userRepo.GetByID(ctx, id); err == nil && oldUser != nil && oldUser.AvatarUrl != "" {
+			newAvatarURL := "/public/" + outFilename
+			// If extension has changed, delete the old file with the old extension
+			if oldUser.AvatarUrl != newAvatarURL && strings.HasPrefix(oldUser.AvatarUrl, "/public/avatar_") {
+				oldFilename := filepath.Base(oldUser.AvatarUrl)
+				oldPath, err := localfs.SafeJoin(publicDir, oldFilename)
+				if err == nil {
+					_ = os.Remove(oldPath)
+				}
+			}
+		}
+	}
+
+	return "/public/" + outFilename, nil
 }

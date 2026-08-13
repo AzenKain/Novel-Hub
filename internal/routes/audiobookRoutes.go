@@ -21,5 +21,5 @@ func AudiobookRoutes(app fiber.Router, audiobookController *controllers.Audioboo
 	group.Post("/lookup", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.LookupChapters)
 
 	mergeGroup := app.Group("/books/:book_id/merge-audio", middlewares.JwtAccess(userRepo))
-	mergeGroup.Post("/", middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.MergeAudio)
+	mergeGroup.Post("", middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.MergeAudio)
 }

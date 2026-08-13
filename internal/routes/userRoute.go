@@ -14,6 +14,7 @@ func UserRoutes(app fiber.Router, controller *controllers.UserController, userRe
 
 	route.Get("/current", middlewares.JwtAccess(userRepo), controller.GetUserCurrent)
 	route.Put("/current", middlewares.JwtAccess(userRepo), controller.UpdateProfile)
+	route.Post("/current/avatar", middlewares.JwtAccess(userRepo), controller.UploadAvatar)
 	route.Patch("/current/password", middlewares.JwtAccess(userRepo), controller.ChangePassword)
 
 	route.Post(

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"net/http"
 	"novelhub/pkg/database"
 	"path/filepath"
 	"strconv"
@@ -68,6 +69,7 @@ type BookService interface {
 	SendBookToEmail(ctx context.Context, bookID string, recipientEmail string, claims *response.JWTClaims) error
 	ExecuteSendBookEmailJob(ctx context.Context, payloadJSON string) error
 	ConvertBook(ctx context.Context, bookID string, fileID string, targetFormat string) (string, error)
+	BulkConvertBooks(ctx context.Context, items []request.BulkConvertItemDto) ([]string, error)
 	ExecuteConvertBookJob(ctx context.Context, payloadJSON string) error
 
 	BulkDeleteBooks(ctx context.Context, dto *request.BulkDeleteBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
@@ -470,7 +472,7 @@ func (s *bookService) parserForFile(file *models.BookFileEntity) (bookparser.Par
 
 func isAllowedBookFormat(ext string) bool {
 	switch strings.ToLower(ext) {
-	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z":
+	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z", ".mp3", ".m4a", ".m4b", ".flac", ".ogg", ".wav", ".aac":
 		return true
 	default:
 		return false
@@ -1044,6 +1046,13 @@ func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath str
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	// Extension-less assets (e.g. fb2 binaries like images/fb2img2) resolve to
+	// octet-stream; sniff the bytes or the browser refuses to render them under
+	// X-Content-Type-Options: nosniff.
+	if contentType == "application/octet-stream" {
+		contentType = http.DetectContentType(data)
 	}
 
 	if contentType == "text/css" {

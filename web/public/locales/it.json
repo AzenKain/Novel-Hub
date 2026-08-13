@@ -133,7 +133,7 @@
     "delete_selected_books": "Elimina selezionati",
     "primary_copy": "Copia principale",
     "keep_this_only": "Mantieni solo questo",
-    "confirm_delete_file": "Vuoi davvero eliminare il file?",
+    "confirm_delete_file": "Sei sicuro di voler eliminare questo formato di file?",
     "confirm_keep_one": "Mantenere questo file ed eliminare le copie duplicate?",
     "confirm_delete_selected": "Eliminare i file duplicati selezionati?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "Unire \"{{source}}\" in \"{{target}}\"? Tutti i capitoli, i file e i dati di lettura del primo libro verranno trasferiti nel secondo, poi il primo verrà eliminato.",
     "confirm_merge_title": "Unisci libri",
     "merge_books_success": "Libri uniti",
-    "confirm_keep_one_msg": "Sei sicuro di voler conservare questa copia e cancellare {{count}} copia/e duplicata/e?"
+    "confirm_keep_one_msg": "Sei sicuro di voler conservare questa copia e cancellare {{count}} copia/e duplicata/e?",
+    "delete_file": "Elimina formato di file"
   },
   "auth": {
     "login_to_account": "Accedi al tuo account",
@@ -571,7 +572,9 @@
     "profile_update_failed": "Impossibile salvare il profilo",
     "password_change_failed": "Impossibile cambiare la password",
     "password_relogin_note": "Dopo aver cambiato la password verrai disconnesso.",
-    "update_password": "Aggiorna password"
+    "update_password": "Aggiorna password",
+    "avatar_updated_success": "Immagine del profilo aggiornata con successo!",
+    "avatar_removed_success": "Immagine del profilo rimossa con successo!"
   },
   "reader": {
     "readlist_next": "Successivo: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Converti in…",
     "convert_queued": "Conversione in coda (operazione {{job_id}})",
     "convert_done": "Conversione completata",
-    "convert_failed": "Conversione non riuscita"
+    "convert_failed": "Conversione non riuscita",
+    "manage": "Gestisci",
+    "convert_format": "Converti formato",
+    "convert_title": "Converti formato libro",
+    "select_source_file": "File sorgente",
+    "select_target_format": "Formato di destinazione",
+    "start_conversion": "Avvia conversione",
+    "convert_no_file": "Seleziona un file da convertire",
+    "convert_replace_warning": "Questo libro ha già un file {{format}}. Procedendo sostituirai il file esistente.",
+    "convert_confirm_replace": "Sì, sostituisci il file esistente",
+    "bulk_convert_title": "Converti libri in blocco",
+    "bulk_convert_global_format": "Imposta formato di destinazione per tutti i libri selezionati:",
+    "bulk_convert_start": "Avvia conversione in blocco",
+    "bulk_convert_success": "{{count}} attività di conversione messe in coda con successo",
+    "bulk_convert_failed": "Impossibile avviare alcune attività di conversione",
+    "no_files_convert": "Nessun file disponibile per la conversione"
   },
   "settings": {
     "title": "Impostazioni",
@@ -1176,7 +1194,20 @@
     "start_merge": "Avvia unione",
     "merge_need_two": "Seleziona almeno 2 file audio",
     "merge_queued": "Unione avviata",
-    "merge_failed": "Impossibile avviare l'unione"
+    "merge_failed": "Impossibile avviare l'unione",
+    "merge_not_ready": "Decodifica audio in corso — attendi che tutti i segmenti abbiano una durata",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcast",

@@ -49,6 +49,7 @@ type ReaderTopBarProps = {
   autoScrollActive?: boolean;
   onToggleAutoScroll?: () => void;
   onOpenSearch?: () => void;
+  nextTooltip?: string;
 };
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -58,6 +59,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   canGoPrev,
   canGoNext,
   settingsOpen,
+  nextTooltip,
   theme,
   fontFamily,
   fontSize,
@@ -126,12 +128,12 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             <ChevronLeft className="h-5 w-5" />
           </button>
         </div>
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.next_chapter", "Next Chapter")}>
+        <div className="tooltip tooltip-bottom" data-tip={nextTooltip || t("reader.next_chapter", "Next Chapter")}>
           <button
             onClick={onNext}
             disabled={!canGoNext}
             className="reader-control-btn btn btn-square btn-sm animate-none"
-            aria-label={t("reader.next_chapter", "Next Chapter")}
+            aria-label={nextTooltip || t("reader.next_chapter", "Next Chapter")}
           >
             <ChevronLeft className="h-5 w-5 rotate-180" />
           </button>

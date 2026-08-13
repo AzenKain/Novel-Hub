@@ -100,7 +100,7 @@ func (c *AudiobookController) MergeAudio(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	jobID, err := c.service.MergeAudio(reqCtx, ctx.Params("book_id"), dto.Title, dto.FileIDs)
+	jobID, err := c.service.MergeAudio(reqCtx, ctx.Params("book_id"), dto.Title, dto.Segments)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

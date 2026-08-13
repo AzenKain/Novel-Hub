@@ -27,15 +27,14 @@ import {
   CloudDownload,
   CheckCircle2,
   Send,
-  FileText,
-  AudioLines
+  FileText
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
-import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, MergeAudiobookModal, HighlightsExportCard } from "@/components/book-detail";
+import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, HighlightsExportCard } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
@@ -53,8 +52,7 @@ import {
   useOfflineBook,
   useBookSeriesQuery,
   useReadListsQuery,
-  useAddReadListBookMutation,
-  useConvertBookMutation
+  useAddReadListBookMutation
 } from "@/hooks";
 
 export const BookDetailPage: React.FC = () => {
@@ -67,8 +65,6 @@ export const BookDetailPage: React.FC = () => {
   
   const [shareOpen, setShareOpen] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
-  const [mergeOpen, setMergeOpen] = useState(false);
-  const [convertOpen, setConvertOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { collections } = useLibraryStore(useShallow((state) => ({ collections: state.collections })));
   const [copied, setCopied] = useState(false);
@@ -93,13 +89,16 @@ export const BookDetailPage: React.FC = () => {
   const { data: readingProgress } = useTrackerReadingProgressQuery(book_id || "");
   const { data: engagementData } = useBookEngagementStatsQuery(book_id || "");
 
+  // Single source of truth for the active file variant (dropdown == Read).
+  const effectiveFileId = selectedFileId || readingProgress?.file_id || book?.files?.[0]?.id || "";
+
   const toggleBookmarkMutation = useToggleBookmarkMutation(book_id || "");
   const addBookToColMutation = useAddBookToCollectionMutation(book_id || "");
   const readListsQuery = useReadListsQuery(!!user);
   const readLists = readListsQuery.data?.pages.flatMap((page) => page.data || []) ?? [];
   const addReadListBookMutation = useAddReadListBookMutation();
   const removeBookFromColMutation = useRemoveBookFromCollectionMutation(book_id || "");
-  const convertMutation = useConvertBookMutation();
+
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
   const tags = toStringList(meta.subject);
@@ -113,14 +112,10 @@ export const BookDetailPage: React.FC = () => {
   const allowSendEmail = hasPermission(user, "book.send_email", book?.library_id, guestPerms);
   const allowDownload = hasPermission(user, "book.download", book?.library_id, guestPerms);
   const allowOffline = hasPermission(user, "book.offline", book?.library_id, guestPerms);
-  const offlineSizeBytes = (book?.files || []).find((file) => file.id === (selectedFileId || book?.files?.[0]?.id))?.size_bytes;
+  const offlineSizeBytes = (book?.files || []).find((file) => file.id === (effectiveFileId || book?.files?.[0]?.id))?.size_bytes;
   const allowReview = hasPermission(user, "book.review.create", book?.library_id, guestPerms);
   const allowRead = hasPermission(user, "book.read", book?.library_id, guestPerms);
-  const allowMerge = hasPermission(user, "book.upload", book?.library_id, guestPerms);
-  const allowConvert = hasPermission(user, "book.upload", book?.library_id, guestPerms);
   const allowStats = hasPermission(user, "user.stats.read", book?.library_id, guestPerms);
-
-  const convertTargets = ["epub", "fb2", "txt", "docx", "cbz"];
 
   const showReads = allowStats && allowRead;
   const showDownloads = allowStats && allowDownload;
@@ -549,7 +544,7 @@ export const BookDetailPage: React.FC = () => {
                         onClick={() =>
                           navigate(
                             `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                              selectedFileId || readingProgress?.file_id || book.files?.[0]?.id || ""
+                              effectiveFileId
                             )}`
                           )
                         }
@@ -573,7 +568,7 @@ export const BookDetailPage: React.FC = () => {
                     {/* Smart Truncated File Format Dropdown */}
                     <select
                       className="select select-bordered select-md font-medium max-w-[210px] shrink-0"
-                      value={selectedFileId || book.files?.[0]?.id || ""}
+                      value={effectiveFileId}
                       onChange={(e) => setSelectedFileId(e.target.value)}
                     >
                       {(book.files || []).map((file) => {
@@ -584,67 +579,6 @@ export const BookDetailPage: React.FC = () => {
                         );
                       })}
                     </select>
-
-                    {allowMerge && (
-                      <button
-                        onClick={() => setMergeOpen(true)}
-                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2 shrink-0"
-                      >
-                        <AudioLines className="w-4 h-4 shrink-0" />
-                        {t("audiobook.merge", "Merge into audiobook")}
-                      </button>
-                    )}
-
-                    {allowConvert && (
-                      <div className="dropdown dropdown-end shrink-0">
-                        <button
-                          tabIndex={0}
-                          onClick={() => setConvertOpen((v) => !v)}
-                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
-                          disabled={!book.files?.length || convertMutation.isPending}
-                        >
-                          {convertMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                          ) : (
-                            <FileText className="w-4 h-4 shrink-0" />
-                          )}
-                          {t("book.convert", "Convert to…")}
-                        </button>
-                        {convertOpen && (
-                          <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-50 w-44 shadow-lg border border-base-300 p-1">
-                            {convertTargets.map((target) => (
-                              <li key={target}>
-                                <button
-                                  className="text-sm py-2"
-                                  onClick={() => {
-                                    setConvertOpen(false);
-                                    const fileId = selectedFileId || book.files?.[0]?.id || "";
-                                    convertMutation.mutate(
-                                      { id: book.id, payload: { file_id: fileId, target_format: target } },
-                                      {
-                                        onSuccess: (res) => {
-                                          const jobId = res.data?.job_id;
-                                          toast.success(
-                                            jobId
-                                              ? t("book.convert_queued", "Conversion queued (job {{job_id}})", { job_id: jobId })
-                                              : t("book.convert_done", "Conversion finished")
-                                          );
-                                        },
-                                        onError: (err) => {
-                                          toast.error(err instanceof Error ? err.message : t("book.convert_failed", "Conversion failed"));
-                                        },
-                                      }
-                                    );
-                                  }}
-                                >
-                                  {target.toUpperCase()}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Reading Progress Subtitle Line (Dedicated Pill Bar) */}
@@ -671,7 +605,7 @@ export const BookDetailPage: React.FC = () => {
                         onClick={() =>
                           navigate(
                             `/reader/${encodeURIComponent(book.id)}?file_id=${encodeURIComponent(
-                              selectedFileId || book.files?.[0]?.id || ""
+                              effectiveFileId
                             )}&start_over=true`
                           )
                         }
@@ -720,7 +654,7 @@ export const BookDetailPage: React.FC = () => {
 
                     {allowDownload && (
                       <a
-                        href={bookService.getDownloadUrl(book.id, selectedFileId || book.files?.[0]?.id || "")}
+                        href={bookService.getDownloadUrl(book.id, effectiveFileId)}
                         className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
                         download
                         onClick={(e) => {
@@ -837,15 +771,7 @@ export const BookDetailPage: React.FC = () => {
         />
       )}
 
-      {allowMerge && (
-        <MergeAudiobookModal
-          open={mergeOpen}
-          book_id={book.id!}
-          title={book.title}
-          files={book.files || []}
-          onClose={() => setMergeOpen(false)}
-        />
-      )}
+
 
       <OfflineWarningModal
         open={offlineWarningOpen}

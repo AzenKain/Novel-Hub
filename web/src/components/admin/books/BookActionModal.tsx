@@ -1,5 +1,5 @@
 import { getMediaUrl } from "@/config/api";
-import { Archive, ArchiveRestore, BookOpen, Image as ImageIcon, Settings, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, BookOpen, Image as ImageIcon, Settings, Trash2, FileText, AudioLines } from "lucide-react";
 import React from "react";
 
 import type { Book } from "@/types";
@@ -11,7 +11,11 @@ type BookActionModalProps = {
   onEdit: (book: Book) => void;
   onDelete: (book: Book) => void;
   onArchive: (book: Book, archived: boolean) => void;
+  onConvert: (book: Book) => void;
+  onMerge: (book: Book) => void;
 };
+
+const MERGEABLE_FORMATS = new Set(["m4a", "m4b", "mp3", "flac", "ogg", "wav", "aac"]);
 
 export const BookActionModal: React.FC<BookActionModalProps> = ({
   book,
@@ -20,8 +24,12 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
   onEdit,
   onDelete,
   onArchive,
+  onConvert,
+  onMerge,
 }) => {
   const isArchived = book?.status === "archived";
+  const mergeableFiles = book?.files?.filter((f) => MERGEABLE_FORMATS.has(f.format.toLowerCase())) || [];
+  const canMerge = mergeableFiles.length >= 2;
   return (
   <dialog className={`modal ${book ? "modal-open" : ""}`}>
     <div className="modal-box max-w-lg overflow-hidden p-0">
@@ -100,6 +108,24 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
         >
           <Settings className="h-4 w-4" />
           Edit
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline gap-2"
+          disabled={!book || !book.files?.length}
+          onClick={() => book && onConvert(book)}
+        >
+          <FileText className="h-4 w-4" />
+          Convert
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline gap-2"
+          disabled={!canMerge}
+          onClick={() => book && onMerge(book)}
+        >
+          <AudioLines className="h-4 w-4" />
+          Merge
         </button>
         <button
           type="button"

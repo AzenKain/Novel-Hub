@@ -242,3 +242,28 @@ func (h *UserController) DeleteUser(c fiber.Ctx) error {
 	h.audit.Record(ctx, services.AuditActionUserDelete, "user", c.Params("id"), "")
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "User deleted successfully"})
 }
+
+func (h *UserController) UploadAvatar(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "No file uploaded"})
+	}
+
+	avatarURL, err := h.service.UploadAvatar(ctx, claims.UId, fileHeader)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
+		Status: true,
+		Data:   map[string]string{"url": avatarURL},
+	})
+}

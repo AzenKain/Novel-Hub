@@ -13,6 +13,8 @@ import type {
   PotentialDuplicateResult,
   SearchBookParams,
   SearchDeepResult,
+  BulkConvertPayload,
+  BulkConvertResult,
 } from "@/types";
 import axios from "axios";
 
@@ -159,6 +161,19 @@ export const bookService = {
     }
   },
 
+  async bulkConvertBooks(
+    payload: BulkConvertPayload,
+  ): Promise<CommonResponse<BulkConvertResult>> {
+    try {
+      const res = await api.post("/books/bulk-convert", payload);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<BulkConvertResult>;
+      throw error;
+    }
+  },
+
   async updateMetadata(
     id: string,
     data: {
@@ -238,6 +253,17 @@ export const bookService = {
   async deleteBook(id: string): Promise<CommonResponse<void>> {
     try {
       const res = await api.delete(`/books/${id}`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<void>;
+      throw error;
+    }
+  },
+
+  async deleteBookFile(fileId: string): Promise<CommonResponse<void>> {
+    try {
+      const res = await api.delete(`/books/files/${fileId}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)

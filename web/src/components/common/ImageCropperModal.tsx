@@ -94,11 +94,15 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     canvas.height = cropSize;
     const ctx = canvas.getContext("2d");
 
+    const container = containerRef.current;
+    const containerWidth = container ? container.getBoundingClientRect().width : 320;
+    const ratio = cropSize / containerWidth;
+
     if (ctx) {
       ctx.clearRect(0, 0, cropSize, cropSize);
       ctx.save();
       ctx.translate(cropSize / 2, cropSize / 2);
-      ctx.translate(position.x * (cropSize/200), position.y * (cropSize/200));
+      ctx.translate(position.x * ratio, position.y * ratio);
       ctx.scale(zoom, zoom);
       ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
       ctx.restore();
@@ -115,7 +119,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       
       <div 
         ref={containerRef}
-        className="w-50 h-50 overflow-hidden relative border-2 border-primary shadow-lg bg-base-300 mx-auto select-none"
+        className="w-full max-w-[320px] aspect-square overflow-hidden relative border-2 border-primary shadow-lg bg-base-300 mx-auto select-none"
         style={{ borderRadius: cropSize > 200 ? '0.5rem' : '9999px' }} 
       >
         <img
@@ -128,10 +132,10 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="absolute cursor-move select-none max-w-none origin-center"
+          className={`absolute cursor-move select-none max-w-none origin-center ${
+            isLandscape ? 'h-full w-auto' : 'w-full h-auto'
+          }`}
           style={{
-            width: isLandscape ? 'auto' : '200px',
-            height: isLandscape ? '200px' : 'auto',
             top: '50%',
             left: '50%',
             transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,

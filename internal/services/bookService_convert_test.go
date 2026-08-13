@@ -15,6 +15,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/bookparser/plain"
@@ -44,7 +45,7 @@ func newConvertTestService(t *testing.T, booksDir string) (*bookService, *sql.DB
 	return svc.(*bookService), db, fileRepo
 }
 
-func seedConvertSource(t *testing.T, db *sql.DB, fileRepo repositories.BookFileRepository, booksDir string) (string, string) {
+func seedConvertSource(t *testing.T, db *sql.DB, fileRepo repositories.BookFileRepository, _ string) (string, string) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES ('lib-1', 'L')`); err != nil {
 		t.Fatal(err)
@@ -89,8 +90,8 @@ func TestConvertBookRejectsFileFromOtherBook(t *testing.T) {
 func TestConvertBookRejectsUnsupportedTarget(t *testing.T) {
 	svc, db, fileRepo := newConvertTestService(t, t.TempDir())
 	_, bfID := seedConvertSource(t, db, fileRepo, t.TempDir())
-	if _, err := svc.ConvertBook(context.Background(), "b-1", bfID, "pdf"); err == nil {
-		t.Fatal("ConvertBook(pdf): expected error")
+	if _, err := svc.ConvertBook(context.Background(), "b-1", bfID, "azw3"); err == nil {
+		t.Fatal("ConvertBook(azw3): expected error")
 	}
 }
 
@@ -284,7 +285,7 @@ func TestExecuteConvertBookJobCleanupOnFailure(t *testing.T) {
 	}
 }
 
-func TestConvertBookDoesNotDoubleOnDuplicatePath(t *testing.T) {
+func TestConvertBookOverwritesOnDuplicatePath(t *testing.T) {
 	booksDir := t.TempDir()
 	svc, db, fileRepo := newConvertTestService(t, booksDir)
 	bookID, bfID := seedConvertSource(t, db, fileRepo, booksDir)
@@ -292,7 +293,7 @@ func TestConvertBookDoesNotDoubleOnDuplicatePath(t *testing.T) {
 	if err := svc.ExecuteConvertBookJob(context.Background(), string(payload)); err != nil {
 		t.Fatalf("first run: %v", err)
 	}
-	// second run: SaveBook appends -2 suffix → different path, so both rows exist
+	// second run: deletes/replaces the first run file, so only one row remains
 	if err := svc.ExecuteConvertBookJob(context.Background(), string(payload)); err != nil {
 		t.Fatalf("second run: %v", err)
 	}
@@ -300,8 +301,8 @@ func TestConvertBookDoesNotDoubleOnDuplicatePath(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM book_files WHERE book_id = ? AND id != 'bf-1'`, bookID).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 2 {
-		t.Errorf("expected 2 converted file rows (one per run), got %d", n)
+	if n != 1 {
+		t.Errorf("expected 1 converted file row (overwritten), got %d", n)
 	}
 }
 
@@ -389,5 +390,80 @@ func TestConvertBookDoesNotTouchSourceFile(t *testing.T) {
 	}
 	if !bytes.Equal(before, after) {
 		t.Error("source file was modified by conversion")
+	}
+}
+
+func TestBulkConvertBooksEnqueuesJobs(t *testing.T) {
+	svc, db, fileRepo := newConvertTestService(t, t.TempDir())
+	_, bfID := seedConvertSource(t, db, fileRepo, t.TempDir())
+
+	// Seed another book & file for bulk test
+	if _, err := db.Exec(`INSERT INTO books (id, library_id, title, status) VALUES ('b-2', 'lib-1', 'Convert Me 2', 'ready')`); err != nil {
+		t.Fatal(err)
+	}
+	src, err := os.CreateTemp("", "seed-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(src.Name())
+	_, _ = src.WriteString("Convert Me 2 prose")
+	_ = src.Close()
+
+	srcFile, err := os.Open(src.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := fileRepo.SaveBook(context.Background(), "b-2", "seed-2.txt", srcFile)
+	_ = srcFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES ('bf-2', 'b-2', ?, 'txt', ?, ?)`,
+		saved.Path, saved.SizeBytes, saved.ModTime.Format("2006-01-02 15:04:05")); err != nil {
+		t.Fatal(err)
+	}
+
+	q := worker.NewQueue(2)
+	defer q.Stop()
+	var (
+		mu sync.Mutex
+		gotPayloads []string
+	)
+	q.RegisterHandler(convertBookJobType, func(_ context.Context, _ string, payload string) error {
+		mu.Lock()
+		gotPayloads = append(gotPayloads, payload)
+		mu.Unlock()
+		return nil
+	})
+	q.Start()
+	svc.jobQueue = q
+
+	items := []request.BulkConvertItemDto{
+		{BookID: "b-1", FileID: bfID, TargetFormat: "docx"},
+		{BookID: "b-2", FileID: "bf-2", TargetFormat: "epub"},
+	}
+
+	jobIDs, err := svc.BulkConvertBooks(context.Background(), items)
+	if err != nil {
+		t.Fatalf("BulkConvertBooks: %v", err)
+	}
+	if len(jobIDs) != 2 {
+		t.Errorf("len(jobIDs) = %d, want 2", len(jobIDs))
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		mu.Lock()
+		n := len(gotPayloads)
+		mu.Unlock()
+		if n == 2 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(gotPayloads) != 2 {
+		t.Fatalf("enqueued %d jobs, want 2", len(gotPayloads))
 	}
 }

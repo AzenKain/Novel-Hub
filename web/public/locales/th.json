@@ -133,7 +133,7 @@
     "delete_selected_books": "ลบรายการที่เลือก",
     "primary_copy": "ไฟล์หลัก",
     "keep_this_only": "เก็บเฉพาะไฟล์นี้",
-    "confirm_delete_file": "คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้?",
+    "confirm_delete_file": "คุณแน่ใจหรือไม่ว่าต้องการลบรูปแบบไฟล์นี้",
     "confirm_keep_one": "เก็บไฟล์นี้ไว้และลบไฟล์ที่ซ้ำกันหรือไม่?",
     "confirm_delete_selected": "ลบไฟล์ซ้ำที่เลือกไว้หรือไม่?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "รวม \"{{source}}\" เข้า \"{{target}}\"? บท ไฟล์ และข้อมูลการอ่านทั้งหมดของเล่มแรกจะถูกรวมเข้าเล่มที่สอง จากนั้นลบเล่มแรก",
     "confirm_merge_title": "รวมหนังสือ",
     "merge_books_success": "รวมหนังสือแล้ว",
-    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?",
+    "delete_file": "ลบรูปแบบไฟล์"
   },
   "auth": {
     "login_to_account": "เข้าสู่ระบบบัญชีของคุณ",
@@ -571,7 +572,9 @@
     "profile_update_failed": "ไม่สามารถบันทึกโปรไฟล์ของคุณได้",
     "password_change_failed": "ไม่สามารถเปลี่ยนรหัสผ่านของคุณได้",
     "password_relogin_note": "คุณจะถูกออกจากระบบหลังจากเปลี่ยนรหัสผ่าน",
-    "update_password": "อัปเดตรหัสผ่าน"
+    "update_password": "อัปเดตรหัสผ่าน",
+    "avatar_updated_success": "อัปเดตรูปโปรไฟล์สำเร็จแล้ว!",
+    "avatar_removed_success": "ลบรูปโปรไฟล์สำเร็จแล้ว!"
   },
   "reader": {
     "readlist_next": "ถัดไป: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "แปลงเป็น…",
     "convert_queued": "การแปลงอยู่ในคิว (งาน {{job_id}})",
     "convert_done": "การแปลงเสร็จสิ้น",
-    "convert_failed": "การแปลงล้มเหลว"
+    "convert_failed": "การแปลงล้มเหลว",
+    "manage": "จัดการ",
+    "convert_format": "แปลงรูปแบบ",
+    "convert_title": "แปลงรูปแบบหนังสือ",
+    "select_source_file": "ไฟล์ต้นทาง",
+    "select_target_format": "รูปแบบปลายทาง",
+    "start_conversion": "เริ่มการแปลงไฟล์",
+    "convert_no_file": "กรุณาเลือกไฟล์ที่ต้องการแปลง",
+    "convert_replace_warning": "หนังสือเล่มนี้มีไฟล์ {{format}} อยู่แล้ว การดำเนินการต่อจะแทนที่ไฟล์เดิม",
+    "convert_confirm_replace": "ใช่ แทนที่ไฟล์เดิม",
+    "bulk_convert_title": "แปลงรูปแบบหนังสือจำนวนมาก",
+    "bulk_convert_global_format": "กำหนดรูปแบบเป้าหมายสำหรับหนังสือที่เลือกทั้งหมด:",
+    "bulk_convert_start": "เริ่มการแปลงรูปแบบจำนวนมาก",
+    "bulk_convert_success": "เพิ่มงานแปลงรูปแบบ {{count}} งานเข้าคิวสำเร็จแล้ว",
+    "bulk_convert_failed": "งานแปลงรูปแบบบางงานไม่สามารถเริ่มได้",
+    "no_files_convert": "ไม่มีไฟล์ที่สามารถแปลงรูปแบบได้"
   },
   "settings": {
     "title": "การตั้งค่า",
@@ -1176,7 +1194,20 @@
     "start_merge": "เริ่มรวม",
     "merge_need_two": "เลือกไฟล์เสียงอย่างน้อย 2 ไฟล์",
     "merge_queued": "เริ่มงานรวมแล้ว",
-    "merge_failed": "ไม่สามารถเริ่มรวมได้"
+    "merge_failed": "ไม่สามารถเริ่มรวมได้",
+    "merge_not_ready": "กำลังถอดรหัสเสียง — รอจนกระทู่ทั้งหมดมีระยะเวลา",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "พอดแคสต์",

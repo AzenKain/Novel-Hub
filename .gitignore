@@ -8,7 +8,7 @@ vendor/
 /cmd/api/dist/
 /web/dist/
 test-ebook/
-
+test_audio/
 # Environment & secrets
 .env
 .env.local

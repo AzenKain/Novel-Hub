@@ -40,6 +40,15 @@ func init() {
 }
 
 func isImageURL(value string) bool {
+	if strings.HasPrefix(value, "/public/") {
+		switch strings.ToLower(path.Ext(value)) {
+		case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+			return true
+		default:
+			return false
+		}
+	}
+
 	parsed, err := url.Parse(value)
 	if err != nil || parsed.Host == "" {
 		return false

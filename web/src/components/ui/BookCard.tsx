@@ -9,6 +9,8 @@ interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;
   compact?: boolean;
+  selected?: boolean;
+  onSelectToggle?: (book: Book) => void;
 }
 
 const GRADIENTS = [
@@ -20,7 +22,7 @@ const GRADIENTS = [
   "from-[#df6071] via-[#c38a28] to-[#35418d]"
 ];
 
-export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact }) => {
+export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, selected, onSelectToggle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
@@ -33,7 +35,9 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact }) =>
 
   return (
     <article 
-      className="group card card-compact bg-base-100 border border-base-200 shadow-sm cursor-pointer rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between"
+      className={`group card card-compact bg-base-100 shadow-sm cursor-pointer rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color,ring] duration-200 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between ${
+        selected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-base-200 hover:border-primary/35"
+      }`}
       onClick={() => onClick(book)}
       tabIndex={0}
       onKeyDown={(event) => {
@@ -44,6 +48,22 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact }) =>
       }}
     >
       <figure className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0`}>
+        {onSelectToggle && (
+          <div 
+            className="absolute top-2 left-2 z-20"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectToggle(book);
+            }}
+          >
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm checkbox-primary bg-base-100 shadow-md border-base-300"
+              checked={selected || false}
+              onChange={() => {}}
+            />
+          </div>
+        )}
         {book.cover_url ? (
           <>
             <img src={getMediaUrl(book.cover_url)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />

@@ -213,7 +213,7 @@ func TestParseFeedImageFallback(t *testing.T) {
 
 // --- refresh: dedup by guid + auto-download enqueues only new episodes ---
 
-func feedHandler(t *testing.T, body string) *httptest.Server {
+func feedHandler(_ *testing.T, body string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(body))
 	}))

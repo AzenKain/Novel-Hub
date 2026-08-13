@@ -163,7 +163,7 @@ func convert(t *testing.T, reg bookparser.Registry, format, path, target string)
 func TestUnsupportedTargets(t *testing.T) {
 	reg := testRegistry(t)
 	path := writeSourceTXT(t)
-	for _, target := range []string{"pdf", "mobi", "azw3", "unknown"} {
+	for _, target := range []string{"azw3", "unknown"} {
 		if _, err := Convert(reg, "txt", path, target); err == nil {
 			t.Errorf("Convert → %s: expected error, got nil", target)
 		} else if !strings.Contains(err.Error(), "not supported") {
@@ -465,7 +465,7 @@ func TestIsTargetSupported(t *testing.T) {
 		want   bool
 	}{
 		{"epub", true}, {"FB2", true}, {"TXT", true}, {"cbz", true}, {"Docx", true},
-		{"pdf", false}, {"mobi", false}, {"", false},
+		{"kepub.epub", true}, {"pdf", true}, {"mobi", true}, {"azw", true}, {"", false},
 	} {
 		if got := IsTargetSupported(ok.target); got != ok.want {
 			t.Errorf("IsTargetSupported(%q) = %v, want %v", ok.target, got, ok.want)

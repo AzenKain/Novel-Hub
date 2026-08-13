@@ -82,7 +82,7 @@ func TestHTMLDocumentToReaderHTMLStripsEscapedEmptyAnchorText(t *testing.T) {
 	}
 }
 
-func TestSplitMobiSectionsSkipsNavigationAndSplitsChapters(t *testing.T) {
+func TestSplitMobiSectionsKeepsTOCAndSplitsChapters(t *testing.T) {
 	readerHTML := htmlDocumentToReaderHTML(`<html><body>
 		<h2>Table of Contents</h2>
 		<ul><li><a href="kindle:pos:fid:0002:off:0">Chapter One</a></li></ul>
@@ -93,14 +93,15 @@ func TestSplitMobiSectionsSkipsNavigationAndSplitsChapters(t *testing.T) {
 	</body></html>`)
 
 	sections := splitMobiSections(readerHTML, "Fallback")
-	if len(sections) != 2 {
-		t.Fatalf("sections = %d, want 2: %#v", len(sections), sections)
+	if len(sections) != 3 {
+		t.Fatalf("sections = %d, want 3: %#v", len(sections), sections)
 	}
-	if sections[0].Title != "Chapter One" || sections[1].Title != "Chapter Two" {
+	if sections[0].Title != "Table of Contents" ||
+		sections[1].Title != "Chapter One" || sections[2].Title != "Chapter Two" {
 		t.Fatalf("unexpected section titles: %#v", sections)
 	}
-	if strings.Contains(sections[0].Content, "Chapter Two") {
-		t.Fatalf("first section contains second section content: %s", sections[0].Content)
+	if strings.Contains(sections[1].Content, "Chapter Two") {
+		t.Fatalf("second section contains third section content: %s", sections[1].Content)
 	}
 }
 

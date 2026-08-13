@@ -121,8 +121,8 @@ func TestAuditSmartFilterServiceDoubleV1Prefix(t *testing.T) {
 			bad++
 		}
 	}
-	// BUG PROOF: at least one request path double-prefixes /v1.
-	if bad == 0 {
-		t.Fatalf("no double-prefixed path found; smart-filter service may have been fixed")
+	// BUG FIXED: no request path should double-prefix /v1.
+	if bad > 0 {
+		t.Fatalf("found %d request paths with double-prefixed /v1 in smartFilterService.ts", bad)
 	}
 }

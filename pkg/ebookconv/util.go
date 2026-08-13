@@ -3,6 +3,7 @@ package ebookconv
 import (
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -28,6 +29,9 @@ func imageLookup(images []Image) map[string]int {
 func base(src string) string {
 	src = strings.SplitN(src, "?", 2)[0]
 	src = strings.SplitN(src, "#", 2)[0]
+	if decoded, err := url.PathUnescape(src); err == nil {
+		src = decoded
+	}
 	return strings.ToLower(filepath.Base(src))
 }
 

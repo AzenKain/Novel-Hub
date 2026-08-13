@@ -1,5 +1,7 @@
 {
   "admin": {
+    "confirm_delete_file": "Are you sure you want to delete file?",
+    "delete_file": "Delete file format",
     "library": "Library",
     "books": "Books",
     "users": "Users",
@@ -133,7 +135,6 @@
     "delete_selected_books": "Delete selected",
     "primary_copy": "Primary Copy",
     "keep_this_only": "Keep Only This",
-    "confirm_delete_file": "Are you sure you want to delete file?",
     "confirm_keep_one": "Keep this file and delete duplicate copies?",
     "confirm_delete_selected": "Delete selected duplicate files?",
     "operations": {
@@ -571,7 +572,9 @@
     "profile_update_failed": "Could not save your profile",
     "password_change_failed": "Could not change your password",
     "password_relogin_note": "You will be signed out after changing your password.",
-    "update_password": "Update Password"
+    "update_password": "Update Password",
+    "avatar_updated_success": "Avatar updated successfully!",
+    "avatar_removed_success": "Avatar removed successfully!"
   },
   "reader": {
     "readlist_next": "Next: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Convert to…",
     "convert_queued": "Conversion queued (job {{job_id}})",
     "convert_done": "Conversion finished",
-    "convert_failed": "Conversion failed"
+    "convert_failed": "Conversion failed",
+    "manage": "Manage",
+    "convert_format": "Convert format",
+    "convert_title": "Convert Book Format",
+    "select_source_file": "Source file",
+    "select_target_format": "Target format",
+    "start_conversion": "Start conversion",
+    "convert_no_file": "Please select a file to convert",
+    "convert_replace_warning": "This book already has a {{format}} file. Proceeding will replace the existing file.",
+    "convert_confirm_replace": "Yes, replace the existing file",
+    "bulk_convert_title": "Bulk Convert Books",
+    "bulk_convert_global_format": "Set target format for all selected books:",
+    "bulk_convert_start": "Start bulk conversion",
+    "bulk_convert_success": "Enqueued {{count}} conversion jobs successfully",
+    "bulk_convert_failed": "Some conversion jobs failed to start",
+    "no_files_convert": "No files available to convert"
   },
   "settings": {
     "title": "Settings",
@@ -1176,7 +1194,20 @@
     "start_merge": "Start merge",
     "merge_need_two": "Select at least 2 audio files",
     "merge_queued": "Merge job started",
-    "merge_failed": "Failed to start merge"
+    "merge_failed": "Failed to start merge",
+    "merge_not_ready": "Still decoding audio — wait until all segments have a duration",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcasts",

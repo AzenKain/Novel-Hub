@@ -180,7 +180,7 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 	}
 }
 
-func newTestBookService(t *testing.T, db *sql.DB) BookService {
+func newTestBookService(_ *testing.T, db *sql.DB) BookService {
 	ramCache := cache.NewRamCache()
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	bookRepo := repositories.NewBookDBRepository(db, ramCache)

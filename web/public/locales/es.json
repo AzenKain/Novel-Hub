@@ -133,7 +133,7 @@
     "delete_selected_books": "Eliminar seleccionados",
     "primary_copy": "Copia principal",
     "keep_this_only": "Conservar solo este",
-    "confirm_delete_file": "¿Seguro que quieres eliminar el archivo?",
+    "confirm_delete_file": "¿Está seguro de que desea eliminar este formato de archivo?",
     "confirm_keep_one": "¿Conservar este archivo y eliminar las copias duplicadas?",
     "confirm_delete_selected": "¿Eliminar los archivos duplicados seleccionados?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "¿Fusionar \"{{source}}\" en \"{{target}}\"? Todos los capítulos, archivos y datos de lectura del primer libro se incorporarán al segundo y luego se eliminará el primero.",
     "confirm_merge_title": "Fusionar libros",
     "merge_books_success": "Libros fusionados",
-    "confirm_keep_one_msg": "¿Está seguro de que desea conservar esta copia y eliminar {{count}} copia(s) duplicada(s)?"
+    "confirm_keep_one_msg": "¿Está seguro de que desea conservar esta copia y eliminar {{count}} copia(s) duplicada(s)?",
+    "delete_file": "Eliminar formato de archivo"
   },
   "auth": {
     "login_to_account": "Inicia sesión en tu cuenta",
@@ -571,7 +572,9 @@
     "profile_update_failed": "No se pudo guardar tu perfil",
     "password_change_failed": "No se pudo cambiar tu contraseña",
     "password_relogin_note": "Se cerrará tu sesión después de cambiar la contraseña.",
-    "update_password": "Actualizar contraseña"
+    "update_password": "Actualizar contraseña",
+    "avatar_updated_success": "¡Imagen de perfil actualizada con éxito!",
+    "avatar_removed_success": "¡Imagen de perfil eliminada con éxito!"
   },
   "reader": {
     "readlist_next": "Siguiente: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Convertir a…",
     "convert_queued": "Conversión en cola (trabajo {{job_id}})",
     "convert_done": "Conversión terminada",
-    "convert_failed": "Error de conversión"
+    "convert_failed": "Error de conversión",
+    "manage": "Administrar",
+    "convert_format": "Convertir formato",
+    "convert_title": "Convertir formato de libro",
+    "select_source_file": "Archivo origen",
+    "select_target_format": "Formato de destino",
+    "start_conversion": "Iniciar conversión",
+    "convert_no_file": "Por favor, seleccione un archivo para convertir",
+    "convert_replace_warning": "Este libro ya tiene un archivo {{format}}. Continuar reemplazará el archivo existente.",
+    "convert_confirm_replace": "Sí, reemplazar el archivo existente",
+    "bulk_convert_title": "Convertir libros en lote",
+    "bulk_convert_global_format": "Establecer formato de destino para todos los libros seleccionados:",
+    "bulk_convert_start": "Iniciar conversión en lote",
+    "bulk_convert_success": "Se agregaron con éxito {{count}} tareas de conversión a la cola",
+    "bulk_convert_failed": "No se pudieron iniciar algunas tareas de conversión",
+    "no_files_convert": "No hay archivos disponibles para convertir"
   },
   "settings": {
     "title": "Ajustes",
@@ -1176,7 +1194,20 @@
     "start_merge": "Iniciar combinación",
     "merge_need_two": "Selecciona al menos 2 archivos de audio",
     "merge_queued": "Trabajo de combinación iniciado",
-    "merge_failed": "No se pudo iniciar la combinación"
+    "merge_failed": "No se pudo iniciar la combinación",
+    "merge_not_ready": "Aún decodificando el audio: espera hasta que todos los segmentos tengan una duración",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcasts",

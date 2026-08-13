@@ -4,8 +4,10 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"fmt"
+	"html"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"novelhub/pkg/bookparser"
@@ -110,6 +112,288 @@ func (p *Parser) ParseBook(filePath string) (*bookparser.BookData, error) {
 	return &bookparser.BookData{Metadata: *meta, Chapters: chapters}, nil
 }
 
+type Relationship struct {
+	Id     string `xml:"Id,attr"`
+	Type   string `xml:"Type,attr"`
+	Target string `xml:"Target,attr"`
+}
+
+type Relationships struct {
+	XMLName xml.Name       `xml:"Relationships"`
+	Items   []Relationship `xml:"Relationship"`
+}
+
+type runStyle struct {
+	bold      bool
+	italic    bool
+	underline bool
+}
+
+type paragraphElement interface {
+	isElement()
+}
+
+type textElement struct {
+	text  string
+	style runStyle
+}
+
+func (*textElement) isElement() {}
+
+type imageElement struct {
+	path string
+}
+
+func (*imageElement) isElement() {}
+
+type brElement struct{}
+
+func (*brElement) isElement() {}
+
+type tabElement struct{}
+
+func (*tabElement) isElement() {}
+
+type paragraph struct {
+	style    string
+	isList   bool
+	elements []paragraphElement
+}
+
+var malformedOfficeBulletPrefix = regexp.MustCompile(`^(?:[□]\s*\?\s*|[ðï]\s*\?\s*)+`)
+
+func parseRelationships(r *zip.Reader) (map[string]string, error) {
+	relsFile := findZipFile(r.File, "word/_rels/document.xml.rels")
+	if relsFile == nil {
+		return nil, nil
+	}
+	rc, err := relsFile.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+
+	var rels Relationships
+	if err := xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&rels); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]string)
+	for _, rel := range rels.Items {
+		target := rel.Target
+		if !strings.HasPrefix(target, "/") {
+			target = "word/" + target
+		} else {
+			target = strings.TrimPrefix(target, "/")
+		}
+		target = filepath.ToSlash(filepath.Clean(target))
+		m[rel.Id] = target
+	}
+	return m, nil
+}
+
+func cleanParagraph(p *paragraph) {
+	var firstTextEl *textElement
+	for _, el := range p.elements {
+		if te, ok := el.(*textElement); ok {
+			firstTextEl = te
+			break
+		}
+	}
+
+	if firstTextEl != nil {
+		text := firstTextEl.text
+		trimmedText := strings.TrimSpace(text)
+		trimmedText = strings.NewReplacer(
+			"\uf0b7", "•",
+			"\uf0a7", "•",
+			"\uf0d8", "•",
+			"\uf0fc", "•",
+			"\uf06c", "•",
+			"\u2022", "•",
+			"", "•",
+			"", "•",
+			"□?", "• ",
+			"□ ?", "• ",
+			"?", "• ",
+			"ð?", "• ",
+			"ï?", "• ",
+		).Replace(trimmedText)
+
+		if loc := malformedOfficeBulletPrefix.FindStringIndex(trimmedText); loc != nil && loc[0] == 0 {
+			trimmedText = "• " + trimmedText[loc[1]:]
+		}
+
+		if strings.HasPrefix(trimmedText, "•") {
+			p.isList = true
+			trimmedText = "• " + strings.TrimSpace(strings.TrimPrefix(trimmedText, "•"))
+		}
+
+		firstTextEl.text = trimmedText
+	}
+
+	if p.isList && firstTextEl != nil {
+		if !strings.HasPrefix(firstTextEl.text, "•") {
+			firstTextEl.text = "• " + strings.TrimSpace(firstTextEl.text)
+		}
+	}
+}
+
+func parseDocument(r io.Reader, relMap map[string]string) ([]*paragraph, error) {
+	decoder := xml.NewDecoder(r)
+	var paragraphs []*paragraph
+
+	var currentParagraph *paragraph
+	var currentStyle runStyle
+	inRun := false
+
+	var runText strings.Builder
+
+	flushRunText := func() {
+		if inRun && runText.Len() > 0 {
+			currentParagraph.elements = append(currentParagraph.elements, &textElement{
+				text:  runText.String(),
+				style: currentStyle,
+			})
+			runText.Reset()
+		}
+	}
+
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("decode docx document: %w", err)
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			switch t.Name.Local {
+			case "p":
+				currentParagraph = &paragraph{}
+			case "pStyle":
+				if currentParagraph != nil {
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "val" {
+							currentParagraph.style = attr.Value
+						}
+					}
+				}
+			case "numPr":
+				if currentParagraph != nil {
+					currentParagraph.isList = true
+				}
+			case "r":
+				inRun = true
+				currentStyle = runStyle{}
+				runText.Reset()
+			case "b":
+				if inRun {
+					val := "true"
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "val" {
+							val = attr.Value
+						}
+					}
+					if val != "false" && val != "0" {
+						currentStyle.bold = true
+					}
+				}
+			case "i":
+				if inRun {
+					val := "true"
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "val" {
+							val = attr.Value
+						}
+					}
+					if val != "false" && val != "0" {
+						currentStyle.italic = true
+					}
+				}
+			case "u":
+				if inRun {
+					val := "true"
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "val" {
+							val = attr.Value
+						}
+					}
+					if val != "false" && val != "none" && val != "0" {
+						currentStyle.underline = true
+					}
+				}
+			case "t":
+				var text string
+				if err := decoder.DecodeElement(&text, &t); err != nil {
+					return nil, fmt.Errorf("decode docx text: %w", err)
+				}
+				if inRun && currentParagraph != nil {
+					runText.WriteString(text)
+				}
+			case "tab":
+				if inRun && currentParagraph != nil {
+					flushRunText()
+					currentParagraph.elements = append(currentParagraph.elements, &tabElement{})
+				}
+			case "br", "cr":
+				if inRun && currentParagraph != nil {
+					flushRunText()
+					currentParagraph.elements = append(currentParagraph.elements, &brElement{})
+				}
+			case "blip":
+				if currentParagraph != nil {
+					flushRunText()
+					var embedId string
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "embed" {
+							embedId = attr.Value
+						}
+					}
+					if embedId != "" && relMap != nil {
+						if imgPath, ok := relMap[embedId]; ok {
+							currentParagraph.elements = append(currentParagraph.elements, &imageElement{
+								path: imgPath,
+							})
+						}
+					}
+				}
+			case "imagedata":
+				if currentParagraph != nil {
+					flushRunText()
+					var id string
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "id" {
+							id = attr.Value
+						}
+					}
+					if id != "" && relMap != nil {
+						if imgPath, ok := relMap[id]; ok {
+							currentParagraph.elements = append(currentParagraph.elements, &imageElement{
+								path: imgPath,
+							})
+						}
+					}
+				}
+			}
+		case xml.EndElement:
+			switch t.Name.Local {
+			case "r":
+				flushRunText()
+				inRun = false
+			case "p":
+				if currentParagraph != nil {
+					cleanParagraph(currentParagraph)
+					paragraphs = append(paragraphs, currentParagraph)
+					currentParagraph = nil
+				}
+			}
+		}
+	}
+	return paragraphs, nil
+}
+
 func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error) {
 	r, err := zip.OpenReader(filePath)
 	if err != nil {
@@ -117,9 +401,12 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	}
 	defer r.Close()
 
-	documentFile := findZipFile(r.File, "word/document.xml")
+	documentFile := findZipFile(r.File, contentPath)
 	if documentFile == nil {
-		return "", fmt.Errorf("docx document.xml not found")
+		documentFile = findZipFile(r.File, "word/document.xml")
+	}
+	if documentFile == nil {
+		return "", fmt.Errorf("docx document file not found")
 	}
 	rc, err := documentFile.Open()
 	if err != nil {
@@ -127,11 +414,78 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	}
 	defer rc.Close()
 
-	text, err := extractDocumentText(rc)
+	relMap, err := parseRelationships(&r.Reader)
+	if err != nil {
+		relMap = nil
+	}
+
+	paragraphs, err := parseDocument(rc, relMap)
 	if err != nil {
 		return "", err
 	}
-	return bookparser.PlainTextToHTML(text), nil
+
+	var out strings.Builder
+	out.WriteString("<article>")
+	for _, p := range paragraphs {
+		var pContent strings.Builder
+		for _, el := range p.elements {
+			switch te := el.(type) {
+			case *textElement:
+				escaped := html.EscapeString(te.text)
+				if te.style.bold {
+					escaped = "<b>" + escaped + "</b>"
+				}
+				if te.style.italic {
+					escaped = "<i>" + escaped + "</i>"
+				}
+				if te.style.underline {
+					escaped = "<u>" + escaped + "</u>"
+				}
+				pContent.WriteString(escaped)
+			case *imageElement:
+				baseDir := filepath.Dir(contentPath)
+				relPath := te.path
+				if baseDir != "." && baseDir != "" {
+					prefix := filepath.ToSlash(baseDir) + "/"
+					if after, ok := strings.CutPrefix(relPath, prefix); ok {
+						relPath = after
+					}
+				}
+				pContent.WriteString(`<img src="`)
+				pContent.WriteString(html.EscapeString(relPath))
+				pContent.WriteString(`" />`)
+			case *brElement:
+				pContent.WriteString("<br>")
+			case *tabElement:
+				pContent.WriteByte('\t')
+			}
+		}
+
+		pText := pContent.String()
+		if pText == "" {
+			continue
+		}
+
+		tag := "p"
+		if strings.HasPrefix(p.style, "Heading") {
+			level := strings.TrimPrefix(p.style, "Heading")
+			if level == "1" || level == "2" || level == "3" || level == "4" || level == "5" || level == "6" {
+				tag = "h" + level
+			} else {
+				tag = "h2"
+			}
+		}
+
+		out.WriteString("<")
+		out.WriteString(tag)
+		out.WriteString(">")
+		out.WriteString(pText)
+		out.WriteString("</")
+		out.WriteString(tag)
+		out.WriteString(">\n")
+	}
+	out.WriteString("</article>")
+	return out.String(), nil
 }
 
 func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
@@ -198,72 +552,33 @@ func findZipFile(files []*zip.File, name string) *zip.File {
 }
 
 func extractDocumentText(r io.Reader) (string, error) {
-	decoder := xml.NewDecoder(r)
+	paragraphs, err := parseDocument(r, nil)
+	if err != nil {
+		return "", err
+	}
 	var out strings.Builder
-	var paragraph strings.Builder
-	inParagraph := false
-	isListParagraph := false
-
-	flush := func() {
-		value := bookparser.CleanOfficeTextLine(paragraph.String())
-		if value != "" {
-			if isListParagraph && !strings.HasPrefix(value, "•") {
-				value = "• " + value
+	for _, p := range paragraphs {
+		var pText strings.Builder
+		for _, el := range p.elements {
+			switch te := el.(type) {
+			case *textElement:
+				pText.WriteString(te.text)
+			case *tabElement:
+				pText.WriteByte('\t')
+			case *brElement:
+				pText.WriteByte('\n')
 			}
+		}
+		val := bookparser.CleanOfficeTextLine(pText.String())
+		if p.isList && val != "" && !strings.HasPrefix(val, "•") {
+			val = "• " + val
+		}
+		if val != "" {
 			if out.Len() > 0 {
 				out.WriteString("\n\n")
 			}
-			out.WriteString(value)
+			out.WriteString(val)
 		}
-		paragraph.Reset()
-		isListParagraph = false
-	}
-
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", fmt.Errorf("decode docx document: %w", err)
-		}
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "p":
-				inParagraph = true
-				isListParagraph = false
-				paragraph.Reset()
-			case "numPr":
-				if inParagraph {
-					isListParagraph = true
-				}
-			case "t":
-				var text string
-				if err := decoder.DecodeElement(&text, &t); err != nil {
-					return "", fmt.Errorf("decode docx text: %w", err)
-				}
-				if inParagraph {
-					paragraph.WriteString(text)
-				}
-			case "tab":
-				if inParagraph {
-					paragraph.WriteByte('\t')
-				}
-			case "br", "cr":
-				if inParagraph {
-					paragraph.WriteByte('\n')
-				}
-			}
-		case xml.EndElement:
-			if t.Name.Local == "p" && inParagraph {
-				flush()
-				inParagraph = false
-			}
-		}
-	}
-	if inParagraph || paragraph.Len() > 0 {
-		flush()
 	}
 	return out.String(), nil
 }

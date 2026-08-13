@@ -133,7 +133,7 @@
     "delete_selected_books": "選択項目を削除",
     "primary_copy": "メインコピー",
     "keep_this_only": "このファイルのみ保持",
-    "confirm_delete_file": "このファイルを削除してもよろしいですか？",
+    "confirm_delete_file": "このファイル形式を削除してもよろしいですか？",
     "confirm_keep_one": "このファイルを保持し、他の重複コピーを削除しますか？",
     "confirm_delete_selected": "選択した重複ファイルを削除しますか？",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "「{{source}}」を「{{target}}」に統合しますか？ 最初の書籍の全チャプター・ファイル・読書データが2冊目に統合され、その後最初の書籍は削除されます。",
     "confirm_merge_title": "書籍の統合",
     "merge_books_success": "書籍を統合しました",
-    "confirm_keep_one_msg": "このコピーを保持し、{{count}}個の重複コピーを削除してもよろしいですか？"
+    "confirm_keep_one_msg": "このコピーを保持し、{{count}}個の重複コピーを削除してもよろしいですか？",
+    "delete_file": "ファイル形式を削除"
   },
   "auth": {
     "login_to_account": "アカウントにログイン",
@@ -571,7 +572,9 @@
     "profile_update_failed": "プロフィールを保存できませんでした",
     "password_change_failed": "パスワードを変更できませんでした",
     "password_relogin_note": "パスワードを変更するとサインアウトされます。",
-    "update_password": "パスワードを更新"
+    "update_password": "パスワードを更新",
+    "avatar_updated_success": "アバターを更新しました！",
+    "avatar_removed_success": "アバターを削除しました！"
   },
   "reader": {
     "readlist_next": "次: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "変換…",
     "convert_queued": "変換をキューに入れました (ジョブ {{job_id}})",
     "convert_done": "変換が完了しました",
-    "convert_failed": "変換に失敗しました"
+    "convert_failed": "変換に失敗しました",
+    "manage": "管理",
+    "convert_format": "形式を変換",
+    "convert_title": "本の形式を変換",
+    "select_source_file": "元のファイル",
+    "select_target_format": "変換後の形式",
+    "start_conversion": "変換を開始",
+    "convert_no_file": "変換するファイルを選択してください",
+    "convert_replace_warning": "この本にはすでに {{format}} ファイルがあります。続行すると、既存のファイルが置き換えられます。",
+    "convert_confirm_replace": "はい、既存のファイルを置き換えます",
+    "bulk_convert_title": "一括変換書籍",
+    "bulk_convert_global_format": "選択したすべての書籍の出力フォーマットを設定する：",
+    "bulk_convert_start": "一括変換を開始",
+    "bulk_convert_success": "{{count}}件の変換ジョブがキューに追加されました",
+    "bulk_convert_failed": "一部の変換ジョブの開始に失敗しました",
+    "no_files_convert": "変換できるファイルがありません"
   },
   "settings": {
     "title": "設定",
@@ -1176,7 +1194,20 @@
     "start_merge": "結合開始",
     "merge_need_two": "音声ファイルを2つ以上選択してください",
     "merge_queued": "結合ジョブを開始しました",
-    "merge_failed": "結合を開始できませんでした"
+    "merge_failed": "結合を開始できませんでした",
+    "merge_not_ready": "音声を解確中です — すべてのセグメントに再生時間が确定するまでお待ちください",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "ポッドキャスト",

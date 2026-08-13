@@ -1,5 +1,12 @@
 import DOMPurify from "dompurify";
 
+// True when a chapter is only a table of contents / nav page: used to pick a
+// non-TOC landing chapter when a book is opened without saved progress.
+export const isNavOnlyChapter = (title?: string | null) => {
+  if (!title) return false;
+  return /^\s*(mục lục|table of contents|contents|目次|목차)\s*$/i.test(title.trim());
+};
+
 export const sanitizeReaderHtml = (html: string) => {
   const stripped = html
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")

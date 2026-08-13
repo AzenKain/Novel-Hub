@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/gen/sqlc"
+	"novelhub/internal/dtos/request"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/ebookconv"
@@ -93,6 +95,18 @@ func (s *bookService) ExecuteConvertBookJob(ctx context.Context, payloadJSON str
 		return err
 	}
 
+	// Clean up any existing file of the same target format to implement "overwrite/replace" behavior
+	existingFiles, err := s.bookRepo.GetFilesByBookId(ctx, payload.BookID)
+	if err == nil {
+		for _, f := range existingFiles {
+			if f != nil && bookparser.NormalizeFormat(f.Format) == target {
+				if delErr := s.DeleteBookFile(ctx, f.ID); delErr != nil {
+					log.Warn().Err(delErr).Str("book_id", payload.BookID).Str("file_id", f.ID).Msg("failed to delete duplicate book file during conversion")
+				}
+			}
+		}
+	}
+
 	src, err := os.Open(tmpPath)
 	if err != nil {
 		_ = os.Remove(tmpPath)
@@ -116,4 +130,16 @@ func (s *bookService) ExecuteConvertBookJob(ctx context.Context, payloadJSON str
 		Hash:      sql.NullString{},
 		State:     sql.NullString{},
 	})
+}
+
+func (s *bookService) BulkConvertBooks(ctx context.Context, items []request.BulkConvertItemDto) ([]string, error) {
+	jobIDs := make([]string, 0, len(items))
+	for _, item := range items {
+		jobID, err := s.ConvertBook(ctx, item.BookID, item.FileID, item.TargetFormat)
+		if err != nil {
+			return nil, err
+		}
+		jobIDs = append(jobIDs, jobID)
+	}
+	return jobIDs, nil
 }

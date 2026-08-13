@@ -1,6 +1,7 @@
 package ebookconv
 
 import (
+	"bytes"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -8,6 +9,8 @@ import (
 	"golang.org/x/net/html/atom"
 
 	nethtml "golang.org/x/net/html"
+
+	"novelhub/pkg/bookparser"
 )
 
 // fragmentNodes parses an XHTML chapter fragment (the form every bookparser
@@ -18,6 +21,63 @@ func fragmentNodes(content string) []*nethtml.Node {
 		return nil
 	}
 	return nodes
+}
+
+// rebaseChapterLinks rewrites cross-chapter anchor hrefs so converted output
+// links land on the same chapter once re-read. Source book chapters carry
+// their original content paths; keyFor maps a chapter to the target format's
+// content key (e.g. "mobi-section:3"). Hrefs that are anchors, external URLs,
+// or already-format keys are left alone.
+func rebaseChapterLinks(content, basePath string, chapters []bookparser.ChapterData, keyFor func(bookparser.ChapterData) string) string {
+	nodes := fragmentNodes(content)
+	if len(nodes) == 0 {
+		return content
+	}
+	keys := make(map[string]string, len(chapters))
+	for _, ch := range chapters {
+		if p := strings.ToLower(filepath.ToSlash(ch.ContentPath)); p != "" {
+			keys[p] = keyFor(ch)
+		}
+	}
+	base := filepath.ToSlash(filepath.Dir(basePath))
+	if base == "." {
+		base = ""
+	}
+	var rewrite func(n *nethtml.Node)
+	rewrite = func(n *nethtml.Node) {
+		if n.Type == nethtml.ElementNode && n.Data == "a" {
+			for i, attr := range n.Attr {
+				if attr.Key != "href" {
+					continue
+				}
+				value := strings.TrimSpace(attr.Val)
+				lower := strings.ToLower(value)
+				if strings.HasPrefix(value, "#") ||
+					strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "mailto:") ||
+					strings.HasPrefix(value, "//") ||
+					strings.HasPrefix(lower, "kindle:") || strings.HasPrefix(lower, "mobi-section:") || strings.HasPrefix(lower, "section:") {
+					continue
+				}
+				resolved := strings.ToLower(filepath.ToSlash(filepath.Join(base, value)))
+				if key, ok := keys[resolved]; ok {
+					n.Attr[i].Val = key
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			rewrite(c)
+		}
+	}
+	for _, n := range nodes {
+		rewrite(n)
+	}
+	var sb bytes.Buffer
+	for _, n := range nodes {
+		if err := nethtml.Render(&sb, n); err != nil {
+			return content
+		}
+	}
+	return sb.String()
 }
 
 // fragmentText flattens a fragment to plain text: block elements and <br>
@@ -120,8 +180,9 @@ func renderNode(n *nethtml.Node, sb *strings.Builder) {
 		case "img":
 			for _, a := range n.Attr {
 				if a.Key == "src" {
-					sb.WriteString(" ")
-					sb.WriteString(a.Val)
+					sb.WriteString(` <img src="`)
+					sb.WriteString(escapeXML(a.Val))
+					sb.WriteString(`"/>`)
 				}
 			}
 		case "script", "style", "head", "title":
@@ -154,6 +215,8 @@ func escapeXML(s string) string {
 }
 
 func imageExt(src string) string {
+	src = strings.SplitN(src, "?", 2)[0]
+	src = strings.SplitN(src, "#", 2)[0]
 	ext := strings.ToLower(filepath.Ext(src))
 	if ext == ".jpeg" || ext == ".jpg" {
 		return ".jpg"

@@ -98,6 +98,7 @@ interface BookAdminState {
   handleUploadFiles: (filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
   archiveBook: (id: string, archived: boolean) => Promise<void>;
+  deleteBookFile: (fileId: string) => Promise<void>;
 }
 
 const invalidateBooks = () => {
@@ -456,6 +457,25 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       invalidateBooks();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update archive state");
+    }
+  },
+
+  deleteBookFile: async (fileId) => {
+    const { editingBook } = get();
+    if (!editingBook) return;
+    try {
+      const res = await bookService.deleteBookFile(fileId);
+      if (!res.status) throw new Error(res.message || "Failed to delete file");
+      toast.success("File deleted successfully!");
+      const listRes = await bookService.listFiles(editingBook.id);
+      const nextFiles = listRes.data || [];
+      set((state) => ({
+        bookFiles: nextFiles,
+        editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
+      }));
+      invalidateBooks();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error deleting file");
     }
   }
 }));

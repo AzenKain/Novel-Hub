@@ -104,3 +104,93 @@ func writeMinimalDOCX(path string) error {
 	}
 	return nil
 }
+
+func TestDOCXParserWithImagesAndStyling(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "styled.docx")
+
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create docx: %v", err)
+	}
+	defer file.Close()
+
+	zw := zip.NewWriter(file)
+	
+	files := map[string]string{
+		"word/_rels/document.xml.rels": `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdImage1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+</Relationships>`,
+		"word/document.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>
+    <w:p>
+      <w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
+      <w:r>
+        <w:rPr><w:b/></w:rPr>
+        <w:t>Header Text</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:rPr><w:i/></w:rPr>
+        <w:t>Italic run</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr><w:u w:val="single"/></w:rPr>
+        <w:t>Underline run</w:t>
+      </w:r>
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                  <pic:blipFill>
+                    <a:blip r:embed="rIdImage1"/>
+                  </pic:blipFill>
+                </pic:pic>
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`,
+		"word/media/image1.png": "png-data-here",
+	}
+
+	for name, content := range files {
+		writer, err := zw.Create(name)
+		if err != nil {
+			t.Fatalf("create entry %s: %v", name, err)
+		}
+		if _, err := writer.Write([]byte(content)); err != nil {
+			t.Fatalf("write entry %s: %v", name, err)
+		}
+	}
+	zw.Close()
+
+	parser := NewParser()
+	html, err := parser.GetChapterContent(path, "word/document.xml")
+	if err != nil {
+		t.Fatalf("GetChapterContent: %v", err)
+	}
+
+	// Heading tag check
+	if !strings.Contains(html, "<h1><b>Header Text</b></h1>") {
+		t.Errorf("expected Heading1 structure in HTML, got %q", html)
+	}
+
+	// Italic and underline check
+	if !strings.Contains(html, "<i>Italic run</i>") || !strings.Contains(html, "<u>Underline run</u>") {
+		t.Errorf("expected formatted text runs, got %q", html)
+	}
+
+	// Image extraction check
+	if !strings.Contains(html, `<img src="media/image1.png" />`) {
+		t.Errorf("expected img tag with relative path in HTML, got %q", html)
+	}
+}

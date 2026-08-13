@@ -133,7 +133,7 @@
     "delete_selected_books": "Удалить выбранное",
     "primary_copy": "Основная копия",
     "keep_this_only": "Оставить только эту",
-    "confirm_delete_file": "Вы уверены, что хотите удалить этот файл?",
+    "confirm_delete_file": "Вы уверены, что хотите удалить этот формат файла?",
     "confirm_keep_one": "Оставить этот файл и удалить дубликаты?",
     "confirm_delete_selected": "Удалить выбранные файлы-дубликаты?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "Объединить «{{source}}» в «{{target}}»? Все главы, файлы и данные о чтении первой книги будут перенесены во вторую, после чего первая будет удалена.",
     "confirm_merge_title": "Объединение книг",
     "merge_books_success": "Книги объединены",
-    "confirm_keep_one_msg": "Вы уверены, что хотите сохранить эту копию и удалить {{count}} дубликатов?"
+    "confirm_keep_one_msg": "Вы уверены, что хотите сохранить эту копию и удалить {{count}} дубликатов?",
+    "delete_file": "Удалить формат файла"
   },
   "auth": {
     "login_to_account": "Вход в вашу учётную запись",
@@ -571,7 +572,9 @@
     "profile_update_failed": "Не удалось сохранить ваш профиль",
     "password_change_failed": "Не удалось изменить пароль",
     "password_relogin_note": "После смены пароля вы выйдете из системы.",
-    "update_password": "Обновить пароль"
+    "update_password": "Обновить пароль",
+    "avatar_updated_success": "Аватар успешно обновлен!",
+    "avatar_removed_success": "Аватар успешно удален!"
   },
   "reader": {
     "readlist_next": "Далее: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Конвертировать в…",
     "convert_queued": "Конвертация поставлена в очередь (задача {{job_id}})",
     "convert_done": "Конвертация завершена",
-    "convert_failed": "Сбой конвертации"
+    "convert_failed": "Сбой конвертации",
+    "manage": "Управление",
+    "convert_format": "Конвертировать формат",
+    "convert_title": "Конвертировать формат книги",
+    "select_source_file": "Исходный файл",
+    "select_target_format": "Целевой формат",
+    "start_conversion": "Начать конвертацию",
+    "convert_no_file": "Пожалуйста, выберите файл для конвертации",
+    "convert_replace_warning": "У этой книги уже есть файл {{format}}. Продолжение заменит существующий файл.",
+    "convert_confirm_replace": "Да, заменить существующий файл",
+    "bulk_convert_title": "Пакетное конвертирование книг",
+    "bulk_convert_global_format": "Установить целевой формат для всех выбранных книг:",
+    "bulk_convert_start": "Начать пакетное конвертирование",
+    "bulk_convert_success": "Успешно добавлено в очередь {{count}} задач на конвертирование",
+    "bulk_convert_failed": "Не удалось запустить некоторые задачи на конвертирование",
+    "no_files_convert": "Нет доступных файлов для конвертирования"
   },
   "settings": {
     "title": "Настройки",
@@ -1176,7 +1194,20 @@
     "start_merge": "Начать объединение",
     "merge_need_two": "Выберите не менее 2 аудиофайлов",
     "merge_queued": "Задача объединения запущена",
-    "merge_failed": "Не удалось запустить объединение"
+    "merge_failed": "Не удалось запустить объединение",
+    "merge_not_ready": "Аудио еще декодируется — дождитесь, пока у всех сегментов не появится длительность",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Подкасты",

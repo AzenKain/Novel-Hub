@@ -22,7 +22,14 @@ export interface LookupAudiobookChaptersInput {
   asin: string;
 }
 
+export interface MergeAudioSegment {
+  file_id: string;
+  start_sec: number;
+  end_sec: number;
+  gain: number;
+}
+
 export interface MergeAudioInput {
   title: string;
-  file_ids: string[];
+  segments: MergeAudioSegment[];
 }

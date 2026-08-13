@@ -14,15 +14,16 @@ import (
 
 	"github.com/google/uuid"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
-	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/netx"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/worker"
 	"novelhub/pkg/waxflow"
+	"novelhub/pkg/waxflow/audio"
 	"novelhub/pkg/waxflow/container"
 	"novelhub/pkg/waxflow/format"
 )
@@ -39,7 +40,7 @@ type AudiobookService interface {
 	DeleteChapter(ctx context.Context, bookID string, id string) error
 	DeleteChaptersForBook(ctx context.Context, bookID string) error
 	LookupChaptersFromAudnexus(ctx context.Context, bookID string, asin string) ([]*response.AudiobookChapterResponse, error)
-	MergeAudio(ctx context.Context, bookID string, title string, fileIDs []string) (string, error)
+	MergeAudio(ctx context.Context, bookID string, title string, segments []request.MergeAudioSegment) (string, error)
 	ExecuteMergeAudioJob(ctx context.Context, payloadJSON string) error
 }
 
@@ -53,9 +54,19 @@ type UpsertAudiobookChapterInput struct {
 }
 
 type mergeAudioPayload struct {
-	BookID  string   `json:"book_id"`
-	Title   string   `json:"title"`
-	FileIDs []string `json:"file_ids"`
+	BookID   string                      `json:"book_id"`
+	Title    string                      `json:"title"`
+	Segments []request.MergeAudioSegment `json:"segments"`
+}
+
+// mergeSegment is a resolved timeline member: the file path plus the edit the
+// timeline applies to it (sample window + linear gain).
+type mergeSegment struct {
+	path     string
+	name     string // basename without extension, for the output chapter title
+	startSec float64
+	endSec   float64
+	gain     float64
 }
 
 type audiobookService struct {
@@ -161,12 +172,12 @@ func (s *audiobookService) LookupChaptersFromAudnexus(ctx context.Context, bookI
 	return out, nil
 }
 
-func (s *audiobookService) MergeAudio(ctx context.Context, bookID string, title string, fileIDs []string) (string, error) {
-	if len(fileIDs) < 2 {
-		return "", apperrors.New(apperrors.ErrBadRequest, "merge requires at least 2 audio files")
+func (s *audiobookService) MergeAudio(ctx context.Context, bookID string, title string, segments []request.MergeAudioSegment) (string, error) {
+	if len(segments) < 2 {
+		return "", apperrors.New(apperrors.ErrBadRequest, "merge requires at least 2 audio segments")
 	}
 
-	payload, err := jsonx.MarshalString(mergeAudioPayload{BookID: bookID, Title: title, FileIDs: fileIDs})
+	payload, err := jsonx.MarshalString(mergeAudioPayload{BookID: bookID, Title: title, Segments: segments})
 	if err != nil {
 		return "", apperrors.New(apperrors.ErrInternalError, "Failed to marshal merge payload")
 	}
@@ -185,10 +196,10 @@ func (s *audiobookService) ExecuteMergeAudioJob(ctx context.Context, payloadJSON
 	if err := jsonx.UnmarshalString(payloadJSON, &payload); err != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid merge payload")
 	}
-	if len(payload.FileIDs) < 2 {
-		return apperrors.New(apperrors.ErrBadRequest, "merge requires at least 2 audio files")
+	if len(payload.Segments) < 2 {
+		return apperrors.New(apperrors.ErrBadRequest, "merge requires at least 2 audio segments")
 	}
-	files, err := s.resolveMergeFiles(ctx, payload.FileIDs)
+	segs, err := s.resolveMergeSegments(ctx, payload.Segments)
 	if err != nil {
 		return err
 	}
@@ -198,7 +209,7 @@ func (s *audiobookService) ExecuteMergeAudioJob(ctx context.Context, payloadJSON
 		return apperrors.New(apperrors.ErrInternalError, "Failed to create temp output")
 	}
 	tmpPath := tmp.Name()
-	if err := mergeTracks(ctx, files, tmp); err != nil {
+	if err := mergeTracks(ctx, segs, tmp); err != nil {
 		_ = tmp.Close()
 		_ = os.Remove(tmpPath)
 		return err
@@ -232,22 +243,33 @@ func (s *audiobookService) ExecuteMergeAudioJob(ctx context.Context, payloadJSON
 	})
 }
 
-func (s *audiobookService) resolveMergeFiles(ctx context.Context, fileIDs []string) ([]*models.BookFileEntity, error) {
-	files := make([]*models.BookFileEntity, 0, len(fileIDs))
-	for _, id := range fileIDs {
-		f, err := s.bookRepo.GetBookFileById(ctx, id)
+func (s *audiobookService) resolveMergeSegments(ctx context.Context, segs []request.MergeAudioSegment) ([]mergeSegment, error) {
+	out := make([]mergeSegment, 0, len(segs))
+	for _, seg := range segs {
+		f, err := s.bookRepo.GetBookFileById(ctx, seg.FileID)
 		if err != nil || f == nil {
 			return nil, apperrors.New(apperrors.ErrNotFound, "source file not found")
 		}
 		if !slices.Contains(strings.Split(allowedMergeFormats, ","), strings.ToLower(f.Format)) {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "only m4a, m4b, mp3, flac, ogg, wav, aac files can be merged")
 		}
-		files = append(files, f)
+		out = append(out, mergeSegment{
+			path:     f.Path,
+			name:     strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path)),
+			startSec: seg.StartSec,
+			endSec:   seg.EndSec,
+			gain:     seg.Gain,
+		})
 	}
-	return files, nil
+	return out, nil
 }
 
-func openMergeMember(ctx context.Context, e *waxflow.Engine, path string) (waxflow.ConcatSource, error) {
+// openMergeSegment opens one timeline member: the source file, sliced to
+// [startSec, endSec) and scaled by a linear gain. A whole file at unity gain
+// is handed over unwrapped; anything else is a waxflow.Slice (streaming,
+// sample-exact, bounded memory) optionally behind a gainMedia. No temp files:
+// the timeline feeds the transcode directly.
+func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, startSec, endSec float64, gain float64) (waxflow.ConcatSource, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return waxflow.ConcatSource{}, err
@@ -283,6 +305,41 @@ func openMergeMember(ctx context.Context, e *waxflow.Engine, path string) (waxfl
 		track.Samples = res.Samples
 		track.SamplesExact = true
 	}
+
+	start := int64(startSec * float64(track.Fmt.Rate))
+	end := int64(endSec * float64(track.Fmt.Rate))
+	// The FE measures duration in the browser, which can round a few samples
+	// past the server's count; clamp both ends so a full-file span stays full
+	// and a split never lands past the file.
+	if track.Samples >= 0 {
+		start = min(start, track.Samples)
+		end = min(end, track.Samples)
+	}
+	if start >= end {
+		return waxflow.ConcatSource{}, fmt.Errorf("segment [%.2fs, %.2fs) is empty or past the end of the file", startSec, endSec)
+	}
+
+	// Whole file at unity gain: hand the source over unwrapped.
+	if start == 0 && end >= track.Samples && gain == 1.0 {
+		open := func() (format.Media, error) {
+			f2, err := os.Open(path)
+			if err != nil {
+				return nil, err
+			}
+			src2, err := container.FileSource(f2)
+			if err != nil {
+				_ = f2.Close()
+				return nil, err
+			}
+			return e.OpenStream(src2, "")
+		}
+		return waxflow.ConcatSource{Track: track, Open: open}, nil
+	}
+
+	spanned, err := waxflow.SpanTrack(track, start, end)
+	if err != nil {
+		return waxflow.ConcatSource{}, err
+	}
 	open := func() (format.Media, error) {
 		f2, err := os.Open(path)
 		if err != nil {
@@ -293,18 +350,77 @@ func openMergeMember(ctx context.Context, e *waxflow.Engine, path string) (waxfl
 			_ = f2.Close()
 			return nil, err
 		}
-		return e.OpenStream(src2, "")
+		med, err := e.OpenStream(src2, "")
+		if err != nil {
+			_ = f2.Close()
+			return nil, err
+		}
+		sliced, err := waxflow.Slice(med, start, end)
+		if err != nil {
+			_ = med.Close()
+			_ = f2.Close()
+			return nil, err
+		}
+		if gain == 1.0 {
+			return sliced, nil
+		}
+		return &gainMedia{Media: sliced, gain: gain, fmt: spanned.Fmt}, nil
 	}
-	return waxflow.ConcatSource{Track: track, Open: open}, nil
+	return waxflow.ConcatSource{Track: spanned, Open: open}, nil
 }
 
-func mergeTracks(ctx context.Context, files []*models.BookFileEntity, out io.Writer) error {
+// gainMedia scales a Media's samples by a fixed linear factor, clamping to
+// the domain's range. It is the per-segment gain of the merge timeline
+// (1.0 = unchanged), matching the browser editor's gain strip.
+type gainMedia struct {
+	format.Media
+	gain float64
+	fmt  audio.Format
+}
+
+func (g *gainMedia) ReadChunk(dst *audio.Buffer) error {
+	if err := g.Media.ReadChunk(dst); err != nil {
+		return err
+	}
+	if g.fmt.Type == audio.Float {
+		for c := 0; c < g.fmt.Channels; c++ {
+			ch := dst.ChanF(c)
+			for i, v := range ch {
+				s := v * float32(g.gain)
+				if s > 1 {
+					s = 1
+				} else if s < -1 {
+					s = -1
+				}
+				ch[i] = s
+			}
+		}
+		return nil
+	}
+	hi := int64((int64(1) << (g.fmt.BitDepth - 1)) - 1)
+	lo := -(hi + 1)
+	for c := 0; c < g.fmt.Channels; c++ {
+		ch := dst.ChanI(c)
+		for i, v := range ch {
+			s := int64(float64(v) * g.gain)
+			if s > hi {
+				s = hi
+			} else if s < lo {
+				s = lo
+			}
+			ch[i] = int32(s)
+		}
+	}
+	return nil
+}
+
+func mergeTracks(ctx context.Context, segs []mergeSegment, out io.Writer) error {
 	e := waxflow.New()
-	members := make([]waxflow.ConcatSource, 0, len(files))
-	for _, f := range files {
-		member, err := openMergeMember(ctx, e, f.Path)
+	members := make([]waxflow.ConcatSource, 0, len(segs))
+	for _, seg := range segs {
+		member, err := openMergeSegment(ctx, e, seg.path, seg.startSec, seg.endSec, seg.gain)
 		if err != nil {
-			return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("failed to open source %s: %v", f.Path, err))
+			return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("failed to open source %s: %v", seg.path, err))
 		}
 		members = append(members, member)
 	}
@@ -324,8 +440,7 @@ func mergeTracks(ctx context.Context, files []*models.BookFileEntity, out io.Wri
 		if envelope.Rate > 0 {
 			startMs = bounds[i].OffsetSamples * 1000 / int64(envelope.Rate)
 		}
-		stem := strings.TrimSuffix(filepath.Base(files[i].Path), filepath.Ext(files[i].Path))
-		chapters = append(chapters, container.Chapter{Start: time.Duration(startMs) * time.Millisecond, Title: stem})
+		chapters = append(chapters, container.Chapter{Start: time.Duration(startMs) * time.Millisecond, Title: segs[i].name})
 	}
 
 	med, err := waxflow.Concat(members, waxflow.ConcatOptions{})

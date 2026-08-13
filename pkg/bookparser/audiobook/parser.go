@@ -7,6 +7,7 @@ import (
 
 	"github.com/dhowden/tag"
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
 	"novelhub/pkg/jsonx"
 )
 
@@ -25,9 +26,10 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 
 	m, err := tag.ReadFrom(file)
 	if err != nil {
-		return &bookparser.BookMetadata{
+		merged := bookparser.MergeMetadataSidecar(filePath, &bookparser.BookMetadata{
 			Title: bookparser.TitleFromPath(filePath),
-		}, nil
+		})
+		return withCoverFallback(merged), nil
 	}
 
 	meta := &bookparser.BookMetadata{
@@ -59,7 +61,15 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 		meta.CoverType = pic.MIMEType
 	}
 
-	return bookparser.MergeMetadataSidecar(filePath, meta), nil
+	return withCoverFallback(bookparser.MergeMetadataSidecar(filePath, meta)), nil
+}
+
+func withCoverFallback(meta *bookparser.BookMetadata) *bookparser.BookMetadata {
+	if len(meta.CoverData) == 0 {
+		meta.CoverData = defaultcover.GenerateSVG(meta.Title, meta.Author)
+		meta.CoverType = "image/svg+xml"
+	}
+	return meta
 }
 
 func (p *AudiobookParser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {

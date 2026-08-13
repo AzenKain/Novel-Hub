@@ -1,4 +1,4 @@
-import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal } from "@/components/admin";
+import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
 import { getMediaUrl } from "@/config/api";
@@ -8,12 +8,14 @@ import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetai
 import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload } from "lucide-react";
+import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
+
+const MERGEABLE_FORMATS = new Set(["m4a", "m4b", "mp3", "flac", "ogg", "wav", "aac"]);
 
 export function Books() {
   const { t } = useTranslation();
@@ -33,12 +35,16 @@ export function Books() {
     setEditingBook: state.setEditingBook, setSearchResults: state.setSearchResults, setBookToDelete: state.setBookToDelete, setLibraryToDelete: state.setLibraryToDelete,
     openEditModal: state.openEditModal, handleSearchOnline: state.handleSearchOnline, handleSelectResult: state.handleSelectResult,
     handleSelectEpubImage: state.handleSelectEpubImage, handleImageUpload: state.handleImageUpload, handleLinkUpload: state.handleLinkUpload, handleEditSubmit: state.handleEditSubmit,
-    handleUploadBookFiles: state.handleUploadBookFiles, handleUploadFiles: state.handleUploadFiles, deleteBook: state.deleteBook, archiveBook: state.archiveBook
+    handleUploadBookFiles: state.handleUploadBookFiles, handleUploadFiles: state.handleUploadFiles, deleteBook: state.deleteBook, archiveBook: state.archiveBook,
+    deleteBookFile: state.deleteBookFile
   })));
   const [actionBook, setActionBook] = useState<Book | null>(null);
+  const [convertBook, setConvertBook] = useState<Book | null>(null);
+  const [mergeBook, setMergeBook] = useState<Book | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showBulkConvertModal, setShowBulkConvertModal] = useState(false);
 
   const {
     search, selectedLibraryId,
@@ -56,7 +62,7 @@ export function Books() {
     setEditingBook, setSearchResults, setBookToDelete, setLibraryToDelete,
     openEditModal, handleSearchOnline, handleSelectResult,
     handleSelectEpubImage, handleImageUpload, handleLinkUpload, handleEditSubmit,
-    handleUploadBookFiles, handleUploadFiles
+    handleUploadBookFiles, handleUploadFiles, deleteBookFile
   } = store;
 
   const navigate = useNavigate();
@@ -97,6 +103,18 @@ export function Books() {
   }), [debouncedSearch, selectedLibraryId]));
 
   const books = useMemo(() => booksPages?.pages.flatMap((page) => page.data || []) ?? [], [booksPages]);
+
+  const selectedBooks = useMemo(() => {
+    return books.filter((b) => selectedBookIds.includes(b.id));
+  }, [books, selectedBookIds]);
+
+  const allSelectedAudioFiles = useMemo(() => {
+    return selectedBooks.flatMap((b) => b.files || []).filter((f) => MERGEABLE_FORMATS.has(f.format.toLowerCase()));
+  }, [selectedBooks]);
+
+  const canBulkMerge = allSelectedAudioFiles.length >= 2;
+
+  const canBulkConvert = selectedBooks.some((b) => b.files && b.files.length > 0);
 
   useEffect(() => {
     setSelectedBookIds([]);
@@ -233,13 +251,41 @@ export function Books() {
                 {t("common.deselect_all", "Clear selection")}
               </button>
             </div>
-            <button
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="btn btn-error btn-xs gap-1.5 text-white h-7 min-h-0"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              {t("admin.delete_selected_books", "Delete selected")}
-            </button>
+            <div className="flex items-center gap-2">
+              {canBulkMerge && (
+                <button
+                  onClick={() => {
+                    const targetBook = selectedBooks[0];
+                    if (targetBook) {
+                      setMergeBook({
+                        ...targetBook,
+                        files: allSelectedAudioFiles
+                      });
+                    }
+                  }}
+                  className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                >
+                  <AudioLines className="w-3.5 h-3.5" />
+                  {t("audiobook.merge", "Merge into audiobook")}
+                </button>
+              )}
+              {canBulkConvert && (
+                <button
+                  onClick={() => setShowBulkConvertModal(true)}
+                  className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {t("book.convert_format", "Convert format")}
+                </button>
+              )}
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="btn btn-error btn-xs gap-1.5 text-white h-7 min-h-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {t("admin.delete_selected_books", "Delete selected")}
+              </button>
+            </div>
           </div>
         )}
 
@@ -263,7 +309,13 @@ export function Books() {
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
                 {books.map((book) => (
-                  <BookCard key={book.id} book={book} onClick={() => setActionBook(book)} />
+                  <BookCard
+                    key={book.id}
+                    book={book}
+                    onClick={() => setActionBook(book)}
+                    selected={selectedBookIds.includes(book.id)}
+                    onSelectToggle={() => toggleSelectBook(book.id)}
+                  />
                 ))}
               </div>
             ) : (
@@ -408,6 +460,14 @@ export function Books() {
           setActionBook(null);
           void store.archiveBook(book.id, book.status !== "archived");
         }}
+        onConvert={(book) => {
+          setActionBook(null);
+          setConvertBook(book);
+        }}
+        onMerge={(book) => {
+          setActionBook(null);
+          setMergeBook(book);
+        }}
       />
 
       {/* ===================== EDIT METADATA MODAL ===================== */}
@@ -539,6 +599,20 @@ export function Books() {
                             <div className="truncate text-[11px] font-semibold">{fileNameFromPath(file.path)}</div>
                             <div className="text-[10px] uppercase text-base-content/45">{file.format || "file"} · {formatFileSize(file.size_bytes)}</div>
                           </div>
+                          {bookFiles.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(t("admin.confirm_delete_file", "Are you sure you want to delete this file format?"))) {
+                                  void deleteBookFile(file.id);
+                                }
+                              }}
+                              className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/15"
+                              title={t("admin.delete_file", "Delete file format")}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -816,6 +890,36 @@ export function Books() {
           setSelectedBookIds([]);
         }}
       />
+
+      {convertBook && (
+        <ConvertBookModal
+          open={!!convertBook}
+          bookId={convertBook.id}
+          files={convertBook.files || []}
+          onClose={() => setConvertBook(null)}
+        />
+      )}
+
+      {mergeBook && (
+        <MergeAudiobookModal
+          open={!!mergeBook}
+          book_id={mergeBook.id!}
+          title={mergeBook.title}
+          files={mergeBook.files || []}
+          onClose={() => setMergeBook(null)}
+        />
+      )}
+
+      {showBulkConvertModal && (
+        <BulkConvertModal
+          open={showBulkConvertModal}
+          books={selectedBooks}
+          onClose={() => {
+            setShowBulkConvertModal(false);
+            setSelectedBookIds([]);
+          }}
+        />
+      )}
     </div>
   );
 }

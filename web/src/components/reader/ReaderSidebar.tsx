@@ -1,9 +1,10 @@
 import type { TFunction } from "i18next";
-import { ArrowLeft, BookOpen, FileText, PanelLeftClose } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, PanelLeftClose, ChevronRight } from "lucide-react";
 import React from "react";
 
 import type { Book, Chapter, Highlight } from "@/types";
 import { ReaderHighlightsPanel } from "./ReaderHighlightsPanel";
+import { getMediaUrl } from "@/config/api";
 
 type ReaderSidebarProps = {
   t: TFunction;
@@ -19,6 +20,10 @@ type ReaderSidebarProps = {
   onUpdateHighlight?: (id: string, color: string, note?: string) => void;
   onDeleteHighlight?: (id: string) => void;
   onSelectHighlight?: (highlight: Highlight) => void;
+  nextInSeries?: any;
+  nextInReadList?: Book | null;
+  onGoToNextInSeries?: () => void;
+  onGoToNextInReadList?: () => void;
 };
 
 function getSidebarEntryKind(title: string) {
@@ -58,9 +63,95 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   onUpdateHighlight,
   onDeleteHighlight,
   onSelectHighlight,
+  nextInSeries,
+  nextInReadList,
+  onGoToNextInSeries,
+  onGoToNextInReadList,
 }) => {
   const singleChapter = chapters.length <= 1;
   const showHighlights = Boolean(highlights && onUpdateHighlight && onDeleteHighlight);
+
+  const renderNextVolumeCard = () => {
+    if (nextInReadList) {
+      return (
+        <div className="mt-6 p-4 rounded-2xl border border-base-content/10 bg-base-content/5">
+          <p className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-2.5">
+            {t("reader.readlist_next_label", "Next Book in Readlist")}
+          </p>
+          <div className="flex items-center gap-3">
+            {nextInReadList.cover_url ? (
+              <img
+                src={getMediaUrl(nextInReadList.cover_url)}
+                alt={nextInReadList.title}
+                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-xs"
+              />
+            ) : (
+              <div className="h-14 aspect-[3/4.2] rounded-lg bg-primary/10 grid place-items-center text-primary shrink-0">
+                <BookOpen className="h-5 w-5" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold truncate text-[var(--reader-ui-text)]">
+                {nextInReadList.title}
+              </p>
+              <p className="text-[10px] opacity-60 truncate mt-0.5">
+                {nextInReadList.author_name || "Unknown Author"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onGoToNextInReadList}
+            className="btn btn-primary btn-xs w-full gap-1 rounded-lg mt-3 text-[10px] font-bold"
+          >
+            <BookOpen className="w-3 h-3" />
+            {t("reader.read_next_volume", "Read Next Volume")}
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      );
+    }
+
+    if (nextInSeries) {
+      return (
+        <div className="mt-6 p-4 rounded-2xl border border-base-content/10 bg-base-content/5">
+          <p className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-2.5">
+            {t("reader.series_next_label", "Next Volume in Series")}
+          </p>
+          <div className="flex items-center gap-3">
+            {nextInSeries.cover_url ? (
+              <img
+                src={getMediaUrl(nextInSeries.cover_url)}
+                alt={nextInSeries.title}
+                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-xs"
+              />
+            ) : (
+              <div className="h-14 aspect-[3/4.2] rounded-lg bg-primary/10 grid place-items-center text-primary shrink-0">
+                <BookOpen className="h-5 w-5" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold truncate text-[var(--reader-ui-text)]">
+                {nextInSeries.title}
+              </p>
+              <p className="text-[10px] opacity-60 truncate mt-0.5">
+                {nextInSeries.series_name} {nextInSeries.series_index ? `#${nextInSeries.series_index}` : ""}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onGoToNextInSeries}
+            className="btn btn-primary btn-xs w-full gap-1 rounded-lg mt-3 text-[10px] font-bold"
+          >
+            <BookOpen className="w-3 h-3" />
+            {t("reader.read_next_volume", "Read Next Volume")}
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="drawer-side z-50">
@@ -97,7 +188,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           </div>
 
           {singleChapter ? (
-            <div className="px-4">
+            <div className="px-4 overflow-y-auto pb-4 flex-1">
               <button
                 onClick={() => chapters[0] && onSelectChapter(chapters[0])}
                 className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--reader-ui-accent)]/40 bg-[var(--reader-ui-accent-soft)] px-4 py-4 text-left text-[var(--reader-ui-accent)] shadow-sm"
@@ -122,6 +213,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   </span>
                 </span>
               </button>
+              {renderNextVolumeCard()}
             </div>
           ) : (
             <ul className="reader-sidebar-list">
@@ -163,6 +255,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   </li>
                 );
               })}
+              {(nextInReadList || nextInSeries) && (
+                <li className="px-2 pb-4">
+                  {renderNextVolumeCard()}
+                </li>
+              )}
             </ul>
           )}
 

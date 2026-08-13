@@ -133,7 +133,7 @@
     "delete_selected_books": "Supprimer la sélection",
     "primary_copy": "Copie principale",
     "keep_this_only": "Ne garder que celui-ci",
-    "confirm_delete_file": "Voulez-vous vraiment supprimer ce fichier ?",
+    "confirm_delete_file": "Êtes-vous sûr de vouloir supprimer ce format de fichier ?",
     "confirm_keep_one": "Garder ce fichier et supprimer les copies en double ?",
     "confirm_delete_selected": "Supprimer les fichiers en double sélectionnés ?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "Fusionner « {{source}} » dans « {{target}} » ? Tous les chapitres, fichiers et données de lecture du premier livre seront regroupés dans le second, puis le premier sera supprimé.",
     "confirm_merge_title": "Fusionner les livres",
     "merge_books_success": "Livres fusionnés",
-    "confirm_keep_one_msg": "Êtes-vous sûr de vouloir conserver cette copie et supprimer {{count}} copie(s) doublon(s) ?"
+    "confirm_keep_one_msg": "Êtes-vous sûr de vouloir conserver cette copie et supprimer {{count}} copie(s) doublon(s) ?",
+    "delete_file": "Supprimer le format de fichier"
   },
   "auth": {
     "login_to_account": "Connectez-vous à votre compte",
@@ -571,7 +572,9 @@
     "profile_update_failed": "Impossible d'enregistrer votre profil",
     "password_change_failed": "Impossible de changer votre mot de passe",
     "password_relogin_note": "Vous serez déconnecté après avoir changé votre mot de passe.",
-    "update_password": "Mettre à jour le mot de passe"
+    "update_password": "Mettre à jour le mot de passe",
+    "avatar_updated_success": "Photo de profil mise à jour avec succès !",
+    "avatar_removed_success": "Photo de profil supprimée avec succès !"
   },
   "reader": {
     "readlist_next": "Suivant : {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Convertir en…",
     "convert_queued": "Conversion en file (tâche {{job_id}})",
     "convert_done": "Conversion terminée",
-    "convert_failed": "Échec de la conversion"
+    "convert_failed": "Échec de la conversion",
+    "manage": "Gérer",
+    "convert_format": "Convertir le format",
+    "convert_title": "Convertir le format du livre",
+    "select_source_file": "Fichier source",
+    "select_target_format": "Format cible",
+    "start_conversion": "Lancer la conversion",
+    "convert_no_file": "Veuillez sélectionner un fichier à convertir",
+    "convert_replace_warning": "Ce livre a déjà un fichier {{format}}. Continuer remplacera le fichier existant.",
+    "convert_confirm_replace": "Oui, remplacer le fichier existant",
+    "bulk_convert_title": "Convertir les livres en lot",
+    "bulk_convert_global_format": "Définir le format cible pour tous les livres sélectionnés :",
+    "bulk_convert_start": "Démarrer la conversion en lot",
+    "bulk_convert_success": "{{count}} tâches de conversion ajoutées à la file d'attente avec succès",
+    "bulk_convert_failed": "Certaines tâches de conversion n'ont pas pu démarrer",
+    "no_files_convert": "Aucun fichier disponible pour la conversion"
   },
   "settings": {
     "title": "Paramètres",
@@ -1176,7 +1194,20 @@
     "start_merge": "Lancer la fusion",
     "merge_need_two": "Sélectionnez au moins 2 fichiers audio",
     "merge_queued": "Tâche de fusion lancée",
-    "merge_failed": "Échec du lancement de la fusion"
+    "merge_failed": "Échec du lancement de la fusion",
+    "merge_not_ready": "Décodage audio en cours — attendez que tous les segments aient une durée",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcasts",

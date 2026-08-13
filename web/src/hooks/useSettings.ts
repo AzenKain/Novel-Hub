@@ -37,10 +37,16 @@ export function usePublicSettings(): PublicSettings | null {
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
 
+    if (publicSettings || fetching) return;
+    fetching = true;
+
     settingsService.getPublic().then((res) => {
       useSettingsStore.getState().setPublicSettings(res.data || null);
-    }).catch(() => {});
-  }, [user]);
+      fetching = false;
+    }).catch(() => {
+      fetching = false;
+    });
+  }, [user, publicSettings]);
 
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);

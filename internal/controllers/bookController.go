@@ -202,6 +202,22 @@ func (h *BookController) ConvertBook(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: map[string]string{"job_id": jobID}})
 }
 
+func (h *BookController) BulkConvertBooks(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	dto := &request.BulkConvertDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	jobIDs, err := h.bookService.BulkConvertBooks(ctx, dto.Items)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: map[string]any{"job_ids": jobIDs}})
+}
+
 func (h *BookController) DeleteBookFile(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

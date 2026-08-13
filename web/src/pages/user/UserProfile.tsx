@@ -11,7 +11,7 @@ import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { HardcoverTrackerCard } from "@/components/profile/HardcoverTrackerCard";
 import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
-import { useChangePasswordMutation, useUpdateProfileMutation } from "@/hooks";
+import { useChangePasswordMutation, useUpdateProfileMutation, useUploadAvatarMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,19 @@ export const UserProfile = () => {
   );
 
   const updateProfileMutation = useUpdateProfileMutation();
+  const uploadAvatarMutation = useUploadAvatarMutation();
+
+  const base64ToBlob = (base64: string): Blob => {
+    const parts = base64.split(";base64,");
+    const contentType = parts[0].split(":")[1];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType });
+  };
   const { t } = useTranslation();
   
   const [fullName, setFullName] = useState("");
@@ -71,9 +84,44 @@ export const UserProfile = () => {
     }
   };
 
-  const handleCropApply = (base64: string) => {
-    setAvatarUrl(base64);
+  const handleCropApply = async (base64: string) => {
     setSelectedImage(null);
+    try {
+      const blob = base64ToBlob(base64);
+      const file = new File([blob], "avatar.png", { type: blob.type });
+      
+      const uploadedUrl = await uploadAvatarMutation.mutateAsync(file);
+      setAvatarUrl(uploadedUrl);
+      
+      updateProfileMutation.mutate(
+        { full_name: fullName, avatar_url: uploadedUrl },
+        {
+          onSuccess: () => {
+            toast.success(t('user.avatar_updated_success', 'Avatar updated successfully!'));
+          },
+          onError: (err) => {
+            toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+          },
+        }
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('user.avatar_upload_failed', 'Failed to upload avatar'));
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl("");
+    updateProfileMutation.mutate(
+      { full_name: fullName, avatar_url: "" },
+      {
+        onSuccess: () => {
+          toast.success(t('user.avatar_removed_success', 'Avatar removed successfully!'));
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+        },
+      }
+    );
   };
 
   const handleSave = (e: React.SyntheticEvent) => {
@@ -120,7 +168,8 @@ export const UserProfile = () => {
   };
 
   return (
-    <dialog className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}>
+    <>
+      <dialog className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}>
       {user && (
         <div className="modal-box max-w-4xl w-11/12 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border border-base-300 bg-base-100">
           {/* Sticky Header */}
@@ -157,14 +206,6 @@ export const UserProfile = () => {
               </div>
             )}
 
-            {selectedImage ? (
-              <ImageCropperModal
-                imageSrc={selectedImage}
-                onCrop={handleCropApply}
-                onCancel={() => setSelectedImage(null)}
-                cropSize={200}
-              />
-            ) : (
               <>
                 {/* Account Details & Main Settings Card */}
                 <div className="rounded-2xl border border-base-300 bg-base-200/40 p-5 space-y-4">
@@ -172,11 +213,27 @@ export const UserProfile = () => {
                     <div className="flex items-center gap-4">
                       <div className="avatar">
                         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold text-xl overflow-hidden shadow-sm">
-                          {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar" loading="lazy" className="object-cover w-full h-full" />
-                          ) : (
-                            <span>{fullName ? fullName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}</span>
+                          {avatarUrl && (
+                            <img 
+                              src={avatarUrl.startsWith("/public/") ? `${avatarUrl}?t=${user.updated_at ? encodeURIComponent(user.updated_at) : Date.now()}` : avatarUrl} 
+                              alt="Avatar" 
+                              loading="lazy" 
+                              className="object-cover w-full h-full animate-in fade-in duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback = e.currentTarget.nextElementSibling;
+                                if (fallback) {
+                                  (fallback as HTMLElement).style.display = "flex";
+                                }
+                              }}
+                            />
                           )}
+                          <span 
+                            className="w-full h-full flex items-center justify-center font-bold text-xl text-primary"
+                            style={{ display: avatarUrl ? "none" : "flex" }}
+                          >
+                            {fullName ? fullName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                          </span>
                         </div>
                       </div>
                       <div>
@@ -202,14 +259,14 @@ export const UserProfile = () => {
                             {t('user.load_url', 'From URL')}
                           </button>
                           {avatarUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setAvatarUrl("")}
-                              className="btn btn-xs btn-ghost text-error"
-                            >
-                              {t('user.remove_avatar', 'Remove')}
-                            </button>
-                          )}
+                             <button
+                               type="button"
+                               onClick={handleRemoveAvatar}
+                               className="btn btn-xs btn-ghost text-error"
+                             >
+                               {t('user.remove_avatar', 'Remove')}
+                             </button>
+                           )}
                         </div>
                         
                         {urlInputOpen && (
@@ -383,7 +440,6 @@ export const UserProfile = () => {
                 {/* Hardcover Scrobbling Card */}
                 <HardcoverTrackerCard />
               </>
-            )}
           </div>
         </div>
       )}
@@ -391,5 +447,15 @@ export const UserProfile = () => {
         <button onClick={closeModal}>close</button>
       </form>
     </dialog>
+
+    {selectedImage && (
+      <ImageCropperModal
+        imageSrc={selectedImage}
+        onCrop={handleCropApply}
+        onCancel={() => setSelectedImage(null)}
+        cropSize={200}
+      />
+    )}
+  </>
   );
 };

@@ -293,7 +293,7 @@ func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte
 	return s.buildPluginZip(ctx, baseURL)
 }
 
-func (s *vbookService) buildPluginZip(ctx context.Context, baseURL string) ([]byte, error) {
+func (s *vbookService) buildPluginZip(_ context.Context, baseURL string) ([]byte, error) {
 	pluginManifest := &response.VBookPluginResponse{
 		Metadata: response.VBookPluginMetadata{
 			Name:        "NovelHub",

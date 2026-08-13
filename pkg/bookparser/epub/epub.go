@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -374,7 +375,7 @@ func extractSeries(items []Meta) (string, string) {
 func findImageManifestItemByHref(items []Item, href string) (Item, bool) {
 	target := strings.TrimLeft(resolveEPUBHref("", href), "/")
 	for _, item := range items {
-		if !strings.HasPrefix(item.MediaType, "image/") {
+		if !strings.HasPrefix(item.MediaType, "image/") && !looksLikeImagePath(item.Href) {
 			continue
 		}
 		itemHref := strings.TrimLeft(resolveEPUBHref("", item.Href), "/")
@@ -764,7 +765,7 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 
 	var images []string
 	for _, item := range pkg.Manifest.Items {
-		if strings.HasPrefix(item.MediaType, "image/") {
+		if isImageManifestItem(r, baseDir, item) {
 			imgPath := filepath.Join(baseDir, item.Href)
 			imgPath = resolveEPUBHref(baseDir, item.Href)
 			images = append(images, imgPath)
@@ -772,6 +773,32 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 	}
 
 	return images, nil
+}
+
+// isImageManifestItem reports whether a manifest item is an image. A declared
+// image/* media-type wins; some producers ship empty media-type="" items, so
+// those are sniffed from their bytes (the real-book shape that used to drop
+// every image during conversion).
+func isImageManifestItem(r *zip.ReadCloser, baseDir string, item Item) bool {
+	if strings.HasPrefix(item.MediaType, "image/") {
+		return true
+	}
+	if item.MediaType != "" {
+		return false
+	}
+	path := resolveEPUBHref(baseDir, item.Href)
+	f, err := getZipFile(r, path)
+	if err != nil {
+		return false
+	}
+	rc, err := f.Open()
+	if err != nil {
+		return false
+	}
+	defer rc.Close()
+	buf := make([]byte, 512)
+	n, _ := io.ReadFull(rc, buf)
+	return strings.HasPrefix(http.DetectContentType(buf[:n]), "image/")
 }
 
 func findOPFPath(r *zip.ReadCloser) (string, error) {
@@ -807,6 +834,15 @@ func getZipFile(r *zip.ReadCloser, name string) (*zip.File, error) {
 		}
 	}
 	return nil, errors.New("file not found in zip: " + name)
+}
+
+func looksLikeImagePath(href string) bool {
+	ext := strings.ToLower(filepath.Ext(strings.SplitN(href, "?", 2)[0]))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".avif":
+		return true
+	}
+	return false
 }
 
 func resolveEPUBHref(baseDir string, href string) string {

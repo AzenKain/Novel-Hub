@@ -120,6 +120,20 @@ export interface ConvertBookResult {
   job_id: string;
 }
 
+export interface BulkConvertItem {
+  book_id: string;
+  file_id: string;
+  target_format: string;
+}
+
+export interface BulkConvertPayload {
+  items: BulkConvertItem[];
+}
+
+export interface BulkConvertResult {
+  job_ids: string[];
+}
+
 export interface DuplicateFileResult {
   hash: string;
   duplicate_count?: number;

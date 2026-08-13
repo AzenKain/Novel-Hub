@@ -1,6 +1,7 @@
 package ebookconv
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,18 +23,24 @@ func writeTXT(book *bookparser.BookData) ([]byte, error) {
 		ruler = 24
 	}
 	if book.Metadata.Title != "" {
-		b.WriteString(book.Metadata.Title + "\n")
+		b.WriteString(book.Metadata.Title)
+		b.WriteString("\n")
 	}
 	if book.Metadata.Author != "" {
-		b.WriteString(book.Metadata.Author + "\n")
+		b.WriteString(book.Metadata.Author)
+		b.WriteString("\n")
 	}
 	if book.Metadata.Title != "" || book.Metadata.Author != "" {
-		b.WriteString(strings.Repeat("=", ruler) + "\n\n")
+		b.WriteString(strings.Repeat("=", ruler))
+		b.WriteString("\n\n")
 	}
 	for _, ch := range book.Chapters {
 		if ch.Title != "" {
-			b.WriteString("\n" + ch.Title + "\n")
-			b.WriteString(strings.Repeat("-", ruler) + "\n\n")
+			b.WriteString("\n")
+			b.WriteString(ch.Title)
+			b.WriteString("\n")
+			b.WriteString(strings.Repeat("-", ruler))
+			b.WriteString("\n\n")
 		}
 		b.WriteString(fragmentText(ch.Content))
 		b.WriteString("\n\n")
@@ -52,34 +59,47 @@ func writeFB2(book *bookparser.BookData, images []Image) ([]byte, error) {
 		first, last := splitAuthor(book.Metadata.Author)
 		b.WriteString("<author>")
 		if first != "" {
-			b.WriteString("<first-name>" + escapeXML(first) + "</first-name>")
+			b.WriteString("<first-name>")
+			b.WriteString(escapeXML(first))
+			b.WriteString("</first-name>")
 		}
 		if last != "" {
-			b.WriteString("<last-name>" + escapeXML(last) + "</last-name>")
+			b.WriteString("<last-name>")
+			b.WriteString(escapeXML(last))
+			b.WriteString("</last-name>")
 		}
 		b.WriteString("</author>")
 	}
-	b.WriteString("<book-title>" + escapeXML(fallbackTitle(book)) + "</book-title>")
+	b.WriteString("<book-title>")
+	b.WriteString(escapeXML(fallbackTitle(book)))
+	b.WriteString("</book-title>")
 	if book.Metadata.Language != "" {
-		b.WriteString("<lang>" + escapeXML(book.Metadata.Language) + "</lang>")
+		b.WriteString("<lang>")
+		b.WriteString(escapeXML(book.Metadata.Language))
+		b.WriteString("</lang>")
 	}
 	if strings.TrimSpace(book.Metadata.Description) != "" {
-		b.WriteString("<annotation><p>" + escapeXML(strings.TrimSpace(book.Metadata.Description)) + "</p></annotation>")
+		b.WriteString("<annotation><p>")
+		b.WriteString(escapeXML(strings.TrimSpace(book.Metadata.Description)))
+		b.WriteString("</p></annotation>")
 	}
 	if len(book.Metadata.CoverData) > 0 {
 		b.WriteString(`<coverpage><image l:href="#cover"/></coverpage>`)
 	}
 	b.WriteString("</title-info>")
-	b.WriteString("<document-info><id>" + newID() + "</id><program-used>NovelHub</program-used><date>" + today() + "</date></document-info>")
+	b.WriteString("<document-info><id>");b.WriteString(newID());b.WriteString("</id><program-used>NovelHub</program-used><date>");b.WriteString(today());b.WriteString("</date></document-info>")
 	b.WriteString("</description>")
 
 	b.WriteString("<body>")
 	for _, ch := range book.Chapters {
 		b.WriteString("<section>")
 		if strings.TrimSpace(ch.Title) != "" {
-			b.WriteString("<title><p>" + escapeXML(strings.TrimSpace(ch.Title)) + "</p></title>")
+			b.WriteString("<title><p>");b.WriteString(escapeXML(strings.TrimSpace(ch.Title)));b.WriteString("</p></title>")
 		}
-		for _, n := range fragmentNodes(ch.Content) {
+		content := rebaseChapterLinks(ch.Content, ch.ContentPath, book.Chapters, func(c bookparser.ChapterData) string {
+			return fmt.Sprintf("section:%d", c.Index)
+		})
+		for _, n := range fragmentNodes(content) {
 			writeFB2Node(n, &b, imgIndex)
 		}
 		b.WriteString("</section>")
@@ -87,12 +107,12 @@ func writeFB2(book *bookparser.BookData, images []Image) ([]byte, error) {
 	b.WriteString("</body>")
 
 	if len(book.Metadata.CoverData) > 0 {
-		b.WriteString(`<binary id="cover" content-type="` + mediaTypeForBytes(book.Metadata.CoverData, book.Metadata.CoverType) + `">`)
+		b.WriteString(`<binary id="cover" content-type="`);b.WriteString(mediaTypeForBytes(book.Metadata.CoverData, book.Metadata.CoverType));b.WriteString(`">`)
 		b.WriteString(base64Encode(book.Metadata.CoverData))
 		b.WriteString("</binary>")
 	}
 	for i, img := range images {
-		b.WriteString(`<binary id="fb2img` + strconv.Itoa(i+1) + `" content-type="` + mediaType(img.Src) + `">`)
+		b.WriteString(`<binary id="fb2img`);b.WriteString(strconv.Itoa(i + 1));b.WriteString(`" content-type="`);b.WriteString(mediaType(img.Src));b.WriteString(`">`)
 		b.WriteString(base64Encode(img.Data))
 		b.WriteString("</binary>")
 	}
@@ -106,10 +126,16 @@ func writeFB2Node(n *nethtml.Node, b *strings.Builder, imgIndex map[string]int) 
 		b.WriteString(escapeXML(n.Data))
 	case nethtml.ElementNode:
 		switch strings.ToLower(n.Data) {
-		case "h1", "h2", "h3", "h4", "h5", "h6":
-			b.WriteString("<title><p>")
+		case "li":
+			// FB2 has no list model; render each item as a paragraph so the
+			// reader doesn't drop bare text under <section>.
+			b.WriteString("<p>")
 			writeFB2Children(n, b, imgIndex)
-			b.WriteString("</p></title>")
+			b.WriteString("</p>")
+		case "h1", "h2", "h3", "h4", "h5", "h6":
+			b.WriteString("<p><strong>")
+			writeFB2Children(n, b, imgIndex)
+			b.WriteString("</strong></p>")
 		case "p", "blockquote", "cite":
 			b.WriteString("<p>")
 			writeFB2Children(n, b, imgIndex)
@@ -124,7 +150,15 @@ func writeFB2Node(n *nethtml.Node, b *strings.Builder, imgIndex map[string]int) 
 			b.WriteString("</emphasis>")
 		case "img":
 			if idx, ok := imgIndex[base(fileAttr(n, "src"))]; ok {
-				b.WriteString(`<image l:href="#fb2img` + strconv.Itoa(idx+1) + `"/>`)
+				b.WriteString(`<image l:href="#fb2img`);b.WriteString(strconv.Itoa(idx + 1));b.WriteString(`"/>`)
+			}
+		case "a":
+			if href := fileAttr(n, "href"); href != "" && href != "#" {
+				b.WriteString(`<a href="`);b.WriteString(escapeXML(href));b.WriteString(`">`)
+				writeFB2Children(n, b, imgIndex)
+				b.WriteString("</a>")
+			} else {
+				writeFB2Children(n, b, imgIndex)
 			}
 		case "br":
 			b.WriteString("\n")

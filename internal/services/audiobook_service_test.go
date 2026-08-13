@@ -3,15 +3,19 @@ package services
 import (
 	"context"
 	"encoding/binary"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
-	"novelhub/internal/models"
+	"novelhub/internal/dtos/request"
 	"novelhub/pkg/waxflow"
+	"novelhub/pkg/waxflow/audio"
 	"novelhub/pkg/waxflow/container"
+	"novelhub/pkg/waxflow/format"
 )
 
 func writeWav(t *testing.T, path string, rate int, seconds float64, freq float64) {
@@ -53,6 +57,53 @@ func writeWav(t *testing.T, path string, rate int, seconds float64, freq float64
 	}
 }
 
+// segForWav builds a timeline segment for a fixture file. An endSec past the
+// file's end is fine: openMergeSegment clamps both ends to the probed length.
+func segForWav(path string, start, end, gain float64) mergeSegment {
+	return mergeSegment{
+		path:     path,
+		name:     strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)),
+		startSec: start,
+		endSec:   end,
+		gain:     gain,
+	}
+}
+
+// drainSamples reads a media to EOF, returning the mono int-domain samples.
+func drainSamples(t *testing.T, med format.Media) []int32 {
+	t.Helper()
+	def := med.Info().Default()
+	if def.Fmt.Channels != 1 || def.Fmt.Type != audio.Int {
+		t.Fatalf("expected mono int media, got %s", def.Fmt.String())
+	}
+	buf := audio.Get(def.Fmt, audio.StandardChunk)
+	defer audio.Put(buf)
+	var out []int32
+	for {
+		err := med.ReadChunk(buf)
+		if err == io.EOF {
+			return out
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, buf.ChanI(0)...)
+	}
+}
+
+func maxAbs(s []int32) int32 {
+	m := int32(0)
+	for _, v := range s {
+		if v < 0 {
+			v = -v
+		}
+		if v > m {
+			m = v
+		}
+	}
+	return m
+}
+
 func TestMergeTracks(t *testing.T) {
 	dir := t.TempDir()
 	wav1 := filepath.Join(dir, "part1.wav")
@@ -66,13 +117,13 @@ func TestMergeTracks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	files := []*models.BookFileEntity{
-		{Path: wav1, Format: "wav"},
-		{Path: wav2, Format: "wav"},
+	segs := []mergeSegment{
+		segForWav(wav1, 0, 2, 1.0),
+		segForWav(wav2, 0, 2, 1.0),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	if err := mergeTracks(ctx, files, of); err != nil {
+	if err := mergeTracks(ctx, segs, of); err != nil {
 		t.Fatalf("mergeTracks: %v", err)
 	}
 	_ = of.Close()
@@ -114,7 +165,7 @@ func TestMergeTracks(t *testing.T) {
 
 func TestMergeAudioRejectsFewerThanTwo(t *testing.T) {
 	s := NewAudiobookService(nil, nil, nil, nil)
-	if _, err := s.MergeAudio(context.Background(), "book-1", "Merged", []string{"file-1"}); err == nil {
+	if _, err := s.MergeAudio(context.Background(), "book-1", "Merged", []request.MergeAudioSegment{{FileID: "file-1"}}); err == nil {
 		t.Fatal("expected error for a single file")
 	}
 }
@@ -123,7 +174,7 @@ func TestMergeAudioRejectsFewerThanTwo(t *testing.T) {
 // the merger claims to accept, plus one mixed-format case (the auto-resample path).
 // ponytail: no OGG/Opus fixtures exist in the vendored corpus; those decode via
 // the same container sniffing path, add fixtures if a real OGG regression appears.
-// Raw ADTS .aac has no container duration, so openMergeMember measures it with a
+// Raw ADTS .aac has no container duration, so openMergeSegment measures it with a
 // full decode pass before the timeline is planned.
 func probeDuration(t *testing.T, path string) time.Duration {
 	t.Helper()
@@ -177,13 +228,13 @@ func TestMergeTracksAllFormats(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			files := []*models.BookFileEntity{
-				{Path: tc.a, Format: "x"},
-				{Path: tc.b, Format: "x"},
+			segs := []mergeSegment{
+				segForWav(tc.a, 0, 1e9, 1.0),
+				segForWav(tc.b, 0, 1e9, 1.0),
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
-			if err := mergeTracks(ctx, files, of); err != nil {
+			if err := mergeTracks(ctx, segs, of); err != nil {
 				t.Fatalf("mergeTracks: %v", err)
 			}
 			_ = of.Close()
@@ -218,5 +269,72 @@ func TestMergeTracksAllFormats(t *testing.T) {
 				t.Fatalf("chapter 0 start = %v, want 0", info.Chapters[0].Start)
 			}
 		})
+	}
+}
+
+// TestMergeTracksSplitAndGain exercises the slice + gain timeline path: two
+// halves of one file, the second doubled, concatenated back into the original
+// duration. The chunk stream is inspected directly (no AAC transcode), so the
+// amplitudes prove the split and gain are applied sample-exactly.
+func TestMergeTracksSplitAndGain(t *testing.T) {
+	dir := t.TempDir()
+	wav := filepath.Join(dir, "tone.wav")
+	writeWav(t, wav, 44100, 1.0, 440) // sine, amplitude 10000
+
+	e := waxflow.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	segs := []mergeSegment{
+		segForWav(wav, 0, 0.5, 1.0),
+		segForWav(wav, 0.5, 1.0, 2.0),
+	}
+	members := make([]waxflow.ConcatSource, len(segs))
+	for i := range segs {
+		m, err := openMergeSegment(ctx, e, segs[i].path, segs[i].startSec, segs[i].endSec, segs[i].gain)
+		if err != nil {
+			t.Fatalf("openMergeSegment %d: %v", i, err)
+		}
+		members[i] = m
+	}
+	med, err := waxflow.Concat(members, waxflow.ConcatOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer med.Close()
+	samples := drainSamples(t, med)
+
+	if n := len(samples); n < 43000 || n > 45000 {
+		t.Fatalf("merged length = %d samples, want ~44100", n)
+	}
+	if peak := maxAbs(samples[:22050]); peak < 9000 || peak > 11000 {
+		t.Fatalf("first half peak = %d, want ~10000 (gain 1.0)", peak)
+	}
+	if peak := maxAbs(samples[22050:]); peak < 19000 || peak > 22000 {
+		t.Fatalf("second half peak = %d, want ~20000 (gain 2.0)", peak)
+	}
+}
+
+// TestGainMediaClampsToIntDomain proves the gain wrapper clamps to the int16
+// domain instead of wrapping: 4x a 10000-amplitude tone would overflow int16
+// (40000) if the clamp were missing.
+func TestGainMediaClampsToIntDomain(t *testing.T) {
+	dir := t.TempDir()
+	wav := filepath.Join(dir, "loud.wav")
+	writeWav(t, wav, 44100, 0.5, 440)
+
+	e := waxflow.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	m, err := openMergeSegment(ctx, e, wav, 0, 0.5, 4.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	med, err := waxflow.Concat([]waxflow.ConcatSource{m}, waxflow.ConcatOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer med.Close()
+	if peak := maxAbs(drainSamples(t, med)); peak != 32767 && peak != 32768 {
+		t.Fatalf("peak = %d, want an int16 domain extreme (32767/32768), not the unclamped 40000", peak)
 	}
 }

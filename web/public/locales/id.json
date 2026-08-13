@@ -133,7 +133,7 @@
     "delete_selected_books": "Hapus yang dipilih",
     "primary_copy": "Salinan utama",
     "keep_this_only": "Simpan hanya ini",
-    "confirm_delete_file": "Yakin ingin menghapus berkas ini?",
+    "confirm_delete_file": "Apakah Anda yakin ingin menghapus format berkas ini?",
     "confirm_keep_one": "Simpan berkas ini dan hapus salinan duplikatnya?",
     "confirm_delete_selected": "Hapus berkas duplikat yang dipilih?",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "Gabungkan \"{{source}}\" ke \"{{target}}\"? Semua bab, berkas, dan data baca buku pertama akan dipindahkan ke buku kedua, lalu buku pertama dihapus.",
     "confirm_merge_title": "Gabungkan Buku",
     "merge_books_success": "Buku berhasil digabungkan",
-    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?"
+    "confirm_keep_one_msg": "Are you sure you want to keep this copy and delete {{count}} duplicate copy(ies)?",
+    "delete_file": "Hapus format berkas"
   },
   "auth": {
     "login_to_account": "Masuk ke akun Anda",
@@ -571,7 +572,9 @@
     "profile_update_failed": "Profil Anda tidak dapat disimpan",
     "password_change_failed": "Kata sandi Anda tidak dapat diubah",
     "password_relogin_note": "Anda akan keluar setelah mengubah kata sandi.",
-    "update_password": "Perbarui kata sandi"
+    "update_password": "Perbarui kata sandi",
+    "avatar_updated_success": "Foto profil berhasil diperbarui!",
+    "avatar_removed_success": "Foto profil berhasil dihapus!"
   },
   "reader": {
     "readlist_next": "Berikutnya: {{title}}",
@@ -737,7 +740,22 @@
     "convert": "Ubah ke…",
     "convert_queued": "Konversi dalam antrean (tugas {{job_id}})",
     "convert_done": "Konversi selesai",
-    "convert_failed": "Konversi gagal"
+    "convert_failed": "Konversi gagal",
+    "manage": "Kelola",
+    "convert_format": "Konversi format",
+    "convert_title": "Konversi Format Buku",
+    "select_source_file": "Berkas sumber",
+    "select_target_format": "Format tujuan",
+    "start_conversion": "Mulai konversi",
+    "convert_no_file": "Silakan pilih berkas untuk dikonversi",
+    "convert_replace_warning": "Buku ini sudah memiliki berkas {{format}}. Melanjutkan akan menggantikan berkas yang ada.",
+    "convert_confirm_replace": "Ya, ganti berkas yang sudah ada",
+    "bulk_convert_title": "Konversi Buku Massal",
+    "bulk_convert_global_format": "Tetapkan format target untuk semua buku yang dipilih:",
+    "bulk_convert_start": "Mulai konversi massal",
+    "bulk_convert_success": "Berhasil memasukkan {{count}} tugas konversi ke antrean",
+    "bulk_convert_failed": "Beberapa tugas konversi gagal dimulai",
+    "no_files_convert": "Tidak ada berkas yang tersedia untuk dikonversi"
   },
   "settings": {
     "title": "Pengaturan",
@@ -1176,7 +1194,20 @@
     "start_merge": "Mulai gabungkan",
     "merge_need_two": "Pilih minimal 2 file audio",
     "merge_queued": "Tugas penggabungan dimulai",
-    "merge_failed": "Gagal memulai penggabungan"
+    "merge_failed": "Gagal memulai penggabungan",
+    "merge_not_ready": "Audio masih didecode — tunggu hingga semua segmen memiliki durasi",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "Podcast",

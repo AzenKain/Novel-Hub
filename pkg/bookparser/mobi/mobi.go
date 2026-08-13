@@ -577,7 +577,7 @@ func splitMobiSectionsByHeadings(inner string, fallbackTitle string) []mobiSecti
 			title = fallbackTitle
 		}
 		content := strings.TrimSpace(inner[start:end])
-		if readableHTMLTextLength(content) < 24 {
+		if readableHTMLTextLength(content) < 24 && !mobiSectionHasImage(content) {
 			continue
 		}
 		all = append(all, mobiSection{
@@ -587,17 +587,6 @@ func splitMobiSectionsByHeadings(inner string, fallbackTitle string) []mobiSecti
 	}
 	if len(all) < 2 {
 		return nil
-	}
-
-	chapters := make([]mobiSection, 0, len(all))
-	for _, section := range all {
-		if isMobiNavigationTitle(section.Title) {
-			continue
-		}
-		chapters = append(chapters, section)
-	}
-	if len(chapters) >= 2 {
-		return chapters
 	}
 	return all
 }
@@ -621,7 +610,7 @@ func splitMobiSectionsByFilepos(inner string, fallbackTitle string) []mobiSectio
 			continue
 		}
 		title := cleanHTMLText(match[2])
-		if title == "" || isMobiNavigationTitle(title) {
+		if title == "" {
 			continue
 		}
 		offset, err := strconv.Atoi(strings.TrimLeft(match[1], "0"))
@@ -680,7 +669,7 @@ func splitMobiSectionsByFilepos(inner string, fallbackTitle string) []mobiSectio
 			title = fallbackTitle
 		}
 		content := strings.TrimSpace(inner[point.Start:end])
-		if readableHTMLTextLength(content) < 24 {
+		if readableHTMLTextLength(content) < 24 && !mobiSectionHasImage(content) {
 			continue
 		}
 		sections = append(sections, mobiSection{
@@ -747,6 +736,16 @@ func mobiNearestBlockStart(inner string, index int) int {
 	return index
 }
 
+// mobiSectionHasImage reports whether the section HTML references an embedded
+// image record. Pure image pages ("Minh họa", svg covers) carry almost no
+// readable text, so the length filter would otherwise throw them away.
+func mobiSectionHasImage(content string) bool {
+	lower := strings.ToLower(content)
+	return strings.Contains(lower, "<img") ||
+		strings.Contains(lower, "kindle:embed:") ||
+		strings.Contains(lower, `href="images/kindle-`)
+}
+
 func mobiNormalizeSectionStart(inner string, start int) int {
 	if start <= 0 {
 		return 0
@@ -794,16 +793,6 @@ func articleInnerHTML(value string) string {
 func cleanHTMLText(value string) string {
 	value = htmlTagRegex.ReplaceAllString(value, " ")
 	return bookparser.CleanChapterTitle(value)
-}
-
-func isMobiNavigationTitle(value string) bool {
-	normalized := strings.ToLower(cleanText(value))
-	switch normalized {
-	case "table of contents", "contents", "toc", "landmarks", "navigation", "muc luc", "mục lục":
-		return true
-	default:
-		return false
-	}
 }
 
 func htmlFragmentsToReaderHTML(value string) string {

@@ -133,7 +133,7 @@
     "delete_selected_books": "刪除選取項目",
     "primary_copy": "主要副本",
     "keep_this_only": "僅保留這一個",
-    "confirm_delete_file": "確定要刪除檔案嗎？",
+    "confirm_delete_file": "您確定要刪除此檔案格式嗎？",
     "confirm_keep_one": "保留此檔案並刪除其餘重複副本？",
     "confirm_delete_selected": "刪除選取的重複檔案？",
     "operations": {
@@ -244,7 +244,8 @@
     "confirm_merge_msg": "將「{{source}}」合併到「{{target}}」？第一本書的所有章節、檔案和閱讀資料將併入第二本，然後刪除第一本。",
     "confirm_merge_title": "合併書籍",
     "merge_books_success": "書籍已合併",
-    "confirm_keep_one_msg": "您確定要保留此副本並刪除 {{count}} 個重複副本嗎？"
+    "confirm_keep_one_msg": "您確定要保留此副本並刪除 {{count}} 個重複副本嗎？",
+    "delete_file": "刪除檔案格式"
   },
   "auth": {
     "login_to_account": "登入您的帳號",
@@ -571,7 +572,9 @@
     "profile_update_failed": "無法儲存您的個人資料",
     "password_change_failed": "無法變更您的密碼",
     "password_relogin_note": "變更密碼後，您會被登出。",
-    "update_password": "更新密碼"
+    "update_password": "更新密碼",
+    "avatar_updated_success": "頭像更新成功！",
+    "avatar_removed_success": "頭像已成功刪除！"
   },
   "reader": {
     "readlist_next": "下一本：{{title}}",
@@ -737,7 +740,22 @@
     "convert": "轉換為…",
     "convert_queued": "轉換已排入佇列（任務 {{job_id}}）",
     "convert_done": "轉換完成",
-    "convert_failed": "轉換失敗"
+    "convert_failed": "轉換失敗",
+    "manage": "管理",
+    "convert_format": "轉換格式",
+    "convert_title": "轉換圖書格式",
+    "select_source_file": "源文件",
+    "select_target_format": "目標格式",
+    "start_conversion": "開始轉換",
+    "convert_no_file": "請選擇要轉換的文件",
+    "convert_replace_warning": "該圖書已有關聯的 {{format}} 文件。繼續操作將替換現有文件。",
+    "convert_confirm_replace": "是的，替換現有文件",
+    "bulk_convert_title": "批量轉換圖書",
+    "bulk_convert_global_format": "設置所有已選圖書的目标格式：",
+    "bulk_convert_start": "開始批量轉換",
+    "bulk_convert_success": "成功將 {{count}} 個轉換任務加入隊列",
+    "bulk_convert_failed": "部分轉換任務啟動失敗",
+    "no_files_convert": "沒有可轉換的文件"
   },
   "settings": {
     "title": "設定",
@@ -1176,7 +1194,20 @@
     "start_merge": "開始合併",
     "merge_need_two": "請至少選擇 2 個音訊檔案",
     "merge_queued": "合併工作已開始",
-    "merge_failed": "無法開始合併"
+    "merge_failed": "無法開始合併",
+    "merge_not_ready": "正在解碼音頻 — 請等待所有段落具備時長",
+    "timeline": "Audio Timeline",
+    "zoom_out": "Zoom Out",
+    "zoom_in": "Zoom In",
+    "remove_segment": "Remove segment",
+    "playhead": "Playhead",
+    "split_track_desc": "Split track at current playhead position",
+    "split_track": "Split Track",
+    "total_duration": "Total Duration",
+    "remove_from_timeline": "Remove from timeline",
+    "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
+    "timeline_split_success": "Timeline split locally!",
+    "submitting_merge": "Submitting merge request to server..."
   },
   "podcasts": {
     "title": "播客",

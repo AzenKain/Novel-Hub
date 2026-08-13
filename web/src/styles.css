@@ -1078,21 +1078,21 @@ label.btn-primary:hover:not(:disabled) {
 
 @media (min-width: 1024px) {
   html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.85;
+    --zoom-ratio: 0.95;
     zoom: var(--zoom-ratio);
   }
 }
 
 @media (min-width: 1280px) {
   html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.8;
+    --zoom-ratio: 0.90;
     zoom: var(--zoom-ratio);
   }
 }
 
 @media (min-width: 1536px) {
   html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.75;
+    --zoom-ratio: 0.85;
     zoom: var(--zoom-ratio);
   }
 }
