@@ -182,13 +182,15 @@ instead, which handles this correctly.
 
 ## Importing books
 
-Three routes:
+Five routes:
 
 | Route | How |
 |---|---|
 | Upload | **Admin → Books → Upload**, chunked so large files survive a flaky connection |
 | Inbox | Drop files into `data/inbox/<libraryID>/`, then run **Operations → Jobs → Scan inbox**. Nested folders are scanned up to 5 levels deep; imported files are removed and empty directories cleaned up |
 | Calibre | **Admin → Library → Import from Calibre**, pointed at a folder containing `metadata.db` |
+| Podcast | **Podcasts → Subscribe**, paste podcast feed RSS XML URL. Episodes auto-download as book files (.mp3, .m4a, .m4b, .flac) and get added to library catalog |
+| Conversion | **Admin → Books → Convert** (or bulk convert). Converts existing book files into alternative formats (epub, kepub, mobi, azw, docx, fb2, cbz, txt, pdf) natively |
 
 Inbox scanning waits 10 seconds after a file stops changing before importing, so
 a partial copy is never picked up.
@@ -197,20 +199,26 @@ a partial copy is never picked up.
 
 ## E-reader clients
 
-| Protocol | Endpoint | Auth |
+| Protocol / App | Endpoint | Auth |
 |---|---|---|
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — your NovelHub email and password |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | The token in the path — a Kobo sends no Authorization header |
 | Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic, or `X-API-Key: <email>:<password>` |
+| VBook (Android) | `/api/v1/vbook/plugin.json` | None (plugin discovery registry) |
+| Magic Code (eReader) | `/api/v1/magic-code/request` | Poll-token authentication |
 
-Works with KOReader, Calibre, Moon+ Reader, Thorium and other OPDS clients.
+Works with KOReader, Calibre, Moon+ Reader, Thorium, VBook, and other OPDS clients.
 
 For Mihon (formerly Tachiyomi), install the stock **Komga** extension and point it
 at `http://<host>:3434/komga`. Nothing is patched on the client side — NovelHub
 answers the Komga REST API that extension already speaks, serving comic pages
 straight out of the CBZ/CBR archive. Progress syncs both ways through Mihon's
 built-in Komga tracker. Gated by the `komga.sync` permission.
+
+For **VBook**, copy the plugin JSON link or scan the QR code from your profile page to install the NovelHub extension in VBook. Once configured, you can browse, search, and read your library directly.
+
+For **Magic Code login**, smart devices or e-readers with restricted inputs can log in passwordlessly. Request a magic code on the device screen (exposes a 6-digit verification code), then navigate to your **User Profile → Activate Device** on a logged-in browser, enter the 6-digit code, and the device will automatically authenticate.
 
 The Kobo endpoint is not typed by hand: open **Profile → Kobo Sync** and copy the
 generated URL, which embeds a per-user secret token. Treat it like a password —
@@ -220,6 +228,7 @@ OPDS is rate-limited on *failed* authentication only, so normal polling is never
 throttled. If catalog links point at the wrong host — behind a path-rewriting
 proxy, for instance — set the **Server URL** under **Admin → Settings** to the
 correct absolute base URL. It applies immediately, with no restart.
+
 
 ---
 

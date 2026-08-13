@@ -158,14 +158,16 @@ sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 | Khu vực | Bao gồm |
 |---|---|
 | Site | Tiêu đề, mô tả, logo, favicon, mục sidebar, các section trang chủ |
-| Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy có rewrite path |
+| Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy |
 | Access | Bật/tắt đăng ký, bắt buộc đăng nhập, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
-| Permissions | Quyền theo từng role cho cả 37 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
+| Permissions | Quyền theo từng role cho cả 39 permission — đọc, tính năng cá nhân, nội dung library, tích hợp, quản trị |
 | Email (SMTP) | Host, port, username, mật khẩu, địa chỉ gửi, chế độ TLS, dung lượng đính kèm tối đa (MB, mặc định 50MB), cho phép gọi mạng private, kèm nút test kết nối. Cũng gồm bật/tắt xác minh email và reset mật khẩu |
-| Reader features | Deep search trong sách, upload font riêng, chọn chỉ số engagement nào hiện trên bìa |
-| Trackers | Bật/tắt sync AniList / MyAnimeList |
+| Reader features | Deep search trong sách, upload font riêng, chọn chỉ số engagement nào hiện trên bìa, custom user CSS |
+| OAuth / SSO | Cấu hình đăng nhập một lần (SSO) qua Google, GitHub, Discord, và OIDC (OpenID Connect) |
+| Trackers | Bật/tắt sync tiến độ đọc với AniList, MyAnimeList, và Hardcover.app |
 | Upload limits | Kích thước chunk, số chunk, số session đồng thời, tổng dung lượng, TTL của session, kích thước ảnh bìa và asset của site |
 | Rate limits | Số lần thử đăng nhập và OPDS trong mỗi cửa sổ, và độ dài cửa sổ |
+
 
 ### Rate limit
 
@@ -204,7 +206,31 @@ NovelHub là một Progressive Web App (PWA) hoàn chỉnh với khả năng cà
 - **Service Worker & Cập nhật**: Vận hành bởi `vite-plugin-pwa` và `workbox` với thông báo tự động khi có bản cập nhật mới và theo dõi dung lượng bộ nhớ khả dụng.
 - **Phân quyền**: Tính năng lưu sách đọc offline được kiểm soát theo từng vai trò thông qua quyền `book.offline`.
 
+### OAuth / SSO (Single Sign-On)
+Cấu hình đăng nhập từ bên thứ ba dưới mục **Admin → Settings → OAuth**.
+- **Nhà cung cấp được hỗ trợ**: Google, GitHub, Discord, OIDC (OpenID Connect).
+- **Thiết lập**: Cung cấp Client ID, Client Secret, Redirect URI (khớp với `/api/v1/auth/oauth/:provider/callback`), và Issuer URL (dành cho OIDC).
+- **Hành vi**: Người dùng đăng nhập qua OAuth sẽ tự động đăng ký tài khoản mới (nếu chức năng đăng ký đang bật) hoặc liên kết với tài khoản email đã xác minh có sẵn.
+
+### Podcasts
+Đăng ký và quản lý nguồn phát thanh (podcast) dưới mục **Admin → Settings → Podcasts** (hoặc trang Podcasts).
+- Đăng ký bằng URL nguồn RSS tuyệt đối.
+- Cơ chế kiểm tra uncompiled template phát hiện và từ chối các nguồn dạng template thô của Jekyll để tránh lỗi đăng ký.
+- Hỗ trợ tải nguồn dữ liệu lớn (tối đa 250MB).
+- Đặt lịch định kỳ hoặc kích hoạt thủ công tác vụ làm mới và tải các tập podcast mới.
+
+### Kids Mode & Age Rating (Chế độ Trẻ Em)
+Lọc các nội dung dành cho người lớn đối với khán giả nhỏ tuổi.
+- **Phân loại độ tuổi**: G, PG, R, R18.
+- **Kids Mode**: Kích hoạt bằng mã PIN trong **User Profile → Kids Mode**. Khi bật, tất cả sách vượt quá phân loại độ tuổi tối đa cho phép sẽ tự động ẩn khỏi kệ sách và tìm kiếm. Tắt chế độ này yêu cầu nhập mã PIN dạng số gồm 6 chữ số.
+
+### Tích hợp VBook
+Cho phép duyệt và đọc sách từ thư viện của bạn bằng ứng dụng VBook trên Android.
+- **Thiết lập**: Sao chép URL plugin JSON hoặc tải file `plugin.zip` từ trang cá nhân của bạn.
+- **Registry**: Endpoint registry `/api/v1/vbook/plugin.json` cung cấp thông tin metadata, và `/api/v1/vbook/plugin.zip` cung cấp gói cài đặt cho VBook.
+
 ### Danh sách đọc & Nhập `.cbl`
+
 
 Collection trả lời "cuốn này thuộc nhóm nào". Danh sách đọc trả lời "đọc cuốn nào
 tiếp theo": mỗi mục mang một vị trí tường minh, nên thứ tự là do bạn đặt chứ

@@ -172,40 +172,44 @@ sudo journalctl -u novelhub -f
 
 ## 导入书籍
 
-三种途径:
+五种途径:
 
 | 途径 | 做法 |
 |---|---|
 | 上传 | **管理后台 → 书籍 → 上传**,分片上传,让大文件也能扛住不稳定的网络 |
 | Inbox | 把文件放进 `data/inbox/<libraryID>/`,然后运行 **运维 → 任务 → 扫描 inbox**。嵌套文件夹最多扫描 5 层;导入完成的文件会被删除,空目录会被清理 |
 | Calibre | **管理后台 → 书库 → 从 Calibre 导入**,指向一个包含 `metadata.db` 的文件夹 |
+| 播客 | **播客 → 订阅**，粘贴播客 feed XML 的绝对 URL。单集会自动下载为音频文件（.mp3, .m4a, .m4b, .flac）并添加到书库目录 |
+| 转换 | **管理后台 → 书籍 → 转换**（或批量转换）。在服务器端将已有的书籍文件直接转换为其他格式（epub, kepub, mobi, azw, docx, fb2, cbz, txt, pdf） |
 
 Inbox 扫描会在文件停止变化后再等 10 秒才导入,因此绝不会捡到一个复制了一半的文件。
+
 
 ---
 
 ## 电子阅读器客户端
 
-| 协议 | 端点 | 认证 |
+| 协议 / 应用 | 端点 | 认证 |
 |---|---|---|
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic —— 你的 NovelHub 邮箱和密码 |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | 路径中的令牌 —— Kobo 不会发送 Authorization 头 |
 | Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic,或 `X-API-Key: <邮箱>:<密码>` |
+| VBook (Android) | `/api/v1/vbook/plugin.json` | 无需 (插件探测注册点) |
+| 简易验证码 (eReader) | `/api/v1/magic-code/request` | 轮询令牌认证 |
 
-可配合 KOReader、Calibre、Moon+ Reader、Thorium 以及其他 OPDS 客户端使用。
+可配合 KOReader、Calibre、Moon+ Reader、Thorium、VBook 以及其他 OPDS 客户端使用。
 
-对于 Mihon(原 Tachiyomi),安装官方 **Komga** 扩展并指向
-`http://<host>:3434/komga` 即可。客户端无需任何改动 —— NovelHub 直接应答该扩展本
-就使用的 Komga REST API,并从 CBZ/CBR 压缩包中逐页提供图片。阅读进度通过 Mihon 内
-置的 Komga 追踪器双向同步。需要 `komga.sync` 权限。
+对于 Mihon(原 Tachiyomi),安装官方 **Komga** 扩展并指向 `http://<host>:3434/komga` 即可。客户端无需任何改动 —— NovelHub 直接应答该扩展本就使用的 Komga REST API,并从 CBZ/CBR 压缩包中逐页提供图片。阅读进度通过 Mihon 内置的 Komga 追踪器双向同步。需要 `komga.sync` 权限。
 
-Kobo 端点不需要手动输入:打开 **个人资料 → Kobo 同步**,复制生成的 URL,其中包含每位
-用户各自的密钥令牌。请把它当作密码看待 —— 拿到它的人就能访问你的整个书库。
+对于 **VBook**，在个人资料页面复制 plugin JSON 链接或直接扫描 QR 码，即可在 VBook 客户端中安装 NovelHub 插件，从而在手机端直接浏览和阅读图书。
 
-OPDS 仅对认证*失败*的请求限流,因此正常轮询永远不会被限流。如果目录链接指向了错误的
-主机 —— 例如位于会重写路径的代理之后 —— 请在 **管理 → 设置** 中把 **服务器 URL** 设为
-正确的绝对基础 URL。它会立即生效,无需重启。
+对于 **简易验证码登录 (Magic Code)**，输入受限的电子书阅读器等智能设备可以通过临时验证码登录。在设备端发起简易验证码请求（设备会显示一个 6 位数字代码），随后在已登录的浏览器中访问 **个人资料 → 激活设备**，输入该 6 位验证码，设备即可自动完成认证。
+
+Kobo 端点不需要手动输入:打开 **个人资料 → Kobo 同步**,复制生成的 URL,其中包含每位用户各自的密钥令牌。请把它当作密码看待 —— 拿到它的人就能访问你的整个书库。
+
+OPDS 仅对认证*失败*的请求限流,因此正常轮询永远不会被限流。如果目录链接指向了错误的主机 —— 例如位于会重写路径的代理之后 —— 请在 **管理 → 设置** 中把 **服务器 URL** 设为正确的绝对基础 URL。它会立即生效,无需重启。
+
 
 ---
 

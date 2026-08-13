@@ -157,35 +157,50 @@ under **Admin → Settings**. Changes apply immediately.
 | Area | Covers |
 |---|---|
 | Site | Title, description, logo, favicon, sidebar items, home sections |
-| Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a path-rewriting proxy |
+| Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a proxy |
 | Access | Registration on/off, sign-in required, guest access mode, per-library guest visibility |
-| Permissions | Per-role control of all 37 permissions — reading, personal features, library content, integrations, administration |
+| Permissions | Per-role control of all 39 permissions — reading, personal features, library content, integrations, administration |
 | Email (SMTP) | Host, port, username, password, sender address, TLS mode, max attachment size (MB, default 50MB), private-network dialling, plus a connection test. Also whether email verification and password reset are enabled |
-| Reader features | In-book deep search, custom font upload, which cover engagement stats are visible |
-| Trackers | AniList / MyAnimeList sync on or off |
+| Reader features | In-book deep search, custom font upload, which cover engagement stats are visible, custom user CSS |
+| OAuth / SSO | Google, GitHub, Discord, and custom OIDC (OpenID Connect) client credential configurations, redirects, and issuer URLs |
+| Trackers | AniList, MyAnimeList, and Hardcover scrobbling sync on/off and authentication |
 | Upload limits | Chunk size, chunk count, concurrent sessions, total size, session TTL, cover and site asset size |
 | Rate limits | Sign-in and OPDS attempts per window, and the window length |
 
+### OAuth / SSO (Single Sign-On)
+Configure third-party auth under **Admin → Settings → OAuth**.
+- **Supported Providers**: Google, GitHub, Discord, OIDC (generic OpenID Connect).
+- **Setup**: Provide Client ID, Client Secret, Redirect URI (matching `/api/v1/auth/oauth/:provider/callback`), and Issuer URL (for OIDC).
+- **Behavior**: Users signing in via OAuth will automatically register a new account if registration is enabled, or map to an existing verified email account.
+
+### Podcasts
+Subscribe to and manage audio podcast feeds under **Admin → Settings → Podcasts** (or the Podcasts page).
+- Subscribe using absolute RSS URLs.
+- Uncompiled feed template checking rejects raw Jekyll template feeds to prevent subscription errors.
+- Support massive feeds (up to 250MB) natively.
+- Enqueue schedules or run manual background refresh and episode download jobs.
+
+### Kids Mode & Age Rating
+Filter mature content from younger audiences using rating policies.
+- **Content Ratings**: G, PG, R, R18.
+- **Kids Mode**: Enable PIN-protected Kids Mode in **User Profile → Kids Mode**. Once active, all books exceeding the max allowed rating for Kids Mode are hidden from the bookshelves and searches. Toggling it off requires entering the configured 6-digit numeric PIN.
+
+### VBook Integration
+Allows browsing and reading your library using the VBook Android app.
+- **Setup**: Copy the VBook plugin JSON URL or download `plugin.zip` from your user profile.
+- **Registry**: The built-in plugin registry endpoint `/api/v1/vbook/plugin.json` exposes metadata, and `/api/v1/vbook/plugin.zip` delivers the installable bundle to VBook.
+
 ### Rate limits
 
-NovelHub rate-limits exactly two things, both guarded by the same pair of
-settings: **sign-in** (`/api/v1/auth/*`) and **OPDS** (`/api/opds/*`).
+NovelHub rate-limits exactly two things, both guarded by the same pair of settings: **sign-in** (`/api/v1/auth/*`) and **OPDS** (`/api/opds/*`).
 
-Both run bcrypt password verification, which costs roughly 50–100 ms of CPU per
-attempt — about 600× the cost of everything else on the request. That is the
-resource worth protecting. OPDS is included because it uses HTTP Basic auth,
-which carries no session, so bcrypt runs on *every* request.
+Both run bcrypt password verification, which costs roughly 50–100 ms of CPU per attempt — about 600× the cost of everything else on the request. That is the resource worth protecting. OPDS is included because it uses HTTP Basic auth, which carries no session, so bcrypt runs on *every* request.
 
 Default: 5 attempts per 60 seconds, keyed by client IP.
 
-For OPDS, only failed attempts count. A reader app polling the catalog with
-valid credentials is normal traffic and is never throttled.
+For OPDS, only failed attempts count. A reader app polling the catalog with valid credentials is normal traffic and is never throttled.
 
-There is deliberately no general API rate limit. A comic chapter renders as one
-image request per page, so opening a 200-page volume legitimately fires 200
-requests — a general limit would throttle readers, not attackers.
-
----
+There is deliberately no general API rate limit. A comic chapter renders as one image request per page, so opening a 200-page volume legitimately fires 200 requests — a general limit would throttle readers, not attackers.
 
 ### OPDS 1.2 & 2.0 Server
 
@@ -205,6 +220,7 @@ NovelHub is a full Progressive Web App (PWA) with native installability:
 
 ### Read Lists & `.cbl` Import
 
+
 A collection answers "which group is this book in". A read list answers "which
 book comes next": every entry carries an explicit position, so the order is
 yours instead of the order the files were imported in.
@@ -214,6 +230,7 @@ yours instead of the order the files were imported in.
 - **Read in order**: opens the first entry with `?readlist=<id>`. At the end of the last chapter the reader's existing next button carries over to the next book in the list instead of stopping. Archived books are skipped. The position is not remembered — **Read in order** always starts at the first entry.
 - **`.cbl` import**: upload a ComicRack reading list (max 8 MB). Document order *is* the reading order; nothing is re-sorted. Entries match on series name (case-insensitive) plus issue number, where `01`, `1` and `1.0` count as the same number. `Year` and `Volume` are ignored, since books carry no year column. Entries with no match in the library come back in an import report with their series and number; when two books share a series and number, the first one found wins.
 - **Endpoints** (all under `/api/v1/read-lists`): `GET /`, `POST /`, `POST /import`, `GET|PUT|DELETE /:id`, `GET|POST /:id/books`, `DELETE /:id/books/:bookId`, `PUT /:id/order`, `GET /:id/next`.
+
 
 ---
 

@@ -180,13 +180,15 @@ admin, nó xử lý việc này đúng cách.
 
 ## Nhập sách
 
-Ba đường:
+Năm đường:
 
 | Đường | Cách làm |
 |---|---|
 | Upload | **Admin → Books → Upload**, chia chunk để file lớn vẫn qua được kết nối không ổn định |
 | Inbox | Thả file vào `data/inbox/<libraryID>/`, rồi chạy **Operations → Jobs → Scan inbox**. Thư mục lồng nhau được quét sâu tới 5 cấp; file đã nhập sẽ bị xóa và thư mục rỗng được dọn sạch |
 | Calibre | **Admin → Library → Import from Calibre**, trỏ vào thư mục chứa `metadata.db` |
+| Podcast | **Podcasts → Subscribe**, dán URL RSS podcast feed. Các tập tự động tải về dưới dạng file audio (.mp3, .m4a, .m4b, .flac) và được thêm vào thư viện |
+| Conversion | **Admin → Books → Convert** (hoặc bulk convert). Chuyển đổi các định dạng file sách có sẵn sang định dạng khác (epub, kepub, mobi, azw, docx, fb2, cbz, txt, pdf) trực tiếp trên server |
 
 Quá trình quét inbox chờ 10 giây sau khi một file ngừng thay đổi mới nhập, nên không
 bao giờ nhặt phải bản copy dở dang.
@@ -195,20 +197,26 @@ bao giờ nhặt phải bản copy dở dang.
 
 ## Ứng dụng đọc sách
 
-| Giao thức | Endpoint | Xác thực |
+| Giao thức / Ứng dụng | Endpoint | Xác thực |
 |---|---|---|
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | Token nằm trong path — máy Kobo không gửi header Authorization |
 | Mihon / Tachiyomi | `/komga/api/v1` | HTTP Basic, hoặc `X-API-Key: <email>:<mật khẩu>` |
+| VBook (Android) | `/api/v1/vbook/plugin.json` | Không cần (plugin registry) |
+| Magic Code (eReader) | `/api/v1/magic-code/request` | Xác thực qua token thăm dò (polling) |
 
-Hoạt động với KOReader, Calibre, Moon+ Reader, Thorium và các client OPDS khác.
+Hoạt động với KOReader, Calibre, Moon+ Reader, Thorium, VBook và các client OPDS khác.
 
 Với Mihon (trước là Tachiyomi), cài extension **Komga** gốc rồi trỏ vào
 `http://<host>:3434/komga`. Không phải sửa gì phía client — NovelHub trả lời đúng
 REST API Komga mà extension đó vốn đã nói, phục vụ từng trang truyện đọc thẳng từ
 file CBZ/CBR. Tiến độ đọc đồng bộ hai chiều qua tracker Komga có sẵn trong Mihon.
 Cần quyền `komga.sync`.
+
+Với **VBook**, sao chép link plugin JSON hoặc quét mã QR từ trang cá nhân để cài đặt extension NovelHub trong VBook. Bạn có thể duyệt, tìm kiếm và đọc sách trực tiếp từ điện thoại.
+
+Với **Magic Code**, các thiết bị đọc sách (e-reader) hoặc thiết bị thông minh bị hạn chế về bàn phím có thể đăng nhập không cần mật khẩu. Chọn đăng nhập bằng mã trên thiết bị (thiết bị hiển thị mã 6 chữ số), sau đó vào **Trang cá nhân → Kích hoạt thiết bị** trên trình duyệt máy tính/điện thoại đã đăng nhập, nhập mã 6 chữ số và thiết bị sẽ tự động được xác thực.
 
 Endpoint Kobo không tự gõ tay: vào **Trang cá nhân → Kobo Sync** rồi copy URL đã
 sinh, trong đó có token bí mật riêng của từng người. Hãy coi nó như mật khẩu — ai
@@ -218,6 +226,7 @@ OPDS chỉ bị rate limit khi xác thực *thất bại*, nên việc poll bìn
 giờ bị chặn. Nếu link catalog trỏ sai host — chẳng hạn khi nằm sau proxy có rewrite
 path — hãy đặt **URL máy chủ** trong **Admin → Cài đặt** thành base URL tuyệt đối
 đúng. Nó có hiệu lực ngay, không cần restart.
+
 
 ---
 
