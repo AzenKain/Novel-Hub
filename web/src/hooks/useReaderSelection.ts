@@ -9,6 +9,7 @@ import {
   type TtsStartPoint,
 } from "@/lib/readerHighlight";
 import { generateCfiRange } from "@/lib/epubCfi";
+import { copyText } from "@/utils/clipboard";
 
 type ToolbarRect = Pick<DOMRect, "left" | "width" | "top">;
 
@@ -198,7 +199,7 @@ export function useReaderSelection({
     const saved = savedSelectionRef.current;
     const textToCopy = saved?.selectedText || selectionRange?.toString();
     if (textToCopy) {
-      void navigator.clipboard.writeText(textToCopy);
+      void copyText(textToCopy);
       window.getSelection()?.removeAllRanges();
       savedSelectionRef.current = null;
       setSelectionRange(null);

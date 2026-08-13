@@ -34,6 +34,7 @@ import DOMPurify from "dompurify";
 import { getMediaUrl } from "@/config/api";
 import { bookService, featureService } from "@/services";
 import { parseMetadata, toStringList } from "@/lib/bookDetail";
+import { copyText } from "@/utils/clipboard";
 import { InfoLine, ShareDialog, ReviewSection, TrackerMapCard, SendToKindleModal, SeriesBooksSection, AudiobookChaptersCard, HighlightsExportCard } from "@/components/book-detail";
 import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
@@ -152,15 +153,17 @@ export const BookDetailPage: React.FC = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      if (book_id) {
-        try {
-          await featureService.recordShare(book_id);
-          void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
-          void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
-        } catch (e) {
-          // ignore
+      const success = await copyText(shareUrl);
+      if (success) {
+        setCopied(true);
+        if (book_id) {
+          try {
+            await featureService.recordShare(book_id);
+            void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+            void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
+          } catch (e) {
+            // ignore
+          }
         }
       }
       setTimeout(() => setCopied(false), 2000);

@@ -227,7 +227,16 @@
       "audit_target": "對象",
       "audit_ip": "IP",
       "audit_system": "系統",
-      "audit_empty": "尚無稽核記錄"
+      "audit_empty": "尚無稽核記錄",
+      "setup_inbox": "設定收件匣資料夾",
+      "setup_inbox_desc": "選擇一個書庫以驗證或建立其專用的 /inbox/<library_id> 資料夾用於背景掃描。",
+      "select_library": "選擇書庫",
+      "choose_library": "選擇書庫",
+      "inbox_path": "收件匣資料夾路徑",
+      "inbox_setup_success": "收件匣資料夾設定成功！",
+      "inbox_setup_failed": "收件匣資料夾設定失敗。",
+      "setup": "設定",
+      "no_jobs_hint": "手動觸發或自動排程的任務將在此顯示。"
     },
     "action_send_email": "寄送電子郵件",
     "send_email_title": "寄送電子郵件",

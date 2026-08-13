@@ -228,7 +228,16 @@
       "audit_target": "Đối tượng",
       "audit_ip": "IP",
       "audit_system": "Hệ thống",
-      "audit_empty": "Chưa có bản ghi kiểm toán"
+      "audit_empty": "Chưa có bản ghi kiểm toán",
+      "setup_inbox": "Thiết lập Thư mục Inbox",
+      "setup_inbox_desc": "Chọn một thư viện để xác nhận hoặc tạo thư mục /inbox/<library_id> chuyên dụng để quét nền.",
+      "select_library": "Chọn Thư viện",
+      "choose_library": "Chọn Thư viện",
+      "inbox_path": "Đường dẫn Thư mục Inbox",
+      "inbox_setup_success": "Thiết lập thư mục inbox thành công!",
+      "inbox_setup_failed": "Không thể thiết lập thư mục inbox.",
+      "setup": "Thiết lập",
+      "no_jobs_hint": "Các tác vụ được kích hoạt thủ công hoặc lập lịch tự động sẽ hiển thị ở đây."
     },
     "action_send_email": "Gửi email",
     "send_email_title": "Gửi email",

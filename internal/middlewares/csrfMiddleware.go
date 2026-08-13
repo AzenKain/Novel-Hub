@@ -9,9 +9,6 @@ import (
 	"novelhub/internal/dtos/response"
 )
 
-// CSRFProtection returns a middleware that validates the X-CSRF-Token header
-// against the csrf_token cookie for state-mutating requests (POST, PUT, PATCH, DELETE)
-// when authenticated via session cookies.
 func CSRFProtection() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		method := c.Method()
@@ -20,16 +17,14 @@ func CSRFProtection() fiber.Handler {
 		}
 
 		path := c.Path()
-		if strings.HasPrefix(path, "/kobo/") || strings.HasPrefix(path, "/komga/") || strings.HasPrefix(path, "/api/opds/") || strings.HasPrefix(path, "/api/v1/sync/") || strings.HasPrefix(path, "/api/v1/vbook/") {
+		if strings.HasPrefix(path, "/kobo/") || strings.HasPrefix(path, "/komga/") || strings.HasPrefix(path, "/api/opds/") || strings.HasPrefix(path, "/api/v1/sync/") || strings.HasPrefix(path, "/api/v1/vbook/") || strings.HasPrefix(path, "/api/v1/auth/") {
 			return c.Next()
 		}
 
-		// Authorization header (Bearer/Basic) bypasses cookie-based CSRF checks
 		if auth := c.Get("Authorization"); auth != "" {
 			return c.Next()
 		}
 
-		// If no access_token cookie is present, skip CSRF check
 		if cookieToken := c.Cookies("access_token"); cookieToken == "" {
 			return c.Next()
 		}

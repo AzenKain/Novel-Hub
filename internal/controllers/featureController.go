@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -281,8 +280,8 @@ func (h *FeatureController) GetReadingProgress(c fiber.Ctx) error {
 
 	progress, err := h.service.GetReadingProgress(ctx, userID, bookID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(response.CommonResponse{Status: false, Message: "No reading progress found"})
+		if apperrors.IsNotFound(err) {
+			return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: nil})
 		}
 		return apperrors.HandleError(c, err)
 	}

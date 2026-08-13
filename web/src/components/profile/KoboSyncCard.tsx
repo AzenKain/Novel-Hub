@@ -9,6 +9,7 @@ import {
   useRegenerateKoboSetupMutation,
   useRevokeKoboSetupMutation,
 } from "@/hooks";
+import { copyText } from "@/utils/clipboard";
 
 export const KoboSyncCard: React.FC = () => {
   const { t } = useTranslation();
@@ -38,10 +39,13 @@ export const KoboSyncCard: React.FC = () => {
 
   const handleCopy = () => {
     if (!endpointUrl) return;
-    navigator.clipboard.writeText(configSnippet);
-    setCopied(true);
-    toast.success(t("common.copied", "Configuration copied to clipboard!"));
-    setTimeout(() => setCopied(false), 2000);
+    copyText(configSnippet).then((success) => {
+      if (success) {
+        setCopied(true);
+        toast.success(t("common.copied", "Configuration copied to clipboard!"));
+        setTimeout(() => setCopied(false), 2000);
+      }
+    });
   };
 
   const handleRegenerate = () => {

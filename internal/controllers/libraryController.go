@@ -159,3 +159,16 @@ func (h *LibraryController) DownloadLibraryZip(c fiber.Ctx) error {
 
 	return c.SendStream(pr)
 }
+
+func (h *LibraryController) SetupInbox(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	id := c.Params("id")
+	path, err := h.libraryService.SetupInbox(ctx, id)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Data: path})
+}

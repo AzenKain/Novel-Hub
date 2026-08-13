@@ -37,7 +37,7 @@ import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
 import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
 
-export const ReaderWorkspace = () => {
+const ReaderWorkspaceInner = () => {
   const { book_id } = useParams<{ book_id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -424,6 +424,9 @@ export const ReaderWorkspace = () => {
 
   useEffect(() => {
     if (!book_id) return;
+
+    reset();
+    setLoading(true);
     
     const bootstrap = async () => {
       try {
@@ -717,13 +720,13 @@ export const ReaderWorkspace = () => {
   }, [hasNextChapter, nextInReadList, nextInSeries, t]);
 
   const goToNextInReadList = () => {
-    if (!nextInReadList) return;
-    navigate(`/reader/${nextInReadList.id}?readlist=${readListId}`);
+    if (!readListNext || !readListNext.book) return;
+    navigate(`/reader/${readListNext.book.id}?readlist=${readListId}`);
   };
 
   const goToNextInSeries = () => {
-    if (!nextInSeries) return;
-    navigate(`/reader/${nextInSeries.book_id}`);
+    if (!seriesContext?.next) return;
+    navigate(`/reader/${seriesContext.next.book_id}`);
   };
 
   const handleNext = () => {
@@ -1100,4 +1103,9 @@ export const ReaderWorkspace = () => {
       )}
     </div>
   );
+};
+
+export const ReaderWorkspace = () => {
+  const { book_id } = useParams<{ book_id: string }>();
+  return <ReaderWorkspaceInner key={book_id} />;
 };

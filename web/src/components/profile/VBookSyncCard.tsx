@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Copy, Check, QrCode, BookOpen, Smartphone, Download, Headphones } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
+import { copyText } from "@/utils/clipboard";
 
 export const VBookSyncCard: React.FC = () => {
   const { t } = useTranslation();
@@ -15,10 +16,13 @@ export const VBookSyncCard: React.FC = () => {
   const pluginAudioZipUrl = `${origin}/api/v1/vbook/plugin-audio.zip`;
 
   const copyToClipboard = (url: string, label: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedUrl(url);
-    toast.success(t("common.copied", `${label} copied to clipboard!`));
-    setTimeout(() => setCopiedUrl(null), 2000);
+    copyText(url).then((success) => {
+      if (success) {
+        setCopiedUrl(url);
+        toast.success(t("common.copied", `${label} copied to clipboard!`));
+        setTimeout(() => setCopiedUrl(null), 2000);
+      }
+    });
   };
 
   return (

@@ -1,11 +1,14 @@
-import { useCacheStatsQuery, useJobTasksQuery, useJobsQuery, useTriggerJobMutation } from "@/hooks";
+import { useCacheStatsQuery, useJobTasksQuery, useJobsQuery, useTriggerJobMutation, useLibrariesQuery } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
+import { libraryService } from "@/services/libraryService";
+import { copyText } from "@/utils/clipboard";
 import {
   Activity,
   Archive,
   CheckCheck,
   ChevronDown,
+  Copy,
   Database,
   FileText,
   FolderMinus,
@@ -55,6 +58,44 @@ export function JobsTab() {
   const trigger = useTriggerJobMutation();
   const user = useAuthStore((state) => state.user);
   const canManage = hasPermission(user, "job.manage");
+
+  const [showInboxModal, setShowInboxModal] = useState(false);
+  const [selectedInboxLib, setSelectedInboxLib] = useState("");
+  const [setupInboxPath, setSetupInboxPath] = useState("");
+  const [settingUpInbox, setSettingUpInbox] = useState(false);
+  const [copiedInboxPath, setCopiedInboxPath] = useState(false);
+
+  const { data: libsData } = useLibrariesQuery();
+
+  const handleSetupInbox = async () => {
+    if (!selectedInboxLib) return;
+    setSettingUpInbox(true);
+    setSetupInboxPath("");
+    try {
+      const res = await libraryService.setupLibraryInbox(selectedInboxLib);
+      if (res.status && res.data) {
+        setSetupInboxPath(res.data);
+        toast.success(t("admin.operations.inbox_setup_success", "Inbox folder setup successfully!"));
+      } else {
+        toast.error(res.message || t("admin.operations.inbox_setup_failed", "Failed to setup inbox folder."));
+      }
+    } catch (err) {
+      toast.error(t("admin.operations.action_failed", "Action failed"));
+    } finally {
+      setSettingUpInbox(false);
+    }
+  };
+
+  const handleCopyInboxPath = () => {
+    if (!setupInboxPath) return;
+    copyText(setupInboxPath).then((success) => {
+      if (success) {
+        setCopiedInboxPath(true);
+        toast.success(t("common.copied", "Copied to clipboard"));
+        setTimeout(() => setCopiedInboxPath(false), 2000);
+      }
+    });
+  };
 
   const run = (taskType: string) =>
     trigger.mutate(taskType, {
@@ -110,9 +151,13 @@ export function JobsTab() {
                 {t("admin.operations.run_task", "Run Maintenance Task")}
               </h3>
             </div>
-            <span className="text-[11px] text-base-content/40 font-medium hidden sm:inline">
-              Click to execute task
-            </span>
+            <button
+              onClick={() => setShowInboxModal(true)}
+              className="btn btn-xs btn-primary btn-outline gap-1 rounded-lg font-bold"
+            >
+              <FolderSync className="w-3.5 h-3.5" />
+              {t("admin.operations.setup_inbox", "Setup Inbox Folder")}
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -215,6 +260,81 @@ export function JobsTab() {
           </div>
         )}
       </div>
+
+      {showInboxModal && (
+        <div className="modal modal-open">
+          <div className="modal-box rounded-3xl border border-base-200 shadow-xl bg-base-100 max-w-lg font-sans">
+            <h3 className="font-bold text-lg">{t("admin.operations.setup_inbox", "Setup Inbox Folder")}</h3>
+            <p className="text-xs text-base-content/60 mt-1">
+              {t(
+                "admin.operations.setup_inbox_desc",
+                "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning."
+              )}
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-bold text-xs">{t("admin.operations.select_library", "Select Library")}</span>
+                </label>
+                <select
+                  className="select select-bordered w-full rounded-xl bg-base-100"
+                  value={selectedInboxLib}
+                  onChange={(e) => {
+                    setSelectedInboxLib(e.target.value);
+                    setSetupInboxPath("");
+                  }}
+                >
+                  <option value="">-- {t("admin.operations.choose_library", "Choose Library")} --</option>
+                  {(libsData || []).map((lib) => (
+                    <option key={lib.id} value={lib.id}>
+                      {lib.name} ({lib.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {setupInboxPath && (
+                <div className="bg-base-200/50 p-3 rounded-2xl border border-base-200 space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-base-content/60 block">
+                    {t("admin.operations.inbox_path", "Inbox Folder Path")}
+                  </span>
+                  <div className="flex items-center gap-2 bg-base-100 p-2 rounded-xl border border-base-200">
+                    <span className="text-xs font-mono break-all select-all flex-1">{setupInboxPath}</span>
+                    <button
+                      onClick={handleCopyInboxPath}
+                      className="btn btn-ghost btn-xs h-7 w-7 p-0 rounded-lg text-primary shrink-0"
+                      title={t("common.copy", "Copy")}
+                    >
+                      {copiedInboxPath ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-action gap-2">
+              <button
+                className="btn btn-ghost rounded-xl btn-sm"
+                onClick={() => {
+                  setShowInboxModal(false);
+                  setSelectedInboxLib("");
+                  setSetupInboxPath("");
+                }}
+              >
+                {t("common.close", "Close")}
+              </button>
+              <button
+                className={`btn btn-primary rounded-xl btn-sm ${settingUpInbox ? "loading" : ""}`}
+                disabled={!selectedInboxLib || settingUpInbox}
+                onClick={handleSetupInbox}
+              >
+                {t("admin.operations.setup", "Setup")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

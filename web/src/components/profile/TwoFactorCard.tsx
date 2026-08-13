@@ -11,6 +11,7 @@ import { AlertTriangle, Check, Copy, KeyRound, ShieldCheck } from "lucide-react"
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { copyText } from "@/utils/clipboard";
 
 export const TwoFactorCard: React.FC = () => {
   const { t } = useTranslation();
@@ -85,10 +86,13 @@ export const TwoFactorCard: React.FC = () => {
   };
 
   const copyRecoveryCodes = () => {
-    navigator.clipboard.writeText(recoveryCodes.join("\n"));
-    setCopied(true);
-    toast.success(t("common.copied", "Copied to clipboard"));
-    setTimeout(() => setCopied(false), 2000);
+    copyText(recoveryCodes.join("\n")).then((success) => {
+      if (success) {
+        setCopied(true);
+        toast.success(t("common.copied", "Copied to clipboard"));
+        setTimeout(() => setCopied(false), 2000);
+      }
+    });
   };
 
   return (

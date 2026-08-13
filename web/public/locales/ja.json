@@ -227,7 +227,16 @@
       "audit_target": "対象",
       "audit_ip": "IP",
       "audit_system": "システム",
-      "audit_empty": "監査ログはまだありません"
+      "audit_empty": "監査ログはまだありません",
+      "setup_inbox": "受信フォルダの設定",
+      "setup_inbox_desc": "ライブラリを選択して、バックグラウンドスキャン用の専用 /inbox/<library_id> フォルダを確認または作成します。",
+      "select_library": "ライブラリを選択",
+      "choose_library": "ライブラリを選択",
+      "inbox_path": "受信フォルダパス",
+      "inbox_setup_success": "受信フォルダが正常に設定されました！",
+      "inbox_setup_failed": "受信フォルダの設定に失敗しました。",
+      "setup": "設定",
+      "no_jobs_hint": "手動で実行されたタスクや自動スケジュールされたタスクはここに表示されます。"
     },
     "action_send_email": "メールを送信",
     "send_email_title": "メールを送信",

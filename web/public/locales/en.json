@@ -228,7 +228,16 @@
       "audit_target": "Target",
       "audit_ip": "IP",
       "audit_system": "System",
-      "audit_empty": "No audit entries yet"
+      "audit_empty": "No audit entries yet",
+      "setup_inbox": "Setup Inbox Folder",
+      "setup_inbox_desc": "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning.",
+      "select_library": "Select Library",
+      "choose_library": "Choose Library",
+      "inbox_path": "Inbox Folder Path",
+      "inbox_setup_success": "Inbox folder setup successfully!",
+      "inbox_setup_failed": "Failed to setup inbox folder.",
+      "setup": "Setup",
+      "no_jobs_hint": "Tasks triggered manually or scheduled automatically will appear here."
     },
     "action_send_email": "Send email",
     "send_email_title": "Send Email",

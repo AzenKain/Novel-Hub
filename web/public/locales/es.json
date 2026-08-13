@@ -227,7 +227,16 @@
       "audit_target": "Objetivo",
       "audit_ip": "IP",
       "audit_system": "Sistema",
-      "audit_empty": "Todavía no hay entradas de auditoría"
+      "audit_empty": "Todavía no hay entradas de auditoría",
+      "setup_inbox": "Configurar carpeta de bandeja de entrada",
+      "setup_inbox_desc": "Seleccione una biblioteca para verificar o crear su carpeta dedicada /inbox/<library_id> para el escaneo en segundo plano.",
+      "select_library": "Seleccionar biblioteca",
+      "choose_library": "Elegir biblioteca",
+      "inbox_path": "Ruta de la carpeta de bandeja de entrada",
+      "inbox_setup_success": "¡Carpeta de bandeja de entrada configurada con éxito!",
+      "inbox_setup_failed": "Error al configurar la carpeta de bandeja de entrada.",
+      "setup": "Configurar",
+      "no_jobs_hint": "Las tareas activadas manualmente o programadas automáticamente aparecerán aquí."
     },
     "action_send_email": "Enviar correo",
     "send_email_title": "Enviar correo",

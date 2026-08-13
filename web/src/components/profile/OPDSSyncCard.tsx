@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Copy, Check, QrCode, BookOpen, Search, RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
+import { copyText } from "@/utils/clipboard";
 
 export const OPDSSyncCard: React.FC = () => {
   const { t } = useTranslation();
@@ -16,10 +17,13 @@ export const OPDSSyncCard: React.FC = () => {
   const koreaderSyncUrl = `${origin}/api/v1/sync/koreader`;
 
   const copyToClipboard = (url: string, label: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedUrl(url);
-    toast.success(t("common.copied", `${label} copied to clipboard!`));
-    setTimeout(() => setCopiedUrl(null), 2000);
+    copyText(url).then((success) => {
+      if (success) {
+        setCopiedUrl(url);
+        toast.success(t("common.copied", `${label} copied to clipboard!`));
+        setTimeout(() => setCopiedUrl(null), 2000);
+      }
+    });
   };
 
   const toggleQr = (url: string) => {

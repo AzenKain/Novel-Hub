@@ -227,7 +227,16 @@
       "audit_target": "Alvo",
       "audit_ip": "IP",
       "audit_system": "Sistema",
-      "audit_empty": "Ainda não há registos de auditoria"
+      "audit_empty": "Ainda não há registos de auditoria",
+      "setup_inbox": "Configurar pasta de entrada",
+      "setup_inbox_desc": "Selecione uma biblioteca para verificar ou criar a pasta dedicada /inbox/<library_id> para verificação em segundo plano.",
+      "select_library": "Selecionar biblioteca",
+      "choose_library": "Escolher biblioteca",
+      "inbox_path": "Caminho da pasta de entrada",
+      "inbox_setup_success": "Pasta de entrada configurada com sucesso!",
+      "inbox_setup_failed": "Falha ao configurar a pasta de entrada.",
+      "setup": "Configurar",
+      "no_jobs_hint": "Tarefas acionadas manualmente ou agendadas automaticamente aparecerão aqui."
     },
     "action_send_email": "Enviar e-mail",
     "send_email_title": "Enviar e-mail",

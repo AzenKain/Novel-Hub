@@ -50,6 +50,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Book Reviews & Ratings**: User-written reviews, stars, and shareable public links
 
 ### 🔒 Security & Access
+- **OAuth2 & OIDC Support**: Authenticate using external identity providers (Google, GitHub, Keycloak, Authelia, etc.)
 - **PIN-Protected Kids Mode**: Toggle visibility of mature books based on G/PG/R/R18 ratings
 - **Magic Code Login**: 6-digit passwordless login for e-readers and smart devices
 - **Granular RBAC**: Role-based access control with 39 precise permissions

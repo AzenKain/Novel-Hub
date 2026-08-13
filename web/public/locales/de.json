@@ -227,7 +227,16 @@
       "audit_target": "Ziel",
       "audit_ip": "IP",
       "audit_system": "System",
-      "audit_empty": "Noch keine Auditeinträge"
+      "audit_empty": "Noch keine Auditeinträge",
+      "setup_inbox": "Posteingangsordner einrichten",
+      "setup_inbox_desc": "Wählen Sie eine Bibliothek aus, um den dedizierten /inbox/<library_id>-Ordner für das Hintergrundscannen zu prüfen oder zu erstellen.",
+      "select_library": "Bibliothek auswählen",
+      "choose_library": "Bibliothek wählen",
+      "inbox_path": "Posteingangsordner-Pfad",
+      "inbox_setup_success": "Posteingangsordner erfolgreich eingerichtet!",
+      "inbox_setup_failed": "Posteingangsordner konnte nicht eingerichtet werden.",
+      "setup": "Einrichten",
+      "no_jobs_hint": "Manuell ausgelöste oder automatisch geplante Aufgaben werden hier angezeigt."
     },
     "action_send_email": "E-Mail senden",
     "send_email_title": "E-Mail senden",

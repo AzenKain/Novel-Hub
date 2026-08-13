@@ -227,7 +227,16 @@
       "audit_target": "对象",
       "audit_ip": "IP",
       "audit_system": "系统",
-      "audit_empty": "暂无审计记录"
+      "audit_empty": "暂无审计记录",
+      "setup_inbox": "设置收件箱文件夹",
+      "setup_inbox_desc": "选择一个书库以验证或创建其专用的 /inbox/<library_id> 文件夹用于后台扫描。",
+      "select_library": "选择书库",
+      "choose_library": "选择书库",
+      "inbox_path": "收件箱文件夹路径",
+      "inbox_setup_success": "收件箱文件夹设置成功！",
+      "inbox_setup_failed": "收件箱文件夹设置失败。",
+      "setup": "设置",
+      "no_jobs_hint": "手动触发或自动调度的任务将在此显示。"
     },
     "action_send_email": "发送邮件",
     "send_email_title": "发送邮件",

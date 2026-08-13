@@ -227,7 +227,16 @@
       "audit_target": "Cible",
       "audit_ip": "IP",
       "audit_system": "Système",
-      "audit_empty": "Aucune entrée d'audit pour le moment"
+      "audit_empty": "Aucune entrée d'audit pour le moment",
+      "setup_inbox": "Configurer le dossier de réception",
+      "setup_inbox_desc": "Sélectionnez une bibliothèque pour vérifier ou créer son dossier dédié /inbox/<library_id> pour l'analyse en arrière-plan.",
+      "select_library": "Sélectionner la bibliothèque",
+      "choose_library": "Choisir la bibliothèque",
+      "inbox_path": "Chemin du dossier de réception",
+      "inbox_setup_success": "Dossier de réception configuré avec succès !",
+      "inbox_setup_failed": "Échec de la configuration du dossier de réception.",
+      "setup": "Configurer",
+      "no_jobs_hint": "Les tâches déclenchées manuellement ou planifiées automatiquement apparaîtront ici."
     },
     "action_send_email": "Envoyer un e-mail",
     "send_email_title": "Envoyer un e-mail",

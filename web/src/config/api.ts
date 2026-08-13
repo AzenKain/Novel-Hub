@@ -43,7 +43,7 @@ interface QueueItem {
 }
 
 let isRefreshing = false;
-let authFailed = false;
+let refreshFailedAt = 0;
 let queue: QueueItem[] = [];
 
 function getCookie(name: string): string | null {
@@ -54,15 +54,6 @@ function getCookie(name: string): string | null {
 }
 
 api.interceptors.request.use((config) => {
-  const url = config.url || "";
-  const isAuthAction = url.includes("/auth/signin") || 
-                       url.includes("/auth/signup") || 
-                       url.includes("/auth/magic-code") || 
-                       url.includes("/auth/oauth2") ||
-                       url.includes("/auth/otp/verify");
-  if (isAuthAction) {
-    authFailed = false;
-  }
   const csrfToken = getCookie("csrf_token");
   if (csrfToken && config.headers) {
     config.headers["X-CSRF-Token"] = csrfToken;
@@ -88,12 +79,22 @@ const skipRefreshUrls = [
   "/setup",
 ];
 
+const authActionPatterns = [
+  "/auth/signin",
+  "/auth/signup",
+  "/auth/register",
+  "/auth/magic-code",
+  "/auth/oauth2",
+  "/auth/otp/verify",
+];
+
+const REFRESH_COOLDOWN_MS = 30_000;
+
 api.interceptors.response.use(
   (res) => {
-    // Reset authFailed flag on any successful non-refresh request,
-    // indicating the session is active and valid.
-    if (res.config.url && !res.config.url.includes("/auth/refresh")) {
-      authFailed = false;
+    const url = res.config.url || "";
+    if (authActionPatterns.some((p) => url.includes(p))) {
+      refreshFailedAt = 0;
     }
     return res;
   },
@@ -104,12 +105,15 @@ api.interceptors.response.use(
 
     const shouldSkip = skipRefreshUrls?.some((path) => url?.includes(path));
 
+    const inCooldown =
+      refreshFailedAt > 0 && Date.now() - refreshFailedAt < REFRESH_COOLDOWN_MS;
+
     if (
       err.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
       !shouldSkip &&
-      !authFailed
+      !inCooldown
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -126,23 +130,23 @@ api.interceptors.response.use(
       try {
         await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
 
-        authFailed = false;
+        refreshFailedAt = 0;
+        isRefreshing = false;
         processQueue(null);
 
         return api(originalRequest);
       } catch (refreshErr) {
-        // Only permanently block future refresh attempts if the refresh token
-        // is explicitly rejected (400 Bad Request or 401 Unauthorized).
-        // For network drops or 5xx server issues, keep authFailed as false so we can retry.
+        // Only activate cooldown if the refresh token is explicitly rejected
+        // (400 Bad Request or 401 Unauthorized). For network drops or 5xx
+        // server issues, leave the cooldown at 0 so we can retry immediately.
         const status = (refreshErr as AxiosError)?.response?.status;
         if (status === 400 || status === 401) {
-          authFailed = true;
+          refreshFailedAt = Date.now();
         }
-        processQueue(refreshErr);
-        
-        return Promise.reject(refreshErr);
-      } finally {
         isRefreshing = false;
+        processQueue(refreshErr);
+
+        return Promise.reject(refreshErr);
       }
     }
 

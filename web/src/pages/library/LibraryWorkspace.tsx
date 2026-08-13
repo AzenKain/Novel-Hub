@@ -644,12 +644,24 @@ export const LibraryWorkspace = () => {
     );
 
     if (rawFacet || name || facetId) {
+      const isAlreadyActive = activeFacet &&
+        activeFacet.type === (section?.type || facetType) &&
+        (activeFacet.id === facetId || activeFacet.name.trim().toLowerCase() === normalizedName);
+
+      if (isAlreadyActive) {
+        return;
+      }
+
       if (!matched && !facetId && name) {
         if (activeNav !== targetNav) {
           setActiveNav(targetNav);
           setActiveCollection("");
           setActiveChip(chipParam || "All");
-          setMetadataQuery("");
+        }
+        if (metadataQuery !== name) {
+          setMetadataQuery(name);
+        }
+        if (metadataAlpha !== "All") {
           setMetadataAlpha("All");
         }
         return;
@@ -668,8 +680,20 @@ export const LibraryWorkspace = () => {
     } else if (nav) {
       setActiveNav(nav);
       setActiveFacet(null);
+      setMetadataQuery("");
+      setMetadataAlpha("All");
     }
-  }, [location.search, facetSections]);
+  }, [
+    location.search,
+    facetSections,
+    search,
+    activeCollection,
+    activeChip,
+    activeNav,
+    activeFacet,
+    metadataQuery,
+    metadataAlpha,
+  ]);
 
   const metadataControls = (
     <div className="flex flex-col gap-3">
@@ -975,7 +999,7 @@ export const LibraryWorkspace = () => {
                   {(isFetchingMoreBookmarks || isFetchingMoreBooks) ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
-                    "Load More"
+                    t("common.load_more", "Load more")
                   )}
                 </button>
               </div>

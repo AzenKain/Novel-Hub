@@ -227,7 +227,16 @@
       "audit_target": "Target",
       "audit_ip": "IP",
       "audit_system": "Sistem",
-      "audit_empty": "Belum ada entri audit"
+      "audit_empty": "Belum ada entri audit",
+      "setup_inbox": "Atur Folder Inbox",
+      "setup_inbox_desc": "Pilih perpustakaan untuk memverifikasi atau membuat folder /inbox/<library_id> khusus untuk pemindaian latar belakang.",
+      "select_library": "Pilih Perpustakaan",
+      "choose_library": "Pilih Perpustakaan",
+      "inbox_path": "Jalur Folder Inbox",
+      "inbox_setup_success": "Folder inbox berhasil diatur!",
+      "inbox_setup_failed": "Gagal mengatur folder inbox.",
+      "setup": "Atur",
+      "no_jobs_hint": "Tugas yang dipicu secara manual atau dijadwalkan secara otomatis akan muncul di sini."
     },
     "action_send_email": "Kirim email",
     "send_email_title": "Kirim email",

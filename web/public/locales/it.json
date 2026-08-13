@@ -227,7 +227,16 @@
       "audit_target": "Destinazione",
       "audit_ip": "IP",
       "audit_system": "Sistema",
-      "audit_empty": "Nessuna voce di audit presente"
+      "audit_empty": "Nessuna voce di audit presente",
+      "setup_inbox": "Configura cartella posta in arrivo",
+      "setup_inbox_desc": "Seleziona una libreria per verificare o creare la cartella dedicata /inbox/<library_id> per la scansione in background.",
+      "select_library": "Seleziona libreria",
+      "choose_library": "Scegli libreria",
+      "inbox_path": "Percorso cartella posta in arrivo",
+      "inbox_setup_success": "Cartella posta in arrivo configurata con successo!",
+      "inbox_setup_failed": "Configurazione della cartella posta in arrivo non riuscita.",
+      "setup": "Configura",
+      "no_jobs_hint": "Le attività avviate manualmente o pianificate automaticamente appariranno qui."
     },
     "action_send_email": "Invia email",
     "send_email_title": "Invia email",

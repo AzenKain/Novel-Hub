@@ -18,4 +18,5 @@ func LibraryRoutes(router fiber.Router, libraryController *controllers.LibraryCo
 	libraryGroup.Post("/:id/upload", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.UploadFiles)
 	libraryGroup.Put("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.UpdateLibrary)
 	libraryGroup.Delete("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.DeleteLibrary)
+	libraryGroup.Post("/:id/inbox/setup", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.SetupInbox)
 }

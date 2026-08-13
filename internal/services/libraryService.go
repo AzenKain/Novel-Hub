@@ -37,6 +37,7 @@ type LibraryService interface {
 	ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error
 	StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error
 	ScanInbox(ctx context.Context) (int, error)
+	SetupInbox(ctx context.Context, id string) (string, error)
 }
 
 type libraryService struct {

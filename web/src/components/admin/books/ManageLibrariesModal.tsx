@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Check, Copy } from "lucide-react";
 
 import type { Library } from "@/types";
+import { copyText } from "@/utils/clipboard";
 
 type ManageLibrariesModalProps = {
   open: boolean;
@@ -36,9 +37,11 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
   };
 
   const handleCopyId = (id: string) => {
-    navigator.clipboard.writeText(id).then(() => {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+    copyText(id).then((success) => {
+      if (success) {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      }
     });
   };
 

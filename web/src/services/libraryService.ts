@@ -41,5 +41,15 @@ export const libraryService = {
       if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<null>;
       throw error;
     }
+  },
+
+  async setupLibraryInbox(id: string): Promise<CommonResponse<string>> {
+    try {
+      const res = await api.post(`/libraries/${id}/inbox/setup`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) return error.response.data as CommonResponse<string>;
+      throw error;
+    }
   }
 };

@@ -227,7 +227,16 @@
       "audit_target": "الهدف",
       "audit_ip": "عنوان IP",
       "audit_system": "النظام",
-      "audit_empty": "لا توجد سجلات تدقيق بعد"
+      "audit_empty": "لا توجد سجلات تدقيق بعد",
+      "setup_inbox": "إعداد مجلد الوارد",
+      "setup_inbox_desc": "حدد مكتبة للتحقق من مجلد /inbox/<library_id> المخصص أو إنشائه للمسح في الخلفية.",
+      "select_library": "اختيار المكتبة",
+      "choose_library": "اختيار المكتبة",
+      "inbox_path": "مسار مجلد الوارد",
+      "inbox_setup_success": "تم إعداد مجلد الوارد بنجاح!",
+      "inbox_setup_failed": "فشل إعداد مجلد الوارد.",
+      "setup": "إعداد",
+      "no_jobs_hint": "ستظهر المهام التي يتم تشغيلها يدويًا أو المجدولة تلقائيًا هنا."
     },
     "action_send_email": "إرسال بريد إلكتروني",
     "send_email_title": "إرسال بريد إلكتروني",
