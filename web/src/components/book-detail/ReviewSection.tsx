@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, MessageSquare, Trash2, Send, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ConfirmModal } from "@/components/common";
 import { adminService, featureService } from "@/services";
 import { useAuthStore } from "@/stores";
 import type { BookReview } from "@/types";
@@ -22,6 +23,26 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
   const [rating, setRating] = useState(userReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState(userReview?.review || "");
+  const [isDeleteReviewOpen, setIsDeleteReviewOpen] = useState(false);
+  const [deleteReviewUserId, setDeleteReviewUserId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleConfirmDeleteReview = async () => {
+    if (!deleteReviewUserId) return;
+    setDeleteLoading(true);
+    try {
+      await adminService.deleteReview(book_id, deleteReviewUserId);
+      toast.success(t("review.deleted", "Review deleted successfully"));
+      queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
+      queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+      setIsDeleteReviewOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || t("error.unknown", "Failed to delete review"));
+    } finally {
+      setDeleteLoading(false);
+      setDeleteReviewUserId(null);
+    }
+  };
 
   const {
     data: reviewsDataRaw,
@@ -187,16 +208,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                       {hasPermission(user, "book.review.delete") && (
                         <button
                           className="btn btn-ghost btn-xs text-error"
-                          onClick={async () => {
-                            if (rv?.user_id && window.confirm(t("review.confirm_delete", "Are you sure you want to delete this review?"))) {
-                              try {
-                                await adminService.deleteReview(book_id, rv.user_id);
-                                toast.success(t("review.deleted", "Review deleted successfully"));
-                                queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
-                                queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
-                              } catch (error: any) {
-                                toast.error(error.message || t("error.unknown", "Failed to delete review"));
-                              }
+                          onClick={() => {
+                            if (rv?.user_id) {
+                              setDeleteReviewUserId(rv.user_id);
+                              setIsDeleteReviewOpen(true);
                             }
                           }}
                         >
@@ -234,6 +249,19 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={isDeleteReviewOpen}
+        title={t("review.confirm_delete_title", "Delete Review")}
+        message={t("review.confirm_delete", "Are you sure you want to delete this review?")}
+        onClose={() => {
+          setIsDeleteReviewOpen(false);
+          setDeleteReviewUserId(null);
+        }}
+        onConfirm={handleConfirmDeleteReview}
+        variant="danger"
+        loading={deleteLoading}
+      />
     </div>
   );
 };

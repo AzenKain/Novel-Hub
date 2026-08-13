@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
+	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/netx"
@@ -204,6 +204,13 @@ func (s *audiobookService) ExecuteMergeAudioJob(ctx context.Context, payloadJSON
 		return err
 	}
 
+	srcBook, err := s.bookRepo.GetBook(ctx, payload.BookID)
+	if err != nil {
+		return err
+	}
+
+	newBookID := uuid.Must(uuid.NewV7()).String()
+
 	tmp, err := os.CreateTemp("", "novelhub-merge-*.m4b")
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to create temp output")
@@ -224,23 +231,38 @@ func (s *audiobookService) ExecuteMergeAudioJob(ctx context.Context, payloadJSON
 		_ = os.Remove(tmpPath)
 		return err
 	}
-	saved, err := s.fileRepo.SaveBook(ctx, payload.BookID, payload.Title+".m4b", src)
+	saved, err := s.fileRepo.SaveBook(ctx, newBookID, payload.Title+".m4b", src)
 	_ = src.Close()
 	_ = os.Remove(tmpPath)
 	if err != nil {
 		return err
 	}
 
-	return s.bookRepo.UpsertBookFile(ctx, sqlc.UpsertBookFileParams{
+	newBook := &models.BookEntity{
+		ID:            newBookID,
+		LibraryID:     srcBook.LibraryID,
+		Title:         payload.Title,
+		AuthorID:      srcBook.AuthorID,
+		Description:   srcBook.Description,
+		CoverURL:      srcBook.CoverURL,
+		Status:        srcBook.Status,
+		AgeRating:     srcBook.AgeRating,
+		MetadataJSON:  srcBook.MetadataJSON,
+		GoogleBooksID: srcBook.GoogleBooksID,
+		AnilistID:     srcBook.AnilistID,
+		OpenLibraryID: srcBook.OpenLibraryID,
+	}
+
+	fileParams := &sqlc.CreateBookFileParams{
 		ID:        uuid.Must(uuid.NewV7()).String(),
-		BookID:    payload.BookID,
+		BookID:    newBookID,
 		Path:      saved.Path,
 		Format:    "m4b",
 		SizeBytes: saved.SizeBytes,
 		ModTime:   saved.ModTime,
-		Hash:      sql.NullString{},
-		State:     sql.NullString{},
-	})
+	}
+
+	return s.bookRepo.CreateBookWithFile(ctx, newBook, fileParams)
 }
 
 func (s *audiobookService) resolveMergeSegments(ctx context.Context, segs []request.MergeAudioSegment) ([]mergeSegment, error) {

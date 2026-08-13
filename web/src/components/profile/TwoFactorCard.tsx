@@ -1,4 +1,5 @@
 import { CustomQRCode } from "@/components/common/CustomQRCode";
+import { ConfirmModal } from "@/components/common";
 import {
   useTOTPConfirmMutation,
   useTOTPDisableMutation,
@@ -24,6 +25,7 @@ export const TwoFactorCard: React.FC = () => {
   const [code, setCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [isDisableConfirmOpen, setIsDisableConfirmOpen] = useState(false);
 
   const enabled = status?.enabled ?? false;
 
@@ -56,9 +58,11 @@ export const TwoFactorCard: React.FC = () => {
   };
 
   const handleDisable = () => {
-    if (!window.confirm(t("totp.disable_confirm", "Turn off two-factor authentication for your account?"))) {
-      return;
-    }
+    setIsDisableConfirmOpen(true);
+  };
+
+  const handleConfirmDisable = () => {
+    setIsDisableConfirmOpen(false);
     disable.mutate(code.trim(), {
       onSuccess: () => {
         setRecoveryCodes([]);
@@ -204,6 +208,16 @@ export const TwoFactorCard: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={isDisableConfirmOpen}
+        title={t("totp.disable", "Turn off")}
+        message={t("totp.disable_confirm", "Turn off two-factor authentication for your account?")}
+        onClose={() => setIsDisableConfirmOpen(false)}
+        onConfirm={handleConfirmDisable}
+        variant="danger"
+        loading={disable.isPending}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Copy, Check, QrCode, Smartphone, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
+import { ConfirmModal } from "@/components/common";
 import {
   useKoboSetupQuery,
   useRegenerateKoboSetupMutation,
@@ -18,6 +19,20 @@ export const KoboSyncCard: React.FC = () => {
   const regenerate = useRegenerateKoboSetupMutation();
   const revoke = useRevokeKoboSetupMutation();
 
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant: "warning" | "danger" | "info" | "success";
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    variant: "info",
+  });
+
   const endpointUrl = setup?.endpoint_url ?? "";
   const configSnippet = `[FeatureSettings]\napi_endpoint=${endpointUrl}`;
 
@@ -30,28 +45,40 @@ export const KoboSyncCard: React.FC = () => {
   };
 
   const handleRegenerate = () => {
-    if (!window.confirm(t("kobo.regenerate_confirm", "This unpairs any device using the current URL. Continue?"))) {
-      return;
-    }
-    regenerate.mutate(undefined, {
-      onSuccess: () => {
-        setShowQr(false);
-        toast.success(t("kobo.regenerate_success", "New Kobo endpoint generated. Update your device."));
+    setConfirmState({
+      open: true,
+      title: t("kobo.regenerate_confirm_title", "Regenerate Kobo Endpoint"),
+      message: t("kobo.regenerate_confirm", "This unpairs any device using the current URL. Continue?"),
+      variant: "warning",
+      onConfirm: () => {
+        setConfirmState((prev) => ({ ...prev, open: false }));
+        regenerate.mutate(undefined, {
+          onSuccess: () => {
+            setShowQr(false);
+            toast.success(t("kobo.regenerate_success", "New Kobo endpoint generated. Update your device."));
+          },
+          onError: (err) => toast.error(err.message || t("kobo.regenerate_error", "Failed to regenerate endpoint")),
+        });
       },
-      onError: (err) => toast.error(err.message || t("kobo.regenerate_error", "Failed to regenerate endpoint")),
     });
   };
 
   const handleRevoke = () => {
-    if (!window.confirm(t("kobo.revoke_confirm", "This stops all Kobo devices from syncing. Continue?"))) {
-      return;
-    }
-    revoke.mutate(undefined, {
-      onSuccess: () => {
-        setShowQr(false);
-        toast.success(t("kobo.revoke_success", "Kobo sync revoked."));
+    setConfirmState({
+      open: true,
+      title: t("kobo.revoke_confirm_title", "Revoke Kobo Sync"),
+      message: t("kobo.revoke_confirm", "This stops all Kobo devices from syncing. Continue?"),
+      variant: "danger",
+      onConfirm: () => {
+        setConfirmState((prev) => ({ ...prev, open: false }));
+        revoke.mutate(undefined, {
+          onSuccess: () => {
+            setShowQr(false);
+            toast.success(t("kobo.revoke_success", "Kobo sync revoked."));
+          },
+          onError: (err) => toast.error(err.message || t("kobo.revoke_error", "Failed to revoke endpoint")),
+        });
       },
-      onError: (err) => toast.error(err.message || t("kobo.revoke_error", "Failed to revoke endpoint")),
     });
   };
 
@@ -172,6 +199,16 @@ export const KoboSyncCard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        onClose={() => setConfirmState((prev) => ({ ...prev, open: false }))}
+        onConfirm={confirmState.onConfirm}
+        variant={confirmState.variant}
+        loading={regenerate.isPending || revoke.isPending}
+      />
     </div>
   );
 };

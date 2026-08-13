@@ -31,7 +31,7 @@ import (
 const (
 	podcastRefreshJobType  = "podcast_refresh"
 	podcastDownloadJobType = "podcast_download"
-	maxFeedBytes           = 5 << 20
+	maxFeedBytes           = 250 << 20
 )
 
 type PodcastService interface {
@@ -148,6 +148,12 @@ func parseFeed(data []byte) (*parsedPodcast, error) {
 	if ch.Title == "" {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "feed has no channel title")
 	}
+
+	// Validate parsed fields to detect uncompiled Jekyll/Liquid templates
+	if isTemplate(ch.Title) || isTemplate(ch.Author) || isTemplate(ch.ItunesAuthor) {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "this RSS feed is an uncompiled template (e.g. Jekyll source). Please subscribe to the compiled feed URL instead.")
+	}
+
 	author := ch.Author
 	if author == "" {
 		author = ch.ItunesAuthor
@@ -159,6 +165,11 @@ func parseFeed(data []byte) (*parsedPodcast, error) {
 			cover = legacy.Channel.ImageURL
 		}
 	}
+
+	if isTemplate(cover) {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "this RSS feed is an uncompiled template (e.g. Jekyll source). Please subscribe to the compiled feed URL instead.")
+	}
+
 	out := &parsedPodcast{Title: ch.Title, Description: ch.Description, CoverURL: cover, Author: author}
 	for _, item := range ch.Items {
 		title := item.ItunesTitle
@@ -168,6 +179,10 @@ func parseFeed(data []byte) (*parsedPodcast, error) {
 		if item.GUID == "" || item.Enclosure.URL == "" {
 			continue
 		}
+		if isTemplate(title) || isTemplate(item.Enclosure.URL) {
+			return nil, apperrors.New(apperrors.ErrBadRequest, "this RSS feed is an uncompiled template (e.g. Jekyll source). Please subscribe to the compiled feed URL instead.")
+		}
+
 		out.Episodes = append(out.Episodes, parsedEpisode{
 			GUID:        item.GUID,
 			Title:       title,
@@ -178,6 +193,10 @@ func parseFeed(data []byte) (*parsedPodcast, error) {
 		})
 	}
 	return out, nil
+}
+
+func isTemplate(s string) bool {
+	return strings.Contains(s, "{{") || strings.Contains(s, "{%")
 }
 
 func parseItunesDuration(v string) *int64 {

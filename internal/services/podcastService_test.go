@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -339,5 +340,26 @@ func TestExecutePodcastDownloadJobRejectsBadPayload(t *testing.T) {
 	s := NewPodcastService(newStubPodcastRepo(), nil, nil, nil, nil)
 	if err := s.ExecutePodcastDownloadJob(context.Background(), `{not json`); err == nil {
 		t.Fatal("expected error for malformed payload")
+	}
+}
+
+func TestParseFeedTemplateDetection(t *testing.T) {
+	templateData := []byte(`
+---
+layout: null
+---
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{{ site.podcast.title }}</title>
+  </channel>
+</rss>
+`)
+	_, err := parseFeed(templateData)
+	if err == nil {
+		t.Fatal("expected error parsing uncompiled template feed, got nil")
+	}
+	if !strings.Contains(err.Error(), "uncompiled template") {
+		t.Errorf("expected error message to contain 'uncompiled template', got: %v", err)
 	}
 }

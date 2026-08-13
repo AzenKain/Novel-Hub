@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"html"
+	"strings"
 )
 
 var coverGradients = [][2]string{
@@ -13,6 +14,29 @@ var coverGradients = [][2]string{
 	{"#701a75", "#a21caf"},
 	{"#1e293b", "#334155"},
 	{"#831843", "#be185d"},
+}
+
+func wrapText(text string, maxLen int) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{""}
+	}
+	var lines []string
+	var currentLine string
+	for _, word := range words {
+		if currentLine == "" {
+			currentLine = word
+		} else if len(currentLine)+1+len(word) <= maxLen {
+			currentLine += " " + word
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+	return lines
 }
 
 func GenerateSVG(title, author string) []byte {
@@ -28,8 +52,40 @@ func GenerateSVG(title, author string) []byte {
 	colorIdx := int(h.Sum32()) % len(coverGradients)
 	bgGrad := coverGradients[colorIdx]
 
-	safeTitle := html.EscapeString(title)
-	safeAuthor := html.EscapeString(author)
+	// Wrap title: font size 36, max chars 24, limit to 4 lines
+	titleLines := wrapText(title, 24)
+	if len(titleLines) > 4 {
+		titleLines = titleLines[:4]
+		titleLines[3] += "..."
+	}
+
+	// Wrap author: font size 22, max chars 38, limit to 2 lines
+	authorLines := wrapText(author, 38)
+	if len(authorLines) > 2 {
+		authorLines = authorLines[:2]
+		authorLines[1] += "..."
+	}
+
+	// Dynamic Layout:
+	// Title centered around y = 420
+	titleLineHeight := 48
+	titleStartY := 420 - (len(titleLines)-1)*titleLineHeight/2
+	titleSVG := ""
+	for i, line := range titleLines {
+		y := titleStartY + i*titleLineHeight
+		titleSVG += fmt.Sprintf(`  <text x="300" y="%d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">%s</text>
+`, y, html.EscapeString(line))
+	}
+
+	// Author starts exactly 40px below the title block bottom
+	authorStartY := titleStartY + len(titleLines)*titleLineHeight + 40
+	authorLineHeight := 30
+	authorSVG := ""
+	for i, line := range authorLines {
+		y := authorStartY + i*authorLineHeight
+		authorSVG += fmt.Sprintf(`  <text x="300" y="%d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="normal" fill="#e2e8f0" text-anchor="middle" dominant-baseline="middle">%s</text>
+`, y, html.EscapeString(line))
+	}
 
 	svg := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="600" height="900" viewBox="0 0 600 900" xmlns="http://www.w3.org/2000/svg">
@@ -41,10 +97,8 @@ func GenerateSVG(title, author string) []byte {
   </defs>
   <rect width="600" height="900" fill="url(#bg)"/>
   <rect x="30" y="30" width="540" height="840" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
-  <text x="300" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">%s</text>
-  <text x="300" y="520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="normal" fill="#e2e8f0" text-anchor="middle" dominant-baseline="middle">%s</text>
-  <text x="300" y="820" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" fill="#94a3b8" letter-spacing="4" text-anchor="middle">NOVELHUB DIGITAL</text>
-</svg>`, bgGrad[0], bgGrad[1], safeTitle, safeAuthor)
+%s%s  <text x="300" y="820" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" fill="#94a3b8" letter-spacing="4" text-anchor="middle">NOVELHUB DIGITAL</text>
+</svg>`, bgGrad[0], bgGrad[1], titleSVG, authorSVG)
 
 	return []byte(svg)
 }

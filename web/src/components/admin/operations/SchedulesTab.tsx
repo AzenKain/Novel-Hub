@@ -11,6 +11,7 @@ import { hasPermission } from "@/utils/permission";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { ConfirmModal } from "@/components/common";
 
 export function SchedulesTab() {
   const { t } = useTranslation();
@@ -23,6 +24,18 @@ export function SchedulesTab() {
   const [taskType, setTaskType] = useState("maintenance");
   const [interval, setInterval] = useState(1440);
   const [editing, setEditing] = useState<JobSchedule | null>(null);
+  const [deleteScheduleId, setDeleteScheduleId] = useState<string | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteScheduleId) return;
+    remove.mutate(deleteScheduleId, {
+      onSuccess: () => setDeleteScheduleId(null),
+      onError: () => {
+        toast.error(t("admin.operations.action_failed"));
+        setDeleteScheduleId(null);
+      },
+    });
+  };
   const user = useAuthStore((state) => state.user);
   const canManage = hasPermission(user, "job.manage");
 
@@ -171,13 +184,7 @@ export function SchedulesTab() {
                       <button
                         className="btn btn-xs btn-error btn-outline"
                         onClick={() => {
-                          if (
-                            window.confirm(t("admin.operations.confirm_delete"))
-                          )
-                            remove.mutate(item.id, {
-                              onError: () =>
-                                toast.error(t("admin.operations.action_failed")),
-                            });
+                          setDeleteScheduleId(item.id);
                         }}
                       >
                         {t("common.delete")}
@@ -195,6 +202,16 @@ export function SchedulesTab() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={deleteScheduleId !== null}
+        title={t("admin.operations.confirm_delete_title", "Delete Schedule")}
+        message={t("admin.operations.confirm_delete", "Are you sure you want to delete this schedule?")}
+        onClose={() => setDeleteScheduleId(null)}
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        loading={remove.isPending}
+      />
     </div>
   );
 }

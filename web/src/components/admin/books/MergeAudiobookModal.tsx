@@ -208,7 +208,9 @@ const VolumeEnvelope: React.FC<{
 export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({ open, book_id, title, files, onClose }) => {
   const { t } = useTranslation();
   const merge = useMergeAudiobookMutation(book_id);
-  const [mergedTitle, setMergedTitle] = useState(title);
+  const [mergedTitle, setMergedTitle] = useState(() =>
+    t("audiobook.merged_title_default", "Merged - {{title}}", { title })
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [orderedFiles, setOrderedFiles] = useState<BookFile[]>(() =>

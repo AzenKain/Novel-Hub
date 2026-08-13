@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
 import { WebhookModal } from "./WebhookModal";
+import { ConfirmModal } from "@/components/common";
 
 export const WebhooksTab: React.FC = () => {
   const { t } = useTranslation();
@@ -23,6 +24,8 @@ export const WebhooksTab: React.FC = () => {
   const { data, isLoading } = useWebhooksQuery(pageSize, offset);
   const webhooks = data?.webhooks || [];
   const totalPages = data?.totalPages || 1;
+
+  const [deleteWebhookId, setDeleteWebhookId] = React.useState<string | null>(null);
   const createWebhookMutation = useCreateWebhookMutation();
   const updateWebhookMutation = useUpdateWebhookMutation();
   const deleteWebhookMutation = useDeleteWebhookMutation();
@@ -72,10 +75,19 @@ export const WebhooksTab: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm(t("review.confirm_delete", "Are you sure you want to delete this webhook?"))) return;
-    deleteWebhookMutation.mutate(id, {
-      onSuccess: () => toast.success(t("admin.deleted", "Deleted")),
-      onError: (err: any) => toast.error(err?.message || t("error.unknown", "Failed to delete webhook")),
+    setDeleteWebhookId(id);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteWebhookId) return;
+    deleteWebhookMutation.mutate(deleteWebhookId, {
+      onSuccess: () => {
+        toast.success(t("admin.deleted", "Deleted"));
+        setDeleteWebhookId(null);
+      },
+      onError: (err: any) => {
+        toast.error(err?.message || t("error.unknown", "Failed to delete webhook"));
+      },
     });
   };
 
@@ -224,6 +236,16 @@ export const WebhooksTab: React.FC = () => {
         onClose={closeModal}
         onSave={handleSaveModal}
         isSaving={createWebhookMutation.isPending || updateWebhookMutation.isPending}
+      />
+
+      <ConfirmModal
+        open={deleteWebhookId !== null}
+        title={t("review.confirm_delete_title", "Delete Webhook")}
+        message={t("review.confirm_delete", "Are you sure you want to delete this webhook?")}
+        onClose={() => setDeleteWebhookId(null)}
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        loading={deleteWebhookMutation.isPending}
       />
     </div>
   );

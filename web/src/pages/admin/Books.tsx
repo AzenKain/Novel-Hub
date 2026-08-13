@@ -69,6 +69,7 @@ export function Books() {
   const user = useAuthStore((state) => state.user);
   const canImportCalibre = hasPermission(user, "calibre.sync");
   const [showCalibreModal, setShowCalibreModal] = useState(false);
+  const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
   const calibreImportMutation = useCalibreImportMutation();
   const { data: libraries = [] } = useLibrariesQuery();
   const createLibraryMutation = useCreateLibraryMutation();
@@ -603,9 +604,7 @@ export function Books() {
                             <button
                               type="button"
                               onClick={() => {
-                                if (confirm(t("admin.confirm_delete_file", "Are you sure you want to delete this file format?"))) {
-                                  void deleteBookFile(file.id);
-                                }
+                                setDeleteFileId(file.id);
                               }}
                               className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/15"
                               title={t("admin.delete_file", "Delete file format")}
@@ -878,6 +877,19 @@ export function Books() {
               },
             });
             setLibraryToDelete(null);
+          }
+        }}
+      />
+
+      <DeleteConfirmModal
+        open={deleteFileId !== null}
+        title={t("admin.delete_file", "Delete file format")}
+        message={t("admin.confirm_delete_file", "Are you sure you want to delete this file format?")}
+        onClose={() => setDeleteFileId(null)}
+        onConfirm={() => {
+          if (deleteFileId) {
+            void deleteBookFile(deleteFileId);
+            setDeleteFileId(null);
           }
         }}
       />

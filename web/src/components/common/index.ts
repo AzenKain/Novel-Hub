@@ -9,3 +9,5 @@ export * from "./OTPCodeStep";
 export * from "./TOTPCodeStep";
 export * from "./TopNav";
 export * from "./UpdatePrompt";
+export * from "./ConfirmModal";
+

@@ -126,7 +126,10 @@ export function AudioPlayer({
         src={rawUrl}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(duration);
+        }}
         preload="metadata"
       />
 

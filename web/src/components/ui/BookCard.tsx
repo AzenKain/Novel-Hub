@@ -56,12 +56,15 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
               onSelectToggle(book);
             }}
           >
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm checkbox-primary bg-base-100 shadow-md border-base-300"
-              checked={selected || false}
-              onChange={() => {}}
-            />
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 shadow-md transition-all ${
+              selected 
+                ? "bg-primary border-primary text-primary-content scale-100" 
+                : "bg-base-100/80 backdrop-blur-xs border-base-content/20 text-transparent hover:border-base-content/40 hover:scale-105"
+            }`}>
+              <svg className="w-3.5 h-3.5 stroke-[3.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
           </div>
         )}
         {book.cover_url ? (

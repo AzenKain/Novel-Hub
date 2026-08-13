@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Plus, Trash2, Tag, User, BookOpen, Star, FileText } from "lucide-react";
+import { toast } from "react-toastify";
 import {
   useCreateSmartFilterMutation,
   useUpdateSmartFilterMutation,
@@ -85,7 +86,7 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
     // Filter out rules with empty values
     const cleanedRules = rules.filter((r) => r.value.trim() !== "");
     if (cleanedRules.length === 0) {
-      alert(t("library.rules_empty_error", "Please add at least one valid rule."));
+      toast.error(t("library.rules_empty_error", "Please add at least one valid rule."));
       return;
     }
 

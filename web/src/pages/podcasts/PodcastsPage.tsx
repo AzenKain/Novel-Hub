@@ -155,8 +155,21 @@ export const PodcastsPage: React.FC = () => {
             >
               <div className="card-body p-4">
                 <div className="flex items-start gap-3">
-                  {podcast.cover_url ? (
-                    <img src={podcast.cover_url} alt={podcast.title} className="h-14 w-14 rounded-lg object-cover" />
+                  {podcast.cover_url && (podcast.cover_url.startsWith("http://") || podcast.cover_url.startsWith("https://")) ? (
+                    <div className="relative h-14 w-14 shrink-0">
+                      <img
+                        src={podcast.cover_url}
+                        alt={podcast.title}
+                        className="h-14 w-14 rounded-lg object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                        }}
+                      />
+                      <div className="hidden flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Rss className="h-6 w-6" />
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Rss className="h-6 w-6" />
@@ -221,7 +234,7 @@ export const PodcastsPage: React.FC = () => {
                       <th>{t("common.title", "Title")}</th>
                       <th>{t("podcasts.duration", "Duration")}</th>
                       <th>{t("podcasts.published", "Published")}</th>
-                      <th className="text-right">{t("common.actions", "Actions")}</th>
+                      <th className="text-right">{t("podcasts.actions", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -362,7 +362,9 @@
     },
     "connected": "Connected",
     "clear": "Clear",
-    "back_to_library": "Back to Library"
+    "back_to_library": "Back to Library",
+    "title": "Title",
+    "actions": "Actions"
   },
   "library": {
     "ready_to_read": "Ready to read",
@@ -1207,7 +1209,8 @@
     "remove_from_timeline": "Remove from timeline",
     "cannot_split_close": "Cannot split too close to track boundaries (minimum 0.5s from edge)",
     "timeline_split_success": "Timeline split locally!",
-    "submitting_merge": "Submitting merge request to server..."
+    "submitting_merge": "Submitting merge request to server...",
+    "merged_title_default": "Merged - {{title}}"
   },
   "podcasts": {
     "title": "Podcasts",

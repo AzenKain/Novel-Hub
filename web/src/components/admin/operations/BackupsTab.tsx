@@ -9,6 +9,7 @@ import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { ConfirmModal } from "@/components/common";
 
 const formatBytes = (bytes: number, t: TFunction) => {
   if (bytes < 1024) return `${bytes} ${t("admin.operations.units.bytes")}`;
@@ -25,6 +26,20 @@ export function BackupsTab() {
   const restore = useRestoreBackupMutation();
   const [includeBooks, setIncludeBooks] = useState(false);
 
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant: "warning" | "danger" | "info" | "success";
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    variant: "info",
+  });
+
   const createBackup = () =>
     create.mutate(includeBooks, {
       onSuccess: (res) =>
@@ -33,18 +48,42 @@ export function BackupsTab() {
           : toast.error(res.message),
       onError: () => toast.error(t("admin.operations.action_failed")),
     });
+
   const restoreBackup = (name: string) => {
-    if (!window.confirm(t("admin.operations.confirm_restore"))) return;
-    restore.mutate(name, {
-      onSuccess: (res) =>
-        res.status
-          ? toast.warning(
-              res.data?.autoRestart
-                ? t("admin.operations.restarting")
-                : t("admin.operations.restart_required"),
-            )
-          : toast.error(res.message),
-      onError: () => toast.error(t("admin.operations.action_failed")),
+    setConfirmState({
+      open: true,
+      title: t("admin.operations.confirm_restore_title", "Restore Backup"),
+      message: t("admin.operations.confirm_restore", "Are you sure you want to restore this backup? This will overwrite the current database!"),
+      variant: "warning",
+      onConfirm: () => {
+        setConfirmState((prev) => ({ ...prev, open: false }));
+        restore.mutate(name, {
+          onSuccess: (res) =>
+            res.status
+              ? toast.warning(
+                  res.data?.autoRestart
+                    ? t("admin.operations.restarting")
+                    : t("admin.operations.restart_required"),
+                )
+              : toast.error(res.message),
+          onError: () => toast.error(t("admin.operations.action_failed")),
+        });
+      },
+    });
+  };
+
+  const deleteBackup = (name: string) => {
+    setConfirmState({
+      open: true,
+      title: t("admin.operations.confirm_delete_title", "Delete Backup"),
+      message: t("admin.operations.confirm_delete", "Are you sure you want to delete this backup file?"),
+      variant: "danger",
+      onConfirm: () => {
+        setConfirmState((prev) => ({ ...prev, open: false }));
+        remove.mutate(name, {
+          onError: () => toast.error(t("admin.operations.action_failed")),
+        });
+      },
     });
   };
 
@@ -112,13 +151,7 @@ export function BackupsTab() {
                   <button
                     className="btn btn-xs btn-error btn-outline"
                     disabled={remove.isPending}
-                    onClick={() => {
-                      if (window.confirm(t("admin.operations.confirm_delete")))
-                        remove.mutate(item.name, {
-                          onError: () =>
-                            toast.error(t("admin.operations.action_failed")),
-                        });
-                    }}
+                    onClick={() => deleteBackup(item.name)}
                   >
                     {t("common.delete")}
                   </button>
@@ -133,6 +166,16 @@ export function BackupsTab() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        onClose={() => setConfirmState((prev) => ({ ...prev, open: false }))}
+        onConfirm={confirmState.onConfirm}
+        variant={confirmState.variant}
+        loading={restore.isPending || remove.isPending}
+      />
     </div>
   );
 }
