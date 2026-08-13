@@ -54,7 +54,13 @@ function getCookie(name: string): string | null {
 }
 
 api.interceptors.request.use((config) => {
-  if (config.url?.includes("/auth/signin") || config.url?.includes("/auth/signup")) {
+  const url = config.url || "";
+  const isAuthAction = url.includes("/auth/signin") || 
+                       url.includes("/auth/signup") || 
+                       url.includes("/auth/magic-code") || 
+                       url.includes("/auth/oauth2") ||
+                       url.includes("/auth/otp/verify");
+  if (isAuthAction) {
     authFailed = false;
   }
   const csrfToken = getCookie("csrf_token");
@@ -83,7 +89,14 @@ const skipRefreshUrls = [
 ];
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Reset authFailed flag on any successful non-refresh request,
+    // indicating the session is active and valid.
+    if (res.config.url && !res.config.url.includes("/auth/refresh")) {
+      authFailed = false;
+    }
+    return res;
+  },
   async (err: AxiosError) => {
     const originalRequest = err.config as CustomAxiosRequestConfig;
 
@@ -118,7 +131,13 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshErr) {
-        authFailed = true;
+        // Only permanently block future refresh attempts if the refresh token
+        // is explicitly rejected (400 Bad Request or 401 Unauthorized).
+        // For network drops or 5xx server issues, keep authFailed as false so we can retry.
+        const status = (refreshErr as AxiosError)?.response?.status;
+        if (status === 400 || status === 401) {
+          authFailed = true;
+        }
         processQueue(refreshErr);
         
         return Promise.reject(refreshErr);

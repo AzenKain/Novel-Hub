@@ -206,7 +206,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return r.GetBooksByIDs(ctx, value.([]string))
 	}
 
-	if chip != "" && chip != "All" && chip != "No cover" && chip != "Duplicates" && chip != "Reading" && chip != "Unread" {
+	if chip != "" && chip != "All" && chip != "No cover" && chip != "Duplicates" && chip != "Reading" && chip != "Unread" && chip != "ExcludeAudiobooks" {
 		return []*models.BookEntity{}, nil
 	}
 
@@ -252,6 +252,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		PublisherID:           filters.PublisherID,
 		LanguageID:            filters.LanguageID,
 		FileFormat:            filters.FileFormat,
+		ExcludeAudiobooks:     filters.ExcludeAudiobooks,
 		CursorCreatedAt:       cursorTimeArg(cursor),
 		CursorID:              convert.StrPtrToNullString(&cursorID),
 		Limit:                 limit,
@@ -370,6 +371,7 @@ type bookSearchFilters struct {
 	PublisherID     any
 	LanguageID      any
 	FileFormat      any
+	ExcludeAudiobooks any
 }
 
 func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSearchFilters {
@@ -422,6 +424,8 @@ func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSe
 		set(&filters.Reading)
 	case "Unread":
 		set(&filters.Unread)
+	case "ExcludeAudiobooks":
+		set(&filters.ExcludeAudiobooks)
 	}
 
 	if facetID == "" {

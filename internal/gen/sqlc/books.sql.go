@@ -588,10 +588,11 @@ WHERE
     (?25 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?25)) AND
     (?26 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?26)) AND
     (?27 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?27)) AND
-    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28)))
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28))) AND
+    (?29 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
     b.created_at DESC, b.id DESC
-LIMIT ?29
+LIMIT ?30
 `
 
 type SearchBookIDsParams struct {
@@ -623,6 +624,7 @@ type SearchBookIDsParams struct {
 	PublisherID           interface{}    `json:"publisher_id"`
 	LanguageID            interface{}    `json:"language_id"`
 	FileFormat            interface{}    `json:"file_format"`
+	ExcludeAudiobooks     interface{}    `json:"exclude_audiobooks"`
 	Limit                 int64          `json:"limit"`
 }
 
@@ -656,6 +658,7 @@ func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([
 		arg.PublisherID,
 		arg.LanguageID,
 		arg.FileFormat,
+		arg.ExcludeAudiobooks,
 		arg.Limit,
 	)
 	if err != nil {

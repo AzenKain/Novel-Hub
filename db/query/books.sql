@@ -127,7 +127,8 @@ WHERE
     (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
     (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
     (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
-    (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format'))))
+    (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format')))) AND
+    (sqlc.narg('exclude_audiobooks') IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
     b.created_at DESC, b.id DESC
 LIMIT sqlc.arg('limit');
