@@ -84,7 +84,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
       <div className={`card-body ${compact ? 'p-1.5 gap-0.5' : 'p-2 gap-1'} flex-1 flex flex-col justify-start`}>
         <strong className={`${compact ? 'text-xs' : 'text-base'} line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary`} title={book.title}>{book.title}</strong>
         <p 
-          className={`${compact ? 'text-[11px]' : 'text-sm'} text-base-content/70 line-clamp-1 hover:text-primary hover:underline cursor-pointer`}
+          className={`${compact ? 'text-[11px]' : 'text-sm'} text-base-content/70 truncate hover:text-primary hover:underline cursor-pointer`}
           title={author_name}
           onClick={(e) => {
             e.stopPropagation();
@@ -95,7 +95,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
         </p>
         {series && (
           <p 
-            className={`${compact ? 'text-[11px]' : 'text-sm'} text-secondary/80 font-medium line-clamp-1 hover:text-secondary hover:underline cursor-pointer`}
+            className={`${compact ? 'text-[11px]' : 'text-sm'} text-secondary/80 font-medium truncate hover:text-secondary hover:underline cursor-pointer`}
             title={series}
             onClick={(e) => {
               e.stopPropagation();

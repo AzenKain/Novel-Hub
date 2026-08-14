@@ -112,7 +112,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             <Menu className="h-5 w-5" />
           </label>
         </div>
-        <span className="line-clamp-1 hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
+        <span className="truncate hidden max-w-xs text-sm font-medium opacity-50 sm:inline">
           {title || t("reader.reading", "Reading")}
         </span>
       </div>

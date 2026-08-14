@@ -370,7 +370,7 @@ export function Books() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-sm text-base-content line-clamp-1 hover:text-primary transition-colors">
+                                <div className="font-bold text-sm text-base-content truncate hover:text-primary transition-colors">
                                   {book.title}
                                 </div>
                                 {book.files && book.files.length > 0 && (
