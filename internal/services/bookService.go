@@ -378,33 +378,43 @@ func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntit
 		return
 	}
 
-	bookIDs := make([]string, 0, len(books))
+	var missingFilesBookIDs []string
+	var missingAuthorIDs []string
 	authorIDMap := make(map[string]bool)
-	authorIDs := make([]string, 0, len(books))
 
 	for _, book := range books {
 		if book == nil {
 			continue
 		}
-		bookIDs = append(bookIDs, book.ID)
-		if book.AuthorID != nil && *book.AuthorID != "" {
+		if book.Files == nil {
+			missingFilesBookIDs = append(missingFilesBookIDs, book.ID)
+		}
+		if book.AuthorName == nil && book.AuthorID != nil && *book.AuthorID != "" {
 			if !authorIDMap[*book.AuthorID] {
 				authorIDMap[*book.AuthorID] = true
-				authorIDs = append(authorIDs, *book.AuthorID)
+				missingAuthorIDs = append(missingAuthorIDs, *book.AuthorID)
 			}
 		}
 	}
 
+	if len(missingFilesBookIDs) == 0 && len(missingAuthorIDs) == 0 {
+		return
+	}
+
 	filesByBookID := make(map[string][]*models.BookFileEntity)
-	if files, err := s.bookRepo.GetFilesByBookIDs(ctx, bookIDs); err == nil {
-		for _, f := range files {
-			filesByBookID[f.BookID] = append(filesByBookID[f.BookID], f)
+	if len(missingFilesBookIDs) > 0 {
+		if files, err := s.bookRepo.GetFilesByBookIDs(ctx, missingFilesBookIDs); err == nil {
+			for _, f := range files {
+				if f != nil {
+					filesByBookID[f.BookID] = append(filesByBookID[f.BookID], f)
+				}
+			}
 		}
 	}
 
 	authorNameByID := make(map[string]string)
-	if len(authorIDs) > 0 {
-		if authors, err := s.bookRepo.GetAuthorsByIDs(ctx, authorIDs); err == nil {
+	if len(missingAuthorIDs) > 0 {
+		if authors, err := s.bookRepo.GetAuthorsByIDs(ctx, missingAuthorIDs); err == nil {
 			for _, a := range authors {
 				if a != nil && a.Name != "" {
 					authorNameByID[a.ID] = a.Name
@@ -417,30 +427,33 @@ func (s *bookService) enrichBooks(ctx context.Context, books []*models.BookEntit
 		if book == nil {
 			continue
 		}
-		if files, ok := filesByBookID[book.ID]; ok {
-			book.Files = files
+		if book.Files == nil {
+			if files, ok := filesByBookID[book.ID]; ok {
+				book.Files = files
+			} else {
+				book.Files = []*models.BookFileEntity{}
+			}
 		}
-		if book.AuthorID != nil && *book.AuthorID != "" {
+		if book.AuthorName == nil && book.AuthorID != nil && *book.AuthorID != "" {
 			if name, ok := authorNameByID[*book.AuthorID]; ok {
 				authorName := name
 				book.AuthorName = &authorName
 				continue
 			}
 		}
-		if book.MetadataJSON == nil || *book.MetadataJSON == "" {
-			continue
-		}
-		var meta struct {
-			Creator  string   `json:"creator"`
-			Creators []string `json:"creators"`
-		}
-		if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
-			authorName := strings.TrimSpace(meta.Creator)
-			if authorName == "" && len(meta.Creators) > 0 {
-				authorName = strings.Join(meta.Creators, ", ")
+		if book.AuthorName == nil && book.MetadataJSON != nil && *book.MetadataJSON != "" {
+			var meta struct {
+				Creator  string   `json:"creator"`
+				Creators []string `json:"creators"`
 			}
-			if authorName != "" {
-				book.AuthorName = &authorName
+			if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
+				authorName := strings.TrimSpace(meta.Creator)
+				if authorName == "" && len(meta.Creators) > 0 {
+					authorName = strings.Join(meta.Creators, ", ")
+				}
+				if authorName != "" {
+					book.AuthorName = &authorName
+				}
 			}
 		}
 	}

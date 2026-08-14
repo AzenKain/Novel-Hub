@@ -22,6 +22,7 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 			cache.BuildKey("book_file", "id", file.ID),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
+			cache.BuildKey("book", "id", file.BookID),
 		)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
@@ -45,6 +46,7 @@ func (r *bookDBRepository) UpsertBookFile(ctx context.Context, params sqlc.Upser
 			cache.BuildKey("book_file", "id", file.ID),
 			cache.BuildKey("book_file", "book", file.BookID),
 			cache.BuildKey("book_file", "count", file.BookID),
+			cache.BuildKey("book", "id", file.BookID),
 		)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
@@ -283,8 +285,9 @@ func (r *bookDBRepository) UpdateBookFileHash(ctx context.Context, id string, ha
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
-					cache.BuildKey("book_file", "book", file.BookID),
+				cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
+				cache.BuildKey("book", "id", file.BookID),
 			)
 		} else {
 			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileNamespacePattern)
@@ -367,8 +370,9 @@ func (r *bookDBRepository) DeleteFile(ctx context.Context, id string) error {
 			_ = r.c.Del(
 				ctx,
 				cache.BuildKey("book_file", "id", file.ID),
-					cache.BuildKey("book_file", "book", file.BookID),
+				cache.BuildKey("book_file", "book", file.BookID),
 				cache.BuildKey("book_file", "count", file.BookID),
+				cache.BuildKey("book", "id", file.BookID),
 			)
 		} else {
 			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileNamespacePattern)

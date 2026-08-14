@@ -101,15 +101,7 @@ func (s *readListService) GetUserReadLists(ctx context.Context, userID string, c
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, 0, len(lists))
-	for _, list := range lists {
-		ids = append(ids, list.ID)
-	}
-	counts, err := s.repo.CountBooksInReadLists(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	return models.ReadListEntitiesToResponse(lists, counts), nil
+	return models.ReadListEntitiesToResponse(lists, nil), nil
 }
 
 func (s *readListService) GetReadList(ctx context.Context, id string, userID string) (*response.ReadListResponse, error) {
@@ -123,11 +115,7 @@ func (s *readListService) GetReadList(ctx context.Context, id string, userID str
 	if len(lists) == 0 {
 		return nil, apperrors.New(apperrors.ErrNotFound, "Read list not found")
 	}
-	counts, err := s.repo.CountBooksInReadLists(ctx, []string{id})
-	if err != nil {
-		return nil, err
-	}
-	return lists[0].ToResponse(counts[id]), nil
+	return lists[0].ToResponse(lists[0].BookCount), nil
 }
 
 // Position is the index in the stored order rather than the raw position column, so removing an

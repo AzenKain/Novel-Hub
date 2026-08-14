@@ -12,6 +12,7 @@ type ReadListEntity struct {
 	UserID      string    `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	BookCount   int64     `json:"book_count,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -41,12 +42,16 @@ func (e *ReadListEntity) ToResponse(bookCount int64) *response.ReadListResponse 
 	if e == nil {
 		return nil
 	}
+	count := bookCount
+	if count == 0 && e.BookCount > 0 {
+		count = e.BookCount
+	}
 	return &response.ReadListResponse{
 		ID:          e.ID,
 		UserID:      e.UserID,
 		Name:        e.Name,
 		Description: e.Description,
-		BookCount:   bookCount,
+		BookCount:   count,
 		CreatedAt:   e.CreatedAt,
 		UpdatedAt:   e.UpdatedAt,
 	}
@@ -58,7 +63,14 @@ func ReadListEntitiesToResponse(entities []*ReadListEntity, counts map[string]in
 		if rl == nil {
 			continue
 		}
-		out = append(out, rl.ToResponse(counts[rl.ID]))
+		var count int64
+		if counts != nil {
+			count = counts[rl.ID]
+		}
+		if count == 0 {
+			count = rl.BookCount
+		}
+		out = append(out, rl.ToResponse(count))
 	}
 	return out
 }

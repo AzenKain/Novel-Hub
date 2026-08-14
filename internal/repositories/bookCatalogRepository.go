@@ -130,6 +130,7 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 			return nil, err
 		}
 		book := (&models.BookEntity{}).FromSqlc(res)
+		r.enrichBookEntitiesForCache(ctx, []*models.BookEntity{book})
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, book, constants.NormalCacheDuration)
 		}
@@ -771,10 +772,13 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 				return nil, err
 			}
 			missingMap := make(map[string]*models.BookEntity, len(rows))
-			for _, row := range rows {
+			missingEntities := make([]*models.BookEntity, len(rows))
+			for i, row := range rows {
 				book := (&models.BookEntity{}).FromSqlc(row)
 				missingMap[book.ID] = book
+				missingEntities[i] = book
 			}
+			r.enrichBookEntitiesForCache(ctx, missingEntities)
 			return missingMap, nil
 		})
 		if err != nil {
@@ -800,6 +804,84 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 	}
 
 	return orderBooks(ids, booksByID), nil
+}
+
+func (r *bookDBRepository) enrichBookEntitiesForCache(ctx context.Context, books []*models.BookEntity) {
+	if len(books) == 0 {
+		return
+	}
+
+	bookIDs := make([]string, 0, len(books))
+	authorIDMap := make(map[string]bool)
+	authorIDs := make([]string, 0, len(books))
+
+	for _, book := range books {
+		if book == nil {
+			continue
+		}
+		bookIDs = append(bookIDs, book.ID)
+		if book.AuthorID != nil && *book.AuthorID != "" {
+			if !authorIDMap[*book.AuthorID] {
+				authorIDMap[*book.AuthorID] = true
+				authorIDs = append(authorIDs, *book.AuthorID)
+			}
+		}
+	}
+
+	filesByBookID := make(map[string][]*models.BookFileEntity)
+	if len(bookIDs) > 0 {
+		if files, err := r.GetFilesByBookIDs(ctx, bookIDs); err == nil {
+			for _, f := range files {
+				if f != nil {
+					filesByBookID[f.BookID] = append(filesByBookID[f.BookID], f)
+				}
+			}
+		}
+	}
+
+	authorNameByID := make(map[string]string)
+	if len(authorIDs) > 0 {
+		if authors, err := r.GetAuthorsByIDs(ctx, authorIDs); err == nil {
+			for _, a := range authors {
+				if a != nil && a.Name != "" {
+					authorNameByID[a.ID] = a.Name
+				}
+			}
+		}
+	}
+
+	for _, book := range books {
+		if book == nil {
+			continue
+		}
+		if files, ok := filesByBookID[book.ID]; ok {
+			book.Files = files
+		} else if book.Files == nil {
+			book.Files = []*models.BookFileEntity{}
+		}
+		if book.AuthorID != nil && *book.AuthorID != "" {
+			if name, ok := authorNameByID[*book.AuthorID]; ok {
+				authorName := name
+				book.AuthorName = &authorName
+				continue
+			}
+		}
+		if book.AuthorName == nil && book.MetadataJSON != nil && *book.MetadataJSON != "" {
+			var meta struct {
+				Creator  string   `json:"creator"`
+				Creators []string `json:"creators"`
+			}
+			if err := jsonx.UnmarshalString(*book.MetadataJSON, &meta); err == nil {
+				authorName := strings.TrimSpace(meta.Creator)
+				if authorName == "" && len(meta.Creators) > 0 {
+					authorName = strings.Join(meta.Creators, ", ")
+				}
+				if authorName != "" {
+					book.AuthorName = &authorName
+				}
+			}
+		}
+	}
 }
 
 func orderBooks(ids []string, booksByID map[string]*models.BookEntity) []*models.BookEntity {

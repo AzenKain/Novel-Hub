@@ -97,6 +97,9 @@ func (r *roleRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 			missingMap := make(map[string]*models.RoleEntity)
 			for _, row := range rows {
 				result := (&models.RoleEntity{}).FromSqlc(row)
+				if perms, err := r.GetRolePermissions(ctx, result.ID); err == nil {
+					result.Permissions = perms
+				}
 				missingMap[result.ID] = result
 			}
 			return missingMap, nil
@@ -152,6 +155,9 @@ func (r *roleRepository) GetByID(ctx context.Context, id string) (*models.RoleEn
 			return nil, err
 		}
 		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
+		if perms, err := r.GetRolePermissions(ctx, id); err == nil {
+			rolePtr.Permissions = perms
+		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 		}
@@ -491,7 +497,7 @@ func (r *roleRepository) ReplaceRolePermissions(ctx context.Context, roleID stri
 	}
 
 	if r.c != nil {
-		_ = r.c.Del(ctx, constants.CacheKeyRolePermAll, cache.BuildKey("role", "permissions", roleID))
+		_ = r.c.Del(ctx, constants.CacheKeyRolePermAll, cache.BuildKey("role", "permissions", roleID), cache.BuildKey("role", "id", roleID))
 	}
 	return nil
 }
@@ -511,6 +517,9 @@ func (r *roleRepository) GetByName(ctx context.Context, name string) (*models.Ro
 			return nil, err
 		}
 		rolePtr := (&models.RoleEntity{}).FromSqlc(row)
+		if perms, err := r.GetRolePermissions(ctx, rolePtr.ID); err == nil {
+			rolePtr.Permissions = perms
+		}
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, rolePtr, constants.NormalCacheDuration)
 		}

@@ -253,7 +253,7 @@ func (r *roleService) ReorderRoles(ctx context.Context, dto *request.ReorderRole
 
 func (r *roleService) attachPermissions(ctx context.Context, roles ...*models.RoleEntity) error {
 	for _, role := range roles {
-		if role == nil {
+		if role == nil || role.Permissions != nil {
 			continue
 		}
 		permissions, err := r.roleRepo.GetRolePermissions(ctx, role.ID)

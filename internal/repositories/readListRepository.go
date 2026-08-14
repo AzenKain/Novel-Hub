@@ -249,9 +249,13 @@ func (r *readListRepository) GetReadListsByIDs(ctx context.Context, ids []string
 		if err != nil {
 			return nil, err
 		}
+		counts, _ := r.CountBooksInReadLists(ctx, missingIDs)
 		fetched := make(map[string]*models.ReadListEntity, len(rows))
 		for _, row := range rows {
 			entity := (&models.ReadListEntity{}).FromSqlc(row)
+			if cnt, ok := counts[entity.ID]; ok {
+				entity.BookCount = cnt
+			}
 			byID[entity.ID] = entity
 			fetched[entity.ID] = entity
 		}
