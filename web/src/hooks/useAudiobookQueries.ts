@@ -2,14 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { audiobookService } from "@/services";
 import type { LookupAudiobookChaptersInput, MergeAudioInput, UpsertAudiobookChapterInput } from "@/types";
 
-export function useAudiobookChaptersQuery(book_id: string) {
+export function useAudiobookChaptersQuery(book_id: string, enabled = true) {
   return useQuery({
     queryKey: ["audiobookChapters", book_id],
     queryFn: async () => {
       const res = await audiobookService.listChapters(book_id);
       return res.status ? res.data : null;
     },
-    enabled: !!book_id,
+    enabled: !!book_id && enabled,
     staleTime: 0,
     refetchOnMount: "always",
     retry: false,

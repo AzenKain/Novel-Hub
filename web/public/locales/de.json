@@ -561,7 +561,9 @@
     "merge_into_target": "Ins zweite zusammenführen",
     "no_potential_matches": "Keine möglichen Übereinstimmungen gefunden.",
     "potential_matches": "Mögliche Übereinstimmungen",
-    "potential_matches_desc": "Gleicher Titel und Autor mit kleineren Unterschieden — führe die Duplikate zu einem Buch zusammen."
+    "potential_matches_desc": "Gleicher Titel und Autor mit kleineren Unterschieden — führe die Duplikate zu einem Buch zusammen.",
+    "rename_smart_collection": "Smart-Collection umbenennen",
+    "smart_collection_update_failed": "Smart-Collection konnte nicht aktualisiert werden"
   },
   "user": {
     "profile": "Profil",
@@ -679,7 +681,13 @@
     "open_toc": "Inhaltsverzeichnis öffnen",
     "open_settings": "Reader-Einstellungen öffnen",
     "no_chapter": "Kein Kapitel",
-    "eta_left": "Noch ~{{minutes}} Min."
+    "eta_left": "Noch ~{{minutes}} Min.",
+    "playback_speed": "Wiedergabegeschwindigkeit",
+    "chapters_list": "Kapitel",
+    "seek": "Suchen",
+    "volume": "Lautstärke",
+    "audio_load_failed": "Diese Audiodatei konnte nicht geladen werden",
+    "audio_load_failed_hint": "Prüfe das Dateiformat und versuche es erneut."
   },
   "analytics": {
     "title": "Leseanalysen & Statistiken",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Zeichnet deinen Lesefortschritt automatisch in deinem Hardcover-Profil auf.",
     "hardcover_connect_btn": "Mit Hardcover verbinden",
     "hardcover_connect_failed": "Verbindung zu Hardcover konnte nicht gestartet werden",
-    "hardcover_dev_link": "Entwickler-App registrieren ↗"
+    "hardcover_dev_link": "Entwickler-App registrieren ↗",
+    "connect_in_profile_hint": "Verbinde dein AniList-Konto, um dieses Buch zu verknüpfen und zu synchronisieren."
   },
   "opds": {
     "title": "OPDS-2.0-Katalog & Synchronisierung des Lesefortschritts",
@@ -1264,6 +1273,15 @@
     "export_btn": "Nach Readwise exportieren",
     "export_failed": "Export fehlgeschlagen",
     "exported": "{{count}} Markierungen nach Readwise exportiert",
-    "markdown_btn": ".md herunterladen"
+    "markdown_btn": ".md herunterladen",
+    "connect_section": "Readwise-Konto verbinden",
+    "no_highlights": "Dieses Buch hat keine zum Export markierten Stellen",
+    "profile_title": "Readwise-Markierungen",
+    "profile_subtitle": "Exportiere deine Markierungen zu Readwise. Das Token wird verschlüsselt gespeichert.",
+    "get_token_link": "Readwise-Zugriffstoken holen ↗",
+    "manage_in_profile": "Im Profil verwalten",
+    "manage_hint": "Du kannst dies jederzeit in deinem Profil verwalten.",
+    "connect_readwise_btn": "Readwise verbinden",
+    "connect_in_profile_hint": "Verbinde dein Readwise-Konto, um Markierungen zu exportieren."
   }
 }

@@ -25,6 +25,7 @@ import (
 	"novelhub/pkg/crypto"
 	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/localfs"
 	"novelhub/pkg/mailer"
 	"novelhub/pkg/netx"
 )
@@ -830,7 +831,10 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid image")
 		}
 		outFilename := target + ext
-		destPath := filepath.Join(publicDir, outFilename)
+		destPath, err := localfs.SafeJoin(publicDir, outFilename)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset filename")
+		}
 		if err := os.WriteFile(destPath, fileData, 0644); err != nil {
 			return "", apperrors.New(apperrors.ErrInternalError, "Failed to save file")
 		}
@@ -861,7 +865,10 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 			return "", apperrors.New(apperrors.ErrBadRequest, "Downloaded asset is not a valid image")
 		}
 		outFilename := target + ext
-		destPath := filepath.Join(publicDir, outFilename)
+		destPath, err := localfs.SafeJoin(publicDir, outFilename)
+		if err != nil {
+			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset filename")
+		}
 		if err := os.WriteFile(destPath, data, 0644); err != nil {
 			return "", apperrors.New(apperrors.ErrInternalError, "Failed to save downloaded asset")
 		}

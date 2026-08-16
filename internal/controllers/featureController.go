@@ -32,7 +32,7 @@ func (c *FeatureController) GetLibraryStats(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	stats, err := c.service.GetLibraryStats(reqCtx)
+	stats, err := c.service.GetLibraryStats(reqCtx, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	audnexusChaptersURL = "https://api.audnex.us/books/%s/chapters"
 	mergeAudioJobType   = "merge_audio"
 	allowedMergeFormats = "m4a,m4b,mp3,flac,ogg,wav,aac"
 )
@@ -70,20 +69,22 @@ type mergeSegment struct {
 }
 
 type audiobookService struct {
-	repo       repositories.AudiobookRepository
-	bookRepo   repositories.BookDBRepository
-	fileRepo   repositories.BookFileRepository
-	jobQueue   *worker.Queue
-	httpClient *http.Client
+	repo           repositories.AudiobookRepository
+	bookRepo       repositories.BookDBRepository
+	fileRepo       repositories.BookFileRepository
+	jobQueue       *worker.Queue
+	httpClient     *http.Client
+	audnexusBaseURL string
 }
 
 func NewAudiobookService(repo repositories.AudiobookRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, jobQueue *worker.Queue) AudiobookService {
 	return &audiobookService{
-		repo:       repo,
-		bookRepo:   bookRepo,
-		fileRepo:   fileRepo,
-		jobQueue:   jobQueue,
-		httpClient: netx.NewSafeHTTPClient(10 * time.Second),
+		repo:            repo,
+		bookRepo:        bookRepo,
+		fileRepo:        fileRepo,
+		jobQueue:        jobQueue,
+		httpClient:      netx.NewSafeHTTPClient(10 * time.Second),
+		audnexusBaseURL: "https://api.audnex.us",
 	}
 }
 
@@ -129,7 +130,18 @@ type audnexusChaptersResponse struct {
 }
 
 func (s *audiobookService) LookupChaptersFromAudnexus(ctx context.Context, bookID string, asin string) ([]*response.AudiobookChapterResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(audnexusChaptersURL, asin), nil)
+	// ASINs are alphanumeric; rejecting anything else keeps the value from
+	// steering the outbound URL path or query.
+	for _, r := range asin {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
+			return nil, apperrors.New(apperrors.ErrBadRequest, "ASIN must be alphanumeric")
+		}
+	}
+	base := s.audnexusBaseURL
+	if base == "" {
+		base = "https://api.audnex.us"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/books/%s/chapters", base, asin), nil)
 	if err != nil {
 		return nil, err
 	}

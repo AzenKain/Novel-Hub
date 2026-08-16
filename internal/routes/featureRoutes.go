@@ -17,7 +17,7 @@ func FeatureRoutes(app fiber.Router, featureController *controllers.FeatureContr
 	highlightGroup.Put("/:id", highlightController.UpdateHighlightNote)
 	highlightGroup.Delete("/:id", highlightController.DeleteHighlight)
 
-	app.Get("/library/stats", featureController.GetLibraryStats)
+	app.Get("/library/stats", middlewares.OptionalJwtAccess(userRepo), featureController.GetLibraryStats)
 	app.Get("/library/stats/breakdown", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryRead), featureController.GetLibraryBreakdown)
 
 	historyGroup := app.Group("/reader/history", middlewares.JwtAccess(userRepo))

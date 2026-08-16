@@ -561,7 +561,9 @@
     "merge_into_target": "Объединить во вторую",
     "no_potential_matches": "Возможных совпадений не найдено.",
     "potential_matches": "Возможные совпадения",
-    "potential_matches_desc": "Одинаковые название и автор с небольшими различиями — объедините дубликаты в одну книгу."
+    "potential_matches_desc": "Одинаковые название и автор с небольшими различиями — объедините дубликаты в одну книгу.",
+    "rename_smart_collection": "Переименовать умную коллекцию",
+    "smart_collection_update_failed": "Не удалось обновить умную коллекцию"
   },
   "user": {
     "profile": "Профиль",
@@ -679,7 +681,13 @@
     "open_toc": "Открыть оглавление",
     "open_settings": "Открыть настройки читалки",
     "no_chapter": "Нет главы",
-    "eta_left": "Осталось ~{{minutes}} мин"
+    "eta_left": "Осталось ~{{minutes}} мин",
+    "playback_speed": "Скорость воспроизведения",
+    "chapters_list": "Главы",
+    "seek": "Перемотка",
+    "volume": "Громкость",
+    "audio_load_failed": "Не удалось загрузить этот аудиофайл",
+    "audio_load_failed_hint": "Проверьте формат файла и попробуйте снова."
   },
   "analytics": {
     "title": "Аналитика и статистика чтения",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Автоматически записывает прогресс чтения в ваш профиль Hardcover.",
     "hardcover_connect_btn": "Подключить Hardcover",
     "hardcover_connect_failed": "Не удалось начать подключение к Hardcover",
-    "hardcover_dev_link": "Зарегистрировать приложение разработчика ↗"
+    "hardcover_dev_link": "Зарегистрировать приложение разработчика ↗",
+    "connect_in_profile_hint": "Подключите аккаунт AniList, чтобы связать и синхронизировать эту книгу."
   },
   "opds": {
     "title": "Каталог OPDS 2.0 и синхронизация прогресса",
@@ -1264,6 +1273,15 @@
     "export_btn": "Экспорт в Readwise",
     "export_failed": "Не удалось экспортировать выделения",
     "exported": "Экспортировано выделений в Readwise: {{count}}",
-    "markdown_btn": "Скачать .md"
+    "markdown_btn": "Скачать .md",
+    "connect_section": "Подключить аккаунт Readwise",
+    "no_highlights": "В этой книге нет выделений для экспорта",
+    "profile_title": "Выделения Readwise",
+    "profile_subtitle": "Экспортируйте выделения в Readwise. Токен хранится в зашифрованном виде.",
+    "get_token_link": "Получить токен доступа Readwise ↗",
+    "manage_in_profile": "Управлять в профиле",
+    "manage_hint": "Вы также можете управлять этим в любое время в профиле.",
+    "connect_readwise_btn": "Подключить Readwise",
+    "connect_in_profile_hint": "Подключите аккаунт Readwise, чтобы экспортировать выделения."
   }
 }

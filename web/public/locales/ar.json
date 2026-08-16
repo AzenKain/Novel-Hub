@@ -561,7 +561,9 @@
     "merge_into_target": "دمج في الكتاب الثاني",
     "no_potential_matches": "لم يُعثر على تطابقات محتملة.",
     "potential_matches": "تطابقات محتملة",
-    "potential_matches_desc": "نفس العنوان والمؤلف مع اختلافات طفيفة — ادمج النسخ المكررة في كتاب واحد."
+    "potential_matches_desc": "نفس العنوان والمؤلف مع اختلافات طفيفة — ادمج النسخ المكررة في كتاب واحد.",
+    "rename_smart_collection": "إعادة تسمية المجموعة الذكية",
+    "smart_collection_update_failed": "تعذّر تحديث المجموعة الذكية"
   },
   "user": {
     "profile": "الملف الشخصي",
@@ -679,7 +681,13 @@
     "open_toc": "فتح جدول المحتويات",
     "open_settings": "فتح إعدادات القارئ",
     "no_chapter": "لا الفصل",
-    "eta_left": "تبقى ~{{minutes}} دقيقة"
+    "eta_left": "تبقى ~{{minutes}} دقيقة",
+    "playback_speed": "سرعة التشغيل",
+    "chapters_list": "الفصول",
+    "seek": "تقديم",
+    "volume": "مستوى الصوت",
+    "audio_load_failed": "تعذّر تحميل هذا الملف الصوتي",
+    "audio_load_failed_hint": "تحقق من تنسيق الملف وحاول مرة أخرى."
   },
   "analytics": {
     "title": "تحليلات القراءة وإحصاءاتها",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "قم بتسجيل تقدم القراءة بشكل تلقائي في ملفك الشخصي على Hardcover.",
     "hardcover_connect_btn": "الاتصال بـ Hardcover",
     "hardcover_connect_failed": "تعذر بدء الاتصال بـ Hardcover",
-    "hardcover_dev_link": "تسجيل تطبيق المطور ↗"
+    "hardcover_dev_link": "تسجيل تطبيق المطور ↗",
+    "connect_in_profile_hint": "اربط حساب AniList الخاص بك لربط هذه الكتاب ومزامنته."
   },
   "opds": {
     "title": "كتالوج OPDS 2.0 ومزامنة تقدّم القراءة",
@@ -1264,6 +1273,15 @@
     "export_btn": "تصدير إلى Readwise",
     "export_failed": "فشل تصدير التمييزات",
     "exported": "تم تصدير {{count}} تمييز إلى Readwise",
-    "markdown_btn": "تنزيل .md"
+    "markdown_btn": "تنزيل .md",
+    "connect_section": "ربط حساب Readwise",
+    "no_highlights": "لا توجد إبرازات للتصدير في هذا الكتاب",
+    "profile_title": "إبرازات Readwise",
+    "profile_subtitle": "صدّر إبرازاتك إلى Readwise. يتم تخزين الرمز مشفرًا.",
+    "get_token_link": "الحصول على رمز الوصول لـ Readwise ↗",
+    "manage_in_profile": "إدارة في الملف الشخصي",
+    "manage_hint": "يمكنك أيضًا إدارتها في أي وقت من ملفك الشخصي.",
+    "connect_readwise_btn": "ربط Readwise",
+    "connect_in_profile_hint": "اربط حساب Readwise الخاص بك لتصدير الإبرازات."
   }
 }

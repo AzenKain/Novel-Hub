@@ -52,6 +52,26 @@ func (ctrl *TrackerController) ConnectTracker(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Message: "Tracker connected successfully"})
 }
 
+func (ctrl *TrackerController) GetUserConnections(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+	userID, err := convert.ParseID(claims.UId)
+	if err != nil {
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Invalid user ID"))
+	}
+
+	connections, err := ctrl.trackerService.GetUserTrackerConnections(ctx, userID)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(response.CommonResponse{Status: true, Data: connections})
+}
+
 func (ctrl *TrackerController) bookReadable(ctx context.Context, bookID string, claims *response.JWTClaims) bool {
 	return ctrl.featureService != nil && ctrl.featureService.PolicyAllowsBook(ctx, "read", bookID, claims)
 }

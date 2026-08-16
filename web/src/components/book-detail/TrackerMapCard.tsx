@@ -1,4 +1,4 @@
-import { Link2, RefreshCw, Search } from "lucide-react";
+import { Link2, RefreshCw, Search, Check } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -7,6 +7,7 @@ import {
   useMapBookTrackerMutation,
   useSearchTrackerMutation,
   useSyncTrackerProgressMutation,
+  useTrackerConnectionsQuery,
   useTrackerReadingProgressQuery,
 } from "@/hooks";
 import { useAuthStore } from "@/stores";
@@ -22,10 +23,17 @@ type TrackerMapCardProps = {
 export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
+  const setProfileModalOpen = useAuthStore((state) => state.setProfileModalOpen);
   const publicSettings = usePublicSettings();
   const [seriesId, setSeriesId] = useState("");
   const [progress, setProgress] = useState("");
   const [results, setResults] = useState<AniListSearchItem[]>([]);
+
+  const canSync = hasPermission(user, "tracker.sync");
+  const { data: connections = [], isLoading: connectionsLoading } = useTrackerConnectionsQuery(
+    !!user && canSync && publicSettings?.enable_anilist_tracking !== false
+  );
+  const anilistConnected = connections.some((c) => c.provider === "anilist" && c.connected);
 
   const searchMutation = useSearchTrackerMutation();
   const mapMutation = useMapBookTrackerMutation();
@@ -39,7 +47,7 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readingProgress]);
 
-  if (!hasPermission(user, "tracker.sync")) return null;
+  if (!canSync) return null;
   if (publicSettings && publicSettings.enable_anilist_tracking === false) return null;
 
   const handleSearch = () => {
@@ -98,18 +106,40 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }
 
   return (
     <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-xl font-bold">
+      <h3 className="text-xl font-bold flex items-center gap-2">
         <Link2 className="h-5 w-5" />
         {t("trackers.map_title", "AniList Tracking")}
-      </h3>
-      <p className="text-xs text-base-content/60">
-        {t(
-          "trackers.map_subtitle",
-          "Link this book to an AniList series, then push your reading progress."
+        {anilistConnected && (
+          <span className="badge badge-success badge-sm">{t("common.connected", "Connected")}</span>
         )}
-      </p>
+      </h3>
 
-      <form onSubmit={handleMap} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      {connectionsLoading ? (
+        <div className="flex items-center gap-2 text-sm text-base-content/60">
+          <span className="loading loading-spinner loading-xs" />
+          {t("common.loading", "Loading...")}
+        </div>
+      ) : !anilistConnected ? (
+        <div className="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2.5 text-xs text-base-content/70">
+          <span>{t("trackers.connect_in_profile_hint", "Connect your AniList account to link and sync this book.")}</span>
+          <button
+            type="button"
+            className="ml-auto shrink-0 link link-hover text-primary"
+            onClick={() => setProfileModalOpen(true)}
+          >
+            {t("highlights_export.manage_in_profile", "Manage in Profile")}
+          </button>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-base-content/60">
+            {t(
+              "trackers.map_subtitle",
+              "Link this book to an AniList series, then push your reading progress."
+            )}
+          </p>
+
+          <form onSubmit={handleMap} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-1 min-w-0 flex-col gap-1.5">
           <label className="pl-1 text-xs font-medium" htmlFor="tracker-series-id">
             {t("trackers.series_id_label", "AniList series ID")}
@@ -204,6 +234,8 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }
           {t("trackers.sync_btn", "Sync progress")}
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 };

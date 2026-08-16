@@ -561,7 +561,9 @@
     "merge_into_target": "Fusionner dans le second",
     "no_potential_matches": "Aucune correspondance potentielle trouvée.",
     "potential_matches": "Correspondances potentielles",
-    "potential_matches_desc": "Même titre et même auteur avec de légères différences — fusionnez les doublons en un seul livre."
+    "potential_matches_desc": "Même titre et même auteur avec de légères différences — fusionnez les doublons en un seul livre.",
+    "rename_smart_collection": "Renommer la collection intelligente",
+    "smart_collection_update_failed": "Impossible de mettre à jour la collection intelligente"
   },
   "user": {
     "profile": "Profil",
@@ -679,7 +681,13 @@
     "open_toc": "Ouvrir la table des matières",
     "open_settings": "Ouvrir les paramètres du lecteur",
     "no_chapter": "Aucun chapitre",
-    "eta_left": "~{{minutes}} min restantes"
+    "eta_left": "~{{minutes}} min restantes",
+    "playback_speed": "Vitesse de lecture",
+    "chapters_list": "Chapitres",
+    "seek": "Recherche",
+    "volume": "Volume",
+    "audio_load_failed": "Impossible de charger ce fichier audio",
+    "audio_load_failed_hint": "Vérifiez le format du fichier et réessayez."
   },
   "analytics": {
     "title": "Analyses et statistiques de lecture",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Enregistre automatiquement votre progression de lecture sur votre profil Hardcover.",
     "hardcover_connect_btn": "Connecter Hardcover",
     "hardcover_connect_failed": "Impossible de démarrer la connexion à Hardcover",
-    "hardcover_dev_link": "Enregistrer une application développeur ↗"
+    "hardcover_dev_link": "Enregistrer une application développeur ↗",
+    "connect_in_profile_hint": "Connectez votre compte AniList pour lier et synchroniser ce livre."
   },
   "opds": {
     "title": "Catalogue OPDS 2.0 et synchronisation de la progression de lecture",
@@ -1264,6 +1273,15 @@
     "export_btn": "Exporter vers Readwise",
     "export_failed": "Échec de l'export des surlignages",
     "exported": "{{count}} surlignages exportés vers Readwise",
-    "markdown_btn": "Télécharger .md"
+    "markdown_btn": "Télécharger .md",
+    "connect_section": "Connecter le compte Readwise",
+    "no_highlights": "Ce livre n'a aucun surlignement à exporter",
+    "profile_title": "Surlignements Readwise",
+    "profile_subtitle": "Exportez vos surlignements vers Readwise. Le jeton est stocké chiffré.",
+    "get_token_link": "Obtenir un jeton d'accès Readwise ↗",
+    "manage_in_profile": "Gérer dans le profil",
+    "manage_hint": "Vous pouvez aussi le gérer à tout moment dans votre profil.",
+    "connect_readwise_btn": "Connecter Readwise",
+    "connect_in_profile_hint": "Connectez votre compte Readwise pour exporter les surlignements."
   }
 }

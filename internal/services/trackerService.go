@@ -3,6 +3,8 @@ package services
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +27,7 @@ type TrackerService interface {
 	SearchAniListMedia(ctx context.Context, title string) ([]response.TrackerSearchResultResponse, error)
 	GetOrMapBookTrackerID(ctx context.Context, userID string, bookID string, title string, provider string) (string, error)
 	SaveUserTracker(ctx context.Context, userID string, provider string, accessToken string) error
+	GetUserTrackerConnections(ctx context.Context, userID string) ([]response.TrackerConnectionResponse, error)
 	SaveBookMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) error
 }
 
@@ -307,6 +310,26 @@ func (s *trackerService) SaveUserTracker(ctx context.Context, userID string, pro
 		return apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("failed to save tracker for user: %v", err))
 	}
 	return nil
+}
+
+// Known user-connectable trackers. Tokens are stored AES-encrypted by the
+// repository; this surface never returns them, only per-provider state.
+var trackerConnectionProviders = []string{"anilist", "readwise", "hardcover"}
+
+func (s *trackerService) GetUserTrackerConnections(ctx context.Context, userID string) ([]response.TrackerConnectionResponse, error) {
+	out := make([]response.TrackerConnectionResponse, 0, len(trackerConnectionProviders))
+	for _, provider := range trackerConnectionProviders {
+		conn := response.TrackerConnectionResponse{Provider: provider, Connected: false}
+		if tracker, err := s.repo.GetUserTracker(ctx, userID, provider); err == nil && tracker != nil {
+			conn.Connected = true
+			conn.ExpiresAt = tracker.ExpiresAt
+			conn.UpdatedAt = &tracker.UpdatedAt
+		} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.New(apperrors.ErrInternalError, "failed to load tracker connections")
+		}
+		out = append(out, conn)
+	}
+	return out, nil
 }
 
 func (s *trackerService) SaveBookMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) error {

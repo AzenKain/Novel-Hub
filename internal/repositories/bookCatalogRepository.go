@@ -118,9 +118,13 @@ func (r *bookDBRepository) ListBookIDs(ctx context.Context, cursor *time.Time, c
 func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.BookEntity, error) {
 	key := cache.BuildKey("book", "id", id)
 	if r.c != nil && !r.inTx {
-		var book models.BookEntity
-		if err := r.c.Get(ctx, key, &book); err == nil {
-			return &book, nil
+		if v, ok := r.c.GetObject(key); ok {
+			if book, ok := v.(*models.BookEntity); ok && book != nil {
+				// Shared cache object: hand out a shallow copy so callers may
+				// assign fields (metadata edits) without touching the cache.
+				out := *book
+				return &out, nil
+			}
 		}
 	}
 
@@ -132,14 +136,15 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 		book := (&models.BookEntity{}).FromSqlc(res)
 		r.enrichBookEntitiesForCache(ctx, []*models.BookEntity{book})
 		if r.c != nil && !r.inTx {
-			_ = r.c.Set(ctx, key, book, constants.NormalCacheDuration)
+			_ = r.c.SetObject(ctx, key, book, constants.NormalCacheDuration)
 		}
 		return book, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return v.(*models.BookEntity), nil
+	out := *v.(*models.BookEntity)
+	return &out, nil
 }
 
 func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error) {
@@ -743,14 +748,11 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 	missingKeys := make([]string, 0, len(ids))
 
 	if r.c != nil && !r.inTx {
-		cachedBytes := r.c.MGet(ctx, keys...)
-		for i, bytes := range cachedBytes {
-			if len(bytes) > 0 {
-				var book models.BookEntity
-				if err := jsonx.Unmarshal(bytes, &book); err == nil {
-					booksByID[book.ID] = &book
-					continue
-				}
+		cachedObjects := r.c.MGetObjects(keys...)
+		for i, obj := range cachedObjects {
+			if book, ok := obj.(*models.BookEntity); ok && book != nil {
+				booksByID[book.ID] = book
+				continue
 			}
 			missingIDs = append(missingIDs, ids[i])
 			missingKeys = append(missingKeys, keys[i])
@@ -798,12 +800,21 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 				}
 			}
 			if len(missingToCache) > 0 {
-				_ = r.c.MSet(ctx, missingToCache, constants.NormalCacheDuration)
+				_ = r.c.MSetObjects(ctx, missingToCache, constants.NormalCacheDuration)
 			}
 		}
 	}
 
-	return orderBooks(ids, booksByID), nil
+	ordered := orderBooks(ids, booksByID)
+	// Shared cache objects: shallow-copy each entity so callers can assign
+	// fields (enrichment, metadata edits) without mutating the cache entries.
+	for i, book := range ordered {
+		if book != nil {
+			out := *book
+			ordered[i] = &out
+		}
+	}
+	return ordered, nil
 }
 
 func (r *bookDBRepository) enrichBookEntitiesForCache(ctx context.Context, books []*models.BookEntity) {

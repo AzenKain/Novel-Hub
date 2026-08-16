@@ -41,10 +41,18 @@ type Cache interface {
 	Exists(ctx context.Context, key string) (bool, error)
 	GetOrFetch(ctx context.Context, key string, dest any, ttl time.Duration, fetcher func() (any, error)) error
 	Stats() CacheStats
+	// Object variants store the value pointer directly in RAM, skipping the JSON
+	// round-trip of Set/Get. Use only for read-mostly hot entities whose writers
+	// invalidate via the same keys; readers must treat returned values as shared
+	// and copy before mutating.
+	SetObject(ctx context.Context, key string, value any, ttl time.Duration) error
+	GetObject(key string) (any, bool)
+	MSetObjects(ctx context.Context, pairs map[string]any, ttl time.Duration) error
+	MGetObjects(keys ...string) []any
 }
 
 type RamCache struct {
-	items   *theine.Cache[string, []byte]
+	items   *theine.Cache[string, any]
 	sf      singleflight.Group
 	maxCost int64
 }
@@ -57,12 +65,17 @@ func NewTheineCache(maxCost int64) Cache {
 	if maxCost <= 0 {
 		maxCost = autoMaxCost()
 	}
-	items, err := theine.NewBuilder[string, []byte](maxCost).
-		Cost(func(value []byte) int64 {
-			if len(value) == 0 {
-				return 1
+	items, err := theine.NewBuilder[string, any](maxCost).
+		Cost(func(value any) int64 {
+			if b, ok := value.([]byte); ok {
+				if len(b) == 0 {
+					return 1
+				}
+				return int64(len(b))
 			}
-			return int64(len(value))
+			// Rough per-entity budget for cached domain objects; byte-exact sizing
+			// would require marshalling, which is what this path exists to avoid.
+			return objectCacheCost
 		}).
 		Build()
 	if err != nil {
@@ -73,6 +86,10 @@ func NewTheineCache(maxCost int64) Cache {
 		maxCost: maxCost,
 	}
 }
+
+// objectCacheCost approximates a mid-sized enriched entity (title, description,
+// series, tags) so object entries compete for the same budget as JSON bytes.
+const objectCacheCost int64 = 2048
 
 func autoMaxCost() int64 {
 	if configured := config.GetIntConfigWithDefault("CACHE_MAX_COST_BYTES", 0); configured > 0 {
@@ -124,7 +141,13 @@ func (r *RamCache) Get(ctx context.Context, key string, dest any) error {
 	if !ok {
 		return ErrCacheMiss
 	}
-	return jsonx.Unmarshal(data, dest)
+	b, ok := data.([]byte)
+	if !ok {
+		// Object entries are only read via GetObject/MGetObjects; a bytes-style
+		// read must not deserialize a live pointer into dest.
+		return ErrCacheMiss
+	}
+	return jsonx.Unmarshal(b, dest)
 }
 
 func (r *RamCache) Del(ctx context.Context, keys ...string) error {
@@ -142,7 +165,7 @@ func (r *RamCache) DelByPattern(ctx context.Context, pattern string) error {
 		return r.Del(ctx, pattern)
 	}
 	keys := make([]string, 0)
-	r.items.Range(func(key string, value []byte) bool {
+	r.items.Range(func(key string, value any) bool {
 		if strings.HasPrefix(key, prefix) {
 			keys = append(keys, key)
 		}
@@ -170,7 +193,48 @@ func (r *RamCache) MGet(ctx context.Context, keys ...string) [][]byte {
 		if !ok {
 			continue
 		}
-		results[i] = append([]byte(nil), data...)
+		if b, ok := data.([]byte); ok {
+			results[i] = append([]byte(nil), b...)
+		}
+	}
+	return results
+}
+
+func (r *RamCache) SetObject(ctx context.Context, key string, value any, ttl time.Duration) error {
+	if ok := r.items.SetWithTTL(key, value, objectCacheCost, ttl); !ok {
+		return errors.New("cache set rejected")
+	}
+	return nil
+}
+
+func (r *RamCache) GetObject(key string) (any, bool) {
+	v, ok := r.items.Get(key)
+	if !ok {
+		return nil, false
+	}
+	if _, isBytes := v.([]byte); isBytes {
+		return nil, false
+	}
+	return v, true
+}
+
+func (r *RamCache) MSetObjects(ctx context.Context, pairs map[string]any, ttl time.Duration) error {
+	for key, value := range pairs {
+		if err := r.SetObject(ctx, key, value, ttl); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RamCache) MGetObjects(keys ...string) []any {
+	results := make([]any, len(keys))
+	for i, key := range keys {
+		if v, ok := r.items.Get(key); ok {
+			if _, isBytes := v.([]byte); !isBytes {
+				results[i] = v
+			}
+		}
 	}
 	return results
 }

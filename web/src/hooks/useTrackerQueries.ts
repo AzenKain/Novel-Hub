@@ -3,9 +3,24 @@ import type {
   ConnectTrackerInput,
   MapTrackerInput,
   SyncProgressInput,
+  TrackerConnection,
   TrackerSearchResult,
 } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+export function useTrackerConnectionsQuery(enabled = true) {
+  return useQuery<TrackerConnection[]>({
+    queryKey: ["user", "trackers", "connections"],
+    queryFn: async () => {
+      const res = await trackerService.getConnections();
+      if (!res.status) throw new Error(res.message || "Failed to load tracker connections");
+      return res.data ?? [];
+    },
+    enabled,
+    staleTime: 30_000,
+    retry: false,
+  });
+}
 
 export function useConnectTrackerMutation() {
   const queryClient = useQueryClient();

@@ -72,4 +72,26 @@ export const highlightService = {
       throw error;
     }
   },
+
+  // Downloads the Markdown export as a blob so a backend error (e.g. no
+  // highlights) surfaces as a toast instead of navigating to a JSON page.
+  async exportMarkdown(book_id: string): Promise<Blob> {
+    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.md`, {
+      responseType: "blob",
+    });
+    return res.data as Blob;
+  },
+
+  async extractErrorMessage(error: unknown, fallback: string): Promise<string> {
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await error.response.data.text()) as CommonResponse<unknown>;
+        if (parsed?.message) return parsed.message;
+      } catch {
+        // not a JSON error envelope, fall through to fallback
+      }
+    }
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
+  },
 };

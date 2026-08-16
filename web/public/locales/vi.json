@@ -39,7 +39,7 @@
     "grid_view": "Dạng lưới",
     "table_view": "Dạng bảng",
     "author": "Tác giả",
-    "series": "Loạt",
+    "series": "Sê-ri",
     "selected_books": "Đã chọn {{count}} sách",
     "select_all": "Chọn tất cả",
     "roles": "Vai trò",
@@ -561,7 +561,9 @@
     "merge_into_target": "Gộp vào cuốn thứ hai",
     "no_potential_matches": "Không tìm thấy kết quả khớp tiềm năng.",
     "potential_matches": "Khớp tiềm năng",
-    "potential_matches_desc": "Cùng tiêu đề và tác giả với khác biệt nhỏ — gộp các bản trùng thành một cuốn sách."
+    "potential_matches_desc": "Cùng tiêu đề và tác giả với khác biệt nhỏ — gộp các bản trùng thành một cuốn sách.",
+    "rename_smart_collection": "Đổi tên bộ sưu tập thông minh",
+    "smart_collection_update_failed": "Không cập nhật được bộ sưu tập thông minh"
   },
   "user": {
     "profile": "Hồ sơ",
@@ -679,7 +681,13 @@
     "open_toc": "Mở mục lục",
     "open_settings": "Mở cài đặt trình đọc",
     "no_chapter": "Không có chương",
-    "eta_left": "Còn ~{{minutes}} phút"
+    "eta_left": "Còn ~{{minutes}} phút",
+    "playback_speed": "Tốc độ phát",
+    "chapters_list": "Danh sách chương",
+    "seek": "Tua",
+    "volume": "Âm lượng",
+    "audio_load_failed": "Không tải được tệp âm thanh này",
+    "audio_load_failed_hint": "Kiểm tra định dạng tệp và thử lại."
   },
   "analytics": {
     "title": "Thống kê & tiến trình đọc",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Tự động ghi tiến độ đọc của bạn lên hồ sơ Hardcover.",
     "hardcover_connect_btn": "Kết nối Hardcover",
     "hardcover_connect_failed": "Không thể bắt đầu kết nối Hardcover",
-    "hardcover_dev_link": "Đăng ký ứng dụng developer ↗"
+    "hardcover_dev_link": "Đăng ký ứng dụng developer ↗",
+    "connect_in_profile_hint": "Kết nối tài khoản AniList để liên kết và đồng bộ sách này."
   },
   "opds": {
     "title": "Hệ sinh thái OPDS 2.0 & đồng bộ tiến độ đọc 2 chiều",
@@ -1264,6 +1273,15 @@
     "export_btn": "Xuất sang Readwise",
     "export_failed": "Xuất highlight thất bại",
     "exported": "Đã xuất {{count}} highlight sang Readwise",
-    "markdown_btn": "Tải xuống .md"
+    "markdown_btn": "Tải xuống .md",
+    "connect_section": "Kết nối tài khoản Readwise",
+    "no_highlights": "Sách này chưa có đoạn highlight nào để xuất",
+    "profile_title": "Readwise Highlights",
+    "profile_subtitle": "Xuất highlight sang Readwise. Token được lưu mã hoá.",
+    "get_token_link": "Lấy Access Token Readwise ↗",
+    "manage_in_profile": "Quản lý ở Profile",
+    "manage_hint": "Bạn cũng có thể quản lý bất cứ lúc nào trong Profile.",
+    "connect_readwise_btn": "Kết nối Readwise",
+    "connect_in_profile_hint": "Kết nối tài khoản Readwise để xuất highlight."
   }
 }

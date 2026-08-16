@@ -245,9 +245,19 @@ func (r *roleService) ReorderRoles(ctx context.Context, dto *request.ReorderRole
 	if dto == nil || len(dto.RoleIDs) == 0 {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid role order payload")
 	}
-	if err := r.roleRepo.UpdateRolePositions(ctx, dto.RoleIDs); err != nil {
+	tx, err := r.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	txRepo := r.roleRepo.WithTx(tx)
+	if err := txRepo.UpdateRolePositions(ctx, dto.RoleIDs); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to reorder roles")
 	}
+	if err := tx.Commit(); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to commit role reorder")
+	}
+	r.roleRepo.InvalidateRoleCache(ctx, dto.RoleIDs)
 	return r.reloadPermissionCache(ctx)
 }
 

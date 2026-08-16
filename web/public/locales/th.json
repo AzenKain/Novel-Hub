@@ -561,7 +561,9 @@
     "merge_into_target": "รวมเข้าเล่มที่สอง",
     "no_potential_matches": "ไม่พบรายการที่อาจตรงกัน",
     "potential_matches": "รายการที่อาจตรงกัน",
-    "potential_matches_desc": "ชื่อและผู้แต่งเหมือนกันแต่ต่างกันเล็กน้อย — รวมรายการที่ซ้ำกันเป็นเล่มเดียว"
+    "potential_matches_desc": "ชื่อและผู้แต่งเหมือนกันแต่ต่างกันเล็กน้อย — รวมรายการที่ซ้ำกันเป็นเล่มเดียว",
+    "rename_smart_collection": "เปลี่ยนชื่อคอลเลกชันอัจฉริยะ",
+    "smart_collection_update_failed": "ไม่สามารถอัปเดตคอลเลกชันอัจฉริยะได้"
   },
   "user": {
     "profile": "โปรไฟล์",
@@ -679,7 +681,13 @@
     "open_toc": "เปิดสารบัญ",
     "open_settings": "เปิดตั้งค่าการอ่าน",
     "no_chapter": "ไม่มีบท",
-    "eta_left": "เหลือ ~{{minutes}} นาที"
+    "eta_left": "เหลือ ~{{minutes}} นาที",
+    "playback_speed": "ความเร็วเล่น",
+    "chapters_list": "รายการตอน",
+    "seek": "เลื่อน",
+    "volume": "ระดับเสียง",
+    "audio_load_failed": "โหลดไฟล์เสียงนี้ไม่สำเร็จ",
+    "audio_load_failed_hint": "ตรวจสอบรูปแบบไฟล์แล้วลองอีกครั้ง"
   },
   "analytics": {
     "title": "สถิติและการวิเคราะห์การอ่าน",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "บันทึกความคืบหน้าการอ่านของคุณไปยังโปรไฟล์ Hardcover โดยอัตโนมัติ",
     "hardcover_connect_btn": "เชื่อมต่อ Hardcover",
     "hardcover_connect_failed": "ไม่สามารถเริ่มการเชื่อมต่อ Hardcover",
-    "hardcover_dev_link": "ลงทะเบียนแอปนักพัฒนา ↗"
+    "hardcover_dev_link": "ลงทะเบียนแอปนักพัฒนา ↗",
+    "connect_in_profile_hint": "เชื่อมต่อบัญชี AniList เพื่อลิงก์และซิงค์หนังสือเล่มนี้"
   },
   "opds": {
     "title": "แคตตาล็อก OPDS 2.0 และการซิงก์ความคืบหน้าการอ่าน",
@@ -1264,6 +1273,15 @@
     "export_btn": "ส่งออกไปยัง Readwise",
     "export_failed": "ส่งออกไฮไลต์ไม่สำเร็จ",
     "exported": "ส่งออก {{count}} ไฮไลต์ไปยัง Readwise",
-    "markdown_btn": "ดาวน์โหลด .md"
+    "markdown_btn": "ดาวน์โหลด .md",
+    "connect_section": "เชื่อมต่อบัญชี Readwise",
+    "no_highlights": "หนังสือเล่มนี้ไม่มีไฮไลต์ให้ส่งออก",
+    "profile_title": "ไฮไลต์ Readwise",
+    "profile_subtitle": "ส่งออกไฮไลต์ไปยัง Readwise โทเก็นถูกเก็บแบบเข้ารหัส",
+    "get_token_link": "รับ Access Token ของ Readwise ↗",
+    "manage_in_profile": "จัดการในโปรไฟล์",
+    "manage_hint": "คุณสามารถจัดการได้ทุกเมื่อในโปรไฟล์",
+    "connect_readwise_btn": "เชื่อมต่อ Readwise",
+    "connect_in_profile_hint": "เชื่อมต่อบัญชี Readwise เพื่อส่งออกไฮไลต์"
   }
 }

@@ -3,6 +3,13 @@ export interface ConnectTrackerInput {
   access_token: string;
 }
 
+export interface TrackerConnection {
+  provider: string;
+  connected: boolean;
+  expires_at?: string;
+  updated_at?: string;
+}
+
 export interface MapTrackerInput {
   book_id: string;
   provider: string;

@@ -561,7 +561,9 @@
     "merge_into_target": "Fundir no segundo",
     "no_potential_matches": "Nenhuma correspondência potencial encontrada.",
     "potential_matches": "Correspondências potenciais",
-    "potential_matches_desc": "Mesmo título e autor com diferenças menores — funda os duplicados num único livro."
+    "potential_matches_desc": "Mesmo título e autor com diferenças menores — funda os duplicados num único livro.",
+    "rename_smart_collection": "Renomear coleção inteligente",
+    "smart_collection_update_failed": "Não foi possível atualizar a coleção inteligente"
   },
   "user": {
     "profile": "Perfil",
@@ -679,7 +681,13 @@
     "open_toc": "Abrir o índice",
     "open_settings": "Abrir as definições do leitor",
     "no_chapter": "Nenhum capítulo",
-    "eta_left": "Restam ~{{minutes}} min"
+    "eta_left": "Restam ~{{minutes}} min",
+    "playback_speed": "Velocidade de reprodução",
+    "chapters_list": "Capítulos",
+    "seek": "Buscar",
+    "volume": "Volume",
+    "audio_load_failed": "Não foi possível carregar este arquivo de áudio",
+    "audio_load_failed_hint": "Verifique o formato do arquivo e tente novamente."
   },
   "analytics": {
     "title": "Análises e estatísticas de leitura",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Registra automaticamente seu progresso de leitura no seu perfil do Hardcover.",
     "hardcover_connect_btn": "Conectar Hardcover",
     "hardcover_connect_failed": "Não foi possível iniciar a conexão com o Hardcover",
-    "hardcover_dev_link": "Registrar um aplicativo de desenvolvedor ↗"
+    "hardcover_dev_link": "Registrar um aplicativo de desenvolvedor ↗",
+    "connect_in_profile_hint": "Conecte sua conta AniList para vincular e sincronizar este livro."
   },
   "opds": {
     "title": "Catálogo OPDS 2.0 e sincronização do progresso",
@@ -1264,6 +1273,15 @@
     "export_btn": "Exportar para o Readwise",
     "export_failed": "Falha ao exportar destaques",
     "exported": "{{count}} destaques exportados para o Readwise",
-    "markdown_btn": "Baixar .md"
+    "markdown_btn": "Baixar .md",
+    "connect_section": "Conectar conta Readwise",
+    "no_highlights": "Este livro não tem destaques para exportar",
+    "profile_title": "Destaques do Readwise",
+    "profile_subtitle": "Exporte seus destaques para o Readwise. O token é armazenado criptografado.",
+    "get_token_link": "Obter token de acesso Readwise ↗",
+    "manage_in_profile": "Gerenciar no perfil",
+    "manage_hint": "Você também pode gerenciar isso a qualquer momento no seu perfil.",
+    "connect_readwise_btn": "Conectar Readwise",
+    "connect_in_profile_hint": "Conecte sua conta Readwise para exportar os destaques."
   }
 }

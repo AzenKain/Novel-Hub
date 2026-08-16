@@ -561,7 +561,9 @@
     "merge_into_target": "두 번째 책으로 병합",
     "no_potential_matches": "잠재적 일치 항목이 없습니다.",
     "potential_matches": "잠재적 일치 항목",
-    "potential_matches_desc": "제목과 저자가 같고 세부 차이가 있는 항목 — 중복을 한 권으로 병합합니다."
+    "potential_matches_desc": "제목과 저자가 같고 세부 차이가 있는 항목 — 중복을 한 권으로 병합합니다.",
+    "rename_smart_collection": "스마트 컬렉션 이름 바꾸기",
+    "smart_collection_update_failed": "스마트 컬렉션을 업데이트할 수 없습니다"
   },
   "user": {
     "profile": "프로필",
@@ -679,7 +681,13 @@
     "open_toc": "목차 열기",
     "open_settings": "리더 설정 열기",
     "no_chapter": "챕터 없음",
-    "eta_left": "약 {{minutes}}분 남음"
+    "eta_left": "약 {{minutes}}분 남음",
+    "playback_speed": "재생 속도",
+    "chapters_list": "챕터 목록",
+    "seek": "탐색",
+    "volume": "음량",
+    "audio_load_failed": "이 오디오 파일을 불러올 수 없습니다",
+    "audio_load_failed_hint": "파일 형식을 확인하고 다시 시도하세요."
   },
   "analytics": {
     "title": "독서 분석 및 통계",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "독서 진행 상황을 Hardcover 프로필에 자동으로 기록합니다.",
     "hardcover_connect_btn": "Hardcover 연결",
     "hardcover_connect_failed": "Hardcover 연결을 시작하지 못했습니다",
-    "hardcover_dev_link": "개발자 앱 등록 ↗"
+    "hardcover_dev_link": "개발자 앱 등록 ↗",
+    "connect_in_profile_hint": "이 책을 연결하고 동기화하려면 AniList 계정을 연결하세요."
   },
   "opds": {
     "title": "OPDS 2.0 카탈로그 및 2방향 독서 진도 동기화",
@@ -1264,6 +1273,15 @@
     "export_btn": "Readwise로 내보내기",
     "export_failed": "하이라이트 내보내기 실패",
     "exported": "하이라이트 {{count}}개를 Readwise로 내보냈습니다",
-    "markdown_btn": ".md 다운로드"
+    "markdown_btn": ".md 다운로드",
+    "connect_section": "Readwise 계정 연결",
+    "no_highlights": "이 책에는 내보낼 하이라이트가 없습니다",
+    "profile_title": "Readwise 하이라이트",
+    "profile_subtitle": "하이라이트를 Readwise로 내보냅니다. 토큰은 암호화되어 저장됩니다.",
+    "get_token_link": "Readwise 액세스 토큰 받기 ↗",
+    "manage_in_profile": "프로필에서 관리",
+    "manage_hint": "프로필에서 언제든지 관리할 수 있습니다.",
+    "connect_readwise_btn": "Readwise 연결",
+    "connect_in_profile_hint": "하이라이트를 내보내려면 Readwise 계정을 연결하세요."
   }
 }

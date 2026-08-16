@@ -3,12 +3,18 @@ package services
 import (
 	"context"
 	"errors"
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/database"
+	"novelhub/pkg/mailer"
+
+	"github.com/google/uuid"
 	"testing"
 	"time"
 )
@@ -275,3 +281,130 @@ func TestGetLibraryBreakdownAvgSpeedNoDuration(t *testing.T) {
 }
 
 func ptr(f float64) *float64 { return &f }
+
+type libraryStatsSettingsStub struct {
+	guestLoginRequired bool
+	err                error
+}
+
+func (s libraryStatsSettingsStub) Reload(context.Context) error                { return nil }
+func (s libraryStatsSettingsStub) Public(context.Context) (*models.PublicSettings, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &models.PublicSettings{GuestLoginRequired: s.guestLoginRequired}, nil
+}
+func (s libraryStatsSettingsStub) Admin(context.Context) (*models.AdminSettings, error) { return nil, nil }
+func (s libraryStatsSettingsStub) Limits() models.RuntimeLimits                         { return models.RuntimeLimits{} }
+func (s libraryStatsSettingsStub) ServerURL() string                                    { return "" }
+func (s libraryStatsSettingsStub) UpdateSettings(context.Context, map[string]any) (*models.AdminSettings, error) {
+	return nil, nil
+}
+func (s libraryStatsSettingsStub) GuestAllows(string) bool       { return !s.guestLoginRequired }
+func (s libraryStatsSettingsStub) SetupRequired(context.Context) bool { return false }
+func (s libraryStatsSettingsStub) SaveAsset(context.Context, string, []byte, string, string) (string, error) {
+	return "", nil
+}
+func (s libraryStatsSettingsStub) SMTP(context.Context) (mailer.SMTPConfig, error) {
+	return mailer.SMTPConfig{}, nil
+}
+func (s libraryStatsSettingsStub) TestSMTP(context.Context, *request.SMTPTestDto) error { return nil }
+func (s libraryStatsSettingsStub) OAuthProviderConfig(context.Context, string) (*models.OAuthProviderConfig, error) {
+	return nil, nil
+}
+func (s libraryStatsSettingsStub) HardcoverConfig(context.Context) (*models.HardcoverConfig, error) {
+	return nil, nil
+}
+
+type libraryStatsRepo struct {
+	sessionFeatureRepo
+	called bool
+}
+
+func (r *libraryStatsRepo) GetLibraryStats(context.Context) (*models.LibraryStatsEntity, error) {
+	r.called = true
+	return &models.LibraryStatsEntity{TotalBooks: 5}, nil
+}
+
+func newLibraryStatsService(settings SettingsService) (*featureService, *libraryStatsRepo) {
+	repo := &libraryStatsRepo{}
+	return &featureService{repo: repo, settings: settings}, repo
+}
+
+func TestGetLibraryStatsAllowsGuestWhenGuestAccessEnabled(t *testing.T) {
+	svc, repo := newLibraryStatsService(libraryStatsSettingsStub{})
+	stats, err := svc.GetLibraryStats(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !repo.called || stats.TotalBooks != 5 {
+		t.Fatalf("expected stats for guest, got called=%v stats=%+v", repo.called, stats)
+	}
+}
+
+func TestGetLibraryStatsBlocksGuestWhenLoginRequired(t *testing.T) {
+	svc, repo := newLibraryStatsService(libraryStatsSettingsStub{guestLoginRequired: true})
+	if _, err := svc.GetLibraryStats(context.Background(), nil); apperrors.IsNotFound(err) || err == nil {
+		t.Fatalf("expected auth error for guest, got %v", err)
+	}
+	if repo.called {
+		t.Fatal("repository must not be queried when guest access is disabled")
+	}
+}
+
+func TestGetLibraryStatsAllowsAuthenticatedUser(t *testing.T) {
+	svc, repo := newLibraryStatsService(libraryStatsSettingsStub{guestLoginRequired: true})
+	if _, err := svc.GetLibraryStats(context.Background(), &response.JWTClaims{UId: "7"}); err != nil {
+		t.Fatal(err)
+	}
+	if !repo.called {
+		t.Fatal("repository should be queried for authenticated user")
+	}
+}
+
+func TestReorderRolesCommitsAtomically(t *testing.T) {
+	db := auditDB(t)
+	ram := cache.NewRamCache()
+	roleRepo := repositories.NewRoleRepository(db, ram)
+	perms := NewPermissionCache(roleRepo)
+	if err := perms.Reload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewRoleService(roleRepo, perms, database.NewTxManager(db))
+
+	ids := make([]string, 0, 3)
+	for _, name := range []string{"alpha", "beta", "gamma"} {
+		id := uuid.Must(uuid.NewV7()).String()
+		role, err := roleRepo.Create(context.Background(), sqlc.CreateRoleParams{ID: id, Name: name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, role.ID)
+	}
+
+	if err := svc.ReorderRoles(context.Background(), &request.ReorderRolesDto{RoleIDs: ids}); err != nil {
+		t.Fatal(err)
+	}
+
+	// First ID in the payload gets the highest position (total*10, descending).
+	want := []int64{30, 20, 10}
+	for i, id := range ids {
+		role, err := roleRepo.GetByID(context.Background(), id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if role.Position != want[i] {
+			t.Fatalf("role %d: want position %d, got %d", i, want[i], role.Position)
+		}
+	}
+}
+
+func TestReorderRolesRejectsEmptyPayload(t *testing.T) {
+	db := auditDB(t)
+	roleRepo := repositories.NewRoleRepository(db, cache.NewRamCache())
+	perms := NewPermissionCache(roleRepo)
+	svc := NewRoleService(roleRepo, perms, database.NewTxManager(db))
+	if err := svc.ReorderRoles(context.Background(), &request.ReorderRolesDto{}); err == nil {
+		t.Fatal("expected error for empty role_ids")
+	}
+}

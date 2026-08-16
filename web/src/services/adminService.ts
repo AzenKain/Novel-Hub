@@ -293,16 +293,4 @@ export const adminService = {
       throw error;
     }
   },
-
-  async deleteBookFile(file_id: string): Promise<CommonResponse<unknown>> {
-    try {
-      const res = await api.delete(`/books/files/${encodeURIComponent(file_id)}`);
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as CommonResponse<unknown>;
-      }
-      throw error;
-    }
-  },
 };

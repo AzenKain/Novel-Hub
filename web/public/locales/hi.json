@@ -561,7 +561,9 @@
     "merge_into_target": "दूसरी में मर्ज करें",
     "no_potential_matches": "कोई संभावित मिलान नहीं मिला।",
     "potential_matches": "संभावित मिलान",
-    "potential_matches_desc": "समान शीर्षक और लेखक मामूली अंतर के साथ — डुप्लिकेट को एक पुस्तक में मर्ज करें।"
+    "potential_matches_desc": "समान शीर्षक और लेखक मामूली अंतर के साथ — डुप्लिकेट को एक पुस्तक में मर्ज करें।",
+    "rename_smart_collection": "स्मार्ट संग्रह का नाम बदलें",
+    "smart_collection_update_failed": "स्मार्ट संग्रह अपडेट नहीं हो सका"
   },
   "user": {
     "profile": "प्रोफ़ाइल",
@@ -679,7 +681,13 @@
     "open_toc": "विषय-सूची खोलें",
     "open_settings": "रीडर सेटिंग्स खोलें",
     "no_chapter": "कोई अध्याय नहीं",
-    "eta_left": "~{{minutes}} मिनट बाकी"
+    "eta_left": "~{{minutes}} मिनट बाकी",
+    "playback_speed": "प्लेबैक गति",
+    "chapters_list": "अध्याय",
+    "seek": "सीक",
+    "volume": "वॉल्यूम",
+    "audio_load_failed": "यह ऑडियो फ़ाइल लोड नहीं हो सकी",
+    "audio_load_failed_hint": "फ़ाइल प्रारूप जाँचें और पुनः प्रयास करें।"
   },
   "analytics": {
     "title": "पठन विश्लेषण और आँकड़े",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "अपनी पठन प्रगति को Hardcover प्रोफ़ाइल पर स्वचालित रूप से दर्ज करें।",
     "hardcover_connect_btn": "Hardcover से कनेक्ट करें",
     "hardcover_connect_failed": "Hardcover कनेक्ट शुरू करने में विफल",
-    "hardcover_dev_link": "डेवलपर ऐप पंजीकृत करें ↗"
+    "hardcover_dev_link": "डेवलपर ऐप पंजीकृत करें ↗",
+    "connect_in_profile_hint": "इस पुस्तक को लिंक और सिंक करने के लिए अपना AniList खाता कनेक्ट करें।"
   },
   "opds": {
     "title": "OPDS 2.0 कैटलॉग और पठन प्रगति सिंक",
@@ -1264,6 +1273,15 @@
     "export_btn": "Readwise को निर्यात करें",
     "export_failed": "हाइलाइट्स निर्यात नहीं हो सके",
     "exported": "{{count}} हाइलाइट्स Readwise को निर्यात किए गए",
-    "markdown_btn": ".md डाउनलोड करें"
+    "markdown_btn": ".md डाउनलोड करें",
+    "connect_section": "Readwise खाता कनेक्ट करें",
+    "no_highlights": "इस पुस्तक में निर्यात करने के लिए कोई हाइलाइट नहीं है",
+    "profile_title": "Readwise हाइलाइट्स",
+    "profile_subtitle": "अपनी हाइलाइट्स Readwise में निर्यात करें। टोकन एन्क्रिप्टेड रूप में संग्रहीत है।",
+    "get_token_link": "Readwise एक्सेस टोकन प्राप्त करें ↗",
+    "manage_in_profile": "प्रोफ़ाइल में प्रबंधित करें",
+    "manage_hint": "आप इसे कभी भी अपनी प्रोफ़ाइल में प्रबंधित कर सकते हैं।",
+    "connect_readwise_btn": "Readwise कनेक्ट करें",
+    "connect_in_profile_hint": "हाइलाइट निर्यात करने के लिए अपना Readwise खाता कनेक्ट करें।"
   }
 }

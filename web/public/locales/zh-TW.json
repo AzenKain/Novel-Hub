@@ -561,7 +561,9 @@
     "merge_into_target": "合併到第二本",
     "no_potential_matches": "找不到潛在相符項目。",
     "potential_matches": "潛在相符項目",
-    "potential_matches_desc": "標題和作者相同但有些微差異的書籍 — 將重複項合併為一本書。"
+    "potential_matches_desc": "標題和作者相同但有些微差異的書籍 — 將重複項合併為一本書。",
+    "rename_smart_collection": "重新命名智慧收藏",
+    "smart_collection_update_failed": "無法更新智慧收藏"
   },
   "user": {
     "profile": "個人資料",
@@ -679,7 +681,13 @@
     "open_toc": "開啟目錄",
     "open_settings": "開啟閱讀器設定",
     "no_chapter": "沒有章節",
-    "eta_left": "還剩約 {{minutes}} 分鐘"
+    "eta_left": "還剩約 {{minutes}} 分鐘",
+    "playback_speed": "播放速度",
+    "chapters_list": "章節清單",
+    "seek": "進度",
+    "volume": "音量",
+    "audio_load_failed": "無法載入此音訊檔案",
+    "audio_load_failed_hint": "請檢查檔案格式後重試。"
   },
   "analytics": {
     "title": "閱讀分析與統計",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "自動將閱讀進度記錄到你的 Hardcover 個人資料。",
     "hardcover_connect_btn": "連接 Hardcover",
     "hardcover_connect_failed": "無法開始連接 Hardcover",
-    "hardcover_dev_link": "註冊開發者應用 ↗"
+    "hardcover_dev_link": "註冊開發者應用 ↗",
+    "connect_in_profile_hint": "連結您的 AniList 帳號以關聯並同步本書。"
   },
   "opds": {
     "title": "OPDS 2.0 目錄與閱讀進度同步",
@@ -1264,6 +1273,15 @@
     "export_btn": "匯出到 Readwise",
     "export_failed": "匯出劃線失敗",
     "exported": "已將 {{count}} 條劃線匯出到 Readwise",
-    "markdown_btn": "下載 .md"
+    "markdown_btn": "下載 .md",
+    "connect_section": "連結 Readwise 帳戶",
+    "no_highlights": "本書沒有可匯出的劃重點",
+    "profile_title": "Readwise 劃重點",
+    "profile_subtitle": "將劃重點匯出至 Readwise。權杖以加密方式儲存。",
+    "get_token_link": "取得 Readwise 存取權杖 ↗",
+    "manage_in_profile": "在個人資料中管理",
+    "manage_hint": "您也可以隨時在個人資料中管理。",
+    "connect_readwise_btn": "連結 Readwise",
+    "connect_in_profile_hint": "連結您的 Readwise 帳號以匯出劃重點。"
   }
 }

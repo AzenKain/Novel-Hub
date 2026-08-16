@@ -16,6 +16,7 @@ func TrackerRoutes(app fiber.Router, trackerController *controllers.TrackerContr
 	group.Use(middlewares.RequireAniListTrackingEnabled(settingsService))
 
 	group.Post("/connect", trackerController.ConnectTracker)
+	group.Get("/connections", trackerController.GetUserConnections)
 	group.Post("/map", trackerController.MapBookTracker)
 	group.Get("/search", trackerController.SearchAniList)
 	group.Post("/sync", trackerController.SyncProgress)

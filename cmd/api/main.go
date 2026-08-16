@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -98,6 +100,15 @@ func main() {
 
 	host := config.GetConfigWithDefault("SERVER_HOST", "127.0.0.1")
 	port := config.GetConfigWithDefault("SERVER_PORT", "3434")
+
+	if config.GetBoolConfigWithDefault("ENABLE_PPROF", false) {
+		go func() {
+			// Debug endpoint on loopback only; opt-in via ENABLE_PPROF=1.
+			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
+				log.Warn().Err(err).Msg("pprof server stopped")
+			}
+		}()
+	}
 
 	done := make(chan bool, 1)
 	go gracefulShutdown(server, done)

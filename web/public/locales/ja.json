@@ -561,7 +561,9 @@
     "merge_into_target": "2冊目に統合",
     "no_potential_matches": "類似が見つかりませんでした。",
     "potential_matches": "類似の可能性がある項目",
-    "potential_matches_desc": "タイトルと著者が同じで細部が異なる項目 — 重複を1冊にまとめます。"
+    "potential_matches_desc": "タイトルと著者が同じで細部が異なる項目 — 重複を1冊にまとめます。",
+    "rename_smart_collection": "スマートコレクションの名前を変更",
+    "smart_collection_update_failed": "スマートコレクションを更新できませんでした"
   },
   "user": {
     "profile": "プロフィール",
@@ -679,7 +681,13 @@
     "back_to_previous": "前に戻る",
     "reset_settings": "設定をリセット",
     "no_chapter": "章なし",
-    "eta_left": "残り約{{minutes}}分"
+    "eta_left": "残り約{{minutes}}分",
+    "playback_speed": "再生速度",
+    "chapters_list": "章リスト",
+    "seek": "シーク",
+    "volume": "音量",
+    "audio_load_failed": "このオーディオファイルを読み込めませんでした",
+    "audio_load_failed_hint": "ファイル形式を確認して再試行してください。"
   },
   "analytics": {
     "title": "読書分析と統計",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "読書進捗を自動的にHardcoverプロフィールに記録します。",
     "hardcover_connect_btn": "Hardcoverに接続",
     "hardcover_connect_failed": "Hardcoverの接続を開始できませんでした",
-    "hardcover_dev_link": "デベロッパーアプリを登録 ↗"
+    "hardcover_dev_link": "デベロッパーアプリを登録 ↗",
+    "connect_in_profile_hint": "この本をリンクして同期するには、AniList アカウントを接続してください。"
   },
   "opds": {
     "title": "OPDS 2.0 カタログ & 2方向読書進捗同期",
@@ -1264,6 +1273,15 @@
     "export_btn": "Readwiseに書き出し",
     "export_failed": "ハイライトの書き出しに失敗",
     "exported": "{{count}}件のハイライトをReadwiseに書き出しました",
-    "markdown_btn": ".mdをダウンロード"
+    "markdown_btn": ".mdをダウンロード",
+    "connect_section": "Readwise アカウントを接続",
+    "no_highlights": "この本にはエクスポートするハイライトがありません",
+    "profile_title": "Readwise ハイライト",
+    "profile_subtitle": "ハイライトを Readwise にエクスポートします。トークンは暗号化して保存されます。",
+    "get_token_link": "Readwise アクセストークンを取得 ↗",
+    "manage_in_profile": "プロフィールで管理",
+    "manage_hint": "プロフィールからいつでも管理できます。",
+    "connect_readwise_btn": "Readwise を接続",
+    "connect_in_profile_hint": "ハイライトをエクスポートするには Readwise アカウントを接続してください。"
   }
 }

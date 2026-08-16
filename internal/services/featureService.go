@@ -26,7 +26,7 @@ import (
 )
 
 type FeatureService interface {
-	GetLibraryStats(ctx context.Context) (*response.LibraryStatsResponse, error)
+	GetLibraryStats(ctx context.Context, claims *response.JWTClaims) (*response.LibraryStatsResponse, error)
 	CreateCollection(ctx context.Context, name string, userID string) (*response.CollectionResponse, error)
 	UpdateCollection(ctx context.Context, id, name string, userID string) (*response.CollectionResponse, error)
 	DeleteCollection(ctx context.Context, id string, userID string) error
@@ -101,7 +101,13 @@ func (s *featureService) SetWebhookService(webhook WebhookService) {
 	s.webhookService = webhook
 }
 
-func (s *featureService) GetLibraryStats(ctx context.Context) (*response.LibraryStatsResponse, error) {
+func (s *featureService) GetLibraryStats(ctx context.Context, claims *response.JWTClaims) (*response.LibraryStatsResponse, error) {
+	if isGuestClaims(claims) {
+		settings, err := s.settings.Public(ctx)
+		if err == nil && settings.GuestLoginRequired {
+			return nil, apperrors.New(apperrors.ErrUnauthorized, "Guest access is disabled")
+		}
+	}
 	stats, err := s.repo.GetLibraryStats(ctx)
 	if err != nil {
 		return nil, err

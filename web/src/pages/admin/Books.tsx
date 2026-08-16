@@ -332,9 +332,9 @@ export function Books() {
                           onChange={toggleSelectAll}
                         />
                       </th>
-                      <th>{t("admin.books", "Books")}</th>
-                      <th>{t("admin.author", "Author")}</th>
-                      <th>{t("admin.series", "Series")}</th>
+                      <th className="w-[34%] max-w-[340px]">{t("admin.books", "Books")}</th>
+                      <th className="w-[16%] max-w-[180px]">{t("admin.author", "Author")}</th>
+                      <th className="w-[26%] max-w-[280px]">{t("admin.series", "Series")}</th>
                       <th className="text-right">{t("admin.actions", "Actions")}</th>
                     </tr>
                   </thead>
@@ -369,8 +369,11 @@ export function Books() {
                                   <span className="text-[9px] font-bold opacity-40 text-center px-1">NOVEL</span>
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <div className="font-bold text-sm text-base-content truncate hover:text-primary transition-colors">
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className="font-bold text-sm text-base-content line-clamp-2 break-words hover:text-primary transition-colors"
+                                  title={book.title}
+                                >
                                   {book.title}
                                 </div>
                                 {book.files && book.files.length > 0 && (
@@ -382,8 +385,19 @@ export function Books() {
                               </div>
                             </div>
                           </td>
-                          <td className="text-sm opacity-80">{authorName}</td>
-                          <td className="text-sm opacity-80">{seriesName}</td>
+                          <td className="text-sm opacity-80">
+                            <span className="line-clamp-2 break-words" title={authorName}>
+                              {authorName}
+                            </span>
+                          </td>
+                          <td className="text-sm opacity-80">
+                            <span
+                              className={seriesName === "-" ? "opacity-50" : "line-clamp-2 break-words"}
+                              title={seriesName}
+                            >
+                              {seriesName}
+                            </span>
+                          </td>
                           <td className="text-right">
                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                               <button

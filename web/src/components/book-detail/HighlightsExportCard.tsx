@@ -1,10 +1,10 @@
-import { Download, Share2 } from "lucide-react";
+import { Download, Share2, Check } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
-import { API_BASE } from "@/config/api";
-import { useConnectTrackerMutation, useExportHighlightsToReadwiseMutation } from "@/hooks";
+import { highlightService } from "@/services";
+import { useExportHighlightsToReadwiseMutation, useTrackerConnectionsQuery } from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
 
@@ -15,32 +15,16 @@ type HighlightsExportCardProps = {
 export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book_id }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const [token, setToken] = useState("");
+  const setProfileModalOpen = useAuthStore((state) => state.setProfileModalOpen);
+  const [downloading, setDownloading] = useState(false);
 
-  const connectMutation = useConnectTrackerMutation();
+  const canHighlight = hasPermission(user, "book.highlight");
+  const { data: connections = [] } = useTrackerConnectionsQuery(!!user && canHighlight);
+  const readwiseConnected = connections.some((c) => c.provider === "readwise" && c.connected);
+
   const exportMutation = useExportHighlightsToReadwiseMutation();
 
-  if (!hasPermission(user, "book.highlight")) return null;
-
-  const handleConnect = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = token.trim();
-    if (!trimmed) {
-      toast.error(t("highlights_export.enter_token", "Enter your Readwise API token"));
-      return;
-    }
-    connectMutation.mutate(
-      { provider: "readwise", access_token: trimmed },
-      {
-        onSuccess: () => {
-          toast.success(t("highlights_export.connected", "Readwise connected"));
-          setToken("");
-        },
-        onError: (err) =>
-          toast.error(err.message || t("highlights_export.connect_failed", "Failed to connect Readwise")),
-      }
-    );
-  };
+  if (!canHighlight) return null;
 
   const handleExport = () => {
     exportMutation.mutate(book_id, {
@@ -55,13 +39,32 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
     });
   };
 
-  const handleMarkdown = () => {
-    window.open(`${API_BASE}/highlights/${encodeURIComponent(book_id)}/export.md`, "_blank");
+  const handleMarkdown = async () => {
+    setDownloading(true);
+    try {
+      const blob = await highlightService.exportMarkdown(book_id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "highlights.md";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const message = await highlightService.extractErrorMessage(
+        err,
+        t("highlights_export.export_failed", "Failed to export highlights")
+      );
+      toast.error(message || t("highlights_export.no_highlights", "This book has no highlights to export"));
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
     <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-xl font-bold">
+      <h3 className="text-xl font-bold flex items-center gap-2">
         <Share2 className="h-5 w-5" />
         {t("highlights_export.title", "Export Highlights")}
       </h3>
@@ -72,40 +75,39 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
         )}
       </p>
 
-      <form onSubmit={handleConnect} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div className="flex flex-1 min-w-0 flex-col gap-1.5">
-          <label className="pl-1 text-xs font-medium" htmlFor="readwise-token">
-            {t("highlights_export.token_label", "Readwise API token")}
-          </label>
-          <input
-            id="readwise-token"
-            type="password"
-            className="input input-bordered input-sm w-full focus:input-primary"
-            placeholder={t("highlights_export.token_placeholder", "Paste your Readwise token")}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
+      {/* Readwise connection is managed in Profile; this card only reflects its state. */}
+      {readwiseConnected ? (
+        <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-xs text-base-content/70">
+          <Check className="h-3.5 w-3.5 text-success" />
+          <span>{t("highlights_export.connected", "Readwise connected")}</span>
+          <button
+            type="button"
+            className="ml-auto link link-hover text-primary"
+            onClick={() => setProfileModalOpen(true)}
+          >
+            {t("highlights_export.manage_in_profile", "Manage in Profile")}
+          </button>
         </div>
-        <button
-          type="submit"
-          className="btn btn-outline btn-sm shrink-0 gap-2"
-          disabled={!token.trim() || connectMutation.isPending}
-        >
-          {connectMutation.isPending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : (
-            <Share2 className="h-4 w-4" />
-          )}
-          {t("highlights_export.connect_btn", "Connect")}
-        </button>
-      </form>
+      ) : (
+        <div className="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2.5 text-xs text-base-content/70">
+          <span>{t("highlights_export.connect_in_profile_hint", "Connect your Readwise account to export highlights.")}</span>
+          <button
+            type="button"
+            className="ml-auto shrink-0 link link-hover text-primary"
+            onClick={() => setProfileModalOpen(true)}
+          >
+            {t("highlights_export.manage_in_profile", "Manage in Profile")}
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={handleExport}
           className="btn btn-primary btn-sm gap-2"
-          disabled={exportMutation.isPending}
+          disabled={!readwiseConnected || exportMutation.isPending}
+          title={readwiseConnected ? undefined : t("highlights_export.connect_in_profile_hint", "Connect your Readwise account to export highlights.")}
         >
           {exportMutation.isPending ? (
             <span className="loading loading-spinner loading-xs" />
@@ -114,8 +116,8 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           )}
           {t("highlights_export.export_btn", "Export to Readwise")}
         </button>
-        <button type="button" onClick={handleMarkdown} className="btn btn-outline btn-sm gap-2">
-          <Download className="h-4 w-4" />
+        <button type="button" onClick={handleMarkdown} className="btn btn-outline btn-sm gap-2" disabled={downloading}>
+          {downloading ? <span className="loading loading-spinner loading-xs" /> : <Download className="h-4 w-4" />}
           {t("highlights_export.markdown_btn", "Download .md")}
         </button>
       </div>

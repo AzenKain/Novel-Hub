@@ -561,7 +561,9 @@
     "merge_into_target": "Gabungkan ke buku kedua",
     "no_potential_matches": "Tidak ada kemungkinan kecocokan.",
     "potential_matches": "Kemungkinan Kecocokan",
-    "potential_matches_desc": "Judul dan penulis sama dengan perbedaan kecil — gabungkan duplikat menjadi satu buku."
+    "potential_matches_desc": "Judul dan penulis sama dengan perbedaan kecil — gabungkan duplikat menjadi satu buku.",
+    "rename_smart_collection": "Ganti nama koleksi pintar",
+    "smart_collection_update_failed": "Gagal memperbarui koleksi pintar"
   },
   "user": {
     "profile": "Profil",
@@ -679,7 +681,13 @@
     "open_toc": "Buka daftar isi",
     "open_settings": "Buka pengaturan pembaca",
     "no_chapter": "Tidak ada bab",
-    "eta_left": "Sisa ~{{minutes}} menit"
+    "eta_left": "Sisa ~{{minutes}} menit",
+    "playback_speed": "Kecepatan pemutaran",
+    "chapters_list": "Daftar bab",
+    "seek": "Geser",
+    "volume": "Volume",
+    "audio_load_failed": "Gagal memuat berkas audio ini",
+    "audio_load_failed_hint": "Periksa format berkas dan coba lagi."
   },
   "analytics": {
     "title": "Analitik & statistik bacaan",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Catat progres membaca Anda ke profil Hardcover secara otomatis.",
     "hardcover_connect_btn": "Hubungkan Hardcover",
     "hardcover_connect_failed": "Gagal memulai koneksi Hardcover",
-    "hardcover_dev_link": "Daftarkan aplikasi pengembang ↗"
+    "hardcover_dev_link": "Daftarkan aplikasi pengembang ↗",
+    "connect_in_profile_hint": "Hubungkan akun AniList Anda untuk menautkan dan menyinkronkan buku ini."
   },
   "opds": {
     "title": "Katalog OPDS 2.0 & sinkronisasi kemajuan membaca",
@@ -1264,6 +1273,15 @@
     "export_btn": "Ekspor ke Readwise",
     "export_failed": "Gagal mengekspor sorotan",
     "exported": "{{count}} sorotan diekspor ke Readwise",
-    "markdown_btn": "Unduh .md"
+    "markdown_btn": "Unduh .md",
+    "connect_section": "Hubungkan akun Readwise",
+    "no_highlights": "Buku ini tidak memiliki sorotan untuk diekspor",
+    "profile_title": "Sorotan Readwise",
+    "profile_subtitle": "Ekspor sorotan Anda ke Readwise. Token disimpan terenkripsi.",
+    "get_token_link": "Dapatkan token akses Readwise ↗",
+    "manage_in_profile": "Kelola di Profil",
+    "manage_hint": "Anda juga dapat mengelolanya kapan saja di Profil.",
+    "connect_readwise_btn": "Hubungkan Readwise",
+    "connect_in_profile_hint": "Hubungkan akun Readwise Anda untuk mengekspor sorotan."
   }
 }

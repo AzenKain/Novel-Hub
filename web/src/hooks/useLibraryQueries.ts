@@ -1,4 +1,4 @@
-import { adminService, bookService, featureService, libraryService } from "@/services";
+import { bookService, featureService, libraryService } from "@/services";
 import type { Collection, ConvertBookPayload, BulkConvertPayload, DuplicateGroupResult, Library, LibraryStats, MergeBooksPayload, PotentialDuplicateResult, ReadingHistory, SmartCollection, SmartCollectionRule } from "@/types";
 import i18n from "@/i18n";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -125,6 +125,23 @@ export function useCreateSmartCollectionMutation() {
   });
 }
 
+export function useUpdateSmartCollectionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name, rule }: { id: string; name: string; rule: SmartCollectionRule }) => {
+      const res = await featureService.updateSmartCollection(id, name, rule);
+      if (!res.status) throw new Error(res.message || "Failed to update smart collection");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["smart-collections"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_collection_update_failed", "Could not update the smart collection"));
+    },
+  });
+}
+
 export function useDeleteSmartCollectionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -197,7 +214,7 @@ export function useDeleteBookFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (file_id: string) => {
-      const res = await adminService.deleteBookFile(file_id);
+      const res = await bookService.deleteBookFile(file_id);
       if (!res.status) throw new Error(res.message || "Failed to delete file");
       return res;
     },

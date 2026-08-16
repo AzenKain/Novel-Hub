@@ -33,6 +33,7 @@ type LibrarySidebarProps = {
   isFetchingMoreCollections?: boolean;
   smartCollections?: SmartCollection[];
   onSmartCollectionClick?: (rule: SmartCollectionRule) => void;
+  onRenameSmartCollection?: (id: string, name: string) => void;
   onDeleteSmartCollection?: (id: string) => void;
   smartFilters?: SmartFilter[];
   onSmartFilterClick?: (id: string) => void;
@@ -63,6 +64,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   isFetchingMoreCollections,
   smartCollections = [],
   onSmartCollectionClick,
+  onRenameSmartCollection,
   onDeleteSmartCollection,
   smartFilters = [],
   onSmartFilterClick,
@@ -97,9 +99,20 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
 
   const [editingCollection, setEditingCollection] = useState<{id: string, name: string} | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [editingSmartId, setEditingSmartId] = useState<string | null>(null);
+  const [editingSmartName, setEditingSmartName] = useState("");
   const [deletingCollectionTarget, setDeletingCollectionTarget] = useState<{ id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
+  const handleEditSmartCollection = () => {
+    if (!editingSmartId || !editingSmartName.trim() || !onRenameSmartCollection) {
+      setEditingSmartId(null);
+      return;
+    }
+    onRenameSmartCollection(editingSmartId, editingSmartName.trim());
+    setEditingSmartId(null);
+  };
+
   const handleEditCollection = async () => {
     if (!editingCollection || !editingName.trim()) return;
     try {
@@ -312,6 +325,28 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             <ul className="menu menu-md w-full gap-1 p-0">
               {smartCollections.map((smart) => (
                 <li key={smart.id}>
+                  {editingSmartId === smart.id ? (
+                    <div className="flex items-center gap-1 px-2 py-1">
+                      <input
+                        autoFocus
+                        className="input input-ghost input-sm min-h-0 h-7 flex-1 px-2 py-0 text-sm focus:outline-none"
+                        value={editingSmartName}
+                        onChange={(e) => setEditingSmartName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleEditSmartCollection();
+                          if (e.key === "Escape") setEditingSmartId(null);
+                        }}
+                        aria-label={t("library.rename_smart_collection", "Rename smart collection")}
+                      />
+                      <button
+                        className="btn btn-ghost btn-xs btn-square text-success"
+                        onClick={handleEditSmartCollection}
+                        title={t("common.save", "Save")}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
                   <div className="group flex items-center justify-between !p-0">
                     <button
                       className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
@@ -319,6 +354,18 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                     >
                       <span className="truncate">{smart.name}</span>
                     </button>
+                    {onRenameSmartCollection && (
+                      <button
+                        className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-base-content/60 mr-0.5"
+                        onClick={() => {
+                          setEditingSmartId(smart.id);
+                          setEditingSmartName(smart.name);
+                        }}
+                        title={t("library.rename_smart_collection", "Rename smart collection")}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     {onDeleteSmartCollection && (
                       <button
                         className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-error mr-1"
@@ -329,6 +376,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                       </button>
                     )}
                   </div>
+                  )}
                 </li>
               ))}
             </ul>

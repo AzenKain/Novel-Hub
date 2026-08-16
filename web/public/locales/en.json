@@ -561,7 +561,9 @@
     "merge_into_target": "Merge into second",
     "no_potential_matches": "No potential matches found.",
     "potential_matches": "Potential Matches",
-    "potential_matches_desc": "Same title and author with minor differences — merge the duplicates into one book."
+    "potential_matches_desc": "Same title and author with minor differences — merge the duplicates into one book.",
+    "rename_smart_collection": "Rename smart collection",
+    "smart_collection_update_failed": "Could not update the smart collection"
   },
   "user": {
     "profile": "Profile",
@@ -679,7 +681,13 @@
     "open_toc": "Open Table of Contents",
     "open_settings": "Open Reader Settings",
     "no_chapter": "No chapter",
-    "eta_left": "~{{minutes}} min left"
+    "eta_left": "~{{minutes}} min left",
+    "playback_speed": "Playback speed",
+    "chapters_list": "Chapters",
+    "seek": "Seek",
+    "volume": "Volume",
+    "audio_load_failed": "Could not load this audio file",
+    "audio_load_failed_hint": "Check the file format and try again."
   },
   "analytics": {
     "title": "Reading Analytics & Stats",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "Scrobble your reading progress to your Hardcover profile automatically.",
     "hardcover_connect_btn": "Connect Hardcover",
     "hardcover_connect_failed": "Failed to start Hardcover connect",
-    "hardcover_dev_link": "Register a developer app ↗"
+    "hardcover_dev_link": "Register a developer app ↗",
+    "connect_in_profile_hint": "Connect your AniList account to link and sync this book."
   },
   "opds": {
     "title": "OPDS 2.0 Catalog & Reading Progress Sync",
@@ -1264,6 +1273,15 @@
     "export_btn": "Export to Readwise",
     "export_failed": "Failed to export highlights",
     "exported": "Exported {{count}} highlights to Readwise",
-    "markdown_btn": "Download .md"
+    "markdown_btn": "Download .md",
+    "connect_section": "Connect Readwise account",
+    "no_highlights": "This book has no highlights to export",
+    "profile_title": "Readwise Highlights",
+    "profile_subtitle": "Export your reading highlights to Readwise. The token is stored encrypted.",
+    "get_token_link": "Get Readwise Access Token ↗",
+    "manage_in_profile": "Manage in Profile",
+    "manage_hint": "You can also manage this anytime in your Profile.",
+    "connect_readwise_btn": "Connect Readwise",
+    "connect_in_profile_hint": "Connect your Readwise account to export highlights."
   }
 }

@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/binary"
 	"io"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +15,8 @@ import (
 	"time"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/repositories"
+	"novelhub/pkg/cache"
 	"novelhub/pkg/waxflow"
 	"novelhub/pkg/waxflow/audio"
 	"novelhub/pkg/waxflow/container"
@@ -336,5 +341,96 @@ func TestGainMediaClampsToIntDomain(t *testing.T) {
 	defer med.Close()
 	if peak := maxAbs(drainSamples(t, med)); peak != 32767 && peak != 32768 {
 		t.Fatalf("peak = %d, want an int16 domain extreme (32767/32768), not the unclamped 40000", peak)
+	}
+}
+func seedAudnexusFixture(t *testing.T) (*servicesDBFixture, *audiobookService) {
+	t.Helper()
+	db := auditDB(t)
+	if _, err := db.ExecContext(context.Background(),
+		`INSERT INTO libraries (id, name) VALUES ('libad', 'L')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(context.Background(),
+		`INSERT INTO books (id, library_id, title, status, updated_at) VALUES ('bookad', 'libad', 'Audio Book', 'active', ?)`,
+		time.Now().UTC().Format("2006-01-02 15:04:05")); err != nil {
+		t.Fatal(err)
+	}
+	repo := repositories.NewAudiobookRepository(db, cache.NewRamCache())
+	svc := &audiobookService{
+		repo:            repo,
+		httpClient:      &http.Client{Timeout: 5 * time.Second},
+		audnexusBaseURL: "replaced-by-test",
+	}
+	return &servicesDBFixture{db: db}, svc
+}
+
+type servicesDBFixture struct{ db *sql.DB }
+
+func TestLookupChaptersFromAudnexusRejectsNonAlphanumericASIN(t *testing.T) {
+	_, svc := seedAudnexusFixture(t)
+	for _, asin := range []string{"B002V0F37U?x", "B00/2893", "B002V0 37U"} {
+		if _, err := svc.LookupChaptersFromAudnexus(context.Background(), "bookad", asin); err == nil {
+			t.Fatalf("ASIN %q should be rejected", asin)
+		}
+	}
+}
+
+func TestLookupChaptersFromAudnexusMapsChapters(t *testing.T) {
+	_, svc := seedAudnexusFixture(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/books/B002V0F37U/chapters" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"chapters":[
+			{"title":"Opening","start":0,"end":90000,"index":0},
+			{"title":"","start":90000,"end":120000,"index":1},
+			{"title":"Chapter Two","start":120000,"end":240000,"index":2}
+		]}`))
+	}))
+	defer srv.Close()
+	svc.audnexusBaseURL = srv.URL
+
+	chapters, err := svc.LookupChaptersFromAudnexus(context.Background(), "bookad", "B002V0F37U")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(chapters) != 2 {
+		t.Fatalf("expected 2 chapters (empty title skipped), got %d", len(chapters))
+	}
+	if chapters[0].Title != "Opening" || chapters[0].StartSec != 0 || *chapters[0].EndSec != 90 {
+		t.Fatalf("chapter 0 mismatch: %+v", chapters[0])
+	}
+	if chapters[1].StartSec != 120 || *chapters[1].EndSec != 240 {
+		t.Fatalf("chapter 1 ms→s conversion mismatch: %+v", chapters[1])
+	}
+}
+
+func TestLookupChaptersFromAudnexusPropagatesUpstreamError(t *testing.T) {
+	_, svc := seedAudnexusFixture(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"asin not found"}`))
+	}))
+	defer srv.Close()
+	svc.audnexusBaseURL = srv.URL
+
+	if _, err := svc.LookupChaptersFromAudnexus(context.Background(), "bookad", "B002V0F37U"); err == nil {
+		t.Fatal("expected error on upstream 404")
+	}
+}
+
+func TestLookupChaptersFromAudnexusNoChaptersIsNotFound(t *testing.T) {
+	_, svc := seedAudnexusFixture(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"chapters":[]}`))
+	}))
+	defer srv.Close()
+	svc.audnexusBaseURL = srv.URL
+
+	chapters, err := svc.LookupChaptersFromAudnexus(context.Background(), "bookad", "B002V0F37U")
+	if err == nil || chapters != nil {
+		t.Fatal("expected not-found error for empty chapter list")
 	}
 }

@@ -24,6 +24,7 @@ import {
   useBooksQuery,
   useCollectionsQuery,
   useCreateSmartCollectionMutation,
+  useUpdateSmartCollectionMutation,
   useDebounce,
   useDeleteSmartCollectionMutation,
   useHotBooksQuery,
@@ -315,6 +316,7 @@ export const LibraryWorkspace = () => {
   const [smartCollectionName, setSmartCollectionName] = useState("");
   const { data: smartCollections = [] } = useSmartCollectionsQuery(!!user);
   const createSmartCollection = useCreateSmartCollectionMutation();
+  const renameSmartCollection = useUpdateSmartCollectionMutation();
   const deleteSmartCollection = useDeleteSmartCollectionMutation();
 
   const [showSmartFilterModal, setShowSmartFilterModal] = useState(false);
@@ -1127,6 +1129,10 @@ export const LibraryWorkspace = () => {
         isFetchingMoreCollections={isFetchingMoreCollections}
         smartCollections={smartCollections}
         onSmartCollectionClick={handleSmartCollectionClick}
+        onRenameSmartCollection={(id, name) => {
+          const target = smartCollections.find((sc) => sc.id === id);
+          if (target) renameSmartCollection.mutate({ id, name, rule: target.rule });
+        }}
         onDeleteSmartCollection={(id) => deleteSmartCollection.mutate(id)}
         smartFilters={smartFilters}
         onSmartFilterClick={handleSmartFilterClick}

@@ -1,8 +1,20 @@
 import { api } from "@/config/api";
-import type { CommonResponse, TrackerSearchResult } from "@/types";
+import type { CommonResponse, TrackerConnection, TrackerSearchResult } from "@/types";
 import axios from "axios";
 
 export const trackerService = {
+  async getConnections(): Promise<CommonResponse<TrackerConnection[]>> {
+    try {
+      const res = await api.get("/trackers/connections");
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<TrackerConnection[]>;
+      }
+      throw error;
+    }
+  },
+
   async connectTracker(
     provider: string,
     accessToken: string

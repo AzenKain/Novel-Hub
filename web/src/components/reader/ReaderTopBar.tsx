@@ -50,6 +50,9 @@ type ReaderTopBarProps = {
   onToggleAutoScroll?: () => void;
   onOpenSearch?: () => void;
   nextTooltip?: string;
+  /** Audio files have no text to search, paginate, or read aloud — text-reader
+   *  controls (search, TTS, auto-scroll, reading-mode settings) stay hidden. */
+  isAudio?: boolean;
 };
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -95,6 +98,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   autoScrollActive,
   onToggleAutoScroll,
   onOpenSearch,
+  isAudio = false,
 }) => {
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
 
@@ -139,7 +143,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </button>
         </div>
 
-        {onOpenSearch && (
+        {onOpenSearch && !isAudio && (
           <div className="tooltip tooltip-bottom" data-tip={t("reader.in_book_search", "Search in Book")}>
             <button
               onClick={onOpenSearch}
@@ -151,7 +155,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </div>
         )}
 
-        {ttsSupported && (
+        {ttsSupported && !isAudio && (
           <div className="relative flex items-center gap-1 border-r border-[var(--reader-ui-border)] pr-2">
             <div
               className="tooltip tooltip-bottom"
@@ -214,38 +218,42 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </div>
         )}
 
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.auto_scroll", "Auto Scroll")}>
-          <button
-            onClick={onToggleAutoScroll}
-            className={`reader-control-btn btn btn-square btn-sm animate-none ${
-              autoScrollActive ? "text-primary" : ""
-            }`}
-            aria-label={t("reader.auto_scroll", "Auto Scroll")}
-          >
-            <ArrowDown className="h-5 w-5" />
-          </button>
-        </div>
+        {!isAudio && (
+          <div className="tooltip tooltip-bottom" data-tip={t("reader.auto_scroll", "Auto Scroll")}>
+            <button
+              onClick={onToggleAutoScroll}
+              className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                autoScrollActive ? "text-primary" : ""
+              }`}
+              aria-label={t("reader.auto_scroll", "Auto Scroll")}
+            >
+              <ArrowDown className="h-5 w-5" />
+            </button>
+          </div>
+        )}
 
         <div className="tooltip tooltip-bottom" data-tip={t("common.language", "Language")}>
           <LanguageSwitcher className="dropdown-end" />
         </div>
 
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.open_settings", "Reader Settings")}>
-          <button
-            onClick={() => {
-              setSettingsOpen(!settingsOpen);
-              if (ttsSettingsOpen) setTtsSettingsOpen(false);
-            }}
-            className={`reader-control-btn btn btn-square btn-sm animate-none ${
-              settingsOpen ? "reader-control-btn-active" : ""
-            }`}
-            aria-label={t("reader.open_settings", "Reader Settings")}
-          >
-            <Settings className="h-5 w-5" />
-          </button>
-        </div>
+        {!isAudio && (
+          <div className="tooltip tooltip-bottom" data-tip={t("reader.open_settings", "Reader Settings")}>
+            <button
+              onClick={() => {
+                setSettingsOpen(!settingsOpen);
+                if (ttsSettingsOpen) setTtsSettingsOpen(false);
+              }}
+              className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                settingsOpen ? "reader-control-btn-active" : ""
+              }`}
+              aria-label={t("reader.open_settings", "Reader Settings")}
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          </div>
+        )}
 
-        {settingsOpen && (
+        {settingsOpen && !isAudio && (
           <ReaderSettingsPanel
             t={t}
             theme={theme}

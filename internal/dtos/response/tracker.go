@@ -11,6 +11,14 @@ type UserTrackerResponse struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
+// Connection state per provider; tokens are never included.
+type TrackerConnectionResponse struct {
+	Provider  string     `json:"provider"`
+	Connected bool       `json:"connected"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+}
+
 // One selectable AniList media candidate.
 type TrackerSearchResultResponse struct {
 	ExternalSeriesID string `json:"external_series_id"`

@@ -561,7 +561,9 @@
     "merge_into_target": "合并到第二本",
     "no_potential_matches": "未找到潜在匹配。",
     "potential_matches": "潜在匹配",
-    "potential_matches_desc": "标题和作者相同但有细微差异的书籍 — 将重复项合并为一本书。"
+    "potential_matches_desc": "标题和作者相同但有细微差异的书籍 — 将重复项合并为一本书。",
+    "rename_smart_collection": "重命名智能收藏",
+    "smart_collection_update_failed": "无法更新智能收藏"
   },
   "user": {
     "profile": "资料",
@@ -679,7 +681,13 @@
     "open_toc": "打开目录",
     "open_settings": "打开阅读器设置",
     "no_chapter": "没有章节",
-    "eta_left": "还剩约 {{minutes}} 分钟"
+    "eta_left": "还剩约 {{minutes}} 分钟",
+    "playback_speed": "播放速度",
+    "chapters_list": "章节列表",
+    "seek": "进度",
+    "volume": "音量",
+    "audio_load_failed": "无法加载此音频文件",
+    "audio_load_failed_hint": "请检查文件格式后重试。"
   },
   "analytics": {
     "title": "阅读分析与统计",
@@ -992,7 +1000,8 @@
     "hardcover_subtitle": "自动将阅读进度记录到你的 Hardcover 个人资料。",
     "hardcover_connect_btn": "连接 Hardcover",
     "hardcover_connect_failed": "无法开始连接 Hardcover",
-    "hardcover_dev_link": "注册开发者应用 ↗"
+    "hardcover_dev_link": "注册开发者应用 ↗",
+    "connect_in_profile_hint": "连接您的 AniList 账户以关联并同步本书。"
   },
   "opds": {
     "title": "OPDS 2.0 目录与双向阅读进度同步",
@@ -1264,6 +1273,15 @@
     "export_btn": "导出到 Readwise",
     "export_failed": "导出划线失败",
     "exported": "已将 {{count}} 条划线导出到 Readwise",
-    "markdown_btn": "下载 .md"
+    "markdown_btn": "下载 .md",
+    "connect_section": "连接 Readwise 账户",
+    "no_highlights": "本书没有可导出的高亮",
+    "profile_title": "Readwise 高亮",
+    "profile_subtitle": "将阅读高亮导出到 Readwise。令牌以加密方式存储。",
+    "get_token_link": "获取 Readwise 访问令牌 ↗",
+    "manage_in_profile": "在个人资料中管理",
+    "manage_hint": "您也可以随时在个人资料中管理。",
+    "connect_readwise_btn": "连接 Readwise",
+    "connect_in_profile_hint": "连接您的 Readwise 账户以导出高亮。"
   }
 }

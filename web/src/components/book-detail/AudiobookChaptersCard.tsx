@@ -15,6 +15,8 @@ import type { AudiobookChapter } from "@/types";
 
 type AudiobookChaptersCardProps = {
   book_id: string;
+  /** Chapters only make sense for audio books; the card is hidden otherwise. */
+  hasAudio?: boolean;
 };
 
 type DraftRow = {
@@ -32,10 +34,10 @@ const parseSec = (raw: string, fallback: number | null): number | null => {
   return raw.trim() === "" ? fallback : Number.isFinite(v) ? v : fallback;
 };
 
-export const AudiobookChaptersCard: React.FC<AudiobookChaptersCardProps> = ({ book_id }) => {
+export const AudiobookChaptersCard: React.FC<AudiobookChaptersCardProps> = ({ book_id, hasAudio = false }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const { data: chapters, isLoading } = useAudiobookChaptersQuery(book_id);
+  const { data: chapters, isLoading } = useAudiobookChaptersQuery(book_id, hasAudio);
   const upsert = useUpsertAudiobookChapterMutation(book_id);
   const remove = useDeleteAudiobookChapterMutation(book_id);
   const lookup = useLookupAudiobookChaptersMutation(book_id);
@@ -44,6 +46,7 @@ export const AudiobookChaptersCard: React.FC<AudiobookChaptersCardProps> = ({ bo
 
   const canEdit = hasPermission(user, "book.edit");
   if (!hasPermission(user, "book.read")) return null;
+  if (!hasAudio && (chapters?.length ?? 0) === 0) return null;
 
   useEffect(() => {
     if (!chapters) return;

@@ -873,6 +873,7 @@ const ReaderWorkspaceInner = () => {
             lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
             setSearchOpen(true);
           }}
+          isAudio={isAudio}
           nextTooltip={nextTooltip}
         />
 
@@ -882,20 +883,20 @@ const ReaderWorkspaceInner = () => {
             <div 
               ref={contentRef}
               className={`flex-1 min-h-0 ${
-                isPdf
+                isPdfAudio
                   ? 'overflow-hidden flex flex-col p-0'
                   : scrollLayout
-                    ? 'overflow-y-auto pt-6 pb-24 px-4 sm:px-8' 
+                    ? 'overflow-y-auto pt-6 pb-24 px-4 sm:px-8'
                     : 'overflow-hidden flex flex-col pt-4 pb-6 px-4 sm:px-20'
               } relative`}
               onClick={() => setSettingsOpen(false)}
               onScroll={handleScroll}
             >
-              <div 
+              <div
                 ref={pageFrameRef}
-                className={`w-full mx-auto ${isPdf ? 'h-full flex-1 min-h-0 flex flex-col' : scrollLayout ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
-                style={{ 
-                  maxWidth: isPdf ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
+                className={`w-full mx-auto ${isPdfAudio ? 'h-full flex-1 min-h-0 flex flex-col' : scrollLayout ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
+                style={{
+                  maxWidth: isPdfAudio ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
                   fontSize: `${fontSize}px`,
                   lineHeight: lineHeight,
                   "--reader-font-family": fontFamily,
@@ -914,7 +915,7 @@ const ReaderWorkspaceInner = () => {
                     className="reader-pdf-frame w-full h-full flex-1 border-0"
                   />
                 ) : isAudio ? (
-                  <div className="flex-1 w-full h-full pb-32">
+                  <div className="flex-1 w-full h-full">
                     <AudioPlayer
                       rawUrl={offlineRawUrl || rawFileUrl}
                       title={book.title}
@@ -1016,7 +1017,7 @@ const ReaderWorkspaceInner = () => {
                   </div>
                 )}
 
-                {!isPdf && scrollLayout && (
+                {!isPdf && !isAudio && scrollLayout && (
                   <ReaderPageControls
                     t={t}
                     mode="footer"
@@ -1026,14 +1027,14 @@ const ReaderWorkspaceInner = () => {
                     onNext={handleNext}
                   />
                 )}
-                {!isPdf && scrollLayout && readerETA && readerETA.eta_minutes > 0 && (
+                {!isPdf && !isAudio && scrollLayout && readerETA && readerETA.eta_minutes > 0 && (
                   <p className="text-center text-xs text-base-content/50 mt-2">
                     {t("reader.eta_left", "~{{minutes}} min left", { minutes: Math.max(1, readerETA.eta_minutes) })}
                   </p>
                 )}
               </div>
 
-              {!isPdf && !scrollLayout && htmlContent && (
+              {!isPdf && !isAudio && !scrollLayout && htmlContent && (
                 <ReaderPageControls
                   t={t}
                   mode="floating"

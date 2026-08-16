@@ -93,6 +93,10 @@ export const BookDetailPage: React.FC = () => {
   // Single source of truth for the active file variant (dropdown == Read).
   const effectiveFileId = selectedFileId || readingProgress?.file_id || book?.files?.[0]?.id || "";
 
+  // Chapter markers only apply to audio files; drives the audiobook card + reader cleanup.
+  const AUDIO_FILE_FORMATS = ["mp3", "m4b", "m4a", "flac", "ogg", "wav", "aac"];
+  const hasAudioFile = !!book?.files?.some((file) => AUDIO_FILE_FORMATS.includes(file.format.toLowerCase()));
+
   const toggleBookmarkMutation = useToggleBookmarkMutation(book_id || "");
   const addBookToColMutation = useAddBookToCollectionMutation(book_id || "");
   const readListsQuery = useReadListsQuery(!!user);
@@ -735,15 +739,19 @@ export const BookDetailPage: React.FC = () => {
               <TrackerMapCard book_id={book.id!} title={book.title} />
             </div>
 
-            {/* Highlights export Section */}
-            <div className="pt-2 border-t border-base-200 mt-2">
-              <HighlightsExportCard book_id={book.id!} />
-            </div>
+            {/* Highlights export Section — text books only; audio has nothing to highlight. */}
+            {!hasAudioFile && (
+              <div className="pt-2 border-t border-base-200 mt-2">
+                <HighlightsExportCard book_id={book.id!} />
+              </div>
+            )}
 
             {/* Audiobook chapters Section */}
-            <div className="pt-2 border-t border-base-200 mt-2">
-              <AudiobookChaptersCard book_id={book.id!} />
-            </div>
+            {hasAudioFile && (
+              <div className="pt-2 border-t border-base-200 mt-2">
+                <AudiobookChaptersCard book_id={book.id!} hasAudio={hasAudioFile} />
+              </div>
+            )}
 
             {allowReview && (
               <div className="pt-2 border-t border-base-200 mt-2">

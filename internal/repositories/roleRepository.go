@@ -34,6 +34,7 @@ type RoleRepository interface {
 	GetAutoAssignRoleIDs(ctx context.Context) ([]string, error)
 	CountActiveAdminUsers(ctx context.Context) (int64, error)
 	UpdateRolePositions(ctx context.Context, roleIDs []string) error
+	InvalidateRoleCache(ctx context.Context, roleIDs []string)
 	WithTx(tx *sql.Tx) RoleRepository
 }
 
@@ -643,17 +644,22 @@ func (r *roleRepository) UpdateRolePositions(ctx context.Context, roleIDs []stri
 			return err
 		}
 	}
-	if r.c != nil {
-		// Position is a cached field on the role entity and drives allow/deny precedence,
-		// so the per-entity keys must go too — GetByIDs would otherwise MGet the old order.
-		delKeys := make([]string, 0, len(roleIDs)+1)
-		delKeys = append(delKeys, constants.CacheKeyRoleAll)
-		for _, id := range roleIDs {
-			delKeys = append(delKeys, cache.BuildKey("role", "id", id))
-		}
-		_ = r.c.Del(ctx, delKeys...)
+	if r.c != nil && !r.inTx {
+		r.InvalidateRoleCache(ctx, roleIDs)
 	}
 	return nil
+}
+
+func (r *roleRepository) InvalidateRoleCache(ctx context.Context, roleIDs []string) {
+	if r.c == nil {
+		return
+	}
+	delKeys := make([]string, 0, len(roleIDs)+1)
+	delKeys = append(delKeys, constants.CacheKeyRoleAll)
+	for _, id := range roleIDs {
+		delKeys = append(delKeys, cache.BuildKey("role", "id", id))
+	}
+	_ = r.c.Del(ctx, delKeys...)
 }
 
 func DecodeRole(raw []byte) (*models.RoleEntity, error) {
