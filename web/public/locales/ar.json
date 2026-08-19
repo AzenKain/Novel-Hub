@@ -571,13 +571,14 @@
     "sync_cover": "مزامنة الغلاف",
     "value_to_sync": "القيمة المراد مزامنتها",
     "select_target_books": "حدد الكتب المستهدفة",
-    "sync_applied": "تم تطبيق {{field}} على {{count}} كتب",
+    "sync_applied": "تم تطبيق {{field}} على {{count}} من الكتب",
     "series_index_sequenced": "تم ترقيم السلسلة بالتتابع (1 إلى {{count}})",
     "bulk_saved_success": "تم تحديث البيانات الوصفية بنجاح لـ {{count}} كتب",
     "bulk_saved_partial": "تم تحديث {{success}} كتب، وفشل {{fail}}",
     "modified_books": "كتب معدلة",
     "saving_progress": "جارٍ حفظ {{current}} من {{total}} كتب...",
-    "auto_index_desc": "تعيين فهرس السلسلة 1، 2، 3... بالترتيب"
+    "auto_index_desc": "تعيين فهرس السلسلة 1، 2، 3... بالترتيب",
+    "sync_modal_subtitle": "اختر الكتب التي ستتلقى هذه القيمة"
   },
   "user": {
     "profile": "الملف الشخصي",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "بدء التحويل بالجملة",
     "bulk_convert_success": "تمت إضافة {{count}} من مهام التحويل إلى قائمة الانتظار بنجاح",
     "bulk_convert_failed": "فشل بدء بعض مهام التحويل",
-    "no_files_convert": "لا توجد ملفات متاحة للتحويل"
+    "no_files_convert": "لا توجد ملفات متاحة للتحويل",
+    "author_lower": "المؤلف",
+    "series_lower": "السلسلة",
+    "publisher_lower": "الناشر",
+    "language_lower": "اللغة",
+    "age_rating_lower": "الفئة العمرية",
+    "tags_lower": "الوسوم",
+    "description_lower": "الوصف",
+    "cover_lower": "الغلاف"
   },
   "settings": {
     "title": "الإعدادات",

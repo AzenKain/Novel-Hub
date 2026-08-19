@@ -567,17 +567,18 @@
     "bulk_edit_metadata_title": "批次編輯元數據",
     "bulk_edit_metadata_desc": "同時編輯和同步多本書籍的元數據",
     "sync_field_to_books": "同步",
-    "sync_field_title": "將 {{field}} 同步到其他書籍",
+    "sync_field_title": "同步{{field}}至其他書籍",
     "sync_cover": "同步封面",
     "value_to_sync": "要同步的值",
     "select_target_books": "選擇目標書籍",
-    "sync_applied": "已將 {{field}} 套用於 {{count}} 本書籍",
+    "sync_applied": "已將{{field}}套用至 {{count}} 本書",
     "series_index_sequenced": "已自動排序系列編號 (1 到 {{count}})",
     "bulk_saved_success": "已成功更新 {{count}} 本書籍的元數據",
     "bulk_saved_partial": "已更新 {{success}} 本，{{fail}} 本失敗",
     "modified_books": "本書籍已修改",
     "saving_progress": "正在儲存第 {{current}} / {{total}} 本書籍...",
-    "auto_index_desc": "按順序設定系列編號 1, 2, 3..."
+    "auto_index_desc": "按順序設定系列編號 1, 2, 3...",
+    "sync_modal_subtitle": "選擇套用此值的書籍"
   },
   "user": {
     "profile": "個人資料",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "開始批量轉換",
     "bulk_convert_success": "成功將 {{count}} 個轉換任務加入隊列",
     "bulk_convert_failed": "部分轉換任務啟動失敗",
-    "no_files_convert": "沒有可轉換的文件"
+    "no_files_convert": "沒有可轉換的文件",
+    "author_lower": "作者",
+    "series_lower": "系列",
+    "publisher_lower": "出版社",
+    "language_lower": "語言",
+    "age_rating_lower": "年齡分級",
+    "tags_lower": "標籤",
+    "description_lower": "簡介",
+    "cover_lower": "封面"
   },
   "settings": {
     "title": "設定",

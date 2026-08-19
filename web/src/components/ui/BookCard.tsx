@@ -1,17 +1,9 @@
-import type { Book } from "@/types";
+import type { Book, BookCardProps } from "@/types";
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { parseMetadata } from '@/lib/bookDetail';
 import { getMediaUrl } from '@/config/api';
-
-interface BookCardProps {
-  book: Book;
-  onClick: (book: Book) => void;
-  compact?: boolean;
-  selected?: boolean;
-  onSelectToggle?: (book: Book) => void;
-}
 
 const GRADIENTS = [
   "from-[#e85d83] via-[#4657b8] to-[#182033]",
@@ -22,7 +14,7 @@ const GRADIENTS = [
   "from-[#df6071] via-[#c38a28] to-[#35418d]"
 ];
 
-export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, selected, onSelectToggle }) => {
+export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
@@ -47,7 +39,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
         }
       }}
     >
-      <figure className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0`}>
+      <figure className={`relative ${compact ? 'aspect-3/4' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0`}>
         {onSelectToggle && (
           <div 
             className="absolute top-2 left-2 z-20"
@@ -56,14 +48,22 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
               onSelectToggle(book);
             }}
           >
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 shadow-md transition-all ${
+            <div className={`h-6 min-w-6 rounded-full flex items-center justify-center border-2 shadow-md transition-all select-none ${
               selected 
-                ? "bg-primary border-primary text-primary-content scale-100" 
-                : "bg-base-100/80 backdrop-blur-xs border-base-content/20 text-transparent hover:border-base-content/40 hover:scale-105"
+                ? `bg-primary border-primary text-primary-content scale-100 ${
+                    selectionIndex && selectionIndex >= 100 ? "px-1.5" : "px-0.5"
+                  }` 
+                : "bg-base-100/80 backdrop-blur-xs border-base-content/20 text-transparent hover:border-base-content/40 hover:scale-105 w-6"
             }`}>
-              <svg className="w-3.5 h-3.5 stroke-[3.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
+              {selected && typeof selectionIndex === 'number' && selectionIndex > 0 ? (
+                <span className={`font-black leading-none tabular-nums text-center flex items-center justify-center tracking-tight ${
+                  selectionIndex >= 100 ? "text-[10px]" : selectionIndex >= 10 ? "text-[11px]" : "text-xs"
+                }`}>{selectionIndex}</span>
+              ) : (
+                <svg className="w-3.5 h-3.5 stroke-[3.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              )}
             </div>
           </div>
         )}

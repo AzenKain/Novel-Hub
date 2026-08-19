@@ -486,7 +486,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               </button>
               <button
                 type="submit"
-                className="btn btn-primary rounded-xl text-white"
+                className="btn btn-primary rounded-xl"
                 disabled={!editingName.trim()}
               >
                 {t("common.save", "Lưu")}

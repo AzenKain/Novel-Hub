@@ -567,17 +567,18 @@
     "bulk_edit_metadata_title": "메타데이터 일괄 편집",
     "bulk_edit_metadata_desc": "여러 도서의 메타데이터를 동시에 편집 및 동기화",
     "sync_field_to_books": "동기화",
-    "sync_field_title": "다른 도서에 {{field}} 동기화",
+    "sync_field_title": "다른 책에 {{field}} 동기화",
     "sync_cover": "표지 동기화",
     "value_to_sync": "동기화할 값",
-    "select_target_books": "대상 도서 선택",
-    "sync_applied": "{{count}}권의 도서에 {{field}} 적용됨",
+    "select_target_books": "대상 책 선택",
+    "sync_applied": "{{count}}권의 책에 {{field}} 적용됨",
     "series_index_sequenced": "시리즈 번호가 순서대로 정렬되었습니다 (1~{{count}})",
     "bulk_saved_success": "{{count}}권의 도서 메타데이터를 성공적으로 업데이트했습니다",
     "bulk_saved_partial": "{{success}}권 업데이트됨, {{fail}}권 실패",
     "modified_books": "권 수정됨",
     "saving_progress": "{{total}}권 중 {{current}}권 저장 중...",
-    "auto_index_desc": "시리즈 번호 자동 지정 (1, 2, 3...)"
+    "auto_index_desc": "시리즈 번호 자동 지정 (1, 2, 3...)",
+    "sync_modal_subtitle": "이 값을 적용할 책을 선택하세요"
   },
   "user": {
     "profile": "프로필",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "일괄 변환 시작",
     "bulk_convert_success": "{{count}}개의 변환 작업이 대기열에 성공적으로 추가되었습니다",
     "bulk_convert_failed": "일부 변환 작업을 시작하지 못했습니다",
-    "no_files_convert": "변환할 수 있는 파일이 없습니다"
+    "no_files_convert": "변환할 수 있는 파일이 없습니다",
+    "author_lower": "저자",
+    "series_lower": "시리즈",
+    "publisher_lower": "출판사",
+    "language_lower": "언어",
+    "age_rating_lower": "연령 등급",
+    "tags_lower": "태그",
+    "description_lower": "줄거리",
+    "cover_lower": "표지"
   },
   "settings": {
     "title": "설정",

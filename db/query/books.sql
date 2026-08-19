@@ -215,9 +215,9 @@ WHERE
         (
             COALESCE(s.name, '') = sqlc.narg('cursor_series_name') AND
             (
-                CAST(COALESCE(bs.series_index, '0') AS REAL) > CAST(sqlc.narg('cursor_series_index') AS REAL) OR
+                (CASE WHEN LTRIM(COALESCE(bs.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(bs.series_index) AS REAL) ELSE 999999 END) > CAST(sqlc.narg('cursor_series_index') AS REAL) OR
                 (
-                    CAST(COALESCE(bs.series_index, '0') AS REAL) = CAST(sqlc.narg('cursor_series_index') AS REAL) AND
+                    (CASE WHEN LTRIM(COALESCE(bs.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(bs.series_index) AS REAL) ELSE 999999 END) = CAST(sqlc.narg('cursor_series_index') AS REAL) AND
                     b.id > sqlc.narg('cursor_id')
                 )
             )
@@ -256,7 +256,8 @@ WHERE
 ORDER BY
     CASE WHEN s.name IS NULL THEN 1 ELSE 0 END ASC,
     s.name COLLATE NOCASE ASC,
-    CAST(COALESCE(bs.series_index, '0') AS REAL) ASC,
+    CASE WHEN LTRIM(COALESCE(bs.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(bs.series_index) AS REAL) ELSE 999999 END ASC,
+    b.created_at ASC,
     b.title COLLATE NOCASE ASC,
     b.id ASC
 LIMIT sqlc.arg('limit');

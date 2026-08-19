@@ -13,16 +13,22 @@ WHERE bs.series_id = sqlc.arg('series_id')
   AND b.id != sqlc.arg('current_book_id')
   AND b.status != 'archived'
   AND (
-      CASE WHEN bs.series_index GLOB '[0-9]*' THEN CAST(bs.series_index AS REAL) ELSE 999999 END,
-      b.created_at
+      CASE WHEN LTRIM(COALESCE(bs.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(bs.series_index) AS REAL) ELSE 999999 END,
+      b.created_at,
+      b.title,
+      b.id
   ) > (
-      SELECT CASE WHEN cur.series_index GLOB '[0-9]*' THEN CAST(cur.series_index AS REAL) ELSE 999999 END,
-             cb.created_at
+      SELECT CASE WHEN LTRIM(COALESCE(cur.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(cur.series_index) AS REAL) ELSE 999999 END,
+             cb.created_at,
+             cb.title,
+             cb.id
       FROM book_series cur
       JOIN books cb ON cb.id = cur.book_id
       WHERE cur.book_id = sqlc.arg('current_book_id') AND cur.series_id = sqlc.arg('series_id')
   )
 ORDER BY
-    CASE WHEN bs.series_index GLOB '[0-9]*' THEN CAST(bs.series_index AS REAL) ELSE 999999 END ASC,
-    b.created_at ASC
+    CASE WHEN LTRIM(COALESCE(bs.series_index, '')) GLOB '[0-9]*' THEN CAST(LTRIM(bs.series_index) AS REAL) ELSE 999999 END ASC,
+    b.created_at ASC,
+    b.title COLLATE NOCASE ASC,
+    b.id ASC
 LIMIT 1;

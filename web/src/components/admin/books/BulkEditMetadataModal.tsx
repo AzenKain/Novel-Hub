@@ -140,8 +140,31 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
     });
   };
 
+  const getFieldLabel = (field: SyncFieldType): string => {
+    switch (field) {
+      case 'author':
+        return t('book.author_lower', 'author');
+      case 'series':
+        return t('book.series_lower', 'series');
+      case 'publisher':
+        return t('book.publisher_lower', 'publisher');
+      case 'language':
+        return t('book.language_lower', 'language');
+      case 'age_rating':
+        return t('book.age_rating_lower', 'age rating');
+      case 'subjects':
+        return t('book.tags_lower', 'tags');
+      case 'description':
+        return t('book.description_lower', 'description');
+      case 'cover':
+        return t('book.cover_lower', 'cover');
+      default:
+        return field;
+    }
+  };
+
   // Open Sync confirmation modal for a specific field on a book
-  const handleOpenSyncModal = (sourceIndex: number, field: SyncFieldType, fieldName: string) => {
+  const handleOpenSyncModal = (sourceIndex: number, field: SyncFieldType) => {
     const sourceItem = items[sourceIndex];
     let fieldValue: any = '';
 
@@ -182,7 +205,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
       isOpen: true,
       sourceIndex,
       field,
-      fieldName,
+      fieldName: getFieldLabel(field),
       fieldValue,
       selectedBookIds: allIds,
     });
@@ -405,12 +428,12 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   {/* Title & Quick Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <label className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                      <label className="text-xs font-bold text-base-content/80">
                         {t('book.title', 'Title')}
                       </label>
                       <button
                         type="button"
-                        onClick={() => handleOpenSyncModal(index, 'cover', t('book.cover', 'Cover'))}
+                        onClick={() => handleOpenSyncModal(index, 'cover')}
                         className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                       >
                         <Copy className="w-3.5 h-3.5" />
@@ -428,19 +451,19 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 </div>
 
                 {/* Form Fields Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {/* Author */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-7">
+                      <span className="text-xs font-bold text-base-content/80">
                         {t('book.author', 'Author')}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleOpenSyncModal(index, 'author', t('book.author', 'Author'))}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        onClick={() => handleOpenSyncModal(index, 'author')}
+                        className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                         {t('library.sync_field_to_books', 'Sync')}
                       </button>
                     </div>
@@ -449,62 +472,22 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       value={item.author}
                       onChange={(e) => updateItem(index, { author: e.target.value })}
                       placeholder="e.g. J.K. Rowling"
-                      className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl"
-                    />
-                  </div>
-
-                  {/* Series */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
-                        {t('book.series', 'Series')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSyncModal(index, 'series', t('book.series', 'Series'))}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
-                      >
-                        <Copy className="w-3 h-3" />
-                        {t('library.sync_field_to_books', 'Sync')}
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      value={item.series}
-                      onChange={(e) => updateItem(index, { series: e.target.value })}
-                      placeholder="e.g. Harry Potter"
-                      className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl"
-                    />
-                  </div>
-
-                  {/* Series Index */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
-                        {t('book.series_index', 'Series Index')}
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      value={item.series_index}
-                      onChange={(e) => updateItem(index, { series_index: e.target.value })}
-                      placeholder="1, 2, 3.5..."
-                      className="input input-md input-bordered w-full bg-base-100 text-sm font-mono rounded-xl"
+                      className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
                     />
                   </div>
 
                   {/* Publisher */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-7">
+                      <span className="text-xs font-bold text-base-content/80">
                         {t('book.publisher', 'Publisher')}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleOpenSyncModal(index, 'publisher', t('book.publisher', 'Publisher'))}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        onClick={() => handleOpenSyncModal(index, 'publisher')}
+                        className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                         {t('library.sync_field_to_books', 'Sync')}
                       </button>
                     </div>
@@ -513,22 +496,22 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       value={item.publisher}
                       onChange={(e) => updateItem(index, { publisher: e.target.value })}
                       placeholder="e.g. Bloomsbury"
-                      className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl"
+                      className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
                     />
                   </div>
 
                   {/* Language */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-7">
+                      <span className="text-xs font-bold text-base-content/80">
                         {t('book.language', 'Language')}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleOpenSyncModal(index, 'language', t('book.language', 'Language'))}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        onClick={() => handleOpenSyncModal(index, 'language')}
+                        className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                         {t('library.sync_field_to_books', 'Sync')}
                       </button>
                     </div>
@@ -537,22 +520,60 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       value={item.language}
                       onChange={(e) => updateItem(index, { language: e.target.value })}
                       placeholder="vi, en, ja..."
-                      className="input input-md input-bordered w-full bg-base-100 text-sm font-mono rounded-xl"
+                      className="input input-md input-bordered w-full bg-base-100 text-sm font-mono rounded-xl font-medium"
                     />
                   </div>
 
+                  {/* Series & Series Index Group (Spans 2 cols on md/lg) */}
+                  <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-2">
+                    <div className="flex items-center justify-between h-7">
+                      <div className="flex items-center justify-between flex-1 pr-2">
+                        <span className="text-xs font-bold text-base-content/80">
+                          {t('book.series', 'Series')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSyncModal(index, 'series')}
+                          className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          {t('library.sync_field_to_books', 'Sync')}
+                        </button>
+                      </div>
+                      <span className="text-xs font-bold text-base-content/80 w-24 pl-2 border-l border-base-300">
+                        {t('book.series_index', 'Index')}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={item.series}
+                        onChange={(e) => updateItem(index, { series: e.target.value })}
+                        placeholder="e.g. Harry Potter"
+                        className="input input-md input-bordered flex-1 bg-base-100 text-sm rounded-xl min-w-0 font-medium"
+                      />
+                      <input
+                        type="text"
+                        value={item.series_index}
+                        onChange={(e) => updateItem(index, { series_index: e.target.value })}
+                        placeholder="1, 2, 3..."
+                        className="input input-md input-bordered w-24 bg-base-100 text-sm font-mono rounded-xl shrink-0 text-center font-medium"
+                      />
+                    </div>
+                  </div>
+
                   {/* Age Rating */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-7">
+                      <span className="text-xs font-bold text-base-content/80">
                         {t('book.age_rating', 'Age Rating')}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleOpenSyncModal(index, 'age_rating', t('book.age_rating', 'Age Rating'))}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        onClick={() => handleOpenSyncModal(index, 'age_rating')}
+                        className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                         {t('library.sync_field_to_books', 'Sync')}
                       </button>
                     </div>
@@ -571,21 +592,21 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 </div>
 
                 {/* Subjects / Tags row */}
-                <div className="mt-4 pt-4 border-t border-base-200/60">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                <div className="mt-5 pt-4 border-t border-base-200/80">
+                  <div className="flex items-center justify-between h-7 mb-2">
+                    <span className="text-xs font-bold text-base-content/80">
                       {t('book.tags', 'Tags / Subjects')}
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleOpenSyncModal(index, 'subjects', t('book.tags', 'Tags'))}
-                      className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                      onClick={() => handleOpenSyncModal(index, 'subjects')}
+                      className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                     >
-                      <Copy className="w-3 h-3" />
+                      <Copy className="w-3.5 h-3.5" />
                       {t('library.sync_field_to_books', 'Sync')}
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-2 items-center p-3 bg-base-200/40 border border-base-200 rounded-xl min-h-12">
+                  <div className="flex flex-wrap gap-2 items-center p-3.5 bg-base-200/40 border border-base-200 rounded-xl min-h-13">
                     {item.subjects.map((sub, sIdx) => (
                       <span key={sIdx} className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-medium rounded-lg">
                         {sub}
@@ -601,7 +622,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         </button>
                       </span>
                     ))}
-                    <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 flex-1 min-w-55">
                       <input
                         type="text"
                         value={item.tagInput}
@@ -633,7 +654,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           }
                         }}
                         disabled={!item.tagInput.trim()}
-                        className="btn btn-sm btn-primary rounded-lg gap-1"
+                        className="btn btn-sm btn-primary rounded-lg gap-1 font-bold"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         {t('common.add', 'Add')}
@@ -644,16 +665,16 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
 
                 {/* Description row */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-base-content/70 uppercase tracking-wider">
+                  <div className="flex items-center justify-between h-7 mb-2">
+                    <span className="text-xs font-bold text-base-content/80">
                       {t('book.description', 'Description')}
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleOpenSyncModal(index, 'description', t('book.description', 'Description'))}
-                      className="btn btn-ghost btn-xs text-primary gap-1 h-6 min-h-0 px-2 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                      onClick={() => handleOpenSyncModal(index, 'description')}
+                      className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
                     >
-                      <Copy className="w-3 h-3" />
+                      <Copy className="w-3.5 h-3.5" />
                       {t('library.sync_field_to_books', 'Sync')}
                     </button>
                   </div>
@@ -702,7 +723,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="btn btn-ghost btn-sm sm:btn-md rounded-xl"
+                className="btn btn-ghost btn-sm sm:btn-md rounded-xl font-semibold"
               >
                 {t('common.cancel', 'Cancel')}
               </button>
@@ -711,7 +732,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={handleSaveAll}
                 disabled={isSaving || items.filter((it) => it.modified).length === 0}
-                className="btn btn-primary btn-sm sm:btn-md gap-2 !text-white font-bold rounded-xl shadow-lg shadow-primary/20"
+                className="btn btn-primary btn-sm sm:btn-md gap-2 font-bold rounded-xl px-6 shadow-lg shadow-primary/20"
               >
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {t('common.save_all', 'Save All Changes')}
@@ -723,48 +744,55 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
 
       {/* ======================= SYNC FIELD POPUP MODAL ======================= */}
       {syncState.isOpen && (
-        <dialog className="modal modal-open z-60 bg-black/40 backdrop-blur-xs">
-          <div className="modal-box w-11/12 max-w-lg bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[85vh] rounded-2xl border border-base-300">
+        <dialog className="modal modal-open z-60 bg-black/60 backdrop-blur-sm">
+          <div className="modal-box w-11/12 max-w-2xl 2xl:max-w-3xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] rounded-3xl border border-base-300">
             {/* Sync Header */}
-            <header className="px-5 py-3.5 border-b border-base-200 bg-base-200/40 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Copy className="w-4 h-4 text-primary" />
-                <h4 className="font-bold text-sm">
-                  {t('library.sync_field_title', 'Sync {{field}} to other books', {
-                    field: syncState.fieldName,
-                  })}
-                </h4>
+            <header className="px-6 py-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <Copy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-lg text-base-content">
+                    {t('library.sync_field_title', 'Sync {{field}} to other books', {
+                      field: syncState.fieldName,
+                    })}
+                  </h4>
+                  <p className="text-xs text-base-content/60 mt-0.5">
+                    {t('library.sync_modal_subtitle', 'Choose which books will receive this value')}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSyncState((prev) => ({ ...prev, isOpen: false }))}
-                className="btn btn-xs btn-circle btn-ghost"
+                className="btn btn-sm btn-circle btn-ghost"
               >
                 ✕
               </button>
             </header>
 
             {/* Sync Body */}
-            <div className="p-4 space-y-3 overflow-y-auto flex-1">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Value Preview Banner */}
-              <div className="rounded-lg bg-primary/5 border border-primary/15 p-3 text-xs">
-                <span className="font-bold text-primary block mb-1">
+              <div className="rounded-2xl bg-primary/5 border border-primary/15 p-4.5">
+                <span className="text-xs font-bold text-primary block uppercase tracking-wider mb-1.5">
                   {t('library.value_to_sync', 'Value to synchronize')}:
                 </span>
-                <span className="text-base-content font-medium block truncate">
+                <div className="text-base font-bold text-base-content wrap-break-word leading-relaxed">
                   {typeof syncState.fieldValue === 'string'
-                    ? syncState.fieldValue || `(${t('common.empty', 'Empty')})`
+                    ? syncState.fieldValue || <span className="italic font-normal opacity-50">({t('common.empty', 'Empty')})</span>
                     : Array.isArray(syncState.fieldValue)
-                    ? syncState.fieldValue.join(', ') || `(${t('common.empty', 'Empty')})`
+                    ? syncState.fieldValue.length > 0 ? syncState.fieldValue.join(', ') : <span className="italic font-normal opacity-50">({t('common.empty', 'Empty')})</span>
                     : syncState.field === 'cover'
-                    ? t('library.cover_image', 'Cover Image')
+                    ? t('library.cover_image', 'Cover image')
                     : String(syncState.fieldValue)}
-                </span>
+                </div>
               </div>
 
               {/* Target Selection Tools */}
-              <div className="flex items-center justify-between text-xs px-1">
-                <span className="font-semibold text-base-content/70">
+              <div className="flex items-center justify-between text-sm px-1">
+                <span className="font-bold text-base-content/80 text-sm">
                   {t('library.select_target_books', 'Select target books')}:
                 </span>
                 <div className="flex items-center gap-2">
@@ -776,7 +804,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         selectedBookIds: new Set<string>(items.map((it) => it.id)),
                       }))
                     }
-                    className="btn btn-ghost btn-xs text-primary font-medium"
+                    className="btn btn-ghost btn-sm text-primary font-bold hover:bg-primary/10 rounded-lg"
                   >
                     {t('common.select_all', 'Select all')}
                   </button>
@@ -788,7 +816,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         selectedBookIds: new Set<string>(),
                       }))
                     }
-                    className="btn btn-ghost btn-xs text-base-content/60"
+                    className="btn btn-ghost btn-sm text-base-content/60 hover:bg-base-200 rounded-lg"
                   >
                     {t('common.deselect_all', 'Deselect all')}
                   </button>
@@ -796,7 +824,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
               </div>
 
               {/* Target Books Checkbox List */}
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {items.map((item, idx) => {
                   const isChecked = syncState.selectedBookIds.has(item.id);
                   const isSource = idx === syncState.sourceIndex;
@@ -804,10 +832,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   return (
                     <label
                       key={item.id}
-                      className={`flex items-center gap-3 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                      className={`flex items-center gap-4 p-3.5 rounded-2xl border cursor-pointer transition-all ${
                         isChecked
-                          ? 'border-primary/30 bg-primary/5 text-base-content'
-                          : 'border-base-200 bg-base-100 text-base-content/60'
+                          ? 'border-primary/40 bg-primary/5 text-base-content shadow-xs'
+                          : 'border-base-200 bg-base-100 text-base-content/70 hover:border-base-300'
                       }`}
                     >
                       <input
@@ -819,9 +847,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           else next.delete(item.id);
                           setSyncState((prev) => ({ ...prev, selectedBookIds: next }));
                         }}
-                        className="checkbox checkbox-xs checkbox-primary"
+                        className="checkbox checkbox-md checkbox-primary rounded-lg shrink-0"
                       />
-                      <div className="w-7 h-10 rounded bg-base-300 overflow-hidden shrink-0">
+                      <div className="w-12 h-16 rounded-xl bg-base-300 overflow-hidden shrink-0 border border-base-300 shadow-xs flex items-center justify-center">
                         {item.coverPreview ? (
                           <img
                             src={
@@ -833,22 +861,22 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full grid place-items-center text-[8px] font-bold opacity-40">
+                          <div className="text-xs font-bold opacity-40">
                             #{idx + 1}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold truncate flex items-center gap-1.5">
+                        <div className="font-bold text-sm text-base-content truncate flex items-center gap-2">
                           <span className="truncate">{item.title}</span>
                           {isSource && (
-                            <span className="badge badge-xs badge-primary font-bold shrink-0">
+                            <span className="badge badge-sm badge-primary font-bold shrink-0">
                               {t('common.source', 'Source')}
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] opacity-60 truncate">
-                          {item.author || item.original.author_name || 'Unknown author'}
+                        <div className="text-xs text-base-content/60 truncate mt-0.5">
+                          {item.author || item.original.author_name || t('book.author_unknown', 'Unknown author')}
                         </div>
                       </div>
                     </label>
@@ -858,11 +886,11 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             </div>
 
             {/* Sync Footer */}
-            <footer className="px-5 py-3 border-t border-base-200 bg-base-200/40 flex items-center justify-end gap-2">
+            <footer className="px-6 py-4 border-t border-base-200 bg-base-200/50 flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSyncState((prev) => ({ ...prev, isOpen: false }))}
-                className="btn btn-xs btn-ghost"
+                className="btn btn-md btn-ghost rounded-xl font-semibold"
               >
                 {t('common.cancel', 'Cancel')}
               </button>
@@ -870,9 +898,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={handleApplySync}
                 disabled={syncState.selectedBookIds.size === 0}
-                className="btn btn-xs btn-primary gap-1 !text-white font-bold"
+                className="btn btn-md btn-primary gap-2 font-bold rounded-xl px-6 shadow-md shadow-primary/20"
               >
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4" />
                 {t('common.apply', 'Apply')} ({syncState.selectedBookIds.size})
               </button>
             </footer>

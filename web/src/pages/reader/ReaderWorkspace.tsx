@@ -173,6 +173,13 @@ const ReaderWorkspaceInner = () => {
   const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights && currentChapterExists);
 
   useEffect(() => {
+    if (book?.title) {
+      const siteTitle = publicSettings?.site?.title || "NovelHub";
+      document.title = `${t('reader.reading', 'Reading')}: ${book.title} | ${siteTitle}`;
+    }
+  }, [book?.title, publicSettings?.site?.title, t]);
+
+  useEffect(() => {
     return () => {
       reset();
     };

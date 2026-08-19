@@ -243,8 +243,8 @@ export const UserProfile = () => {
                           <span className="badge badge-ghost badge-sm uppercase font-semibold text-base-content/70">{user.auth_provider}</span>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <label className="btn btn-xs btn-primary !text-white cursor-pointer">
-                            <span className="!text-white font-medium">{t('user.upload_avatar', 'Upload Photo')}</span>
+                          <label className="btn btn-xs btn-primary cursor-pointer">
+                            <span className="font-medium">{t('user.upload_avatar', 'Upload Photo')}</span>
                             <input
                               type="file"
                               accept="image/*"

@@ -571,13 +571,14 @@
     "sync_cover": "Синхронизировать обложку",
     "value_to_sync": "Значение для синхронизации",
     "select_target_books": "Выберите целевые книги",
-    "sync_applied": "Поле {{field}} применено к {{count}} книгам",
+    "sync_applied": "{{field}} применен к {{count}} книгам",
     "series_index_sequenced": "Индексы серии пронумерованы (от 1 до {{count}})",
     "bulk_saved_success": "Метаданные успешно обновлены для {{count}} книг",
     "bulk_saved_partial": "Обновлено книг: {{success}}, ошибок: {{fail}}",
     "modified_books": "книг изменено",
     "saving_progress": "Сохранение {{current}} из {{total}} книг...",
-    "auto_index_desc": "Установить номер серии 1, 2, 3... по порядку"
+    "auto_index_desc": "Установить номер серии 1, 2, 3... по порядку",
+    "sync_modal_subtitle": "Выберите книги, которые получат это значение"
   },
   "user": {
     "profile": "Профиль",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Начать пакетное конвертирование",
     "bulk_convert_success": "Успешно добавлено в очередь {{count}} задач на конвертирование",
     "bulk_convert_failed": "Не удалось запустить некоторые задачи на конвертирование",
-    "no_files_convert": "Нет доступных файлов для конвертирования"
+    "no_files_convert": "Нет доступных файлов для конвертирования",
+    "author_lower": "автора",
+    "series_lower": "серию",
+    "publisher_lower": "издателя",
+    "language_lower": "язык",
+    "age_rating_lower": "возрастной рейтинг",
+    "tags_lower": "теги",
+    "description_lower": "описание",
+    "cover_lower": "обложку"
   },
   "settings": {
     "title": "Настройки",

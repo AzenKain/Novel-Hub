@@ -567,17 +567,18 @@
     "bulk_edit_metadata_title": "थोक मेटाडेटा संपादन",
     "bulk_edit_metadata_desc": "एक साथ कई पुस्तकों के मेटाडेटा को संपादित और समन्वयित करें",
     "sync_field_to_books": "सिंक करें",
-    "sync_field_title": "{{field}} को अन्य पुस्तकों के साथ सिंक करें",
+    "sync_field_title": "अन्य पुस्तकों में {{field}} सिंक करें",
     "sync_cover": "कवर सिंक करें",
-    "value_to_sync": "सिंक करने के लिए मान",
-    "select_target_books": "लक्षित पुस्तकें चुनें",
+    "value_to_sync": "सिंक करने हेतु मान",
+    "select_target_books": "लक्ष्य पुस्तकें चुनें",
     "sync_applied": "{{count}} पुस्तकों में {{field}} लागू किया गया",
     "series_index_sequenced": "श्रृंखला अनुक्रमणिका क्रमित (1 से {{count}})",
     "bulk_saved_success": "{{count}} पुस्तकों के लिए मेटाडेटा सफलतापूर्वक अपडेट किया गया",
     "bulk_saved_partial": "{{success}} पुस्तकें अपडेट की गईं, {{fail}} विफल रहीं",
     "modified_books": "पुस्तकें संशोधित",
     "saving_progress": "{{total}} में से {{current}} पुस्तकें सहेजी जा रही हैं...",
-    "auto_index_desc": "श्रृंखला अनुक्रमणिका 1, 2, 3... क्रमानुसार सेट करें"
+    "auto_index_desc": "श्रृंखला अनुक्रमणिका 1, 2, 3... क्रमानुसार सेट करें",
+    "sync_modal_subtitle": "वे पुस्तकें चुनें जो यह मान प्राप्त करेंगी"
   },
   "user": {
     "profile": "प्रोफ़ाइल",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "थोक रूपांतरण प्रारंभ करें",
     "bulk_convert_success": "{{count}} रूपांतरण कार्य सफलतापूर्वक कतारबद्ध किए गए",
     "bulk_convert_failed": "कुछ रूपांतरण कार्य प्रारंभ करने में विफल रहे",
-    "no_files_convert": "रूपांतरित करने के लिए कोई फ़ाइल उपलब्ध नहीं है"
+    "no_files_convert": "रूपांतरित करने के लिए कोई फ़ाइल उपलब्ध नहीं है",
+    "author_lower": "लेखक",
+    "series_lower": "श्रृंखला",
+    "publisher_lower": "प्रकाशक",
+    "language_lower": "भाषा",
+    "age_rating_lower": "आयु रेटिंग",
+    "tags_lower": "टैग",
+    "description_lower": "विवरण",
+    "cover_lower": "कवर"
   },
   "settings": {
     "title": "सेटिंग्स",

@@ -570,14 +570,15 @@
     "sync_field_title": "Sincronizza {{field}} con altri libri",
     "sync_cover": "Sincronizza copertina",
     "value_to_sync": "Valore da sincronizzare",
-    "select_target_books": "Seleziona i libri di destinazione",
-    "sync_applied": "Applicato {{field}} a {{count}} libri",
+    "select_target_books": "Seleziona libri di destinazione",
+    "sync_applied": "{{field}} applicato a {{count}} libri",
     "series_index_sequenced": "Indice della serie sequenziato (da 1 a {{count}})",
     "bulk_saved_success": "Metadati aggiornati con successo per {{count}} libri",
     "bulk_saved_partial": "Aggiornati {{success}} libri, {{fail}} non riusciti",
     "modified_books": "libri modificati",
     "saving_progress": "Salvataggio di {{current}} su {{total}} libri...",
-    "auto_index_desc": "Imposta indice serie 1, 2, 3... in ordine"
+    "auto_index_desc": "Imposta indice serie 1, 2, 3... in ordine",
+    "sync_modal_subtitle": "Scegli i libri che riceveranno questo valore"
   },
   "user": {
     "profile": "Profilo",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Avvia conversione in blocco",
     "bulk_convert_success": "{{count}} attività di conversione messe in coda con successo",
     "bulk_convert_failed": "Impossibile avviare alcune attività di conversione",
-    "no_files_convert": "Nessun file disponibile per la conversione"
+    "no_files_convert": "Nessun file disponibile per la conversione",
+    "author_lower": "autore",
+    "series_lower": "serie",
+    "publisher_lower": "editore",
+    "language_lower": "lingua",
+    "age_rating_lower": "fascia d'età",
+    "tags_lower": "tag",
+    "description_lower": "descrizione",
+    "cover_lower": "copertina"
   },
   "settings": {
     "title": "Impostazioni",

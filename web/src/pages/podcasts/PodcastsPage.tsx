@@ -132,7 +132,7 @@ export const PodcastsPage: React.FC = () => {
               </select>
             </div>
             <button
-              className="btn btn-primary rounded-xl text-white"
+              className="btn btn-primary rounded-xl"
               onClick={handleSubscribe}
               disabled={!feedURL.trim() || subscribeMutation.isPending}
             >

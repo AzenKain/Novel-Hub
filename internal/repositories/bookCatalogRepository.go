@@ -246,7 +246,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		libID = *libraryID
 	}
 	if search != nil && *search != "" {
-		if match, ok := ftsMatchQuery(*search); ok {
+		if match, ok := ftsBookMatchQuery(*search); ok {
 			searchStr = match
 		}
 	}
@@ -985,4 +985,36 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 		_ = r.c.DelByPattern(context.Background(), "podcasts:*")
 	}
 	return nil
+}
+
+func ftsBookMatchQuery(searchText any) (string, bool) {
+	term, ok := searchText.(string)
+	if !ok {
+		return "", false
+	}
+	trimmed := strings.TrimSpace(term)
+	if len([]rune(trimmed)) == 0 {
+		return "", false
+	}
+
+	rawTokens := strings.Fields(trimmed)
+	var tokens []string
+	for _, tok := range rawTokens {
+		cleaned := strings.Map(func(r rune) rune {
+			if r == '"' || r == '*' || r == ':' || r == '^' || r == '(' || r == ')' || r == '{' || r == '}' {
+				return -1
+			}
+			return r
+		}, tok)
+		cleaned = strings.TrimSpace(cleaned)
+		if cleaned != "" {
+			tokens = append(tokens, `"`+strings.ReplaceAll(cleaned, `"`, `""`)+`"*`)
+		}
+	}
+
+	if len(tokens) == 0 {
+		return "", false
+	}
+
+	return strings.Join(tokens, " "), true
 }

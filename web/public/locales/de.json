@@ -566,7 +566,7 @@
     "smart_collection_update_failed": "Smart-Collection konnte nicht aktualisiert werden",
     "bulk_edit_metadata_title": "Metadaten massenhaft bearbeiten",
     "bulk_edit_metadata_desc": "Metadaten für mehrere Bücher gleichzeitig bearbeiten und synchronisieren",
-    "sync_field_to_books": "Synchronisieren",
+    "sync_field_to_books": "Sync",
     "sync_field_title": "{{field}} mit anderen Büchern synchronisieren",
     "sync_cover": "Cover synchronisieren",
     "value_to_sync": "Zu synchronisierender Wert",
@@ -577,7 +577,8 @@
     "bulk_saved_partial": "{{success}} Bücher aktualisiert, {{fail}} fehlgeschlagen",
     "modified_books": "Bücher geändert",
     "saving_progress": "Speichere {{current}} von {{total}} Büchern...",
-    "auto_index_desc": "Serienindex 1, 2, 3... der Reihe nach festlegen"
+    "auto_index_desc": "Serienindex 1, 2, 3... der Reihe nach festlegen",
+    "sync_modal_subtitle": "Wählen Sie Bücher aus, die diesen Wert erhalten sollen"
   },
   "user": {
     "profile": "Profil",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Massenkonvertierung starten",
     "bulk_convert_success": "{{count}} Konvertierungsaufträge erfolgreich in die Warteschlange eingereiht",
     "bulk_convert_failed": "Einige Konvertierungsaufträge konnten nicht gestartet werden",
-    "no_files_convert": "Keine Dateien zum Konvertieren verfügbar"
+    "no_files_convert": "Keine Dateien zum Konvertieren verfügbar",
+    "author_lower": "autor",
+    "series_lower": "serie",
+    "publisher_lower": "verlag",
+    "language_lower": "sprache",
+    "age_rating_lower": "altersfreigabe",
+    "tags_lower": "tags",
+    "description_lower": "beschreibung",
+    "cover_lower": "cover"
   },
   "settings": {
     "title": "Einstellungen",

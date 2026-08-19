@@ -211,7 +211,7 @@ export const Duplicates: React.FC = () => {
               {selectedFileIds.size > 0 && (
                 <button
                   onClick={openDeleteSelected}
-                  className="btn btn-error btn-sm gap-2 text-xs text-white"
+                  className="btn btn-error btn-sm gap-2 text-xs"
                 >
                   <Trash2 className="w-4 h-4" />
                   {t("admin.delete_selected", "Delete Selected Files")} ({selectedFileIds.size})

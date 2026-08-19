@@ -567,17 +567,18 @@
     "bulk_edit_metadata_title": "แก้ไขข้อมูลเมทาดาทาพร้อมกันหลายเล่ม",
     "bulk_edit_metadata_desc": "แก้ไขและซิงค์ข้อมูลในหนังสือหลายเล่มพร้อมกัน",
     "sync_field_to_books": "ซิงค์",
-    "sync_field_title": "ซิงค์ {{field}} ไปยังหนังสือเล่มอื่น",
+    "sync_field_title": "ซิงค์{{field}}กับหนังสือเล่มอื่น",
     "sync_cover": "ซิงค์หน้าปก",
-    "value_to_sync": "ค่าที่ต้องการซิงค์",
+    "value_to_sync": "ค่าที่จะซิงค์",
     "select_target_books": "เลือกหนังสือเป้าหมาย",
-    "sync_applied": "นำ {{field}} ไปใช้กับหนังสือ {{count}} เล่มแล้ว",
+    "sync_applied": "นำ{{field}}ไปใช้กับ {{count}} เล่มแล้ว",
     "series_index_sequenced": "เรียงลำดับดัชนีชุดซีรีส์ (1 ถึง {{count}})",
     "bulk_saved_success": "อัปเดตข้อมูลเมทาดาทาสำหรับหนังสือ {{count}} เล่มสำเร็จแล้ว",
     "bulk_saved_partial": "อัปเดต {{success}} เล่ม, ล้มเหลว {{fail}} เล่ม",
     "modified_books": "เล่มได้รับการแก้ไข",
     "saving_progress": "กำลังบันทึก {{current}} จาก {{total}} เล่ม...",
-    "auto_index_desc": "ตั้งค่าดัชนีซีรีส์ 1, 2, 3... ตามลำดับ"
+    "auto_index_desc": "ตั้งค่าดัชนีซีรีส์ 1, 2, 3... ตามลำดับ",
+    "sync_modal_subtitle": "เลือกหนังสือที่จะรับค่านี้"
   },
   "user": {
     "profile": "โปรไฟล์",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "เริ่มการแปลงรูปแบบจำนวนมาก",
     "bulk_convert_success": "เพิ่มงานแปลงรูปแบบ {{count}} งานเข้าคิวสำเร็จแล้ว",
     "bulk_convert_failed": "งานแปลงรูปแบบบางงานไม่สามารถเริ่มได้",
-    "no_files_convert": "ไม่มีไฟล์ที่สามารถแปลงรูปแบบได้"
+    "no_files_convert": "ไม่มีไฟล์ที่สามารถแปลงรูปแบบได้",
+    "author_lower": "ผู้เขียน",
+    "series_lower": "ซีรีส์",
+    "publisher_lower": "สำนักพิมพ์",
+    "language_lower": "ภาษา",
+    "age_rating_lower": "การจัดระดับอายุ",
+    "tags_lower": "แท็ก",
+    "description_lower": "เรื่องย่อ",
+    "cover_lower": "หน้าปก"
   },
   "settings": {
     "title": "การตั้งค่า",

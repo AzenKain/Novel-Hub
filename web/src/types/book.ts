@@ -261,3 +261,12 @@ export interface UpdateBookMetadataRequest {
   age_rating?: string;
   rating?: number;
 }
+
+export interface BookCardProps {
+  book: Book;
+  onClick: (book: Book) => void;
+  compact?: boolean;
+  selected?: boolean;
+  selectionIndex?: number;
+  onSelectToggle?: (book: Book) => void;
+}

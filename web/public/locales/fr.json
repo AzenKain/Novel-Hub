@@ -577,7 +577,8 @@
     "bulk_saved_partial": "{{success}} livres mis à jour, {{fail}} ont échoué",
     "modified_books": "livres modifiés",
     "saving_progress": "Enregistrement de {{current}} sur {{total}} livres...",
-    "auto_index_desc": "Définir l'index de série 1, 2, 3... dans l'ordre"
+    "auto_index_desc": "Définir l'index de série 1, 2, 3... dans l'ordre",
+    "sync_modal_subtitle": "Choisissez les livres qui recevront cette valeur"
   },
   "user": {
     "profile": "Profil",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Démarrer la conversion en lot",
     "bulk_convert_success": "{{count}} tâches de conversion ajoutées à la file d'attente avec succès",
     "bulk_convert_failed": "Certaines tâches de conversion n'ont pas pu démarrer",
-    "no_files_convert": "Aucun fichier disponible pour la conversion"
+    "no_files_convert": "Aucun fichier disponible pour la conversion",
+    "author_lower": "auteur",
+    "series_lower": "série",
+    "publisher_lower": "éditeur",
+    "language_lower": "langue",
+    "age_rating_lower": "limite d'âge",
+    "tags_lower": "tags",
+    "description_lower": "description",
+    "cover_lower": "couverture"
   },
   "settings": {
     "title": "Paramètres",

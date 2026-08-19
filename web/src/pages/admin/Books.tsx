@@ -120,7 +120,8 @@ export function Books() {
   const books = useMemo(() => booksPages?.pages.flatMap((page) => page.data || []) ?? [], [booksPages]);
 
   const selectedBooks = useMemo(() => {
-    return books.filter((b) => selectedBookIds.includes(b.id));
+    const bookMap = new Map(books.map((b) => [b.id, b]));
+    return selectedBookIds.map((id) => bookMap.get(id)).filter((b): b is Book => Boolean(b));
   }, [books, selectedBookIds]);
 
   const allSelectedAudioFiles = useMemo(() => {
@@ -184,7 +185,7 @@ export function Books() {
           <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 sm:gap-4 mb-6">
             {/* Search, Library Filter & View Switcher */}
             <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="relative flex-1 min-w-[200px] sm:min-w-[240px] max-w-md">
+              <div className="relative flex-1 min-w-50 sm:min-w-60 max-w-md">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
                 <input
                   type="text"
@@ -197,7 +198,7 @@ export function Books() {
 
               <div className="flex items-center gap-2 shrink-0">
                 <select
-                  className="select select-bordered select-sm sm:select-md bg-base-100 rounded-xl min-w-[140px] sm:min-w-[160px] flex-1 sm:flex-initial"
+                  className="select select-bordered select-sm sm:select-md bg-base-100 rounded-xl min-w-35 sm:min-w-40 flex-1 sm:flex-initial"
                   value={selectedLibraryId}
                   onChange={(e) => setSelectedLibraryId(e.target.value)}
                 >
@@ -210,14 +211,14 @@ export function Books() {
                 <div className="join border border-base-200 rounded-xl p-0.5 bg-base-100 shrink-0">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'grid' ? 'btn-primary font-bold' : 'btn-ghost text-base-content/70'}`}
                     title={t('admin.grid_view', 'Grid view')}
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-primary !text-white font-bold' : 'btn-ghost text-base-content/70'}`}
+                    className={`join-item btn btn-xs sm:btn-sm ${viewMode === 'table' ? 'btn-primary font-bold' : 'btn-ghost text-base-content/70'}`}
                     title={t('admin.table_view', 'Table view')}
                   >
                     <List className="w-4 h-4" />
@@ -245,7 +246,7 @@ export function Books() {
               )}
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl !text-white font-medium text-xs sm:text-sm"
+                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl font-medium text-xs sm:text-sm"
               >
                 <Upload className="w-4 h-4" />
                 {t("admin.upload", "Upload")}
@@ -302,7 +303,7 @@ export function Books() {
               )}
               <button
                 onClick={() => setShowBulkDeleteModal(true)}
-                className="btn btn-error btn-xs gap-1.5 text-white h-7 min-h-0"
+                className="btn btn-error btn-xs gap-1.5 h-7 min-h-0"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {t("admin.delete_selected_books", "Delete selected")}
@@ -330,15 +331,19 @@ export function Books() {
           <>
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
-                {books.map((book) => (
-                  <BookCard
-                    key={book.id}
-                    book={book}
-                    onClick={() => setActionBook(book)}
-                    selected={selectedBookIds.includes(book.id)}
-                    onSelectToggle={() => toggleSelectBook(book.id)}
-                  />
-                ))}
+                {books.map((book) => {
+                  const selIndex = selectedBookIds.indexOf(book.id);
+                  return (
+                    <BookCard
+                      key={book.id}
+                      book={book}
+                      onClick={() => setActionBook(book)}
+                      selected={selIndex !== -1}
+                      selectionIndex={selIndex !== -1 ? selIndex + 1 : undefined}
+                      onSelectToggle={() => toggleSelectBook(book.id)}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="overflow-x-auto border border-base-200 rounded-2xl bg-base-100 shadow-xs mb-8">
@@ -353,15 +358,16 @@ export function Books() {
                           onChange={toggleSelectAll}
                         />
                       </th>
-                      <th className="w-[34%] max-w-[340px]">{t("admin.books", "Books")}</th>
-                      <th className="w-[16%] max-w-[180px]">{t("admin.author", "Author")}</th>
-                      <th className="w-[26%] max-w-[280px]">{t("admin.series", "Series")}</th>
+                      <th className="w-[34%] max-w-85">{t("admin.books", "Books")}</th>
+                      <th className="w-[16%] max-w-45">{t("admin.author", "Author")}</th>
+                      <th className="w-[26%] max-w-70">{t("admin.series", "Series")}</th>
                       <th className="text-right">{t("admin.actions", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {books.map((book) => {
-                      const isSelected = selectedBookIds.includes(book.id);
+                      const selIndex = selectedBookIds.indexOf(book.id);
+                      const isSelected = selIndex !== -1;
                       const meta = book.metadata_json ? parseMetadata(book.metadata_json) : {};
                       const seriesName = meta.series ? (meta.series_index ? `${meta.series} #${meta.series_index}` : meta.series) : "-";
                       const authorName = book.author_name || book.author_id || t('library.unknown_author', 'Unknown');
@@ -370,12 +376,27 @@ export function Books() {
                       return (
                         <tr key={book.id} className={`hover ${isSelected ? "bg-primary/5" : ""}`}>
                           <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              className="checkbox checkbox-sm checkbox-primary"
-                              checked={isSelected}
-                              onChange={() => toggleSelectBook(book.id)}
-                            />
+                            <div
+                              onClick={() => toggleSelectBook(book.id)}
+                              className="inline-flex items-center justify-center cursor-pointer select-none"
+                              title={isSelected ? `Selection #${selIndex + 1}` : undefined}
+                            >
+                              <div className={`h-5.5 min-w-5.5 rounded-md flex items-center justify-center border transition-all select-none ${
+                                isSelected
+                                  ? `bg-primary border-primary text-primary-content scale-105 shadow-xs ${
+                                      selIndex + 1 >= 100 ? "px-1.5" : "px-1"
+                                    }`
+                                  : "border-base-content/30 bg-base-100 hover:border-primary w-5.5"
+                              }`}>
+                                {isSelected ? (
+                                  <span className={`font-black leading-none tabular-nums text-center flex items-center justify-center tracking-tight ${
+                                    selIndex + 1 >= 100 ? "text-[10px]" : selIndex + 1 >= 10 ? "text-[11px]" : "text-xs"
+                                  }`}>
+                                    {selIndex + 1}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
                           </td>
                           <td>
                             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActionBook(book)}>
@@ -392,7 +413,7 @@ export function Books() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div
-                                  className="font-bold text-sm text-base-content line-clamp-2 break-words hover:text-primary transition-colors"
+                                  className="font-bold text-sm text-base-content line-clamp-2 wrap-break-word hover:text-primary transition-colors"
                                   title={book.title}
                                 >
                                   {book.title}
@@ -407,13 +428,13 @@ export function Books() {
                             </div>
                           </td>
                           <td className="text-sm opacity-80">
-                            <span className="line-clamp-2 break-words" title={authorName}>
+                            <span className="line-clamp-2 wrap-break-word" title={authorName}>
                               {authorName}
                             </span>
                           </td>
                           <td className="text-sm opacity-80">
                             <span
-                              className={seriesName === "-" ? "opacity-50" : "line-clamp-2 break-words"}
+                              className={seriesName === "-" ? "opacity-50" : "line-clamp-2 wrap-break-word"}
                               title={seriesName}
                             >
                               {seriesName}
@@ -731,44 +752,44 @@ export function Books() {
                 {/* Form Fields */}
                 <form onSubmit={handleEditSubmit} id="metadata-form" className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.title', 'Title')}</label>
+                    <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.title', 'Title')}</label>
                     <input type="text" required className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.title} onChange={e => setFormData({ title: e.target.value })} />
                   </div>
 
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.author', 'Author')}</label>
+                    <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.author', 'Author')}</label>
                     <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.author} onChange={e => setFormData({ author: e.target.value })} />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.series', 'Series')}</label>
-                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.series} onChange={e => setFormData({ series: e.target.value })} />
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.series', 'Series')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.series} onChange={e => setFormData({ series: e.target.value })} />
                     </div>
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.series_index', 'Series Index')}</label>
-                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono" value={formData.series_index} onChange={e => setFormData({ series_index: e.target.value })} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.publisher', 'Publisher')}</label>
-                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.publisher} onChange={e => setFormData({ publisher: e.target.value })} />
-                    </div>
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.date', 'Date')}</label>
-                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.date} onChange={e => setFormData({ date: e.target.value })} />
+                    <div className="flex flex-col gap-1.5 sm:w-28 shrink-0">
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.series_index', 'Series Index')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono text-center font-medium" value={formData.series_index} onChange={e => setFormData({ series_index: e.target.value })} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.language', 'Language')}</label>
-                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono" value={formData.language} onChange={e => setFormData({ language: e.target.value })} />
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.publisher', 'Publisher')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.publisher} onChange={e => setFormData({ publisher: e.target.value })} />
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.age_rating', 'Age Rating')}</label>
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.date', 'Date')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.date} onChange={e => setFormData({ date: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.language', 'Language')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono font-medium" value={formData.language} onChange={e => setFormData({ language: e.target.value })} />
+                    </div>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.age_rating', 'Age Rating')}</label>
                       <select
                         value={formData.age_rating || ""}
                         onChange={e => setFormData({ age_rating: e.target.value })}
@@ -785,7 +806,7 @@ export function Books() {
 
                   {/* Tags Chip Editor */}
                   <div className="flex flex-col gap-2 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.tags', 'Tags / Subjects')}</label>
+                    <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.tags', 'Tags / Subjects')}</label>
                     <div className="flex flex-wrap gap-2 items-center p-3 bg-base-200/40 border border-base-200 rounded-xl min-h-12">
                       {formData.subjects.map((sub, sIdx) => (
                         <span key={sIdx} className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-medium rounded-lg">
@@ -802,7 +823,7 @@ export function Books() {
                           </button>
                         </span>
                       ))}
-                      <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-50">
                         <input
                           type="text"
                           value={tagInput}
@@ -820,7 +841,7 @@ export function Books() {
                           type="button"
                           onClick={handleAddTag}
                           disabled={!tagInput.trim()}
-                          className="btn btn-sm btn-primary rounded-lg gap-1"
+                          className="btn btn-sm btn-primary rounded-lg gap-1 font-bold"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           {t('common.add', 'Add')}
@@ -830,13 +851,13 @@ export function Books() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.description', 'Description')}</label>
+                    <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.description', 'Description')}</label>
                     <textarea rows={5} className="textarea textarea-bordered textarea-md w-full leading-relaxed resize-y text-sm rounded-xl" value={formData.description} onChange={e => setFormData({ description: e.target.value })} />
                   </div>
 
                   {editingBook?.metadata_json && (
                     <div className="flex flex-col gap-1.5 w-full mt-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.identifiers', 'Identifiers')}</label>
+                      <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.identifiers', 'Identifiers')}</label>
                       <div className="bg-base-200/50 p-3.5 rounded-xl text-xs font-mono break-all max-h-36 overflow-y-auto">
                         {(() => {
                           try {
@@ -860,7 +881,7 @@ export function Books() {
             <button type="button" onClick={() => setEditingBook(null)} className="btn btn-ghost btn-sm sm:btn-md rounded-xl">
               {t("admin.cancel")}
             </button>
-            <button type="submit" form="metadata-form" disabled={submitting} className="btn btn-primary btn-sm sm:btn-md px-6 gap-1.5 rounded-xl font-bold !text-white shadow-lg shadow-primary/20">
+            <button type="submit" form="metadata-form" disabled={submitting} className="btn btn-primary btn-sm sm:btn-md px-6 gap-1.5 rounded-xl font-bold shadow-lg shadow-primary/20">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {t("admin.save")}
             </button>

@@ -1,6 +1,6 @@
 import { bookService, featureService } from "@/services";
 import type { Book, SearchBookParams } from "@/types";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useBooksQuery(params: SearchBookParams, enabled = true) {
   return useInfiniteQuery({
@@ -17,7 +17,6 @@ export function useBooksQuery(params: SearchBookParams, enabled = true) {
         ? 3000
         : false,
     enabled,
-    placeholderData: keepPreviousData,
   });
 }
 
@@ -160,7 +159,7 @@ export function useSeriesBooksQuery(seriesId: string, enabled = true) {
     queryKey: ["books", "series", seriesId],
     queryFn: async () => {
       if (!seriesId) return [];
-      const res = await bookService.getBooks({ facet: "series", facet_id: seriesId, limit: 30 });
+      const res = await bookService.getBooks({ facet: "series", facet_id: seriesId, sort: "series_order", limit: 50 });
       if (!res.status) throw new Error(res.message || "Failed to fetch books in series");
       return res.data || [];
     },

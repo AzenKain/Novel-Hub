@@ -567,17 +567,18 @@
     "bulk_edit_metadata_title": "メタデータ一括編集",
     "bulk_edit_metadata_desc": "複数の書籍のメタデータを同時に編集・同期",
     "sync_field_to_books": "同期",
-    "sync_field_title": "{{field}}を他の書籍に同期",
+    "sync_field_title": "他の本に{{field}}を同期",
     "sync_cover": "表紙を同期",
     "value_to_sync": "同期する値",
-    "select_target_books": "対象の書籍を選択",
-    "sync_applied": "{{count}}冊の書籍に{{field}}を適用しました",
+    "select_target_books": "対象の本を選択",
+    "sync_applied": "{{count}}冊の本に{{field}}を適用しました",
     "series_index_sequenced": "シリーズ番号を順序付けしました (1〜{{count}})",
     "bulk_saved_success": "{{count}}冊の書籍のメタデータを正常に更新しました",
     "bulk_saved_partial": "{{success}}冊を更新、{{fail}}冊が失敗しました",
     "modified_books": "冊編集済み",
     "saving_progress": "{{total}}冊中{{current}}冊を保存中...",
-    "auto_index_desc": "シリーズ順序を自動採番 (1, 2, 3...)"
+    "auto_index_desc": "シリーズ順序を自動採番 (1, 2, 3...)",
+    "sync_modal_subtitle": "この値を適用する本を選択してください"
   },
   "user": {
     "profile": "プロフィール",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "一括変換を開始",
     "bulk_convert_success": "{{count}}件の変換ジョブがキューに追加されました",
     "bulk_convert_failed": "一部の変換ジョブの開始に失敗しました",
-    "no_files_convert": "変換できるファイルがありません"
+    "no_files_convert": "変換できるファイルがありません",
+    "author_lower": "著者",
+    "series_lower": "シリーズ",
+    "publisher_lower": "出版社",
+    "language_lower": "言語",
+    "age_rating_lower": "年齢制限",
+    "tags_lower": "タグ",
+    "description_lower": "あらすじ",
+    "cover_lower": "表紙"
   },
   "settings": {
     "title": "設定",

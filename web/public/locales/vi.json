@@ -570,14 +570,15 @@
     "sync_field_title": "Đồng bộ {{field}} sang các sách khác",
     "sync_cover": "Đồng bộ bìa",
     "value_to_sync": "Giá trị cần đồng bộ",
-    "select_target_books": "Chọn các sách cần áp dụng",
+    "select_target_books": "Chọn các sách áp dụng",
     "sync_applied": "Đã áp dụng {{field}} cho {{count}} cuốn sách",
     "series_index_sequenced": "Đã đánh số thứ tự tập series (1 đến {{count}})",
     "bulk_saved_success": "Đã cập nhật metadata thành công cho {{count}} cuốn sách",
     "bulk_saved_partial": "Đã cập nhật {{success}} sách, {{fail}} sách thất bại",
     "modified_books": "sách đã chỉnh sửa",
     "saving_progress": "Đang lưu {{current}} / {{total}} cuốn sách...",
-    "auto_index_desc": "Tự động đánh số thứ tự tập 1, 2, 3..."
+    "auto_index_desc": "Tự động đánh số thứ tự tập 1, 2, 3...",
+    "sync_modal_subtitle": "Chọn các sách bạn muốn áp dụng giá trị này"
   },
   "user": {
     "profile": "Hồ sơ",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Bắt đầu chuyển đổi hàng loạt",
     "bulk_convert_success": "Đã thêm thành công {{count}} yêu cầu chuyển đổi vào hàng chờ",
     "bulk_convert_failed": "Một số yêu cầu chuyển đổi không thể bắt đầu",
-    "no_files_convert": "Không có tệp sách để chuyển đổi"
+    "no_files_convert": "Không có tệp sách để chuyển đổi",
+    "author_lower": "tác giả",
+    "series_lower": "series",
+    "publisher_lower": "nhà xuất bản",
+    "language_lower": "ngôn ngữ",
+    "age_rating_lower": "giới hạn độ tuổi",
+    "tags_lower": "thẻ",
+    "description_lower": "tóm tắt",
+    "cover_lower": "bìa"
   },
   "settings": {
     "title": "Cài đặt",

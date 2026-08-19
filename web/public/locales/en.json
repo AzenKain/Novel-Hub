@@ -568,7 +568,7 @@
     "bulk_edit_metadata_desc": "Edit and synchronize fields across multiple books simultaneously",
     "sync_field_to_books": "Sync",
     "sync_field_title": "Sync {{field}} to other books",
-    "sync_cover": "Sync Cover",
+    "sync_cover": "Sync cover",
     "value_to_sync": "Value to synchronize",
     "select_target_books": "Select target books",
     "sync_applied": "Applied {{field}} to {{count}} books",
@@ -577,7 +577,8 @@
     "bulk_saved_partial": "Updated {{success}} books, {{fail}} failed",
     "modified_books": "books modified",
     "saving_progress": "Saving {{current}} of {{total}} books...",
-    "auto_index_desc": "Set series index 1, 2, 3... in order"
+    "auto_index_desc": "Set series index 1, 2, 3... in order",
+    "sync_modal_subtitle": "Choose which books will receive this value"
   },
   "user": {
     "profile": "Profile",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Start bulk conversion",
     "bulk_convert_success": "Enqueued {{count}} conversion jobs successfully",
     "bulk_convert_failed": "Some conversion jobs failed to start",
-    "no_files_convert": "No files available to convert"
+    "no_files_convert": "No files available to convert",
+    "author_lower": "author",
+    "series_lower": "series",
+    "publisher_lower": "publisher",
+    "language_lower": "language",
+    "age_rating_lower": "age rating",
+    "tags_lower": "tags",
+    "description_lower": "description",
+    "cover_lower": "cover"
   },
   "settings": {
     "title": "Settings",

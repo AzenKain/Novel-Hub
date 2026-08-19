@@ -91,6 +91,14 @@ export const BookDetailPage: React.FC = () => {
   const { data: readingProgress } = useTrackerReadingProgressQuery(book_id || "");
   const { data: engagementData } = useBookEngagementStatsQuery(book_id || "");
 
+  React.useEffect(() => {
+    if (book?.title) {
+      const siteTitle = publicSettings?.site?.title || "NovelHub";
+      const author = book.author_name ? ` - ${book.author_name}` : "";
+      document.title = `${book.title}${author} | ${siteTitle}`;
+    }
+  }, [book?.title, book?.author_name, publicSettings?.site?.title]);
+
   // Single source of truth for the active file variant (dropdown == Read).
   const effectiveFileId = selectedFileId || readingProgress?.file_id || book?.files?.[0]?.id || "";
 

@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"fmt"
+	"html"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -496,26 +499,217 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	scrobbleController := controllers.NewScrobbleController(scrobbleService)
 	routes.ScrobbleRoutes(v1, scrobbleController, userRepo, permissionCache)
 
-	serveEmbeddedFrontend(s.App)
+	serveEmbeddedFrontend(s.App, bookService, settingsService)
 	routes.NotFoundRoute(s.App)
 }
 
-func serveEmbeddedFrontend(app *fiber.App) {
+type metaTags struct {
+	Title       string
+	Description string
+	OGType      string
+	OGSiteName  string
+	OGTitle     string
+	OGDesc      string
+	OGImage     string
+	OGURL       string
+	TwitterCard string
+}
+
+var (
+	titleTagRegex     = regexp.MustCompile(`(?i)<title>.*?</title>`)
+	metaDescRegex     = regexp.MustCompile(`(?i)<meta\s+name=["']description["']\s+content=["'][^"']*["']\s*/?>`)
+	ogTypeRegex       = regexp.MustCompile(`(?i)<meta\s+property=["']og:type["']\s+content=["'][^"']*["']\s*/?>`)
+	ogSiteNameRegex   = regexp.MustCompile(`(?i)<meta\s+property=["']og:site_name["']\s+content=["'][^"']*["']\s*/?>`)
+	ogTitleRegex      = regexp.MustCompile(`(?i)<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*/?>`)
+	ogDescRegex       = regexp.MustCompile(`(?i)<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*/?>`)
+	ogImageRegex      = regexp.MustCompile(`(?i)<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*/?>`)
+	ogURLRegex        = regexp.MustCompile(`(?i)<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*/?>`)
+	twitterCardRegex  = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:card["']\s+content=["'][^"']*["']\s*/?>`)
+	twitterTitleRegex = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']\s*/?>`)
+	twitterDescRegex  = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']\s*/?>`)
+	twitterImageRegex = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']\s*/?>`)
+)
+
+func stripHTMLTags(s string) string {
+	var builder strings.Builder
+	inTag := false
+	for _, r := range s {
+		if r == '<' {
+			inTag = true
+			continue
+		}
+		if r == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			builder.WriteRune(r)
+		}
+	}
+	return strings.Join(strings.Fields(builder.String()), " ")
+}
+
+func injectMetaTags(htmlDoc string, tags metaTags) string {
+	htmlDoc = titleTagRegex.ReplaceAllString(htmlDoc, fmt.Sprintf("<title>%s</title>", html.EscapeString(tags.Title)))
+	htmlDoc = metaDescRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="description" content="%s" />`, html.EscapeString(tags.Description)))
+	htmlDoc = ogTypeRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:type" content="%s" />`, html.EscapeString(tags.OGType)))
+	htmlDoc = ogSiteNameRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:site_name" content="%s" />`, html.EscapeString(tags.OGSiteName)))
+	htmlDoc = ogTitleRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:title" content="%s" />`, html.EscapeString(tags.OGTitle)))
+	htmlDoc = ogDescRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:description" content="%s" />`, html.EscapeString(tags.OGDesc)))
+	htmlDoc = ogImageRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:image" content="%s" />`, html.EscapeString(tags.OGImage)))
+
+	if tags.OGURL != "" {
+		if ogURLRegex.MatchString(htmlDoc) {
+			htmlDoc = ogURLRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:url" content="%s" />`, html.EscapeString(tags.OGURL)))
+		} else {
+			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:url" content="%s" />`+"\n  </head>", html.EscapeString(tags.OGURL)), 1)
+		}
+	}
+
+	htmlDoc = twitterCardRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:card" content="%s" />`, html.EscapeString(tags.TwitterCard)))
+	htmlDoc = twitterTitleRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:title" content="%s" />`, html.EscapeString(tags.OGTitle)))
+	htmlDoc = twitterDescRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:description" content="%s" />`, html.EscapeString(tags.OGDesc)))
+	htmlDoc = twitterImageRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:image" content="%s" />`, html.EscapeString(tags.OGImage)))
+
+	return htmlDoc
+}
+
+func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, settingsService services.SettingsService) {
 	dist, err := fs.Sub(embeddedDist, "dist")
 	if err != nil {
 		return
 	}
 
+	rawIndex, err := fs.ReadFile(dist, "index.html")
+	if err != nil {
+		return
+	}
+
 	serveIndex := func(c fiber.Ctx) error {
-		index, err := fs.ReadFile(dist, "index.html")
-		if err != nil {
-			return c.Next()
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		htmlDoc := string(rawIndex)
+
+		// Determine site settings
+		siteTitle := "NovelHub"
+		siteDescription := "A modern, local light novel library and reader."
+		logoURL := ""
+		if pub, err := settingsService.Public(ctx); err == nil && pub != nil {
+			if pub.Site.Title != "" {
+				siteTitle = pub.Site.Title
+			}
+			if pub.Site.MetaDescription != "" {
+				siteDescription = pub.Site.MetaDescription
+			} else if pub.Site.Description != "" {
+				siteDescription = pub.Site.Description
+			}
+			if pub.Site.Logo != "" {
+				logoURL = pub.Site.Logo
+			}
 		}
+
+		// Determine base origin URL
+		origin := strings.TrimRight(config.GetConfigWithDefault("SERVER_URL", ""), "/")
+		if origin == "" {
+			scheme := c.Protocol()
+			if proto := c.Get("X-Forwarded-Proto"); proto != "" {
+				scheme = proto
+			}
+			host := c.Hostname()
+			if fHost := c.Get("X-Forwarded-Host"); fHost != "" {
+				host = fHost
+			}
+			if host != "" {
+				origin = scheme + "://" + host
+			}
+		}
+
+		path := c.Path()
+		var (
+			pageTitle       = siteTitle
+			metaDescription = siteDescription
+			ogType          = "website"
+			ogTitle         = siteTitle
+			ogDescription   = siteDescription
+			ogImage         = origin + "/pwa-512x512.png"
+			ogURL           = origin + c.OriginalURL()
+			twitterCard     = "summary"
+		)
+
+		if logoURL != "" {
+			if strings.HasPrefix(logoURL, "http://") || strings.HasPrefix(logoURL, "https://") {
+				ogImage = logoURL
+			} else {
+				ogImage = origin + "/" + strings.TrimPrefix(logoURL, "/")
+			}
+		}
+
+		// Check if accessing a book route: /books/:id or /reader/:id
+		var bookID string
+		if strings.HasPrefix(path, "/books/") {
+			bookID = strings.TrimPrefix(path, "/books/")
+		} else if strings.HasPrefix(path, "/reader/") {
+			bookID = strings.TrimPrefix(path, "/reader/")
+		}
+		if idx := strings.Index(bookID, "/"); idx != -1 {
+			bookID = bookID[:idx]
+		}
+		bookID = strings.TrimSpace(bookID)
+
+		if bookID != "" {
+			book, err := bookService.GetBook(ctx, bookID)
+			if err == nil && book != nil {
+				ogType = "book"
+				ogTitle = book.Title
+				if book.AuthorName != nil && *book.AuthorName != "" {
+					pageTitle = fmt.Sprintf("%s - %s | %s", book.Title, *book.AuthorName, siteTitle)
+				} else {
+					pageTitle = fmt.Sprintf("%s | %s", book.Title, siteTitle)
+				}
+
+				if book.Description != nil && *book.Description != "" {
+					desc := stripHTMLTags(*book.Description)
+					if len(desc) > 300 {
+						desc = desc[:297] + "..."
+					}
+					metaDescription = desc
+					ogDescription = desc
+				} else if book.AuthorName != nil && *book.AuthorName != "" {
+					desc := fmt.Sprintf("Book by %s on %s.", *book.AuthorName, siteTitle)
+					metaDescription = desc
+					ogDescription = desc
+				}
+
+				if book.CoverURL != nil && *book.CoverURL != "" {
+					cover := *book.CoverURL
+					if strings.HasPrefix(cover, "http://") || strings.HasPrefix(cover, "https://") {
+						ogImage = cover
+					} else {
+						ogImage = origin + "/" + strings.TrimPrefix(cover, "/")
+					}
+					twitterCard = "summary_large_image"
+				}
+			}
+		}
+
+		htmlDoc = injectMetaTags(htmlDoc, metaTags{
+			Title:       pageTitle,
+			Description: metaDescription,
+			OGType:      ogType,
+			OGSiteName:  siteTitle,
+			OGTitle:     ogTitle,
+			OGDesc:      ogDescription,
+			OGImage:     ogImage,
+			OGURL:       ogURL,
+			TwitterCard: twitterCard,
+		})
+
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
 		c.Set(fiber.HeaderCacheControl, "no-cache, no-store, must-revalidate")
 		c.Set("Pragma", "no-cache")
 		c.Set("Expires", "0")
-		return c.Status(fiber.StatusOK).Send(index)
+		return c.Status(fiber.StatusOK).SendString(htmlDoc)
 	}
 
 	app.Get("/", serveIndex)

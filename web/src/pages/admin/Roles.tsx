@@ -498,14 +498,14 @@ export function Roles() {
                                           <button
                                             type="button"
                                             onClick={() => setEffect(perm.key, "allow")}
-                                            className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success text-white font-bold" : "btn-ghost text-base-content/60"}`}
+                                            className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success font-bold" : "btn-ghost text-base-content/60"}`}
                                           >
                                             {t("admin.role_effect_allow", "Allow")}
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => setEffect(perm.key, "deny")}
-                                            className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error text-white font-bold" : "btn-ghost text-base-content/60"}`}
+                                            className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error font-bold" : "btn-ghost text-base-content/60"}`}
                                           >
                                             {t("admin.role_effect_deny", "Deny")}
                                           </button>

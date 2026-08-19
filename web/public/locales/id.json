@@ -566,18 +566,19 @@
     "smart_collection_update_failed": "Gagal memperbarui koleksi pintar",
     "bulk_edit_metadata_title": "Edit Metadata Massal",
     "bulk_edit_metadata_desc": "Edit dan sinkronkan bidang di beberapa buku secara bersamaan",
-    "sync_field_to_books": "Sinkronkan",
+    "sync_field_to_books": "Sinkron",
     "sync_field_title": "Sinkronkan {{field}} ke buku lain",
-    "sync_cover": "Sinkronkan Sampul",
+    "sync_cover": "Sinkronkan sampul",
     "value_to_sync": "Nilai untuk disinkronkan",
     "select_target_books": "Pilih buku target",
-    "sync_applied": "Menerapkan {{field}} ke {{count}} buku",
+    "sync_applied": "{{field}} diterapkan ke {{count}} buku",
     "series_index_sequenced": "Indeks seri diurutkan (1 hingga {{count}})",
     "bulk_saved_success": "Berhasil memperbarui metadata untuk {{count}} buku",
     "bulk_saved_partial": "Memperbarui {{success}} buku, {{fail}} gagal",
     "modified_books": "buku dimodifikasi",
     "saving_progress": "Menyimpan {{current}} dari {{total}} buku...",
-    "auto_index_desc": "Atur indeks seri 1, 2, 3... berurutan"
+    "auto_index_desc": "Atur indeks seri 1, 2, 3... berurutan",
+    "sync_modal_subtitle": "Pilih buku yang akan menerima nilai ini"
   },
   "user": {
     "profile": "Profil",
@@ -795,7 +796,15 @@
     "bulk_convert_start": "Mulai konversi massal",
     "bulk_convert_success": "Berhasil memasukkan {{count}} tugas konversi ke antrean",
     "bulk_convert_failed": "Beberapa tugas konversi gagal dimulai",
-    "no_files_convert": "Tidak ada berkas yang tersedia untuk dikonversi"
+    "no_files_convert": "Tidak ada berkas yang tersedia untuk dikonversi",
+    "author_lower": "penulis",
+    "series_lower": "seri",
+    "publisher_lower": "penerbit",
+    "language_lower": "bahasa",
+    "age_rating_lower": "rating usia",
+    "tags_lower": "tag",
+    "description_lower": "deskripsi",
+    "cover_lower": "sampul"
   },
   "settings": {
     "title": "Pengaturan",
