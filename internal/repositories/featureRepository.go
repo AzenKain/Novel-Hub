@@ -934,8 +934,19 @@ func (r *featureRepository) refreshBookRatingStats(ctx context.Context, bookID s
 	}); err != nil {
 		return err
 	}
+	if err := r.queries.UpdateBookRatingStats(ctx, bookID); err != nil {
+		return err
+	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("rating", "summary", bookID), cache.BuildKey("social", "stats", bookID))
+		_ = r.c.Del(
+			ctx,
+			cache.BuildKey("rating", "summary", bookID),
+			cache.BuildKey("social", "stats", bookID),
+			cache.BuildKey("book", bookID),
+		)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
 	}
 	return nil
 }

@@ -1,10 +1,12 @@
 import { smartFilterService } from "@/services";
+import { useAuthStore } from "@/stores";
 import type { SmartFilter, UpsertSmartFilterPayload, ReorderHomeShelfItem, Book } from "@/types";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import i18n from "@/i18n";
 
-export function useSmartFiltersQuery() {
+export function useSmartFiltersQuery(enabled = true) {
+  const user = useAuthStore((state) => state.user);
   return useQuery<SmartFilter[]>({
     queryKey: ["smart-filters"],
     queryFn: async () => {
@@ -12,10 +14,12 @@ export function useSmartFiltersQuery() {
       if (!res.status) throw new Error(res.message || "Failed to fetch smart filters");
       return res.data || [];
     },
+    enabled: enabled && !!user,
   });
 }
 
 export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string, limit = 20, enabled = true) {
+  const user = useAuthStore((state) => state.user);
   return useInfiniteQuery({
     queryKey: ["smart-filters", id, "books", { libraryId, limit }],
     initialPageParam: undefined as string | undefined,
@@ -29,11 +33,12 @@ export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string,
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
-    enabled: enabled && !!id,
+    enabled: enabled && !!id && !!user,
   });
 }
 
 export function useSmartFilterBooksQuery(id: string, libraryId?: string, limit = 8, enabled = true) {
+  const user = useAuthStore((state) => state.user);
   return useQuery<Book[]>({
     queryKey: ["smart-filters", id, "books", "fixed", { libraryId, limit }],
     queryFn: async () => {
@@ -44,7 +49,7 @@ export function useSmartFilterBooksQuery(id: string, libraryId?: string, limit =
       if (!res.status) throw new Error("Failed to fetch books for smart filter");
       return res.data || [];
     },
-    enabled: enabled && !!id,
+    enabled: enabled && !!id && !!user,
   });
 }
 

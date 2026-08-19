@@ -783,6 +783,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listPublishersWithCountStmt, err = db.PrepareContext(ctx, listPublishersWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPublishersWithCount: %w", err)
 	}
+	if q.listRatingsWithCountStmt, err = db.PrepareContext(ctx, listRatingsWithCount); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRatingsWithCount: %w", err)
+	}
 	if q.listRolePermissionIDsStmt, err = db.PrepareContext(ctx, listRolePermissionIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRolePermissionIDs: %w", err)
 	}
@@ -980,6 +983,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateBookAgeRatingStmt, err = db.PrepareContext(ctx, updateBookAgeRating); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateBookAgeRating: %w", err)
+	}
+	if q.updateBookRatingStatsStmt, err = db.PrepareContext(ctx, updateBookRatingStats); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateBookRatingStats: %w", err)
 	}
 	if q.updateCollectionStmt, err = db.PrepareContext(ctx, updateCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateCollection: %w", err)
@@ -2380,6 +2386,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listPublishersWithCountStmt: %w", cerr)
 		}
 	}
+	if q.listRatingsWithCountStmt != nil {
+		if cerr := q.listRatingsWithCountStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRatingsWithCountStmt: %w", cerr)
+		}
+	}
 	if q.listRolePermissionIDsStmt != nil {
 		if cerr := q.listRolePermissionIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRolePermissionIDsStmt: %w", cerr)
@@ -2708,6 +2719,11 @@ func (q *Queries) Close() error {
 	if q.updateBookAgeRatingStmt != nil {
 		if cerr := q.updateBookAgeRatingStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateBookAgeRatingStmt: %w", cerr)
+		}
+	}
+	if q.updateBookRatingStatsStmt != nil {
+		if cerr := q.updateBookRatingStatsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateBookRatingStatsStmt: %w", cerr)
 		}
 	}
 	if q.updateCollectionStmt != nil {
@@ -3217,6 +3233,7 @@ type Queries struct {
 	listPodcastIDsStmt                 *sql.Stmt
 	listPodcastsWithCountsStmt         *sql.Stmt
 	listPublishersWithCountStmt        *sql.Stmt
+	listRatingsWithCountStmt           *sql.Stmt
 	listRolePermissionIDsStmt          *sql.Stmt
 	listRolePermissionsStmt            *sql.Stmt
 	listSeriesWithCountStmt            *sql.Stmt
@@ -3283,6 +3300,7 @@ type Queries struct {
 	touchKoboAuthTokenStmt             *sql.Stmt
 	updateBookStmt                     *sql.Stmt
 	updateBookAgeRatingStmt            *sql.Stmt
+	updateBookRatingStatsStmt          *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
 	updateEpisodeDownloadedStmt        *sql.Stmt
 	updateFileHashStmt                 *sql.Stmt
@@ -3585,6 +3603,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listPodcastIDsStmt:                 q.listPodcastIDsStmt,
 		listPodcastsWithCountsStmt:         q.listPodcastsWithCountsStmt,
 		listPublishersWithCountStmt:        q.listPublishersWithCountStmt,
+		listRatingsWithCountStmt:           q.listRatingsWithCountStmt,
 		listRolePermissionIDsStmt:          q.listRolePermissionIDsStmt,
 		listRolePermissionsStmt:            q.listRolePermissionsStmt,
 		listSeriesWithCountStmt:            q.listSeriesWithCountStmt,
@@ -3651,6 +3670,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		touchKoboAuthTokenStmt:             q.touchKoboAuthTokenStmt,
 		updateBookStmt:                     q.updateBookStmt,
 		updateBookAgeRatingStmt:            q.updateBookAgeRatingStmt,
+		updateBookRatingStatsStmt:          q.updateBookRatingStatsStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,
 		updateEpisodeDownloadedStmt:        q.updateEpisodeDownloadedStmt,
 		updateFileHashStmt:                 q.updateFileHashStmt,

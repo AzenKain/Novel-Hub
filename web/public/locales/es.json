@@ -563,7 +563,21 @@
     "potential_matches": "Coincidencias potenciales",
     "potential_matches_desc": "Mismo título y autor con diferencias menores: fusiona los duplicados en un solo libro.",
     "rename_smart_collection": "Renombrar colección inteligente",
-    "smart_collection_update_failed": "No se pudo actualizar la colección inteligente"
+    "smart_collection_update_failed": "No se pudo actualizar la colección inteligente",
+    "bulk_edit_metadata_title": "Edición masiva de metadatos",
+    "bulk_edit_metadata_desc": "Editar y sincronizar metadatos en varios libros simultáneamente",
+    "sync_field_to_books": "Sincronizar",
+    "sync_field_title": "Sincronizar {{field}} con otros libros",
+    "sync_cover": "Sincronizar portada",
+    "value_to_sync": "Valor a sincronizar",
+    "select_target_books": "Seleccionar libros de destino",
+    "sync_applied": "Se aplicó {{field}} a {{count}} libros",
+    "series_index_sequenced": "Índice de serie secuenciado (1 a {{count}})",
+    "bulk_saved_success": "Metadatos actualizados con éxito para {{count}} libros",
+    "bulk_saved_partial": "Se actualizaron {{success}} libros, {{fail}} fallaron",
+    "modified_books": "libros modificados",
+    "saving_progress": "Guardando {{current}} de {{total}} libros...",
+    "auto_index_desc": "Establecer índice de serie 1, 2, 3... en orden"
   },
   "user": {
     "profile": "Perfil",
@@ -687,7 +701,12 @@
     "seek": "Buscar",
     "volume": "Volumen",
     "audio_load_failed": "No se pudo cargar este archivo de audio",
-    "audio_load_failed_hint": "Comprueba el formato del archivo e inténtalo de nuevo."
+    "audio_load_failed_hint": "Comprueba el formato del archivo e inténtalo de nuevo.",
+    "page_animation": "Animación de página",
+    "animation_eink": "Destello E-Ink",
+    "animation_none": "Instantáneo / Ninguno",
+    "animation_fade": "Desvanecer (Fade)",
+    "animation_slide": "Deslizar (Slide)"
   },
   "analytics": {
     "title": "Analíticas y estadísticas de lectura",

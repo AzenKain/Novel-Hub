@@ -114,19 +114,20 @@ WHERE
     (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (sqlc.narg('filter_reading') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (sqlc.narg('filter_read') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
+    (sqlc.narg('filter_unread') IS NULL OR (sqlc.narg('user_id') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
     (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
     (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
-    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
+    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (sqlc.narg('filter_rating_star') IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = sqlc.narg('filter_rating_star'))) AND
     (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
     (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
-    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
-    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
-    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
-    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
-    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id') OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(sqlc.narg('author_id')))) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = sqlc.narg('series_id') OR LOWER(s.name) = LOWER(sqlc.narg('series_id'))))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = sqlc.narg('tag_id') OR LOWER(t.name) = LOWER(sqlc.narg('tag_id'))))) AND
+    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = sqlc.narg('publisher_id') OR LOWER(p.name) = LOWER(sqlc.narg('publisher_id'))))) AND
+    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = sqlc.narg('language_id') OR LOWER(l.name) = LOWER(sqlc.narg('language_id'))))) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format')))) AND
     (sqlc.narg('exclude_audiobooks') IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
@@ -149,13 +150,13 @@ WHERE
      AND (sqlc.narg('cursor_created_at') IS NULL OR b.created_at < CAST(sqlc.narg('cursor_created_at') AS TEXT) OR b.id < sqlc.narg('cursor_id'))) AND
     (sqlc.narg('library_id') IS NULL OR b.library_id = sqlc.narg('library_id')) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format')))) AND
-    (sqlc.narg('status_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (sqlc.narg('status_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (sqlc.narg('status_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
+    (sqlc.narg('status_unread') IS NULL OR (sqlc.narg('user_id') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
+    (sqlc.narg('status_read') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent >= 99.5))) AND
+    (sqlc.narg('status_reading') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
     (sqlc.narg('rating_gte') IS NULL OR b.average_rating >= sqlc.narg('rating_gte')) AND
-    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
-    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
-    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id')))
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id') OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(sqlc.narg('author_id')))) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = sqlc.narg('series_id') OR LOWER(s.name) = LOWER(sqlc.narg('series_id'))))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = sqlc.narg('tag_id') OR LOWER(t.name) = LOWER(sqlc.narg('tag_id')))))
 ORDER BY
     b.created_at DESC, b.id DESC
 LIMIT sqlc.arg('limit');
@@ -182,19 +183,20 @@ WHERE
     (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (sqlc.narg('filter_reading') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (sqlc.narg('filter_read') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
+    (sqlc.narg('filter_unread') IS NULL OR (sqlc.narg('user_id') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
     (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
     (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
-    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
+    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (sqlc.narg('filter_rating_star') IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = sqlc.narg('filter_rating_star'))) AND
     (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
     (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
-    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
-    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
-    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
-    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
-    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id') OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(sqlc.narg('author_id')))) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = sqlc.narg('series_id') OR LOWER(s.name) = LOWER(sqlc.narg('series_id'))))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = sqlc.narg('tag_id') OR LOWER(t.name) = LOWER(sqlc.narg('tag_id'))))) AND
+    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = sqlc.narg('publisher_id') OR LOWER(p.name) = LOWER(sqlc.narg('publisher_id'))))) AND
+    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = sqlc.narg('language_id') OR LOWER(l.name) = LOWER(sqlc.narg('language_id'))))) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format')))) AND
     (sqlc.narg('exclude_audiobooks') IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
@@ -235,19 +237,20 @@ WHERE
     (sqlc.narg('filter_has_publishers') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (sqlc.narg('filter_has_languages') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (sqlc.narg('filter_has_formats') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (sqlc.narg('filter_reading') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (sqlc.narg('filter_read') IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (sqlc.narg('filter_unread') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
+    (sqlc.narg('filter_reading') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (sqlc.narg('filter_read') IS NULL OR (sqlc.narg('user_id') IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
+    (sqlc.narg('filter_unread') IS NULL OR (sqlc.narg('user_id') IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = sqlc.narg('user_id') AND rp.progress_percent > 0))) AND
     (sqlc.narg('filter_hot') IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
     (sqlc.narg('filter_top_downloaded') IS NULL OR b.download_count > 0) AND
-    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0) AND
+    (sqlc.narg('filter_top_rated') IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (sqlc.narg('filter_rating_star') IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = sqlc.narg('filter_rating_star'))) AND
     (sqlc.narg('filter_archived') IS NULL OR b.status = 'archived') AND
     (sqlc.narg('filter_bookmarked') IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = sqlc.narg('user_id'))) AND
-    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id')) AND
-    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = sqlc.narg('series_id'))) AND
-    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = sqlc.narg('tag_id'))) AND
-    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = sqlc.narg('publisher_id'))) AND
-    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = sqlc.narg('language_id'))) AND
+    (sqlc.narg('author_id') IS NULL OR b.author_id = sqlc.narg('author_id') OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(sqlc.narg('author_id')))) AND
+    (sqlc.narg('series_id') IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = sqlc.narg('series_id') OR LOWER(s.name) = LOWER(sqlc.narg('series_id'))))) AND
+    (sqlc.narg('tag_id') IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = sqlc.narg('tag_id') OR LOWER(t.name) = LOWER(sqlc.narg('tag_id'))))) AND
+    (sqlc.narg('publisher_id') IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = sqlc.narg('publisher_id') OR LOWER(p.name) = LOWER(sqlc.narg('publisher_id'))))) AND
+    (sqlc.narg('language_id') IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = sqlc.narg('language_id') OR LOWER(l.name) = LOWER(sqlc.narg('language_id'))))) AND
     (sqlc.narg('file_format') IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(sqlc.narg('file_format')))) AND
     (sqlc.narg('exclude_audiobooks') IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
@@ -257,4 +260,10 @@ ORDER BY
     b.title COLLATE NOCASE ASC,
     b.id ASC
 LIMIT sqlc.arg('limit');
+
+-- name: UpdateBookRatingStats :exec
+UPDATE books
+SET average_rating = COALESCE((SELECT stats.average_rating FROM book_social_stats stats WHERE stats.book_id = sqlc.arg('book_id')), 0.0),
+    rating_count = COALESCE((SELECT stats.rating_count FROM book_social_stats stats WHERE stats.book_id = sqlc.arg('book_id')), 0)
+WHERE id = sqlc.arg('book_id');
 

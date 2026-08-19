@@ -25,6 +25,7 @@ interface LibraryState {
     publishers: MetadataCount[];
     languages: MetadataCount[];
     formats: MetadataCount[];
+    ratings: MetadataCount[];
   };
   collections: Collection[];
   hasMoreCollections: boolean;
@@ -92,6 +93,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
     publishers: [],
     languages: [],
     formats: [],
+    ratings: [],
   },
   collections: [],
   hasMoreCollections: true,

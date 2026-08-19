@@ -3,7 +3,7 @@ import { metadataService } from "@/services";
 import type { MetadataCount, MetadataFacetParams } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-export type MetadataFacet = "authors" | "series" | "tags" | "publishers" | "languages" | "formats";
+export type MetadataFacet = "authors" | "series" | "tags" | "publishers" | "languages" | "formats" | "ratings";
 
 const fetchers: Record<MetadataFacet, (params: MetadataFacetParams) => ReturnType<typeof metadataService.listAuthors>> = {
   authors: (params) => metadataService.listAuthors(params),
@@ -12,6 +12,7 @@ const fetchers: Record<MetadataFacet, (params: MetadataFacetParams) => ReturnTyp
   publishers: (params) => metadataService.listPublishers(params),
   languages: (params) => metadataService.listLanguages(params),
   formats: (params) => metadataService.listFormats(params),
+  ratings: (params) => metadataService.listRatings(params),
 };
 
 const EMPTY_ARRAY: any[] = [];

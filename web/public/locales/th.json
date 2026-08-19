@@ -563,7 +563,21 @@
     "potential_matches": "รายการที่อาจตรงกัน",
     "potential_matches_desc": "ชื่อและผู้แต่งเหมือนกันแต่ต่างกันเล็กน้อย — รวมรายการที่ซ้ำกันเป็นเล่มเดียว",
     "rename_smart_collection": "เปลี่ยนชื่อคอลเลกชันอัจฉริยะ",
-    "smart_collection_update_failed": "ไม่สามารถอัปเดตคอลเลกชันอัจฉริยะได้"
+    "smart_collection_update_failed": "ไม่สามารถอัปเดตคอลเลกชันอัจฉริยะได้",
+    "bulk_edit_metadata_title": "แก้ไขข้อมูลเมทาดาทาพร้อมกันหลายเล่ม",
+    "bulk_edit_metadata_desc": "แก้ไขและซิงค์ข้อมูลในหนังสือหลายเล่มพร้อมกัน",
+    "sync_field_to_books": "ซิงค์",
+    "sync_field_title": "ซิงค์ {{field}} ไปยังหนังสือเล่มอื่น",
+    "sync_cover": "ซิงค์หน้าปก",
+    "value_to_sync": "ค่าที่ต้องการซิงค์",
+    "select_target_books": "เลือกหนังสือเป้าหมาย",
+    "sync_applied": "นำ {{field}} ไปใช้กับหนังสือ {{count}} เล่มแล้ว",
+    "series_index_sequenced": "เรียงลำดับดัชนีชุดซีรีส์ (1 ถึง {{count}})",
+    "bulk_saved_success": "อัปเดตข้อมูลเมทาดาทาสำหรับหนังสือ {{count}} เล่มสำเร็จแล้ว",
+    "bulk_saved_partial": "อัปเดต {{success}} เล่ม, ล้มเหลว {{fail}} เล่ม",
+    "modified_books": "เล่มได้รับการแก้ไข",
+    "saving_progress": "กำลังบันทึก {{current}} จาก {{total}} เล่ม...",
+    "auto_index_desc": "ตั้งค่าดัชนีซีรีส์ 1, 2, 3... ตามลำดับ"
   },
   "user": {
     "profile": "โปรไฟล์",
@@ -687,7 +701,12 @@
     "seek": "เลื่อน",
     "volume": "ระดับเสียง",
     "audio_load_failed": "โหลดไฟล์เสียงนี้ไม่สำเร็จ",
-    "audio_load_failed_hint": "ตรวจสอบรูปแบบไฟล์แล้วลองอีกครั้ง"
+    "audio_load_failed_hint": "ตรวจสอบรูปแบบไฟล์แล้วลองอีกครั้ง",
+    "page_animation": "แอนิเมชันเปลี่ยนหน้า",
+    "animation_eink": "E-Ink แฟลช",
+    "animation_none": "ทันที (ไม่มี)",
+    "animation_fade": "จางลง (Fade)",
+    "animation_slide": "เลื่อน (Slide)"
   },
   "analytics": {
     "title": "สถิติและการวิเคราะห์การอ่าน",

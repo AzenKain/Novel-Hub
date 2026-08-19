@@ -563,7 +563,21 @@
     "potential_matches": "Potential Matches",
     "potential_matches_desc": "Same title and author with minor differences — merge the duplicates into one book.",
     "rename_smart_collection": "Rename smart collection",
-    "smart_collection_update_failed": "Could not update the smart collection"
+    "smart_collection_update_failed": "Could not update the smart collection",
+    "bulk_edit_metadata_title": "Bulk Edit Metadata",
+    "bulk_edit_metadata_desc": "Edit and synchronize fields across multiple books simultaneously",
+    "sync_field_to_books": "Sync",
+    "sync_field_title": "Sync {{field}} to other books",
+    "sync_cover": "Sync Cover",
+    "value_to_sync": "Value to synchronize",
+    "select_target_books": "Select target books",
+    "sync_applied": "Applied {{field}} to {{count}} books",
+    "series_index_sequenced": "Sequenced series index (1 to {{count}})",
+    "bulk_saved_success": "Successfully updated metadata for {{count}} books",
+    "bulk_saved_partial": "Updated {{success}} books, {{fail}} failed",
+    "modified_books": "books modified",
+    "saving_progress": "Saving {{current}} of {{total}} books...",
+    "auto_index_desc": "Set series index 1, 2, 3... in order"
   },
   "user": {
     "profile": "Profile",
@@ -687,7 +701,12 @@
     "seek": "Seek",
     "volume": "Volume",
     "audio_load_failed": "Could not load this audio file",
-    "audio_load_failed_hint": "Check the file format and try again."
+    "audio_load_failed_hint": "Check the file format and try again.",
+    "page_animation": "Page Animation",
+    "animation_eink": "E-Ink Flash",
+    "animation_none": "Instant / None",
+    "animation_fade": "Fade",
+    "animation_slide": "Slide"
   },
   "analytics": {
     "title": "Reading Analytics & Stats",

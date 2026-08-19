@@ -109,14 +109,14 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", "", 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", "", 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
 
-	booksRA, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", "", 20)
+	booksRA, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", "", 20, "")
 	cursorRA := ""
 	if len(booksRA) > 0 {
 		last := booksRA[len(booksRA)-1]
@@ -127,7 +127,7 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", cursorRA, 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "recently_added", cursorRA, 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -139,14 +139,14 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", "", 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", "", 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
 
-	booksTitle, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", "", 20)
+	booksTitle, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", "", 20, "")
 	cursorTitle := ""
 	if len(booksTitle) > 0 {
 		last := booksTitle[len(booksTitle)-1]
@@ -157,7 +157,7 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", cursorTitle, 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "title_az", cursorTitle, 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -169,14 +169,14 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", "", 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", "", 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
 
-	booksSeries, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", "", 20)
+	booksSeries, _ := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", "", 20, "")
 	cursorSeries := ""
 	if len(booksSeries) > 0 {
 		last := booksSeries[len(booksSeries)-1]
@@ -196,7 +196,7 @@ func BenchmarkSearchBooks(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", cursorSeries, 20)
+			_, err := repo.SearchBooks(ctx, &lib, nil, "", "", "", "", "", "series_order", cursorSeries, 20, "")
 			if err != nil {
 				b.Fatal(err)
 			}

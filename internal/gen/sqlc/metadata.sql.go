@@ -477,6 +477,64 @@ func (q *Queries) ListPublishersWithCount(ctx context.Context, arg ListPublisher
 	return items, nil
 }
 
+const listRatingsWithCount = `-- name: ListRatingsWithCount :many
+SELECT
+    CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) as id,
+    CASE CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER)
+        WHEN 5 THEN '5 Stars'
+        WHEN 4 THEN '4 Stars'
+        WHEN 3 THEN '3 Stars'
+        WHEN 2 THEN '2 Stars'
+        WHEN 1 THEN '1 Star'
+        ELSE CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) || ' Stars'
+    END as name,
+    COUNT(DISTINCT b.id) as book_count
+FROM books b
+LEFT JOIN book_social_stats s ON s.book_id = b.id
+WHERE b.library_id IN (SELECT value FROM json_each(?1))
+  AND (COALESCE(s.rating_count, b.rating_count, 0) > 0)
+  AND (COALESCE(s.average_rating, b.average_rating, 0) >= 0.5)
+  AND (?2 IS NULL OR CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) LIKE '%' || ?2 || '%')
+GROUP BY CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER)
+ORDER BY CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) DESC
+LIMIT ?3
+`
+
+type ListRatingsWithCountParams struct {
+	LibraryIds interface{} `json:"library_ids"`
+	Search     interface{} `json:"search"`
+	Limit      int64       `json:"limit"`
+}
+
+type ListRatingsWithCountRow struct {
+	ID        string      `json:"id"`
+	Name      interface{} `json:"name"`
+	BookCount int64       `json:"book_count"`
+}
+
+func (q *Queries) ListRatingsWithCount(ctx context.Context, arg ListRatingsWithCountParams) ([]ListRatingsWithCountRow, error) {
+	rows, err := q.query(ctx, q.listRatingsWithCountStmt, listRatingsWithCount, arg.LibraryIds, arg.Search, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRatingsWithCountRow{}
+	for rows.Next() {
+		var i ListRatingsWithCountRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.BookCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSeriesWithCount = `-- name: ListSeriesWithCount :many
 SELECT s.id, s.name, (
     SELECT COUNT(*) FROM book_series bs

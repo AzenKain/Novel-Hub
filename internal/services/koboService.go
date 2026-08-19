@@ -140,7 +140,7 @@ func (s *koboService) GetSyncList(ctx context.Context, dto request.KoboSyncDto, 
 		if cursor != nil {
 			cursorStr = cursor.Format(time.RFC3339Nano) + "|" + cursorID
 		}
-		books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", "", cursorStr, constants.MaxPaginationLimit)
+		books, err := s.bookRepo.SearchBooks(ctx, nil, nil, "", "", "", "", "", "", cursorStr, constants.MaxPaginationLimit, dto.UserID)
 		if err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "failed to query books for kobo sync")
 		}

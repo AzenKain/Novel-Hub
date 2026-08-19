@@ -563,7 +563,21 @@
     "potential_matches": "تطابقات محتملة",
     "potential_matches_desc": "نفس العنوان والمؤلف مع اختلافات طفيفة — ادمج النسخ المكررة في كتاب واحد.",
     "rename_smart_collection": "إعادة تسمية المجموعة الذكية",
-    "smart_collection_update_failed": "تعذّر تحديث المجموعة الذكية"
+    "smart_collection_update_failed": "تعذّر تحديث المجموعة الذكية",
+    "bulk_edit_metadata_title": "تعديل البيانات الوصفية مجمعة",
+    "bulk_edit_metadata_desc": "تعديل ومزامنة الحقول عبر كتب متعددة في وقت واحد",
+    "sync_field_to_books": "مزامنة",
+    "sync_field_title": "مزامنة {{field}} مع الكتب الأخرى",
+    "sync_cover": "مزامنة الغلاف",
+    "value_to_sync": "القيمة المراد مزامنتها",
+    "select_target_books": "حدد الكتب المستهدفة",
+    "sync_applied": "تم تطبيق {{field}} على {{count}} كتب",
+    "series_index_sequenced": "تم ترقيم السلسلة بالتتابع (1 إلى {{count}})",
+    "bulk_saved_success": "تم تحديث البيانات الوصفية بنجاح لـ {{count}} كتب",
+    "bulk_saved_partial": "تم تحديث {{success}} كتب، وفشل {{fail}}",
+    "modified_books": "كتب معدلة",
+    "saving_progress": "جارٍ حفظ {{current}} من {{total}} كتب...",
+    "auto_index_desc": "تعيين فهرس السلسلة 1، 2، 3... بالترتيب"
   },
   "user": {
     "profile": "الملف الشخصي",
@@ -687,7 +701,12 @@
     "seek": "تقديم",
     "volume": "مستوى الصوت",
     "audio_load_failed": "تعذّر تحميل هذا الملف الصوتي",
-    "audio_load_failed_hint": "تحقق من تنسيق الملف وحاول مرة أخرى."
+    "audio_load_failed_hint": "تحقق من تنسيق الملف وحاول مرة أخرى.",
+    "page_animation": "حركة تقليب الصفحة",
+    "animation_eink": "وميض الحبر الإلكتروني (E-Ink)",
+    "animation_none": "فوري / بدون حركة",
+    "animation_fade": "تلاشي (Fade)",
+    "animation_slide": "تمرير انزلاقي (Slide)"
   },
   "analytics": {
     "title": "تحليلات القراءة وإحصاءاتها",

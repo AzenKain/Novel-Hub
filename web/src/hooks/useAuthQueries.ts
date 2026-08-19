@@ -1,6 +1,6 @@
 import { offlineStore } from "@/lib/offlineStore";
-import { authService, settingsService } from "@/services";
-import { useAuthStore } from "@/stores";
+import { authService, featureService, settingsService } from "@/services";
+import { useAuthStore, useGuestStore } from "@/stores";
 import type {
   ChangePasswordRequest,
   OTPPurpose,
@@ -50,11 +50,14 @@ export function useLoginMutation() {
       if (!me.status) throw new Error(me.message || "Failed to load user profile");
       return me.data || null;
     },
-    onSuccess: (user) => {
+    onSuccess: async (user) => {
       if (!user) return;
       setUser(user);
       setLoginModalOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      try {
+        await useGuestStore.getState().syncToServer(featureService);
+      } catch {}
+      void queryClient.invalidateQueries();
     },
   });
 }

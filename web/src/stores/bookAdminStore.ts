@@ -19,9 +19,10 @@ interface BookAdminState {
     publisher: string;
     language: string;
     date: string;
-    subjects: string;
+    subjects: string[];
     series: string;
     series_index: string;
+    age_rating: string;
   };
   submitting: boolean;
   bookFiles: BookFile[];
@@ -73,9 +74,10 @@ interface BookAdminState {
     publisher: string;
     language: string;
     date: string;
-    subjects: string;
+    subjects: string[];
     series: string;
     series_index: string;
+    age_rating: string;
   }>) => void;
   setShowUploadModal: (show: boolean) => void;
   setUploadLibraryId: (id: string) => void;
@@ -112,7 +114,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   selectedLibraryId: "",
 
   editingBook: null,
-  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: "", series: "", series_index: "" },
+  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: [], series: "", series_index: "", age_rating: "" },
   submitting: false,
   bookFiles: [],
   uploadingBookFiles: false,
@@ -164,9 +166,10 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     let publisher = "";
     let language = "";
     let date = "";
-    let subjects = "";
+    let subjects: string[] = [];
     let series = "";
     let series_index = "";
+    let age_rating = book.age_rating || "";
 
     if (book.metadata_json) {
       try {
@@ -174,7 +177,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         publisher = meta.publisher || meta.publishers?.join(", ") || "";
         language = meta.language || meta.languages?.join(", ") || "";
         date = meta.date || meta.dates?.[0] || "";
-        subjects = toStringList(meta.subject).join(", ");
+        subjects = toStringList(meta.subject);
         series = meta.series || getMetaContent(meta, "calibre:series");
         series_index = meta.series_index || getMetaContent(meta, "calibre:series_index");
       } catch (e) {
@@ -193,7 +196,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         date,
         subjects,
         series,
-        series_index
+        series_index,
+        age_rating,
       },
       coverTab: "book",
       epubImages: [],
@@ -246,9 +250,9 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         description: result.description || formData.description,
         publisher: result.publisher || formData.publisher,
         language: result.language || formData.language,
-        subjects: result.subject || formData.subjects,
+        subjects: result.subject ? toStringList(result.subject) : formData.subjects,
         series: result.series || formData.series,
-        series_index: result.series_index || formData.series_index
+        series_index: result.series_index || formData.series_index,
       },
       searchResults: []
     });
@@ -298,8 +302,16 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     set({ submitting: true });
     try {
       const submitData = {
-        ...formData,
-        subjects: formData.subjects.split(',').map(s => s.trim()).filter(Boolean)
+        title: formData.title.trim() || editingBook.title,
+        author: formData.author.trim(),
+        description: formData.description.trim(),
+        publisher: formData.publisher.trim(),
+        language: formData.language.trim(),
+        date: formData.date.trim(),
+        series: formData.series.trim(),
+        series_index: formData.series_index.trim(),
+        subjects: formData.subjects,
+        age_rating: formData.age_rating.trim(),
       };
       
       await bookService.updateMetadata(editingBook.id, submitData);

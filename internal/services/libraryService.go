@@ -345,7 +345,7 @@ func (s *libraryService) StreamLibraryZip(ctx context.Context, libraryID string,
 		if cursor != nil {
 			cursorStr = cursor.Format(time.RFC3339Nano) + "|" + cursorID
 		}
-		books, searchErr := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", "", cursorStr, 100)
+		books, searchErr := s.bookRepo.SearchBooks(ctx, &libraryID, nil, "", "", "", "", "", "", cursorStr, 100, "")
 		if searchErr != nil {
 			return searchErr
 		}

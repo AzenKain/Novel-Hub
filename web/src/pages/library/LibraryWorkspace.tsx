@@ -5,15 +5,17 @@ import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
 import { BulkActionToolbar, BulkDeleteModal, BulkMoveModal, BulkTagModal } from "@/components/library";
+import { BulkEditMetadataModal } from "@/components/admin";
 import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
-import { featureService } from "@/services";
+import { bookService, featureService } from "@/services";
 import type { Book, MetadataCount, SmartCollectionRule, SmartFilter } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
+import { useAuthStore, useLibraryStore, useGuestStore } from "@/stores";
 
 import { SmartFilterBuilderModal } from "@/components/library/SmartFilterBuilderModal";
 import { SmartFilterShelf } from "@/components/library/SmartFilterShelf";
@@ -44,7 +46,6 @@ import {
   sortMetadataItems,
   metadataNavIds,
 } from "@/lib/libraryMetadata";
-import { useAuthStore, useLibraryStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
 import {
   Activity,
@@ -179,6 +180,8 @@ export const LibraryWorkspace = () => {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
   const [showBulkMoveModal, setShowBulkMoveModal] = React.useState(false);
   const [showBulkTagModal, setShowBulkTagModal] = React.useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = React.useState(false);
+  const selectedBooks = useMemo(() => books.filter((b) => selectedBookIds.includes(b.id)), [books, selectedBookIds]);
   const debouncedSearch = useDebounce(search, 500);
 
   const { data: hotBooksData } = useHotBooksQuery(8);
@@ -310,7 +313,24 @@ export const LibraryWorkspace = () => {
   };
 
   const queryClient = useQueryClient();
-  const isMetadataNav = metadataNavIds.includes(activeNav) && !activeFacet;
+
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const urlNav = urlParams.get("nav") || "";
+  const urlFacet = urlParams.get("facet") || "";
+  const urlFacetId = urlParams.get("facet_id") || "";
+  const urlName = urlParams.get("name") || urlParams.get("facet_name") || "";
+  const urlCollection = urlParams.get("collection") || "";
+  const urlChip = urlParams.get("chip") || "";
+  const urlSort = urlParams.get("sort") || "";
+
+  const effectiveNav = urlNav || (urlFacet ? (urlFacet.endsWith("s") || urlFacet === "series" ? urlFacet : `${urlFacet}s`) : activeNav);
+  const effectiveFacetType = urlFacet ? (urlFacet.endsWith("s") && urlFacet !== "series" ? urlFacet.slice(0, -1) : urlFacet) : activeFacet?.type;
+  const effectiveFacetId = urlFacetId || (urlName ? urlName : activeFacet?.id);
+  const effectiveCollection = urlCollection || (urlNav || urlFacet ? "" : activeCollection);
+  const effectiveChip = urlChip || activeChip;
+  const effectiveSort = (urlSort as any) || sort;
+
+  const isMetadataNav = metadataNavIds.includes(effectiveNav) && !effectiveFacetType && !effectiveFacetId;
 
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const [smartCollectionName, setSmartCollectionName] = useState("");
@@ -323,7 +343,7 @@ export const LibraryWorkspace = () => {
   const [editingSmartFilter, setEditingSmartFilter] = useState<SmartFilter | null>(null);
   const [draggedShelfId, setDraggedShelfId] = useState<string | null>(null);
 
-  const { data: smartFilters = [] } = useSmartFiltersQuery();
+  const { data: smartFilters = [] } = useSmartFiltersQuery(!!user);
   const deleteSmartFilter = useDeleteSmartFilterMutation();
   const reorderHomeMutation = useReorderSmartFiltersHomeMutation();
 
@@ -347,17 +367,17 @@ export const LibraryWorkspace = () => {
 
   const searchParams = useMemo(() => ({
     search: debouncedSearch,
-    nav: activeNav,
-    collection: activeCollection,
-    chip: activeChip,
-    facet: activeFacet?.type,
-    facet_id: activeFacet?.id,
-    sort,
-  }), [debouncedSearch, activeNav, activeCollection, activeChip, activeFacet, sort]);
+    nav: effectiveNav,
+    collection: effectiveCollection,
+    chip: effectiveChip,
+    facet: effectiveFacetType,
+    facet_id: effectiveFacetId,
+    sort: effectiveSort,
+  }), [debouncedSearch, effectiveNav, effectiveCollection, effectiveChip, effectiveFacetType, effectiveFacetId, effectiveSort]);
 
   const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
     searchParams,
-    !isMetadataNav && activeNav !== "bookmarks" && !activeSmartFilterId
+    !isMetadataNav && effectiveNav !== "bookmarks" && !activeSmartFilterId
   );
   const booksData = useMemo(() => {
     if (!booksDataRaw) return EMPTY_ARRAY;
@@ -387,28 +407,68 @@ export const LibraryWorkspace = () => {
   const { data: statsData } = useLibraryStatsQuery();
   const { data: collectionsData, fetchNextPage: fetchNextCollections, hasNextPage: hasMoreCollections, isFetchingNextPage: isFetchingMoreCollections } = useCollectionsQuery(!!user);
   const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
-  const historyData = useMemo(() => (historyRaw?.pages.flatMap(p => p.data || []) || EMPTY_ARRAY) as import("@/types").ReadingHistory[], [historyRaw]);
+  const guestProgressMap = useGuestStore((state) => state.progressMap);
+  const guestBookmarks = useGuestStore((state) => state.bookmarks);
 
-  const activeFacetNav = (["authors", "series", "tags", "publishers", "languages", "formats"] as const)
-    .find((nav) => nav === activeNav);
+  const historyData = useMemo(() => {
+    if (user) {
+      return (historyRaw?.pages.flatMap(p => p.data || []) || EMPTY_ARRAY) as import("@/types").ReadingHistory[];
+    }
+    const guestList = Object.values(guestProgressMap).sort(
+      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+    return guestList.map((g) => ({
+      user_id: "guest",
+      book_id: g.book_id,
+      file_id: g.file_id,
+      book_title: g.book_title || "Untitled",
+      book_cover_url: g.cover_url || "",
+      chapter_id: g.chapter_id,
+      chapter_title: g.chapter_title || "",
+      chapter_index: g.chapter_index || 0,
+      progress_percent: g.progress_percent,
+      updated_at: g.updated_at,
+    })) as import("@/types").ReadingHistory[];
+  }, [user, historyRaw, guestProgressMap]);
+
+  const activeFacetNav = (["authors", "series", "tags", "publishers", "languages", "formats", "ratings"] as const)
+    .find((nav) => nav === effectiveNav);
+  const debouncedMetadataQuery = useDebounce(metadataQuery, 300);
   const {
     items: activeFacetItems,
     fetchNextPage: fetchNextFacetPage,
     hasNextPage: hasMoreFacetItems,
     isFetchingNextPage: isFetchingMoreFacetItems,
   } = useMetadataFacetQuery(activeFacetNav ?? "authors", {
-    search: metadataQuery,
+    search: debouncedMetadataQuery,
     alpha: metadataAlpha,
   });
 
   useEffect(() => {
     if (isMetadataNav) {
       setBooks([]);
-    } else if (activeNav === "bookmarks") {
-      if (bookmarkedBooksData) {
-        setBooks(bookmarkedBooksData);
-        if (bookmarkedBooksData.length > 0 && !selectedBook) {
-          setSelectedBook(bookmarkedBooksData[0]);
+    } else if (effectiveNav === "bookmarks") {
+      if (user) {
+        if (bookmarkedBooksData) {
+          setBooks(bookmarkedBooksData);
+          if (bookmarkedBooksData.length > 0 && !selectedBook) {
+            setSelectedBook(bookmarkedBooksData[0]);
+          }
+        }
+      } else {
+        const guestIds = guestBookmarks.map((b) => b.book_id);
+        if (guestIds.length === 0) {
+          setBooks([]);
+        } else {
+          bookService.getBooks({ limit: 100 }).then((res) => {
+            if (res.data) {
+              const filtered = res.data.filter(b => guestIds.includes(b.id));
+              setBooks(filtered);
+              if (filtered.length > 0 && !selectedBook) {
+                setSelectedBook(filtered[0]);
+              }
+            }
+          }).catch(() => setBooks([]));
         }
       }
     } else if (activeSmartFilterId) {
@@ -426,17 +486,17 @@ export const LibraryWorkspace = () => {
         }
       }
     }
-  }, [isMetadataNav, activeNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, setBooks, setSelectedBook]);
+  }, [isMetadataNav, effectiveNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, setBooks, setSelectedBook]);
 
   useEffect(() => {
-    if (activeNav === "bookmarks") {
+    if (effectiveNav === "bookmarks") {
       setLoading(bookmarksLoading);
     } else if (activeSmartFilterId) {
       setLoading(sfLoading);
     } else {
       setLoading(normalLoading);
     }
-  }, [activeNav, bookmarksLoading, normalLoading, setLoading]);
+  }, [effectiveNav, bookmarksLoading, normalLoading, setLoading]);
 
   useEffect(() => {
     if (statsData) setStats(statsData);
@@ -571,17 +631,19 @@ export const LibraryWorkspace = () => {
         icon: <FileType className="w-4 h-4 opacity-70" />,
         items: metadataFacets.formats,
       },
+      {
+        nav: "ratings",
+        type: "rating",
+        label: t("library.ratings", "Ratings"),
+        icon: <Star className="w-4 h-4 opacity-70" />,
+        items: metadataFacets.ratings,
+      },
     ];
     return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.nav)) : all;
   }, [visibleItems, metadataFacets, t]);
 
   const secondaryNavItems: LibraryNavItem[] = useMemo(() => {
     const all: LibraryNavItem[] = [
-      {
-        id: "ratings",
-        label: t("library.ratings", "Ratings"),
-        icon: <Star className="w-4 h-4 opacity-70" />,
-      },
       {
         id: "archived",
         label: t("library.archived_books", "Archived books"),
@@ -592,19 +654,20 @@ export const LibraryWorkspace = () => {
   }, [visibleItems, t]);
 
   const currentFacetSection = facetSections.find(
-    (section) => section.nav === activeNav,
+    (section) => section.nav === effectiveNav,
   );
-  const isMetadataIndex = !!currentFacetSection && !activeFacet;
-  const isCatalogPage = !!currentFacetSection || !!activeSmartFilterId || activeNav === "bookmarks";
+  const isMetadataIndex = !!currentFacetSection && !effectiveFacetType && !effectiveFacetId;
+  const isCatalogPage = !!currentFacetSection || !!activeSmartFilterId || effectiveNav === "bookmarks";
   const activeNavLabel =
-    primaryNavItems.find((item) => item.id === activeNav)?.label ||
+    primaryNavItems.find((item) => item.id === effectiveNav)?.label ||
     currentFacetSection?.label ||
-    secondaryNavItems.find((item) => item.id === activeNav)?.label;
+    secondaryNavItems.find((item) => item.id === effectiveNav)?.label;
   const activeSmartFilter = smartFilters.find((sf) => sf.id === activeSmartFilterId);
+  const facetDisplayName = activeFacet?.name || urlName || urlFacetId;
   const bookListTitle = activeSmartFilter
     ? activeSmartFilter.name
-    : activeFacet
-      ? `${currentFacetSection?.label || activeNavLabel}: ${activeFacet.name}`
+    : (effectiveFacetType || effectiveFacetId) && facetDisplayName
+      ? `${currentFacetSection?.label || activeNavLabel}: ${facetDisplayName}`
       : activeNavLabel || t("library.all_books", "All books");
   const filteredMetadataItems = useMemo(
     () => sortMetadataItems(currentFacetSection?.items || [], metadataSort),
@@ -625,26 +688,46 @@ export const LibraryWorkspace = () => {
     if (searchParam !== search) {
       setSearch(searchParam);
     }
-    if (collectionParam && collectionParam !== activeCollection) {
-      setActiveCollection(collectionParam);
-      setActiveNav("");
-      setActiveFacet(null);
-    }
-    if (chipParam && chipParam !== activeChip) {
-      setActiveChip(chipParam);
+    if (chipParam !== activeChip) {
+      setActiveChip(chipParam || "All");
     }
     if (sortParam !== sort) {
       setSort(sortParam as any);
     }
 
-    if (!nav && !rawFacet) return;
+    if (collectionParam) {
+      if (collectionParam !== activeCollection) {
+        setActiveCollection(collectionParam);
+      }
+      if (activeNav !== "") setActiveNav("");
+      if (activeFacet !== null) setActiveFacet(null);
+      if (activeSmartFilterId !== null) setActiveSmartFilterId(null);
+      return;
+    } else if (activeCollection) {
+      setActiveCollection("");
+    }
+
+    if (!nav && !rawFacet) {
+      if (activeNav !== "books" && activeNav !== "") {
+        setActiveNav("books");
+      }
+      if (activeFacet !== null) {
+        setActiveFacet(null);
+      }
+      return;
+    }
 
     // Support both singular and plural facet types (e.g. "publisher" -> "publishers", "author" -> "authors")
     const facetType = rawFacet ? (rawFacet.endsWith("s") || rawFacet === "series" ? rawFacet : `${rawFacet}s`) : nav;
     const targetNav = nav || facetType;
 
     if (!metadataNavIds.includes(targetNav)) {
-      if (nav) setActiveNav(nav);
+      if (nav && activeNav !== nav) {
+        setActiveNav(nav);
+      }
+      if (activeFacet !== null) {
+        setActiveFacet(null);
+      }
       return;
     }
 
@@ -658,55 +741,44 @@ export const LibraryWorkspace = () => {
     );
 
     if (rawFacet || name || facetId) {
-      const isAlreadyActive = activeFacet &&
-        activeFacet.type === (section?.type || facetType) &&
-        (activeFacet.id === facetId || activeFacet.name.trim().toLowerCase() === normalizedName);
+      const targetFacetType = section?.type || (rawFacet ? (rawFacet.endsWith("s") && rawFacet !== "series" ? rawFacet.slice(0, -1) : rawFacet) : (targetNav.endsWith("s") && targetNav !== "series" ? targetNav.slice(0, -1) : targetNav));
+      const targetFacetId = matched?.id || facetId || name;
+      const targetFacetName = matched?.name || name || facetId;
+
+      const isAlreadyActive =
+        activeFacet &&
+        activeFacet.type === targetFacetType &&
+        (activeFacet.id === targetFacetId || (activeFacet.name && activeFacet.name.trim().toLowerCase() === normalizedName)) &&
+        activeNav === targetNav;
 
       if (isAlreadyActive) {
         return;
       }
 
-      if (!matched && !facetId && name) {
-        if (activeNav !== targetNav) {
-          setActiveNav(targetNav);
-          setActiveCollection("");
-          setActiveChip(chipParam || "All");
-        }
-        if (metadataQuery !== name) {
-          setMetadataQuery(name);
-        }
-        if (metadataAlpha !== "All") {
-          setMetadataAlpha("All");
-        }
-        return;
+      if (activeNav !== targetNav) {
+        setActiveNav(targetNav);
       }
-
-      setActiveNav(targetNav);
-      setActiveCollection("");
-      setActiveChip(chipParam || "All");
-      setMetadataQuery("");
-      setMetadataAlpha("All");
+      if (activeCollection !== "") {
+        setActiveCollection("");
+      }
       setActiveFacet({
-        type: section?.type || facetType,
-        id: matched?.id || facetId || name,
-        name: matched?.name || name || facetId,
+        type: targetFacetType,
+        id: targetFacetId,
+        name: targetFacetName,
       });
     } else if (nav) {
-      setActiveNav(nav);
-      setActiveFacet(null);
-      setMetadataQuery("");
-      setMetadataAlpha("All");
+      if (activeNav !== nav) {
+        setActiveNav(nav);
+        setMetadataQuery("");
+        setMetadataAlpha("All");
+      }
+      if (activeFacet !== null) {
+        setActiveFacet(null);
+      }
     }
   }, [
     location.search,
     facetSections,
-    search,
-    activeCollection,
-    activeChip,
-    activeNav,
-    activeFacet,
-    metadataQuery,
-    metadataAlpha,
   ]);
 
   const metadataControls = (
@@ -1148,14 +1220,16 @@ export const LibraryWorkspace = () => {
         activeSmartFilterId={activeSmartFilterId || undefined}
       />
 
-      <SmartFilterBuilderModal
-        isOpen={showSmartFilterModal}
-        onClose={() => {
-          setShowSmartFilterModal(false);
-          setEditingSmartFilter(null);
-        }}
-        filterToEdit={editingSmartFilter}
-      />
+      {showSmartFilterModal && (
+        <SmartFilterBuilderModal
+          isOpen={showSmartFilterModal}
+          onClose={() => {
+            setShowSmartFilterModal(false);
+            setEditingSmartFilter(null);
+          }}
+          filterToEdit={editingSmartFilter}
+        />
+      )}
 
       <LoginView />
       <UserProfile />
@@ -1273,6 +1347,7 @@ export const LibraryWorkspace = () => {
       <BulkActionToolbar
         selectedCount={selectedBookIds.length}
         onClearSelection={() => setSelectedBookIds([])}
+        onBulkEditMetadata={() => setShowBulkEditModal(true)}
         onBulkMove={() => setShowBulkMoveModal(true)}
         onBulkAddTags={() => setShowBulkTagModal(true)}
         onBulkDelete={() => setShowBulkDeleteModal(true)}
@@ -1295,6 +1370,15 @@ export const LibraryWorkspace = () => {
         bookIds={selectedBookIds}
         onClose={() => setShowBulkTagModal(false)}
         onSuccess={() => setSelectedBookIds([])}
+      />
+      <BulkEditMetadataModal
+        isOpen={showBulkEditModal}
+        books={selectedBooks}
+        onClose={() => setShowBulkEditModal(false)}
+        onSuccess={() => {
+          setSelectedBookIds([]);
+          void queryClient.invalidateQueries({ queryKey: ["books"] });
+        }}
       />
     </div>
   );

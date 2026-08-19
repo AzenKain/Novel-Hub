@@ -172,6 +172,11 @@ export const metadataService = {
     return res.data;
   },
 
+  async listRatings(params?: MetadataFacetParams): Promise<PaginatedResponse<MetadataCount>> {
+    const res = await api.get(`/metadata/ratings${facetQuery(params)}`);
+    return res.data;
+  },
+
   async searchOnline(query: string, source: string): Promise<OnlineMetadataResult[]> {
     if (!query) return [];
 

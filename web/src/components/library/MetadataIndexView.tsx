@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen, Star } from "lucide-react";
 import React from "react";
 
 import { getMediaUrl } from "@/config/api";
@@ -34,6 +34,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
   onLoadMore,
 }) => {
   const isSeries = section.type === "series";
+  const isRating = section.type === "rating";
 
   return (
     <section className="min-h-[calc(100vh-7rem)] rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm sm:p-6">
@@ -78,7 +79,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
                         loading="lazy"
                         className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105"
                       />
-                      <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/[0.03]" />
+                      <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
                     </>
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-xl font-black text-base-content/25">
@@ -96,12 +97,42 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
             );
           })}
         </div>
+      ) : isRating ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredItems.map((item) => {
+            const stars = parseInt(item.id, 10) || 0;
+            return (
+              <button
+                key={item.id}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-base-200 bg-base-100 p-4 text-left shadow-2xs hover:border-primary hover:bg-base-200/50 transition-all cursor-pointer"
+                onClick={() => onFacetClick(section.type, item, section.nav)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center text-amber-500">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`h-4 w-4 ${s <= stars ? "fill-amber-500 text-amber-500" : "fill-base-300 text-base-300 opacity-40"}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-base font-bold text-base-content group-hover:text-primary">
+                    {item.name}
+                  </span>
+                </div>
+                <span className="badge badge-neutral badge-sm font-semibold">
+                  {item.book_count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid gap-x-10 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
           {filteredItems.map((item) => (
             <button
               key={item.id}
-              className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-base-200/70"
+              className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-base-200/70 cursor-pointer"
               onClick={() => onFacetClick(section.type, item, section.nav)}
             >
               <span className="badge badge-neutral badge-sm min-w-8">

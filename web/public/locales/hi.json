@@ -563,7 +563,21 @@
     "potential_matches": "संभावित मिलान",
     "potential_matches_desc": "समान शीर्षक और लेखक मामूली अंतर के साथ — डुप्लिकेट को एक पुस्तक में मर्ज करें।",
     "rename_smart_collection": "स्मार्ट संग्रह का नाम बदलें",
-    "smart_collection_update_failed": "स्मार्ट संग्रह अपडेट नहीं हो सका"
+    "smart_collection_update_failed": "स्मार्ट संग्रह अपडेट नहीं हो सका",
+    "bulk_edit_metadata_title": "थोक मेटाडेटा संपादन",
+    "bulk_edit_metadata_desc": "एक साथ कई पुस्तकों के मेटाडेटा को संपादित और समन्वयित करें",
+    "sync_field_to_books": "सिंक करें",
+    "sync_field_title": "{{field}} को अन्य पुस्तकों के साथ सिंक करें",
+    "sync_cover": "कवर सिंक करें",
+    "value_to_sync": "सिंक करने के लिए मान",
+    "select_target_books": "लक्षित पुस्तकें चुनें",
+    "sync_applied": "{{count}} पुस्तकों में {{field}} लागू किया गया",
+    "series_index_sequenced": "श्रृंखला अनुक्रमणिका क्रमित (1 से {{count}})",
+    "bulk_saved_success": "{{count}} पुस्तकों के लिए मेटाडेटा सफलतापूर्वक अपडेट किया गया",
+    "bulk_saved_partial": "{{success}} पुस्तकें अपडेट की गईं, {{fail}} विफल रहीं",
+    "modified_books": "पुस्तकें संशोधित",
+    "saving_progress": "{{total}} में से {{current}} पुस्तकें सहेजी जा रही हैं...",
+    "auto_index_desc": "श्रृंखला अनुक्रमणिका 1, 2, 3... क्रमानुसार सेट करें"
   },
   "user": {
     "profile": "प्रोफ़ाइल",
@@ -687,7 +701,12 @@
     "seek": "सीक",
     "volume": "वॉल्यूम",
     "audio_load_failed": "यह ऑडियो फ़ाइल लोड नहीं हो सकी",
-    "audio_load_failed_hint": "फ़ाइल प्रारूप जाँचें और पुनः प्रयास करें।"
+    "audio_load_failed_hint": "फ़ाइल प्रारूप जाँचें और पुनः प्रयास करें।",
+    "page_animation": "पेज बदलने का एनिमेशन",
+    "animation_eink": "ई-इंक फ्लैश (E-Ink)",
+    "animation_none": "तुरंत / कोई नहीं",
+    "animation_fade": "फ़ेड (Fade)",
+    "animation_slide": "स्लाइड (Slide)"
   },
   "analytics": {
     "title": "पठन विश्लेषण और आँकड़े",

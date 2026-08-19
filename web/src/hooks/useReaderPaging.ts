@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import { READER_PAGE_GAP } from "@/constants";
+import type { PageAnimation } from "@/stores";
 
 type UseReaderPagingArgs = {
   contentRef: RefObject<HTMLDivElement | null>;
@@ -11,6 +12,7 @@ type UseReaderPagingArgs = {
   scrollLayout: boolean;
   effectiveReadingMode: string;
   rtlPaging: boolean;
+  pageAnimation?: PageAnimation;
   pageIndex: number;
   setPageIndex: (index: number) => void;
   setPageFrameWidth: (width: number) => void;
@@ -34,6 +36,7 @@ export function useReaderPaging({
   scrollLayout,
   effectiveReadingMode,
   rtlPaging,
+  pageAnimation = "eink",
   pageIndex,
   setPageIndex,
   setPageFrameWidth,
@@ -67,7 +70,12 @@ export function useReaderPaging({
     const frame = pageFrameRef.current;
     if (!frame) return;
 
-    const updatePageFrameWidth = () => setPageFrameWidth(frame.clientWidth);
+    const updatePageFrameWidth = () => {
+      setPageFrameWidth(frame.clientWidth);
+      requestAnimationFrame(() => {
+        scrollToPageIndex(lastPageIndexRef.current, true);
+      });
+    };
 
     updatePageFrameWidth();
 
@@ -100,6 +108,20 @@ export function useReaderPaging({
     return { container, scrollStep, maxIndex };
   };
 
+  const triggerPageAnimation = () => {
+    const el = columnsRef.current;
+    if (!el) return;
+    if (pageAnimation === "eink") {
+      el.classList.remove("reader-anim-eink", "reader-anim-fade");
+      void el.offsetWidth;
+      el.classList.add("reader-anim-eink");
+    } else if (pageAnimation === "fade") {
+      el.classList.remove("reader-anim-eink", "reader-anim-fade");
+      void el.offsetWidth;
+      el.classList.add("reader-anim-fade");
+    }
+  };
+
   const scrollToPageIndex = (targetIndex: number, instant = false) => {
     const metrics = getPagedScrollMetrics();
     if (!metrics) return;
@@ -107,10 +129,18 @@ export function useReaderPaging({
     const { container, scrollStep, maxIndex } = metrics;
     const nextIndex = Math.min(Math.max(targetIndex, 0), maxIndex);
 
+    const isSlide = !instant && pageAnimation === "slide";
+    const behavior = isSlide ? "smooth" : "auto";
+
     container.scrollTo({
       left: nextIndex * scrollStep * (rtlPaging ? -1 : 1),
-      behavior: instant ? "auto" : "smooth",
+      behavior,
     });
+
+    if (!instant && nextIndex !== pageIndex) {
+      triggerPageAnimation();
+    }
+
     setPageIndex(nextIndex);
   };
 

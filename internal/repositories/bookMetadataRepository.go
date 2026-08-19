@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"novelhub/internal/gen/sqlc"
@@ -822,6 +823,46 @@ func (r *bookDBRepository) ListFormatsWithCount(ctx context.Context, filter Meta
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
 			r.cacheMetadataCountEntities(ctx, "format", filter.scopeKey(), result)
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]*models.MetadataCountEntity), nil
+}
+
+func (r *bookDBRepository) ListRatingsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
+	key := filter.cacheKey("ratings")
+	if r.c != nil && !r.inTx {
+		var ids []string
+		if err := r.c.Get(ctx, key, &ids); err == nil {
+			if result, ok := r.getMetadataCountByIDs(ctx, "rating", filter.scopeKey(), ids); ok {
+				return result, nil
+			}
+		}
+	}
+
+	v, err, _ := r.sfg.Do(key, func() (any, error) {
+		search, _, _, _, _, _, _, _ := filter.sqlcArgs()
+		rows, err := r.queries.ListRatingsWithCount(ctx, sqlc.ListRatingsWithCountParams{
+			LibraryIds: filter.libraryScope(),
+			Search:     search,
+			Limit:      filter.Limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(rows))
+		result := make([]*models.MetadataCountEntity, len(rows))
+		for i, row := range rows {
+			name := fmt.Sprint(row.Name)
+			result[i] = &models.MetadataCountEntity{ID: row.ID, Name: name, BookCount: row.BookCount}
+			ids[i] = row.ID
+		}
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, key, ids, constants.ListCacheDuration)
+			r.cacheMetadataCountEntities(ctx, "rating", filter.scopeKey(), result)
 		}
 		return result, nil
 	})

@@ -17,4 +17,5 @@ func RegisterMetadataRoutes(api fiber.Router, metadataController *controllers.Me
 	group.Get("/languages", metadataController.ListLanguages)
 	group.Get("/tags", metadataController.ListTags)
 	group.Get("/formats", metadataController.ListFormats)
+	group.Get("/ratings", metadataController.ListRatings)
 }

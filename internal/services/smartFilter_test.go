@@ -114,7 +114,7 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 	}
 
 	// 6. Test Book Query via Smart Filter rules
-	books, err := bookRepo.SearchSmartFilterBooks(ctx, nil, rules, nil, "", 20)
+	books, err := bookRepo.SearchSmartFilterBooks(ctx, nil, rules, nil, "", 20, "user-1")
 	if err != nil {
 		t.Fatalf("SearchSmartFilterBooks failed: %v", err)
 	}

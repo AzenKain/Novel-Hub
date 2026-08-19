@@ -563,7 +563,21 @@
     "potential_matches": "Возможные совпадения",
     "potential_matches_desc": "Одинаковые название и автор с небольшими различиями — объедините дубликаты в одну книгу.",
     "rename_smart_collection": "Переименовать умную коллекцию",
-    "smart_collection_update_failed": "Не удалось обновить умную коллекцию"
+    "smart_collection_update_failed": "Не удалось обновить умную коллекцию",
+    "bulk_edit_metadata_title": "Массовое редактирование метаданных",
+    "bulk_edit_metadata_desc": "Редактирование и синхронизация метаданных для нескольких книг одновременно",
+    "sync_field_to_books": "Синхронизировать",
+    "sync_field_title": "Синхронизировать {{field}} с другими книгами",
+    "sync_cover": "Синхронизировать обложку",
+    "value_to_sync": "Значение для синхронизации",
+    "select_target_books": "Выберите целевые книги",
+    "sync_applied": "Поле {{field}} применено к {{count}} книгам",
+    "series_index_sequenced": "Индексы серии пронумерованы (от 1 до {{count}})",
+    "bulk_saved_success": "Метаданные успешно обновлены для {{count}} книг",
+    "bulk_saved_partial": "Обновлено книг: {{success}}, ошибок: {{fail}}",
+    "modified_books": "книг изменено",
+    "saving_progress": "Сохранение {{current}} из {{total}} книг...",
+    "auto_index_desc": "Установить номер серии 1, 2, 3... по порядку"
   },
   "user": {
     "profile": "Профиль",
@@ -687,7 +701,12 @@
     "seek": "Перемотка",
     "volume": "Громкость",
     "audio_load_failed": "Не удалось загрузить этот аудиофайл",
-    "audio_load_failed_hint": "Проверьте формат файла и попробуйте снова."
+    "audio_load_failed_hint": "Проверьте формат файла и попробуйте снова.",
+    "page_animation": "Анимация перелистывания",
+    "animation_eink": "E-Ink вспышка",
+    "animation_none": "Мгновенно (без анимации)",
+    "animation_fade": "Плавное угасание (Fade)",
+    "animation_slide": "Скольжение (Slide)"
   },
   "analytics": {
     "title": "Аналитика и статистика чтения",

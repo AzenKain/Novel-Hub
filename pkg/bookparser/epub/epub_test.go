@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"novelhub/pkg/bookparser"
 )
 
 func TestParseMetadataUsesPropertyCover(t *testing.T) {
@@ -172,6 +174,60 @@ func writeEPUBFixture(t *testing.T, opf string) string {
 		}
 	}
 	return path
+}
+
+func TestSaveOriginalMetadataAndFix(t *testing.T) {
+	path := writeEPUBFixture(t, `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <metadata>
+    <dc:title>Original Title</dc:title>
+    <dc:creator>Original Author</dc:creator>
+  </metadata>
+  <manifest>
+    <item id="chapter" href="Text/chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine><itemref idref="chapter"/></spine>
+</package>`)
+
+	parser := NewParser()
+	update := &bookparser.BookMetadata{
+		Title:       "Updated Title",
+		Author:      "Updated Author",
+		Description: "Updated Description",
+		Publisher:   "NovelHub Publishing",
+		Language:    "vi",
+		Subjects:    []string{"Fantasy", "Adventure"},
+		Series:      "Novel Series",
+		SeriesIndex: "2.5",
+	}
+
+	if err := parser.SaveOriginalMetadataAndFix(path, update); err != nil {
+		t.Fatalf("SaveOriginalMetadataAndFix failed: %v", err)
+	}
+
+	parsed, err := parser.ParseMetadata(path)
+	if err != nil {
+		t.Fatalf("ParseMetadata after update failed: %v", err)
+	}
+
+	if parsed.Title != "Updated Title" {
+		t.Errorf("Title = %q, want 'Updated Title'", parsed.Title)
+	}
+	if parsed.Author != "Updated Author" {
+		t.Errorf("Author = %q, want 'Updated Author'", parsed.Author)
+	}
+	if parsed.Publisher != "NovelHub Publishing" {
+		t.Errorf("Publisher = %q, want 'NovelHub Publishing'", parsed.Publisher)
+	}
+	if parsed.Language != "vi" {
+		t.Errorf("Language = %q, want 'vi'", parsed.Language)
+	}
+	if parsed.Series != "Novel Series" {
+		t.Errorf("Series = %q, want 'Novel Series'", parsed.Series)
+	}
+	if parsed.SeriesIndex != "2.5" {
+		t.Errorf("SeriesIndex = %q, want '2.5'", parsed.SeriesIndex)
+	}
 }
 
 func TestCheckUserEPUBFiles(t *testing.T) {

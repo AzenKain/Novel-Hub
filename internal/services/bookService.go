@@ -28,11 +28,12 @@ import (
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/worker"
 )
+
 type BookService interface {
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
 	GetBookSeriesContext(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.BookSeriesContextResponse, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error)
-	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64, userID string) ([]*models.BookEntity, error)
+	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64, userID string) ([]*models.BookEntity, error)
 	SearchSmartFilterBooksByFilter(ctx context.Context, filterID string, userID string, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error)
 	SearchBooksPage(ctx context.Context, queryDto *request.SearchBookDto, claims *response.JWTClaims) (*response.CursorPaginatedResponse, error)
 	GetBookWithAccess(ctx context.Context, id string, claims *response.JWTClaims) (*response.BookResponse, error)
@@ -130,11 +131,11 @@ func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntit
 	return book, nil
 }
 
-func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error) {
+func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64, userID string) ([]*models.BookEntity, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, sort, cursor, limit)
+	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, sort, cursor, limit, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +143,11 @@ func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search
 	return books, nil
 }
 
-func (s *bookService) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
+func (s *bookService) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64, userID string) ([]*models.BookEntity, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	books, err := s.bookRepo.SearchSmartFilterBooks(ctx, libraryID, rules, cursor, cursorID, limit)
+	books, err := s.bookRepo.SearchSmartFilterBooks(ctx, libraryID, rules, cursor, cursorID, limit, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +187,7 @@ func (s *bookService) SearchSmartFilterBooksByFilter(ctx context.Context, filter
 		libID = &queryDto.LibraryID
 	}
 
-	books, err := s.SearchSmartFilterBooks(ctx, libID, rules, cursorTime, cursorID, int64(queryDto.Limit))
+	books, err := s.SearchSmartFilterBooks(ctx, libID, rules, cursorTime, cursorID, int64(queryDto.Limit), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +225,12 @@ func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.Sea
 		searchStr = &queryDto.Search
 	}
 
-	books, err := s.SearchBooks(ctx, libID, searchStr, queryDto.Nav, queryDto.Collection, queryDto.Chip, queryDto.Facet, queryDto.FacetID, queryDto.Sort, queryDto.Cursor, int64(queryDto.Limit))
+	var userID string
+	if claims != nil && claims.UId != "" && claims.UId != "0" {
+		userID = claims.UId
+	}
+
+	books, err := s.SearchBooks(ctx, libID, searchStr, queryDto.Nav, queryDto.Collection, queryDto.Chip, queryDto.Facet, queryDto.FacetID, queryDto.Sort, queryDto.Cursor, int64(queryDto.Limit), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +243,10 @@ func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.Sea
 	var nextCursor string
 	if len(books) >= int(queryDto.Limit) && len(books) > 0 {
 		last := books[len(books)-1]
-		if queryDto.Sort == "title_az" {
+		switch queryDto.Sort {
+		case "title_az":
 			nextCursor = convert.EncodeCursor(last.Title, last.ID)
-		} else if queryDto.Sort == "series_order" {
+		case "series_order":
 			seriesList, _ := s.bookRepo.GetBookSeries(ctx, last.ID)
 			var seriesName string
 			var seriesIndex string
@@ -250,7 +257,7 @@ func (s *bookService) SearchBooksPage(ctx context.Context, queryDto *request.Sea
 				}
 			}
 			nextCursor = convert.EncodeCursor(seriesName+"|"+seriesIndex, last.ID)
-		} else {
+		default:
 			nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 		}
 	}
@@ -856,6 +863,9 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		book.Description = nil
 	}
 	book.AuthorID = authorID
+	if req.AgeRating != "" {
+		book.AgeRating = req.AgeRating
+	}
 
 	if newJSON, err := mergeBookMetadataJSON(book.MetadataJSON, req); err == nil {
 		book.MetadataJSON = &newJSON
@@ -885,17 +895,24 @@ func (s *bookService) UpdateMetadata(ctx context.Context, bookID string, req *re
 		Title:       req.Title,
 		Author:      req.Author,
 		Description: req.Description,
+		Series:      req.Series,
+		SeriesIndex: req.SeriesIndex,
+		Publisher:   req.Publisher,
+		Language:    req.Language,
+		Subjects:    req.Subjects,
 	}
 	files, err := s.bookRepo.GetFilesByBookId(ctx, bookID)
 	if err != nil {
 		log.Warn().Err(err).Str("book_id", bookID).Msg("metadata source synchronization skipped: list files failed")
 	} else if len(files) > 0 {
-		file := s.preferReadableFile(files)
-		parser, parserErr := s.parserForFile(file)
-		if parserErr != nil {
-			log.Warn().Err(parserErr).Str("book_id", bookID).Str("path", file.Path).Msg("metadata source synchronization skipped: unsupported file")
-		} else if saveErr := parser.SaveOriginalMetadataAndFix(file.Path, meta); saveErr != nil {
-			log.Error().Err(saveErr).Str("book_id", bookID).Str("path", file.Path).Msg("metadata source synchronization failed")
+		for _, file := range files {
+			parser, parserErr := s.parserForFile(file)
+			if parserErr != nil {
+				continue
+			}
+			if saveErr := parser.SaveOriginalMetadataAndFix(file.Path, meta); saveErr != nil {
+				log.Error().Err(saveErr).Str("book_id", bookID).Str("path", file.Path).Msg("metadata source synchronization failed")
+			}
 		}
 	}
 

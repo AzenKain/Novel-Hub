@@ -563,7 +563,21 @@
     "potential_matches": "Khớp tiềm năng",
     "potential_matches_desc": "Cùng tiêu đề và tác giả với khác biệt nhỏ — gộp các bản trùng thành một cuốn sách.",
     "rename_smart_collection": "Đổi tên bộ sưu tập thông minh",
-    "smart_collection_update_failed": "Không cập nhật được bộ sưu tập thông minh"
+    "smart_collection_update_failed": "Không cập nhật được bộ sưu tập thông minh",
+    "bulk_edit_metadata_title": "Chỉnh sửa metadata hàng loạt",
+    "bulk_edit_metadata_desc": "Chỉnh sửa và đồng bộ các trường dữ liệu cho nhiều sách cùng lúc",
+    "sync_field_to_books": "Đồng bộ",
+    "sync_field_title": "Đồng bộ {{field}} sang các sách khác",
+    "sync_cover": "Đồng bộ bìa",
+    "value_to_sync": "Giá trị cần đồng bộ",
+    "select_target_books": "Chọn các sách cần áp dụng",
+    "sync_applied": "Đã áp dụng {{field}} cho {{count}} cuốn sách",
+    "series_index_sequenced": "Đã đánh số thứ tự tập series (1 đến {{count}})",
+    "bulk_saved_success": "Đã cập nhật metadata thành công cho {{count}} cuốn sách",
+    "bulk_saved_partial": "Đã cập nhật {{success}} sách, {{fail}} sách thất bại",
+    "modified_books": "sách đã chỉnh sửa",
+    "saving_progress": "Đang lưu {{current}} / {{total}} cuốn sách...",
+    "auto_index_desc": "Tự động đánh số thứ tự tập 1, 2, 3..."
   },
   "user": {
     "profile": "Hồ sơ",
@@ -687,7 +701,12 @@
     "seek": "Tua",
     "volume": "Âm lượng",
     "audio_load_failed": "Không tải được tệp âm thanh này",
-    "audio_load_failed_hint": "Kiểm tra định dạng tệp và thử lại."
+    "audio_load_failed_hint": "Kiểm tra định dạng tệp và thử lại.",
+    "page_animation": "Hiệu ứng chuyển trang",
+    "animation_eink": "Mô phỏng E-Ink",
+    "animation_none": "Tức thì (Không hiệu ứng)",
+    "animation_fade": "Mờ dần (Fade)",
+    "animation_slide": "Trượt ngang (Slide)"
   },
   "analytics": {
     "title": "Thống kê & tiến trình đọc",

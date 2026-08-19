@@ -188,3 +188,25 @@ WHERE EXISTS (
 GROUP BY LOWER(bf.format)
 ORDER BY LOWER(bf.format) ASC
 LIMIT sqlc.arg('limit');
+
+-- name: ListRatingsWithCount :many
+SELECT
+    CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) as id,
+    CASE CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER)
+        WHEN 5 THEN '5 Stars'
+        WHEN 4 THEN '4 Stars'
+        WHEN 3 THEN '3 Stars'
+        WHEN 2 THEN '2 Stars'
+        WHEN 1 THEN '1 Star'
+        ELSE CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) || ' Stars'
+    END as name,
+    COUNT(DISTINCT b.id) as book_count
+FROM books b
+LEFT JOIN book_social_stats s ON s.book_id = b.id
+WHERE b.library_id IN (SELECT value FROM json_each(sqlc.arg('library_ids')))
+  AND (COALESCE(s.rating_count, b.rating_count, 0) > 0)
+  AND (COALESCE(s.average_rating, b.average_rating, 0) >= 0.5)
+  AND (sqlc.narg('search') IS NULL OR CAST(CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) AS TEXT) LIKE '%' || sqlc.narg('search') || '%')
+GROUP BY CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER)
+ORDER BY CAST(ROUND(COALESCE(s.average_rating, b.average_rating, 0)) AS INTEGER) DESC
+LIMIT sqlc.arg('limit');

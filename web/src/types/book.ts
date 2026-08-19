@@ -247,3 +247,17 @@ export interface BulkOperationResponse {
   failed_count: number;
   errors?: Record<string, string>;
 }
+
+export interface UpdateBookMetadataRequest {
+  title: string;
+  author?: string;
+  description?: string;
+  publisher?: string;
+  language?: string;
+  date?: string;
+  subjects?: string[];
+  series?: string;
+  series_index?: string;
+  age_rating?: string;
+  rating?: number;
+}

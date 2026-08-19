@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import React from "react";
 
-import type { PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
+import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
 
 type ReaderSettingsPanelProps = {
   t: TFunction;
@@ -23,6 +23,7 @@ type ReaderSettingsPanelProps = {
   isVisualContent: boolean;
   readingDirection: ReadingDirection;
   pageFit: PageFit;
+  pageAnimation: PageAnimation;
   setTheme: (theme: ReaderTheme) => void;
   setFontFamily: (family: string) => void;
   setFontSize: (size: number | ((prev: number) => number)) => void;
@@ -31,6 +32,7 @@ type ReaderSettingsPanelProps = {
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
   setPageFit: (fit: PageFit) => void;
+  setPageAnimation: (anim: PageAnimation) => void;
   resetSettings: () => void;
 };
 
@@ -46,6 +48,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   isVisualContent,
   readingDirection,
   pageFit,
+  pageAnimation,
   setTheme,
   setFontFamily,
   setFontSize,
@@ -54,6 +57,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   setReadingMode,
   setReadingDirection,
   setPageFit,
+  setPageAnimation,
   resetSettings,
 }) => {
 
@@ -236,6 +240,42 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
         </button>
       </div>
     </div>
+
+    {(effectiveReadingMode === "single" || effectiveReadingMode === "double") && (
+      <div className="mt-4 border-t border-current/10 pt-4">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-medium opacity-80">
+            {t("reader.page_animation", "Page Animation")}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            onClick={() => setPageAnimation("eink")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageAnimation === "eink" ? "reader-segment-btn-active" : ""}`}
+          >
+            {t("reader.animation_eink", "E-Ink Flash")}
+          </button>
+          <button
+            onClick={() => setPageAnimation("none")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageAnimation === "none" ? "reader-segment-btn-active" : ""}`}
+          >
+            {t("reader.animation_none", "Instant / None")}
+          </button>
+          <button
+            onClick={() => setPageAnimation("fade")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageAnimation === "fade" ? "reader-segment-btn-active" : ""}`}
+          >
+            {t("reader.animation_fade", "Fade")}
+          </button>
+          <button
+            onClick={() => setPageAnimation("slide")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${pageAnimation === "slide" ? "reader-segment-btn-active" : ""}`}
+          >
+            {t("reader.animation_slide", "Slide")}
+          </button>
+        </div>
+      </div>
+    )}
 
     {isVisualContent && (
       <>

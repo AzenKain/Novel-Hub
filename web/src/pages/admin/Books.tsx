@@ -1,4 +1,4 @@
-import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal } from "@/components/admin";
+import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal, BulkEditMetadataModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
 import { getMediaUrl } from "@/config/api";
@@ -8,7 +8,8 @@ import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetai
 import { useAuthStore, useBookAdminStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines } from "lucide-react";
+import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines, Layers, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +20,7 @@ const MERGEABLE_FORMATS = new Set(["m4a", "m4b", "mp3", "flac", "ogg", "wav", "a
 
 export function Books() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const store = useBookAdminStore(useShallow((state) => ({
     search: state.search, selectedLibraryId: state.selectedLibraryId,
     editingBook: state.editingBook, formData: state.formData, submitting: state.submitting,
@@ -45,6 +47,18 @@ export function Books() {
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkConvertModal, setShowBulkConvertModal] = useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+
+  const handleAddTag = () => {
+    const raw = tagInput.trim();
+    if (!raw) return;
+    const newTags = raw.split(',').map(s => s.trim().replace(/^,+|,+$/g, '')).filter(Boolean);
+    const existing = formData.subjects || [];
+    const merged = Array.from(new Set([...existing, ...newTags]));
+    setFormData({ subjects: merged });
+    setTagInput("");
+  };
 
   const {
     search, selectedLibraryId,
@@ -270,6 +284,13 @@ export function Books() {
                   {t("audiobook.merge", "Merge into audiobook")}
                 </button>
               )}
+              <button
+                onClick={() => setShowBulkEditModal(true)}
+                className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                {t("library.bulk_edit_metadata_title", "Edit Metadata")}
+              </button>
               {canBulkConvert && (
                 <button
                   onClick={() => setShowBulkConvertModal(true)}
@@ -487,11 +508,11 @@ export function Books() {
 
       {/* ===================== EDIT METADATA MODAL ===================== */}
       <dialog className={`modal ${editingBook ? "modal-open" : ""}`}>
-        <div className="modal-box w-11/12 max-w-5xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="modal-box w-11/12 max-w-[96vw] 2xl:max-w-[1700px] h-[95vh] max-h-[96vh] bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col rounded-2xl">
           {/* Header */}
           <header className="px-6 py-4 border-b border-base-200 bg-base-200/30 flex items-center justify-between shrink-0">
             <div>
-              <h3 className="text-lg font-black">{t('admin.metadata', 'Metadata')}</h3>
+              <h3 className="text-xl font-black">{t('admin.metadata', 'Metadata')}</h3>
               <p className="text-xs opacity-50 mt-0.5 font-mono truncate max-w-sm">{editingBook?.id}</p>
             </div>
             <button onClick={() => setEditingBook(null)} className="btn btn-sm btn-circle btn-ghost">✕</button>
@@ -499,20 +520,20 @@ export function Books() {
 
           {/* Body: 2-column layout */}
           <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-0 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-0 min-h-0">
 
               {/* ========== LEFT COLUMN: Cover Section ========== */}
-              <div className="flex flex-col gap-3 p-5 border-r border-base-200 bg-base-200/10">
+              <div className="flex flex-col gap-4 p-6 border-r border-base-200 bg-base-200/10">
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">{t('admin.cover_image', 'Cover Image')}</span>
 
                 {/* Cover Preview */}
-                <div className="flex flex-col items-center gap-2 p-3 bg-base-200/30 border border-base-200 rounded-lg">
-                  <div className="w-36 aspect-[3/4.12] rounded-md bg-base-300 border border-base-300 overflow-hidden shadow-md flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2 p-3.5 bg-base-200/30 border border-base-200 rounded-xl">
+                  <div className="w-44 aspect-[3/4.12] rounded-xl bg-base-300 border border-base-300 overflow-hidden shadow-md flex items-center justify-center">
                     {coverPreview ? (
                       <img src={getMediaUrl(coverPreview, editingBook?.id)} alt="Cover" loading="lazy" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-base-content/30 gap-1">
-                        <ImageIcon size={24} />
+                      <div className="flex flex-col items-center justify-center text-base-content/30 gap-1.5">
+                        <ImageIcon size={28} />
                         <span className="text-[10px] font-bold uppercase">{t('admin.no_cover', 'No Cover')}</span>
                       </div>
                     )}
@@ -521,13 +542,13 @@ export function Books() {
 
                 {/* Cover Tabs */}
                 <div className="flex gap-1 flex-nowrap">
-                  <button type="button" onClick={() => setCoverTab("book")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap ${coverTab === "book" ? "btn-primary" : "btn-ghost"}`}>
+                  <button type="button" onClick={() => setCoverTab("book")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap rounded-lg ${coverTab === "book" ? "btn-primary" : "btn-ghost"}`}>
                     <BookOpen size={12} /> {t('admin.in_book', 'In Book')}
                   </button>
-                  <button type="button" onClick={() => setCoverTab("upload")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap ${coverTab === "upload" ? "btn-primary" : "btn-ghost"}`}>
+                  <button type="button" onClick={() => setCoverTab("upload")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap rounded-lg ${coverTab === "upload" ? "btn-primary" : "btn-ghost"}`}>
                     <Upload size={12} /> {t('admin.upload', 'Upload')}
                   </button>
-                  <button type="button" onClick={() => setCoverTab("link")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap ${coverTab === "link" ? "btn-primary" : "btn-ghost"}`}>
+                  <button type="button" onClick={() => setCoverTab("link")} className={`btn btn-xs flex-1 gap-1 whitespace-nowrap rounded-lg ${coverTab === "link" ? "btn-primary" : "btn-ghost"}`}>
                     <LinkIcon size={12} /> {t('admin.url', 'URL')}
                   </button>
                 </div>
@@ -548,10 +569,10 @@ export function Books() {
                                 type="button"
                                 key={img}
                                 onClick={() => handleSelectEpubImage(img)}
-                                className="flex items-center gap-2 p-1.5 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors text-left"
+                                className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors text-left"
                             >
-                              <img src={getImageAssetUrl(img)} alt={fileName} loading="lazy" className="w-8 h-10 object-cover rounded bg-base-200 border border-base-200 shrink-0" />
-                              <span className="text-[11px] truncate min-w-0 flex-1">{fileName}</span>
+                              <img src={getImageAssetUrl(img)} alt={fileName} loading="lazy" className="w-9 h-12 object-cover rounded-lg bg-base-200 border border-base-200 shrink-0" />
+                              <span className="text-xs truncate min-w-0 flex-1">{fileName}</span>
                             </button>
                           );
                         })
@@ -562,9 +583,9 @@ export function Books() {
                   )}
 
                   {coverTab === "upload" && (
-                    <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-base-300 rounded-lg cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-colors min-h-25">
+                    <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-base-300 rounded-xl cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-colors min-h-25">
                       <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleImageUpload} className="hidden" />
-                      <Upload size={20} className="opacity-50" />
+                      <Upload size={22} className="opacity-50" />
                       <span className="text-xs font-medium opacity-70">{t('admin.click_choose_image', 'Click to choose image')}</span>
                       <span className="text-[10px] opacity-40">PNG, JPEG, GIF, WebP</span>
                     </label>
@@ -578,9 +599,9 @@ export function Books() {
                         placeholder="https://example.com/cover.jpg"
                         value={linkUrl}
                         onChange={e => setLinkUrl(e.target.value)}
-                        className="input input-bordered input-sm w-full text-xs"
+                        className="input input-bordered input-sm w-full text-xs rounded-lg"
                       />
-                      <button type="submit" disabled={!linkUrl.trim()} className="btn btn-sm btn-primary w-full">
+                      <button type="submit" disabled={!linkUrl.trim()} className="btn btn-sm btn-primary w-full rounded-lg">
                         {t('admin.apply', 'Apply')}
                       </button>
                     </form>
@@ -592,7 +613,7 @@ export function Books() {
                     <span className="text-xs font-bold text-primary uppercase tracking-wider">{t('admin.book_files', 'Book Files')}</span>
                     <span className="text-[10px] font-bold text-base-content/40">{bookFiles.length}</span>
                   </div>
-                  <label className={`mb-3 flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-base-300 p-3 text-center transition-colors hover:border-primary/30 hover:bg-primary/5 ${uploadingBookFiles ? "pointer-events-none opacity-60" : ""}`}>
+                  <label className={`mb-3 flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-base-300 p-3 text-center transition-colors hover:border-primary/30 hover:bg-primary/5 ${uploadingBookFiles ? "pointer-events-none opacity-60" : ""}`}>
                     <input
                       type="file"
                       multiple
@@ -608,10 +629,10 @@ export function Books() {
                   <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
                     {bookFiles.length > 0 ? (
                       bookFiles.map((file: BookFile) => (
-                        <div key={file.id} className="flex min-w-0 items-center gap-2 rounded-md border border-base-200 bg-base-100/70 p-2">
+                        <div key={file.id} className="flex min-w-0 items-center gap-2 rounded-lg border border-base-200 bg-base-100/70 p-2">
                           <FileText className="h-4 w-4 shrink-0 text-base-content/45" />
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-[11px] font-semibold">{fileNameFromPath(file.path)}</div>
+                            <div className="truncate text-xs font-semibold">{fileNameFromPath(file.path)}</div>
                             <div className="text-[10px] uppercase text-base-content/45">{file.format || "file"} · {formatFileSize(file.size_bytes)}</div>
                           </div>
                           {bookFiles.length > 1 && (
@@ -620,7 +641,7 @@ export function Books() {
                               onClick={() => {
                                 setDeleteFileId(file.id);
                               }}
-                              className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/15"
+                              className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/15 rounded-lg"
                               title={t("admin.delete_file", "Delete file format")}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -629,24 +650,24 @@ export function Books() {
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-md bg-base-200/40 px-3 py-2 text-center text-xs text-base-content/45">No files attached</div>
+                      <div className="rounded-lg bg-base-200/40 px-3 py-2 text-center text-xs text-base-content/45">No files attached</div>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* ========== RIGHT COLUMN: Metadata Form ========== */}
-              <div className="flex flex-col gap-5 p-5 overflow-y-auto">
+              <div className="flex flex-col gap-6 p-6 overflow-y-auto">
 
                 {/* Online Search Widget */}
-                <div className="bg-primary/5 border border-primary/10 rounded-xl p-4">
+                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 sm:p-5">
                   <h4 className="font-bold text-sm text-primary mb-3 flex items-center gap-2">
-                    <Globe size={16} />
+                    <Globe size={18} />
                     Search Online Metadata & Cover
                   </h4>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2.5">
                     <select
-                      className="select select-bordered select-sm bg-base-100 shrink-0"
+                      className="select select-bordered select-md bg-base-100 shrink-0 rounded-xl text-sm font-medium"
                       value={searchSource}
                       onChange={e => setSearchSource(e.target.value)}
                     >
@@ -657,7 +678,7 @@ export function Books() {
                     </select>
                     <input
                       type="text"
-                      className="input input-bordered input-sm flex-1 bg-base-100 min-w-0"
+                      className="input input-bordered input-md flex-1 bg-base-100 min-w-0 rounded-xl text-sm"
                       placeholder="Search title, series or author..."
                       value={onlineSearchQuery}
                       onChange={e => setOnlineSearchQuery(e.target.value)}
@@ -672,7 +693,7 @@ export function Books() {
                       type="button"
                       onClick={handleSearchOnline}
                       disabled={searching}
-                      className="btn btn-sm btn-primary gap-1 shrink-0"
+                      className="btn btn-md btn-primary gap-1.5 shrink-0 rounded-xl font-bold"
                     >
                       {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                       {searching ? "Searching..." : "Search"}
@@ -680,26 +701,26 @@ export function Books() {
                   </div>
 
                   {searchResults.length > 0 && (
-                    <div className="mt-3 border border-base-200 bg-base-100 rounded-lg max-h-52 overflow-y-auto shadow-inner p-2 flex flex-col gap-1.5">
+                    <div className="mt-3.5 border border-base-200 bg-base-100 rounded-xl max-h-56 overflow-y-auto shadow-inner p-2.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center px-2 py-1">
-                        <span className="text-[11px] font-bold text-base-content/60">Select a result to auto-fill:</span>
-                        <button type="button" onClick={() => setSearchResults([])} className="text-[11px] text-error font-bold hover:underline">Close</button>
+                        <span className="text-xs font-bold text-base-content/60">Select a result to auto-fill:</span>
+                        <button type="button" onClick={() => setSearchResults([])} className="text-xs text-error font-bold hover:underline">Close</button>
                       </div>
                       {searchResults.map((res, idx) => (
                         <div
                           key={idx}
                           onClick={() => handleSelectResult(res)}
-                          className="flex gap-3 p-2 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors"
+                          className="flex gap-3 p-2.5 rounded-xl hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors"
                         >
                           {res.cover_image ? (
-                            <img src={getMediaUrl(res.cover_image, editingBook?.id)} loading="lazy" className="w-9 h-12 object-cover rounded bg-base-200 border border-base-200 shrink-0" />
+                            <img src={getMediaUrl(res.cover_image, editingBook?.id)} loading="lazy" className="w-10 h-14 object-cover rounded-lg bg-base-200 border border-base-200 shrink-0" />
                           ) : (
-                            <div className="w-9 h-12 rounded bg-base-200 border border-base-200 flex items-center justify-center text-[8px] text-base-content/40 font-bold shrink-0">—</div>
+                            <div className="w-10 h-14 rounded-lg bg-base-200 border border-base-200 flex items-center justify-center text-[9px] text-base-content/40 font-bold shrink-0">—</div>
                           )}
                           <div className="flex flex-col justify-center min-w-0">
                             <strong className="text-sm text-primary truncate leading-tight">{res.title}</strong>
                             <span className="text-xs opacity-60 truncate">{res.creator || "Unknown author"}</span>
-                            {res.publisher && <span className="text-[10px] opacity-40 truncate">{res.publisher}</span>}
+                            {res.publisher && <span className="text-[11px] opacity-40 truncate">{res.publisher}</span>}
                           </div>
                         </div>
                       ))}
@@ -710,57 +731,113 @@ export function Books() {
                 {/* Form Fields */}
                 <form onSubmit={handleEditSubmit} id="metadata-form" className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Tên sách (Title)</label>
-                    <input type="text" required className="input input-bordered w-full" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.title', 'Title')}</label>
+                    <input type="text" required className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.title} onChange={e => setFormData({ title: e.target.value })} />
                   </div>
 
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Tác giả (Author)</label>
-                    <input type="text" className="input input-bordered w-full" value={formData.author} onChange={e => setFormData({ ...formData, author: e.target.value })} />
+                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.author', 'Author')}</label>
+                    <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-medium" value={formData.author} onChange={e => setFormData({ author: e.target.value })} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Series</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.series} onChange={e => setFormData({ ...formData, series: e.target.value })} />
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.series', 'Series')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.series} onChange={e => setFormData({ series: e.target.value })} />
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Series ID</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.series_index} onChange={e => setFormData({ ...formData, series_index: e.target.value })} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Ngày xuất bản (Date)</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                    </div>
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Nhà xuất bản (Publisher)</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.publisher} onChange={e => setFormData({ ...formData, publisher: e.target.value })} />
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.series_index', 'Series Index')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono" value={formData.series_index} onChange={e => setFormData({ series_index: e.target.value })} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Ngôn ngữ (Language)</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.language} onChange={e => setFormData({ ...formData, language: e.target.value })} />
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.publisher', 'Publisher')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.publisher} onChange={e => setFormData({ publisher: e.target.value })} />
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Đánh dấu (Tags, comma separated)</label>
-                      <input type="text" className="input input-bordered w-full" value={formData.subjects} onChange={e => setFormData({ ...formData, subjects: e.target.value })} />
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.date', 'Date')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full" value={formData.date} onChange={e => setFormData({ date: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.language', 'Language')}</label>
+                      <input type="text" className="input input-bordered input-md text-sm rounded-xl w-full font-mono" value={formData.language} onChange={e => setFormData({ language: e.target.value })} />
+                    </div>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.age_rating', 'Age Rating')}</label>
+                      <select
+                        value={formData.age_rating || ""}
+                        onChange={e => setFormData({ age_rating: e.target.value })}
+                        className="select select-bordered select-md text-sm rounded-xl w-full font-medium"
+                      >
+                        <option value="">{t('common.none', 'None')}</option>
+                        <option value="safe">Safe / All Ages</option>
+                        <option value="teen">Teen / 13+</option>
+                        <option value="mature">Mature / 16+</option>
+                        <option value="explicit">Explicit / 18+</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Tags Chip Editor */}
+                  <div className="flex flex-col gap-2 w-full">
+                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.tags', 'Tags / Subjects')}</label>
+                    <div className="flex flex-wrap gap-2 items-center p-3 bg-base-200/40 border border-base-200 rounded-xl min-h-12">
+                      {formData.subjects.map((sub, sIdx) => (
+                        <span key={sIdx} className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-medium rounded-lg">
+                          {sub}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = formData.subjects.filter((_, i) => i !== sIdx);
+                              setFormData({ subjects: next });
+                            }}
+                            className="hover:text-error ml-0.5 cursor-pointer font-bold text-xs"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                      <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ',') {
+                              e.preventDefault();
+                              handleAddTag();
+                            }
+                          }}
+                          placeholder={t('book.add_tag_placeholder', 'Add tag and press Enter...')}
+                          className="input input-sm input-bordered bg-base-100 text-xs flex-1 rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddTag}
+                          disabled={!tagInput.trim()}
+                          className="btn btn-sm btn-primary rounded-lg gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          {t('common.add', 'Add')}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5 w-full">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Mô tả (Description)</label>
-                    <textarea rows={6} className="textarea textarea-bordered w-full leading-relaxed resize-y" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                    <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.description', 'Description')}</label>
+                    <textarea rows={5} className="textarea textarea-bordered textarea-md w-full leading-relaxed resize-y text-sm rounded-xl" value={formData.description} onChange={e => setFormData({ description: e.target.value })} />
                   </div>
 
                   {editingBook?.metadata_json && (
-                    <div className="flex flex-col gap-1.5 w-full mt-4">
-                      <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Nhận diện (Identifiers)</label>
-                      <div className="bg-base-200/50 p-3 rounded-lg text-xs font-mono break-all max-h-32 overflow-y-auto">
+                    <div className="flex flex-col gap-1.5 w-full mt-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 pl-1">{t('book.identifiers', 'Identifiers')}</label>
+                      <div className="bg-base-200/50 p-3.5 rounded-xl text-xs font-mono break-all max-h-36 overflow-y-auto">
                         {(() => {
                           try {
                             const meta = JSON.parse(editingBook.metadata_json);
@@ -779,11 +856,11 @@ export function Books() {
           </div>
 
           {/* Footer */}
-          <footer className="px-6 py-3 border-t border-base-200 bg-base-200/30 flex justify-end gap-3 shrink-0">
-            <button type="button" onClick={() => setEditingBook(null)} className="btn btn-ghost btn-sm">
+          <footer className="px-6 py-4 border-t border-base-200 bg-base-200/30 flex justify-end gap-3 shrink-0">
+            <button type="button" onClick={() => setEditingBook(null)} className="btn btn-ghost btn-sm sm:btn-md rounded-xl">
               {t("admin.cancel")}
             </button>
-            <button type="submit" form="metadata-form" disabled={submitting} className="btn btn-primary btn-sm px-6 gap-1">
+            <button type="submit" form="metadata-form" disabled={submitting} className="btn btn-primary btn-sm sm:btn-md px-6 gap-1.5 rounded-xl font-bold !text-white shadow-lg shadow-primary/20">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {t("admin.save")}
             </button>
@@ -943,6 +1020,18 @@ export function Books() {
           onClose={() => {
             setShowBulkConvertModal(false);
             setSelectedBookIds([]);
+          }}
+        />
+      )}
+
+      {showBulkEditModal && (
+        <BulkEditMetadataModal
+          isOpen={showBulkEditModal}
+          books={selectedBooks}
+          onClose={() => setShowBulkEditModal(false)}
+          onSuccess={() => {
+            setSelectedBookIds([]);
+            void queryClient.invalidateQueries({ queryKey: ["books"] });
           }}
         />
       )}

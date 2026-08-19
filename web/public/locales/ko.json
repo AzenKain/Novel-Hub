@@ -563,7 +563,21 @@
     "potential_matches": "잠재적 일치 항목",
     "potential_matches_desc": "제목과 저자가 같고 세부 차이가 있는 항목 — 중복을 한 권으로 병합합니다.",
     "rename_smart_collection": "스마트 컬렉션 이름 바꾸기",
-    "smart_collection_update_failed": "스마트 컬렉션을 업데이트할 수 없습니다"
+    "smart_collection_update_failed": "스마트 컬렉션을 업데이트할 수 없습니다",
+    "bulk_edit_metadata_title": "메타데이터 일괄 편집",
+    "bulk_edit_metadata_desc": "여러 도서의 메타데이터를 동시에 편집 및 동기화",
+    "sync_field_to_books": "동기화",
+    "sync_field_title": "다른 도서에 {{field}} 동기화",
+    "sync_cover": "표지 동기화",
+    "value_to_sync": "동기화할 값",
+    "select_target_books": "대상 도서 선택",
+    "sync_applied": "{{count}}권의 도서에 {{field}} 적용됨",
+    "series_index_sequenced": "시리즈 번호가 순서대로 정렬되었습니다 (1~{{count}})",
+    "bulk_saved_success": "{{count}}권의 도서 메타데이터를 성공적으로 업데이트했습니다",
+    "bulk_saved_partial": "{{success}}권 업데이트됨, {{fail}}권 실패",
+    "modified_books": "권 수정됨",
+    "saving_progress": "{{total}}권 중 {{current}}권 저장 중...",
+    "auto_index_desc": "시리즈 번호 자동 지정 (1, 2, 3...)"
   },
   "user": {
     "profile": "프로필",
@@ -687,7 +701,12 @@
     "seek": "탐색",
     "volume": "음량",
     "audio_load_failed": "이 오디오 파일을 불러올 수 없습니다",
-    "audio_load_failed_hint": "파일 형식을 확인하고 다시 시도하세요."
+    "audio_load_failed_hint": "파일 형식을 확인하고 다시 시도하세요.",
+    "page_animation": "페이지 넘김 애니메이션",
+    "animation_eink": "E-Ink 플래시",
+    "animation_none": "즉시 전환 (없음)",
+    "animation_fade": "페이드",
+    "animation_slide": "슬라이드"
   },
   "analytics": {
     "title": "독서 분석 및 통계",

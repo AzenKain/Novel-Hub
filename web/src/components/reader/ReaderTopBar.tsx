@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search } from "lucide-react";
 import React, { useState } from "react";
 import { LanguageSwitcher } from "@/components/ui";
-import type { PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
+import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
 
@@ -23,6 +23,7 @@ type ReaderTopBarProps = {
   isVisualContent: boolean;
   readingDirection: ReadingDirection;
   pageFit: PageFit;
+  pageAnimation: PageAnimation;
   onPrev: () => void;
   onNext: () => void;
   setSettingsOpen: (open: boolean) => void;
@@ -34,6 +35,7 @@ type ReaderTopBarProps = {
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
   setPageFit: (fit: PageFit) => void;
+  setPageAnimation: (anim: PageAnimation) => void;
   resetSettings: () => void;
   ttsSupported?: boolean;
   ttsPlaying?: boolean;
@@ -73,6 +75,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   isVisualContent,
   readingDirection,
   pageFit,
+  pageAnimation,
   onPrev,
   onNext,
   setSettingsOpen,
@@ -84,6 +87,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setReadingMode,
   setReadingDirection,
   setPageFit,
+  setPageAnimation,
   resetSettings,
   ttsSupported,
   ttsPlaying,
@@ -266,6 +270,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             isVisualContent={isVisualContent}
             readingDirection={readingDirection}
             pageFit={pageFit}
+            pageAnimation={pageAnimation}
             setTheme={setTheme}
             setFontFamily={setFontFamily}
             setFontSize={setFontSize}
@@ -274,6 +279,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             setReadingMode={setReadingMode}
             setReadingDirection={setReadingDirection}
             setPageFit={setPageFit}
+            setPageAnimation={setPageAnimation}
             resetSettings={resetSettings}
           />
         )}
@@ -281,4 +287,3 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
     </header>
   );
 };
-

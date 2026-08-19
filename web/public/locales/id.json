@@ -563,7 +563,21 @@
     "potential_matches": "Kemungkinan Kecocokan",
     "potential_matches_desc": "Judul dan penulis sama dengan perbedaan kecil — gabungkan duplikat menjadi satu buku.",
     "rename_smart_collection": "Ganti nama koleksi pintar",
-    "smart_collection_update_failed": "Gagal memperbarui koleksi pintar"
+    "smart_collection_update_failed": "Gagal memperbarui koleksi pintar",
+    "bulk_edit_metadata_title": "Edit Metadata Massal",
+    "bulk_edit_metadata_desc": "Edit dan sinkronkan bidang di beberapa buku secara bersamaan",
+    "sync_field_to_books": "Sinkronkan",
+    "sync_field_title": "Sinkronkan {{field}} ke buku lain",
+    "sync_cover": "Sinkronkan Sampul",
+    "value_to_sync": "Nilai untuk disinkronkan",
+    "select_target_books": "Pilih buku target",
+    "sync_applied": "Menerapkan {{field}} ke {{count}} buku",
+    "series_index_sequenced": "Indeks seri diurutkan (1 hingga {{count}})",
+    "bulk_saved_success": "Berhasil memperbarui metadata untuk {{count}} buku",
+    "bulk_saved_partial": "Memperbarui {{success}} buku, {{fail}} gagal",
+    "modified_books": "buku dimodifikasi",
+    "saving_progress": "Menyimpan {{current}} dari {{total}} buku...",
+    "auto_index_desc": "Atur indeks seri 1, 2, 3... berurutan"
   },
   "user": {
     "profile": "Profil",
@@ -687,7 +701,12 @@
     "seek": "Geser",
     "volume": "Volume",
     "audio_load_failed": "Gagal memuat berkas audio ini",
-    "audio_load_failed_hint": "Periksa format berkas dan coba lagi."
+    "audio_load_failed_hint": "Periksa format berkas dan coba lagi.",
+    "page_animation": "Animasi Pergantian Halaman",
+    "animation_eink": "Kilatan E-Ink",
+    "animation_none": "Instan / Tanpa Animasi",
+    "animation_fade": "Pudar (Fade)",
+    "animation_slide": "Geser (Slide)"
   },
   "analytics": {
     "title": "Analitik & statistik bacaan",

@@ -67,7 +67,7 @@ func TestAuditSmartFilterLeaksCrossUserReadingStatus(t *testing.T) {
 
 	repo := NewBookDBRepository(db, cache.NewRamCache())
 	rule := request.SmartFilterRuleItemDto{Field: "status", Value: "read"}
-	books, err := repo.SearchSmartFilterBooks(ctx, nil, []request.SmartFilterRuleItemDto{rule}, nil, "", 10)
+	books, err := repo.SearchSmartFilterBooks(ctx, nil, []request.SmartFilterRuleItemDto{rule}, nil, "", 10, "u1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,10 +77,8 @@ func TestAuditSmartFilterLeaksCrossUserReadingStatus(t *testing.T) {
 		got = append(got, b.ID)
 	}
 
-	leaked := slices.Contains(got, "b2")
-	// BUG PROOF: u1's "read" filter surfaced b2, which only u2 has read.
-	if !leaked {
-		t.Fatalf("no leak to prove: u1's read filter returned %v; b2 (u2's book) was correctly excluded", got)
+	if slices.Contains(got, "b2") {
+		t.Fatalf("u1's read filter leaked b2: %v", got)
 	}
 	if !slices.Contains(got, "b1") {
 		t.Fatalf("setup broken: u1's own read book b1 missing from %v", got)

@@ -164,7 +164,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           onClick={() => {
             setSearch("");
             setActiveFacet(null);
-            onNavClick("");
+            onNavClick("books");
             onCollectionClick("");
           }}
           className="mt-2 mb-3 flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"

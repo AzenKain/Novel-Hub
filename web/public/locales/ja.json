@@ -563,7 +563,21 @@
     "potential_matches": "類似の可能性がある項目",
     "potential_matches_desc": "タイトルと著者が同じで細部が異なる項目 — 重複を1冊にまとめます。",
     "rename_smart_collection": "スマートコレクションの名前を変更",
-    "smart_collection_update_failed": "スマートコレクションを更新できませんでした"
+    "smart_collection_update_failed": "スマートコレクションを更新できませんでした",
+    "bulk_edit_metadata_title": "メタデータ一括編集",
+    "bulk_edit_metadata_desc": "複数の書籍のメタデータを同時に編集・同期",
+    "sync_field_to_books": "同期",
+    "sync_field_title": "{{field}}を他の書籍に同期",
+    "sync_cover": "表紙を同期",
+    "value_to_sync": "同期する値",
+    "select_target_books": "対象の書籍を選択",
+    "sync_applied": "{{count}}冊の書籍に{{field}}を適用しました",
+    "series_index_sequenced": "シリーズ番号を順序付けしました (1〜{{count}})",
+    "bulk_saved_success": "{{count}}冊の書籍のメタデータを正常に更新しました",
+    "bulk_saved_partial": "{{success}}冊を更新、{{fail}}冊が失敗しました",
+    "modified_books": "冊編集済み",
+    "saving_progress": "{{total}}冊中{{current}}冊を保存中...",
+    "auto_index_desc": "シリーズ順序を自動採番 (1, 2, 3...)"
   },
   "user": {
     "profile": "プロフィール",
@@ -687,7 +701,12 @@
     "seek": "シーク",
     "volume": "音量",
     "audio_load_failed": "このオーディオファイルを読み込めませんでした",
-    "audio_load_failed_hint": "ファイル形式を確認して再試行してください。"
+    "audio_load_failed_hint": "ファイル形式を確認して再試行してください。",
+    "page_animation": "ページ送りアニメーション",
+    "animation_eink": "E-Inkフラッシュ",
+    "animation_none": "なし（即時）",
+    "animation_fade": "フェード",
+    "animation_slide": "スライド"
   },
   "analytics": {
     "title": "読書分析と統計",

@@ -163,7 +163,7 @@ func (s *opdsService) visibleBooks(ctx context.Context, limit int64, claims *res
 
 func (s *opdsService) visibleBooksPage(ctx context.Context, q request.OPDSPageDto, claims *response.JWTClaims) (visiblePage, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", "", q.Cursor, q.Limit)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return visiblePage{}, err
 	}
@@ -215,7 +215,7 @@ func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q re
 
 func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, &query, "", "", "", "", "", "", q.Cursor, q.Limit)
+	books, err := s.books.SearchBooks(ctx, nil, &query, "", "", "", "", "", "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q
 
 func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "author", authorName, "", q.Cursor, q.Limit)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "author", authorName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q 
 
 func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "series", seriesName, "", q.Cursor, q.Limit)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "series", seriesName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +400,7 @@ func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q re
 
 func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "tag", tagName, "", q.Cursor, q.Limit)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "tag", tagName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}

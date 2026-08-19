@@ -28,13 +28,16 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
 
   return (
     <div className="pt-4 border-t border-base-200 mt-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-primary" />
-          <h3 className="text-base font-bold text-base-content">
+      <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+          <Layers className="w-4 h-4 text-primary shrink-0" />
+          <h3 className="text-base font-bold text-base-content shrink-0">
             {t("book.in_same_series", "Books in this Series")}
           </h3>
-          <span className="badge badge-sm badge-ghost font-medium">
+          <span
+            className="badge badge-sm badge-ghost font-medium truncate max-w-45 sm:max-w-xs md:max-w-sm"
+            title={seriesName}
+          >
             {seriesName}
           </span>
         </div>
@@ -44,7 +47,7 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
               `/?nav=series&facet=series&facet_id=${encodeURIComponent(seriesId)}&name=${encodeURIComponent(seriesName)}`
             )
           }
-          className="btn btn-ghost btn-xs gap-1 text-primary hover:bg-primary/10"
+          className="btn btn-ghost btn-xs gap-1 text-primary hover:bg-primary/10 shrink-0"
         >
           <span>{t("common.view_all", "View All")}</span>
           <ChevronRight className="w-3.5 h-3.5" />

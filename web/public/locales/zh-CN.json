@@ -563,7 +563,21 @@
     "potential_matches": "潜在匹配",
     "potential_matches_desc": "标题和作者相同但有细微差异的书籍 — 将重复项合并为一本书。",
     "rename_smart_collection": "重命名智能收藏",
-    "smart_collection_update_failed": "无法更新智能收藏"
+    "smart_collection_update_failed": "无法更新智能收藏",
+    "bulk_edit_metadata_title": "批量编辑元数据",
+    "bulk_edit_metadata_desc": "同时编辑和同步多本书籍的元数据",
+    "sync_field_to_books": "同步",
+    "sync_field_title": "将 {{field}} 同步到其他书籍",
+    "sync_cover": "同步封面",
+    "value_to_sync": "要同步的值",
+    "select_target_books": "选择目标书籍",
+    "sync_applied": "已将 {{field}} 应用于 {{count}} 本书籍",
+    "series_index_sequenced": "已自动排序系列编号 (1 到 {{count}})",
+    "bulk_saved_success": "已成功更新 {{count}} 本书籍的元数据",
+    "bulk_saved_partial": "已更新 {{success}} 本，{{fail}} 本失败",
+    "modified_books": "本书籍已修改",
+    "saving_progress": "正在保存第 {{current}} / {{total}} 本书籍...",
+    "auto_index_desc": "按顺序设置系列编号 1, 2, 3..."
   },
   "user": {
     "profile": "资料",
@@ -687,7 +701,12 @@
     "seek": "进度",
     "volume": "音量",
     "audio_load_failed": "无法加载此音频文件",
-    "audio_load_failed_hint": "请检查文件格式后重试。"
+    "audio_load_failed_hint": "请检查文件格式后重试。",
+    "page_animation": "翻页动画",
+    "animation_eink": "电子墨水屏 (E-Ink)",
+    "animation_none": "无动画 (即时)",
+    "animation_fade": "淡入淡出 (Fade)",
+    "animation_slide": "滑动 (Slide)"
   },
   "analytics": {
     "title": "阅读分析与统计",

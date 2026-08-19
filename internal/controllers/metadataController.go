@@ -62,3 +62,7 @@ func (h *MetadataController) ListTags(c fiber.Ctx) error {
 func (h *MetadataController) ListFormats(c fiber.Ctx) error {
 	return h.listFacet(c, h.service.ListFormats)
 }
+
+func (h *MetadataController) ListRatings(c fiber.Ctx) error {
+	return h.listFacet(c, h.service.ListRatings)
+}

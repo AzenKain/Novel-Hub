@@ -563,7 +563,21 @@
     "potential_matches": "Correspondances potentielles",
     "potential_matches_desc": "Même titre et même auteur avec de légères différences — fusionnez les doublons en un seul livre.",
     "rename_smart_collection": "Renommer la collection intelligente",
-    "smart_collection_update_failed": "Impossible de mettre à jour la collection intelligente"
+    "smart_collection_update_failed": "Impossible de mettre à jour la collection intelligente",
+    "bulk_edit_metadata_title": "Modifier les métadonnées en masse",
+    "bulk_edit_metadata_desc": "Modifier et synchroniser les champs sur plusieurs livres simultanément",
+    "sync_field_to_books": "Synchroniser",
+    "sync_field_title": "Synchroniser {{field}} avec d'autres livres",
+    "sync_cover": "Synchroniser la couverture",
+    "value_to_sync": "Valeur à synchroniser",
+    "select_target_books": "Sélectionner les livres cibles",
+    "sync_applied": "{{field}} appliqué à {{count}} livres",
+    "series_index_sequenced": "Index de série séquencé (1 à {{count}})",
+    "bulk_saved_success": "Métadonnées mises à jour avec succès pour {{count}} livres",
+    "bulk_saved_partial": "{{success}} livres mis à jour, {{fail}} ont échoué",
+    "modified_books": "livres modifiés",
+    "saving_progress": "Enregistrement de {{current}} sur {{total}} livres...",
+    "auto_index_desc": "Définir l'index de série 1, 2, 3... dans l'ordre"
   },
   "user": {
     "profile": "Profil",
@@ -687,7 +701,12 @@
     "seek": "Recherche",
     "volume": "Volume",
     "audio_load_failed": "Impossible de charger ce fichier audio",
-    "audio_load_failed_hint": "Vérifiez le format du fichier et réessayez."
+    "audio_load_failed_hint": "Vérifiez le format du fichier et réessayez.",
+    "page_animation": "Animation de page",
+    "animation_eink": "Flash E-Ink",
+    "animation_none": "Instantané / Aucun",
+    "animation_fade": "Fondu (Fade)",
+    "animation_slide": "Glissement (Slide)"
   },
   "analytics": {
     "title": "Analyses et statistiques de lecture",

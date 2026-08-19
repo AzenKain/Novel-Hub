@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, FolderInput, Tag, X } from 'lucide-react';
+import { Trash2, FolderInput, Tag, X, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface BulkActionToolbarProps {
@@ -8,6 +8,7 @@ interface BulkActionToolbarProps {
   onBulkMove: () => void;
   onBulkAddTags: () => void;
   onBulkDelete: () => void;
+  onBulkEditMetadata?: () => void;
 }
 
 export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
@@ -16,6 +17,7 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
   onBulkMove,
   onBulkAddTags,
   onBulkDelete,
+  onBulkEditMetadata,
 }) => {
   const { t } = useTranslation();
 
@@ -30,6 +32,17 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
       <div className="h-4 w-px bg-base-content/20" />
 
       <div className="flex items-center gap-2">
+        {onBulkEditMetadata && (
+          <button
+            type="button"
+            onClick={onBulkEditMetadata}
+            className="btn btn-neutral btn-xs gap-1.5 font-medium"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {t('library.bulk_edit_metadata_title', 'Edit Metadata')}
+          </button>
+        )}
+
         <button
           type="button"
           onClick={onBulkMove}

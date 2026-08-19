@@ -563,7 +563,21 @@
     "potential_matches": "潛在相符項目",
     "potential_matches_desc": "標題和作者相同但有些微差異的書籍 — 將重複項合併為一本書。",
     "rename_smart_collection": "重新命名智慧收藏",
-    "smart_collection_update_failed": "無法更新智慧收藏"
+    "smart_collection_update_failed": "無法更新智慧收藏",
+    "bulk_edit_metadata_title": "批次編輯元數據",
+    "bulk_edit_metadata_desc": "同時編輯和同步多本書籍的元數據",
+    "sync_field_to_books": "同步",
+    "sync_field_title": "將 {{field}} 同步到其他書籍",
+    "sync_cover": "同步封面",
+    "value_to_sync": "要同步的值",
+    "select_target_books": "選擇目標書籍",
+    "sync_applied": "已將 {{field}} 套用於 {{count}} 本書籍",
+    "series_index_sequenced": "已自動排序系列編號 (1 到 {{count}})",
+    "bulk_saved_success": "已成功更新 {{count}} 本書籍的元數據",
+    "bulk_saved_partial": "已更新 {{success}} 本，{{fail}} 本失敗",
+    "modified_books": "本書籍已修改",
+    "saving_progress": "正在儲存第 {{current}} / {{total}} 本書籍...",
+    "auto_index_desc": "按順序設定系列編號 1, 2, 3..."
   },
   "user": {
     "profile": "個人資料",
@@ -687,7 +701,12 @@
     "seek": "進度",
     "volume": "音量",
     "audio_load_failed": "無法載入此音訊檔案",
-    "audio_load_failed_hint": "請檢查檔案格式後重試。"
+    "audio_load_failed_hint": "請檢查檔案格式後重試。",
+    "page_animation": "翻頁動畫",
+    "animation_eink": "電子墨水屏 (E-Ink)",
+    "animation_none": "無動畫 (即時)",
+    "animation_fade": "淡入淡出 (Fade)",
+    "animation_slide": "滑動 (Slide)"
   },
   "analytics": {
     "title": "閱讀分析與統計",

@@ -19,6 +19,7 @@ type MetadataService interface {
 	ListLanguages(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
 	ListTags(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
 	ListFormats(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
+	ListRatings(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error)
 }
 
 type metadataService struct {
@@ -97,4 +98,8 @@ func (s *metadataService) ListTags(ctx context.Context, q *request.MetadataFacet
 
 func (s *metadataService) ListFormats(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
 	return s.listFacet(ctx, q, claims, s.bookRepo.ListFormatsWithCount)
+}
+
+func (s *metadataService) ListRatings(ctx context.Context, q *request.MetadataFacetDto, claims *response.JWTClaims) (*response.PaginatedResponse, error) {
+	return s.listFacet(ctx, q, claims, s.bookRepo.ListRatingsWithCount)
 }

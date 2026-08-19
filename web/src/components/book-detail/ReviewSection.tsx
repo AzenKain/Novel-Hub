@@ -72,6 +72,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
       queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+      queryClient.invalidateQueries({ queryKey: ["metadata"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["book", book_id] });
       toast.success(t("review.submitted", "Review submitted successfully"));
     },
     onError: (err: any) => {
@@ -90,6 +93,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
       setReviewText("");
       queryClient.invalidateQueries({ queryKey: ["bookReviews", book_id] });
       queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+      queryClient.invalidateQueries({ queryKey: ["metadata"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["book", book_id] });
       toast.success(t("review.deleted", "Review deleted successfully"));
     },
     onError: (err: any) => {

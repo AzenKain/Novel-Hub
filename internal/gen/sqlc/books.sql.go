@@ -575,24 +575,25 @@ WHERE
     (?11 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (?12 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (?13 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?16 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?17 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
-    (?18 IS NULL OR b.download_count > 0) AND
-    (?19 IS NULL OR b.rating_count > 0) AND
-    (?20 IS NULL OR b.status = 'archived') AND
-    (?21 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?22)) AND
-    (?23 IS NULL OR b.author_id = ?23) AND
-    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?24)) AND
-    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?25)) AND
-    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?26)) AND
-    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?27)) AND
-    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28))) AND
-    (?29 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
+    (?14 IS NULL OR (?15 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (?16 IS NULL OR (?15 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0))) AND
+    (?17 IS NULL OR (?15 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0))) AND
+    (?18 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?19 IS NULL OR b.download_count > 0) AND
+    (?20 IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (?21 IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = ?21)) AND
+    (?22 IS NULL OR b.status = 'archived') AND
+    (?23 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?15)) AND
+    (?24 IS NULL OR b.author_id = ?24 OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(?24))) AND
+    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = ?25 OR LOWER(s.name) = LOWER(?25)))) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = ?26 OR LOWER(t.name) = LOWER(?26)))) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = ?27 OR LOWER(p.name) = LOWER(?27)))) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = ?28 OR LOWER(l.name) = LOWER(?28)))) AND
+    (?29 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?29))) AND
+    (?30 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
     b.created_at DESC, b.id DESC
-LIMIT ?30
+LIMIT ?31
 `
 
 type SearchBookIDsParams struct {
@@ -610,14 +611,15 @@ type SearchBookIDsParams struct {
 	FilterHasLanguages    interface{}    `json:"filter_has_languages"`
 	FilterHasFormats      interface{}    `json:"filter_has_formats"`
 	FilterReading         interface{}    `json:"filter_reading"`
+	UserID                interface{}    `json:"user_id"`
 	FilterRead            interface{}    `json:"filter_read"`
 	FilterUnread          interface{}    `json:"filter_unread"`
 	FilterHot             interface{}    `json:"filter_hot"`
 	FilterTopDownloaded   interface{}    `json:"filter_top_downloaded"`
 	FilterTopRated        interface{}    `json:"filter_top_rated"`
+	FilterRatingStar      interface{}    `json:"filter_rating_star"`
 	FilterArchived        interface{}    `json:"filter_archived"`
 	FilterBookmarked      interface{}    `json:"filter_bookmarked"`
-	UserID                sql.NullString `json:"user_id"`
 	AuthorID              interface{}    `json:"author_id"`
 	SeriesID              interface{}    `json:"series_id"`
 	TagID                 interface{}    `json:"tag_id"`
@@ -644,14 +646,15 @@ func (q *Queries) SearchBookIDs(ctx context.Context, arg SearchBookIDsParams) ([
 		arg.FilterHasLanguages,
 		arg.FilterHasFormats,
 		arg.FilterReading,
+		arg.UserID,
 		arg.FilterRead,
 		arg.FilterUnread,
 		arg.FilterHot,
 		arg.FilterTopDownloaded,
 		arg.FilterTopRated,
+		arg.FilterRatingStar,
 		arg.FilterArchived,
 		arg.FilterBookmarked,
-		arg.UserID,
 		arg.AuthorID,
 		arg.SeriesID,
 		arg.TagID,
@@ -716,28 +719,29 @@ WHERE
     (?12 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (?13 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (?14 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?16 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?17 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?18 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
-    (?19 IS NULL OR b.download_count > 0) AND
-    (?20 IS NULL OR b.rating_count > 0) AND
-    (?21 IS NULL OR b.status = 'archived') AND
-    (?22 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?23)) AND
-    (?24 IS NULL OR b.author_id = ?24) AND
-    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?25)) AND
-    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?26)) AND
-    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?27)) AND
-    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?28)) AND
-    (?29 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?29))) AND
-    (?30 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
+    (?15 IS NULL OR (?16 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?16 AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (?17 IS NULL OR (?16 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?16 AND rp.progress_percent > 0))) AND
+    (?18 IS NULL OR (?16 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?16 AND rp.progress_percent > 0))) AND
+    (?19 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?20 IS NULL OR b.download_count > 0) AND
+    (?21 IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (?22 IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = ?22)) AND
+    (?23 IS NULL OR b.status = 'archived') AND
+    (?24 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?16)) AND
+    (?25 IS NULL OR b.author_id = ?25 OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(?25))) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = ?26 OR LOWER(s.name) = LOWER(?26)))) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = ?27 OR LOWER(t.name) = LOWER(?27)))) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = ?28 OR LOWER(p.name) = LOWER(?28)))) AND
+    (?29 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = ?29 OR LOWER(l.name) = LOWER(?29)))) AND
+    (?30 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?30))) AND
+    (?31 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
     CASE WHEN s.name IS NULL THEN 1 ELSE 0 END ASC,
     s.name COLLATE NOCASE ASC,
     CAST(COALESCE(bs.series_index, '0') AS REAL) ASC,
     b.title COLLATE NOCASE ASC,
     b.id ASC
-LIMIT ?31
+LIMIT ?32
 `
 
 type SearchBookIDsOrderBySeriesParams struct {
@@ -756,14 +760,15 @@ type SearchBookIDsOrderBySeriesParams struct {
 	FilterHasLanguages    interface{}     `json:"filter_has_languages"`
 	FilterHasFormats      interface{}     `json:"filter_has_formats"`
 	FilterReading         interface{}     `json:"filter_reading"`
+	UserID                interface{}     `json:"user_id"`
 	FilterRead            interface{}     `json:"filter_read"`
 	FilterUnread          interface{}     `json:"filter_unread"`
 	FilterHot             interface{}     `json:"filter_hot"`
 	FilterTopDownloaded   interface{}     `json:"filter_top_downloaded"`
 	FilterTopRated        interface{}     `json:"filter_top_rated"`
+	FilterRatingStar      interface{}     `json:"filter_rating_star"`
 	FilterArchived        interface{}     `json:"filter_archived"`
 	FilterBookmarked      interface{}     `json:"filter_bookmarked"`
-	UserID                sql.NullString  `json:"user_id"`
 	AuthorID              interface{}     `json:"author_id"`
 	SeriesID              interface{}     `json:"series_id"`
 	TagID                 interface{}     `json:"tag_id"`
@@ -797,14 +802,15 @@ func (q *Queries) SearchBookIDsOrderBySeries(ctx context.Context, arg SearchBook
 		arg.FilterHasLanguages,
 		arg.FilterHasFormats,
 		arg.FilterReading,
+		arg.UserID,
 		arg.FilterRead,
 		arg.FilterUnread,
 		arg.FilterHot,
 		arg.FilterTopDownloaded,
 		arg.FilterTopRated,
+		arg.FilterRatingStar,
 		arg.FilterArchived,
 		arg.FilterBookmarked,
-		arg.UserID,
 		arg.AuthorID,
 		arg.SeriesID,
 		arg.TagID,
@@ -857,24 +863,25 @@ WHERE
     (?11 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id)) AND
     (?12 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id)) AND
     (?13 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id)) AND
-    (?14 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?15 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?16 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?17 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
-    (?18 IS NULL OR b.download_count > 0) AND
-    (?19 IS NULL OR b.rating_count > 0) AND
-    (?20 IS NULL OR b.status = 'archived') AND
-    (?21 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?22)) AND
-    (?23 IS NULL OR b.author_id = ?23) AND
-    (?24 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?24)) AND
-    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?25)) AND
-    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp WHERE bp.book_id = b.id AND bp.publisher_id = ?26)) AND
-    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl WHERE bl.book_id = b.id AND bl.language_id = ?27)) AND
-    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?28))) AND
-    (?29 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
+    (?14 IS NULL OR (?15 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (?16 IS NULL OR (?15 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0))) AND
+    (?17 IS NULL OR (?15 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?15 AND rp.progress_percent > 0))) AND
+    (?18 IS NULL OR b.read_count > 0 OR b.open_count > 0 OR EXISTS (SELECT 1 FROM book_read_stats brs WHERE brs.book_id = b.id AND (brs.total_open_count > 0 OR brs.qualified_read_count > 0))) AND
+    (?19 IS NULL OR b.download_count > 0) AND
+    (?20 IS NULL OR b.rating_count > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND
+    (?21 IS NULL OR ((COALESCE(b.rating_count, 0) > 0 OR EXISTS (SELECT 1 FROM book_social_stats bss WHERE bss.book_id = b.id AND bss.rating_count > 0)) AND CAST(ROUND(COALESCE((SELECT bss.average_rating FROM book_social_stats bss WHERE bss.book_id = b.id), b.average_rating, 0)) AS INTEGER) = ?21)) AND
+    (?22 IS NULL OR b.status = 'archived') AND
+    (?23 IS NULL OR EXISTS (SELECT 1 FROM bookmarks bm WHERE bm.book_id = b.id AND bm.user_id = ?15)) AND
+    (?24 IS NULL OR b.author_id = ?24 OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(?24))) AND
+    (?25 IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = ?25 OR LOWER(s.name) = LOWER(?25)))) AND
+    (?26 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = ?26 OR LOWER(t.name) = LOWER(?26)))) AND
+    (?27 IS NULL OR EXISTS (SELECT 1 FROM book_publishers bp JOIN publishers p ON p.id = bp.publisher_id WHERE bp.book_id = b.id AND (bp.publisher_id = ?27 OR LOWER(p.name) = LOWER(?27)))) AND
+    (?28 IS NULL OR EXISTS (SELECT 1 FROM book_languages bl JOIN languages l ON l.id = bl.language_id WHERE bl.book_id = b.id AND (bl.language_id = ?28 OR LOWER(l.name) = LOWER(?28)))) AND
+    (?29 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?29))) AND
+    (?30 IS NULL OR NOT EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id) OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) NOT IN ('mp3','m4a','m4b','flac','ogg','opus','wav','aac')))
 ORDER BY
     b.title COLLATE NOCASE ASC, b.id ASC
-LIMIT ?30
+LIMIT ?31
 `
 
 type SearchBookIDsOrderByTitleParams struct {
@@ -892,14 +899,15 @@ type SearchBookIDsOrderByTitleParams struct {
 	FilterHasLanguages    interface{}    `json:"filter_has_languages"`
 	FilterHasFormats      interface{}    `json:"filter_has_formats"`
 	FilterReading         interface{}    `json:"filter_reading"`
+	UserID                interface{}    `json:"user_id"`
 	FilterRead            interface{}    `json:"filter_read"`
 	FilterUnread          interface{}    `json:"filter_unread"`
 	FilterHot             interface{}    `json:"filter_hot"`
 	FilterTopDownloaded   interface{}    `json:"filter_top_downloaded"`
 	FilterTopRated        interface{}    `json:"filter_top_rated"`
+	FilterRatingStar      interface{}    `json:"filter_rating_star"`
 	FilterArchived        interface{}    `json:"filter_archived"`
 	FilterBookmarked      interface{}    `json:"filter_bookmarked"`
-	UserID                sql.NullString `json:"user_id"`
 	AuthorID              interface{}    `json:"author_id"`
 	SeriesID              interface{}    `json:"series_id"`
 	TagID                 interface{}    `json:"tag_id"`
@@ -926,14 +934,15 @@ func (q *Queries) SearchBookIDsOrderByTitle(ctx context.Context, arg SearchBookI
 		arg.FilterHasLanguages,
 		arg.FilterHasFormats,
 		arg.FilterReading,
+		arg.UserID,
 		arg.FilterRead,
 		arg.FilterUnread,
 		arg.FilterHot,
 		arg.FilterTopDownloaded,
 		arg.FilterTopRated,
+		arg.FilterRatingStar,
 		arg.FilterArchived,
 		arg.FilterBookmarked,
-		arg.UserID,
 		arg.AuthorID,
 		arg.SeriesID,
 		arg.TagID,
@@ -971,16 +980,16 @@ WHERE
      AND (?1 IS NULL OR b.created_at < CAST(?1 AS TEXT) OR b.id < ?2)) AND
     (?3 IS NULL OR b.library_id = ?3) AND
     (?4 IS NULL OR EXISTS (SELECT 1 FROM book_files bf WHERE bf.book_id = b.id AND LOWER(bf.format) = LOWER(?4))) AND
-    (?5 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0)) AND
-    (?6 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent >= 99.5)) AND
-    (?7 IS NULL OR EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.progress_percent > 0 AND rp.progress_percent < 99.5)) AND
-    (?8 IS NULL OR b.average_rating >= ?8) AND
-    (?9 IS NULL OR b.author_id = ?9) AND
-    (?10 IS NULL OR EXISTS (SELECT 1 FROM book_series bs WHERE bs.book_id = b.id AND bs.series_id = ?10)) AND
-    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = b.id AND bt.tag_id = ?11))
+    (?5 IS NULL OR (?6 IS NULL OR NOT EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?6 AND rp.progress_percent > 0))) AND
+    (?7 IS NULL OR (?6 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?6 AND rp.progress_percent >= 99.5))) AND
+    (?8 IS NULL OR (?6 IS NOT NULL AND EXISTS (SELECT 1 FROM reading_progress rp WHERE rp.book_id = b.id AND rp.user_id = ?6 AND rp.progress_percent > 0 AND rp.progress_percent < 99.5))) AND
+    (?9 IS NULL OR b.average_rating >= ?9) AND
+    (?10 IS NULL OR b.author_id = ?10 OR EXISTS (SELECT 1 FROM authors a WHERE a.id = b.author_id AND LOWER(a.name) = LOWER(?10))) AND
+    (?11 IS NULL OR EXISTS (SELECT 1 FROM book_series bs JOIN series s ON s.id = bs.series_id WHERE bs.book_id = b.id AND (bs.series_id = ?11 OR LOWER(s.name) = LOWER(?11)))) AND
+    (?12 IS NULL OR EXISTS (SELECT 1 FROM book_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.book_id = b.id AND (bt.tag_id = ?12 OR LOWER(t.name) = LOWER(?12))))
 ORDER BY
     b.created_at DESC, b.id DESC
-LIMIT ?12
+LIMIT ?13
 `
 
 type SearchSmartFilterBookIDsParams struct {
@@ -989,6 +998,7 @@ type SearchSmartFilterBookIDsParams struct {
 	LibraryID       interface{}    `json:"library_id"`
 	FileFormat      interface{}    `json:"file_format"`
 	StatusUnread    interface{}    `json:"status_unread"`
+	UserID          interface{}    `json:"user_id"`
 	StatusRead      interface{}    `json:"status_read"`
 	StatusReading   interface{}    `json:"status_reading"`
 	RatingGte       interface{}    `json:"rating_gte"`
@@ -1005,6 +1015,7 @@ func (q *Queries) SearchSmartFilterBookIDs(ctx context.Context, arg SearchSmartF
 		arg.LibraryID,
 		arg.FileFormat,
 		arg.StatusUnread,
+		arg.UserID,
 		arg.StatusRead,
 		arg.StatusReading,
 		arg.RatingGte,
@@ -1090,4 +1101,16 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		&i.OpenlibraryID,
 	)
 	return i, err
+}
+
+const updateBookRatingStats = `-- name: UpdateBookRatingStats :exec
+UPDATE books
+SET average_rating = COALESCE((SELECT stats.average_rating FROM book_social_stats stats WHERE stats.book_id = ?1), 0.0),
+    rating_count = COALESCE((SELECT stats.rating_count FROM book_social_stats stats WHERE stats.book_id = ?1), 0)
+WHERE id = ?1
+`
+
+func (q *Queries) UpdateBookRatingStats(ctx context.Context, bookID string) error {
+	_, err := q.exec(ctx, q.updateBookRatingStatsStmt, updateBookRatingStats, bookID)
+	return err
 }

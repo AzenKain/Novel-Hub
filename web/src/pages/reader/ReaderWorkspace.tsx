@@ -6,7 +6,7 @@ import { offlineStore } from "@/lib/offlineStore";
 import { useOfflineAssets } from "@/hooks/useOfflineAssets";
 import { rawFileKey } from "@/hooks/useOfflineBook";
 import { featureService, readerService } from "@/services";
-import { useAuthStore, useReaderStore } from "@/stores";
+import { useAuthStore, useReaderStore, useGuestStore } from "@/stores";
 import type { Chapter, Highlight } from "@/types";
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -81,6 +81,7 @@ const ReaderWorkspaceInner = () => {
     readingMode,
     readingDirection,
     pageFit,
+    pageAnimation,
     pageIndex,
     pageFrameWidth,
     setBook,
@@ -98,6 +99,7 @@ const ReaderWorkspaceInner = () => {
     setReadingMode,
     setReadingDirection,
     setPageFit,
+    setPageAnimation,
     setPageIndex,
     setPageFrameWidth,
     ttsVoiceName,
@@ -122,6 +124,7 @@ const ReaderWorkspaceInner = () => {
     readingMode: state.readingMode,
     readingDirection: state.readingDirection,
     pageFit: state.pageFit,
+    pageAnimation: state.pageAnimation,
     pageIndex: state.pageIndex,
     pageFrameWidth: state.pageFrameWidth,
     ttsVoiceName: state.ttsVoiceName,
@@ -141,6 +144,7 @@ const ReaderWorkspaceInner = () => {
     setReadingMode: state.setReadingMode,
     setReadingDirection: state.setReadingDirection,
     setPageFit: state.setPageFit,
+    setPageAnimation: state.setPageAnimation,
     setPageIndex: state.setPageIndex,
     setPageFrameWidth: state.setPageFrameWidth,
     setTtsVoiceName: state.setTtsVoiceName,
@@ -382,6 +386,7 @@ const ReaderWorkspaceInner = () => {
     scrollLayout,
     effectiveReadingMode,
     rtlPaging,
+    pageAnimation,
     pageIndex,
     setPageIndex,
     setPageFrameWidth,
@@ -451,21 +456,31 @@ const ReaderWorkspaceInner = () => {
             let location_cfi: string | undefined = undefined;
             const startOver = searchParams.get("start_over") === "true";
 
-            if (!startOver && progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
-              const progress = progressRes.value.data;
-              const found = sorted.find(ch => ch.id === progress.chapter_id);
-              if (found && !isNavOnlyChapter(found.title)) {
-                targetChapter = found;
-                if (progress.location_cfi && progress.location_cfi.startsWith("epubcfi(")) {
-                  location_cfi = progress.location_cfi;
-                } else if (progress.location_type === "scroll" && progress.location_cfi) {
-                  location_cfi = `scroll:${progress.location_cfi}`;
-                } else if (progress.location_type === "page" && progress.location_cfi) {
-                  location_cfi = `page:${progress.location_cfi}`;
-                } else if (progress.location_type === "audio" && progress.location_cfi) {
-                  location_cfi = `audio:${progress.location_cfi}`;
-                } else if (progress.location_cfi) {
-                  location_cfi = progress.location_cfi;
+            if (!startOver) {
+              if (progressRes.status === "fulfilled" && progressRes.value.status && progressRes.value.data) {
+                const progress = progressRes.value.data;
+                const found = sorted.find(ch => ch.id === progress.chapter_id);
+                if (found && !isNavOnlyChapter(found.title)) {
+                  targetChapter = found;
+                  if (progress.location_cfi && progress.location_cfi.startsWith("epubcfi(")) {
+                    location_cfi = progress.location_cfi;
+                  } else if (progress.location_type === "scroll" && progress.location_cfi) {
+                    location_cfi = `scroll:${progress.location_cfi}`;
+                  } else if (progress.location_type === "page" && progress.location_cfi) {
+                    location_cfi = `page:${progress.location_cfi}`;
+                  } else if (progress.location_type === "audio" && progress.location_cfi) {
+                    location_cfi = `audio:${progress.location_cfi}`;
+                  } else if (progress.location_cfi) {
+                    location_cfi = progress.location_cfi;
+                  }
+                }
+              } else if (!user) {
+                const guestHist = useGuestStore.getState().getReadingHistory().find(h => h.book_id === book_id);
+                if (guestHist) {
+                  const found = sorted.find(ch => ch.id === guestHist.chapter_id);
+                  if (found && !isNavOnlyChapter(found.title)) {
+                    targetChapter = found;
+                  }
                 }
               }
             }
@@ -592,8 +607,24 @@ const ReaderWorkspaceInner = () => {
   }, []);
 
   useEffect(() => {
-    if (!user || !currentChapter || !book_id) return;
+    if (!currentChapter || !book_id) return;
     const progress_percent = computeProgressPercent();
+
+    if (!user) {
+      useGuestStore.getState().recordReading({
+        book_id,
+        file_id,
+        chapter_id: currentChapter.id,
+        chapter_title: currentChapter.title,
+        chapter_index: currentChapter.chapter_index,
+        progress_percent,
+        book_title: book?.title,
+        author_name: (book as any)?.author_name,
+        cover_url: book?.cover_url,
+        updated_at: new Date().toISOString(),
+      });
+      return;
+    }
 
     void featureService.recordReadingActivity({
       book_id,
@@ -606,7 +637,7 @@ const ReaderWorkspaceInner = () => {
     }).then(() => {
       invalidateProgressQueries();
     }).catch(reportProgressFailure);
-  }, [user, book_id, file_id, currentChapter?.id, chapters.length]);
+  }, [user, book_id, file_id, currentChapter?.id, chapters.length, book]);
 
   const getVisibleCfi = (): string => {
     const container = scrollLayout ? contentRef.current : columnsRef.current;
@@ -655,15 +686,30 @@ const ReaderWorkspaceInner = () => {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
-    if (!user || !scrollLayout || !contentRef.current || !currentChapter || !book_id) return;
+    if (!scrollLayout || !contentRef.current || !currentChapter || !book_id) return;
 
-    const scrollTop = contentRef.current.scrollTop;
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
 
     scrollTimeoutRef.current = setTimeout(() => {
       const progress_percent = computeProgressPercent();
+
+      if (!user) {
+        useGuestStore.getState().recordReading({
+          book_id,
+          file_id,
+          chapter_id: currentChapter.id,
+          chapter_title: currentChapter.title,
+          chapter_index: currentChapter.chapter_index,
+          progress_percent,
+          book_title: book?.title,
+          author_name: (book as any)?.author_name,
+          cover_url: book?.cover_url,
+          updated_at: new Date().toISOString(),
+        });
+        return;
+      }
 
       void featureService.recordReadingActivity({
         book_id,
@@ -682,9 +728,25 @@ const ReaderWorkspaceInner = () => {
   };
 
   useEffect(() => {
-    if (!user || scrollLayout || !currentChapter || !book_id) return;
+    if (scrollLayout || !currentChapter || !book_id) return;
 
     const progress_percent = computeProgressPercent();
+
+    if (!user) {
+      useGuestStore.getState().recordReading({
+        book_id,
+        file_id,
+        chapter_id: currentChapter.id,
+        chapter_title: currentChapter.title,
+        chapter_index: currentChapter.chapter_index,
+        progress_percent,
+        book_title: book?.title,
+        author_name: (book as any)?.author_name,
+        cover_url: book?.cover_url,
+        updated_at: new Date().toISOString(),
+      });
+      return;
+    }
 
     void featureService.recordReadingActivity({
       book_id,
@@ -699,7 +761,7 @@ const ReaderWorkspaceInner = () => {
     }).then(() => {
       invalidateProgressQueries();
     }).catch(reportProgressFailure);
-  }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length]);
+  }, [user, pageIndex, effectiveReadingMode, currentChapter?.id, book_id, chapters.length, book]);
   const { data: seriesContext } = useBookSeriesQuery(book_id || "");
   const { data: audiobookChapters } = useAudiobookChaptersQuery(book_id || "");
   const readListNext = useReadListNextQuery(readListId, book_id).data;
@@ -841,6 +903,7 @@ const ReaderWorkspaceInner = () => {
           isVisualContent={isVisualContent}
           readingDirection={readingDirection}
           pageFit={pageFit}
+          pageAnimation={pageAnimation}
           onPrev={handlePrev}
           onNext={handleNext}
           setSettingsOpen={(open) => {
@@ -856,6 +919,7 @@ const ReaderWorkspaceInner = () => {
           setReadingMode={setReadingMode}
           setReadingDirection={setReadingDirection}
           setPageFit={setPageFit}
+          setPageAnimation={setPageAnimation}
           resetSettings={resetSettings}
           ttsSupported={isSupported && allowTTS}
           ttsPlaying={isPlaying}

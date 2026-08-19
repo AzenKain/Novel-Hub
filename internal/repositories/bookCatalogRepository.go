@@ -147,7 +147,7 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 	return &out, nil
 }
 
-func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error) {
+func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64, userID string) ([]*models.BookEntity, error) {
 	if nav == "random" {
 		var libID any
 		libStr := ""
@@ -236,7 +236,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return []*models.BookEntity{}, nil
 	}
 
-	filters := buildBookSearchFilters(nav, collection, chip, facet, facetID)
+	filters := buildBookSearchFilters(nav, collection, chip, facet, facetID, userID)
 	if !filters.Valid {
 		return []*models.BookEntity{}, nil
 	}
@@ -282,6 +282,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 			FilterHot:             filters.Hot,
 			FilterTopDownloaded:   filters.TopDownloaded,
 			FilterTopRated:        filters.TopRated,
+			FilterRatingStar:      filters.RatingStar,
 			FilterArchived:        filters.Archived,
 			FilterBookmarked:      filters.Bookmarked,
 			UserID:                filters.UserID,
@@ -373,6 +374,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 			FilterHot:             filters.Hot,
 			FilterTopDownloaded:   filters.TopDownloaded,
 			FilterTopRated:        filters.TopRated,
+			FilterRatingStar:      filters.RatingStar,
 			FilterArchived:        filters.Archived,
 			FilterBookmarked:      filters.Bookmarked,
 			UserID:                filters.UserID,
@@ -455,6 +457,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		FilterHot:             filters.Hot,
 		FilterTopDownloaded:   filters.TopDownloaded,
 		FilterTopRated:        filters.TopRated,
+		FilterRatingStar:      filters.RatingStar,
 		FilterArchived:        filters.Archived,
 		FilterBookmarked:      filters.Bookmarked,
 		UserID:                filters.UserID,
@@ -494,14 +497,20 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 	return r.GetBooksByIDs(ctx, value.([]string))
 }
 
-func (r *bookDBRepository) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error) {
+func (r *bookDBRepository) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64, userID string) ([]*models.BookEntity, error) {
 	var libID any
 	if libraryID != nil && *libraryID != "" {
 		libID = *libraryID
 	}
 
+	var userNullID sql.NullString
+	if strings.TrimSpace(userID) != "" && userID != "0" {
+		userNullID = convert.StrPtrToNullString(&userID)
+	}
+
 	params := sqlc.SearchSmartFilterBookIDsParams{
 		LibraryID:       libID,
+		UserID:          userNullID,
 		CursorCreatedAt: cursorTimeArg(cursor),
 		CursorID:        convert.StrPtrToNullString(&cursorID),
 		Limit:           limit,
@@ -575,6 +584,7 @@ type bookSearchFilters struct {
 	Hot             any
 	TopDownloaded   any
 	TopRated        any
+	RatingStar      any
 	Archived        any
 	Bookmarked      any
 	UserID          sql.NullString
@@ -587,8 +597,11 @@ type bookSearchFilters struct {
 	ExcludeAudiobooks any
 }
 
-func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSearchFilters {
+func buildBookSearchFilters(nav, collection, chip, facet, facetID string, userID string) bookSearchFilters {
 	filters := bookSearchFilters{Valid: true}
+	if strings.TrimSpace(userID) != "" && userID != "0" {
+		filters.UserID = convert.StrPtrToNullString(&userID)
+	}
 	set := func(target *any) {
 		*target = 1
 	}
@@ -657,6 +670,12 @@ func buildBookSearchFilters(nav, collection, chip, facet, facetID string) bookSe
 		filters.LanguageID = facetID
 	case "format":
 		filters.FileFormat = facetID
+	case "rating", "ratings":
+		if star, err := strconv.ParseInt(strings.TrimSpace(facetID), 10, 64); err == nil && star >= 1 && star <= 5 {
+			filters.RatingStar = star
+		} else {
+			set(&filters.TopRated)
+		}
 	default:
 		filters.Valid = false
 	}

@@ -27,6 +27,7 @@ type UpdateBookMetadataDto struct {
 	Subjects    []string `json:"subjects" validate:"omitempty"`
 	Series      string   `json:"series" validate:"omitempty"`
 	SeriesIndex string   `json:"series_index" validate:"omitempty"`
+	AgeRating   string   `json:"age_rating" validate:"omitempty"`
 }
 
 type ArchiveBookDto struct {

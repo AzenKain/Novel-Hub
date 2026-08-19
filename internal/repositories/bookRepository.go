@@ -16,8 +16,8 @@ import (
 type BookCatalogRepository interface {
 	CreateBook(ctx context.Context, book *models.BookEntity) error
 	GetBook(ctx context.Context, id string) (*models.BookEntity, error)
-	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64) ([]*models.BookEntity, error)
-	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64) ([]*models.BookEntity, error)
+	SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64, userID string) ([]*models.BookEntity, error)
+	SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64, userID string) ([]*models.BookEntity, error)
 	UpdateBook(ctx context.Context, book *models.BookEntity) error
 	DeleteBook(ctx context.Context, id string) error
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
@@ -84,6 +84,7 @@ type BookMetadataRepository interface {
 	ListLanguagesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	ListTagsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	ListFormatsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
+	ListRatingsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	WithTx(tx *sql.Tx) BookDBRepository
 }
 

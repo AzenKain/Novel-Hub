@@ -27,7 +27,8 @@ import {
   CloudDownload,
   CheckCircle2,
   Send,
-  FileText
+  FileText,
+  Layers
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
@@ -40,7 +41,7 @@ import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/comm
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
-import { useLibraryStore, useAuthStore } from "@/stores";
+import { useLibraryStore, useAuthStore, useGuestStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import {
   useBookQuery,
@@ -103,7 +104,8 @@ export const BookDetailPage: React.FC = () => {
   const readLists = readListsQuery.data?.pages.flatMap((page) => page.data || []) ?? [];
   const addReadListBookMutation = useAddReadListBookMutation();
   const removeBookFromColMutation = useRemoveBookFromCollectionMutation(book_id || "");
-
+  const guestIsBookmarked = useGuestStore((state) => (book_id ? state.bookmarks.some((b) => b.book_id === book_id) : false));
+  const isBookmarked = user ? (userState?.bookmarked || false) : guestIsBookmarked;
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
   const tags = toStringList(meta.subject);
@@ -201,7 +203,6 @@ export const BookDetailPage: React.FC = () => {
     );
   }
 
-  const isBookmarked = userState?.bookmarked || false;
   return (
     <div className="w-full pb-8">
       {/* Action Bar */}
@@ -287,16 +288,25 @@ export const BookDetailPage: React.FC = () => {
           )}
           {allowBookmark && (
             <button 
-              onClick={() => toggleBookmarkMutation.mutate(!isBookmarked, {
-                onSuccess: () => {
-                  toast.success(t("book.bookmark_updated", "Bookmark updated successfully"));
-                },
-                onError: (err: any) => {
-                  toast.error(err.message || t("error.unknown", "An unknown error occurred"));
+              onClick={() => {
+                if (!user) {
+                  if (book_id) {
+                    const added = useGuestStore.getState().toggleBookmark(book_id);
+                    toast.success(added ? t("book.bookmark_updated", "Bookmarked locally") : t("book.bookmark_updated", "Removed local bookmark"));
+                  }
+                  return;
                 }
-              })} 
+                toggleBookmarkMutation.mutate(!isBookmarked, {
+                  onSuccess: () => {
+                    toast.success(t("book.bookmark_updated", "Bookmark updated successfully"));
+                  },
+                  onError: (err: any) => {
+                    toast.error(err.message || t("error.unknown", "An unknown error occurred"));
+                  }
+                });
+              }} 
               className={`btn btn-ghost btn-sm ${isBookmarked ? "text-primary" : ""}`}
-              disabled={toggleBookmarkMutation.isPending}
+              disabled={user ? toggleBookmarkMutation.isPending : false}
             >
               {isBookmarked ? <BookmarkMinus className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
               <span className="hidden sm:inline ml-1">
@@ -392,34 +402,39 @@ export const BookDetailPage: React.FC = () => {
           {/* Right Pane - Details & Files & Reviews */}
           <div className="w-full md:w-2/3 lg:w-3/4 flex flex-col gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-base-content mb-2 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-base-content mb-2 leading-tight break-words">
                 {book.title}
               </h1>
               {seriesEntry && (
                 <div
-                  className="badge badge-primary badge-outline mt-1 mb-2 text-sm px-3 py-1 h-auto text-left whitespace-normal leading-tight cursor-pointer hover:bg-primary hover:text-primary-content"
+                  className="badge badge-primary badge-outline mt-1 mb-2 text-sm px-3 py-1.5 h-auto text-left whitespace-normal leading-tight cursor-pointer hover:bg-primary hover:text-primary-content max-w-full inline-flex items-center gap-1.5 transition-colors shadow-2xs"
                   onClick={() =>
                     navigate(
                       `/?nav=series&facet=series&facet_id=${encodeURIComponent(seriesEntry.series_id)}&name=${encodeURIComponent(seriesEntry.series_name)}`
                     )
                   }
+                  title={`${seriesEntry.series_name}${seriesEntry.series_index ? ` #${seriesEntry.series_index}` : ""}`}
                 >
-                  {seriesEntry.series_name} {seriesEntry.series_index ? `#${seriesEntry.series_index}` : ""}
+                  <Layers className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  <span className="break-words line-clamp-2">
+                    {seriesEntry.series_name} {seriesEntry.series_index ? `#${seriesEntry.series_index}` : ""}
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Tags immediately below title */}
             {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 my-1">
+              <div className="flex flex-wrap gap-2 my-1 max-w-full">
                 {tags.map((tag, idx) => (
                   <span
                     key={idx}
-                    className="badge badge-secondary badge-outline px-3 py-3 font-medium text-xs hover:bg-secondary hover:text-secondary-content transition-colors cursor-pointer shadow-sm"
+                    className="badge badge-secondary badge-outline px-2.5 py-1.5 font-medium text-xs hover:bg-secondary hover:text-secondary-content transition-colors cursor-pointer shadow-2xs h-auto inline-flex items-center gap-1 max-w-full"
                     onClick={() => navigate(`/?nav=tags&facet=tag&name=${encodeURIComponent(tag)}`)}
+                    title={tag}
                   >
-                    <Tag className="w-3 h-3 mr-1 opacity-70" />
-                    {tag}
+                    <Tag className="w-3 h-3 opacity-70 shrink-0" />
+                    <span className="break-words line-clamp-2">{tag}</span>
                   </span>
                 ))}
               </div>
@@ -438,7 +453,7 @@ export const BookDetailPage: React.FC = () => {
                       authorVal ? (
                         <span 
                           className="text-primary font-medium text-sm cursor-pointer hover:underline"
-                          onClick={() => navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(authorVal)}`)}
+                          onClick={() => navigate(`/?nav=authors&facet=author${book.author_id ? `&facet_id=${encodeURIComponent(book.author_id)}` : ""}&name=${encodeURIComponent(authorVal)}`)}
                         >
                           {authorVal}
                         </span>

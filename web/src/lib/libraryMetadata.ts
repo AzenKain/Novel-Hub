@@ -7,6 +7,7 @@ export const metadataNavIds = [
   "publishers",
   "languages",
   "formats",
+  "ratings",
 ];
 
 export const alphabetFilters = [

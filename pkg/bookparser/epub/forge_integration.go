@@ -15,10 +15,15 @@ import (
 )
 
 var (
-	metadataRe = regexp.MustCompile(`(?is)(<metadata\b[^>]*>)(.*?)(</metadata>)`)
-	titleRe    = regexp.MustCompile(`(?is)<dc:title[^>]*>.*?</dc:title>`)
-	creatorRe  = regexp.MustCompile(`(?is)<dc:creator[^>]*>.*?</dc:creator>`)
-	descRe     = regexp.MustCompile(`(?is)<dc:description[^>]*>.*?</dc:description>`)
+	metadataRe         = regexp.MustCompile(`(?is)(<metadata\b[^>]*>)(.*?)(</metadata>)`)
+	titleRe            = regexp.MustCompile(`(?is)<dc:title[^>]*>.*?</dc:title>`)
+	creatorRe          = regexp.MustCompile(`(?is)<dc:creator[^>]*>.*?</dc:creator>`)
+	descRe             = regexp.MustCompile(`(?is)<dc:description[^>]*>.*?</dc:description>`)
+	publisherRe        = regexp.MustCompile(`(?is)<dc:publisher[^>]*>.*?</dc:publisher>`)
+	languageRe         = regexp.MustCompile(`(?is)<dc:language[^>]*>.*?</dc:language>`)
+	subjectRe          = regexp.MustCompile(`(?is)<dc:subject[^>]*>.*?</dc:subject>`)
+	calibreSeriesRe    = regexp.MustCompile(`(?is)<meta\s+[^>]*name=["']calibre:series["'][^>]*>`)
+	calibreSeriesIdxRe = regexp.MustCompile(`(?is)<meta\s+[^>]*name=["']calibre:series_index["'][^>]*>`)
 )
 
 func escapeXML(s string) string {
@@ -77,6 +82,47 @@ func applyMetadataToOPF(opfContent string, meta *bookparser.BookMetadata) string
 			metadataBody = descRe.ReplaceAllString(metadataBody, fmt.Sprintf(`<dc:description>%s</dc:description>`, escapeXML(meta.Description)))
 		} else {
 			metadataBody += fmt.Sprintf("\n    <dc:description>%s</dc:description>", escapeXML(meta.Description))
+		}
+	}
+
+	if meta.Publisher != "" {
+		if publisherRe.MatchString(metadataBody) {
+			metadataBody = publisherRe.ReplaceAllString(metadataBody, fmt.Sprintf(`<dc:publisher>%s</dc:publisher>`, escapeXML(meta.Publisher)))
+		} else {
+			metadataBody += fmt.Sprintf("\n    <dc:publisher>%s</dc:publisher>", escapeXML(meta.Publisher))
+		}
+	}
+
+	if meta.Language != "" {
+		if languageRe.MatchString(metadataBody) {
+			metadataBody = languageRe.ReplaceAllString(metadataBody, fmt.Sprintf(`<dc:language>%s</dc:language>`, escapeXML(meta.Language)))
+		} else {
+			metadataBody += fmt.Sprintf("\n    <dc:language>%s</dc:language>", escapeXML(meta.Language))
+		}
+	}
+
+	if len(meta.Subjects) > 0 {
+		metadataBody = subjectRe.ReplaceAllString(metadataBody, "")
+		for _, subject := range meta.Subjects {
+			if trimmed := strings.TrimSpace(subject); trimmed != "" {
+				metadataBody += fmt.Sprintf("\n    <dc:subject>%s</dc:subject>", escapeXML(trimmed))
+			}
+		}
+	}
+
+	if meta.Series != "" {
+		if calibreSeriesRe.MatchString(metadataBody) {
+			metadataBody = calibreSeriesRe.ReplaceAllString(metadataBody, fmt.Sprintf(`<meta name="calibre:series" content="%s"/>`, escapeXML(meta.Series)))
+		} else {
+			metadataBody += fmt.Sprintf("\n    <meta name=\"calibre:series\" content=\"%s\"/>", escapeXML(meta.Series))
+		}
+
+		if meta.SeriesIndex != "" {
+			if calibreSeriesIdxRe.MatchString(metadataBody) {
+				metadataBody = calibreSeriesIdxRe.ReplaceAllString(metadataBody, fmt.Sprintf(`<meta name="calibre:series_index" content="%s"/>`, escapeXML(meta.SeriesIndex)))
+			} else {
+				metadataBody += fmt.Sprintf("\n    <meta name=\"calibre:series_index\" content=\"%s\"/>", escapeXML(meta.SeriesIndex))
+			}
 		}
 	}
 
