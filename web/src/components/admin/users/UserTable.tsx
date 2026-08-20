@@ -74,11 +74,22 @@ export const UserTable: React.FC<UserTableProps> = ({
                 >
                   <td>
                     <div className="flex items-center gap-4">
-                      <div className="avatar placeholder">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <span className="text-sm font-bold uppercase">
-                            {item.full_name?.charAt(0) || item.email.charAt(0)}
-                          </span>
+                      <div className="avatar">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden ring-1 ring-base-content/10">
+                          {item.avatar_url ? (
+                            <img
+                              src={item.avatar_url.startsWith("/public/") ? `${item.avatar_url}?t=${item.updated_at ? encodeURIComponent(item.updated_at) : Date.now()}` : item.avatar_url}
+                              alt={item.full_name || item.email}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <span className="text-sm font-bold uppercase">
+                              {item.full_name?.charAt(0) || item.email.charAt(0)}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div>

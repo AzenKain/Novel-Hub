@@ -57,4 +57,7 @@ const (
 	CacheKeyKomgaSeriesPattern       = "komga:series*"
 	CacheKeyKomgaBookSeriesPattern   = "komga:book_series:*"
 	CacheKeyVBookPlugin              = "vbook:plugin:%s"
+	CacheKeySoundscapePattern        = "soundscape:*"
+	CacheKeyCustomFontPattern        = "custom_font:*"
+	CacheKeyCustomThemePattern       = "custom_theme:*"
 )

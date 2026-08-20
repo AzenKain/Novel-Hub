@@ -11,9 +11,9 @@ import (
 )
 
 func AudiobookRoutes(app fiber.Router, audiobookController *controllers.AudiobookController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
-	group := app.Group("/books/:book_id/audiobook/chapters", middlewares.OptionalJwtAccess(userRepo))
+	group := app.Group("/books/:book_id/audiobook/chapters")
 
-	group.Get("/", middlewares.RequirePermission(permissionCache, constants.PermBookRead, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.ListChapters)
+	group.Get("/", middlewares.OptionalJwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookRead, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.ListChapters)
 	group.Post("/", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.UpsertChapter)
 	group.Put("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.UpsertChapter)
 	group.Delete("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "book_id")), audiobookController.DeleteChapter)

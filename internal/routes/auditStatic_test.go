@@ -19,12 +19,8 @@ func readAuditRouteFile(t *testing.T, name string) string {
 	return string(src)
 }
 
-// TestAuditMagicCodeActivateNoRateLimit proves task T1.5: /auth/magic-code/activate
-// is mounted without the auth limiter (only /request and /poll get one), so an
-// attacker can brute-force the 6-digit magic code with no throttling.
-//
-// PASSING = bug confirmed: the mount line for /activate carries no limiter.
-// A fix must fail this assertion.
+// TestAuditMagicCodeActivateNoRateLimit verifies /auth/magic-code/activate
+// is mounted with the auth rate limiter.
 func TestAuditMagicCodeActivateNoRateLimit(t *testing.T) {
 	src := readAuditRouteFile(t, "authRoute.go")
 
@@ -33,8 +29,8 @@ func TestAuditMagicCodeActivateNoRateLimit(t *testing.T) {
 		trimmed := strings.TrimSpace(line)
 		if strings.Contains(trimmed, `"/activate"`) {
 			found = true
-			if strings.Contains(trimmed, "authLimiter") || strings.Contains(trimmed, "RateLimit") {
-				t.Fatalf("unexpected: /activate now has a rate limiter (%q); the audit claim no longer holds", trimmed)
+			if !strings.Contains(trimmed, "authLimiter") && !strings.Contains(trimmed, "RateLimit") {
+				t.Fatalf("expected /activate to have a rate limiter, found: %q", trimmed)
 			}
 		}
 	}
@@ -43,13 +39,8 @@ func TestAuditMagicCodeActivateNoRateLimit(t *testing.T) {
 	}
 }
 
-// TestAuditAgeRatingRouteMissingLibraryScope proves task T3.2: the write route
-// PUT /books/:id/age-rating checks the plain book.edit permission but never
-// scopes the book to a library (missing BookLibraryAttr, unlike bookRoutes.go),
-// so anyone with book.edit anywhere can set ratings across every library.
-//
-// PASSING = bug confirmed: the route has RequirePermission but no BookLibraryAttr.
-// A fix must fail this assertion.
+// TestAuditAgeRatingRouteMissingLibraryScope verifies PUT /books/:id/age-rating
+// scopes the book to a library with BookLibraryAttr.
 func TestAuditAgeRatingRouteMissingLibraryScope(t *testing.T) {
 	src := readAuditRouteFile(t, "ageRatingRoutes.go")
 
@@ -73,9 +64,8 @@ func TestAuditAgeRatingRouteMissingLibraryScope(t *testing.T) {
 	if !strings.Contains(joined, "RequirePermission") {
 		t.Fatal("setup broken: route no longer uses RequirePermission")
 	}
-	// BUG PROOF: no library scoping middleware on this route.
-	if strings.Contains(joined, "BookLibraryAttr") {
-		t.Fatalf("unexpected: route now has BookLibraryAttr; the audit claim no longer holds")
+	if !strings.Contains(joined, "BookLibraryAttr") {
+		t.Fatalf("expected route to have BookLibraryAttr")
 	}
 }
 

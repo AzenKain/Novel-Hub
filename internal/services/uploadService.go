@@ -19,6 +19,7 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/bookparser"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
@@ -214,6 +215,9 @@ func (s *uploadService) InitUploadSession(ctx context.Context, dto *request.Init
 	if filename == "." || filename == "" {
 		return "", apperrors.New(apperrors.ErrBadRequest, "Invalid filename")
 	}
+	if !bookparser.IsAllowedBookFormat(filename) {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Unsupported file format: only valid book and audiobook files are allowed")
+	}
 
 	manifest := uploadManifest{
 		OwnerID: claims.UId, Target: dto.Target, Filename: filename, TotalBytes: dto.TotalBytes, TotalChunks: dto.TotalChunks,
@@ -393,6 +397,9 @@ func (s *uploadService) CommitUpload(ctx context.Context, uploadID string, dto *
 	manifest := &session.manifest
 	if dto != nil && ((dto.Target != "" && dto.Target != manifest.Target) || (dto.Filename != "" && filepath.Base(dto.Filename) != manifest.Filename) || (dto.TotalChunks != 0 && dto.TotalChunks != manifest.TotalChunks) || (dto.LibraryID != "" && dto.LibraryID != manifest.TargetID) || (dto.BookID != "" && dto.BookID != manifest.TargetID)) {
 		return apperrors.New(apperrors.ErrBadRequest, "Upload metadata does not match session")
+	}
+	if !bookparser.IsAllowedBookFormat(manifest.Filename) {
+		return apperrors.New(apperrors.ErrBadRequest, "Unsupported file format")
 	}
 	if !s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermBookUpload, map[string]any{"library_id": manifest.LibraryID}) {
 		return apperrors.New(apperrors.ErrForbidden, "Upload permission denied")

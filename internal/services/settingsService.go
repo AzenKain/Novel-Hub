@@ -104,6 +104,8 @@ func defaultRuntimeLimits() models.RuntimeLimits {
 		UploadSessionTTLSeconds: int64(constants.UploadSessionTTL / time.Second),
 		CoverBytes:              constants.MaxCoverBytes,
 		SiteAssetBytes:          constants.MaxSiteAssetBytes,
+		SoundscapeBytes:         constants.MaxSoundscapeBytes,
+		FontBytes:               constants.MaxFontBytes,
 
 		RateLimitAuth:              constants.MaxRateLimitAuth,
 		RateLimitAuthWindowSeconds: constants.MaxRateLimitAuthWindowSeconds,
@@ -120,6 +122,8 @@ func runtimeLimitBounds() models.RuntimeLimitBounds {
 			UploadSessionTTLSeconds: int64(constants.MinRuntimeUploadSessionTTL / time.Second),
 			CoverBytes:              constants.MinRuntimeCoverBytes,
 			SiteAssetBytes:          constants.MinRuntimeSiteAssetBytes,
+			SoundscapeBytes:         constants.MinRuntimeSoundscapeBytes,
+			FontBytes:               constants.MinRuntimeFontBytes,
 
 			RateLimitAuth:              constants.MinRuntimeRateLimitAuth,
 			RateLimitAuthWindowSeconds: constants.MinRuntimeRateLimitAuthWindowSeconds,
@@ -132,6 +136,8 @@ func runtimeLimitBounds() models.RuntimeLimitBounds {
 			UploadSessionTTLSeconds: int64(constants.HardMaxUploadSessionTTL / time.Second),
 			CoverBytes:              constants.HardMaxCoverBytes,
 			SiteAssetBytes:          constants.HardMaxSiteAssetBytes,
+			SoundscapeBytes:         constants.HardMaxSoundscapeBytes,
+			FontBytes:               constants.HardMaxFontBytes,
 
 			RateLimitAuth:              constants.HardMaxRateLimitAuth,
 			RateLimitAuthWindowSeconds: constants.HardMaxRateLimitAuthWindowSeconds,
@@ -507,6 +513,8 @@ func runtimeLimitsFromRaw(raw map[string]any) (models.RuntimeLimits, error) {
 		{"limits.upload_session_ttl_seconds", limits.UploadSessionTTLSeconds, int64(constants.MinRuntimeUploadSessionTTL / time.Second), int64(constants.HardMaxUploadSessionTTL / time.Second), func(value int64) { limits.UploadSessionTTLSeconds = value }},
 		{"limits.cover_bytes", limits.CoverBytes, constants.MinRuntimeCoverBytes, constants.HardMaxCoverBytes, func(value int64) { limits.CoverBytes = value }},
 		{"limits.site_asset_bytes", limits.SiteAssetBytes, constants.MinRuntimeSiteAssetBytes, constants.HardMaxSiteAssetBytes, func(value int64) { limits.SiteAssetBytes = value }},
+		{"limits.soundscape_bytes", limits.SoundscapeBytes, constants.MinRuntimeSoundscapeBytes, constants.HardMaxSoundscapeBytes, func(value int64) { limits.SoundscapeBytes = value }},
+		{"limits.font_bytes", limits.FontBytes, constants.MinRuntimeFontBytes, constants.HardMaxFontBytes, func(value int64) { limits.FontBytes = value }},
 		{"limits.rate_limit_auth", int64(limits.RateLimitAuth), constants.MinRuntimeRateLimitAuth, constants.HardMaxRateLimitAuth, func(value int64) { limits.RateLimitAuth = int(value) }},
 		{"limits.rate_limit_auth_window_seconds", limits.RateLimitAuthWindowSeconds, constants.MinRuntimeRateLimitAuthWindowSeconds, constants.HardMaxRateLimitAuthWindowSeconds, func(value int64) { limits.RateLimitAuthWindowSeconds = value }},
 	}
@@ -707,6 +715,8 @@ var allowedSettingKeys = []string{
 	"limits.upload_session_ttl_seconds",
 	"limits.cover_bytes",
 	"limits.site_asset_bytes",
+	"limits.soundscape_bytes",
+	"limits.font_bytes",
 	"limits.rate_limit_auth",
 	"limits.rate_limit_auth_window_seconds",
 	"smtp.enabled",

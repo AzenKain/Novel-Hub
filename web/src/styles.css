@@ -179,6 +179,39 @@ label.btn-primary:hover:not(:disabled) {
   --reader-ui-accent-soft: rgba(147, 197, 253, 0.16);
 }
 
+.reader-theme-eink {
+  --reader-ui-text: #000000;
+  --reader-ui-muted: #444444;
+  --reader-ui-border: #000000;
+  --reader-ui-hover: #e5e5e5;
+  --reader-ui-soft: #f0f0f0;
+  --reader-ui-surface: #ffffff;
+  --reader-ui-surface-strong: #ffffff;
+  --reader-ui-accent: #000000;
+  --reader-ui-accent-text: #ffffff;
+  --reader-ui-accent-soft: #e5e5e5;
+}
+
+.reader-theme-eink * {
+  transition: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.reader-theme-custom {
+  --reader-ui-text: var(--custom-reader-text, #e5e7eb);
+  --reader-ui-muted: color-mix(in oklab, var(--custom-reader-text, #e5e7eb) 60%, transparent);
+  --reader-ui-border: color-mix(in oklab, var(--custom-reader-text, #e5e7eb) 20%, transparent);
+  --reader-ui-hover: color-mix(in oklab, var(--custom-reader-text, #e5e7eb) 12%, transparent);
+  --reader-ui-soft: color-mix(in oklab, var(--custom-reader-text, #e5e7eb) 8%, transparent);
+  --reader-ui-surface: var(--custom-reader-bg, #1e1e2e);
+  --reader-ui-surface-strong: color-mix(in oklab, var(--custom-reader-bg, #1e1e2e) 85%, var(--custom-reader-text, #e5e7eb) 15%);
+  --reader-ui-accent: var(--custom-reader-accent, #38bdf8);
+  --reader-ui-accent-text: var(--custom-reader-bg, #1e1e2e);
+  --reader-ui-accent-soft: color-mix(in oklab, var(--custom-reader-accent, #38bdf8) 20%, transparent);
+}
+
 .reader-ui .reader-selection-toolbar {
   color: var(--reader-ui-text) !important;
   background-color: var(--reader-ui-surface) !important;
@@ -204,19 +237,30 @@ label.btn-primary:hover:not(:disabled) {
   background-color: var(--reader-ui-surface) !important;
 }
 
-.reader-ui .reader-control-btn {
+.reader-ui .reader-control-btn,
+.reader-ui .btn-ghost,
+.reader-ui [role="button"].btn-ghost,
+.reader-ui .dropdown > [role="button"] {
   color: var(--reader-ui-text) !important;
   background-color: transparent !important;
   border-color: transparent !important;
 }
 
 .reader-ui .reader-control-btn:hover:not(:disabled),
-.reader-ui .reader-control-btn:focus-visible {
+.reader-ui .reader-control-btn:focus-visible,
+.reader-ui .btn-ghost:hover:not(:disabled),
+.reader-ui .btn-ghost:focus-visible,
+.reader-ui [role="button"].btn-ghost:hover:not(:disabled),
+.reader-ui [role="button"].btn-ghost:focus-visible,
+.reader-ui .dropdown > [role="button"]:hover:not(:disabled),
+.reader-ui .dropdown > [role="button"]:focus-visible {
   color: var(--reader-ui-text) !important;
   background-color: var(--reader-ui-hover) !important;
+  border-color: transparent !important;
 }
 
-.reader-ui .reader-control-btn:disabled {
+.reader-ui .reader-control-btn:disabled,
+.reader-ui .btn-ghost:disabled {
   color: var(--reader-ui-muted) !important;
   opacity: 0.42 !important;
 }
@@ -225,6 +269,17 @@ label.btn-primary:hover:not(:disabled) {
   color: var(--reader-ui-accent) !important;
   background-color: var(--reader-ui-accent-soft) !important;
   border-color: color-mix(in oklab, var(--reader-ui-accent) 36%, transparent) !important;
+}
+
+.reader-ui .tooltip:before {
+  background-color: var(--reader-ui-surface-strong) !important;
+  color: var(--reader-ui-text) !important;
+  border: 1px solid var(--reader-ui-border) !important;
+}
+
+.reader-ui .tooltip:after {
+  border-bottom-color: var(--reader-ui-surface-strong) !important;
+  border-top-color: var(--reader-ui-surface-strong) !important;
 }
 
 .reader-ui .reader-settings-panel {
@@ -705,22 +760,112 @@ label.btn-primary:hover:not(:disabled) {
   object-fit: contain !important;
 }
 
-.reader-mode-single :is(p, div, figure, section, aside):has(> img:only-child),
-.reader-mode-single :is(p, div, figure, section, aside):has(> a:only-child > img:only-child),
+.reader-content:not(.reader-mode-single):not(.reader-mode-double) img {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 90vh !important;
+  margin: 1.5rem auto !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+.reader-mode-single,
+.reader-mode-double {
+  contain: paint !important;
+  container-type: size !important;
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.reader-mode-single :is(article, .novelhub-mobi, div#chapter-content, .long-text),
+.reader-mode-double :is(article, .novelhub-mobi, div#chapter-content, .long-text),
+.reader-mode-single > div,
+.reader-mode-double > div {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.reader-content :is(p, div, section, aside, a):not(:has(img, svg)):empty,
+.reader-content img[src="#"],
+.reader-content img[src=""],
+.reader-content img:not([src]),
+.reader-content .d-none,
+.reader-content .d-md-none,
+.reader-content :is(p, div, figure, section, aside, a):has(> img[src="#"]:only-child),
+.reader-content :is(p, div, figure, section, aside, a):has(> img[src=""]:only-child),
+.reader-content :is(p, div, figure, section, aside, a):has(> img:not([src]):only-child),
+.reader-content :is(p, div, figure, section, aside, a):has(> a:only-child > img[src="#"]:only-child),
+.reader-content :is(p, div, figure, section, aside, a):has(> a:only-child > img[src=""]:only-child) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  border: 0 !important;
+  break-before: auto !important;
+  break-after: auto !important;
+}
+
+/* Continuous Scroll Mode & General Reader image styling */
+.reader-content .reader-image-page,
+.reader-content figure:has(> img),
+.reader-content p:has(> img:only-child) {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.5rem 0;
+  padding: 0;
+  text-align: center;
+}
+
+.reader-content img:not([src="#"]):not([src=""]),
+.reader-content svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 90vh;
+  margin: 1rem auto;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Multi-column reader illustrations (Single & Double page modes): each image occupies its own dedicated column/page */
+.reader-mode-single .reader-image-page,
+.reader-mode-double .reader-image-page,
+.reader-mode-single :is(p, div, figure, section, aside):has(> img:not([src="#"]):not([src=""]):only-child),
+.reader-mode-single :is(p, div, figure, section, aside):has(> a:only-child > img:not([src="#"]):not([src=""]):only-child),
+.reader-mode-single :is(p, div, figure, section, aside):has(> :is(p, div, figure, a):only-child > img:not([src="#"]):not([src=""]):only-child),
 .reader-mode-single :is(p, div, figure, section, aside):has(> svg:only-child),
-.reader-mode-double :is(p, div, figure, section, aside):has(> img:only-child),
-.reader-mode-double :is(p, div, figure, section, aside):has(> a:only-child > img:only-child),
+.reader-mode-double :is(p, div, figure, section, aside):has(> img:not([src="#"]):not([src=""]):only-child),
+.reader-mode-double :is(p, div, figure, section, aside):has(> a:only-child > img:not([src="#"]):not([src=""]):only-child),
+.reader-mode-double :is(p, div, figure, section, aside):has(> :is(p, div, figure, a):only-child > img:not([src="#"]):not([src=""]):only-child),
 .reader-mode-double :is(p, div, figure, section, aside):has(> svg:only-child) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
-  min-height: 0 !important;
+  height: 100cqh !important;
+  min-height: 100% !important;
+  min-height: 100cqh !important;
+  max-height: 100% !important;
+  max-height: 100cqh !important;
   margin: 0 !important;
   padding: 0 !important;
+  box-sizing: border-box !important;
+  break-before: column !important;
+  page-break-before: always !important;
   break-inside: avoid !important;
   page-break-inside: avoid !important;
+  break-after: column !important;
+  page-break-after: always !important;
 }
 
 .reader-mode-single a:has(> img:only-child),
@@ -730,64 +875,43 @@ label.btn-primary:hover:not(:disabled) {
   justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
+  max-height: 100% !important;
 }
 
-.reader-mode-single img,
+/* Headings in multi-column layout */
+.reader-mode-single :is(h1, h2, h3, h4, h5, h6),
+.reader-mode-double :is(h1, h2, h3, h4, h5, h6) {
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+  break-inside: avoid !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Images & SVG in multi-column reader: maximized to full page size while preserving exact aspect ratio */
+.reader-mode-single .reader-image-page img,
+.reader-mode-double .reader-image-page img,
+.reader-mode-single img:not([src="#"]):not([src=""]),
 .reader-mode-single svg,
-.reader-mode-double img,
+.reader-mode-double img:not([src="#"]):not([src=""]),
 .reader-mode-double svg {
   display: block !important;
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
   max-height: 100% !important;
+  max-height: 100cqh !important;
   margin: auto !important;
   object-fit: contain !important;
+  object-position: center !important;
+  box-sizing: border-box !important;
+  break-before: column !important;
+  page-break-before: always !important;
   break-inside: avoid !important;
   page-break-inside: avoid !important;
-}
-
-.reader-content-visual.reader-mode-single,
-.reader-content-visual.reader-mode-double {
-  height: 100% !important;
-}
-
-.reader-content-visual.reader-mode-single body,
-.reader-content-visual.reader-mode-single:not(:has(body)),
-.reader-content-visual.reader-mode-double body,
-.reader-content-visual.reader-mode-double:not(:has(body)) {
-  height: 100% !important;
-}
-
-.reader-content-visual.reader-mode-single :is(article, .novelhub-mobi),
-.reader-content-visual.reader-mode-double :is(article, .novelhub-mobi) {
-  height: 100% !important;
-  padding: 0 !important;
-}
-
-.reader-content-visual.reader-mode-single :is(p, div, figure, section, aside):has(> img:only-child),
-.reader-content-visual.reader-mode-single :is(p, div, figure, section, aside):has(> a:only-child > img:only-child),
-.reader-content-visual.reader-mode-double :is(p, div, figure, section, aside):has(> img:only-child),
-.reader-content-visual.reader-mode-double :is(p, div, figure, section, aside):has(> a:only-child > img:only-child) {
-  height: 100% !important;
-}
-
-.reader-content-visual.reader-mode-single img,
-.reader-content-visual.reader-mode-single svg,
-.reader-content-visual.reader-mode-double img,
-.reader-content-visual.reader-mode-double svg {
-  max-height: calc(100vh - 6.5rem) !important;
-  max-width: min(100%, var(--reader-page-width, 100%)) !important;
-  object-fit: contain !important;
-}
-
-/* Reading modes formatting */
-.reader-mode-single,
-.reader-mode-double {
-  contain: paint !important;
-  inline-size: 100% !important;
-  max-inline-size: 100% !important;
-  overflow: hidden !important;
+  break-after: column !important;
+  page-break-after: always !important;
 }
 
 .reader-mode-single body,

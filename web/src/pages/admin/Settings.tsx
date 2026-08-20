@@ -24,6 +24,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { SmtpSettingsTab } from "@/components/admin/settings/SmtpSettingsTab";
 import { WebhooksTab } from "@/components/admin/settings/WebhooksTab";
+import { CustomizationTab } from "@/components/admin/settings/CustomizationTab";
 
 export function Settings() {
   const { t } = useTranslation();
@@ -913,6 +914,9 @@ export function Settings() {
               <WebhooksTab />
             </div>
           </div>
+
+          {/* ────── Customization Defaults (Soundscapes, Fonts & Themes) ────── */}
+          <CustomizationTab />
         </div>
       </div>
 

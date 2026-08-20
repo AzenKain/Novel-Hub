@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 
 import type { PageFit, ReadingDirection, ReadingMode } from "@/stores";
 import { isVisualChapter, sanitizeReaderHtml } from "@/utils/readerHtml";
@@ -11,6 +11,7 @@ type ReaderContentProps = {
   pageFit: PageFit;
   pageWidth: number;
   columnsRef: React.RefObject<HTMLDivElement | null>;
+  isPendingLanding?: boolean;
   onContentClick: (event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
@@ -25,6 +26,7 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   pageFit,
   pageWidth,
   columnsRef,
+  isPendingLanding = false,
   onContentClick,
 }) => {
   const sanitizedHTML = useMemo(
@@ -40,12 +42,39 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
     [sanitizedHTML],
   );
 
+  // Clean up broken images and empty wrappers at runtime
+  useEffect(() => {
+    const el = columnsRef.current;
+    if (!el) return;
+
+    const images = el.querySelectorAll("img");
+    images.forEach((img) => {
+      const src = img.getAttribute("src");
+      if (!src || src === "#" || src === "about:blank") {
+        img.style.display = "none";
+        const parent = img.parentElement;
+        if (parent && parent.children.length === 1 && !parent.textContent?.trim()) {
+          parent.style.display = "none";
+        }
+      }
+
+      img.onerror = () => {
+        img.style.display = "none";
+        const parent = img.parentElement;
+        if (parent && parent.children.length === 1 && !parent.textContent?.trim()) {
+          parent.style.display = "none";
+        }
+      };
+    });
+  }, [sanitizedHTML, columnsRef]);
+
   if (!htmlContent) return null;
 
   return (
     <div
       ref={columnsRef}
       onClick={onContentClick}
+      style={isPendingLanding ? { visibility: "hidden" } : undefined}
       className={`reader-content ${visualChapter ? "reader-content-visual" : ""} ${proseClass} max-w-none w-full ${
         rawReader
           ? "flex-1 min-h-0 h-full"

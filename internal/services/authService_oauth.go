@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,6 +39,13 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 	if user != nil {
 		if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
 			return nil, apperrors.New(apperrors.ErrForbidden, "User account is banned")
+		}
+
+		if user.AuthProvider != "" && !strings.EqualFold(user.AuthProvider, provider) {
+			return nil, apperrors.New(apperrors.ErrConflict, fmt.Sprintf("Account was registered with %s authentication", user.AuthProvider))
+		}
+		if user.Oauth2ID != "" && oauth2ID != "" && user.Oauth2ID != oauth2ID {
+			return nil, apperrors.New(apperrors.ErrForbidden, "OAuth account ID mismatch")
 		}
 
 		// Update name, avatar or oauth2_id if they changed and are not empty
@@ -193,6 +201,24 @@ type OIDCDiscoveryDoc struct {
 	Issuer                string `json:"issuer"`
 }
 
+func sanitizeRedirectURL(target string) string {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(target, "/") || strings.HasPrefix(target, "//") || strings.HasPrefix(target, "/\\") || strings.HasPrefix(target, "\\") {
+		return "/"
+	}
+	if strings.ContainsAny(target, "\r\n\t") || strings.Contains(target, "://") {
+		return "/"
+	}
+	parsed, err := url.Parse(target)
+	if err != nil || parsed.IsAbs() || parsed.Host != "" {
+		return "/"
+	}
+	return target
+}
+
 func (a *authService) BuildOAuthURL(ctx context.Context, provider string, redirect string) (authURL string, stateUUID string, err error) {
 	provider = strings.ToLower(provider)
 	if provider != "google" && provider != "github" && provider != "discord" && provider != "oidc" {
@@ -210,9 +236,7 @@ func (a *authService) BuildOAuthURL(ctx context.Context, provider string, redire
 
 	// Prepare OAuth state
 	stateUUID = uuid.New().String()
-	if redirect == "" {
-		redirect = "/"
-	}
+	redirect = sanitizeRedirectURL(redirect)
 
 	stateData := OAuthState{
 		State:       stateUUID,
@@ -510,7 +534,7 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 	return &response.OAuthCallbackResponse{
 		AccessToken:  res.AccessToken,
 		RefreshToken: res.RefreshToken,
-		RedirectURL:  stateData.RedirectURL,
+		RedirectURL:  sanitizeRedirectURL(stateData.RedirectURL),
 	}, nil
 }
 

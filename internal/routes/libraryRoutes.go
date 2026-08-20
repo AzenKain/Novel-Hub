@@ -7,16 +7,17 @@ import (
 	"novelhub/internal/middlewares"
 	"novelhub/internal/repositories"
 	"novelhub/internal/services"
+	"novelhub/pkg/constants"
 )
 
 func LibraryRoutes(router fiber.Router, libraryController *controllers.LibraryController, userRepo repositories.UserRepository, permissionCache services.PermissionCache) {
 	libraryGroup := router.Group("/libraries")
 
-	libraryGroup.Post("/", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage"), libraryController.CreateLibrary)
+	libraryGroup.Post("/", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryManage), libraryController.CreateLibrary)
 	libraryGroup.Get("/", middlewares.OptionalJwtAccess(userRepo), libraryController.ListLibraries)
 	libraryGroup.Get("/:id", middlewares.OptionalJwtAccess(userRepo), libraryController.GetLibrary)
-	libraryGroup.Post("/:id/upload", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.UploadFiles)
-	libraryGroup.Put("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.UpdateLibrary)
-	libraryGroup.Delete("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.DeleteLibrary)
-	libraryGroup.Post("/:id/inbox/setup", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, "library.manage", middlewares.LibraryIDParam("id")), libraryController.SetupInbox)
+	libraryGroup.Post("/:id/upload", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.LibraryIDParam("id")), libraryController.UploadFiles)
+	libraryGroup.Put("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryManage, middlewares.LibraryIDParam("id")), libraryController.UpdateLibrary)
+	libraryGroup.Delete("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryManage, middlewares.LibraryIDParam("id")), libraryController.DeleteLibrary)
+	libraryGroup.Post("/:id/inbox/setup", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermLibraryManage, middlewares.LibraryIDParam("id")), libraryController.SetupInbox)
 }

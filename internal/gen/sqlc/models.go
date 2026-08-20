@@ -195,6 +195,32 @@ type ContentWarning struct {
 	CreatedAt   sql.NullTime `json:"created_at"`
 }
 
+type CustomFont struct {
+	ID         string         `json:"id"`
+	UserID     sql.NullString `json:"user_id"`
+	Name       string         `json:"name"`
+	FontFamily string         `json:"font_family"`
+	SourceType string         `json:"source_type"`
+	FilePath   string         `json:"file_path"`
+	FontUrl    string         `json:"font_url"`
+	IsSystem   int64          `json:"is_system"`
+	CreatedAt  string         `json:"created_at"`
+	UpdatedAt  string         `json:"updated_at"`
+}
+
+type CustomTheme struct {
+	ID          string         `json:"id"`
+	UserID      sql.NullString `json:"user_id"`
+	Name        string         `json:"name"`
+	BgColor     string         `json:"bg_color"`
+	TextColor   string         `json:"text_color"`
+	AccentColor string         `json:"accent_color"`
+	CustomCss   string         `json:"custom_css"`
+	IsSystem    int64          `json:"is_system"`
+	CreatedAt   string         `json:"created_at"`
+	UpdatedAt   string         `json:"updated_at"`
+}
+
 type FtsChapter struct {
 	BookID    string `json:"book_id"`
 	ChapterID string `json:"chapter_id"`
@@ -447,6 +473,19 @@ type SmartFilter struct {
 	HomePosition    int64        `json:"home_position"`
 	CreatedAt       sql.NullTime `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`
+}
+
+type Soundscape struct {
+	ID        string         `json:"id"`
+	UserID    sql.NullString `json:"user_id"`
+	Name      string         `json:"name"`
+	Category  string         `json:"category"`
+	FilePath  string         `json:"file_path"`
+	Icon      string         `json:"icon"`
+	Volume    float64        `json:"volume"`
+	IsSystem  int64          `json:"is_system"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
 }
 
 type Tag struct {

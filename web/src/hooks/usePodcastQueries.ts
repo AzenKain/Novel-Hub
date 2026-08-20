@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { podcastService } from "@/services";
 import type { Podcast, PodcastEpisode, SubscribePodcastInput, UpdatePodcastInput } from "@/types";
+import { usePodcastDownloadStore } from "@/stores";
 import i18n from "@/i18n";
 import { toast } from "react-toastify";
 
@@ -16,14 +17,36 @@ export function usePodcastsQuery() {
 }
 
 export function usePodcastEpisodesQuery(podcastId: string) {
+  const finishDownload = usePodcastDownloadStore((state) => state.finishDownload);
+  const queryClient = useQueryClient();
+
   return useQuery<PodcastEpisode[]>({
     queryKey: ["podcastEpisodes", podcastId],
     queryFn: async () => {
       const res = await podcastService.listEpisodes(podcastId);
       if (!res.status) throw new Error(res.message || i18n.t("podcasts.load_failed", "Failed to load episodes"));
-      return res.data || [];
+      const episodes = res.data || [];
+
+      // Check if any active download finished
+      const activeDownloads = usePodcastDownloadStore.getState().activeDownloads;
+      episodes.forEach((ep) => {
+        if (ep.downloaded && activeDownloads[ep.id]) {
+          const title = activeDownloads[ep.id].episodeTitle || ep.title;
+          finishDownload(ep.id);
+          toast.success(
+            i18n.t("podcasts.download_completed", 'Episode "{{title}}" downloaded successfully', { title }),
+            { toastId: `podcast-download-${ep.id}` }
+          );
+          void queryClient.invalidateQueries({ queryKey: ["podcasts"] });
+          void queryClient.invalidateQueries({ queryKey: ["books"] });
+        }
+      });
+
+      return episodes;
     },
     enabled: !!podcastId,
+    refetchInterval: () => (usePodcastDownloadStore.getState().hasActiveDownloads(podcastId) ? 2000 : false),
+    refetchOnMount: "always",
   });
 }
 
@@ -82,10 +105,22 @@ export function useRefreshPodcastMutation() {
   });
 }
 
+export interface DownloadEpisodeParams {
+  episodeId: string;
+  episodeTitle?: string;
+}
+
 export function useDownloadEpisodeMutation(podcastId: string) {
   const queryClient = useQueryClient();
+  const startDownload = usePodcastDownloadStore((state) => state.startDownload);
+
   return useMutation({
-    mutationFn: async (episodeId: string) => {
+    mutationFn: async (params: string | DownloadEpisodeParams) => {
+      const episodeId = typeof params === "string" ? params : params.episodeId;
+      const episodeTitle = typeof params === "string" ? undefined : params.episodeTitle;
+
+      startDownload(podcastId, episodeId, episodeTitle);
+
       const res = await podcastService.downloadEpisode(podcastId, episodeId);
       if (!res.status) throw new Error(res.message || i18n.t("podcasts.download_failed", "Failed to enqueue download"));
       return res.data;

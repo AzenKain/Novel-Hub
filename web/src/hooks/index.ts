@@ -18,3 +18,5 @@ export * from "./useMagicCodeQueries";
 export * from "./useSmartFilters";
 export * from "./useAudiobookQueries";
 export * from "./usePodcastQueries";
+export * from "./usePodcastDownloadWatcher";
+export * from "./useCustomization";

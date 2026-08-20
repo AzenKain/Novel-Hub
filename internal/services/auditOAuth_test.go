@@ -3,23 +3,13 @@ package services
 import (
 	"context"
 	"encoding/base64"
-	"strings"
+	"net/url"
 	"testing"
-	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 
 	"novelhub/pkg/jsonx"
 )
 
-// TestAuditOAuthOpenRedirect proves task T1.3: the redirect parameter passed to
-// BuildOAuthURL is embedded in the OAuth state verbatim, with no host
-// validation. The callback later 302-redirects the user's browser to that URL,
-// making the login flow an open redirect.
-//
-// PASSING = bug confirmed: an attacker can plant
-// /auth/oauth2/google/login?redirect=https://evil.example/ and the victim's
-// browser lands there right after a successful login.
+// TestAuditOAuthOpenRedirect verifies that external redirect URLs are sanitized to prevent open redirect.
 func TestAuditOAuthOpenRedirect(t *testing.T) {
 	svc, settings, _, _ := newOAuthTestAuthService(t)
 	ctx := context.Background()
@@ -38,7 +28,7 @@ func TestAuditOAuthOpenRedirect(t *testing.T) {
 	evil := "https://evil.example.com/steal"
 	authURL, stateUUID, err := svc.BuildOAuthURL(ctx, "google", evil)
 	if err != nil {
-		t.Fatalf("BuildOAuthURL rejected an external redirect target: %v (no open redirect to prove)", err)
+		t.Fatalf("BuildOAuthURL failed: %v", err)
 	}
 	if authURL == "" || stateUUID == "" {
 		t.Fatal("expected authURL and stateUUID")
@@ -53,36 +43,27 @@ func TestAuditOAuthOpenRedirect(t *testing.T) {
 	if err := jsonx.Unmarshal(decoded, &state); err != nil {
 		t.Fatal(err)
 	}
-	// BUG PROOF: the external host survived end-to-end — the callback will
-	// c.Redirect().To(state.RedirectURL) straight to it.
-	if state.RedirectURL != evil {
-		t.Fatalf("unexpected: RedirectURL was sanitized to %q; open redirect may have been fixed", state.RedirectURL)
+	// SECURITY CHECK: external redirect host must be sanitized to "/"
+	if state.RedirectURL != "/" {
+		t.Fatalf("expected RedirectURL to be sanitized to '/', got %q", state.RedirectURL)
 	}
 }
 
 func mustExtractState(t *testing.T, authURL string) string {
 	t.Helper()
-	q := authURL
-	if i := strings.IndexByte(q, '?'); i >= 0 {
-		q = q[i+1:]
+	parsed, err := url.Parse(authURL)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, pair := range strings.Split(q, "&") {
-		if strings.HasPrefix(pair, "state=") {
-			return strings.TrimPrefix(pair, "state=")
-		}
+	st := parsed.Query().Get("state")
+	if st == "" {
+		t.Fatal("no state= param found in authURL")
 	}
-	t.Fatal("no state= param found in authURL")
-	return ""
+	return st
 }
 
-// TestAuditOAuthEmailMatchTakeover proves task T1.4: SigninOrRegisterOAuth
-// matches accounts by email only — it never checks that the provider and
-// oauth2 sub match the existing account. Logging in with a *different* provider
-// that happens to share the victim's email returns a session for the victim's
-// account.
-//
-// PASSING = bug confirmed: attacker's GitHub login minted tokens for the
-// victim's Google-created account.
+// TestAuditOAuthEmailMatchTakeover verifies that an account registered with one provider
+// cannot be taken over by signing in with a different provider using the same email address.
 func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 	svc, settings, userRepo, _ := newOAuthTestAuthService(t)
 	ctx := context.Background()
@@ -103,11 +84,11 @@ func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 		t.Fatal("expected victim tokens")
 	}
 
-	// Attacker logs in via GitHub with the same email but a different sub.
+	// Attacker attempts to log in via GitHub with the same email.
 	attackerTokens, err := svc.SigninOrRegisterOAuth(ctx, "GITHUB", "victim@example.com", "Attacker", "", "github-sub-attacker")
-	// BUG PROOF: no error — the attacker was handed the victim's account.
-	if err != nil {
-		t.Fatalf("unexpected: GitHub login with victim email was rejected; provider/email_verified check may exist now")
+	// SECURITY CHECK: Must fail with error to prevent account takeover.
+	if err == nil || attackerTokens != nil {
+		t.Fatalf("expected GitHub login with victim email to be rejected; takeover was possible")
 	}
 
 	victim, err := userRepo.GetAuthByEmail(ctx, "victim@example.com")
@@ -117,26 +98,4 @@ func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 	if victim.AuthProvider != "GOOGLE" {
 		t.Fatalf("unexpected: account provider changed to %q", victim.AuthProvider)
 	}
-
-	// Prove the attacker's token IS the victim's account (same subject, same row).
-	parsed, err := jwt.Parse(attackerTokens.AccessToken, func(token *jwt.Token) (any, error) {
-		return []byte("oauth-test-access-secret"), nil
-	})
-	if err != nil {
-		t.Fatalf("failed to parse attacker token: %v", err)
-	}
-	claims, ok := parsed.Claims.(jwt.MapClaims)
-	if !ok {
-		t.Fatal("unexpected claims type")
-	}
-	sub, _ := claims["sub"].(string)
-	if sub != victim.ID {
-		t.Fatalf("attacker token sub %q != victim account %q — no takeover to prove", sub, victim.ID)
-	}
-	exp, _ := claims["exp"].(float64)
-	if int64(exp) < time.Now().Unix() {
-		t.Fatal("attacker token already expired")
-	}
-	// BUG PROOF: attacker holds a live session as the victim.
-	_ = sub
 }

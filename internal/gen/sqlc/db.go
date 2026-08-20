@@ -150,6 +150,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createCollectionStmt, err = db.PrepareContext(ctx, createCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateCollection: %w", err)
 	}
+	if q.createCustomFontStmt, err = db.PrepareContext(ctx, createCustomFont); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateCustomFont: %w", err)
+	}
+	if q.createCustomThemeStmt, err = db.PrepareContext(ctx, createCustomTheme); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateCustomTheme: %w", err)
+	}
 	if q.createHighlightStmt, err = db.PrepareContext(ctx, createHighlight); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateHighlight: %w", err)
 	}
@@ -191,6 +197,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.createSmartFilterStmt, err = db.PrepareContext(ctx, createSmartFilter); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateSmartFilter: %w", err)
+	}
+	if q.createSoundscapeStmt, err = db.PrepareContext(ctx, createSoundscape); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateSoundscape: %w", err)
 	}
 	if q.createTagStmt, err = db.PrepareContext(ctx, createTag); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateTag: %w", err)
@@ -276,6 +285,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteCollectionBooksStmt, err = db.PrepareContext(ctx, deleteCollectionBooks); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteCollectionBooks: %w", err)
 	}
+	if q.deleteCustomFontStmt, err = db.PrepareContext(ctx, deleteCustomFont); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteCustomFont: %w", err)
+	}
+	if q.deleteCustomThemeStmt, err = db.PrepareContext(ctx, deleteCustomTheme); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteCustomTheme: %w", err)
+	}
 	if q.deleteExpiredMagicCodesStmt, err = db.PrepareContext(ctx, deleteExpiredMagicCodes); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteExpiredMagicCodes: %w", err)
 	}
@@ -332,6 +347,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteSmartFilterStmt, err = db.PrepareContext(ctx, deleteSmartFilter); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteSmartFilter: %w", err)
+	}
+	if q.deleteSoundscapeStmt, err = db.PrepareContext(ctx, deleteSoundscape); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteSoundscape: %w", err)
 	}
 	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
@@ -449,6 +467,18 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getContentWarningsByIDsStmt, err = db.PrepareContext(ctx, getContentWarningsByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetContentWarningsByIDs: %w", err)
+	}
+	if q.getCustomFontByIDStmt, err = db.PrepareContext(ctx, getCustomFontByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCustomFontByID: %w", err)
+	}
+	if q.getCustomFontsByIDsStmt, err = db.PrepareContext(ctx, getCustomFontsByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCustomFontsByIDs: %w", err)
+	}
+	if q.getCustomThemeByIDStmt, err = db.PrepareContext(ctx, getCustomThemeByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCustomThemeByID: %w", err)
+	}
+	if q.getCustomThemesByIDsStmt, err = db.PrepareContext(ctx, getCustomThemesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCustomThemesByIDs: %w", err)
 	}
 	if q.getDuplicateFileDetailsStmt, err = db.PrepareContext(ctx, getDuplicateFileDetails); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDuplicateFileDetails: %w", err)
@@ -612,6 +642,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getSmartFiltersByIDsStmt, err = db.PrepareContext(ctx, getSmartFiltersByIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSmartFiltersByIDs: %w", err)
 	}
+	if q.getSoundscapeByIDStmt, err = db.PrepareContext(ctx, getSoundscapeByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSoundscapeByID: %w", err)
+	}
+	if q.getSoundscapesByIDsStmt, err = db.PrepareContext(ctx, getSoundscapesByIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSoundscapesByIDs: %w", err)
+	}
 	if q.getTagByNameStmt, err = db.PrepareContext(ctx, getTagByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTagByName: %w", err)
 	}
@@ -726,6 +762,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listContentWarningIDsStmt, err = db.PrepareContext(ctx, listContentWarningIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListContentWarningIDs: %w", err)
 	}
+	if q.listCustomFontIDsAccessibleStmt, err = db.PrepareContext(ctx, listCustomFontIDsAccessible); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCustomFontIDsAccessible: %w", err)
+	}
+	if q.listCustomThemeIDsAccessibleStmt, err = db.PrepareContext(ctx, listCustomThemeIDsAccessible); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCustomThemeIDsAccessible: %w", err)
+	}
 	if q.listDueJobScheduleIDsStmt, err = db.PrepareContext(ctx, listDueJobScheduleIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListDueJobScheduleIDs: %w", err)
 	}
@@ -803,6 +845,18 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listSmartFiltersByUserStmt, err = db.PrepareContext(ctx, listSmartFiltersByUser); err != nil {
 		return nil, fmt.Errorf("error preparing query ListSmartFiltersByUser: %w", err)
+	}
+	if q.listSoundscapeIDsAccessibleStmt, err = db.PrepareContext(ctx, listSoundscapeIDsAccessible); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSoundscapeIDsAccessible: %w", err)
+	}
+	if q.listSystemCustomFontIDsStmt, err = db.PrepareContext(ctx, listSystemCustomFontIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSystemCustomFontIDs: %w", err)
+	}
+	if q.listSystemCustomThemeIDsStmt, err = db.PrepareContext(ctx, listSystemCustomThemeIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSystemCustomThemeIDs: %w", err)
+	}
+	if q.listSystemSoundscapeIDsStmt, err = db.PrepareContext(ctx, listSystemSoundscapeIDs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSystemSoundscapeIDs: %w", err)
 	}
 	if q.listTagsWithCountStmt, err = db.PrepareContext(ctx, listTagsWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListTagsWithCount: %w", err)
@@ -990,6 +1044,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateCollectionStmt, err = db.PrepareContext(ctx, updateCollection); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateCollection: %w", err)
 	}
+	if q.updateCustomThemeStmt, err = db.PrepareContext(ctx, updateCustomTheme); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateCustomTheme: %w", err)
+	}
 	if q.updateEpisodeDownloadedStmt, err = db.PrepareContext(ctx, updateEpisodeDownloaded); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateEpisodeDownloaded: %w", err)
 	}
@@ -1037,6 +1094,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateSmartFilterPinSidebarStmt, err = db.PrepareContext(ctx, updateSmartFilterPinSidebar); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateSmartFilterPinSidebar: %w", err)
+	}
+	if q.updateSoundscapeStmt, err = db.PrepareContext(ctx, updateSoundscape); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateSoundscape: %w", err)
 	}
 	if q.updateSystemRoleDescriptionStmt, err = db.PrepareContext(ctx, updateSystemRoleDescription); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateSystemRoleDescription: %w", err)
@@ -1331,6 +1391,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createCollectionStmt: %w", cerr)
 		}
 	}
+	if q.createCustomFontStmt != nil {
+		if cerr := q.createCustomFontStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createCustomFontStmt: %w", cerr)
+		}
+	}
+	if q.createCustomThemeStmt != nil {
+		if cerr := q.createCustomThemeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createCustomThemeStmt: %w", cerr)
+		}
+	}
 	if q.createHighlightStmt != nil {
 		if cerr := q.createHighlightStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createHighlightStmt: %w", cerr)
@@ -1399,6 +1469,11 @@ func (q *Queries) Close() error {
 	if q.createSmartFilterStmt != nil {
 		if cerr := q.createSmartFilterStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createSmartFilterStmt: %w", cerr)
+		}
+	}
+	if q.createSoundscapeStmt != nil {
+		if cerr := q.createSoundscapeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createSoundscapeStmt: %w", cerr)
 		}
 	}
 	if q.createTagStmt != nil {
@@ -1541,6 +1616,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteCollectionBooksStmt: %w", cerr)
 		}
 	}
+	if q.deleteCustomFontStmt != nil {
+		if cerr := q.deleteCustomFontStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteCustomFontStmt: %w", cerr)
+		}
+	}
+	if q.deleteCustomThemeStmt != nil {
+		if cerr := q.deleteCustomThemeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteCustomThemeStmt: %w", cerr)
+		}
+	}
 	if q.deleteExpiredMagicCodesStmt != nil {
 		if cerr := q.deleteExpiredMagicCodesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteExpiredMagicCodesStmt: %w", cerr)
@@ -1634,6 +1719,11 @@ func (q *Queries) Close() error {
 	if q.deleteSmartFilterStmt != nil {
 		if cerr := q.deleteSmartFilterStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteSmartFilterStmt: %w", cerr)
+		}
+	}
+	if q.deleteSoundscapeStmt != nil {
+		if cerr := q.deleteSoundscapeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteSoundscapeStmt: %w", cerr)
 		}
 	}
 	if q.deleteUserStmt != nil {
@@ -1829,6 +1919,26 @@ func (q *Queries) Close() error {
 	if q.getContentWarningsByIDsStmt != nil {
 		if cerr := q.getContentWarningsByIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getContentWarningsByIDsStmt: %w", cerr)
+		}
+	}
+	if q.getCustomFontByIDStmt != nil {
+		if cerr := q.getCustomFontByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCustomFontByIDStmt: %w", cerr)
+		}
+	}
+	if q.getCustomFontsByIDsStmt != nil {
+		if cerr := q.getCustomFontsByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCustomFontsByIDsStmt: %w", cerr)
+		}
+	}
+	if q.getCustomThemeByIDStmt != nil {
+		if cerr := q.getCustomThemeByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCustomThemeByIDStmt: %w", cerr)
+		}
+	}
+	if q.getCustomThemesByIDsStmt != nil {
+		if cerr := q.getCustomThemesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCustomThemesByIDsStmt: %w", cerr)
 		}
 	}
 	if q.getDuplicateFileDetailsStmt != nil {
@@ -2101,6 +2211,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getSmartFiltersByIDsStmt: %w", cerr)
 		}
 	}
+	if q.getSoundscapeByIDStmt != nil {
+		if cerr := q.getSoundscapeByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSoundscapeByIDStmt: %w", cerr)
+		}
+	}
+	if q.getSoundscapesByIDsStmt != nil {
+		if cerr := q.getSoundscapesByIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSoundscapesByIDsStmt: %w", cerr)
+		}
+	}
 	if q.getTagByNameStmt != nil {
 		if cerr := q.getTagByNameStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTagByNameStmt: %w", cerr)
@@ -2291,6 +2411,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listContentWarningIDsStmt: %w", cerr)
 		}
 	}
+	if q.listCustomFontIDsAccessibleStmt != nil {
+		if cerr := q.listCustomFontIDsAccessibleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCustomFontIDsAccessibleStmt: %w", cerr)
+		}
+	}
+	if q.listCustomThemeIDsAccessibleStmt != nil {
+		if cerr := q.listCustomThemeIDsAccessibleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCustomThemeIDsAccessibleStmt: %w", cerr)
+		}
+	}
 	if q.listDueJobScheduleIDsStmt != nil {
 		if cerr := q.listDueJobScheduleIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listDueJobScheduleIDsStmt: %w", cerr)
@@ -2419,6 +2549,26 @@ func (q *Queries) Close() error {
 	if q.listSmartFiltersByUserStmt != nil {
 		if cerr := q.listSmartFiltersByUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listSmartFiltersByUserStmt: %w", cerr)
+		}
+	}
+	if q.listSoundscapeIDsAccessibleStmt != nil {
+		if cerr := q.listSoundscapeIDsAccessibleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSoundscapeIDsAccessibleStmt: %w", cerr)
+		}
+	}
+	if q.listSystemCustomFontIDsStmt != nil {
+		if cerr := q.listSystemCustomFontIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSystemCustomFontIDsStmt: %w", cerr)
+		}
+	}
+	if q.listSystemCustomThemeIDsStmt != nil {
+		if cerr := q.listSystemCustomThemeIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSystemCustomThemeIDsStmt: %w", cerr)
+		}
+	}
+	if q.listSystemSoundscapeIDsStmt != nil {
+		if cerr := q.listSystemSoundscapeIDsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSystemSoundscapeIDsStmt: %w", cerr)
 		}
 	}
 	if q.listTagsWithCountStmt != nil {
@@ -2731,6 +2881,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateCollectionStmt: %w", cerr)
 		}
 	}
+	if q.updateCustomThemeStmt != nil {
+		if cerr := q.updateCustomThemeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateCustomThemeStmt: %w", cerr)
+		}
+	}
 	if q.updateEpisodeDownloadedStmt != nil {
 		if cerr := q.updateEpisodeDownloadedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateEpisodeDownloadedStmt: %w", cerr)
@@ -2809,6 +2964,11 @@ func (q *Queries) Close() error {
 	if q.updateSmartFilterPinSidebarStmt != nil {
 		if cerr := q.updateSmartFilterPinSidebarStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateSmartFilterPinSidebarStmt: %w", cerr)
+		}
+	}
+	if q.updateSoundscapeStmt != nil {
+		if cerr := q.updateSoundscapeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateSoundscapeStmt: %w", cerr)
 		}
 	}
 	if q.updateSystemRoleDescriptionStmt != nil {
@@ -3022,6 +3182,8 @@ type Queries struct {
 	createBookShareEventStmt           *sql.Stmt
 	createChapterStmt                  *sql.Stmt
 	createCollectionStmt               *sql.Stmt
+	createCustomFontStmt               *sql.Stmt
+	createCustomThemeStmt              *sql.Stmt
 	createHighlightStmt                *sql.Stmt
 	createJobStmt                      *sql.Stmt
 	createJobScheduleStmt              *sql.Stmt
@@ -3036,6 +3198,7 @@ type Queries struct {
 	createSeriesStmt                   *sql.Stmt
 	createSmartCollectionStmt          *sql.Stmt
 	createSmartFilterStmt              *sql.Stmt
+	createSoundscapeStmt               *sql.Stmt
 	createTagStmt                      *sql.Stmt
 	createUserDeviceStmt               *sql.Stmt
 	createUserRoleStmt                 *sql.Stmt
@@ -3064,6 +3227,8 @@ type Queries struct {
 	deleteChaptersByBookStmt           *sql.Stmt
 	deleteCollectionStmt               *sql.Stmt
 	deleteCollectionBooksStmt          *sql.Stmt
+	deleteCustomFontStmt               *sql.Stmt
+	deleteCustomThemeStmt              *sql.Stmt
 	deleteExpiredMagicCodesStmt        *sql.Stmt
 	deleteFTSBookStmt                  *sql.Stmt
 	deleteFileStmt                     *sql.Stmt
@@ -3083,6 +3248,7 @@ type Queries struct {
 	deleteRolePermissionsStmt          *sql.Stmt
 	deleteSmartCollectionStmt          *sql.Stmt
 	deleteSmartFilterStmt              *sql.Stmt
+	deleteSoundscapeStmt               *sql.Stmt
 	deleteUserStmt                     *sql.Stmt
 	deleteUserDeviceStmt               *sql.Stmt
 	deleteUserTOTPStmt                 *sql.Stmt
@@ -3122,6 +3288,10 @@ type Queries struct {
 	getCollectionsByIDsStmt            *sql.Stmt
 	getContentWarningsStmt             *sql.Stmt
 	getContentWarningsByIDsStmt        *sql.Stmt
+	getCustomFontByIDStmt              *sql.Stmt
+	getCustomFontsByIDsStmt            *sql.Stmt
+	getCustomThemeByIDStmt             *sql.Stmt
+	getCustomThemesByIDsStmt           *sql.Stmt
 	getDuplicateFileDetailsStmt        *sql.Stmt
 	getDuplicateFilesStmt              *sql.Stmt
 	getFilesByBookIDsStmt              *sql.Stmt
@@ -3176,6 +3346,8 @@ type Queries struct {
 	getSmartCollectionStmt             *sql.Stmt
 	getSmartFilterStmt                 *sql.Stmt
 	getSmartFiltersByIDsStmt           *sql.Stmt
+	getSoundscapeByIDStmt              *sql.Stmt
+	getSoundscapesByIDsStmt            *sql.Stmt
 	getTagByNameStmt                   *sql.Stmt
 	getUserByEmailStmt                 *sql.Stmt
 	getUserByIDStmt                    *sql.Stmt
@@ -3214,6 +3386,8 @@ type Queries struct {
 	listBooksWithAudioChaptersStmt     *sql.Stmt
 	listChapterIDsByBookStmt           *sql.Stmt
 	listContentWarningIDsStmt          *sql.Stmt
+	listCustomFontIDsAccessibleStmt    *sql.Stmt
+	listCustomThemeIDsAccessibleStmt   *sql.Stmt
 	listDueJobScheduleIDsStmt          *sql.Stmt
 	listEpisodeGuidsByPodcastStmt      *sql.Stmt
 	listEpisodesByPodcastStmt          *sql.Stmt
@@ -3240,6 +3414,10 @@ type Queries struct {
 	listSmartCollectionsByUserStmt     *sql.Stmt
 	listSmartFilterIDsByUserStmt       *sql.Stmt
 	listSmartFiltersByUserStmt         *sql.Stmt
+	listSoundscapeIDsAccessibleStmt    *sql.Stmt
+	listSystemCustomFontIDsStmt        *sql.Stmt
+	listSystemCustomThemeIDsStmt       *sql.Stmt
+	listSystemSoundscapeIDsStmt        *sql.Stmt
 	listTagsWithCountStmt              *sql.Stmt
 	listUnfinishedJobIDsStmt           *sql.Stmt
 	listUnfinishedJobsStmt             *sql.Stmt
@@ -3302,6 +3480,7 @@ type Queries struct {
 	updateBookAgeRatingStmt            *sql.Stmt
 	updateBookRatingStatsStmt          *sql.Stmt
 	updateCollectionStmt               *sql.Stmt
+	updateCustomThemeStmt              *sql.Stmt
 	updateEpisodeDownloadedStmt        *sql.Stmt
 	updateFileHashStmt                 *sql.Stmt
 	updateHighlightNoteStmt            *sql.Stmt
@@ -3318,6 +3497,7 @@ type Queries struct {
 	updateSmartFilterHomePositionStmt  *sql.Stmt
 	updateSmartFilterPinHomeStmt       *sql.Stmt
 	updateSmartFilterPinSidebarStmt    *sql.Stmt
+	updateSoundscapeStmt               *sql.Stmt
 	updateSystemRoleDescriptionStmt    *sql.Stmt
 	updateUserKidsModePinStmt          *sql.Stmt
 	updateUserKidsModeStatusStmt       *sql.Stmt
@@ -3392,6 +3572,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createBookShareEventStmt:           q.createBookShareEventStmt,
 		createChapterStmt:                  q.createChapterStmt,
 		createCollectionStmt:               q.createCollectionStmt,
+		createCustomFontStmt:               q.createCustomFontStmt,
+		createCustomThemeStmt:              q.createCustomThemeStmt,
 		createHighlightStmt:                q.createHighlightStmt,
 		createJobStmt:                      q.createJobStmt,
 		createJobScheduleStmt:              q.createJobScheduleStmt,
@@ -3406,6 +3588,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createSeriesStmt:                   q.createSeriesStmt,
 		createSmartCollectionStmt:          q.createSmartCollectionStmt,
 		createSmartFilterStmt:              q.createSmartFilterStmt,
+		createSoundscapeStmt:               q.createSoundscapeStmt,
 		createTagStmt:                      q.createTagStmt,
 		createUserDeviceStmt:               q.createUserDeviceStmt,
 		createUserRoleStmt:                 q.createUserRoleStmt,
@@ -3434,6 +3617,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteChaptersByBookStmt:           q.deleteChaptersByBookStmt,
 		deleteCollectionStmt:               q.deleteCollectionStmt,
 		deleteCollectionBooksStmt:          q.deleteCollectionBooksStmt,
+		deleteCustomFontStmt:               q.deleteCustomFontStmt,
+		deleteCustomThemeStmt:              q.deleteCustomThemeStmt,
 		deleteExpiredMagicCodesStmt:        q.deleteExpiredMagicCodesStmt,
 		deleteFTSBookStmt:                  q.deleteFTSBookStmt,
 		deleteFileStmt:                     q.deleteFileStmt,
@@ -3453,6 +3638,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteRolePermissionsStmt:          q.deleteRolePermissionsStmt,
 		deleteSmartCollectionStmt:          q.deleteSmartCollectionStmt,
 		deleteSmartFilterStmt:              q.deleteSmartFilterStmt,
+		deleteSoundscapeStmt:               q.deleteSoundscapeStmt,
 		deleteUserStmt:                     q.deleteUserStmt,
 		deleteUserDeviceStmt:               q.deleteUserDeviceStmt,
 		deleteUserTOTPStmt:                 q.deleteUserTOTPStmt,
@@ -3492,6 +3678,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getCollectionsByIDsStmt:            q.getCollectionsByIDsStmt,
 		getContentWarningsStmt:             q.getContentWarningsStmt,
 		getContentWarningsByIDsStmt:        q.getContentWarningsByIDsStmt,
+		getCustomFontByIDStmt:              q.getCustomFontByIDStmt,
+		getCustomFontsByIDsStmt:            q.getCustomFontsByIDsStmt,
+		getCustomThemeByIDStmt:             q.getCustomThemeByIDStmt,
+		getCustomThemesByIDsStmt:           q.getCustomThemesByIDsStmt,
 		getDuplicateFileDetailsStmt:        q.getDuplicateFileDetailsStmt,
 		getDuplicateFilesStmt:              q.getDuplicateFilesStmt,
 		getFilesByBookIDsStmt:              q.getFilesByBookIDsStmt,
@@ -3546,6 +3736,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getSmartCollectionStmt:             q.getSmartCollectionStmt,
 		getSmartFilterStmt:                 q.getSmartFilterStmt,
 		getSmartFiltersByIDsStmt:           q.getSmartFiltersByIDsStmt,
+		getSoundscapeByIDStmt:              q.getSoundscapeByIDStmt,
+		getSoundscapesByIDsStmt:            q.getSoundscapesByIDsStmt,
 		getTagByNameStmt:                   q.getTagByNameStmt,
 		getUserByEmailStmt:                 q.getUserByEmailStmt,
 		getUserByIDStmt:                    q.getUserByIDStmt,
@@ -3584,6 +3776,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listBooksWithAudioChaptersStmt:     q.listBooksWithAudioChaptersStmt,
 		listChapterIDsByBookStmt:           q.listChapterIDsByBookStmt,
 		listContentWarningIDsStmt:          q.listContentWarningIDsStmt,
+		listCustomFontIDsAccessibleStmt:    q.listCustomFontIDsAccessibleStmt,
+		listCustomThemeIDsAccessibleStmt:   q.listCustomThemeIDsAccessibleStmt,
 		listDueJobScheduleIDsStmt:          q.listDueJobScheduleIDsStmt,
 		listEpisodeGuidsByPodcastStmt:      q.listEpisodeGuidsByPodcastStmt,
 		listEpisodesByPodcastStmt:          q.listEpisodesByPodcastStmt,
@@ -3610,6 +3804,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listSmartCollectionsByUserStmt:     q.listSmartCollectionsByUserStmt,
 		listSmartFilterIDsByUserStmt:       q.listSmartFilterIDsByUserStmt,
 		listSmartFiltersByUserStmt:         q.listSmartFiltersByUserStmt,
+		listSoundscapeIDsAccessibleStmt:    q.listSoundscapeIDsAccessibleStmt,
+		listSystemCustomFontIDsStmt:        q.listSystemCustomFontIDsStmt,
+		listSystemCustomThemeIDsStmt:       q.listSystemCustomThemeIDsStmt,
+		listSystemSoundscapeIDsStmt:        q.listSystemSoundscapeIDsStmt,
 		listTagsWithCountStmt:              q.listTagsWithCountStmt,
 		listUnfinishedJobIDsStmt:           q.listUnfinishedJobIDsStmt,
 		listUnfinishedJobsStmt:             q.listUnfinishedJobsStmt,
@@ -3672,6 +3870,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateBookAgeRatingStmt:            q.updateBookAgeRatingStmt,
 		updateBookRatingStatsStmt:          q.updateBookRatingStatsStmt,
 		updateCollectionStmt:               q.updateCollectionStmt,
+		updateCustomThemeStmt:              q.updateCustomThemeStmt,
 		updateEpisodeDownloadedStmt:        q.updateEpisodeDownloadedStmt,
 		updateFileHashStmt:                 q.updateFileHashStmt,
 		updateHighlightNoteStmt:            q.updateHighlightNoteStmt,
@@ -3688,6 +3887,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateSmartFilterHomePositionStmt:  q.updateSmartFilterHomePositionStmt,
 		updateSmartFilterPinHomeStmt:       q.updateSmartFilterPinHomeStmt,
 		updateSmartFilterPinSidebarStmt:    q.updateSmartFilterPinSidebarStmt,
+		updateSoundscapeStmt:               q.updateSoundscapeStmt,
 		updateSystemRoleDescriptionStmt:    q.updateSystemRoleDescriptionStmt,
 		updateUserKidsModePinStmt:          q.updateUserKidsModePinStmt,
 		updateUserKidsModeStatusStmt:       q.updateUserKidsModeStatusStmt,

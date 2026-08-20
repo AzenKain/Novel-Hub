@@ -166,6 +166,10 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 	successCount := 0
 	pendingJobs := make([]worker.Job, 0, len(files))
 	for _, file := range files {
+		if !bookparser.IsAllowedBookFormat(file.Filename) {
+			log.Warn().Str("file", file.Filename).Msg("skipped upload of unsupported file format")
+			continue
+		}
 		bookID := uuid.Must(uuid.NewV7()).String()
 		ext := filepath.Ext(file.Filename)
 
@@ -250,6 +254,9 @@ func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, file
 func (s *libraryService) ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error {
 	if _, err := s.libraryRepo.GetLibrary(ctx, libraryID); err != nil {
 		return err
+	}
+	if !bookparser.IsAllowedBookFormat(filename) {
+		return apperrors.New(apperrors.ErrBadRequest, "Unsupported file format")
 	}
 
 	bookID := uuid.Must(uuid.NewV7()).String()

@@ -135,37 +135,37 @@ export function Reviews() {
               {reviews.map((review, idx) => (
                 <div
                   key={`${review.book_id}-${review.user_id}-${idx}`}
-                  className="card bg-base-100 border border-base-200 shadow-sm p-4 sm:p-5"
+                  className="card bg-base-100 border border-base-200 shadow-sm p-4 sm:p-5 hover:border-base-300 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="font-bold text-sm truncate">{review.book_title || review.book_id}</h3>
+                        <h3 className="font-bold text-base text-base-content truncate">{review.book_title || review.book_id}</h3>
                         {renderStars(review.rating)}
-                        <span className="text-xs text-base-content/40">{review.rating}/5</span>
+                        <span className="text-xs font-semibold text-base-content/70">{review.rating}/5</span>
                       </div>
                       {review.review ? (
-                        <p className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
+                        <p className="text-sm text-base-content leading-relaxed whitespace-pre-wrap break-words">
                           {review.review}
                         </p>
                       ) : (
-                        <p className="text-sm italic text-base-content/40">Rating only</p>
+                        <p className="text-sm italic text-base-content/60">Rating only</p>
                       )}
-                      <div className="flex items-center gap-3 mt-3 text-xs text-base-content/50 flex-wrap">
+                      <div className="flex items-center gap-2.5 mt-3 text-xs text-base-content/70 flex-wrap">
                         <span>
-                          by <strong className="text-base-content/70">{review.user_name || "User"}</strong>
+                          by <strong className="font-semibold text-base-content">{review.user_name || "User"}</strong>
                           {review.user_email && (
-                            <span className="text-base-content/40"> ({review.user_email})</span>
+                            <span className="text-base-content/60"> ({review.user_email})</span>
                           )}
                         </span>
-                        <span className="text-base-content/30">·</span>
-                        <span>
+                        <span className="text-base-content/40">•</span>
+                        <span className="text-base-content/80 font-medium">
                           {review.created_at
                             ? new Date(review.created_at).toLocaleDateString()
                             : "—"}
                         </span>
-                        <span className="text-base-content/30">·</span>
-                        <span className="font-mono text-[10px] opacity-40">
+                        <span className="text-base-content/40">•</span>
+                        <span className="font-mono text-xs bg-base-200/80 px-1.5 py-0.5 rounded text-base-content/70">
                           Book: {review.book_id}
                         </span>
                       </div>

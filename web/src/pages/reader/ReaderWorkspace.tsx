@@ -57,6 +57,7 @@ const ReaderWorkspaceInner = () => {
   const pageFrameRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const pendingFragmentRef = useRef<string | null>(null);
+  const pendingLandingRef = useRef<string | null>(null);
   const pendingTextOffsetRef = useRef<number | null>(null);
   const lastFocusedControlRef = useRef<HTMLElement | null>(null);
   const ttsOffsetRef = useRef<number>(0);
@@ -388,6 +389,7 @@ const ReaderWorkspaceInner = () => {
     contentRef,
     columnsRef,
     pageFrameRef,
+    pendingLandingRef,
     htmlContent,
     maxWidth,
     scrollLayout,
@@ -398,7 +400,7 @@ const ReaderWorkspaceInner = () => {
     setPageIndex,
     setPageFrameWidth,
     onChapterNext: () => handleNext(),
-    onChapterPrev: () => handlePrev(),
+    onChapterPrev: () => handlePrev(true),
   });
 
   useEffect(() => {
@@ -810,10 +812,13 @@ const ReaderWorkspaceInner = () => {
     }
   };
 
-  const handlePrev = () => {
+  const handlePrev = (startAtEnd = false) => {
     if (!currentChapter) return;
     const idx = chapters.findIndex(c => c.id === currentChapter.id);
     if (idx > 0) {
+      if (startAtEnd) {
+        pendingLandingRef.current = "end";
+      }
       loadChapter(chapters[idx - 1]);
     }
   };
@@ -1034,6 +1039,7 @@ const ReaderWorkspaceInner = () => {
                     pageFit={pageFit}
                     pageWidth={pageWidth}
                     columnsRef={columnsRef}
+                    isPendingLanding={pendingLandingRef.current === "end"}
                     onContentClick={handleContentClick}
                   />
                 ) : (

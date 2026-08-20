@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   Send,
   FileText,
-  Layers
+  Layers,
+  Copy
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
@@ -233,7 +234,7 @@ export const BookDetailPage: React.FC = () => {
                   {t("book.collection", "Collection")}
                 </span>
               </div>
-              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto flex-nowrap block">
+              <ul tabIndex={0} className="dropdown-content z-20 menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto">
                 {collections.length === 0 && (
                   <li className="px-4 py-2 text-sm text-base-content/50 text-center">
                     {t("library.no_collections", "No collections")}
@@ -243,8 +244,10 @@ export const BookDetailPage: React.FC = () => {
                   const isInCol = userState?.collections?.includes(col.id);
                   return (
                     <li key={col.id}>
-                      <a 
+                      <button 
+                        type="button"
                         onClick={() => {
+                          (document.activeElement as HTMLElement)?.blur();
                           if (isInCol) {
                             removeBookFromColMutation.mutate(col.id, {
                               onError: (err: any) => {
@@ -263,7 +266,7 @@ export const BookDetailPage: React.FC = () => {
                       >
                         {isInCol ? <Check className="w-4 h-4 mr-1" /> : <span className="w-4 mr-1 inline-block"></span>}
                         <span className="truncate">{col.name}</span>
-                      </a>
+                      </button>
                     </li>
                   );
                 })}
@@ -278,7 +281,7 @@ export const BookDetailPage: React.FC = () => {
                   {t("library.readlists", "Read Lists")}
                 </span>
               </div>
-              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto flex-nowrap block">
+              <ul tabIndex={0} className="dropdown-content z-20 menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto">
                 {readLists.length === 0 && (
                   <li className="px-4 py-2 text-sm text-base-content/50 text-center">
                     {t("library.readlist_empty_short", "No read lists")}
@@ -286,9 +289,15 @@ export const BookDetailPage: React.FC = () => {
                 )}
                 {readLists.map((list) => (
                   <li key={list.id}>
-                    <a onClick={() => book_id && addReadListBookMutation.mutate({ id: list.id, bookId: book_id })}>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        (document.activeElement as HTMLElement)?.blur();
+                        book_id && addReadListBookMutation.mutate({ id: list.id, bookId: book_id });
+                      }}
+                    >
                       <span className="truncate">{list.name}</span>
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -345,6 +354,7 @@ export const BookDetailPage: React.FC = () => {
                 <img
                   src={getMediaUrl(book.cover_url)}
                   alt={book.title}
+                  draggable={false}
                   onError={() => setImgError(true)}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
@@ -410,9 +420,30 @@ export const BookDetailPage: React.FC = () => {
           {/* Right Pane - Details & Files & Reviews */}
           <div className="w-full md:w-2/3 lg:w-3/4 flex flex-col gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-base-content mb-2 leading-tight break-words">
-                {book.title}
-              </h1>
+              <div className="flex items-start gap-2 mb-2">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-base-content leading-tight break-words">
+                  {book.title}
+                </h1>
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const ok = await copyText(book.title);
+                      if (ok) {
+                        toast.success(t("book.title_copied", "Book title copied to clipboard"));
+                      }
+                    } catch (err) {
+                      console.error("Failed to copy book title:", err);
+                    }
+                  }}
+                  className="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/40 hover:text-primary hover:bg-primary/10 mt-1"
+                  title={t("book.copy_title", "Copy book title")}
+                  aria-label={t("book.copy_title", "Copy book title")}
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
               {seriesEntry && (
                 <div
                   className="badge badge-primary badge-outline mt-1 mb-2 text-sm px-3 py-1.5 h-auto text-left whitespace-normal leading-tight cursor-pointer hover:bg-primary hover:text-primary-content max-w-full inline-flex items-center gap-1.5 transition-colors shadow-2xs"

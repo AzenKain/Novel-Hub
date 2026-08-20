@@ -9,6 +9,7 @@ import { AdvancedSearchPage } from "@/pages/library/AdvancedSearchPage";
 import { ReaderWorkspace } from "@/pages/reader";
 import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
 import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
+import { ProfilePage } from "@/pages/user/ProfilePage";
 import { useSettingsStore } from "@/stores";
 import React, { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -93,12 +94,13 @@ function GuestGuard() {
   return <Outlet />;
 }
 
-import { useCurrentUserQuery } from "@/hooks";
+import { useCurrentUserQuery, usePodcastDownloadWatcher } from "@/hooks";
 import { initOfflineSyncManager } from "@/lib/offlineSyncManager";
 
 function App() {
   const { isLoading: isAuthLoading } = useCurrentUserQuery();
   const booted = useAuthStore((state) => state.booted);
+  usePodcastDownloadWatcher();
 
   useEffect(() => {
     return initOfflineSyncManager();
@@ -125,6 +127,9 @@ function App() {
               <Route path="/books/:book_id" element={<LibraryWorkspace />} />
               <Route path="/reader/:book_id" element={<ReaderWorkspace />} />
               <Route path="/read-lists" element={<ReadListPage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
               <Route element={<ProtectedRoute requiredPermission="podcast.manage" />}>
                 <Route path="/podcasts" element={<PodcastsPage />} />
               </Route>

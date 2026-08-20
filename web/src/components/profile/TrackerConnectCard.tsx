@@ -48,22 +48,24 @@ export const TrackerConnectCard: React.FC = () => {
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-base-200 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-info/10 text-info">
-            {connected ? <Check className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
-          </div>
-          <div>
-            <h3 className="text-base font-bold flex items-center gap-2">
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info/10 text-info mt-0.5">
+          {connected ? <Check className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h3 className="text-base font-bold leading-tight text-base-content">
               {t("trackers.anilist_title", "AniList Reading Tracker")}
-              {connected && (
-                <span className="badge badge-success badge-sm">{t("common.connected", "Connected")}</span>
-              )}
             </h3>
-            <p className="text-xs text-base-content/60">
-              {t("trackers.anilist_subtitle", "Auto-sync your manga and light novel reading progress to your AniList profile.")}
-            </p>
+            {connected && (
+              <span className="badge badge-success badge-sm shrink-0 font-medium whitespace-nowrap">
+                {t("common.connected", "Connected")}
+              </span>
+            )}
           </div>
+          <p className="text-xs text-base-content/60 leading-relaxed">
+            {t("trackers.anilist_subtitle", "Sync manga and light novel reading progress directly to AniList.")}
+          </p>
         </div>
       </div>
 

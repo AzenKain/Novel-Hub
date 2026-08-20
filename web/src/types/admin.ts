@@ -107,6 +107,8 @@ export interface RuntimeLimits {
   upload_session_ttl_seconds: number;
   cover_bytes: number;
   site_asset_bytes: number;
+  soundscape_bytes: number;
+  font_bytes: number;
   rate_limit_auth: number;
   rate_limit_auth_window_seconds: number;
 }

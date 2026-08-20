@@ -97,8 +97,21 @@ export function AdminLayout() {
             </div>
 
             <div className="flex items-center px-2 py-3 mb-2 bg-base-200/50 rounded-xl">
-              <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold mr-3 shrink-0">
-                {user?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+              <div className="avatar mr-3 shrink-0">
+                <div className="w-10 h-10 rounded-full ring-1 ring-base-content/10 overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url.startsWith("/public/") ? `${user.avatar_url}?t=${user.updated_at ? encodeURIComponent(user.updated_at) : Date.now()}` : user.avatar_url}
+                      alt={user.full_name || user.email}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <span>{user?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}</span>
+                  )}
+                </div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold truncate">

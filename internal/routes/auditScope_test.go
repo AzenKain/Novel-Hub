@@ -72,14 +72,13 @@ func TestAuditScopeGenTokenIsOneLineWrapper(t *testing.T) {
 	}
 }
 
-// TestAuditScopeSmartFilterRawBind proves task T5.3: part of the smart filter
-// controller binds request bodies with c.Bind().Body directly instead of
-// validator.ValidateBodyDto.
+// TestAuditScopeSmartFilterRawBind verifies that smart filter controller
+// uses validator.ValidateBodyDto instead of raw c.Bind().Body.
 func TestAuditScopeSmartFilterRawBind(t *testing.T) {
 	src := readRepoFile(t, "internal/controllers/smartFilterController.go")
 	rawBinds := strings.Count(src, "c.Bind().Body")
-	if rawBinds == 0 {
-		t.Fatalf("unexpected: no raw c.Bind().Body calls left; audit claim may be fixed")
+	if rawBinds > 0 {
+		t.Fatalf("unexpected: found %d raw c.Bind().Body calls in smartFilterController.go", rawBinds)
 	}
 }
 

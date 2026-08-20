@@ -22,7 +22,7 @@ const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'it', label: 'Italiano' },
 ];
 
-export function LanguageSwitcher({ className = 'dropdown-end' }: { className?: string }) {
+export function LanguageSwitcher({ className = 'dropdown-end', buttonClassName }: { className?: string; buttonClassName?: string }) {
   const { i18n, t } = useTranslation();
   const { language, setLanguage } = useSettingsStore(
     useShallow((state) => ({ language: state.language, setLanguage: state.setLanguage }))
@@ -30,7 +30,12 @@ export function LanguageSwitcher({ className = 'dropdown-end' }: { className?: s
 
   return (
     <div className={`dropdown ${className}`}>
-      <div tabIndex={0} role="button" className="btn btn-ghost btn-sm m-1 gap-1" title={t("common.language")}>
+      <div
+        tabIndex={0}
+        role="button"
+        className={buttonClassName || "btn btn-ghost btn-sm m-1 gap-1"}
+        title={t("common.language")}
+      >
         <Globe className="w-4 h-4" />
         <span className="text-xs font-medium uppercase">{language}</span>
       </div>

@@ -151,3 +151,7 @@ type ReorderHomeShelfItemDto struct {
 type ReorderHomeShelvesDto struct {
 	Shelves []ReorderHomeShelfItemDto `json:"shelves" validate:"required,dive"`
 }
+
+type PinSmartFilterDto struct {
+	IsPinned bool `json:"is_pinned"`
+}

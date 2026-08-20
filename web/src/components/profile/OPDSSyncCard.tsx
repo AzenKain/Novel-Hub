@@ -32,20 +32,22 @@ export const OPDSSyncCard: React.FC = () => {
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-base-200 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold flex items-center gap-2">
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary mt-0.5">
+          <BookOpen className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h3 className="text-base font-bold leading-tight text-base-content">
               {t("opds.title", "OPDS 2.0 Catalog & Reading Progress Sync")}
-              <span className="badge badge-primary badge-sm">{t("common.active", "Active")}</span>
             </h3>
-            <p className="text-xs text-base-content/60">
-              {t("opds.subtitle", "Connect Moon+ Reader, KOReader, Mihon, Yomu, or any e-reader to download books & sync reading progress 2-way.")}
-            </p>
+            <span className="badge badge-primary badge-sm shrink-0 font-medium">
+              {t("common.active", "Active")}
+            </span>
           </div>
+          <p className="text-xs text-base-content/60 leading-relaxed">
+            {t("opds.subtitle", "Connect Moon+ Reader, KOReader, Mihon, Yomu, or any e-reader to download books & sync reading progress 2-way.")}
+          </p>
         </div>
       </div>
 

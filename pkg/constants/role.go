@@ -54,16 +54,24 @@ const (
 	PermCalibreSync  = "calibre.sync"
 	PermPodcastManage = "podcast.manage"
 
+	//Personal Customization & Soundscape
+	PermUserFontManage       = "user.font.manage"
+	PermUserSoundscapeManage = "user.soundscape.manage"
+	PermUserThemeManage      = "user.theme.manage"
+
 	//System Administration
-	PermAdminAccess   = "admin.access"
-	PermUserManage    = "user.manage"
-	PermRoleManage    = "role.manage"
-	PermSettingManage = "setting.manage"
-	PermJobRead       = "job.read"
-	PermJobManage     = "job.manage"
-	PermSystemLogRead = "system.log.read"
-	PermSystemBackup  = "system.backup"
-	PermWebhookManage = "webhook.manage"
+	PermAdminAccess           = "admin.access"
+	PermAdminSoundscapeManage = "admin.soundscape.manage"
+	PermAdminFontManage       = "admin.font.manage"
+	PermAdminThemeManage      = "admin.theme.manage"
+	PermUserManage            = "user.manage"
+	PermRoleManage            = "role.manage"
+	PermSettingManage         = "setting.manage"
+	PermJobRead               = "job.read"
+	PermJobManage             = "job.manage"
+	PermSystemLogRead         = "system.log.read"
+	PermSystemBackup          = "system.backup"
+	PermWebhookManage         = "webhook.manage"
 )
 
 type PermissionInfo struct {
@@ -106,6 +114,9 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermOPDSDownload,
 			PermKoboSync,
 			PermKomgaSync,
+			PermUserFontManage,
+			PermUserSoundscapeManage,
+			PermUserThemeManage,
 		}
 	case RoleTypeMod:
 		return []string{
@@ -138,6 +149,9 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermKomgaSync,
 			PermCalibreSync,
 			PermPodcastManage,
+			PermUserFontManage,
+			PermUserSoundscapeManage,
+			PermUserThemeManage,
 			PermAdminAccess,
 			PermJobRead,
 		}
@@ -148,7 +162,9 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermBookUpload, PermBookEdit, PermBookMetadataFetch, PermBookDelete, PermBookDuplicateManage, PermBookArchive, PermBookBulkManage,
 			PermLibraryRead, PermLibraryManage,
 			PermOPDSRead, PermOPDSDownload, PermKoboSync, PermKomgaSync, PermCalibreSync, PermPodcastManage,
-			PermAdminAccess, PermUserManage, PermRoleManage, PermSettingManage, PermJobRead, PermJobManage, PermSystemLogRead, PermSystemBackup, PermWebhookManage,
+			PermUserFontManage, PermUserSoundscapeManage, PermUserThemeManage,
+			PermAdminAccess, PermAdminSoundscapeManage, PermAdminFontManage, PermAdminThemeManage,
+			PermUserManage, PermRoleManage, PermSettingManage, PermJobRead, PermJobManage, PermSystemLogRead, PermSystemBackup, PermWebhookManage,
 		}
 	default:
 		return []string{}

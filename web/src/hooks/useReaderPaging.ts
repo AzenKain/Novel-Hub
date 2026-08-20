@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 import { READER_PAGE_GAP } from "@/constants";
 import type { PageAnimation } from "@/stores";
@@ -7,6 +7,7 @@ type UseReaderPagingArgs = {
   contentRef: RefObject<HTMLDivElement | null>;
   columnsRef: RefObject<HTMLDivElement | null>;
   pageFrameRef: RefObject<HTMLDivElement | null>;
+  pendingLandingRef?: RefObject<string | null>;
   htmlContent: string;
   maxWidth: number;
   scrollLayout: boolean;
@@ -31,6 +32,7 @@ export function useReaderPaging({
   contentRef,
   columnsRef,
   pageFrameRef,
+  pendingLandingRef,
   htmlContent,
   maxWidth,
   scrollLayout,
@@ -46,8 +48,57 @@ export function useReaderPaging({
   const prevModeRef = useRef<string>(effectiveReadingMode);
   const lastPageIndexRef = useRef<number>(pageIndex);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!htmlContent || htmlContent.trim() === "") return;
+
+    const container = columnsRef.current || contentRef.current;
+
+    if (pendingLandingRef?.current === "end") {
+      pendingLandingRef.current = null;
+      if (container) {
+        container.style.visibility = "hidden";
+      }
+
+      const landAtEnd = () => {
+        if (scrollLayout) {
+          if (contentRef.current) {
+            contentRef.current.scrollTop = contentRef.current.scrollHeight;
+            contentRef.current.style.visibility = "visible";
+          }
+        } else {
+          const metrics = getPagedScrollMetrics();
+          if (metrics) {
+            lastPageIndexRef.current = metrics.maxIndex;
+            scrollToPageIndex(metrics.maxIndex, true);
+          }
+          if (container) {
+            container.style.visibility = "visible";
+          }
+        }
+      };
+
+      // Perform landing immediately
+      landAtEnd();
+
+      // Listen for image loads to stay anchored to the last page as image assets load
+      const images = (columnsRef.current || contentRef.current)?.querySelectorAll("img");
+      if (images && images.length > 0) {
+        images.forEach((img) => {
+          if (!img.complete) {
+            img.addEventListener("load", landAtEnd, { once: true });
+            img.addEventListener("error", landAtEnd, { once: true });
+          }
+        });
+      }
+
+      requestAnimationFrame(() => {
+        landAtEnd();
+      });
+      return;
+    }
+
     setPageIndex(0);
+    lastPageIndexRef.current = 0;
     if (contentRef.current) {
       contentRef.current.scrollLeft = 0;
       contentRef.current.scrollTop = 0;
@@ -58,6 +109,9 @@ export function useReaderPaging({
       if (body) {
         body.scrollLeft = 0;
       }
+    }
+    if (container) {
+      container.style.visibility = "visible";
     }
   }, [htmlContent]);
 
@@ -104,7 +158,8 @@ export function useReaderPaging({
     if (!container) return;
 
     const scrollStep = container.clientWidth + READER_PAGE_GAP;
-    const maxIndex = Math.max(0, Math.ceil((container.scrollWidth - container.clientWidth) / scrollStep));
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    const maxIndex = Math.max(0, Math.round(maxScroll / scrollStep));
     return { container, scrollStep, maxIndex };
   };
 

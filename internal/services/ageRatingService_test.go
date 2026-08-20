@@ -99,12 +99,17 @@ func TestKidsMode6DigitPinLifecycle(t *testing.T) {
 		t.Fatalf("Exiting Kids Mode with correct PIN failed: %v", err)
 	}
 
-	infoAfter, err := svc.GetKidsModeInfo(ctx, "user-kids-1")
-	if err != nil {
-		t.Fatalf("GetKidsModeInfo after toggle failed: %v", err)
+	// 7. Change PIN without old PIN or with wrong old PIN -> Error
+	errNoOld := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{Pin: "999999"})
+	if errNoOld == nil {
+		t.Fatal("Changing existing PIN without providing old PIN should fail")
 	}
-	if infoAfter.IsKidsMode {
-		t.Fatal("Expected IsKidsMode = false after disabling")
+	errBadOld := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{OldPin: "000000", Pin: "999999"})
+	if errBadOld == nil {
+		t.Fatal("Changing existing PIN with incorrect old PIN should fail")
+	}
+	if err := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{OldPin: "849102", Pin: "999999"}); err != nil {
+		t.Fatalf("Changing existing PIN with correct old PIN failed: %v", err)
 	}
 }
 

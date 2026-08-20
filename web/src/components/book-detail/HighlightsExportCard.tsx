@@ -1,5 +1,6 @@
 import { Download, Share2, Check } from "lucide-react";
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -80,24 +81,22 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
         <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-xs text-base-content/70">
           <Check className="h-3.5 w-3.5 text-success" />
           <span>{t("highlights_export.connected", "Readwise connected")}</span>
-          <button
-            type="button"
+          <Link
+            to="/profile?tab=trackers"
             className="ml-auto link link-hover text-primary"
-            onClick={() => setProfileModalOpen(true)}
           >
             {t("highlights_export.manage_in_profile", "Manage in Profile")}
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2.5 text-xs text-base-content/70">
           <span>{t("highlights_export.connect_in_profile_hint", "Connect your Readwise account to export highlights.")}</span>
-          <button
-            type="button"
+          <Link
+            to="/profile?tab=trackers"
             className="ml-auto shrink-0 link link-hover text-primary"
-            onClick={() => setProfileModalOpen(true)}
           >
             {t("highlights_export.manage_in_profile", "Manage in Profile")}
-          </button>
+          </Link>
         </div>
       )}
 

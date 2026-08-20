@@ -11,16 +11,42 @@ export const sanitizeReaderHtml = (html: string) => {
   const stripped = html
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
     .replace(/<meta\b[^>]*>/gi, "")
-    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "");
+    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "")
+    .replace(/<img\b(?![^>]*\bsrc=["'][^"']+)[\s\S]*?>/gi, "")
+    .replace(/<img\b[^>]*\bsrc=["']\s*(?:#|about:blank)?\s*["'][^>]*>/gi, "")
+    .replace(/<a\b[^>]*>\s*<\/a>/gi, "")
+    .replace(/<p\b[^>]*>\s*<\/p>/gi, "");
 
-  return DOMPurify.sanitize(stripped, {
+  const clean = DOMPurify.sanitize(stripped, {
     USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: ["svg", "image", "g", "use"],
-    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height"],
+    ADD_TAGS: ["svg", "image", "g", "use", "figure", "figcaption"],
+    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height", "class"],
     FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "math", "link", "video", "audio", "source", "track"],
     FORBID_ATTR: ["srcdoc", "style"],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });
+
+  if (typeof document !== "undefined") {
+    const doc = new DOMParser().parseFromString(`<body>${clean}</body>`, "text/html");
+    const imgs = doc.querySelectorAll("img");
+    imgs.forEach((img) => {
+      const parent = img.parentElement;
+      if (parent && parent.tagName.toLowerCase() === "body") {
+        const figure = doc.createElement("figure");
+        figure.className = "reader-image-page";
+        parent.insertBefore(figure, img);
+        figure.appendChild(img);
+      } else if (parent && (parent.tagName.toLowerCase() === "p" || parent.tagName.toLowerCase() === "div" || parent.tagName.toLowerCase() === "figure")) {
+        const isOnlyChild = parent.children.length === 1 && (!parent.textContent || parent.textContent.trim() === "");
+        if (isOnlyChild) {
+          parent.classList.add("reader-image-page");
+        }
+      }
+    });
+    return doc.body.innerHTML;
+  }
+
+  return clean;
 };
 
 
@@ -37,5 +63,5 @@ export const isVisualChapter = (html: string) => {
     .replace(/\s+/g, "")
     .trim();
 
-  return text.length <= 24;
+  return text.length <= 250;
 };

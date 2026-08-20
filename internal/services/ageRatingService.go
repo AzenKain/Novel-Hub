@@ -97,6 +97,20 @@ func (s *ageRatingService) SetKidsModePin(ctx context.Context, userID string, dt
 		return apperrors.New(apperrors.ErrBadRequest, "Kids mode PIN must be exactly 6 digits")
 	}
 
+	info, err := s.repo.GetUserKidsModeInfo(ctx, userID)
+	if err != nil || info == nil {
+		return apperrors.New(apperrors.ErrNotFound, "User kids mode info not found")
+	}
+
+	if info.KidsModePinHash != nil && *info.KidsModePinHash != "" {
+		if dto.OldPin == "" || !numeric6DigitRegex.MatchString(dto.OldPin) {
+			return apperrors.New(apperrors.ErrBadRequest, "Current 6-digit PIN is required to change PIN")
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(*info.KidsModePinHash), []byte(dto.OldPin)); err != nil {
+			return apperrors.New(apperrors.ErrForbidden, "Incorrect current 6-digit PIN")
+		}
+	}
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Pin), bcrypt.DefaultCost)
 	if err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to hash PIN")

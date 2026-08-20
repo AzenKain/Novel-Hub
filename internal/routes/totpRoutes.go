@@ -9,8 +9,7 @@ import (
 	"novelhub/internal/services"
 )
 
-// Rate limited like sign-in: these endpoints compare a 6-digit secret, so unbounded attempts
-// are a code oracle. No permission gate — every account manages its own second factor.
+
 func TOTPRoutes(router fiber.Router, controller *controllers.TOTPController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
 	group := router.Group("/auth/totp", middlewares.JwtAccess(userRepo), middlewares.RateLimit(settingsService, middlewares.RateLimitAuth))
 

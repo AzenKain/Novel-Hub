@@ -36,6 +36,6 @@ func MagicCodeRoutes(app fiber.Router, controller *controllers.MagicCodeControll
 
 	route.Post("/request", authLimiter, controller.RequestCode)
 	route.Post("/poll", authLimiter, controller.PollCode)
-	route.Post("/activate", middlewares.JwtAccess(userRepo), controller.ActivateCode)
+	route.Post("/activate", authLimiter, middlewares.JwtAccess(userRepo), controller.ActivateCode)
 }
 

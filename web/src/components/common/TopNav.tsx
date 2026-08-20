@@ -375,10 +375,10 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
                   </span>
                 </li>
                 <li>
-                  <button onClick={() => setProfileModalOpen(true)} className="flex items-center gap-2">
+                  <Link to="/profile" className="flex items-center gap-2">
                     <User className="w-4 h-4 opacity-70" />
                     {t("user.profile", "Profile")}
-                  </button>
+                  </Link>
                 </li>
                 {hasPermission(user, "user.stats.read") && (
                   <li>

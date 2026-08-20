@@ -11,11 +11,12 @@ import {
   useUpdatePodcastMutation,
 } from "@/hooks";
 import type { Podcast } from "@/types";
-import { ArrowLeft, Download, Plus, RefreshCw, Rss, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Download, Plus, RefreshCw, Rss, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { usePodcastDownloadStore } from "@/stores";
 
 function formatDuration(secs?: number | null): string {
   if (!secs) return "";
@@ -32,6 +33,8 @@ export const PodcastsPage: React.FC = () => {
   const [libraryID, setLibraryID] = useState("");
   const [activePodcastId, setActivePodcastId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Podcast | null>(null);
+
+  const activeDownloads = usePodcastDownloadStore((state) => state.activeDownloads);
 
   const podcastsQuery = usePodcastsQuery();
   const podcasts = podcastsQuery.data || [];
@@ -81,11 +84,14 @@ export const PodcastsPage: React.FC = () => {
     });
   };
 
-  const handleDownload = (episodeId: string) => {
-    downloadMutation.mutate(episodeId, {
-      onSuccess: () => toast.success(t("podcasts.download_queued", "Download queued")),
-      onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.download_failed", "Failed to enqueue download")),
-    });
+  const handleDownload = (episodeId: string, episodeTitle?: string) => {
+    downloadMutation.mutate(
+      { episodeId, episodeTitle },
+      {
+        onSuccess: () => toast.info(t("podcasts.download_queued", "Download queued")),
+        onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.download_failed", "Failed to enqueue download")),
+      },
+    );
   };
 
   const activePodcast = podcasts.find((p) => p.id === activePodcastId) || null;
@@ -238,32 +244,55 @@ export const PodcastsPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {episodes.map((ep) => (
-                      <tr key={ep.id} className="hover:bg-base-200/40">
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <span className="truncate font-medium max-w-xs">{ep.title}</span>
-                            {ep.downloaded && (
-                              <span className="badge badge-success badge-sm">{t("podcasts.downloaded", "Downloaded")}</span>
+                    {episodes.map((ep) => {
+                      const isDownloading = !!activeDownloads[ep.id];
+                      return (
+                        <tr key={ep.id} className="hover:bg-base-200/40">
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <span className="truncate font-medium max-w-xs">{ep.title}</span>
+                              {ep.downloaded ? (
+                                <span className="badge badge-success badge-sm">{t("podcasts.downloaded", "Downloaded")}</span>
+                              ) : isDownloading ? (
+                                <span className="badge badge-warning badge-sm gap-1 animate-pulse">
+                                  <span className="loading loading-spinner loading-xs" />
+                                  {t("podcasts.downloading_short", "Downloading...")}
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap text-xs">{formatDuration(ep.duration_sec)}</td>
+                          <td className="whitespace-nowrap text-xs text-base-content/60">
+                            {ep.published_at ? new Date(ep.published_at).toLocaleDateString() : "—"}
+                          </td>
+                          <td className="text-right">
+                            {ep.downloaded ? (
+                              <span className="text-xs text-success font-medium inline-flex items-center gap-1 px-1">
+                                <Check className="h-4 w-4" />
+                                <span className="hidden sm:inline">{t("podcasts.downloaded", "Downloaded")}</span>
+                              </span>
+                            ) : isDownloading ? (
+                              <div
+                                className="inline-flex items-center gap-1 text-warning text-xs font-medium px-2 py-1 bg-warning/10 rounded-lg animate-pulse"
+                                title={t("podcasts.downloading", "Downloading episode...")}
+                              >
+                                <span className="loading loading-spinner loading-xs" />
+                                <span className="hidden sm:inline">{t("podcasts.downloading_short", "Downloading...")}</span>
+                              </div>
+                            ) : (
+                              <button
+                                className="btn btn-ghost btn-xs btn-square"
+                                title={t("podcasts.download", "Download")}
+                                disabled={downloadMutation.isPending}
+                                onClick={() => handleDownload(ep.id, ep.title)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
                             )}
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap text-xs">{formatDuration(ep.duration_sec)}</td>
-                        <td className="whitespace-nowrap text-xs text-base-content/60">
-                          {ep.published_at ? new Date(ep.published_at).toLocaleDateString() : "—"}
-                        </td>
-                        <td className="text-right">
-                          <button
-                            className="btn btn-ghost btn-xs btn-square"
-                            title={t("podcasts.download", "Download")}
-                            disabled={ep.downloaded || downloadMutation.isPending}
-                            onClick={() => handleDownload(ep.id)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

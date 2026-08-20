@@ -91,3 +91,23 @@ func FormatFromPath(path string) string {
 	}
 	return NormalizeFormat(filepath.Ext(name))
 }
+
+func IsAllowedBookFormat(filenameOrExt string) bool {
+	clean := strings.TrimSpace(strings.ToLower(filenameOrExt))
+	if clean == "" {
+		return false
+	}
+	if strings.HasSuffix(clean, ".kepub.epub") {
+		return true
+	}
+	ext := filepath.Ext(clean)
+	if ext == "" && strings.HasPrefix(clean, ".") {
+		ext = clean
+	}
+	switch ext {
+	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z", ".mp3", ".m4a", ".m4b", ".flac", ".ogg", ".wav", ".aac":
+		return true
+	default:
+		return false
+	}
+}

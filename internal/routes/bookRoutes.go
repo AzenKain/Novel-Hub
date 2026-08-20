@@ -11,11 +11,10 @@ import (
 )
 
 func BookRoutes(app fiber.Router, bookController *controllers.BookController, userRepo repositories.UserRepository, bookRepo repositories.BookDBRepository, permissionCache services.PermissionCache) {
-	// For now, these are not protected, but we can wrap them in middleware later
 	bookGroup := app.Group("/books")
 
 	bookGroup.Get("/", middlewares.OptionalJwtAccess(userRepo), bookController.ListBooks)
-	bookGroup.Get("/search/deep", middlewares.JwtAccess(userRepo), bookController.SearchDeep)
+	bookGroup.Get("/search/deep", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookSearchDeep), bookController.SearchDeep)
 	bookGroup.Get("/files/duplicates", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDuplicateManage), bookController.GetDuplicates)
 	bookGroup.Get("/potential-duplicates", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDuplicateManage), bookController.GetPotentialDuplicates)
 	bookGroup.Post("/merge", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDuplicateManage), bookController.MergeBooks)

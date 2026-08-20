@@ -19,3 +19,4 @@ export * from "./ageRatingService";
 export * from "./smartFilterService";
 export * from "./audiobookService";
 export * from "./podcastService";
+export * from "./customizationService";

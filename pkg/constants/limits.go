@@ -13,6 +13,8 @@ const (
 	MaxUploadBytes              = int64(8) << 30
 	MaxCoverBytes               = 32 << 20
 	MaxSiteAssetBytes           = 10 << 20
+	MaxSoundscapeBytes          = 50 << 20
+	MaxFontBytes                = 20 << 20
 	MaxArchiveEntries           = 20000
 	MaxArchiveAssetSize         = 128 << 20
 	MaxArchiveUncompressedBytes = int64(2) << 30
@@ -26,6 +28,8 @@ const (
 	MinRuntimeUploadSessionTTL = 5 * time.Minute
 	MinRuntimeCoverBytes       = 1 << 20
 	MinRuntimeSiteAssetBytes   = 1 << 20
+	MinRuntimeSoundscapeBytes  = 1 << 20
+	MinRuntimeFontBytes        = 1 << 20
 
 	HardMaxUploadChunkBytes = 64 << 20
 	HardMaxUploadChunks     = 1024
@@ -34,6 +38,8 @@ const (
 	HardMaxUploadSessionTTL = 24 * time.Hour
 	HardMaxCoverBytes       = 64 << 20
 	HardMaxSiteAssetBytes   = 16 << 20
+	HardMaxSoundscapeBytes  = 100 << 20
+	HardMaxFontBytes        = 50 << 20
 
 	MaxDefaultRequestBody = 16 << 20
 	MultipartBodyOverhead = 1 << 20

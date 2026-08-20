@@ -277,6 +277,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	uploadController := controllers.NewUploadController(uploadService)
 	deviceController := controllers.NewDeviceController(deviceService)
 
+	customizationRepo := repositories.NewCustomizationRepository(db, ramCache)
+	customizationService := services.NewCustomizationService(customizationRepo, permissionCache, settingsService, dataDir)
+	customizationController := controllers.NewCustomizationController(customizationService, settingsService)
+
 	userService.SetJobQueue(jobQueue)
 	authService.SetJobQueue(jobQueue)
 
@@ -437,7 +441,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	routes.AuthRoutes(v1, authController, oauthController, userRepo, settingsService)
 	routes.MagicCodeRoutes(v1, magicCodeController, userRepo, settingsService)
-	routes.AgeRatingRoutes(v1, ageRatingController, userRepo, permissionCache)
+	routes.AgeRatingRoutes(v1, ageRatingController, userRepo, bookRepo, permissionCache)
 	routes.AudiobookRoutes(v1, audiobookController, userRepo, bookRepo, permissionCache)
 	routes.PodcastRoutes(v1, podcastController, userRepo, podcastRepo, permissionCache)
 	routes.UserRoutes(v1, userController, userRepo, permissionCache)
@@ -454,8 +458,9 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.AuditRoutes(v1, auditController, userRepo, permissionCache)
 	routes.TOTPRoutes(v1, totpController, userRepo, settingsService)
 	routes.WebhookRoutes(v1, webhookController, userRepo, permissionCache)
-	routes.SetupUploadRoutes(v1, uploadController, userRepo)
+	routes.SetupUploadRoutes(v1, uploadController, userRepo, permissionCache)
 	routes.DeviceRoutes(v1, deviceController, userRepo, bookRepo, permissionCache)
+	routes.CustomizationRoutes(v1, customizationController, userRepo, permissionCache)
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
 
 	opdsService := services.NewOPDSService(bookService, permissionCache)
@@ -503,31 +508,74 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.NotFoundRoute(s.App)
 }
 
+func resolveOrigin(c fiber.Ctx, settingsServerURL string) string {
+	if sURL := strings.TrimRight(strings.TrimSpace(settingsServerURL), "/"); sURL != "" {
+		return sURL
+	}
+	if envURL := strings.TrimRight(strings.TrimSpace(config.GetConfigWithDefault("SERVER_URL", "")), "/"); envURL != "" {
+		return envURL
+	}
+	scheme := "http"
+	if c.Secure() {
+		scheme = "https"
+	} else if proto := c.Get("X-Forwarded-Proto"); proto != "" {
+		parts := strings.Split(proto, ",")
+		if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
+			scheme = strings.TrimSpace(parts[0])
+		}
+	} else if c.Get("CF-Visitor") != "" && strings.Contains(c.Get("CF-Visitor"), `"scheme":"https"`) {
+		scheme = "https"
+	} else if strings.EqualFold(c.Get("X-Forwarded-Ssl"), "on") || strings.EqualFold(c.Get("X-Url-Scheme"), "https") || c.Protocol() == "https" {
+		scheme = "https"
+	}
+
+	host := c.Hostname()
+	if fHost := c.Get("X-Forwarded-Host"); fHost != "" {
+		parts := strings.Split(fHost, ",")
+		if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
+			host = strings.TrimSpace(parts[0])
+		}
+	} else if h := c.Get("Host"); h != "" {
+		host = h
+	}
+	if host != "" {
+		return scheme + "://" + host
+	}
+	return ""
+}
+
 type metaTags struct {
-	Title       string
-	Description string
-	OGType      string
-	OGSiteName  string
-	OGTitle     string
-	OGDesc      string
-	OGImage     string
-	OGURL       string
-	TwitterCard string
+	Title        string
+	Description  string
+	OGType       string
+	OGSiteName   string
+	OGTitle      string
+	OGDesc       string
+	OGImage      string
+	OGImageType  string
+	OGURL        string
+	TwitterCard  string
+	Author       string
+	ReleaseDate  string
+	Tags         []string
 }
 
 var (
-	titleTagRegex     = regexp.MustCompile(`(?i)<title>.*?</title>`)
-	metaDescRegex     = regexp.MustCompile(`(?i)<meta\s+name=["']description["']\s+content=["'][^"']*["']\s*/?>`)
-	ogTypeRegex       = regexp.MustCompile(`(?i)<meta\s+property=["']og:type["']\s+content=["'][^"']*["']\s*/?>`)
-	ogSiteNameRegex   = regexp.MustCompile(`(?i)<meta\s+property=["']og:site_name["']\s+content=["'][^"']*["']\s*/?>`)
-	ogTitleRegex      = regexp.MustCompile(`(?i)<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*/?>`)
-	ogDescRegex       = regexp.MustCompile(`(?i)<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*/?>`)
-	ogImageRegex      = regexp.MustCompile(`(?i)<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*/?>`)
-	ogURLRegex        = regexp.MustCompile(`(?i)<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*/?>`)
-	twitterCardRegex  = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:card["']\s+content=["'][^"']*["']\s*/?>`)
-	twitterTitleRegex = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']\s*/?>`)
-	twitterDescRegex  = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']\s*/?>`)
-	twitterImageRegex = regexp.MustCompile(`(?i)<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']\s*/?>`)
+	titleTagRegex      = regexp.MustCompile(`(?i)<title>.*?</title>`)
+	metaDescRegex      = regexp.MustCompile(`(?i)<meta\s+[^>]*name=["']description["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*name=["']description["'][^>]*>`)
+	ogTypeRegex        = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:type["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:type["'][^>]*>`)
+	ogSiteNameRegex    = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:site_name["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:site_name["'][^>]*>`)
+	ogTitleRegex       = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:title["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:title["'][^>]*>`)
+	ogDescRegex        = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:description["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:description["'][^>]*>`)
+	ogImageRegex       = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:image["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:image["'][^>]*>`)
+	ogImageSecureRegex = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:image:secure_url["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:image:secure_url["'][^>]*>`)
+	ogImageTypeRegex   = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:image:type["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:image:type["'][^>]*>`)
+	ogURLRegex         = regexp.MustCompile(`(?i)<meta\s+[^>]*property=["']og:url["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*property=["']og:url["'][^>]*>`)
+	twitterCardRegex   = regexp.MustCompile(`(?i)<meta\s+[^>]*name=["']twitter:card["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*name=["']twitter:card["'][^>]*>`)
+	twitterTitleRegex  = regexp.MustCompile(`(?i)<meta\s+[^>]*name=["']twitter:title["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*name=["']twitter:title["'][^>]*>`)
+	twitterDescRegex   = regexp.MustCompile(`(?i)<meta\s+[^>]*name=["']twitter:description["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*name=["']twitter:description["'][^>]*>`)
+	twitterImageRegex  = regexp.MustCompile(`(?i)<meta\s+[^>]*name=["']twitter:image["'][^>]*>|<meta\s+[^>]*content=["'][^"']*["'][^>]*name=["']twitter:image["'][^>]*>`)
+	canonicalRegex     = regexp.MustCompile(`(?i)<link\s+[^>]*rel=["']canonical["'][^>]*>`)
 )
 
 func stripHTMLTags(s string) string {
@@ -536,6 +584,7 @@ func stripHTMLTags(s string) string {
 	for _, r := range s {
 		if r == '<' {
 			inTag = true
+			builder.WriteRune(' ')
 			continue
 		}
 		if r == '>' {
@@ -558,11 +607,31 @@ func injectMetaTags(htmlDoc string, tags metaTags) string {
 	htmlDoc = ogDescRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:description" content="%s" />`, html.EscapeString(tags.OGDesc)))
 	htmlDoc = ogImageRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:image" content="%s" />`, html.EscapeString(tags.OGImage)))
 
+	if tags.OGImage != "" {
+		if ogImageSecureRegex.MatchString(htmlDoc) {
+			htmlDoc = ogImageSecureRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:image:secure_url" content="%s" />`, html.EscapeString(tags.OGImage)))
+		} else {
+			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:image:secure_url" content="%s" />`+"\n  </head>", html.EscapeString(tags.OGImage)), 1)
+		}
+		if tags.OGImageType != "" {
+			if ogImageTypeRegex.MatchString(htmlDoc) {
+				htmlDoc = ogImageTypeRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:image:type" content="%s" />`, html.EscapeString(tags.OGImageType)))
+			} else {
+				htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:image:type" content="%s" />`+"\n  </head>", html.EscapeString(tags.OGImageType)), 1)
+			}
+		}
+	}
+
 	if tags.OGURL != "" {
 		if ogURLRegex.MatchString(htmlDoc) {
 			htmlDoc = ogURLRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta property="og:url" content="%s" />`, html.EscapeString(tags.OGURL)))
 		} else {
 			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:url" content="%s" />`+"\n  </head>", html.EscapeString(tags.OGURL)), 1)
+		}
+		if canonicalRegex.MatchString(htmlDoc) {
+			htmlDoc = canonicalRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<link rel="canonical" href="%s" />`, html.EscapeString(tags.OGURL)))
+		} else {
+			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <link rel="canonical" href="%s" />`+"\n  </head>", html.EscapeString(tags.OGURL)), 1)
 		}
 	}
 
@@ -570,6 +639,21 @@ func injectMetaTags(htmlDoc string, tags metaTags) string {
 	htmlDoc = twitterTitleRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:title" content="%s" />`, html.EscapeString(tags.OGTitle)))
 	htmlDoc = twitterDescRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:description" content="%s" />`, html.EscapeString(tags.OGDesc)))
 	htmlDoc = twitterImageRegex.ReplaceAllString(htmlDoc, fmt.Sprintf(`<meta name="twitter:image" content="%s" />`, html.EscapeString(tags.OGImage)))
+
+	if tags.Author != "" {
+		htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta name="author" content="%s" />`+"\n  </head>", html.EscapeString(tags.Author)), 1)
+		if tags.OGType == "book" {
+			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:book:author" content="%s" />`+"\n  </head>", html.EscapeString(tags.Author)), 1)
+		}
+	}
+	if tags.ReleaseDate != "" && tags.OGType == "book" {
+		htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:book:release_date" content="%s" />`+"\n  </head>", html.EscapeString(tags.ReleaseDate)), 1)
+	}
+	for _, tag := range tags.Tags {
+		if strings.TrimSpace(tag) != "" {
+			htmlDoc = strings.Replace(htmlDoc, "</head>", fmt.Sprintf(`    <meta property="og:book:tag" content="%s" />`+"\n  </head>", html.EscapeString(strings.TrimSpace(tag))), 1)
+		}
+	}
 
 	return htmlDoc
 }
@@ -610,20 +694,11 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 		}
 
 		// Determine base origin URL
-		origin := strings.TrimRight(config.GetConfigWithDefault("SERVER_URL", ""), "/")
-		if origin == "" {
-			scheme := c.Protocol()
-			if proto := c.Get("X-Forwarded-Proto"); proto != "" {
-				scheme = proto
-			}
-			host := c.Hostname()
-			if fHost := c.Get("X-Forwarded-Host"); fHost != "" {
-				host = fHost
-			}
-			if host != "" {
-				origin = scheme + "://" + host
-			}
+		serverURLSetting := ""
+		if settingsService != nil {
+			serverURLSetting = settingsService.ServerURL()
 		}
+		origin := resolveOrigin(c, serverURLSetting)
 
 		path := c.Path()
 		var (
@@ -632,17 +707,45 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 			ogType          = "website"
 			ogTitle         = siteTitle
 			ogDescription   = siteDescription
-			ogImage         = origin + "/pwa-512x512.png"
-			ogURL           = origin + c.OriginalURL()
+			ogImage         = ""
+			ogImageType     = "image/png"
+			ogURL           = ""
 			twitterCard     = "summary"
+			author          = ""
+			releaseDate     = ""
+			bookTags        []string
 		)
 
-		if logoURL != "" {
+		if origin != "" {
+			ogURL = origin + c.OriginalURL()
+		}
+
+		// Determine site logo / image
+		if logoURL != "" && !strings.HasSuffix(strings.ToLower(logoURL), ".svg") {
 			if strings.HasPrefix(logoURL, "http://") || strings.HasPrefix(logoURL, "https://") {
 				ogImage = logoURL
-			} else {
+			} else if origin != "" {
 				ogImage = origin + "/" + strings.TrimPrefix(logoURL, "/")
 			}
+			ext := strings.ToLower(filepath.Ext(ogImage))
+			switch ext {
+			case ".png":
+				ogImageType = "image/png"
+			case ".jpg", ".jpeg":
+				ogImageType = "image/jpeg"
+			case ".webp":
+				ogImageType = "image/webp"
+			case ".gif":
+				ogImageType = "image/gif"
+			}
+		}
+		if ogImage == "" {
+			if origin != "" {
+				ogImage = origin + "/pwa-512x512.png"
+			} else {
+				ogImage = "/pwa-512x512.png"
+			}
+			ogImageType = "image/png"
 		}
 
 		// Check if accessing a book route: /books/:id or /reader/:id
@@ -663,32 +766,119 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 				ogType = "book"
 				ogTitle = book.Title
 				if book.AuthorName != nil && *book.AuthorName != "" {
+					author = *book.AuthorName
 					pageTitle = fmt.Sprintf("%s - %s | %s", book.Title, *book.AuthorName, siteTitle)
 				} else {
 					pageTitle = fmt.Sprintf("%s | %s", book.Title, siteTitle)
 				}
 
-				if book.Description != nil && *book.Description != "" {
+				var metaParsed struct {
+					Creator     string   `json:"creator"`
+					Creators    []string `json:"creators"`
+					Publisher   string   `json:"publisher"`
+					Language    string   `json:"language"`
+					Date        string   `json:"date"`
+					Series      string   `json:"series"`
+					SeriesIndex string   `json:"seriesIndex"`
+					Subject     any      `json:"subject"`
+				}
+				if book.MetadataJSON != nil && *book.MetadataJSON != "" {
+					_ = jsonx.UnmarshalString(*book.MetadataJSON, &metaParsed)
+				}
+
+				if author == "" {
+					if metaParsed.Creator != "" {
+						author = metaParsed.Creator
+					} else if len(metaParsed.Creators) > 0 {
+						author = strings.Join(metaParsed.Creators, ", ")
+					}
+				}
+
+				if metaParsed.Date != "" {
+					releaseDate = metaParsed.Date
+				}
+
+				if metaParsed.Subject != nil {
+					switch sub := metaParsed.Subject.(type) {
+					case []string:
+						bookTags = append(bookTags, sub...)
+					case []any:
+						for _, item := range sub {
+							if s, ok := item.(string); ok && s != "" {
+								bookTags = append(bookTags, s)
+							}
+						}
+					case string:
+						for _, part := range strings.Split(sub, ",") {
+							if trimmed := strings.TrimSpace(part); trimmed != "" {
+								bookTags = append(bookTags, trimmed)
+							}
+						}
+					}
+				}
+
+				if book.Description != nil && strings.TrimSpace(*book.Description) != "" {
 					desc := stripHTMLTags(*book.Description)
-					if len(desc) > 300 {
-						desc = desc[:297] + "..."
+					if len(desc) > 350 {
+						desc = desc[:347] + "..."
 					}
 					metaDescription = desc
 					ogDescription = desc
-				} else if book.AuthorName != nil && *book.AuthorName != "" {
-					desc := fmt.Sprintf("Book by %s on %s.", *book.AuthorName, siteTitle)
-					metaDescription = desc
-					ogDescription = desc
+				} else {
+					var details []string
+					if author != "" {
+						details = append(details, "Tác giả: "+author)
+					}
+					if metaParsed.Series != "" {
+						seriesText := "Series: " + metaParsed.Series
+						if metaParsed.SeriesIndex != "" {
+							seriesText += " #" + metaParsed.SeriesIndex
+						}
+						details = append(details, seriesText)
+					}
+					if metaParsed.Publisher != "" {
+						details = append(details, "NXB: "+metaParsed.Publisher)
+					}
+					if metaParsed.Language != "" {
+						details = append(details, "Ngôn ngữ: "+strings.ToUpper(metaParsed.Language))
+					}
+					if len(bookTags) > 0 {
+						limitTags := bookTags
+						if len(limitTags) > 3 {
+							limitTags = limitTags[:3]
+						}
+						details = append(details, "Thể loại: "+strings.Join(limitTags, ", "))
+					}
+					if len(details) > 0 {
+						desc := strings.Join(details, " · ") + fmt.Sprintf(" | Đọc trên %s", siteTitle)
+						metaDescription = desc
+						ogDescription = desc
+					} else {
+						desc := fmt.Sprintf("Đọc \"%s\" trên %s.", book.Title, siteTitle)
+						metaDescription = desc
+						ogDescription = desc
+					}
 				}
 
 				if book.CoverURL != nil && *book.CoverURL != "" {
 					cover := *book.CoverURL
 					if strings.HasPrefix(cover, "http://") || strings.HasPrefix(cover, "https://") {
 						ogImage = cover
-					} else {
+					} else if origin != "" {
 						ogImage = origin + "/" + strings.TrimPrefix(cover, "/")
 					}
-					twitterCard = "summary_large_image"
+					ext := strings.ToLower(filepath.Ext(ogImage))
+					switch ext {
+					case ".png":
+						ogImageType = "image/png"
+					case ".jpg", ".jpeg":
+						ogImageType = "image/jpeg"
+					case ".webp":
+						ogImageType = "image/webp"
+					case ".gif":
+						ogImageType = "image/gif"
+					}
+					twitterCard = "summary"
 				}
 			}
 		}
@@ -701,8 +891,12 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 			OGTitle:     ogTitle,
 			OGDesc:      ogDescription,
 			OGImage:     ogImage,
+			OGImageType: ogImageType,
 			OGURL:       ogURL,
 			TwitterCard: twitterCard,
+			Author:      author,
+			ReleaseDate: releaseDate,
+			Tags:        bookTags,
 		})
 
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)

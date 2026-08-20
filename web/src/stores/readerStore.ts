@@ -2,7 +2,7 @@ import type { Book, Chapter } from "@/types";
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type ReaderTheme = "light" | "dark" | "sepia" | "warm" | "coffee" | "dim";
+export type ReaderTheme = "light" | "dark" | "sepia" | "warm" | "coffee" | "dim" | "eink" | "custom";
 export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
 export type ReadingDirection = "ltr" | "rtl";
 export type PageFit = "width" | "height" | "original";
@@ -19,6 +19,10 @@ interface ReaderState {
   fontSize: number;
   fontFamily: string;
   theme: ReaderTheme;
+  customBg: string;
+  customText: string;
+  customAccent: string;
+  customCss: string;
   lineHeight: number;
   maxWidth: number;
   readingMode: ReadingMode;
@@ -40,6 +44,7 @@ interface ReaderState {
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setFontFamily: (family: string) => void;
   setTheme: (theme: ReaderTheme) => void;
+  setCustomThemeColors: (bg: string, text: string, accent: string, customCss?: string) => void;
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setReadingMode: (mode: ReadingMode) => void;
@@ -69,7 +74,11 @@ const sessionInitialState = {
 const readerSettingDefaults = {
   fontSize: 18,
   fontFamily: "'Lora', serif",
-  theme: "dark" as const,
+  theme: "dark" as ReaderTheme,
+  customBg: "#1e1e2e",
+  customText: "#cdd6f4",
+  customAccent: "#89b4fa",
+  customCss: "",
   lineHeight: 1.8,
   maxWidth: 920,
   readingMode: "scroll" as const,
@@ -100,6 +109,8 @@ export const useReaderStore = create<ReaderState>()(
       setFontSize: (size) => set((state) => ({ fontSize: typeof size === 'function' ? size(state.fontSize) : size })),
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setTheme: (theme) => set({ theme }),
+      setCustomThemeColors: (customBg, customText, customAccent, customCss = "") =>
+        set({ customBg, customText, customAccent, customCss, theme: "custom" }),
       setLineHeight: (height) => set((state) => ({ lineHeight: typeof height === 'function' ? height(state.lineHeight) : height })),
       setMaxWidth: (width) => set((state) => ({ maxWidth: typeof width === 'function' ? width(state.maxWidth) : width })),
       setReadingMode: (readingMode) => set({ readingMode }),
@@ -116,11 +127,15 @@ export const useReaderStore = create<ReaderState>()(
     {
       name: 'novelhub-reader-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,
         theme: state.theme,
+        customBg: state.customBg,
+        customText: state.customText,
+        customAccent: state.customAccent,
+        customCss: state.customCss,
         lineHeight: state.lineHeight,
         maxWidth: state.maxWidth,
         readingMode: state.readingMode,

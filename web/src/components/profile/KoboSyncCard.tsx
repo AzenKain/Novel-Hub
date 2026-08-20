@@ -88,24 +88,28 @@ export const KoboSyncCard: React.FC = () => {
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-base-200 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
-            <Smartphone className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold flex items-center gap-2">
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent mt-0.5">
+          <Smartphone className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h3 className="text-base font-bold leading-tight text-base-content">
               {t("kobo.title", "Kobo E-Reader Wi-Fi Sync")}
-              {endpointUrl ? (
-                <span className="badge badge-success badge-sm">{t("kobo.paired", "Paired")}</span>
-              ) : (
-                <span className="badge badge-ghost badge-sm">{t("kobo.not_paired", "Not set up")}</span>
-              )}
             </h3>
-            <p className="text-xs text-base-content/60">
-              {t("kobo.subtitle", "Sync your library and reading position to a Kobo e-reader over Wi-Fi.")}
-            </p>
+            {endpointUrl ? (
+              <span className="badge badge-success badge-sm shrink-0 font-medium whitespace-nowrap">
+                {t("kobo.paired", "Paired")}
+              </span>
+            ) : (
+              <span className="badge badge-ghost badge-sm shrink-0 font-medium whitespace-nowrap">
+                {t("kobo.not_paired", "Not set up")}
+              </span>
+            )}
           </div>
+          <p className="text-xs text-base-content/60 leading-relaxed">
+            {t("kobo.subtitle", "Sync your library and reading position to a Kobo e-reader over Wi-Fi.")}
+          </p>
         </div>
       </div>
 

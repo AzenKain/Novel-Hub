@@ -27,43 +27,45 @@ export const VBookSyncCard: React.FC = () => {
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-base-200 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold flex items-center gap-2">
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary mt-0.5">
+          <BookOpen className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h3 className="text-base font-bold leading-tight text-base-content">
               {t("vbook.title", "VBook Plugin")}
-              <span className="badge badge-primary badge-sm">{t("common.active", "Active")}</span>
             </h3>
-            <p className="text-xs text-base-content/60">
-              {t("vbook.subtitle", "Install the NovelHub plugin in VBook to browse & read your library from your phone.")}
-            </p>
+            <span className="badge badge-primary badge-sm shrink-0 font-medium">
+              {t("common.active", "Active")}
+            </span>
           </div>
+          <p className="text-xs text-base-content/60 leading-relaxed">
+            {t("vbook.subtitle", "Install the NovelHub plugin in VBook to browse & read your library from your phone.")}
+          </p>
         </div>
       </div>
 
       <div className="space-y-4">
         {/* Primary Action: Download plugin.zip (Novel + Audio) */}
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <a
             href={pluginZipUrl}
             download="plugin.zip"
-            className="btn btn-primary flex-1 min-w-[140px] gap-2 text-sm shadow-sm"
+            className="btn btn-primary btn-sm gap-2 text-xs shadow-sm w-full h-auto py-2.5"
             title={t("vbook.download_novel_zip", "Download Novel Plugin")}
           >
             <Download className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("vbook.download_novel_zip", "Download Novel Plugin")}</span>
+            <span className="font-semibold">{t("vbook.download_novel_zip", "Download Novel Plugin")}</span>
           </a>
           <a
             href={pluginAudioZipUrl}
             download="plugin.zip"
-            className="btn btn-secondary flex-1 min-w-[140px] gap-2 text-sm shadow-sm"
+            className="btn btn-secondary btn-sm gap-2 text-xs shadow-sm w-full h-auto py-2.5"
             title={t("vbook.download_audio_zip", "Download Audio Plugin")}
           >
             <Headphones className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("vbook.download_audio_zip", "Download Audio Plugin")}</span>
+            <span className="font-semibold">{t("vbook.download_audio_zip", "Download Audio Plugin")}</span>
           </a>
         </div>
 

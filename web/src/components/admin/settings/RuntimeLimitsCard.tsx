@@ -12,6 +12,8 @@ const BYTE_FIELDS: (keyof RuntimeLimits)[] = [
   "upload_bytes",
   "cover_bytes",
   "site_asset_bytes",
+  "soundscape_bytes",
+  "font_bytes",
 ];
 const SECOND_FIELDS: (keyof RuntimeLimits)[] = [
   "rate_limit_auth_window_seconds",
@@ -24,6 +26,8 @@ const LIMIT_FIELDS: (keyof RuntimeLimits)[] = [
   "upload_session_ttl_seconds",
   "cover_bytes",
   "site_asset_bytes",
+  "soundscape_bytes",
+  "font_bytes",
   "rate_limit_auth",
   "rate_limit_auth_window_seconds",
 ];
@@ -35,6 +39,8 @@ const SETTING_KEYS: Record<keyof RuntimeLimits, string> = {
   upload_session_ttl_seconds: "limits.upload_session_ttl_seconds",
   cover_bytes: "limits.cover_bytes",
   site_asset_bytes: "limits.site_asset_bytes",
+  soundscape_bytes: "limits.soundscape_bytes",
+  font_bytes: "limits.font_bytes",
   rate_limit_auth: "limits.rate_limit_auth",
   rate_limit_auth_window_seconds: "limits.rate_limit_auth_window_seconds",
 };

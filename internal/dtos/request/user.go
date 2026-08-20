@@ -45,7 +45,8 @@ type SearchUserDto struct {
 }
 
 type SetKidsModePinDto struct {
-	Pin string `json:"pin" validate:"required,len=6,numeric"`
+	OldPin string `json:"old_pin,omitempty" validate:"omitempty,len=6,numeric"`
+	Pin    string `json:"pin" validate:"required,len=6,numeric"`
 }
 
 type ToggleKidsModeDto struct {

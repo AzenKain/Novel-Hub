@@ -1,5 +1,6 @@
 import { Link2, RefreshCw, Search, Check } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -122,13 +123,12 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }
       ) : !anilistConnected ? (
         <div className="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2.5 text-xs text-base-content/70">
           <span>{t("trackers.connect_in_profile_hint", "Connect your AniList account to link and sync this book.")}</span>
-          <button
-            type="button"
+          <Link
+            to="/profile?tab=trackers"
             className="ml-auto shrink-0 link link-hover text-primary"
-            onClick={() => setProfileModalOpen(true)}
           >
             {t("highlights_export.manage_in_profile", "Manage in Profile")}
-          </button>
+          </Link>
         </div>
       ) : (
         <>

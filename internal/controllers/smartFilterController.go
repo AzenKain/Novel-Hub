@@ -149,14 +149,12 @@ func (h *SmartFilterController) PinSidebar(c fiber.Ctx) error {
 	}
 
 	id := c.Params("id")
-	var body struct {
-		IsPinned bool `json:"is_pinned"`
-	}
-	if err := c.Bind().Body(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid request body"})
+	dto := request.PinSmartFilterDto{}
+	if err := validator.ValidateBodyDto(c, &dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := h.service.UpdateSmartFilterPinSidebar(ctx, id, claims.UId, body.IsPinned)
+	res, err := h.service.UpdateSmartFilterPinSidebar(ctx, id, claims.UId, dto.IsPinned)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -178,14 +176,12 @@ func (h *SmartFilterController) PinHome(c fiber.Ctx) error {
 	}
 
 	id := c.Params("id")
-	var body struct {
-		IsPinned bool `json:"is_pinned"`
-	}
-	if err := c.Bind().Body(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid request body"})
+	dto := request.PinSmartFilterDto{}
+	if err := validator.ValidateBodyDto(c, &dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := h.service.UpdateSmartFilterPinHome(ctx, id, claims.UId, body.IsPinned)
+	res, err := h.service.UpdateSmartFilterPinHome(ctx, id, claims.UId, dto.IsPinned)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}

@@ -42,6 +42,8 @@ type UpdateSettingsDto struct {
 	UploadSessionTTLSeconds *int64                  `json:"limits.upload_session_ttl_seconds"`
 	CoverBytes              *int64                  `json:"limits.cover_bytes"`
 	SiteAssetBytes          *int64                  `json:"limits.site_asset_bytes"`
+	SoundscapeBytes         *int64                  `json:"limits.soundscape_bytes"`
+	FontBytes               *int64                  `json:"limits.font_bytes"`
 
 	RateLimitAuth              *int   `json:"limits.rate_limit_auth"`
 	RateLimitAuthWindowSeconds *int64 `json:"limits.rate_limit_auth_window_seconds"`
@@ -165,6 +167,8 @@ func (d *UpdateSettingsDto) Values() map[string]any {
 	putPtr(values, "limits.upload_session_ttl_seconds", d.UploadSessionTTLSeconds)
 	putPtr(values, "limits.cover_bytes", d.CoverBytes)
 	putPtr(values, "limits.site_asset_bytes", d.SiteAssetBytes)
+	putPtr(values, "limits.soundscape_bytes", d.SoundscapeBytes)
+	putPtr(values, "limits.font_bytes", d.FontBytes)
 	putPtr(values, "limits.rate_limit_auth", d.RateLimitAuth)
 	putPtr(values, "limits.rate_limit_auth_window_seconds", d.RateLimitAuthWindowSeconds)
 	putPtr(values, "smtp.enabled", d.SMTPEnabled)
@@ -224,6 +228,7 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,
+		"limits.soundscape_bytes": true, "limits.font_bytes": true,
 		"limits.rate_limit_auth": true, "limits.rate_limit_auth_window_seconds": true,
 		"smtp.enabled": true, "smtp.host": true, "smtp.port": true, "smtp.username": true,
 		"smtp.password": true, "smtp.from_email": true, "smtp.tls_mode": true,

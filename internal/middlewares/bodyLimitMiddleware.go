@@ -21,6 +21,10 @@ func RequestBodyLimit(settings services.SettingsService) fiber.Handler {
 			limit = limits.SiteAssetBytes + constants.MultipartBodyOverhead
 		case strings.HasPrefix(path, "/api/v1/reader/") && strings.HasSuffix(path, "/cover"):
 			limit = limits.CoverBytes + constants.MultipartBodyOverhead
+		case path == "/api/v1/soundscapes/upload":
+			limit = limits.SoundscapeBytes + constants.MultipartBodyOverhead
+		case path == "/api/v1/fonts/upload":
+			limit = limits.FontBytes + constants.MultipartBodyOverhead
 		}
 		length := int64(c.RequestCtx().Request.Header.ContentLength())
 		if actual := int64(len(c.Body())); actual > length {

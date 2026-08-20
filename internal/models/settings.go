@@ -106,6 +106,8 @@ type RuntimeLimits struct {
 	UploadSessionTTLSeconds int64 `json:"upload_session_ttl_seconds"`
 	CoverBytes              int64 `json:"cover_bytes"`
 	SiteAssetBytes          int64 `json:"site_asset_bytes"`
+	SoundscapeBytes         int64 `json:"soundscape_bytes"`
+	FontBytes               int64 `json:"font_bytes"`
 	RateLimitAuth              int   `json:"rate_limit_auth"`
 	RateLimitAuthWindowSeconds int64 `json:"rate_limit_auth_window_seconds"`
 }
