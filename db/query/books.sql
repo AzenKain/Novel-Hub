@@ -268,3 +268,8 @@ SET average_rating = COALESCE((SELECT stats.average_rating FROM book_social_stat
     rating_count = COALESCE((SELECT stats.rating_count FROM book_social_stats stats WHERE stats.book_id = sqlc.arg('book_id')), 0)
 WHERE id = sqlc.arg('book_id');
 
+-- name: ListBookIDsByLibrary :many
+SELECT id FROM books
+WHERE library_id = ?
+ORDER BY id ASC
+LIMIT ?;

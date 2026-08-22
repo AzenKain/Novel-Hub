@@ -19,6 +19,11 @@ const ensureHighlightStyle = () => {
         text-underline-offset: 4px !important;
         border-radius: 4px !important;
       }
+      ::highlight(reader-active-selection) {
+        background-color: rgba(59, 130, 246, 0.35) !important;
+        color: inherit !important;
+        border-radius: 3px !important;
+      }
       ::highlight(user-highlight-yellow), ::highlight(user-highlight-default) {
         background-color: rgba(254, 240, 138, 0.65) !important;
         color: inherit !important;
@@ -39,13 +44,91 @@ const ensureHighlightStyle = () => {
         color: inherit !important;
         border-bottom: 2px dashed #ec4899 !important;
       }
+      ::highlight(user-highlight-orange) {
+        background-color: rgba(254, 215, 170, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #f97316 !important;
+      }
       ::highlight(user-highlight-purple) {
         background-color: rgba(233, 213, 255, 0.65) !important;
         color: inherit !important;
         border-bottom: 2px dashed #a855f7 !important;
       }
+      ::highlight(user-highlight-red) {
+        background-color: rgba(254, 202, 202, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #ef4444 !important;
+      }
+      ::highlight(user-highlight-cyan) {
+        background-color: rgba(153, 246, 228, 0.65) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #14b8a6 !important;
+      }
+
+      /* E-Ink Theme Optimizations (High Contrast, No Blurs, Jitter-Free) */
+      [data-theme="e-ink"] .reader-selection-toolbar {
+        animation: none !important;
+        transition: none !important;
+        box-shadow: none !important;
+        border: 2px solid #000000 !important;
+      }
+      [data-theme="e-ink"] ::highlight(reader-active-selection) {
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        color: inherit !important;
+      }
+      [data-theme="e-ink"] ::highlight(user-highlight-yellow),
+      [data-theme="e-ink"] ::highlight(user-highlight-default),
+      [data-theme="e-ink"] ::highlight(user-highlight-green),
+      [data-theme="e-ink"] ::highlight(user-highlight-blue),
+      [data-theme="e-ink"] ::highlight(user-highlight-pink),
+      [data-theme="e-ink"] ::highlight(user-highlight-orange),
+      [data-theme="e-ink"] ::highlight(user-highlight-purple),
+      [data-theme="e-ink"] ::highlight(user-highlight-red),
+      [data-theme="e-ink"] ::highlight(user-highlight-cyan) {
+        background-color: rgba(0, 0, 0, 0.12) !important;
+        color: inherit !important;
+        border-bottom: 2px dashed #000000 !important;
+      }
     `;
     document.head.appendChild(style);
+  }
+};
+
+export const setActiveSelectionHighlight = (
+  range: Range | null,
+  container?: HTMLElement | null,
+  saved?: SavedSelection | null
+) => {
+  if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
+    ensureHighlightStyle();
+    try {
+      if (range && !range.collapsed) {
+        let liveRange = range;
+        if (container && saved && typeof saved.startIndex === "number" && typeof saved.endIndex === "number") {
+          const fresh = createRangeFromCharOffset(container, saved.startIndex, saved.endIndex);
+          if (fresh) {
+            liveRange = fresh;
+          }
+        }
+        // @ts-ignore
+        const activeSelHl = new Highlight(liveRange);
+        activeSelHl.priority = 1;
+        // @ts-ignore
+        CSS.highlights.set("reader-active-selection", activeSelHl);
+      } else {
+        // @ts-ignore
+        CSS.highlights.delete("reader-active-selection");
+      }
+    } catch (e) {}
+  }
+};
+
+export const clearActiveSelectionHighlight = () => {
+  if (typeof CSS !== "undefined" && "highlights" in CSS) {
+    try {
+      // @ts-ignore
+      CSS.highlights.delete("reader-active-selection");
+    } catch (e) {}
   }
 };
 
@@ -237,22 +320,34 @@ export const resolveToTextNode = (
 
 export const saveSelection = (container: HTMLElement, range: Range): SavedSelection | null => {
   const selectedText = range.toString().trim();
-  const resolved = resolveToTextNode(container, range.startContainer, range.startOffset);
-  if (!resolved) return null;
+  if (!selectedText) return null;
 
-  const { textNode, textOffset } = resolved;
-  const textNodeIndex = getTextNodeIndex(container, textNode);
-  if (textNodeIndex < 0) return null;
-
-  // Capture document-relative char offsets now, while the range still points
-  // at live text nodes. The caller stores this and can reuse it later even if
-  // the reader DOM gets rebuilt (which would invalidate a cloned Range).
   const offsets = getCharacterOffsetOfRange(container, range);
   if (!offsets || offsets.end <= offsets.start) return null;
 
+  let textNodeIndex = -1;
+  let textOffset = 0;
+
+  const resolved = resolveToTextNode(container, range.startContainer, range.startOffset);
+  if (resolved) {
+    textNodeIndex = getTextNodeIndex(container, resolved.textNode);
+    textOffset = resolved.textOffset;
+  }
+
+  if (textNodeIndex < 0) {
+    const fallbackRange = createRangeFromCharOffset(container, offsets.start, offsets.end);
+    if (fallbackRange) {
+      const fallbackResolved = resolveToTextNode(container, fallbackRange.startContainer, fallbackRange.startOffset);
+      if (fallbackResolved) {
+        textNodeIndex = getTextNodeIndex(container, fallbackResolved.textNode);
+        textOffset = fallbackResolved.textOffset;
+      }
+    }
+  }
+
   return {
     selectedText,
-    textNodeIndex,
+    textNodeIndex: Math.max(0, textNodeIndex),
     offset: textOffset,
     startIndex: offsets.start,
     endIndex: offsets.end,
@@ -299,7 +394,6 @@ export const highlightTextRangeFromNode = (
   length: number
 ) => {
   ensureHighlightStyle();
-  window.getSelection()?.removeAllRanges();
 
   if (!startPoint || startPoint.textNodeIndex < 0) {
     return highlightTextRange(container, charIndex, length);
@@ -374,7 +468,10 @@ export const highlightTextRangeFromNode = (
         typeof Highlight !== "undefined"
       ) {
         // @ts-ignore
-        CSS.highlights.set("tts-active-word", new Highlight(range));
+        const ttsHl = new Highlight(range);
+        ttsHl.priority = 3;
+        // @ts-ignore
+        CSS.highlights.set("tts-active-word", ttsHl);
       }
 
       // Auto-scroll active word into view smoothly
@@ -401,7 +498,6 @@ export const highlightTextRange = (
   length: number
 ) => {
   ensureHighlightStyle();
-  window.getSelection()?.removeAllRanges();
 
   const treeWalker = document.createTreeWalker(
     container,
@@ -444,7 +540,10 @@ export const highlightTextRange = (
     if (typeof CSS !== "undefined" && "highlights" in CSS) {
       try {
         // @ts-ignore
-        CSS.highlights.set("tts-active-word", new Highlight(range));
+        const ttsHl = new Highlight(range);
+        ttsHl.priority = 3;
+        // @ts-ignore
+        CSS.highlights.set("tts-active-word", ttsHl);
       } catch (e) {}
     }
 
@@ -497,7 +596,7 @@ export const extractTextFromHtml = (
  * rendered text nodes and scroll it into view. Returns true if resolved.
  */
 export const scrollToTextOffset = (container: HTMLElement, startChar: number): boolean => {
-  if (!container || startChar <= 0) return false;
+  if (!container || startChar < 0) return false;
 
   const treeWalker = document.createTreeWalker(
     container,
@@ -511,9 +610,9 @@ export const scrollToTextOffset = (container: HTMLElement, startChar: number): b
   while (treeWalker.nextNode()) {
     const node = treeWalker.currentNode;
     const nodeLength = node.textContent?.length || 0;
-    if (currentOffset + nodeLength > startChar) {
+    if (currentOffset + nodeLength > startChar || (startChar === 0 && nodeLength > 0)) {
       startNode = node;
-      startNodeOffset = startChar - currentOffset;
+      startNodeOffset = Math.max(0, startChar - currentOffset);
       break;
     }
     currentOffset += nodeLength;
@@ -525,6 +624,27 @@ export const scrollToTextOffset = (container: HTMLElement, startChar: number): b
     const range = document.createRange();
     range.setStart(startNode, startNodeOffset);
     range.setEnd(startNode, Math.min(startNodeOffset + 1, startNode.textContent?.length || 1));
+
+    // Check if container is in CSS multi-column paginated mode
+    const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
+    const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+
+    if (isPaged && pagedContainer.clientWidth > 0 && typeof range.getBoundingClientRect === "function") {
+      const rangeRect = range.getBoundingClientRect();
+      const containerRect = pagedContainer.getBoundingClientRect();
+      const pageGap = 40;
+      const scrollStep = pagedContainer.clientWidth + pageGap;
+      const currentScrollLeft = pagedContainer.scrollLeft;
+      const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
+      const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
+      pagedContainer.scrollTo({
+        left: pageIndex * scrollStep,
+        behavior: "smooth",
+      });
+      return true;
+    }
+
+    // Vertical scroll mode
     const el = range.startContainer.nodeType === Node.ELEMENT_NODE
       ? (range.startContainer as HTMLElement)
       : (range.startContainer.parentElement);
@@ -628,7 +748,10 @@ export const applyUserHighlights = (
     green: [],
     blue: [],
     pink: [],
+    orange: [],
     purple: [],
+    red: [],
+    cyan: [],
     default: [],
   };
 
@@ -679,14 +802,19 @@ export const applyUserHighlights = (
     }
 
     if (range) {
-      let colorKey = h.color;
-      if (colorKey === "#fef08a") colorKey = "yellow";
-      else if (colorKey === "#bbf7d0") colorKey = "green";
-      else if (colorKey === "#bfdbfe") colorKey = "blue";
-      else if (colorKey === "#e9d5ff") colorKey = "purple";
+      const rawColor = (h.color || "").toLowerCase().trim();
+      let colorKey = "yellow";
+      if (rawColor === "#fef08a" || rawColor === "#facc15" || rawColor === "yellow") colorKey = "yellow";
+      else if (rawColor === "#bbf7d0" || rawColor === "#4ade80" || rawColor === "green") colorKey = "green";
+      else if (rawColor === "#bfdbfe" || rawColor === "#60a5fa" || rawColor === "blue") colorKey = "blue";
+      else if (rawColor === "#fbcfe8" || rawColor === "#f472b6" || rawColor === "pink") colorKey = "pink";
+      else if (rawColor === "#fed7aa" || rawColor === "#fb923c" || rawColor === "orange") colorKey = "orange";
+      else if (rawColor === "#e9d5ff" || rawColor === "#c084fc" || rawColor === "purple") colorKey = "purple";
+      else if (rawColor === "#fecaca" || rawColor === "#f87171" || rawColor === "red") colorKey = "red";
+      else if (rawColor === "#99f6e4" || rawColor === "#2dd4bf" || rawColor === "cyan") colorKey = "cyan";
+      else if (colorGroups[rawColor]) colorKey = rawColor;
 
-      const c = colorKey && colorGroups[colorKey] ? colorKey : "yellow";
-      colorGroups[c].push(range);
+      colorGroups[colorKey].push(range);
     }
   }
 
@@ -695,7 +823,10 @@ export const applyUserHighlights = (
       try {
         if (ranges.length > 0) {
           // @ts-ignore
-          CSS.highlights.set(`user-highlight-${color}`, new Highlight(...ranges));
+          const userHl = new Highlight(...ranges);
+          userHl.priority = 2;
+          // @ts-ignore
+          CSS.highlights.set(`user-highlight-${color}`, userHl);
         } else {
           // @ts-ignore
           CSS.highlights.delete(`user-highlight-${color}`);

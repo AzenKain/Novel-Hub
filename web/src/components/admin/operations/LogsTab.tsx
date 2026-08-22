@@ -2,6 +2,8 @@ import { useLogFilesQuery, useLogTailQuery } from "@/hooks";
 import { operationsService } from "@/services";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RefreshCw } from "lucide-react";
+import { toast } from "react-toastify";
 
 export function LogsTab() {
   const { t } = useTranslation();
@@ -48,7 +50,15 @@ export function LogsTab() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("admin.operations.search_logs")}
         />
-        <button className="btn btn-sm" onClick={() => void tail.refetch()}>
+        <button
+          className="btn btn-sm gap-1.5"
+          disabled={tail.isFetching}
+          onClick={async () => {
+            await tail.refetch();
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+          }}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${tail.isFetching ? "animate-spin" : ""}`} />
           {t("admin.operations.refresh")}
         </button>
         {file && (

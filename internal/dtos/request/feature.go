@@ -38,7 +38,8 @@ func (d *GetUserCollectionsDto) ParseCursor() (*time.Time, string) {
 }
 
 type GetHighlightsQueryDto struct {
-	ChapterID string `json:"chapter_id" query:"chapter_id" validate:"required"`
+	ChapterID string `json:"chapter_id" query:"chapter_id"`
+	BookID    string `json:"book_id" query:"book_id"`
 }
 
 type CreateCollectionDto struct {

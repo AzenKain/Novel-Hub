@@ -15,13 +15,16 @@ import { useShallow } from "zustand/react/shallow";
 import { WebhookModal } from "./WebhookModal";
 import { ConfirmModal } from "@/components/common";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 export const WebhooksTab: React.FC = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
   const pageSize = 10;
   const offset = (page - 1) * pageSize;
 
-  const { data, isLoading } = useWebhooksQuery(pageSize, offset);
+  const { data, isLoading, isFetching, refetch } = useWebhooksQuery(pageSize, offset);
   const webhooks = data?.webhooks || [];
   const totalPages = data?.totalPages || 1;
 
@@ -124,10 +127,24 @@ export const WebhooksTab: React.FC = () => {
           </p>
         </div>
 
-        <button onClick={openCreateModal} className="btn btn-primary btn-sm gap-2">
-          <Plus className="h-4 w-4" />
-          {t("admin.add_webhook", "Add Webhook")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              await queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+              await refetch();
+              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            }}
+            className="btn btn-square btn-ghost btn-sm"
+            title={t("settings.refresh", "Refresh")}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </button>
+          <button onClick={openCreateModal} className="btn btn-primary btn-sm gap-2">
+            <Plus className="h-4 w-4" />
+            {t("admin.add_webhook", "Add Webhook")}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -29,7 +29,8 @@ import {
   Send,
   FileText,
   Layers,
-  Copy
+  Copy,
+  ListPlus
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
@@ -42,7 +43,7 @@ import { OfflineWarningModal, offlineWarningSuppressed } from "@/components/comm
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
-import { useLibraryStore, useAuthStore, useGuestStore } from "@/stores";
+import { useLibraryStore, useAuthStore, useGuestStore, useDownloadManagerStore } from "@/stores";
 import { useShallow } from "zustand/react/shallow";
 import {
   useBookQuery,
@@ -352,7 +353,7 @@ export const BookDetailPage: React.FC = () => {
             <div className="w-48 md:w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
               {book.cover_url && !imgError ? (
                 <img
-                  src={getMediaUrl(book.cover_url)}
+                  src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
                   alt={book.title}
                   draggable={false}
                   onError={() => setImgError(true)}
@@ -714,21 +715,50 @@ export const BookDetailPage: React.FC = () => {
                     )}
 
                     {allowDownload && (
-                      <a
-                        href={bookService.getDownloadUrl(book.id, effectiveFileId)}
-                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
-                        download
-                        onClick={(e) => {
-                          if (!book.files?.length) e.preventDefault();
-                          setTimeout(() => {
-                            void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
-                            void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
-                          }, 1000);
-                        }}
-                      >
-                        <Download className="w-4 h-4 shrink-0" />
-                        <span>{t("common.download", "Download")}</span>
-                      </a>
+                      <>
+                        <a
+                          href={bookService.getDownloadUrl(book.id, effectiveFileId)}
+                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                          download
+                          onClick={(e) => {
+                            if (!book.files?.length) e.preventDefault();
+                            setTimeout(() => {
+                              void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
+                              void queryClient.invalidateQueries({ queryKey: ["bookEngagementStats", book_id] });
+                            }, 1000);
+                          }}
+                        >
+                          <Download className="w-4 h-4 shrink-0" />
+                          <span>{t("common.download", "Download")}</span>
+                        </a>
+
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                          onClick={() => {
+                            if (!book.files?.length) return;
+                            const file = book.files.find((f) => f.id === effectiveFileId) || book.files[0];
+                            const { addDownload } = useDownloadManagerStore.getState();
+                            addDownload({
+                              bookId: book.id,
+                              fileId: file?.id,
+                              title: book.title,
+                              coverUrl: book.cover_url,
+                              format: file?.format || "EPUB",
+                              sizeBytes: file?.size_bytes,
+                            });
+                            toast.success(
+                              t("download_manager.added_to_queue", "Đã thêm \"{{title}}\" vào hàng chờ tải", {
+                                title: book.title,
+                              })
+                            );
+                          }}
+                          title={t("download_manager.add_to_queue", "Thêm vào hàng chờ tải")}
+                        >
+                          <ListPlus className="w-4 h-4 shrink-0" />
+                          <span>{t("download_manager.add_to_queue_btn", "Thêm vào hàng chờ")}</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

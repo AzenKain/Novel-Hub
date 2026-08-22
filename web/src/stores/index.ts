@@ -11,3 +11,4 @@ export * from "./useWebhookStore";
 export * from "./guestStore";
 export * from "./soundscapeStore";
 export * from "./podcastDownloadStore";
+export * from "./downloadManagerStore";

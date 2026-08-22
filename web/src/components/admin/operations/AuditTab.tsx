@@ -1,9 +1,13 @@
 import { useAuditActionsQuery, useAuditLogsQuery } from "@/hooks";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 export function AuditTab() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const actions = useAuditActionsQuery();
   const [action, setAction] = useState("");
   const [cursor, setCursor] = useState("");
@@ -46,9 +50,20 @@ export function AuditTab() {
         <span className="text-sm opacity-60">
           {t("admin.operations.audit_total", { count: logs.data?.total || 0 })}
         </span>
-        <span className="text-xs opacity-50">
-          {t("admin.operations.audit_retention")}
-        </span>
+        <button
+          className="btn btn-sm btn-ghost gap-1.5 ml-auto"
+          disabled={logs.isFetching}
+          onClick={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin", "audit_logs"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "audit_actions"] });
+            await Promise.all([logs.refetch(), actions.refetch()]);
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+          }}
+          title={t("admin.operations.refresh")}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${logs.isFetching ? "animate-spin" : ""}`} />
+          <span>{t("admin.operations.refresh")}</span>
+        </button>
       </div>
       <div className="overflow-x-auto bg-base-100 rounded-box shadow-sm">
         <table className="table table-sm">

@@ -53,27 +53,24 @@ export function useReaderPaging({
 
     const container = columnsRef.current || contentRef.current;
 
-    if (pendingLandingRef?.current === "end") {
+    const isPagedMode = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+    if (pendingLandingRef?.current === "end" && isPagedMode) {
       pendingLandingRef.current = null;
-      if (container) {
-        container.style.visibility = "hidden";
-      }
 
       const landAtEnd = () => {
-        if (scrollLayout) {
-          if (contentRef.current) {
-            contentRef.current.scrollTop = contentRef.current.scrollHeight;
-            contentRef.current.style.visibility = "visible";
-          }
-        } else {
-          const metrics = getPagedScrollMetrics();
-          if (metrics) {
-            lastPageIndexRef.current = metrics.maxIndex;
-            scrollToPageIndex(metrics.maxIndex, true);
-          }
-          if (container) {
-            container.style.visibility = "visible";
-          }
+        const metrics = getPagedScrollMetrics();
+        if (metrics) {
+          lastPageIndexRef.current = metrics.maxIndex;
+          scrollToPageIndex(metrics.maxIndex, true);
+        }
+        if (container) {
+          container.style.visibility = "visible";
+        }
+        if (columnsRef.current) {
+          columnsRef.current.style.visibility = "visible";
+        }
+        if (contentRef.current) {
+          contentRef.current.style.visibility = "visible";
         }
       };
 
@@ -95,6 +92,10 @@ export function useReaderPaging({
         landAtEnd();
       });
       return;
+    }
+
+    if (pendingLandingRef) {
+      pendingLandingRef.current = null;
     }
 
     setPageIndex(0);
@@ -158,7 +159,25 @@ export function useReaderPaging({
     if (!container) return;
 
     const scrollStep = container.clientWidth + READER_PAGE_GAP;
-    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    let scrollWidth = container.scrollWidth;
+
+    // Safety fallback for multi-column when container scrollWidth is clamped
+    const allChildren = Array.from(container.querySelectorAll<HTMLElement>("p, div, figure, h1, h2, h3, h4, h5, h6, img"));
+    if (allChildren.length > 0) {
+      let maxChildRight = 0;
+      for (let i = allChildren.length - 1; i >= Math.max(0, allChildren.length - 30); i--) {
+        const el = allChildren[i];
+        const right = el.offsetLeft + el.offsetWidth;
+        if (right > maxChildRight) {
+          maxChildRight = right;
+        }
+      }
+      if (maxChildRight > scrollWidth) {
+        scrollWidth = maxChildRight;
+      }
+    }
+
+    const maxScroll = Math.max(0, scrollWidth - container.clientWidth);
     const maxIndex = Math.max(0, Math.round(maxScroll / scrollStep));
     return { container, scrollStep, maxIndex };
   };

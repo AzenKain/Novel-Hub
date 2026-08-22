@@ -64,6 +64,9 @@ type KoboEntitlementResponse struct {
 type KoboSyncItemResponse struct {
 	NewEntitlement     *KoboEntitlementResponse `json:"NewEntitlement,omitempty"`
 	ChangedEntitlement *KoboEntitlementResponse `json:"ChangedEntitlement,omitempty"`
+	NewTag             *kobo.Tag                `json:"NewTag,omitempty"`
+	ChangedTag         *kobo.Tag                `json:"ChangedTag,omitempty"`
+	DeletedTag         *kobo.Tag                `json:"DeletedTag,omitempty"`
 }
 
 // KoboSyncResponse is the result of one sync page. Items becomes the response body verbatim —

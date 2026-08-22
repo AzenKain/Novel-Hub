@@ -1,6 +1,7 @@
 import { KeyRound, Mail, RotateCcw, Shield, Trash2, UserCog } from "lucide-react";
 import React from "react";
 
+import { getMediaUrl } from "@/config/api";
 import type { User } from "@/types";
 import { isAdminUser } from "@/utils/permission";
 
@@ -78,7 +79,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden ring-1 ring-base-content/10">
                           {item.avatar_url ? (
                             <img
-                              src={item.avatar_url.startsWith("/public/") ? `${item.avatar_url}?t=${item.updated_at ? encodeURIComponent(item.updated_at) : Date.now()}` : item.avatar_url}
+                              src={getMediaUrl(item.avatar_url, undefined, item.updated_at)}
                               alt={item.full_name || item.email}
                               className="w-full h-full object-cover"
                               onError={(e) => {

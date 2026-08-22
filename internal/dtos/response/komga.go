@@ -133,3 +133,49 @@ type KomgaReadProgressV2 struct {
 type KomgaReadProgressUpdateV2 struct {
 	LastBookNumberSortRead float64 `json:"lastBookNumberSortRead"`
 }
+
+type KomgaTachiyomiReadProgressV1 struct {
+	BooksCount             int     `json:"booksCount"`
+	Logged                 bool    `json:"logged"`
+	LastBookNumberSortRead float64 `json:"lastBookNumberSortRead"`
+}
+
+type KomgaSharedLibraries struct {
+	All        bool     `json:"all"`
+	LibraryIDs []string `json:"libraryIds"`
+}
+
+type KomgaUserResponse struct {
+	ID              string               `json:"id"`
+	Email           string               `json:"email"`
+	Roles           []string             `json:"roles"`
+	SharedLibraries KomgaSharedLibraries `json:"sharedLibraries"`
+	LabelsAllow     []string             `json:"labelsAllow"`
+	LabelsExclude   []string             `json:"labelsExclude"`
+	AgeRestriction  *int                 `json:"ageRestriction"`
+}
+
+type KomgaReadList struct {
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	Summary          string   `json:"summary"`
+	Ordered          bool     `json:"ordered"`
+	BookIDs          []string `json:"bookIds"`
+	CreatedDate      string   `json:"createdDate"`
+	LastModifiedDate string   `json:"lastModifiedDate"`
+	Filtered         bool     `json:"filtered"`
+}
+
+type KomgaBookReadProgress struct {
+	Page         int     `json:"page"`
+	Completed    bool    `json:"completed"`
+	ReadDate     *string `json:"readDate"`
+	Created      string  `json:"created"`
+	LastModified string  `json:"lastModified"`
+}
+
+type KomgaBookReadProgressUpdate struct {
+	Page      int  `json:"page"`
+	Completed bool `json:"completed"`
+}
+

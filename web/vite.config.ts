@@ -32,7 +32,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         // Never cache /api: cookie auth, no per-user cache key — user A would get user B's library.
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//, /^\/covers\//, /^\/storage\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//, /^\/covers\//, /^\/storage\//, /^\/public\//],
         runtimeCaching: [
           {
             urlPattern: /^\/locales\/.*\.json$/,
@@ -40,10 +40,17 @@ export default defineConfig({
             options: { cacheName: "locales" },
           },
           {
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "google-fonts-stylesheets",
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
             handler: "CacheFirst",
             options: {
-              cacheName: "google-fonts",
+              cacheName: "google-fonts-webfonts",
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -60,7 +67,18 @@ export default defineConfig({
   build: {
     outDir: "../cmd/api/dist",
     emptyOutDir: true,
-    chunkSizeWarningLimit: 2000
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (
+          warning.message?.includes("externalized for browser compatibility") ||
+          warning.code === "MODULE_LEVEL_DIRECTIVE"
+        ) {
+          return;
+        }
+        warn(warning);
+      },
+    },
   },
   server: {
     port: 5173,
@@ -68,11 +86,12 @@ export default defineConfig({
       "/api": "http://127.0.0.1:3434",
       "/uploads": "http://127.0.0.1:3434",
       "/covers": "http://127.0.0.1:3434",
-      "/storage": "http://127.0.0.1:3434"
-    }
+      "/storage": "http://127.0.0.1:3434",
+      "/public": "http://127.0.0.1:3434",
+    },
   },
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   }
 });

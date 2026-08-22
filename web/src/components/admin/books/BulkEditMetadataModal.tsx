@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Copy,
@@ -8,7 +8,9 @@ import {
   Image as ImageIcon,
   Loader2,
   Plus,
-  ArrowDown10
+  ArrowDown10,
+  Upload,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -58,6 +60,8 @@ interface SyncModalState {
   fieldName: string;
   fieldValue: any;
   selectedBookIds: Set<string>;
+  subjectMode?: 'append' | 'remove' | 'replace';
+  selectedTagToRemove?: string;
 }
 
 export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
@@ -80,6 +84,22 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
     fieldValue: '',
     selectedBookIds: new Set<string>(),
   });
+
+  const [coverUrlModal, setCoverUrlModal] = useState<{
+    isOpen: boolean;
+    bookIndex: number | null;
+    url: string;
+  }>({
+    isOpen: false,
+    bookIndex: null,
+    url: '',
+  });
+
+  const allExistingSubjects = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    items.forEach((it) => it.subjects.forEach((s) => set.add(s)));
+    return Array.from(set).sort();
+  }, [items]);
 
   // Initialize editable state when modal opens or books change
   useEffect(() => {
@@ -193,7 +213,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
       case 'cover':
         fieldValue = {
           preview: sourceItem.coverPreview,
-          pendingCover: sourceItem.pendingCover,
+          pendingCover: sourceItem.pendingCover || (sourceItem.coverPreview ? { type: 'url', value: sourceItem.coverPreview } : null),
         };
         break;
     }
@@ -208,12 +228,17 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
       fieldName: getFieldLabel(field),
       fieldValue,
       selectedBookIds: allIds,
+      subjectMode: field === 'subjects' ? 'append' : undefined,
+      selectedTagToRemove:
+        field === 'subjects' && Array.isArray(fieldValue) && fieldValue.length > 0
+          ? fieldValue[0]
+          : '',
     });
   };
 
   // Execute sync field to selected books
   const handleApplySync = () => {
-    const { field, fieldValue, selectedBookIds } = syncState;
+    const { field, fieldValue, selectedBookIds, subjectMode, selectedTagToRemove } = syncState;
 
     setItems((prev) =>
       prev.map((item) => {
@@ -235,7 +260,17 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             updates.language = fieldValue as string;
             break;
           case 'subjects':
-            updates.subjects = [...(fieldValue as string[])];
+            if (subjectMode === 'append') {
+              const toAdd = (fieldValue as string[]) || [];
+              updates.subjects = Array.from(new Set([...item.subjects, ...toAdd]));
+            } else if (subjectMode === 'remove') {
+              const tagToRemove = selectedTagToRemove?.trim().toLowerCase();
+              if (tagToRemove) {
+                updates.subjects = item.subjects.filter((s) => s.toLowerCase() !== tagToRemove);
+              }
+            } else {
+              updates.subjects = [...(fieldValue as string[])];
+            }
             break;
           case 'description':
             updates.description = fieldValue as string;
@@ -311,7 +346,22 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
           if (item.pendingCover.type === 'file') {
             await bookService.updateCover(item.id, { cover: item.pendingCover.value as File });
           } else if (item.pendingCover.type === 'url') {
-            await bookService.updateCover(item.id, { cover_url: item.pendingCover.value as string });
+            const rawVal = item.pendingCover.value as string;
+            if (rawVal.startsWith('http://') || rawVal.startsWith('https://')) {
+              await bookService.updateCover(item.id, { cover_url: rawVal });
+            } else {
+              try {
+                const fullMediaUrl = getMediaUrl(rawVal, item.id);
+                const res = await fetch(fullMediaUrl);
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const file = new File([blob], 'cover.jpg', { type: blob.type || 'image/jpeg' });
+                  await bookService.updateCover(item.id, { cover: file });
+                }
+              } catch (err) {
+                console.error('Failed to copy cover image blob:', err);
+              }
+            }
           }
         }
         successCount++;
@@ -383,9 +433,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="btn btn-sm sm:btn-md btn-circle btn-ghost"
+                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                aria-label={t("common.close", "Close")}
               >
-                ✕
+                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
               </button>
             </div>
           </header>
@@ -401,54 +452,133 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                     : 'border-base-300/80 bg-base-200/25'
                 }`}
               >
-                {/* Book Header */}
-                <div className="flex items-start gap-4 sm:gap-5 mb-5 pb-4 border-b border-base-200/80">
-                  {/* Book Index & Thumbnail */}
-                  <div className="flex flex-col items-center gap-2 shrink-0">
-                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg bg-base-300 text-base-content/80">
+                {/* Book Card Header */}
+                <div className="flex items-center justify-between gap-3 pb-3 mb-5 border-b border-base-200/80">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
                       #{index + 1}
                     </span>
-                    <div className="w-16 h-24 rounded-xl bg-base-300 border border-base-300 overflow-hidden shadow-sm flex items-center justify-center relative group">
+                    <span className="text-sm font-bold text-base-content truncate" title={item.original.title}>
+                      {item.original.title}
+                    </span>
+                  </div>
+                  {item.modified && (
+                    <span className="badge badge-sm badge-warning font-semibold text-[11px] gap-1 shrink-0">
+                      <Check className="w-3 h-3" />
+                      {t('common.modified', 'Đã sửa')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Main Content: Left Column (Cover) & Right Column (Form Fields) */}
+                <div className="flex flex-col md:flex-row items-start gap-6">
+                  {/* Left Column: Cover Image & Actions */}
+                  <div className="w-full md:w-36 shrink-0 flex flex-col items-center gap-3">
+                    <div className="w-32 h-44 sm:w-36 sm:h-50 rounded-2xl bg-base-300 border border-base-300/80 overflow-hidden shadow-md relative group flex items-center justify-center">
                       {item.coverPreview ? (
                         <img
                           src={
                             item.coverPreview.startsWith('blob:') || item.coverPreview.startsWith('http')
                               ? item.coverPreview
-                              : getMediaUrl(item.coverPreview, item.id)
+                              : getMediaUrl(item.coverPreview, item.id, item.original.updated_at)
                           }
                           alt={item.title}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <ImageIcon className="w-6 h-6 text-base-content/30" />
+                        <div className="flex flex-col items-center gap-1.5 text-base-content/40">
+                          <ImageIcon className="w-8 h-8" />
+                          <span className="text-[10px] font-bold uppercase">No cover</span>
+                        </div>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Title & Quick Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <label className="text-xs font-bold text-base-content/80">
-                        {t('book.title', 'Title')}
+                      {/* Hover Overlay */}
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-opacity text-white p-2">
+                        <Upload className="w-5 h-5 text-primary" />
+                        <span className="text-[11px] font-bold text-center leading-tight">Đổi ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const preview = URL.createObjectURL(file);
+                              updateItem(index, {
+                                coverPreview: preview,
+                                pendingCover: { type: 'file', value: file },
+                              });
+                            }
+                          }}
+                        />
                       </label>
+                    </div>
+
+                    {/* Cover Actions Button Group */}
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <div className="grid grid-cols-2 gap-1.5 w-full">
+                        <label className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg" title="Tải ảnh lên từ máy">
+                          <Upload className="w-3 h-3" />
+                          <span>Tải ảnh</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const preview = URL.createObjectURL(file);
+                                updateItem(index, {
+                                  coverPreview: preview,
+                                  pendingCover: { type: 'file', value: file },
+                                });
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverUrlModal({
+                              isOpen: true,
+                              bookIndex: index,
+                              url: item.coverPreview?.startsWith("http") ? item.coverPreview : "",
+                            });
+                          }}
+                          className="btn btn-xs btn-ghost border border-base-300 gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold rounded-lg hover:bg-base-200"
+                          title="Dán link ảnh trực tuyến"
+                        >
+                          <LinkIcon className="w-3 h-3" />
+                          <span>URL</span>
+                        </button>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => handleOpenSyncModal(index, 'cover')}
-                        className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                        className="btn btn-xs btn-outline btn-secondary gap-1 h-7 min-h-0 text-[11px] font-semibold rounded-lg w-full"
+                        title="Áp dụng bìa này cho các sách khác"
                       >
-                        <Copy className="w-3.5 h-3.5" />
-                        {t('library.sync_cover', 'Sync Cover')}
+                        <Copy className="w-3 h-3" />
+                        <span>{t('library.sync_cover', 'Đồng bộ bìa')}</span>
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      value={item.title}
-                      onChange={(e) => updateItem(index, { title: e.target.value })}
-                      placeholder={t('book.title_placeholder', 'Book title')}
-                      className="input input-md input-bordered w-full font-bold text-base bg-base-100 rounded-xl"
-                    />
                   </div>
-                </div>
+
+                  {/* Right Column: Metadata Form Fields */}
+                  <div className="flex-1 min-w-0 space-y-4 w-full">
+                    {/* Title */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-base-content/80">
+                        {t('book.title', 'Title')}
+                      </label>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => updateItem(index, { title: e.target.value })}
+                        placeholder={t('book.title_placeholder', 'Book title')}
+                        className="input input-md input-bordered w-full font-bold text-sm bg-base-100 rounded-xl"
+                      />
+                    </div>
 
                 {/* Form Fields Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -678,15 +808,17 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       {t('library.sync_field_to_books', 'Sync')}
                     </button>
                   </div>
-                  <textarea
-                    rows={3}
-                    value={item.description}
-                    onChange={(e) => updateItem(index, { description: e.target.value })}
-                    placeholder={t('book.description_placeholder', 'Book summary / description...')}
-                    className="textarea textarea-bordered textarea-md w-full bg-base-100 text-sm leading-relaxed rounded-xl resize-y"
-                  />
+                    <textarea
+                      rows={3}
+                      value={item.description}
+                      onChange={(e) => updateItem(index, { description: e.target.value })}
+                      placeholder={t('book.description_placeholder', 'Book summary / description...')}
+                      className="textarea textarea-bordered textarea-md w-full bg-base-100 text-sm leading-relaxed rounded-xl resize-y"
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
             ))}
           </div>
 
@@ -766,9 +898,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSyncState((prev) => ({ ...prev, isOpen: false }))}
-                className="btn btn-sm btn-circle btn-ghost"
+                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                aria-label={t("common.close", "Close")}
               >
-                ✕
+                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
               </button>
             </header>
 
@@ -789,6 +922,84 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                     : String(syncState.fieldValue)}
                 </div>
               </div>
+
+              {/* Subject Operation Mode Selector (when syncing tags/subjects) */}
+              {syncState.field === 'subjects' && (
+                <div className="space-y-3 p-4 bg-base-200/50 rounded-2xl border border-base-200">
+                  <span className="text-xs font-bold text-base-content/80 block uppercase tracking-wider">
+                    {t('library.subject_operation_mode', 'Chế độ áp dụng Thẻ / Tag')}:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSyncState((prev) => ({ ...prev, subjectMode: 'append' }))}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        syncState.subjectMode === 'append'
+                          ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                          : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">+ Thêm thẻ (Append)</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Giữ tag cũ & thêm tag nguồn</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSyncState((prev) => ({ ...prev, subjectMode: 'remove' }))}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        syncState.subjectMode === 'remove'
+                          ? 'border-error bg-error/10 text-error font-bold shadow-xs'
+                          : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">✕ Xóa thẻ (Remove)</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Xóa 1 tag cụ thể khỏi các sách</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSyncState((prev) => ({ ...prev, subjectMode: 'replace' }))}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        syncState.subjectMode === 'replace'
+                          ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                          : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">⇄ Ghi đè (Replace)</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Thay thế tất cả bằng tag nguồn</div>
+                    </button>
+                  </div>
+
+                  {syncState.subjectMode === 'remove' && (
+                    <div className="mt-3 pt-3 border-t border-base-300 space-y-2">
+                      <label className="text-xs font-semibold text-base-content/80 block">
+                        {t('library.select_tag_to_remove', 'Chọn thẻ cần xóa')}:
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                        {allExistingSubjects.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setSyncState((prev) => ({ ...prev, selectedTagToRemove: tag }))}
+                            className={`badge badge-sm cursor-pointer py-2.5 px-3 rounded-lg border transition-all ${
+                              syncState.selectedTagToRemove?.toLowerCase() === tag.toLowerCase()
+                                ? 'badge-error text-white font-bold'
+                                : 'badge-ghost hover:badge-neutral'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={syncState.selectedTagToRemove || ''}
+                        onChange={(e) => setSyncState((prev) => ({ ...prev, selectedTagToRemove: e.target.value }))}
+                        placeholder={t('library.or_type_tag_to_remove', 'Hoặc nhập tên tag cần xóa...')}
+                        className="input input-sm input-bordered w-full rounded-xl text-xs mt-2"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Target Selection Tools */}
               <div className="flex items-center justify-between text-sm px-1">
@@ -855,7 +1066,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             src={
                               item.coverPreview.startsWith('blob:') || item.coverPreview.startsWith('http')
                                 ? item.coverPreview
-                                : getMediaUrl(item.coverPreview, item.id)
+                                : getMediaUrl(item.coverPreview, item.id, item.original.updated_at)
                             }
                             alt={item.title}
                             className="w-full h-full object-cover"
@@ -904,6 +1115,112 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 {t('common.apply', 'Apply')} ({syncState.selectedBookIds.size})
               </button>
             </footer>
+          </div>
+        </dialog>
+      )}
+
+      {/* ======================= COVER URL INPUT MODAL ======================= */}
+      {coverUrlModal.isOpen && coverUrlModal.bookIndex !== null && (
+        <dialog className="modal modal-open z-70 bg-black/60 backdrop-blur-xs">
+          <div className="modal-box max-w-md p-6 rounded-3xl border border-base-300 shadow-2xl bg-base-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-base-200">
+              <div className="flex items-center gap-2.5 font-bold text-base text-base-content">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <LinkIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-base leading-tight">
+                    {t('admin.cover_url_title', 'Nhập liên kết ảnh bìa')}
+                  </div>
+                  <div className="text-xs text-base-content/50 font-normal mt-0.5">
+                    Sách #{coverUrlModal.bookIndex + 1}: {items[coverUrlModal.bookIndex]?.title}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCoverUrlModal({ isOpen: false, bookIndex: null, url: '' })}
+                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (coverUrlModal.url.trim() && coverUrlModal.bookIndex !== null) {
+                  updateItem(coverUrlModal.bookIndex, {
+                    coverPreview: coverUrlModal.url.trim(),
+                    pendingCover: { type: 'url', value: coverUrlModal.url.trim() },
+                  });
+                }
+                setCoverUrlModal({ isOpen: false, bookIndex: null, url: '' });
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="text-xs font-bold text-base-content/80 mb-1.5 block">
+                  {t('admin.image_url_label', 'Đường dẫn ảnh bìa trực tuyến (URL)')}
+                </label>
+                <input
+                  type="url"
+                  autoFocus
+                  required
+                  placeholder="https://example.com/cover.jpg"
+                  value={coverUrlModal.url}
+                  onChange={(e) =>
+                    setCoverUrlModal((prev) => ({ ...prev, url: e.target.value }))
+                  }
+                  className="input input-bordered input-md w-full bg-base-100 rounded-xl text-sm font-medium focus:outline-hidden"
+                />
+                <span className="text-[11px] text-base-content/50 mt-1 block">
+                  {t('admin.cover_url_hint', 'Hỗ trợ các định dạng ảnh trực tiếp (JPG, PNG, WEBP, GIF)')}
+                </span>
+              </div>
+
+              {/* URL Preview if text is entered */}
+              {coverUrlModal.url.trim() && (
+                <div className="p-3 bg-base-200/50 rounded-2xl border border-base-200 flex items-center gap-3">
+                  <div className="w-12 h-16 rounded-xl bg-base-300 overflow-hidden shrink-0 border border-base-300 flex items-center justify-center">
+                    <img
+                      src={coverUrlModal.url}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-base-content truncate">
+                      {t('common.preview', 'Xem trước ảnh')}
+                    </div>
+                    <div className="text-[11px] text-base-content/60 truncate font-mono mt-0.5">
+                      {coverUrlModal.url}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCoverUrlModal({ isOpen: false, bookIndex: null, url: '' })}
+                  className="btn btn-md btn-ghost rounded-xl font-semibold"
+                >
+                  {t('common.cancel', 'Hủy')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!coverUrlModal.url.trim()}
+                  className="btn btn-md btn-primary rounded-xl px-5 font-bold shadow-md shadow-primary/20"
+                >
+                  {t('common.apply', 'Áp dụng')}
+                </button>
+              </div>
+            </form>
           </div>
         </dialog>
       )}

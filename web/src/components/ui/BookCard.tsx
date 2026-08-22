@@ -69,7 +69,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
         )}
         {book.cover_url ? (
           <>
-            <img src={getMediaUrl(book.cover_url)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
+            <img src={getMediaUrl(book.cover_url, book.id, book.updated_at)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
             <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
           </>
         ) : (

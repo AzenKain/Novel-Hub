@@ -23,6 +23,7 @@ type BookCatalogRepository interface {
 	GetBooksByIDs(ctx context.Context, ids []string) ([]*models.BookEntity, error)
 	CreateBookWithFile(ctx context.Context, book *models.BookEntity, file *sqlc.CreateBookFileParams) error
 	ListBookIDs(ctx context.Context, cursor *time.Time, cursorID string, limit int64) ([]string, error)
+	ListBookIDsByLibrary(ctx context.Context, libraryID string, limit int64) ([]string, error)
 	BulkUpdateBookLibrary(ctx context.Context, bookIDs []string, libraryID string) error
 	BulkDeleteBooks(ctx context.Context, bookIDs []string) error
 	WithTx(tx *sql.Tx) BookDBRepository

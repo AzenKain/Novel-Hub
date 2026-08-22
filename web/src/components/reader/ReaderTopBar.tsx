@@ -1,12 +1,15 @@
 import type { TFunction } from "i18next";
-import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search, Headphones, MoreHorizontal } from "lucide-react";
-import React, { useState } from "react";
+import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search, Headphones, MoreHorizontal, BookmarkPlus, Copy, Check, Loader2, Sparkles, MessageSquarePlus, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { copyImageToClipboard } from "@/utils/clipboard";
 import { LanguageSwitcher } from "@/components/ui";
 import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
 import { useSoundscapeStore } from "@/stores/soundscapeStore";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
 import { ReaderSoundscapePanel } from "./ReaderSoundscapePanel";
+import type { ActiveImageTarget, ImageBookmark } from "./ReaderImageToolbar";
 
 type ReaderTopBarProps = {
   t: TFunction;
@@ -54,9 +57,16 @@ type ReaderTopBarProps = {
   onToggleAutoScroll?: () => void;
   onOpenSearch?: () => void;
   nextTooltip?: string;
-  /** Audio files have no text to search, paginate, or read aloud — text-reader
-   *  controls (search, TTS, auto-scroll, reading-mode settings) stay hidden. */
   isAudio?: boolean;
+  isComic?: boolean;
+  comicCurrentPage?: number;
+  comicTotalPages?: number;
+  onComicPageJump?: (page: number) => void;
+
+  activeImageTarget?: ActiveImageTarget | null;
+  onSaveImageBookmark?: (bookmark: Omit<ImageBookmark, "id" | "created_at">) => void;
+  onOpenQuoteCard?: (text?: string, imageUrl?: string) => void;
+  onCloseImageTarget?: () => void;
 };
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -105,16 +115,39 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   onToggleAutoScroll,
   onOpenSearch,
   isAudio = false,
+  isComic = false,
+  comicCurrentPage = 0,
+  comicTotalPages = 0,
+  onComicPageJump,
+  activeImageTarget,
+  onSaveImageBookmark,
+  onOpenQuoteCard,
+  onCloseImageTarget,
 }) => {
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
   const [soundscapeOpen, setSoundscapeOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [imageDropdownOpen, setImageDropdownOpen] = useState(false);
+  const [imageNote, setImageNote] = useState("");
+  const [copyingImage, setCopyingImage] = useState(false);
+  const [copiedImage, setCopiedImage] = useState(false);
+  const [pageInputValue, setPageInputValue] = useState<string>(String(comicCurrentPage + 1));
   const { isPlaying: isSoundscapePlaying, activeTracks } = useSoundscapeStore();
   const activeSoundscapeCount = Object.keys(activeTracks).length;
 
+  React.useEffect(() => {
+    setPageInputValue(String(comicCurrentPage + 1));
+  }, [comicCurrentPage]);
+
+  useEffect(() => {
+    if (!activeImageTarget) {
+      setImageDropdownOpen(false);
+    }
+  }, [activeImageTarget]);
+
   return (
     <header
-      className={`relative z-10 flex h-14 w-full flex-none items-center justify-between border-b px-3 sm:px-4 ${headerBg} backdrop-blur-md`}
+      className={`relative z-50 flex h-14 w-full flex-none items-center justify-between border-b px-3 sm:px-4 ${headerBg} backdrop-blur-md`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <div className="tooltip tooltip-bottom" data-tip={t("reader.toc", "Table of Contents")}>
@@ -136,7 +169,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           <button
             onClick={onPrev}
             disabled={!canGoPrev}
-            className="reader-control-btn btn btn-square btn-sm animate-none"
+            className={`reader-control-btn btn btn-square btn-sm animate-none ${!canGoPrev ? "opacity-30 cursor-not-allowed" : ""}`}
             aria-label={t("reader.prev_chapter", "Previous Chapter")}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -146,14 +179,51 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           <button
             onClick={onNext}
             disabled={!canGoNext}
-            className="reader-control-btn btn btn-square btn-sm animate-none"
+            className={`reader-control-btn btn btn-square btn-sm animate-none ${!canGoNext ? "opacity-30 cursor-not-allowed" : ""}`}
             aria-label={nextTooltip || t("reader.next_chapter", "Next Chapter")}
           >
             <ChevronLeft className="h-5 w-5 rotate-180" />
           </button>
         </div>
 
-        {onOpenSearch && !isAudio && (
+        {isComic && comicTotalPages > 0 && (
+          <div
+            className="flex items-center gap-1 bg-base-content/10 px-2 py-0.5 rounded-md text-xs font-mono font-bold select-none"
+            title={t("reader.jump_to_page", "Jump to page")}
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pageInputValue}
+              onChange={(e) => setPageInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const p = parseInt(pageInputValue, 10);
+                  if (!isNaN(p) && p >= 1 && p <= comicTotalPages) {
+                    onComicPageJump?.(p - 1);
+                    (e.target as HTMLInputElement).blur();
+                  } else {
+                    setPageInputValue(String(comicCurrentPage + 1));
+                  }
+                }
+              }}
+              onBlur={() => {
+                const p = parseInt(pageInputValue, 10);
+                if (!isNaN(p) && p >= 1 && p <= comicTotalPages) {
+                  onComicPageJump?.(p - 1);
+                } else {
+                  setPageInputValue(String(comicCurrentPage + 1));
+                }
+              }}
+              className="w-8 sm:w-10 text-center font-bold bg-transparent border-b border-base-content/40 focus:border-primary focus:outline-hidden px-0.5 py-0"
+              aria-label={t("reader.page_number", "Page Number")}
+            />
+            <span className="opacity-60">/ {comicTotalPages}</span>
+          </div>
+        )}
+
+        {onOpenSearch && !isAudio && !isComic && (
           <div className="tooltip tooltip-bottom" data-tip={t("reader.in_book_search", "Search in Book")}>
             <button
               onClick={onOpenSearch}
@@ -165,9 +235,151 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </div>
         )}
 
+        {/* Active Image Actions Button & Dropdown */}
+        {activeImageTarget && (
+          <div className="relative">
+            <div className="tooltip tooltip-bottom" data-tip={t("reader.bookmark_image", "Đánh dấu ảnh")}>
+              <button
+                type="button"
+                onClick={() => {
+                  setImageDropdownOpen(!imageDropdownOpen);
+                  if (settingsOpen) setSettingsOpen(false);
+                  if (ttsSettingsOpen) setTtsSettingsOpen(false);
+                  if (soundscapeOpen) setSoundscapeOpen(false);
+                  if (moreMenuOpen) setMoreMenuOpen(false);
+                }}
+                className={`reader-control-btn btn btn-square btn-sm animate-none relative ${
+                  imageDropdownOpen ? "text-amber-400 reader-control-btn-active" : "text-amber-400"
+                }`}
+                aria-label={t("reader.bookmark_image", "Đánh dấu ảnh")}
+              >
+                <BookmarkPlus className="h-5 w-5" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              </button>
+            </div>
+
+            {/* Dropdown Panel with Image Preview & Bookmark/Quote Actions */}
+            {imageDropdownOpen && (
+              <div
+                className="absolute right-0 mt-2 z-50 flex flex-col gap-2.5 rounded-2xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-surface-strong)] p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-32px)] w-80"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Small Image Preview */}
+                <div className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-[var(--reader-ui-soft)] border border-[var(--reader-ui-border)]">
+                  <img
+                    src={activeImageTarget.image_url}
+                    alt="Preview"
+                    className="h-16 w-16 object-cover rounded-lg border border-[var(--reader-ui-border)] shrink-0 bg-black/20"
+                  />
+                  <div className="flex-1 min-w-0 text-xs">
+                    <p className="font-semibold text-[var(--reader-ui-text)] truncate">
+                      {activeImageTarget.chapter_title || title || t("reader.image_action", "Hình ảnh minh họa")}
+                    </p>
+                    {activeImageTarget.page_index !== undefined && (
+                      <p className="text-[11px] text-[var(--reader-ui-muted)] opacity-80 mt-0.5">
+                        {t("reader.page_number", "Trang {{page}}", { page: activeImageTarget.page_index + 1 })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageDropdownOpen(false);
+                      onCloseImageTarget?.();
+                    }}
+                    className="btn btn-ghost btn-xs btn-circle text-[var(--reader-ui-muted)] hover:text-[var(--reader-ui-text)]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Actions Row */}
+                <div className="flex items-center gap-1.5 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSaveImageBookmark?.({
+                        image_url: activeImageTarget.image_url,
+                        chapter_id: activeImageTarget.chapter_id,
+                        chapter_title: activeImageTarget.chapter_title,
+                        page_index: activeImageTarget.page_index,
+                        note: imageNote.trim() || undefined,
+                      });
+                      setImageNote("");
+                      setImageDropdownOpen(false);
+                    }}
+                    className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] text-[var(--reader-ui-text)] hover:bg-[var(--reader-ui-hover)] gap-1 text-[11px] font-medium transition-colors"
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="truncate">{t("reader.bookmark", "Đánh dấu")}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setCopyingImage(true);
+                      const success = await copyImageToClipboard(activeImageTarget.image_url);
+                      setCopyingImage(false);
+                      if (success) {
+                        setCopiedImage(true);
+                        toast.success(t("reader.image_copied", "Đã sao chép ảnh vào clipboard!"));
+                        setTimeout(() => setCopiedImage(false), 2000);
+                      } else {
+                        toast.error(t("reader.image_copy_failed", "Không thể sao chép ảnh"));
+                      }
+                    }}
+                    disabled={copyingImage}
+                    className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] text-[var(--reader-ui-text)] hover:bg-[var(--reader-ui-hover)] gap-1 text-[11px] font-medium transition-colors"
+                  >
+                    {copyingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                    ) : copiedImage ? (
+                      <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    )}
+                    <span className="truncate">{copiedImage ? t("common.copied", "Đã chép") : t("common.copy", "Sao chép")}</span>
+                  </button>
+
+                  {onOpenQuoteCard && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenQuoteCard(imageNote.trim() || undefined, activeImageTarget.image_url);
+                        setImageDropdownOpen(false);
+                      }}
+                      className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-soft)] text-[var(--reader-ui-text)] hover:bg-[var(--reader-ui-hover)] gap-1 text-[11px] font-medium transition-colors"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                      <span className="truncate">{t("reader.quote", "Trích dẫn")}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Note Input */}
+                <div className="flex items-center gap-1.5 w-full bg-[var(--reader-ui-soft)] rounded-xl px-2.5 py-1 border border-[var(--reader-ui-border)]">
+                  <MessageSquarePlus className="h-3.5 w-3.5 text-[var(--reader-ui-muted)] shrink-0" />
+                  <input
+                    type="text"
+                    value={imageNote}
+                    onChange={(e) => setImageNote(e.target.value)}
+                    placeholder={t("reader.add_image_note_placeholder", "Ghi chú cho bức ảnh này...")}
+                    className="w-full bg-transparent text-xs text-[var(--reader-ui-text)] placeholder:text-[var(--reader-ui-muted)]/60 focus:outline-hidden py-0.5"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Desktop Extra Controls (Hidden on Mobile) */}
         <div className="hidden md:flex items-center gap-1">
-          {ttsSupported && !isAudio && (
+          {ttsSupported && !isAudio && !isComic && (
             <div className="relative flex items-center gap-1 border-r border-[var(--reader-ui-border)] pr-2">
               <div
                 className="tooltip tooltip-bottom"
@@ -220,7 +432,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             </div>
           )}
 
-          {!isAudio && (
+          {!isAudio && (effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon") && (
             <div className="tooltip tooltip-bottom" data-tip={t("reader.auto_scroll", "Auto Scroll")}>
               <button
                 onClick={onToggleAutoScroll}
@@ -340,7 +552,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
               </button>
 
               {/* TTS Read Aloud Item */}
-              {ttsSupported && !isAudio && (
+              {ttsSupported && !isAudio && !isComic && (
                 <div className="flex items-center justify-between rounded-xl px-3 py-2 text-sm hover:bg-current/10 transition-colors">
                   <span className="flex items-center gap-2.5 font-medium">
                     <Volume2 className="h-4 w-4" />
@@ -383,7 +595,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
               )}
 
               {/* Auto Scroll Item */}
-              {!isAudio && (
+              {!isAudio && (effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon") && (
                 <button
                   type="button"
                   onClick={() => {

@@ -1,5 +1,7 @@
-import { ProtectedRoute, UpdatePrompt } from "@/components/common";
+import { DownloadManagerPanel, ProtectedRoute, UpdatePrompt } from "@/components/common";
 import "@/i18n";
+import { queryClient } from "@/config/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AdminLayout, Books, Duplicates, OAuthSettings, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
 import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
 import { ActivateMagicCodePage } from "@/pages/auth/ActivateMagicCodePage";
@@ -184,13 +186,11 @@ function App() {
           theme="colored"
         />
         <UpdatePrompt />
+        <DownloadManagerPanel />
       </ThemeInitializer>
     </BrowserRouter>
   );
 }
-
-import { queryClient } from "@/config/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -3,15 +3,24 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 export const API_ROOT = API_BASE.replace(/\/api\/v1\/?$/, "");
 
-export function getMediaUrl(path: string, bookId?: string): string {
+export function getMediaUrl(path: string, bookId?: string, updatedAt?: string | number): string {
   if (!path) return "";
+  if (path.startsWith("blob:") || path.startsWith("data:")) return path;
   if (path.startsWith("http")) {
     const suffix = bookId ? `&book_id=${bookId}` : "";
     return `${API_BASE}/reader/proxy-cover?url=${encodeURIComponent(path)}${suffix}`;
   }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const finalPath = cleanPath.replace(/^\/data\//, '/');
-  return `${API_ROOT}${finalPath}`;
+  let url = `${API_ROOT}${finalPath}`;
+  if (updatedAt) {
+    const timeVal = typeof updatedAt === "number" ? updatedAt : new Date(updatedAt).getTime();
+    if (!isNaN(timeVal) && timeVal > 0) {
+      const sep = url.includes("?") ? "&" : "?";
+      url = `${url}${sep}t=${timeVal}`;
+    }
+  }
+  return url;
 }
 
 export function toQuery(params: Record<string, unknown>) {

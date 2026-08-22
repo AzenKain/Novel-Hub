@@ -33,6 +33,7 @@ interface ReaderState {
   pageFrameWidth: number;
   ttsVoiceName: string | null;
   ttsRate: number;
+  comicInvertColors: boolean;
 
   setBook: (book: Book | null) => void;
   setChapters: (chapters: Chapter[]) => void;
@@ -55,6 +56,7 @@ interface ReaderState {
   setPageFrameWidth: (width: number) => void;
   setTtsVoiceName: (voiceName: string | null) => void;
   setTtsRate: (rate: number) => void;
+  setComicInvertColors: (invert: boolean) => void;
   resetSettings: () => void;
   reset: () => void;
 }
@@ -87,6 +89,7 @@ const readerSettingDefaults = {
   pageAnimation: "eink" as const,
   ttsVoiceName: null as string | null,
   ttsRate: 1.0,
+  comicInvertColors: false,
 };
 
 const initialState = {
@@ -121,6 +124,7 @@ export const useReaderStore = create<ReaderState>()(
       setPageFrameWidth: (pageFrameWidth) => set({ pageFrameWidth }),
       setTtsVoiceName: (ttsVoiceName) => set({ ttsVoiceName }),
       setTtsRate: (ttsRate) => set({ ttsRate }),
+      setComicInvertColors: (comicInvertColors) => set({ comicInvertColors }),
       resetSettings: () => set(readerSettingDefaults),
       reset: () => set(sessionInitialState),
     }),
@@ -144,6 +148,7 @@ export const useReaderStore = create<ReaderState>()(
         pageAnimation: state.pageAnimation,
         ttsVoiceName: state.ttsVoiceName,
         ttsRate: state.ttsRate,
+        comicInvertColors: state.comicInvertColors,
       }),
     }
   )

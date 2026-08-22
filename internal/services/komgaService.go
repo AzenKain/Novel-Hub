@@ -22,11 +22,19 @@ type KomgaService interface {
 	GetSeries(ctx context.Context, seriesID string, claims *response.JWTClaims) (*response.KomgaSeries, error)
 	ListSeriesBooks(ctx context.Context, seriesID string, claims *response.JWTClaims) ([]response.KomgaBook, error)
 	GetBook(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.KomgaBook, error)
-	ListBookPages(ctx context.Context, bookID string, claims *response.JWTClaims) ([]response.KomgaPage, error)
-	GetBookPage(ctx context.Context, bookID string, pageNumber int, claims *response.JWTClaims) (*models.ReaderAssetEntity, error)
+	ListBookPages(ctx context.Context, bookID string, zeroBased bool, claims *response.JWTClaims) ([]response.KomgaPage, error)
+	GetBookPage(ctx context.Context, bookID string, pageNumber int, zeroBased bool, claims *response.JWTClaims) (*models.ReaderAssetEntity, error)
 	ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]response.KomgaLibrary, error)
 	SeriesProgress(ctx context.Context, seriesID string, claims *response.JWTClaims) (*response.KomgaReadProgressV2, error)
+	SeriesProgressV1(ctx context.Context, seriesID string, claims *response.JWTClaims) (*response.KomgaTachiyomiReadProgressV1, error)
 	MarkSeriesReadUpTo(ctx context.Context, seriesID string, lastNumberSort float64, claims *response.JWTClaims) error
+	GetBookReadProgress(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.KomgaBookReadProgress, error)
+	UpdateBookReadProgress(ctx context.Context, bookID string, page int, completed bool, claims *response.JWTClaims) error
+	DeleteBookReadProgress(ctx context.Context, bookID string, claims *response.JWTClaims) error
+	ListReadLists(ctx context.Context, page, size int64, claims *response.JWTClaims) (*response.KomgaPageWrapper[response.KomgaReadList], error)
+	GetReadList(ctx context.Context, readListID string, claims *response.JWTClaims) (*response.KomgaReadList, error)
+	GetReadListBooks(ctx context.Context, readListID string, claims *response.JWTClaims) ([]response.KomgaBook, error)
+	GetUserMe(ctx context.Context, claims *response.JWTClaims) (*response.KomgaUserResponse, error)
 	BookCoverPath(ctx context.Context, bookID string, claims *response.JWTClaims) (string, error)
 	SeriesCoverPath(ctx context.Context, seriesID string, claims *response.JWTClaims) (string, error)
 }
@@ -35,6 +43,8 @@ type komgaService struct {
 	repo        repositories.KomgaRepository
 	bookRepo    repositories.BookDBRepository
 	diskRepo    repositories.BookFileRepository
+	readLists   repositories.ReadListRepository
+	userRepo    repositories.UserRepository
 	bookService BookService
 	libraries   LibraryService
 	features    FeatureService
@@ -46,6 +56,8 @@ func NewKomgaService(
 	repo repositories.KomgaRepository,
 	bookRepo repositories.BookDBRepository,
 	diskRepo repositories.BookFileRepository,
+	readLists repositories.ReadListRepository,
+	userRepo repositories.UserRepository,
 	bookService BookService,
 	libraries LibraryService,
 	features FeatureService,
@@ -56,6 +68,8 @@ func NewKomgaService(
 		repo:        repo,
 		bookRepo:    bookRepo,
 		diskRepo:    diskRepo,
+		readLists:   readLists,
+		userRepo:    userRepo,
 		bookService: bookService,
 		libraries:   libraries,
 		features:    features,
@@ -337,7 +351,7 @@ func (s *komgaService) GetBook(ctx context.Context, bookID string, claims *respo
 	return &dto, nil
 }
 
-func (s *komgaService) ListBookPages(ctx context.Context, bookID string, claims *response.JWTClaims) ([]response.KomgaPage, error) {
+func (s *komgaService) ListBookPages(ctx context.Context, bookID string, zeroBased bool, claims *response.JWTClaims) ([]response.KomgaPage, error) {
 	if _, _, err := s.accessibleBook(ctx, bookID, claims); err != nil {
 		return nil, err
 	}
@@ -347,8 +361,12 @@ func (s *komgaService) ListBookPages(ctx context.Context, bookID string, claims 
 	}
 	pages := make([]response.KomgaPage, 0, len(images))
 	for i, name := range images {
+		num := i + 1
+		if zeroBased {
+			num = i
+		}
 		pages = append(pages, response.KomgaPage{
-			Number:    i + 1,
+			Number:    num,
 			FileName:  path.Base(name),
 			MediaType: komgaImageMediaType(name),
 		})
@@ -373,8 +391,8 @@ func komgaImageMediaType(name string) string {
 	}
 }
 
-// Page numbers are 1-based, unlike the ?page= query parameter on the series list.
-func (s *komgaService) GetBookPage(ctx context.Context, bookID string, pageNumber int, claims *response.JWTClaims) (*models.ReaderAssetEntity, error) {
+// Page numbers are 1-based by default, or 0-based if requested via zeroBased=true.
+func (s *komgaService) GetBookPage(ctx context.Context, bookID string, pageNumber int, zeroBased bool, claims *response.JWTClaims) (*models.ReaderAssetEntity, error) {
 	if _, _, err := s.accessibleBook(ctx, bookID, claims); err != nil {
 		return nil, err
 	}
@@ -382,10 +400,14 @@ func (s *komgaService) GetBookPage(ctx context.Context, bookID string, pageNumbe
 	if err != nil {
 		return nil, err
 	}
-	if pageNumber < 1 || pageNumber > len(images) {
+	idx := pageNumber - 1
+	if zeroBased {
+		idx = pageNumber
+	}
+	if idx < 0 || idx >= len(images) {
 		return nil, apperrors.New(apperrors.ErrNotFound, "Page not found")
 	}
-	return s.bookService.GetAsset(ctx, bookID, images[pageNumber-1], "")
+	return s.bookService.GetAsset(ctx, bookID, images[idx], "")
 }
 
 func (s *komgaService) ListLibraries(ctx context.Context, claims *response.JWTClaims) ([]response.KomgaLibrary, error) {
@@ -536,4 +558,262 @@ func (s *komgaService) pageNames(ctx context.Context, bookID string) ([]string, 
 		_ = s.cache.Set(ctx, key, images, constants.NormalCacheDuration)
 	}
 	return images, nil
+}
+
+func (s *komgaService) GetUserMe(ctx context.Context, claims *response.JWTClaims) (*response.KomgaUserResponse, error) {
+	roles := []string{"FILE_DOWNLOAD", "PAGE_STREAMING"}
+	for _, r := range claims.Roles {
+		if strings.EqualFold(string(r), "ADMIN") || strings.EqualFold(string(r), "SUPERADMIN") {
+			roles = append(roles, "ADMIN")
+			break
+		}
+	}
+	libs, err := s.syncableLibraryIDs(ctx, claims)
+	if err != nil {
+		return nil, err
+	}
+	email := claims.Subject
+	if s.userRepo != nil {
+		if u, err := s.userRepo.GetByID(ctx, claims.UId); err == nil && u != nil && u.Email != "" {
+			email = u.Email
+		}
+	}
+	if email == "" {
+		email = claims.UId + "@novelhub.local"
+	}
+	return &response.KomgaUserResponse{
+		ID:    claims.UId,
+		Email: email,
+		Roles: roles,
+		SharedLibraries: response.KomgaSharedLibraries{
+			All:        len(libs) > 0,
+			LibraryIDs: libs,
+		},
+		LabelsAllow:    []string{},
+		LabelsExclude:  []string{},
+		AgeRestriction: nil,
+	}, nil
+}
+
+func (s *komgaService) SeriesProgressV1(ctx context.Context, seriesID string, claims *response.JWTClaims) (*response.KomgaTachiyomiReadProgressV1, error) {
+	v2, err := s.SeriesProgress(ctx, seriesID, claims)
+	if err != nil {
+		return nil, err
+	}
+	return &response.KomgaTachiyomiReadProgressV1{
+		BooksCount:             v2.BooksCount,
+		Logged:                 true,
+		LastBookNumberSortRead: v2.LastReadContinuousNumberSrt,
+	}, nil
+}
+
+func (s *komgaService) GetBookReadProgress(ctx context.Context, bookID string, claims *response.JWTClaims) (*response.KomgaBookReadProgress, error) {
+	if _, _, err := s.accessibleBook(ctx, bookID, claims); err != nil {
+		return nil, err
+	}
+	images, err := s.pageNames(ctx, bookID)
+	if err != nil {
+		return nil, err
+	}
+	totalPages := len(images)
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	progress, err := s.features.GetReadingProgress(ctx, claims.UId, bookID)
+	if err != nil || progress == nil {
+		now := time.Now().UTC().Format(komgaTimeFormat)
+		return &response.KomgaBookReadProgress{
+			Page:         1,
+			Completed:    false,
+			ReadDate:     nil,
+			Created:      now,
+			LastModified: now,
+		}, nil
+	}
+
+	percent := 0.0
+	if progress.ProgressPercent != nil {
+		percent = *progress.ProgressPercent
+	}
+	page := int(math.Round(percent * float64(totalPages) / 100.0))
+	if page < 1 {
+		page = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	completed := percent >= 99.0
+	var readDate *string
+	if progress.UpdatedAt != nil {
+		rd := progress.UpdatedAt.UTC().Format(komgaTimeFormat)
+		readDate = &rd
+	}
+	now := time.Now().UTC().Format(komgaTimeFormat)
+	return &response.KomgaBookReadProgress{
+		Page:         page,
+		Completed:    completed,
+		ReadDate:     readDate,
+		Created:      now,
+		LastModified: now,
+	}, nil
+}
+
+func (s *komgaService) UpdateBookReadProgress(ctx context.Context, bookID string, page int, completed bool, claims *response.JWTClaims) error {
+	book, ref, err := s.accessibleBook(ctx, bookID, claims)
+	if err != nil {
+		return err
+	}
+	images, err := s.pageNames(ctx, bookID)
+	if err != nil {
+		return err
+	}
+	totalPages := len(images)
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	percent := 100.0
+	if !completed {
+		if page < 1 {
+			page = 1
+		}
+		percent = (float64(page) / float64(totalPages)) * 100.0
+		if percent > 100.0 {
+			percent = 100.0
+		}
+	}
+
+	chapterID, chapterTitle := s.firstChapter(ctx, book.ID)
+	if chapterID == "" {
+		chapterID = book.ID
+		chapterTitle = book.Title
+	}
+
+	_, err = s.features.RecordReadingActivity(ctx, models.ReadingActivityInput{
+		UserID:          claims.UId,
+		BookID:          book.ID,
+		ChapterID:       chapterID,
+		ChapterTitle:    chapterTitle,
+		ProgressPercent: &percent,
+		EventType:       "progress",
+	}, claims)
+	if err != nil {
+		return err
+	}
+	if ref != nil && ref.SeriesID != "" {
+		_ = s.repo.InvalidateSeriesProgress(ctx, claims.UId, ref.SeriesID)
+	}
+	return nil
+}
+
+func (s *komgaService) DeleteBookReadProgress(ctx context.Context, bookID string, claims *response.JWTClaims) error {
+	book, ref, err := s.accessibleBook(ctx, bookID, claims)
+	if err != nil {
+		return err
+	}
+	zero := 0.0
+	chapterID, chapterTitle := s.firstChapter(ctx, book.ID)
+	if chapterID == "" {
+		chapterID = book.ID
+		chapterTitle = book.Title
+	}
+	_, err = s.features.RecordReadingActivity(ctx, models.ReadingActivityInput{
+		UserID:          claims.UId,
+		BookID:          book.ID,
+		ChapterID:       chapterID,
+		ChapterTitle:    chapterTitle,
+		ProgressPercent: &zero,
+		EventType:       "progress",
+	}, claims)
+	if err != nil {
+		return err
+	}
+	if ref != nil && ref.SeriesID != "" {
+		_ = s.repo.InvalidateSeriesProgress(ctx, claims.UId, ref.SeriesID)
+	}
+	return nil
+}
+
+func (s *komgaService) ListReadLists(ctx context.Context, page, size int64, claims *response.JWTClaims) (*response.KomgaPageWrapper[response.KomgaReadList], error) {
+	if s.readLists == nil {
+		return &response.KomgaPageWrapper[response.KomgaReadList]{Empty: true, First: true, Last: true, TotalPages: 1}, nil
+	}
+	if size <= 0 || size > 100 {
+		size = 20
+	}
+	lists, err := s.readLists.GetUserReadLists(ctx, claims.UId, nil, "", size)
+	if err != nil {
+		return nil, err
+	}
+	content := make([]response.KomgaReadList, 0, len(lists))
+	for _, l := range lists {
+		bookIDs, _ := s.readLists.GetReadListBookIDs(ctx, l.ID)
+		created := l.CreatedAt.UTC().Format(komgaTimeFormat)
+		updated := l.UpdatedAt.UTC().Format(komgaTimeFormat)
+		content = append(content, response.KomgaReadList{
+			ID:               l.ID,
+			Name:             l.Name,
+			Summary:          l.Description,
+			Ordered:          true,
+			BookIDs:          bookIDs,
+			CreatedDate:      created,
+			LastModifiedDate: updated,
+			Filtered:         false,
+		})
+	}
+	total := int64(len(content))
+	return &response.KomgaPageWrapper[response.KomgaReadList]{
+		Content:          content,
+		Empty:            total == 0,
+		First:            true,
+		Last:             true,
+		Number:           page,
+		NumberOfElements: total,
+		Size:             size,
+		TotalElements:    total,
+		TotalPages:       1,
+	}, nil
+}
+
+func (s *komgaService) GetReadList(ctx context.Context, readListID string, claims *response.JWTClaims) (*response.KomgaReadList, error) {
+	if s.readLists == nil {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Read list not found")
+	}
+	lists, err := s.readLists.GetReadListsByIDs(ctx, []string{readListID})
+	if err != nil || len(lists) == 0 || lists[0] == nil {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Read list not found")
+	}
+	l := lists[0]
+	bookIDs, _ := s.readLists.GetReadListBookIDs(ctx, l.ID)
+	created := l.CreatedAt.UTC().Format(komgaTimeFormat)
+	updated := l.UpdatedAt.UTC().Format(komgaTimeFormat)
+	return &response.KomgaReadList{
+		ID:               l.ID,
+		Name:             l.Name,
+		Summary:          l.Description,
+		Ordered:          true,
+		BookIDs:          bookIDs,
+		CreatedDate:      created,
+		LastModifiedDate: updated,
+		Filtered:         false,
+	}, nil
+}
+
+func (s *komgaService) GetReadListBooks(ctx context.Context, readListID string, claims *response.JWTClaims) ([]response.KomgaBook, error) {
+	if s.readLists == nil {
+		return []response.KomgaBook{}, nil
+	}
+	bookIDs, err := s.readLists.GetReadListBookIDs(ctx, readListID)
+	if err != nil || len(bookIDs) == 0 {
+		return []response.KomgaBook{}, nil
+	}
+	books := make([]response.KomgaBook, 0, len(bookIDs))
+	for _, id := range bookIDs {
+		b, err := s.GetBook(ctx, id, claims)
+		if err == nil && b != nil {
+			books = append(books, *b)
+		}
+	}
+	return books, nil
 }

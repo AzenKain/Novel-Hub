@@ -5,10 +5,10 @@ import { getMediaUrl } from "@/config/api";
 import { BOOK_FILE_ACCEPT } from "@/constants";
 import { useBooksQuery, useCalibreImportMutation, useCreateLibraryMutation, useDebounce, useDeleteLibraryMutation, useLibrariesQuery, useUpdateLibraryMutation } from "@/hooks";
 import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetail";
-import { useAuthStore, useBookAdminStore } from "@/stores";
+import { useAuthStore, useBookAdminStore, useDownloadManagerStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines, Layers, Plus } from "lucide-react";
+import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines, Layers, Plus, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -168,7 +168,11 @@ export function Books() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => void refetch()}
+            onClick={async () => {
+              await queryClient.invalidateQueries({ queryKey: ["books"] });
+              await refetch();
+              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title={t("settings.refresh", "Refresh list")}
             disabled={isFetching}
@@ -285,6 +289,30 @@ export function Books() {
                   {t("audiobook.merge", "Merge into audiobook")}
                 </button>
               )}
+              <button
+                onClick={() => {
+                  const booksWithFiles = selectedBooks.filter(b => b.files && b.files.length > 0);
+                  if (booksWithFiles.length === 0) return;
+                  const { addBulkDownloads, open } = useDownloadManagerStore.getState();
+                  addBulkDownloads(
+                    booksWithFiles.map(book => ({
+                      bookId: book.id,
+                      title: book.title,
+                      coverUrl: book.cover_url,
+                      format: book.files?.[0]?.format || 'EPUB',
+                      sizeBytes: book.files?.[0]?.size_bytes,
+                    })),
+                    false
+                  );
+                  open();
+                  toast.success(t('admin.bulk_download_started', 'Added {{count}} books to download queue', { count: booksWithFiles.length }));
+                }}
+                className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                disabled={!selectedBooks.some(b => b.files && b.files.length > 0)}
+              >
+                <Download className="w-3.5 h-3.5" />
+                {t('admin.bulk_download', 'Bulk Download')}
+              </button>
               <button
                 onClick={() => setShowBulkEditModal(true)}
                 className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
@@ -403,7 +431,7 @@ export function Books() {
                               <div className="w-10 h-14 bg-base-300 rounded shadow-xs overflow-hidden shrink-0 relative flex items-center justify-center">
                                 {book.cover_url ? (
                                   <img
-                                    src={getMediaUrl(book.cover_url)}
+                                    src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
                                     alt={book.title}
                                     className="w-full h-full object-cover"
                                   />
@@ -525,6 +553,19 @@ export function Books() {
           setActionBook(null);
           setMergeBook(book);
         }}
+        onDownload={(book) => {
+          if (!book.files?.length) return;
+          const { addDownload, open } = useDownloadManagerStore.getState();
+          addDownload({
+            bookId: book.id,
+            fileId: book.files[0]?.id,
+            title: book.title,
+            coverUrl: book.cover_url,
+            format: book.files[0]?.format || 'EPUB',
+            sizeBytes: book.files[0]?.size_bytes,
+          });
+          open();
+        }}
       />
 
       {/* ===================== EDIT METADATA MODAL ===================== */}
@@ -551,7 +592,16 @@ export function Books() {
                 <div className="flex flex-col items-center gap-2 p-3.5 bg-base-200/30 border border-base-200 rounded-xl">
                   <div className="w-44 aspect-[3/4.12] rounded-xl bg-base-300 border border-base-300 overflow-hidden shadow-md flex items-center justify-center">
                     {coverPreview ? (
-                      <img src={getMediaUrl(coverPreview, editingBook?.id)} alt="Cover" loading="lazy" className="w-full h-full object-cover" />
+                      <img
+                        src={
+                          coverPreview.startsWith("blob:") || coverPreview.startsWith("http")
+                            ? coverPreview
+                            : getMediaUrl(coverPreview, editingBook?.id, editingBook?.updated_at)
+                        }
+                        alt="Cover"
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-base-content/30 gap-1.5">
                         <ImageIcon size={28} />
@@ -969,21 +1019,28 @@ export function Books() {
 
       <DeleteConfirmModal
         open={Boolean(libraryToDelete)}
-        title="Delete Library"
+        title={t("admin.delete_library_title", "Xoá thư viện vĩnh viễn")}
+        expectedConfirmationText={libraryToDelete?.name}
         message={
-          <>
-            Are you sure you want to delete library{" "}
-            <strong>{libraryToDelete?.name}</strong>? All associated books in
-            this library will be detached or deleted.
-          </>
+          <div className="space-y-2.5">
+            <p>
+              {t(
+                "admin.delete_library_confirm_msg",
+                "Bạn có chắc chắn muốn xoá thư viện {{name}}?",
+                { name: libraryToDelete?.name }
+              )}
+            </p>
+            <div className="rounded-xl bg-error/10 border border-error/20 p-3 text-xs text-error font-medium leading-relaxed">
+              ⚠️ <strong>{t("admin.danger_warning", "Cảnh báo nguy hiểm:")}</strong> {t("admin.delete_library_danger_desc", "Tiến trình sẽ xoá ngầm toàn bộ sách, chương, tệp tin và dữ liệu đọc thuộc thư viện này. Dữ liệu KHÔNG THỂ khôi phục!")}
+            </div>
+          </div>
         }
         onClose={() => setLibraryToDelete(null)}
         onConfirm={() => {
           if (libraryToDelete) {
             deleteLibraryMutation.mutate(libraryToDelete.id, {
               onSuccess: () => {
-                toast.success(t("admin.library_deleted", "Library deleted"));
-                // The deleted library may be the one being filtered or uploaded into.
+                toast.success(t("admin.library_delete_queued", "Đã tiếp nhận yêu cầu xoá thư viện. Tiến trình đang chạy ngầm."));
                 if (selectedLibraryId === libraryToDelete.id) setSelectedLibraryId("");
                 if (uploadLibraryId === libraryToDelete.id) setUploadLibraryId("");
               },

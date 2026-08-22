@@ -2,6 +2,7 @@ import type React from "react";
 import { type RefObject } from "react";
 
 import type { Chapter } from "@/types";
+import { getSideTapRatio } from "@/constants";
 
 type UseReaderNavigationArgs = {
   columnsRef: RefObject<HTMLDivElement | null>;
@@ -11,6 +12,11 @@ type UseReaderNavigationArgs = {
   loadChapter: (chapter: Chapter) => void | Promise<void>;
   getPagedScrollMetrics: () => { container: Element; scrollStep: number; maxIndex: number } | undefined;
   scrollToPageIndex: (targetIndex: number, instant?: boolean) => void;
+  onPagePrev?: () => void;
+  onPageNext?: () => void;
+  rtlPaging?: boolean;
+  onCenterClick?: () => void;
+  onImageClick?: (target: { image_url: string; x: number; y: number }) => void;
 };
 
 /**
@@ -18,7 +24,10 @@ type UseReaderNavigationArgs = {
  * links, and the API `/chapter/` and `/asset/` URLs the backend rewrites hrefs
  * into. Also resolves a fragment to a scroll position or page.
  *
- * Extracted verbatim from ReaderWorkspace — behaviour is unchanged.
+ * In paged mode (single/double), supports 1/3 click zones:
+ * - Left 33%: Previous page
+ * - Right 33%: Next page
+ * - Center 33%: Center tap
  */
 export function useReaderNavigation({
   columnsRef,
@@ -28,6 +37,11 @@ export function useReaderNavigation({
   loadChapter,
   getPagedScrollMetrics,
   scrollToPageIndex,
+  onPagePrev,
+  onPageNext,
+  rtlPaging = false,
+  onCenterClick,
+  onImageClick,
 }: UseReaderNavigationArgs) {
   const scrollToFragment = (fragment: string) => {
     const normalized = fragment.trim();
@@ -106,6 +120,57 @@ export function useReaderNavigation({
           }
         }
       }
+    }
+
+    // In paged mode (single/double):
+    // On large screens (>= 1024px): tap-to-turn is disabled (0%), clicking content triggers center click / selection
+    // On smaller screens (< 1024px down to mobile): side tap zones scale gradually up to 30%
+    if (!scrollLayout) {
+      // Don't turn pages if user is selecting text
+      const selection = window.getSelection()?.toString().trim();
+      if (selection) return;
+
+      // Don't turn pages if clicking interactive buttons, inputs, or toolbars
+      if (target.closest("button, input, textarea, select, [data-reader-toolbar]")) return;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const screenWidth = typeof window !== "undefined" ? window.innerWidth : rect.width;
+      const sideRatio = getSideTapRatio(screenWidth);
+
+      if (sideRatio > 0) {
+        const clickRatio = (e.clientX - rect.left) / rect.width;
+        if (clickRatio < sideRatio) {
+          if (rtlPaging) {
+            onPageNext?.();
+          } else {
+            onPagePrev?.();
+          }
+          return;
+        }
+        if (clickRatio > 1 - sideRatio) {
+          if (rtlPaging) {
+            onPagePrev?.();
+          } else {
+            onPageNext?.();
+          }
+          return;
+        }
+      }
+
+      if (target.tagName.toLowerCase() === "img") {
+        const img = target as HTMLImageElement;
+        const src = img.currentSrc || img.src;
+        if (src) {
+          onImageClick?.({
+            image_url: src,
+            x: e.clientX,
+            y: e.clientY,
+          });
+          return;
+        }
+      }
+
+      onCenterClick?.();
     }
   };
 

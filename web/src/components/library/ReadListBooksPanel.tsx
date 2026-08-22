@@ -1,6 +1,6 @@
 import { getMediaUrl } from "@/config/api";
 import type { ReadListBook } from "@/types";
-import { BookOpen, ChevronDown, ChevronUp, GripVertical, Play, Trash2 } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, GripVertical, Play, Trash2, Download } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,7 @@ type ReadListBooksPanelProps = {
   onRemove: (bookId: string) => void;
   onOpenBook: (bookId: string) => void;
   onReadInOrder: () => void;
+  onDownloadAll?: () => void;
 };
 
 // The server rejects an order that does not name every stored book, so a move always sends the whole
@@ -31,6 +32,7 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
   onRemove,
   onOpenBook,
   onReadInOrder,
+  onDownloadAll,
 }) => {
   const { t } = useTranslation();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -69,10 +71,18 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <button className="btn btn-primary btn-sm w-fit gap-1.5 rounded-xl" onClick={onReadInOrder}>
-        <Play className="h-4 w-4" />
-        {t("library.readlist_read_in_order", "Read in order")}
-      </button>
+      <div className="flex items-center gap-2">
+        <button className="btn btn-primary btn-sm w-fit gap-1.5 rounded-xl" onClick={onReadInOrder}>
+          <Play className="h-4 w-4" />
+          {t("library.readlist_read_in_order", "Read in order")}
+        </button>
+        {onDownloadAll && (
+          <button className="btn btn-outline btn-sm w-fit gap-1.5 rounded-xl" onClick={onDownloadAll}>
+            <Download className="h-4 w-4" />
+            {t("library.download_all", "Download All")}
+          </button>
+        )}
+      </div>
 
       <ul className="flex flex-col gap-2">
         {books.map((entry, index) => {

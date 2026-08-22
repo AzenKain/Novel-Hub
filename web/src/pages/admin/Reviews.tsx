@@ -3,11 +3,14 @@ import { useReviewAdminStore } from "@/stores";
 import { AlertCircle, Loader2, MessageSquareText, RefreshCw, Star, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { useShallow } from "zustand/react/shallow";
+import { DiscordMarkdown } from "@/components/common";
 
 export function Reviews() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const {
     reviews, setReviews,
     loading, setLoading,
@@ -26,7 +29,7 @@ export function Reviews() {
     reset: state.reset
   })));
 
-  const { data: pageData, isLoading, refetch } = useReviewsQuery(page);
+  const { data: pageData, isLoading, isFetching, refetch } = useReviewsQuery(page);
   const deleteReviewMutation = useDeleteReviewMutation();
 
   useEffect(() => {
@@ -101,14 +104,17 @@ export function Reviews() {
           <p className="text-sm text-base-content/60 mt-1">{t("admin.review_moderation_desc", "View and manage all user reviews")}</p>
         </div>
         <button
-          onClick={() => {
+          onClick={async () => {
             setPage(0);
-            void refetch();
+            await queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+            await refetch();
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("admin.operations.refresh", "Refresh")}
+          disabled={isFetching}
         >
-          <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`} />
         </button>
       </header>
 
@@ -145,9 +151,9 @@ export function Reviews() {
                         <span className="text-xs font-semibold text-base-content/70">{review.rating}/5</span>
                       </div>
                       {review.review ? (
-                        <p className="text-sm text-base-content leading-relaxed whitespace-pre-wrap break-words">
-                          {review.review}
-                        </p>
+                        <div className="text-sm text-base-content leading-relaxed">
+                          <DiscordMarkdown content={review.review} />
+                        </div>
                       ) : (
                         <p className="text-sm italic text-base-content/60">Rating only</p>
                       )}

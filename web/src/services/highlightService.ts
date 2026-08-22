@@ -33,9 +33,12 @@ export const highlightService = {
     }
   },
 
-  async getHighlights(chapter_id: string): Promise<CommonResponse<Highlight[]>> {
+  async getHighlights(chapter_id?: string, book_id?: string): Promise<CommonResponse<Highlight[]>> {
     try {
-      const res = await api.get(`/highlights?chapter_id=${chapter_id}`);
+      const params = new URLSearchParams();
+      if (chapter_id) params.append("chapter_id", chapter_id);
+      if (book_id) params.append("book_id", book_id);
+      const res = await api.get(`/highlights?${params.toString()}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

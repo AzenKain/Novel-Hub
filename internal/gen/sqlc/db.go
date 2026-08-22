@@ -744,6 +744,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listBookIDsStmt, err = db.PrepareContext(ctx, listBookIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBookIDs: %w", err)
 	}
+	if q.listBookIDsByLibraryStmt, err = db.PrepareContext(ctx, listBookIDsByLibrary); err != nil {
+		return nil, fmt.Errorf("error preparing query ListBookIDsByLibrary: %w", err)
+	}
 	if q.listBookReviewCompositeKeysStmt, err = db.PrepareContext(ctx, listBookReviewCompositeKeys); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBookReviewCompositeKeys: %w", err)
 	}
@@ -2381,6 +2384,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listBookIDsStmt: %w", cerr)
 		}
 	}
+	if q.listBookIDsByLibraryStmt != nil {
+		if cerr := q.listBookIDsByLibraryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listBookIDsByLibraryStmt: %w", cerr)
+		}
+	}
 	if q.listBookReviewCompositeKeysStmt != nil {
 		if cerr := q.listBookReviewCompositeKeysStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listBookReviewCompositeKeysStmt: %w", cerr)
@@ -3380,6 +3388,7 @@ type Queries struct {
 	listAuditLogsStmt                  *sql.Stmt
 	listAuthorsWithCountStmt           *sql.Stmt
 	listBookIDsStmt                    *sql.Stmt
+	listBookIDsByLibraryStmt           *sql.Stmt
 	listBookReviewCompositeKeysStmt    *sql.Stmt
 	listBookReviewsStmt                *sql.Stmt
 	listBooksTitleAuthorStmt           *sql.Stmt
@@ -3770,6 +3779,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listAuditLogsStmt:                  q.listAuditLogsStmt,
 		listAuthorsWithCountStmt:           q.listAuthorsWithCountStmt,
 		listBookIDsStmt:                    q.listBookIDsStmt,
+		listBookIDsByLibraryStmt:           q.listBookIDsByLibraryStmt,
 		listBookReviewCompositeKeysStmt:    q.listBookReviewCompositeKeysStmt,
 		listBookReviewsStmt:                q.listBookReviewsStmt,
 		listBooksTitleAuthorStmt:           q.listBooksTitleAuthorStmt,

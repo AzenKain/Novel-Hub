@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { getMediaUrl } from "@/config/api";
 import {
   User,
   Shield,
@@ -215,7 +216,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="avatar">
                   <div className="w-16 h-16 rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-base-100 overflow-hidden bg-base-300">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt={fullName || user?.email} />
+                      <img src={getMediaUrl(avatarUrl, undefined, user?.updated_at)} alt={fullName || user?.email} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center font-bold text-xl text-base-content/60">
                         {(fullName || user?.email || "U").charAt(0).toUpperCase()}

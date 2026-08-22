@@ -5,6 +5,7 @@ import { useDuplicatesQuery, useDeleteBookFileMutation } from "@/hooks";
 import { getMediaUrl } from "@/config/api";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ConfirmState =
   | { type: "single"; file_id: string; title: string }
@@ -14,7 +15,8 @@ type ConfirmState =
 
 export const Duplicates: React.FC = () => {
   const { t } = useTranslation();
-  const { data: duplicateGroups = [], isLoading: loading, refetch } = useDuplicatesQuery();
+  const queryClient = useQueryClient();
+  const { data: duplicateGroups = [], isLoading: loading, isFetching, refetch } = useDuplicatesQuery();
   const deleteFileMutation = useDeleteBookFileMutation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -172,11 +174,16 @@ export const Duplicates: React.FC = () => {
             <span className="font-bold text-warning">{formatSize(wastedBytes)}</span>
           </div>
           <button
-            onClick={() => void refetch()}
+            onClick={async () => {
+              await queryClient.invalidateQueries({ queryKey: ["admin", "duplicates"] });
+              await refetch();
+              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title={t("settings.refresh", "Refresh")}
+            disabled={isFetching}
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`} />
           </button>
         </div>
       </header>
@@ -280,7 +287,7 @@ export const Duplicates: React.FC = () => {
                             {/* Cover Thumbnail */}
                             {file.book_cover_url ? (
                               <img
-                                src={getMediaUrl(file.book_cover_url)}
+                                src={getMediaUrl(file.book_cover_url, file.book_id)}
                                 alt={file.book_title}
                                 className="w-12 h-16 object-cover rounded-lg shadow-sm border border-base-300 shrink-0"
                               />

@@ -120,7 +120,8 @@ func (ctrl *KomgaController) ListBookPages(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	pages, err := ctrl.komgaService.ListBookPages(ctx, c.Params("bookId"), claims)
+	zeroBased := c.Query("zero_based") == "true"
+	pages, err := ctrl.komgaService.ListBookPages(ctx, c.Params("bookId"), zeroBased, claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -139,7 +140,8 @@ func (ctrl *KomgaController) GetBookPage(c fiber.Ctx) error {
 	if convErr != nil {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Invalid page number"))
 	}
-	asset, err := ctrl.komgaService.GetBookPage(ctx, c.Params("bookId"), pageNumber, claims)
+	zeroBased := c.Query("zero_based") == "true"
+	asset, err := ctrl.komgaService.GetBookPage(ctx, c.Params("bookId"), pageNumber, zeroBased, claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -226,4 +228,139 @@ func (ctrl *KomgaController) GetBookThumbnail(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 	return c.SendFile(path)
+}
+
+func (ctrl *KomgaController) GetUserMe(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	res, err := ctrl.komgaService.GetUserMe(ctx, claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(res)
+}
+
+func (ctrl *KomgaController) GetSeriesProgressV1(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	res, err := ctrl.komgaService.SeriesProgressV1(ctx, c.Params("seriesId"), claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(res)
+}
+
+func (ctrl *KomgaController) GetBookReadProgress(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	res, err := ctrl.komgaService.GetBookReadProgress(ctx, c.Params("bookId"), claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(res)
+}
+
+func (ctrl *KomgaController) UpdateBookReadProgress(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	var payload response.KomgaBookReadProgressUpdate
+	if err := jsonx.Unmarshal(c.Body(), &payload); err != nil {
+		return apperrors.HandleError(c, apperrors.New(apperrors.ErrBadRequest, "Invalid read progress payload"))
+	}
+	if err := ctrl.komgaService.UpdateBookReadProgress(ctx, c.Params("bookId"), payload.Page, payload.Completed, claims); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (ctrl *KomgaController) DeleteBookReadProgress(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	if err := ctrl.komgaService.DeleteBookReadProgress(ctx, c.Params("bookId"), claims); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (ctrl *KomgaController) ListReadLists(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	page, _ := strconv.ParseInt(c.Query("page", "0"), 10, 64)
+	size, _ := strconv.ParseInt(c.Query("size", "20"), 10, 64)
+	res, err := ctrl.komgaService.ListReadLists(ctx, page, size, claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(res)
+}
+
+func (ctrl *KomgaController) GetReadList(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	res, err := ctrl.komgaService.GetReadList(ctx, c.Params("readListId"), claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	return c.JSON(res)
+}
+
+func (ctrl *KomgaController) GetReadListBooks(c fiber.Ctx) error {
+	ctx, cancel := komgaContext()
+	defer cancel()
+
+	claims, err := ctrl.claims(c)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	books, err := ctrl.komgaService.GetReadListBooks(ctx, c.Params("readListId"), claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	count := int64(len(books))
+	return c.JSON(response.KomgaPageWrapper[response.KomgaBook]{
+		Content:          books,
+		Empty:            count == 0,
+		First:            true,
+		Last:             true,
+		Number:           0,
+		NumberOfElements: count,
+		Size:             count,
+		TotalElements:    count,
+		TotalPages:       1,
+	})
 }

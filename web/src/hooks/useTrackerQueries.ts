@@ -51,7 +51,7 @@ export function useTrackerReadingProgressQuery(book_id: string) {
     queryKey: ["trackerReadingProgress", book_id],
     queryFn: async () => {
       const res = await featureService.getReadingProgress(book_id);
-      return res.status ? res.data : null;
+      return (res && res.status && res.data) ? res.data : null;
     },
     enabled: !!book_id,
     staleTime: 0,

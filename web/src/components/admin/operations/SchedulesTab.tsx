@@ -12,9 +12,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { ConfirmModal } from "@/components/common";
+import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function SchedulesTab() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const schedules = useSchedulesQuery();
   const tasks = useJobTasksQuery();
   const save = useSaveScheduleMutation();
@@ -126,6 +129,22 @@ export function SchedulesTab() {
           </div>
         </div>
       )}
+      <div className="flex justify-end">
+        <button
+          className="btn btn-sm btn-ghost gap-1.5"
+          disabled={schedules.isFetching}
+          onClick={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin", "schedules"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
+            await Promise.all([schedules.refetch(), tasks.refetch()]);
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+          }}
+          title={t("admin.operations.refresh")}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${schedules.isFetching ? "animate-spin" : ""}`} />
+          <span>{t("admin.operations.refresh")}</span>
+        </button>
+      </div>
       <div className="overflow-x-auto bg-base-100 rounded-box shadow-sm">
         <table className="table table-sm">
           <thead>

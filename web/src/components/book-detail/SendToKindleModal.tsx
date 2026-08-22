@@ -119,7 +119,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
             </div>
           </div>
           <button
-            className="btn btn-ghost btn-circle btn-sm"
+            className="btn btn-ghost btn-circle btn-sm text-base-content hover:bg-base-200 border border-base-300 shadow-xs"
             onClick={onClose}
             aria-label={t("common.close", "Close")}
           >

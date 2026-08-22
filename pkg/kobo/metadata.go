@@ -87,6 +87,22 @@ type ContributorRole struct {
 	Name string `json:"Name"`
 }
 
+// TagItem represents a book item inside a Kobo Collection/UserTag.
+type TagItem struct {
+	BookID    string `json:"BookId"`
+	DateAdded string `json:"DateAdded"`
+}
+
+// Tag represents a Kobo UserTag (Collection / Shelf on the eReader).
+type Tag struct {
+	ID           string    `json:"Id"`
+	Name         string    `json:"Name"`
+	Type         string    `json:"Type"`
+	Items        []TagItem `json:"Items"`
+	Created      string    `json:"Created"`
+	LastModified string    `json:"LastModified"`
+}
+
 // BookEntitlement is the device's record that a user owns a book. Field set and values are
 // calibre-web's create_book_entitlement().
 type BookEntitlement struct {

@@ -1,8 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Star, MessageSquare, Trash2, Send, Loader2 } from "lucide-react";
+import {
+  Star,
+  MessageSquare,
+  Trash2,
+  Send,
+  Loader2,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough as StrikeIcon,
+  Code,
+  Quote,
+  Eye,
+  EyeOff,
+  Sparkles,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ConfirmModal } from "@/components/common";
+import { ConfirmModal, DiscordMarkdown } from "@/components/common";
 import { adminService, featureService } from "@/services";
 import { useAuthStore } from "@/stores";
 import type { BookReview } from "@/types";
@@ -23,9 +38,38 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
   const [rating, setRating] = useState(userReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState(userReview?.review || "");
+  const [isPreview, setIsPreview] = useState(false);
   const [isDeleteReviewOpen, setIsDeleteReviewOpen] = useState(false);
   const [deleteReviewUserId, setDeleteReviewUserId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const applyFormat = (prefix: string, suffix = prefix, placeholder = "nội dung") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = textarea.value;
+
+    let selectedText = currentVal.substring(start, end);
+    if (!selectedText) {
+      selectedText = placeholder;
+    }
+
+    const before = currentVal.substring(0, start);
+    const after = currentVal.substring(end);
+    const newVal = `${before}${prefix}${selectedText}${suffix}${after}`;
+
+    setReviewText(newVal);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorStart = start + prefix.length;
+      const newCursorEnd = newCursorStart + selectedText.length;
+      textarea.setSelectionRange(newCursorStart, newCursorEnd);
+    }, 10);
+  };
 
   const handleConfirmDeleteReview = async () => {
     if (!deleteReviewUserId) return;
@@ -145,34 +189,152 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
               ))}
             </div>
             
-            <div className="relative">
-              <textarea
-                className="textarea textarea-bordered bg-base-100 w-full resize-none h-32 text-base focus:outline-none focus:ring-1 focus:ring-primary/30 transition-colors pb-12"
-                placeholder={t("review.placeholder", "What did you think about this book?")}
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                disabled={upsertMutation.isPending}
-              />
-              <div className="absolute bottom-2 right-2 flex justify-end gap-1">
-                {userReview && (
-                  <button 
-                    type="button" 
-                    className="btn btn-sm btn-ghost hover:bg-error/10 text-error/70 hover:text-error"
-                    onClick={() => deleteMutation.mutate()}
-                    disabled={deleteMutation.isPending || upsertMutation.isPending}
-                    title={t("common.delete", "Delete")}
+            {/* Markdown Toolbar & Preview Toggle */}
+            <div className="rounded-2xl border border-base-300 bg-base-100 overflow-hidden shadow-xs focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+              {/* Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-1 border-b border-base-200 bg-base-200/50 px-3 py-1.5 text-xs">
+                <div className="flex items-center gap-0.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("**", "**", "in đậm")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 font-bold hover:bg-base-300 rounded"
+                    title="In đậm (**text**)"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Bold className="w-3.5 h-3.5" />
                   </button>
-                )}
-                <button 
-                  type="submit" 
-                  className="btn btn-sm btn-ghost text-base-content/70 hover:text-primary hover:bg-primary/10"
-                  disabled={upsertMutation.isPending || deleteMutation.isPending || !reviewText.trim()}
-                >
-                  {upsertMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
-                  {t("common.submit", "Submit")}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("*", "*", "in nghiêng")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 italic hover:bg-base-300 rounded"
+                    title="In nghiêng (*text*)"
+                  >
+                    <Italic className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("__", "__", "gạch chân")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 underline hover:bg-base-300 rounded"
+                    title="Gạch chân (__text__)"
+                  >
+                    <UnderlineIcon className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("~~", "~~", "gạch ngang")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 line-through hover:bg-base-300 rounded"
+                    title="Gạch ngang (~~text~~)"
+                  >
+                    <StrikeIcon className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("`", "`", "code")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 font-mono hover:bg-base-300 rounded"
+                    title="Mã code (`code`)"
+                  >
+                    <Code className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("> ", "", "trích dẫn")}
+                    className="btn btn-ghost btn-xs h-7 min-h-0 px-2 hover:bg-base-300 rounded"
+                    title="Trích dẫn (> quote)"
+                  >
+                    <Quote className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="h-4 w-px bg-base-300 mx-1" />
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("||", "||", "nội dung spoiler ẩn")}
+                    className="btn btn-xs bg-neutral-800 text-white hover:bg-neutral-700 h-7 min-h-0 px-2 gap-1 rounded font-semibold text-[11px] shadow-xs"
+                    title="Ẩn nội dung Spoiler (||spoiler||)"
+                  >
+                    <EyeOff className="w-3 h-3 text-warning" />
+                    <span>Spoiler</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsPreview(false)}
+                    className={`btn btn-xs h-6 min-h-0 px-2 rounded text-[11px] font-semibold transition-all ${
+                      !isPreview
+                        ? "btn-primary"
+                        : "btn-ghost opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    {t("common.write", "Viết")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPreview(true)}
+                    className={`btn btn-xs h-6 min-h-0 px-2 rounded text-[11px] font-semibold gap-1 transition-all ${
+                      isPreview
+                        ? "btn-primary"
+                        : "btn-ghost opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {t("common.preview", "Xem trước")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Editor / Live Preview */}
+              {isPreview ? (
+                <div className="p-4 min-h-32 bg-base-100">
+                  {reviewText.trim() ? (
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">
+                        {t("review.preview_hint", "Xem trước định dạng:")}
+                      </div>
+                      <DiscordMarkdown content={reviewText} className="text-sm text-base-content" />
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-sm text-base-content/40 italic">
+                      {t("review.empty_preview", "Chưa có nội dung để xem trước")}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  className="textarea bg-transparent border-0 w-full resize-none h-32 text-sm focus:outline-hidden p-3 font-normal"
+                  placeholder={t("review.placeholder", "Chia sẻ cảm nghĩ về cuốn sách này... (Hỗ trợ **đậm**, *nghiêng*, ||spoiler||)")}
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  disabled={upsertMutation.isPending}
+                />
+              )}
+
+              {/* Bottom bar */}
+              <div className="flex items-center justify-between border-t border-base-200/60 bg-base-200/20 px-3 py-2">
+                <span className="text-[11px] text-base-content/50">
+                  💡 {t("review.spoiler_tip", "Dùng ||nội dung|| để ẩn spoiler")}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {userReview && (
+                    <button 
+                      type="button" 
+                      className="btn btn-xs btn-ghost hover:bg-error/10 text-error/70 hover:text-error"
+                      onClick={() => deleteMutation.mutate()}
+                      disabled={deleteMutation.isPending || upsertMutation.isPending}
+                      title={t("common.delete", "Delete")}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{t("common.delete", "Xoá")}</span>
+                    </button>
+                  )}
+                  <button 
+                    type="submit" 
+                    className="btn btn-xs btn-primary gap-1 px-3 shadow-xs"
+                    disabled={upsertMutation.isPending || deleteMutation.isPending || !reviewText.trim()}
+                  >
+                    {upsertMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    <span>{t("common.submit", "Gửi đánh giá")}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </form>
@@ -193,10 +355,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
           <>
             <div className="flex flex-col gap-4">
               {reviews.map((rv, idx) => (
-                <div key={idx} className="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
+                <div key={idx} className="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 hover:border-base-300 transition-colors">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs ring-2 ring-primary/20 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs ring-2 ring-primary/20 shrink-0">
                         {((rv as any).username || (rv as any).user_name || "U").charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -207,9 +369,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-warning text-warning" />
-                        <span className="font-bold text-sm">{rv?.rating}</span>
+                      <div className="flex items-center gap-1 bg-base-200/80 px-2 py-0.5 rounded-lg border border-base-300/50">
+                        <Star className="w-3.5 h-3.5 fill-warning text-warning" />
+                        <span className="font-bold text-xs">{rv?.rating}</span>
                       </div>
                       {hasPermission(user, "book.review.delete") && (
                         <button
@@ -227,7 +389,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                     </div>
                   </div>
                   {rv?.review && (
-                    <p className="text-base-content/80 text-sm whitespace-pre-wrap">{rv.review}</p>
+                    <div className="text-base-content/90 text-sm pl-0.5">
+                      <DiscordMarkdown content={rv.review} />
+                    </div>
                   )}
                 </div>
               ))}

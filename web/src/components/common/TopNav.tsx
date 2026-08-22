@@ -342,7 +342,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
                   <div className="w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                     {user.avatar_url && (
                       <img
-                        src={user.avatar_url.startsWith("/public/") ? `${user.avatar_url}?t=${user.updated_at ? encodeURIComponent(user.updated_at) : Date.now()}` : user.avatar_url}
+                        src={getMediaUrl(user.avatar_url, undefined, user.updated_at)}
                         alt="Avatar"
                         loading="lazy"
                         onError={(e) => {

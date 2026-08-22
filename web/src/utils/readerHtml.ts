@@ -36,10 +36,19 @@ export const sanitizeReaderHtml = (html: string) => {
         figure.className = "reader-image-page";
         parent.insertBefore(figure, img);
         figure.appendChild(img);
-      } else if (parent && (parent.tagName.toLowerCase() === "p" || parent.tagName.toLowerCase() === "div" || parent.tagName.toLowerCase() === "figure")) {
-        const isOnlyChild = parent.children.length === 1 && (!parent.textContent || parent.textContent.trim() === "");
-        if (isOnlyChild) {
-          parent.classList.add("reader-image-page");
+      } else if (parent) {
+        let current: HTMLElement | null = parent;
+        while (current && current.tagName.toLowerCase() !== "body") {
+          const tag = current.tagName.toLowerCase();
+          if (tag === "p" || tag === "figure" || tag === "div" || tag === "section" || tag === "article") {
+            const imgCount = current.querySelectorAll("img").length;
+            const text = (current.textContent || "").trim();
+            if (imgCount === 1 && text === "") {
+              current.classList.add("reader-image-page");
+            }
+            break;
+          }
+          current = current.parentElement;
         }
       }
     });

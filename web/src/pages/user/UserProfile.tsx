@@ -1,3 +1,4 @@
+import { getMediaUrl } from "@/config/api";
 import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
@@ -216,7 +217,7 @@ export const UserProfile = () => {
                         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold text-xl overflow-hidden shadow-sm">
                           {avatarUrl && (
                             <img 
-                              src={avatarUrl.startsWith("/public/") ? `${avatarUrl}?t=${user.updated_at ? encodeURIComponent(user.updated_at) : Date.now()}` : avatarUrl} 
+                              src={getMediaUrl(avatarUrl, undefined, user.updated_at)} 
                               alt="Avatar" 
                               loading="lazy" 
                               className="object-cover w-full h-full animate-in fade-in duration-300"

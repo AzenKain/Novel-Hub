@@ -1,15 +1,20 @@
 import { useTranslation } from "react-i18next";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bookmark,
+  BookmarkPlus,
   Check,
   Gauge,
   ListMusic,
+  Moon,
   Pause,
   Play,
+  Plus,
   RotateCcw,
   RotateCw,
   SkipBack,
   SkipForward,
+  Trash2,
   Volume1,
   Volume2,
   VolumeX,
@@ -22,10 +27,21 @@ export interface AudioChapter {
   end_sec?: number | null;
 }
 
+export interface AudioBookmark {
+  id: string;
+  time_sec: number;
+  chapter_title?: string;
+  note?: string;
+  created_at: string;
+}
+
 interface AudioPlayerProps {
   rawUrl: string;
   initialTime?: number;
+  seekToTime?: number | null;
   onTimeUpdate?: (time: number) => void;
+  onBookmarksChange?: (bookmarks: AudioBookmark[]) => void;
+  onRegisterDeleteBookmark?: (fn: (id: string) => void) => void;
   title?: string;
   author?: string;
   cover_url?: string;
@@ -67,7 +83,10 @@ function formatTime(time: number): string {
 export function AudioPlayer({
   rawUrl,
   initialTime = 0,
+  seekToTime,
   onTimeUpdate,
+  onBookmarksChange,
+  onRegisterDeleteBookmark,
   title,
   author,
   cover_url,
@@ -83,8 +102,74 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
   const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<"chapters" | "bookmarks">("chapters");
   const [speedOpen, setSpeedOpen] = useState(false);
+  const [sleepOpen, setSleepOpen] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
+  const sleepRef = useRef<HTMLDivElement>(null);
+
+  // Audio Bookmarks state
+  const [bookmarks, setBookmarks] = useState<AudioBookmark[]>(() => {
+    try {
+      const raw = localStorage.getItem(`audio-bm-${rawUrl}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showAddBookmarkModal, setShowAddBookmarkModal] = useState(false);
+  const [bookmarkNote, setBookmarkNote] = useState("");
+
+  const saveBookmarks = (list: AudioBookmark[]) => {
+    setBookmarks(list);
+    try {
+      localStorage.setItem(`audio-bm-${rawUrl}`, JSON.stringify(list));
+    } catch {}
+  };
+
+  const handleAddBookmark = (noteText?: string) => {
+    const newBm: AudioBookmark = {
+      id: Date.now().toString(),
+      time_sec: currentTime,
+      chapter_title: currentChapter?.title,
+      note: noteText?.trim() || undefined,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...bookmarks, newBm].sort((a, b) => a.time_sec - b.time_sec);
+    saveBookmarks(updated);
+    setShowAddBookmarkModal(false);
+    setBookmarkNote("");
+    setChaptersOpen(true);
+    setDrawerTab("bookmarks");
+  };
+
+  const handleDeleteBookmark = (id: string) => {
+    const updated = bookmarks.filter((b) => b.id !== id);
+    saveBookmarks(updated);
+  };
+
+  // Sync bookmarks upward whenever they change or component mounts
+  useEffect(() => {
+    onBookmarksChange?.(bookmarks);
+  }, [bookmarks, onBookmarksChange]);
+
+  // Register delete handler with parent
+  useEffect(() => {
+    onRegisterDeleteBookmark?.(handleDeleteBookmark);
+  }, [bookmarks, onRegisterDeleteBookmark]);
+
+  // Seek audio when parent requests seeking
+  useEffect(() => {
+    if (typeof seekToTime === "number" && audioRef.current) {
+      audioRef.current.currentTime = seekToTime;
+      setCurrentTime(seekToTime);
+    }
+  }, [seekToTime]);
+
+  // Sleep timer: remaining seconds (>0 means active) or -1 for end_of_chapter
+  const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
+  const [sleepMode, setSleepMode] = useState<string>("off");
+  const sleepChapterRef = useRef<number | null>(null);
 
   const sortedChapters = useMemo(
     () => [...(chapters ?? [])].sort((a, b) => a.start_sec - b.start_sec),
@@ -100,38 +185,81 @@ export function AudioPlayer({
 
   const currentChapter = currentChapterIndex >= 0 ? sortedChapters[currentChapterIndex] : undefined;
 
-  // ---- element sync -------------------------------------------------------
+  // Countdown timer effect
   useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    if (initialTime > 0) el.currentTime = initialTime;
-    el.volume = prefs.volume;
-    el.playbackRate = prefs.rate;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-    } catch {
-      // storage full/disabled: prefs are best-effort
+    if (!isPlaying || sleepRemaining === null) return;
+    if (sleepRemaining <= 0) {
+      // Timer finished: smooth fade out and pause
+      const el = audioRef.current;
+      if (el && !el.paused) {
+        let vol = el.volume;
+        const fade = setInterval(() => {
+          vol = Math.max(0, vol - 0.2);
+          el.volume = vol;
+          if (vol <= 0) {
+            clearInterval(fade);
+            el.pause();
+            el.volume = prefs.volume;
+            setIsPlaying(false);
+            setSleepRemaining(null);
+            setSleepMode("off");
+          }
+        }, 150);
+      }
+      return;
     }
-    const el = audioRef.current;
-    if (el) {
-      el.volume = prefs.volume;
-      el.playbackRate = prefs.rate;
-    }
-  }, [prefs]);
 
-  // Close the speed menu on outside click (YouTube-style dropdown).
+    const interval = setInterval(() => {
+      setSleepRemaining((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, sleepRemaining, prefs.volume]);
+
+  // End of chapter sleep detector
   useEffect(() => {
-    if (!speedOpen) return;
+    if (!isPlaying || sleepMode !== "end_of_chapter") return;
+    if (
+      sleepChapterRef.current !== null &&
+      currentChapterIndex >= 0 &&
+      currentChapterIndex !== sleepChapterRef.current
+    ) {
+      const el = audioRef.current;
+      if (el && !el.paused) {
+        el.pause();
+        setIsPlaying(false);
+        setSleepRemaining(null);
+        setSleepMode("off");
+        sleepChapterRef.current = null;
+      }
+    }
+  }, [isPlaying, sleepMode, currentChapterIndex]);
+
+  const setSleepTimer = (mode: string, seconds?: number) => {
+    setSleepMode(mode);
+    setSleepOpen(false);
+    if (mode === "off") {
+      setSleepRemaining(null);
+      sleepChapterRef.current = null;
+    } else if (mode === "end_of_chapter") {
+      setSleepRemaining(null);
+      sleepChapterRef.current = currentChapterIndex;
+    } else if (seconds) {
+      setSleepRemaining(seconds);
+      sleepChapterRef.current = null;
+    }
+  };
+
+  // Close menus on outside click
+  useEffect(() => {
+    if (!speedOpen && !sleepOpen) return;
     const onClick = (e: MouseEvent) => {
       if (speedRef.current && !speedRef.current.contains(e.target as Node)) setSpeedOpen(false);
+      if (sleepRef.current && !sleepRef.current.contains(e.target as Node)) setSleepOpen(false);
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
-  }, [speedOpen]);
+  }, [speedOpen, sleepOpen]);
 
   // ---- controls -----------------------------------------------------------
   const togglePlay = useCallback(() => {
@@ -299,34 +427,156 @@ export function AudioPlayer({
             </div>
           </div>
 
-          {/* Chapter list panel */}
-          {chaptersOpen && sortedChapters.length > 0 && (
-            <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-t-xl border-t border-[var(--reader-ui-border)] bg-[var(--reader-ui-surface-strong)]">
-              <div className="flex items-center justify-between border-b border-[var(--reader-ui-border)] px-4 py-2.5">
-                <span className="text-sm font-semibold">{t("reader.chapters_list", "Chapters")}</span>
-                <button className="btn btn-circle btn-ghost btn-xs" onClick={() => setChaptersOpen(false)} aria-label={t("common.cancel", "Cancel")}>
-                  <X size={14} />
-                </button>
-              </div>
-              <ul className="max-h-64 overflow-y-auto">
-                {sortedChapters.map((ch, i) => (
-                  <li key={`${ch.start_sec}-${i}`}>
+          {/* Chapters & Bookmarks list panel */}
+          {chaptersOpen && (
+            <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-t-2xl border-t border-x border-[var(--reader-ui-border)] bg-[var(--reader-ui-surface-strong)] shadow-xl animate-in slide-in-from-bottom-2 duration-150">
+              {/* Header with Tabs */}
+              <div className="flex items-center justify-between border-b border-[var(--reader-ui-border)] px-4 py-2 bg-base-200/40">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDrawerTab("chapters")}
+                    className={`btn btn-xs rounded-xl gap-1.5 font-bold ${
+                      drawerTab === "chapters"
+                        ? "btn-primary"
+                        : "btn-ghost text-base-content/60"
+                    }`}
+                  >
+                    <ListMusic size={14} />
+                    <span>{t("reader.chapters_list", "Chương")} ({sortedChapters.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDrawerTab("bookmarks")}
+                    className={`btn btn-xs rounded-xl gap-1.5 font-bold ${
+                      drawerTab === "bookmarks"
+                        ? "btn-primary"
+                        : "btn-ghost text-base-content/60"
+                    }`}
+                  >
+                    <Bookmark size={14} />
+                    <span>{t("reader.bookmarks", "Dấu trang")} ({bookmarks.length})</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {drawerTab === "bookmarks" && (
                     <button
-                      className={`flex w-full items-baseline justify-between gap-4 px-4 py-2 text-left text-sm transition-colors hover:bg-[var(--reader-ui-hover,rgba(127,127,127,0.12))] ${
-                        i === currentChapterIndex ? "font-semibold text-[var(--reader-ui-accent,#7c9885)]" : ""
-                      }`}
-                      onClick={() => {
-                        const el = audioRef.current;
-                        if (el) el.currentTime = ch.start_sec;
-                        setChaptersOpen(false);
-                      }}
+                      type="button"
+                      onClick={() => setShowAddBookmarkModal(true)}
+                      className="btn btn-xs btn-outline btn-primary rounded-xl gap-1.5 font-semibold inline-flex items-center"
+                      title={t("reader.add_bookmark", "Đánh dấu mốc hiện tại")}
                     >
-                      <span className="min-w-0 truncate">{ch.title}</span>
-                      <span className="shrink-0 text-xs tabular-nums opacity-60">{formatTime(ch.start_sec)}</span>
+                      <Plus size={13} className="shrink-0" />
+                      <span className="inline-flex items-center gap-1 leading-none">
+                        <span className="hidden sm:inline">{t("reader.add_bookmark", "Lưu mốc này")}</span>
+                        <span className="font-mono text-xs tabular-nums font-normal">{formatTime(currentTime)}</span>
+                      </span>
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  )}
+                  <button
+                    className="btn btn-circle btn-ghost btn-xs ml-1"
+                    onClick={() => setChaptersOpen(false)}
+                    aria-label={t("common.cancel", "Cancel")}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab 1: Chapters list */}
+              {drawerTab === "chapters" && (
+                <ul className="max-h-64 overflow-y-auto divide-y divide-base-200/50">
+                  {sortedChapters.length === 0 ? (
+                    <li className="p-6 text-center text-xs opacity-50">
+                      {t("reader.no_chapters", "Không có danh sách chương")}
+                    </li>
+                  ) : (
+                    sortedChapters.map((ch, i) => (
+                      <li key={`${ch.start_sec}-${i}`}>
+                        <button
+                          className={`flex w-full items-baseline justify-between gap-4 px-4 py-2.5 text-left text-sm transition-colors hover:bg-[var(--reader-ui-hover,rgba(127,127,127,0.12))] ${
+                            i === currentChapterIndex ? "font-bold text-[var(--reader-ui-accent,#7c9885)] bg-[var(--reader-ui-hover,rgba(127,127,127,0.08))]" : ""
+                          }`}
+                          onClick={() => {
+                            const el = audioRef.current;
+                            if (el) el.currentTime = ch.start_sec;
+                            setChaptersOpen(false);
+                          }}
+                        >
+                          <span className="min-w-0 truncate">{ch.title}</span>
+                          <span className="shrink-0 text-xs tabular-nums opacity-60">{formatTime(ch.start_sec)}</span>
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+
+              {/* Tab 2: Audio Bookmarks list */}
+              {drawerTab === "bookmarks" && (
+                <div className="max-h-64 overflow-y-auto">
+                  {bookmarks.length === 0 ? (
+                    <div className="py-8 px-4 text-center space-y-2">
+                      <Bookmark className="w-8 h-8 mx-auto opacity-30 text-primary" />
+                      <p className="text-xs opacity-60 font-medium">
+                        {t("reader.no_bookmarks", "Chưa có mốc thời gian nào được lưu.")}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddBookmarkModal(true)}
+                        className="btn btn-xs btn-primary rounded-xl gap-1"
+                      >
+                        <Plus size={13} />
+                        {t("reader.bookmark_current_pos", "Lưu mốc hiện tại")} ({formatTime(currentTime)})
+                      </button>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-base-200/50">
+                      {bookmarks.map((bm) => (
+                        <li
+                          key={bm.id}
+                          className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--reader-ui-hover,rgba(127,127,127,0.08))]"
+                        >
+                          <button
+                            type="button"
+                            className="flex flex-1 items-start gap-3 text-left min-w-0"
+                            onClick={() => {
+                              const el = audioRef.current;
+                              if (el) el.currentTime = bm.time_sec;
+                              setChaptersOpen(false);
+                            }}
+                          >
+                            <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-mono text-xs font-bold shrink-0">
+                              {formatTime(bm.time_sec)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-[var(--reader-ui-text)] truncate">
+                                {bm.note || bm.chapter_title || t("reader.bookmark", "Dấu trang")}
+                              </p>
+                              {bm.note && bm.chapter_title && (
+                                <p className="text-[10px] text-base-content/50 truncate mt-0.5">
+                                  {bm.chapter_title}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBookmark(bm.id)}
+                            className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-error shrink-0"
+                            title={t("common.delete", "Xóa")}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -448,12 +698,44 @@ export function AudioPlayer({
                 </div>
 
                 <div className="flex min-w-28 items-center justify-end gap-1">
+                  {/* Bookmark Button */}
+                  <button
+                    className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 font-medium ${
+                      drawerTab === "bookmarks" && chaptersOpen ? "text-primary bg-primary/10" : ""
+                    }`}
+                    onClick={() => {
+                      if (chaptersOpen && drawerTab === "bookmarks") {
+                        setChaptersOpen(false);
+                      } else {
+                        setDrawerTab("bookmarks");
+                        setChaptersOpen(true);
+                        setSpeedOpen(false);
+                        setSleepOpen(false);
+                      }
+                    }}
+                    title={t("reader.bookmarks", "Dấu trang")}
+                  >
+                    <Bookmark size={15} />
+                    {bookmarks.length > 0 && (
+                      <span className="text-[11px] ml-0.5 tabular-nums font-bold">{bookmarks.length}</span>
+                    )}
+                  </button>
+
+                  {/* Chapters Button */}
                   {sortedChapters.length > 0 && (
                     <button
-                      className={`btn btn-ghost btn-sm min-h-0 rounded-full px-3 ${chaptersOpen ? "text-primary" : ""}`}
+                      className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 ${
+                        drawerTab === "chapters" && chaptersOpen ? "text-primary bg-primary/10" : ""
+                      }`}
                       onClick={() => {
-                        setChaptersOpen((v) => !v);
-                        setSpeedOpen(false);
+                        if (chaptersOpen && drawerTab === "chapters") {
+                          setChaptersOpen(false);
+                        } else {
+                          setDrawerTab("chapters");
+                          setChaptersOpen(true);
+                          setSpeedOpen(false);
+                          setSleepOpen(false);
+                        }
                       }}
                       aria-label={t("reader.chapters_list", "Chapters")}
                     >
@@ -462,6 +744,62 @@ export function AudioPlayer({
                     </button>
                   )}
 
+                  {/* Sleep timer dropdown */}
+                  <div className="relative" ref={sleepRef}>
+                    <button
+                      className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 font-medium tabular-nums ${
+                        sleepMode !== "off" ? "text-primary font-bold bg-primary/10" : ""
+                      }`}
+                      onClick={() => {
+                        setSleepOpen((v) => !v);
+                        setSpeedOpen(false);
+                        setChaptersOpen(false);
+                      }}
+                      aria-haspopup="menu"
+                      aria-expanded={sleepOpen}
+                      title={t("reader.sleep_timer", "Hẹn giờ tắt")}
+                    >
+                      <Moon size={15} />
+                      {sleepMode === "end_of_chapter" ? (
+                        <span className="text-[11px] ml-0.5">{t("reader.end_of_chapter", "Hết chương")}</span>
+                      ) : sleepRemaining !== null && sleepRemaining > 0 ? (
+                        <span className="text-[11px] ml-0.5 font-mono">{formatTime(sleepRemaining)}</span>
+                      ) : null}
+                    </button>
+                    {sleepOpen && (
+                      <div
+                        role="menu"
+                        className="absolute bottom-11 right-0 z-20 min-w-44 overflow-hidden rounded-xl border border-[var(--reader-ui-border)] bg-[var(--reader-ui-surface-strong)] py-1 shadow-xl text-xs"
+                      >
+                        <div className="px-3 py-1.5 font-bold text-base-content/60 border-b border-base-200">
+                          {t("reader.sleep_timer", "Hẹn giờ tắt")}
+                        </div>
+                        {[
+                          { key: "off", label: t("common.off", "Tắt") },
+                          { key: "5m", label: "5 phút", sec: 300 },
+                          { key: "15m", label: "15 phút", sec: 900 },
+                          { key: "30m", label: "30 phút", sec: 1800 },
+                          { key: "45m", label: "45 phút", sec: 2700 },
+                          { key: "60m", label: "60 phút", sec: 3600 },
+                          { key: "end_of_chapter", label: t("reader.sleep_end_chapter", "Khi hết chương này") },
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            role="menuitemradio"
+                            aria-checked={sleepMode === opt.key}
+                            className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--reader-ui-hover,rgba(127,127,127,0.12))] ${
+                              sleepMode === opt.key ? "font-bold text-[var(--reader-ui-accent,#7c9885)]" : ""
+                            }`}
+                            onClick={() => setSleepTimer(opt.key, opt.sec)}
+                          >
+                            <span>{opt.label}</span>
+                            {sleepMode === opt.key && <Check size={14} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* YouTube-style speed dropdown */}
                   <div className="relative" ref={speedRef}>
                     <button
@@ -469,6 +807,7 @@ export function AudioPlayer({
                       onClick={() => {
                         setSpeedOpen((v) => !v);
                         setChaptersOpen(false);
+                        setSleepOpen(false);
                       }}
                       aria-haspopup="menu"
                       aria-expanded={speedOpen}
@@ -504,7 +843,70 @@ export function AudioPlayer({
             </div>
           </div>
 
+          {/* Add Bookmark Modal Dialog */}
+          {showAddBookmarkModal && (
+            <dialog className="modal modal-open z-60 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+              <div className="modal-box max-w-sm p-5 rounded-2xl border border-[var(--reader-ui-border,rgba(255,255,255,0.12))] shadow-2xl bg-[var(--reader-ui-surface-strong,#1e202b)] text-[var(--reader-ui-text,#e2e8f0)]">
+                <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--reader-ui-border,rgba(255,255,255,0.12))]">
+                  <div className="flex items-center gap-2 font-bold text-sm text-[var(--reader-ui-text)]">
+                    <BookmarkPlus className="w-4 h-4 text-[var(--reader-ui-accent,#38bdf8)]" />
+                    <span>{t("reader.add_bookmark", "Lưu mốc dấu trang")}</span>
+                  </div>
+                  <button
+                    onClick={() => setShowAddBookmarkModal(false)}
+                    className="btn btn-xs btn-circle bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] hover:bg-[var(--reader-ui-hover,rgba(255,255,255,0.1))] text-[var(--reader-ui-text)] border border-[var(--reader-ui-border)]"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-3 bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] border border-[var(--reader-ui-border)] rounded-xl mb-3 flex items-center justify-between">
+                  <span className="text-xs opacity-70">{t("reader.timestamp", "Thời điểm")}:</span>
+                  <span className="font-mono font-bold text-[var(--reader-ui-accent,#38bdf8)] text-sm">{formatTime(currentTime)}</span>
+                </div>
+
+                <div className="space-y-1.5 mb-4">
+                  <label className="text-xs font-semibold opacity-80">
+                    {t("reader.bookmark_note", "Ghi chú (tùy chọn)")}:
+                  </label>
+                  <textarea
+                    autoFocus
+                    rows={3}
+                    value={bookmarkNote}
+                    onChange={(e) => setBookmarkNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        handleAddBookmark(bookmarkNote);
+                      }
+                    }}
+                    placeholder={t("reader.bookmark_note_ph", "Nhập ghi chú mốc này...")}
+                    className="textarea textarea-bordered textarea-sm w-full rounded-xl text-xs resize-none bg-[var(--reader-ui-soft)] border-[var(--reader-ui-border)] text-[var(--reader-ui-text)] focus:border-[var(--reader-ui-accent)]"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBookmarkModal(false)}
+                    className="btn btn-sm rounded-xl bg-[var(--reader-ui-soft)] hover:bg-[var(--reader-ui-hover)] text-[var(--reader-ui-text)] border border-[var(--reader-ui-border)]"
+                  >
+                    {t("common.cancel", "Hủy")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddBookmark(bookmarkNote)}
+                    className="btn btn-sm rounded-xl font-bold gap-1 bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] border-0 hover:opacity-90"
+                  >
+                    <Check size={14} />
+                    {t("common.save", "Lưu mốc")}
+                  </button>
+                </div>
+              </div>
+            </dialog>
+          )}
         </>
-      )}    </div>
+      )}
+    </div>
   );
 }

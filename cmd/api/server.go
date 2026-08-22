@@ -381,6 +381,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return err
 	})
 
+	jobQueue.RegisterHandler("delete_library", func(ctx context.Context, jobID string, payload string) error {
+		return libraryService.ProcessDeleteLibrary(ctx, payload)
+	})
+
 	jobQueue.RegisterHandler("scan_metadata_enrich", func(ctx context.Context, jobID string, payload string) error {
 		return bookService.BatchEnrichBooks(ctx)
 	})
@@ -473,7 +477,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.VBookRoutes(api, vbookController, authService, settingsService, userRepo)
 
 	koboRepo := repositories.NewKoboRepository(db, ramCache)
-	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, bookService, featureService, permissionCache, ramCache)
+	koboService := services.NewKoboService(bookRepo, bookFileRepo, koboRepo, readListRepo, bookService, featureService, permissionCache, ramCache)
 	koboAuthService := services.NewKoboAuthService(koboRepo)
 	koboController := controllers.NewKoboController(koboService, koboAuthService, settingsService)
 	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)
@@ -483,7 +487,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	// address the user types, so the user enters http://host/komga and requests land on
 	// /komga/api/v1/... See internal/routes/komgaRoutes.go.
 	komgaRepo := repositories.NewKomgaRepository(db, ramCache)
-	komgaService := services.NewKomgaService(komgaRepo, bookRepo, bookFileRepo, bookService, libraryService, featureService, permissionCache, ramCache)
+	komgaService := services.NewKomgaService(komgaRepo, bookRepo, bookFileRepo, readListRepo, userRepo, bookService, libraryService, featureService, permissionCache, ramCache)
 	komgaController := controllers.NewKomgaController(komgaService)
 	routes.KomgaRoutes(s.App, komgaController, authService, settingsService)
 

@@ -4,8 +4,6 @@ import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
-import { BulkActionToolbar, BulkDeleteModal, BulkMoveModal, BulkTagModal } from "@/components/library";
-import { BulkEditMetadataModal } from "@/components/admin";
 import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { bookService, featureService } from "@/services";
@@ -15,7 +13,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
-import { useAuthStore, useLibraryStore, useGuestStore } from "@/stores";
+import { useAuthStore, useLibraryStore, useGuestStore, useDownloadManagerStore } from "@/stores";
 
 import { SmartFilterBuilderModal } from "@/components/library/SmartFilterBuilderModal";
 import { SmartFilterShelf } from "@/components/library/SmartFilterShelf";
@@ -176,12 +174,6 @@ export const LibraryWorkspace = () => {
   })));
   
   const publicSettings = usePublicSettings();
-  const [selectedBookIds, setSelectedBookIds] = React.useState<string[]>([]);
-  const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
-  const [showBulkMoveModal, setShowBulkMoveModal] = React.useState(false);
-  const [showBulkTagModal, setShowBulkTagModal] = React.useState(false);
-  const [showBulkEditModal, setShowBulkEditModal] = React.useState(false);
-  const selectedBooks = useMemo(() => books.filter((b) => selectedBookIds.includes(b.id)), [books, selectedBookIds]);
   const debouncedSearch = useDebounce(search, 500);
 
   const { data: hotBooksData } = useHotBooksQuery(8);
@@ -1343,43 +1335,6 @@ export const LibraryWorkspace = () => {
           <button onClick={() => setShowSaveSearchModal(false)}>close</button>
         </form>
       </dialog>
-
-      <BulkActionToolbar
-        selectedCount={selectedBookIds.length}
-        onClearSelection={() => setSelectedBookIds([])}
-        onBulkEditMetadata={() => setShowBulkEditModal(true)}
-        onBulkMove={() => setShowBulkMoveModal(true)}
-        onBulkAddTags={() => setShowBulkTagModal(true)}
-        onBulkDelete={() => setShowBulkDeleteModal(true)}
-      />
-
-      <BulkDeleteModal
-        isOpen={showBulkDeleteModal}
-        bookIds={selectedBookIds}
-        onClose={() => setShowBulkDeleteModal(false)}
-        onSuccess={() => setSelectedBookIds([])}
-      />
-      <BulkMoveModal
-        isOpen={showBulkMoveModal}
-        bookIds={selectedBookIds}
-        onClose={() => setShowBulkMoveModal(false)}
-        onSuccess={() => setSelectedBookIds([])}
-      />
-      <BulkTagModal
-        isOpen={showBulkTagModal}
-        bookIds={selectedBookIds}
-        onClose={() => setShowBulkTagModal(false)}
-        onSuccess={() => setSelectedBookIds([])}
-      />
-      <BulkEditMetadataModal
-        isOpen={showBulkEditModal}
-        books={selectedBooks}
-        onClose={() => setShowBulkEditModal(false)}
-        onSuccess={() => {
-          setSelectedBookIds([]);
-          void queryClient.invalidateQueries({ queryKey: ["books"] });
-        }}
-      />
     </div>
   );
 };

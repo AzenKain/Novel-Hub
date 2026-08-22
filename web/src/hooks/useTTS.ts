@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface UseTTSOptions {
   onEnd?: () => void;
-  onError?: (event: SpeechSynthesisErrorEvent) => void;
-  onBoundary?: (event: SpeechSynthesisEvent) => void;
+  onError?: (event: any) => void;
+  onBoundary?: (event: any) => void;
 }
 
 export function useTTS(options?: UseTTSOptions) {
@@ -16,33 +16,66 @@ export function useTTS(options?: UseTTSOptions) {
   const [pitch, setPitch] = useState(1);
   const [volume, setVolume] = useState(1);
 
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
+    if (typeof window !== 'undefined') {
       setIsSupported(true);
       
-      const updateVoices = () => {
-        const availableVoices = window.speechSynthesis.getVoices();
-        setVoices(availableVoices);
-        if (availableVoices.length > 0 && !selectedVoice) {
-          setSelectedVoice(availableVoices.find(v => v.default) || availableVoices[0]);
-        }
-      };
+      if (window.speechSynthesis) {
+        const updateVoices = () => {
+          const availableVoices = window.speechSynthesis.getVoices();
+          setVoices(availableVoices);
+          if (availableVoices.length > 0 && !selectedVoice) {
+            setSelectedVoice(availableVoices.find(v => v.default) || availableVoices[0]);
+          }
+        };
 
-      updateVoices();
-      window.speechSynthesis.onvoiceschanged = updateVoices;
+        updateVoices();
+        window.speechSynthesis.onvoiceschanged = updateVoices;
 
-      return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-      };
+        return () => {
+          window.speechSynthesis.onvoiceschanged = null;
+        };
+      }
     }
   }, []);
 
-  const speak = useCallback((text: string) => {
-    if (!isSupported) return;
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {}
+      }
+    };
+  }, []);
 
-    window.speechSynthesis.cancel();
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !text.trim() || !window.speechSynthesis) return;
+
+    if (activeUtteranceRef.current) {
+      activeUtteranceRef.current.onstart = null;
+      activeUtteranceRef.current.onend = null;
+      activeUtteranceRef.current.onerror = null;
+      activeUtteranceRef.current.onpause = null;
+      activeUtteranceRef.current.onresume = null;
+      activeUtteranceRef.current.onboundary = null;
+      activeUtteranceRef.current = null;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    } catch {}
 
     const utterance = new SpeechSynthesisUtterance(text);
+    activeUtteranceRef.current = utterance;
+
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
@@ -56,15 +89,22 @@ export function useTTS(options?: UseTTSOptions) {
     };
 
     utterance.onend = () => {
+      activeUtteranceRef.current = null;
       setIsPlaying(false);
       setIsPaused(false);
-      options?.onEnd?.();
+      optionsRef.current?.onEnd?.();
     };
 
     utterance.onerror = (e) => {
+      if (e.error === "canceled" || e.error === "interrupted") {
+        setIsPlaying(false);
+        setIsPaused(false);
+        return;
+      }
+      activeUtteranceRef.current = null;
       setIsPlaying(false);
       setIsPaused(false);
-      options?.onError?.(e);
+      optionsRef.current?.onError?.(e);
     };
 
     utterance.onpause = () => {
@@ -78,45 +118,68 @@ export function useTTS(options?: UseTTSOptions) {
     };
 
     utterance.onboundary = (e) => {
-      options?.onBoundary?.(e);
+      optionsRef.current?.onBoundary?.(e);
     };
 
-    window.speechSynthesis.speak(utterance);
-  }, [isSupported, selectedVoice, rate, pitch, volume, options]);
-
-  const pause = useCallback(() => {
-    if (isSupported && window.speechSynthesis.speaking) {
-      window.speechSynthesis.pause();
-    }
-  }, [isSupported]);
-
-  const resume = useCallback(() => {
-    if (isSupported && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-  }, [isSupported]);
-
-  const stop = useCallback(() => {
-    if (isSupported) {
-      window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+      setIsPaused(false);
+    } catch {
       setIsPlaying(false);
       setIsPaused(false);
     }
-  }, [isSupported]);
+  }, [selectedVoice, rate, pitch, volume]);
+
+  const pause = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.pause();
+    } catch {}
+    setIsPaused(true);
+    setIsPlaying(false);
+  }, []);
+
+  const resume = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.resume();
+    } catch {}
+    setIsPaused(false);
+    setIsPlaying(true);
+  }, []);
+
+  const stop = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+    if (activeUtteranceRef.current) {
+      activeUtteranceRef.current.onstart = null;
+      activeUtteranceRef.current.onend = null;
+      activeUtteranceRef.current.onerror = null;
+      activeUtteranceRef.current.onpause = null;
+      activeUtteranceRef.current.onresume = null;
+      activeUtteranceRef.current.onboundary = null;
+      activeUtteranceRef.current = null;
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+  }, []);
 
   return {
     isSupported,
     voices,
     selectedVoice,
     setSelectedVoice,
+    isPlaying,
+    isPaused,
     rate,
     setRate,
     pitch,
     setPitch,
     volume,
     setVolume,
-    isPlaying,
-    isPaused,
     speak,
     pause,
     resume,

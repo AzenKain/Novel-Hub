@@ -527,6 +527,41 @@ func (q *Queries) ListBookIDs(ctx context.Context, arg ListBookIDsParams) ([]str
 	return items, nil
 }
 
+const listBookIDsByLibrary = `-- name: ListBookIDsByLibrary :many
+SELECT id FROM books
+WHERE library_id = ?
+ORDER BY id ASC
+LIMIT ?
+`
+
+type ListBookIDsByLibraryParams struct {
+	LibraryID string `json:"library_id"`
+	Limit     int64  `json:"limit"`
+}
+
+func (q *Queries) ListBookIDsByLibrary(ctx context.Context, arg ListBookIDsByLibraryParams) ([]string, error) {
+	rows, err := q.query(ctx, q.listBookIDsByLibraryStmt, listBookIDsByLibrary, arg.LibraryID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChapterIDsByBook = `-- name: ListChapterIDsByBook :many
 SELECT id FROM chapters
 WHERE book_id = ?

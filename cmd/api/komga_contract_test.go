@@ -508,3 +508,49 @@ func TestKomgaPageNameCacheFollowsModTime(t *testing.T) {
 		t.Errorf("after replacing the file got %d pages, want %d — stale page-name cache", len(after), f.pages+2)
 	}
 }
+
+func TestKomgaUserMeContract(t *testing.T) {
+	f := setupKomgaFixture(t)
+	resp := f.get(t, "/api/v1/users/me")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", resp.StatusCode)
+	}
+	var me map[string]any
+	decodeJSON(t, resp, &me)
+	if me["email"] != komgaTestEmail {
+		t.Errorf("got email %v, want %s", me["email"], komgaTestEmail)
+	}
+	roles, ok := me["roles"].([]any)
+	if !ok || len(roles) == 0 {
+		t.Fatalf("expected non-empty roles, got %v", me["roles"])
+	}
+}
+
+func TestKomgaReadProgressV1Contract(t *testing.T) {
+	f := setupKomgaFixture(t)
+	resp := f.get(t, "/api/v1/series/"+f.seriesID+"/read-progress/tachiyomi")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", resp.StatusCode)
+	}
+	var progress map[string]any
+	decodeJSON(t, resp, &progress)
+	if progress["booksCount"] == nil {
+		t.Errorf("expected booksCount in v1 progress response")
+	}
+}
+
+func TestKomgaZeroBasedPagesContract(t *testing.T) {
+	f := setupKomgaFixture(t)
+	resp := f.get(t, "/api/v1/books/"+f.bookID+"/pages?zero_based=true")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", resp.StatusCode)
+	}
+	var pages []map[string]any
+	decodeJSON(t, resp, &pages)
+	if len(pages) == 0 {
+		t.Fatalf("expected pages, got 0")
+	}
+	if num, ok := pages[0]["number"].(float64); !ok || int(num) != 0 {
+		t.Errorf("expected first page number to be 0 with zero_based=true, got %v", pages[0]["number"])
+	}
+}

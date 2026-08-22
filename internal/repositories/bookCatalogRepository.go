@@ -1018,3 +1018,35 @@ func ftsBookMatchQuery(searchText any) (string, bool) {
 
 	return strings.Join(tokens, " "), true
 }
+
+func (r *bookDBRepository) ListBookIDsByLibrary(ctx context.Context, libraryID string, limit int64) ([]string, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 500
+	}
+	cacheKey := cache.BuildKey("book_ids", "library", libraryID, limit)
+	if r.c != nil && !r.inTx {
+		var cachedIDs []string
+		if err := r.c.Get(ctx, cacheKey, &cachedIDs); err == nil {
+			return cachedIDs, nil
+		}
+	}
+
+	v, err, _ := r.sfg.Do(cacheKey, func() (any, error) {
+		ids, err := r.queries.ListBookIDsByLibrary(ctx, sqlc.ListBookIDsByLibraryParams{
+			LibraryID: libraryID,
+			Limit:     limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if r.c != nil && !r.inTx {
+			_ = r.c.Set(ctx, cacheKey, ids, constants.ListCacheDuration)
+		}
+		return ids, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]string), nil
+}

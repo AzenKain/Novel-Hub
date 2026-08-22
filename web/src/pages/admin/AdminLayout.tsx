@@ -1,3 +1,4 @@
+import { getMediaUrl } from "@/config/api";
 import { LanguageSwitcher, ThemeController } from "@/components/ui";
 import { useLogoutMutation } from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
@@ -101,7 +102,7 @@ export function AdminLayout() {
                 <div className="w-10 h-10 rounded-full ring-1 ring-base-content/10 overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold">
                   {user?.avatar_url ? (
                     <img
-                      src={user.avatar_url.startsWith("/public/") ? `${user.avatar_url}?t=${user.updated_at ? encodeURIComponent(user.updated_at) : Date.now()}` : user.avatar_url}
+                      src={getMediaUrl(user.avatar_url, undefined, user.updated_at)}
                       alt={user.full_name || user.email}
                       className="w-full h-full object-cover"
                       onError={(e) => {

@@ -10,6 +10,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { ConfirmModal } from "@/components/common";
+import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formatBytes = (bytes: number, t: TFunction) => {
   if (bytes < 1024) return `${bytes} ${t("admin.operations.units.bytes")}`;
@@ -20,6 +22,7 @@ const formatBytes = (bytes: number, t: TFunction) => {
 
 export function BackupsTab() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const backups = useBackupsQuery();
   const create = useCreateBackupMutation();
   const remove = useDeleteBackupMutation();
@@ -100,16 +103,31 @@ export function BackupsTab() {
             />
             <span>{t("admin.operations.include_books")}</span>
           </label>
-          <button
-            className="btn btn-primary btn-sm"
-            disabled={create.isPending}
-            onClick={createBackup}
-          >
-            {create.isPending ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : null}
-            {t("admin.operations.create_backup")}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-sm btn-ghost gap-1.5"
+              disabled={backups.isFetching}
+              onClick={async () => {
+                await queryClient.invalidateQueries({ queryKey: ["admin", "backups"] });
+                await backups.refetch();
+                toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+              }}
+              title={t("admin.operations.refresh")}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${backups.isFetching ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{t("admin.operations.refresh")}</span>
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={create.isPending}
+              onClick={createBackup}
+            >
+              {create.isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : null}
+              {t("admin.operations.create_backup")}
+            </button>
+          </div>
         </div>
       </div>
       <div className="overflow-x-auto bg-base-100 rounded-box shadow-sm">

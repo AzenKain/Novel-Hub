@@ -78,6 +78,7 @@ func setupKoboTestEnv(t *testing.T) (KoboService, *sql.DB, cache.Cache, *respons
 	settingsRepo := repositories.NewSettingsRepository(db, ramCache)
 	roleRepo := repositories.NewRoleRepository(db, ramCache)
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
+	readListRepo := repositories.NewReadListRepository(db, ramCache)
 
 	permissionCache := NewPermissionCache(roleRepo)
 	if err := permissionCache.Reload(context.Background()); err != nil {
@@ -87,7 +88,7 @@ func setupKoboTestEnv(t *testing.T) (KoboService, *sql.DB, cache.Cache, *respons
 	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
 	bookService := NewBookService(bookRepo, featureRepo, nil, diskRepo, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 	featureService := NewFeatureService(featureRepo, bookRepo, settingsService, permissionCache, database.NewTxManager(db))
-	koboService := NewKoboService(bookRepo, diskRepo, koboRepo, bookService, featureService, permissionCache, ramCache)
+	koboService := NewKoboService(bookRepo, diskRepo, koboRepo, readListRepo, bookService, featureService, permissionCache, ramCache)
 
 	adminClaims := &response.JWTClaims{UId: "user-1", RoleIDs: []string{"1"}, Roles: []constants.RoleType{constants.RoleTypeAdmin}}
 

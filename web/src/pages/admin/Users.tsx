@@ -22,6 +22,7 @@ import {
 import { SyntheticEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from 'react-toastify';
+import { useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 
 const emptyCreate: CreateUserRequest = {
@@ -34,6 +35,7 @@ const emptyCreate: CreateUserRequest = {
 
 export function Users() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const currentUser = useAuthStore((state) => state.user);
 
   const {
@@ -64,7 +66,7 @@ export function Users() {
     setCursor("");
     setCursorHistory([]);
   };
-  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = useUsersQuery({
+  const { data: usersData, isLoading: usersLoading, isFetching: usersFetching, refetch: refetchUsers } = useUsersQuery({
     cursor: cursor || undefined,
     limit: 50,
     search: query || undefined,
@@ -73,7 +75,7 @@ export function Users() {
     order: "desc"
   });
 
-  const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRolesQuery();
+  const { data: roles = [], isLoading: rolesLoading, isFetching: rolesFetching, refetch: refetchRoles } = useRolesQuery();
 
   const createUserMutation = useCreateUserMutation();
   const updateUserMutation = useUpdateUserMutation();
@@ -249,14 +251,17 @@ export function Users() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              void refetchUsers();
-              void refetchRoles();
+            onClick={async () => {
+              await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+              await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+              await Promise.all([refetchUsers(), refetchRoles()]);
+              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
             }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title="Refresh"
+            disabled={usersFetching || rolesFetching}
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-5 w-5 ${(usersFetching || rolesFetching) ? "animate-spin" : ""}`} />
           </button>
           <button onClick={openCreate} className="btn btn-primary btn-sm sm:btn-md gap-2">
             <UserPlus className="w-4 h-4" />

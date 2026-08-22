@@ -68,7 +68,14 @@ func (c *HighlightController) GetHighlights(ctx fiber.Ctx) error {
 		})
 	}
 
-	res, err := c.service.GetHighlights(reqCtx, userID, dto.ChapterID, getOptionalClaims(ctx))
+	if dto.ChapterID == "" && dto.BookID == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "either chapter_id or book_id is required",
+		})
+	}
+
+	res, err := c.service.GetHighlights(reqCtx, userID, dto.ChapterID, dto.BookID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

@@ -125,10 +125,12 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
             </span>
           </h3>
           <button
+            type="button"
             onClick={onClose}
-            className="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
+            className="btn btn-ghost btn-sm btn-circle text-base-content hover:bg-base-200 border border-base-300/70 shadow-xs"
+            aria-label={t("common.close", "Close")}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -221,6 +223,9 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
           </button>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </dialog>
   );
 };

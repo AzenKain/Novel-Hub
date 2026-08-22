@@ -22,6 +22,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 
 function getTaskIcon(type: string) {
   switch (type) {
@@ -50,6 +51,7 @@ function getTaskIcon(type: string) {
 
 export function JobsTab() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const jobs = useJobsQuery(status, type);
@@ -209,8 +211,18 @@ export function JobsTab() {
           </select>
         </div>
 
-        <button className="btn btn-sm btn-ghost gap-1.5 text-xs h-8 shrink-0" onClick={() => void jobs.refetch()}>
-          <RefreshCw className={`w-3.5 h-3.5 ${jobs.isLoading ? "animate-spin" : ""}`} />
+        <button
+          className="btn btn-sm btn-ghost gap-1.5 text-xs h-8 shrink-0"
+          disabled={jobs.isFetching}
+          onClick={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "cache_stats"] });
+            await Promise.all([jobs.refetch(), tasks.refetch(), cacheStats.refetch()]);
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+          }}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${jobs.isFetching ? "animate-spin" : ""}`} />
           {t("admin.operations.refresh")}
         </button>
       </div>

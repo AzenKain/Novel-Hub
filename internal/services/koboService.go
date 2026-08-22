@@ -41,6 +41,7 @@ type koboService struct {
 	bookRepo       repositories.BookDBRepository
 	diskRepo       repositories.BookFileRepository
 	koboRepo       repositories.KoboRepository
+	readLists      repositories.ReadListRepository
 	bookService    BookService
 	featureService FeatureService
 	permissions    PermissionCache
@@ -52,6 +53,7 @@ func NewKoboService(
 	bookRepo repositories.BookDBRepository,
 	diskRepo repositories.BookFileRepository,
 	koboRepo repositories.KoboRepository,
+	readLists repositories.ReadListRepository,
 	bookService BookService,
 	featureService FeatureService,
 	permissions PermissionCache,
@@ -61,6 +63,7 @@ func NewKoboService(
 		bookRepo:       bookRepo,
 		diskRepo:       diskRepo,
 		koboRepo:       koboRepo,
+		readLists:      readLists,
 		bookService:    bookService,
 		featureService: featureService,
 		permissions:    permissions,
@@ -208,6 +211,41 @@ func (s *koboService) GetSyncList(ctx context.Context, dto request.KoboSyncDto, 
 
 		if int64(len(books)) < constants.MaxPaginationLimit {
 			break
+		}
+	}
+
+	// Sync User Reading Lists / Shelves to Kobo as UserTags if space permits
+	if !remaining && s.readLists != nil {
+		userLists, _ := s.readLists.GetUserReadLists(ctx, dto.UserID, nil, "", 50)
+		for _, rl := range userLists {
+			if len(items) >= kobo.SyncItemLimit {
+				remaining = true
+				break
+			}
+			bookIDs, _ := s.readLists.GetReadListBookIDs(ctx, rl.ID)
+			tagItems := make([]kobo.TagItem, 0, len(bookIDs))
+			for _, bid := range bookIDs {
+				tagItems = append(tagItems, kobo.TagItem{
+					BookID:    bid,
+					DateAdded: kobo.FormatTimestamp(rl.UpdatedAt),
+				})
+			}
+			tag := &kobo.Tag{
+				ID:           rl.ID,
+				Name:         rl.Name,
+				Type:         "UserTag",
+				Items:        tagItems,
+				Created:      kobo.FormatTimestamp(rl.CreatedAt),
+				LastModified: kobo.FormatTimestamp(rl.UpdatedAt),
+			}
+			if rl.CreatedAt.After(token.TagsLastModified) {
+				items = append(items, response.KoboSyncItemResponse{NewTag: tag})
+			} else {
+				items = append(items, response.KoboSyncItemResponse{ChangedTag: tag})
+			}
+			if rl.UpdatedAt.After(newToken.TagsLastModified) {
+				newToken.TagsLastModified = rl.UpdatedAt
+			}
 		}
 	}
 

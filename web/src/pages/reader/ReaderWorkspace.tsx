@@ -1,5 +1,6 @@
-import { ComicReader, ReaderContent, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
+import { ComicReader, ReaderContent, ReaderImageToolbar, type ImageBookmark, type ActiveImageTarget, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
+import { QuoteCardModal } from "@/components/common";
 import { API_BASE, getMediaUrl } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { offlineStore } from "@/lib/offlineStore";
@@ -12,7 +13,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from "react"
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useTTS } from "@/hooks/useTTS";
-import { AudioPlayer } from "@/components/reader/AudioPlayer";
+import { AudioPlayer, type AudioBookmark } from "@/components/reader/AudioPlayer";
 import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
@@ -28,14 +29,14 @@ import { BookOpen, ChevronRight } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
-import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP } from "@/constants";
+import { MIN_DOUBLE_PAGE_WIDTH, READER_CONTENT_MEASURE, READER_PAGE_GAP, getSideTapRatio } from "@/constants";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useReadListNextQuery } from "@/hooks/useReadListQueries";
 import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
 import { useAudiobookChaptersQuery } from "@/hooks/useAudiobookQueries";
 import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
-import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
+import { isNavOnlyChapter } from "@/utils/readerHtml";
 
 const ReaderWorkspaceInner = () => {
   const { book_id } = useParams<{ book_id: string }>();
@@ -46,6 +47,9 @@ const ReaderWorkspaceInner = () => {
   
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [quoteModalText, setQuoteModalText] = useState("");
+  const [quoteModalImageUrl, setQuoteModalImageUrl] = useState<string | undefined>(undefined);
 
   const ttsStartPointRef = useRef<TtsStartPoint | null>(null);
   const savedSelectionRef = useRef<SavedSelection | null>(null);
@@ -168,7 +172,7 @@ const ReaderWorkspaceInner = () => {
   const publicSettings = usePublicSettings();
   const guestPerms = publicSettings?.guest_permissions;
   const allowTTS = hasPermission(user, "book.tts", book?.library_id, guestPerms);
-  const allowHighlights = Boolean(user && hasPermission(user, "book.highlight", book?.library_id, guestPerms));
+  const allowHighlights = hasPermission(user, "book.highlight", book?.library_id, guestPerms);
   const currentChapterExists = Boolean(currentChapter && chapters.some((c) => c.id === currentChapter.id));
   const { data: readerETA } = useReaderETAQuery(user && hasPermission(user, "user.stats.read") ? book_id : undefined);
   const { highlights, addHighlight, updateHighlight, removeHighlight } = useHighlights(book?.id || '', currentChapter?.id, allowHighlights && currentChapterExists);
@@ -246,6 +250,117 @@ const ReaderWorkspaceInner = () => {
     (chapter) => chapter.id === currentChapter?.id,
   );
 
+  const [audioBookmarks, setAudioBookmarks] = useState<AudioBookmark[]>([]);
+  const [audioSeekTime, setAudioSeekTime] = useState<number | null>(null);
+  const audioDeleteBookmarkRef = useRef<((id: string) => void) | null>(null);
+
+  // Image Bookmarks State
+  const [imageBookmarks, setImageBookmarks] = useState<ImageBookmark[]>(() => {
+    try {
+      const raw = localStorage.getItem(`img-bm-${book_id}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeImageTarget, setActiveImageTarget] = useState<ActiveImageTarget | null>(null);
+
+  const saveImageBookmarks = (list: ImageBookmark[]) => {
+    setImageBookmarks(list);
+    try {
+      localStorage.setItem(`img-bm-${book_id}`, JSON.stringify(list));
+    } catch {}
+  };
+
+  const handleSaveImageBookmark = (bm: Omit<ImageBookmark, "id" | "created_at">) => {
+    const newBm: ImageBookmark = {
+      ...bm,
+      id: Date.now().toString(),
+      created_at: new Date().toISOString(),
+    };
+    const updated = [newBm, ...imageBookmarks];
+    saveImageBookmarks(updated);
+    toast.success(t("reader.image_bookmarked", "Đã lưu mốc ảnh!"));
+  };
+
+  const handleDeleteImageBookmark = (id: string) => {
+    const updated = imageBookmarks.filter((b) => b.id !== id);
+    saveImageBookmarks(updated);
+  };
+
+  const handleSelectImageBookmark = (bm: ImageBookmark) => {
+    if (bm.chapter_id && bm.chapter_id !== currentChapter?.id) {
+      const ch = chapters.find((c) => c.id === bm.chapter_id);
+      if (ch) {
+        void loadChapter(ch);
+      }
+    }
+    if (isVisualContent && bm.page_index !== undefined) {
+      setComicPage(bm.page_index);
+    } else {
+      setTimeout(() => {
+        const container = columnsRef.current || contentRef.current;
+        if (container) {
+          const imgs = Array.from(container.querySelectorAll("img"));
+          const matched = imgs.find((img) => img.src === bm.image_url || img.getAttribute("src") === bm.image_url);
+          if (matched) {
+            const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
+            const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+            if (isPaged && pagedContainer.clientWidth > 0) {
+              const rangeRect = matched.getBoundingClientRect();
+              const containerRect = pagedContainer.getBoundingClientRect();
+              const pageGap = 40;
+              const scrollStep = pagedContainer.clientWidth + pageGap;
+              const currentScrollLeft = pagedContainer.scrollLeft;
+              const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
+              const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
+              pagedContainer.scrollTo({
+                left: pageIndex * scrollStep,
+                behavior: "smooth",
+              });
+            } else {
+              matched.scrollIntoView({ block: "center", behavior: "smooth" });
+            }
+          }
+        }
+      }, 250);
+    }
+    setSidebarOpen(false);
+    restoreFocus();
+  };
+
+  const handleContentClickCapture = (e: React.MouseEvent) => {
+    if (isComicFormat) return;
+
+    const target = e.target as HTMLElement;
+    if (target && target.tagName.toLowerCase() === "img") {
+      const img = target as HTMLImageElement;
+      const src = img.currentSrc || img.src;
+      if (src) {
+        // If clicking in the side tap zone on mobile/tablet, let page turning happen instead of selecting image
+        const screenWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+        const sideRatio = getSideTapRatio(screenWidth);
+        if (sideRatio > 0) {
+          const clickRatio = e.clientX / screenWidth;
+          if (clickRatio < sideRatio || clickRatio > 1 - sideRatio) {
+            return;
+          }
+        }
+        setActiveImageTarget({
+          image_url: src,
+          chapter_id: currentChapter?.id,
+          chapter_title: currentChapter?.title,
+          x: e.clientX,
+          y: e.clientY,
+        });
+        return;
+      }
+    }
+    if (activeImageTarget) {
+      setActiveImageTarget(null);
+    }
+  };
+
   const {
     selectionRange,
     setSelectionRange,
@@ -267,6 +382,16 @@ const ReaderWorkspaceInner = () => {
   });
 
   const handleSelectHighlight = (highlight: Highlight) => {
+    if (highlight.chapter_id && highlight.chapter_id !== currentChapter?.id) {
+      const ch = chapters.find((c) => c.id === highlight.chapter_id);
+      if (ch) {
+        pendingTextOffsetRef.current = highlight.start_index;
+        void loadChapter(ch);
+        setSidebarOpen(false);
+        restoreFocus();
+        return;
+      }
+    }
     const container = columnsRef.current || contentRef.current;
     if (container && highlight.start_index >= 0) {
       scrollToTextOffset(container, highlight.start_index);
@@ -298,19 +423,62 @@ const ReaderWorkspaceInner = () => {
   }, [book, theme]);
 
   const { isScrolling: autoScrollActive, toggleScroll: onToggleAutoScroll, updateSpeed } = useAutoScroll(contentRef);
+  const [comicPage, setComicPage] = useState(0);
+  const [comicTotalPages, setComicTotalPages] = useState(0);
 
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
   const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
   const effectiveReadingMode = readingMode === "double" && !canUseDoubleMode ? "single" : readingMode;
 
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
-  const isVisualContent = useMemo(() => isVisualChapter(htmlContent), [htmlContent]);
-  const rtlPaging = isVisualContent && readingDirection === "rtl";
   const activeFile = file_id ? book?.files?.find(f => f.id === file_id) : book?.files?.[0];
+  const isComicFormat = !!activeFile?.format.match(/^(cbz|cbr|cbt|cb7)$/i);
+  const isVisualContent = isComicFormat;
+  const rtlPaging = isVisualContent && readingDirection === "rtl";
   const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.content_path?.toLowerCase().endsWith(".pdf"));
   const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
   const isPdfAudio = isPdf || isAudio;
   const rawFileUrl = `${API_BASE}/reader/${encodeURIComponent(book_id || "")}/file?file_id=${encodeURIComponent(activeFile?.id || file_id || "")}`;
+
+  const comicImageTarget = useMemo(() => {
+    if (!isComicFormat || !htmlContent) return null;
+    const div = document.createElement("div");
+    div.innerHTML = htmlContent;
+    const imgs = Array.from(div.querySelectorAll("img"));
+    const urls = imgs.map((img) => img.getAttribute("src") || "").filter(Boolean);
+    const url = urls[comicPage] || urls[0];
+    if (!url) return null;
+    return {
+      image_url: url,
+      chapter_id: currentChapter?.id,
+      chapter_title: currentChapter?.title,
+      page_index: comicPage,
+    };
+  }, [isComicFormat, htmlContent, comicPage, currentChapter]);
+
+  const effectiveActiveImageTarget = activeImageTarget || comicImageTarget;
+
+  useEffect(() => {
+    setActiveImageTarget(null);
+  }, [comicPage]);
+
+  const comicStep = effectiveReadingMode === "double" ? 2 : 1;
+
+  const handleComicPagePrev = () => {
+    if (comicPage > 0) {
+      setComicPage(Math.max(0, comicPage - comicStep));
+    } else if (canGoPrev) {
+      void handlePrev(true);
+    }
+  };
+
+  const handleComicPageNext = () => {
+    if (comicPage + comicStep < comicTotalPages) {
+      setComicPage(comicPage + comicStep);
+    } else if (canGoNext) {
+      void handleNext();
+    }
+  };
 
   // A HEAD probe rather than waiting for the player to fail: an <audio> or <iframe> pointed at
   // an unreachable URL shows its own broken state and never tells us to fall back.
@@ -333,26 +501,36 @@ const ReaderWorkspaceInner = () => {
   }, [isPdfAudio, activeFile, rawFileUrl, resolveBlobURL]);
 
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
-  const pageWidth = scrollLayout || pageFrameWidth === 0
+  const rawFrameWidth = pageFrameWidth > 0 ? pageFrameWidth : (typeof window !== "undefined" ? Math.min(window.innerWidth - 64, maxWidth) : 920);
+  const pageWidth = scrollLayout
     ? 0
-    : Math.max(1, Math.floor((pageFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
+    : Math.max(1, Math.floor((rawFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
 
   useEffect(() => {
     const container = columnsRef.current || contentRef.current;
     if (!container || !highlights) return;
 
     let rafId: number;
+    let timerId1: ReturnType<typeof setTimeout>;
+    let timerId2: ReturnType<typeof setTimeout>;
+    let timerId3: ReturnType<typeof setTimeout>;
     const reapply = () => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         const target = columnsRef.current || contentRef.current;
         if (target) {
-          applyUserHighlights(target, highlights);
+          const currentChapterHighlights = highlights.filter(
+            (h) => !h.chapter_id || h.chapter_id === currentChapter?.id
+          );
+          applyUserHighlights(target, currentChapterHighlights);
         }
       });
     };
 
     reapply();
+    timerId1 = setTimeout(reapply, 60);
+    timerId2 = setTimeout(reapply, 200);
+    timerId3 = setTimeout(reapply, 600);
 
     const observer = new ResizeObserver(() => {
       reapply();
@@ -362,23 +540,36 @@ const ReaderWorkspaceInner = () => {
 
     return () => {
       cancelAnimationFrame(rafId);
+      clearTimeout(timerId1);
+      clearTimeout(timerId2);
+      clearTimeout(timerId3);
       observer.disconnect();
     };
   }, [
     highlights,
     htmlContent,
+    currentChapter?.id,
+    theme,
     effectiveReadingMode,
     pageWidth,
     fontSize,
     lineHeight,
     fontFamily,
     proseClass,
+    readerBg,
     readingDirection,
     pageFit,
     maxWidth,
     sidebarOpen,
-    selectionRange,
+    settingsOpen,
   ]);
+
+  useEffect(() => {
+    const container = columnsRef.current || contentRef.current;
+    if (container && highlights && highlights.length > 0) {
+      applyUserHighlights(container, highlights);
+    }
+  }, [selectionRange, isPlaying, isPaused, highlights, scrollLayout, autoScrollActive]);
   const {
     getPagedScrollMetrics,
     scrollToPageIndex,
@@ -410,6 +601,7 @@ const ReaderWorkspaceInner = () => {
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (sidebarRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('.modal, [role="dialog"], [data-reader-modal="true"]')) return;
       setSidebarOpen(false);
     };
 
@@ -434,6 +626,22 @@ const ReaderWorkspaceInner = () => {
     loadChapter: (chapter) => loadChapter(chapter),
     getPagedScrollMetrics,
     scrollToPageIndex,
+    onPagePrev: handlePagePrev,
+    onPageNext: handlePageNext,
+    rtlPaging,
+    onCenterClick: () => {
+      setSettingsOpen(false);
+      setSidebarOpen(false);
+    },
+    onImageClick: (target) => {
+      setActiveImageTarget({
+        image_url: target.image_url,
+        chapter_id: currentChapter?.id,
+        chapter_title: currentChapter?.title,
+        x: target.x,
+        y: target.y,
+      });
+    },
   });
 
   useEffect(() => {
@@ -816,8 +1024,11 @@ const ReaderWorkspaceInner = () => {
     if (!currentChapter) return;
     const idx = chapters.findIndex(c => c.id === currentChapter.id);
     if (idx > 0) {
-      if (startAtEnd) {
+      const isPagedMode = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+      if (startAtEnd || isPagedMode) {
         pendingLandingRef.current = "end";
+      } else {
+        pendingLandingRef.current = null;
       }
       loadChapter(chapters[idx - 1]);
     }
@@ -951,6 +1162,18 @@ const ReaderWorkspaceInner = () => {
           }}
           isAudio={isAudio}
           nextTooltip={nextTooltip}
+          isComic={isComicFormat}
+          comicCurrentPage={comicPage}
+          comicTotalPages={comicTotalPages}
+          onComicPageJump={(p) => setComicPage(p)}
+          activeImageTarget={effectiveActiveImageTarget}
+          onSaveImageBookmark={handleSaveImageBookmark}
+          onOpenQuoteCard={(text, imageUrl) => {
+            setQuoteModalText(text || "");
+            setQuoteModalImageUrl(imageUrl);
+            setQuoteModalOpen(true);
+          }}
+          onCloseImageTarget={() => setActiveImageTarget(null)}
         />
 
         {/* Reader Scrollable Area */}
@@ -961,18 +1184,23 @@ const ReaderWorkspaceInner = () => {
               className={`flex-1 min-h-0 ${
                 isPdfAudio
                   ? 'overflow-hidden flex flex-col p-0'
-                  : scrollLayout
-                    ? 'overflow-y-auto pt-6 pb-24 px-4 sm:px-8'
-                    : 'overflow-hidden flex flex-col pt-4 pb-6 px-4 sm:px-20'
+                  : effectiveReadingMode === "webtoon"
+                    ? 'overflow-y-auto p-0'
+                    : scrollLayout
+                      ? 'overflow-y-auto pt-6 pb-24 px-4 sm:px-8'
+                      : isComicFormat
+                        ? 'overflow-hidden flex flex-col p-0'
+                        : 'overflow-hidden flex flex-col pt-4 pb-6 px-4 sm:px-20'
               } relative`}
               onClick={() => setSettingsOpen(false)}
+              onClickCapture={handleContentClickCapture}
               onScroll={handleScroll}
             >
               <div
                 ref={pageFrameRef}
                 className={`w-full mx-auto ${isPdfAudio ? 'h-full flex-1 min-h-0 flex flex-col' : scrollLayout ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
                 style={{
-                  maxWidth: isPdfAudio ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
+                  maxWidth: isPdfAudio || effectiveReadingMode === "webtoon" || isVisualContent ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
                   fontSize: `${fontSize}px`,
                   lineHeight: lineHeight,
                   "--reader-font-family": fontFamily,
@@ -999,6 +1227,11 @@ const ReaderWorkspaceInner = () => {
                       cover_url={book.cover_url || `/api/v1/books/${book.id}/cover`}
                       chapters={audiobookChapters?.map((c) => ({ title: c.title, start_sec: c.start_sec, end_sec: c.end_sec }))}
                       initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
+                      seekToTime={audioSeekTime}
+                      onBookmarksChange={setAudioBookmarks}
+                      onRegisterDeleteBookmark={(fn) => {
+                        audioDeleteBookmarkRef.current = fn;
+                      }}
                       onTimeUpdate={(time) => {
                         pendingFragmentRef.current = `audio:${time}`;
                         const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
@@ -1020,15 +1253,30 @@ const ReaderWorkspaceInner = () => {
                       }}
                     />
                     {readerETA && readerETA.eta_minutes > 0 && (
-                      <p className="text-center text-xs text-base-content/50 mt-2">
+                      <p className="text-center text-xs text-(--reader-ui-muted) mt-2">
                         {t("reader.eta_left", "~{{minutes}} min left", { minutes: Math.max(1, readerETA.eta_minutes) })}
                       </p>
                     )}
                   </div>
-                ) : htmlContent && effectiveReadingMode === "webtoon" ? (
+                ) : htmlContent && isComicFormat ? (
                   <ComicReader
                     htmlContent={htmlContent}
                     onContentClick={handleContentClick}
+                    onImageClick={(target) => {
+                      setActiveImageTarget({
+                        ...target,
+                        chapter_id: currentChapter?.id,
+                        chapter_title: currentChapter?.title,
+                      });
+                    }}
+                    onPrevChapter={canGoPrev ? () => handlePrev(true) : undefined}
+                    onNextChapter={canGoNext ? handleNext : undefined}
+                    canGoPrevChapter={canGoPrev}
+                    canGoNextChapter={canGoNext}
+                    initialLanding={pendingLandingRef.current}
+                    currentPage={comicPage}
+                    onPageChange={setComicPage}
+                    onTotalPagesChange={setComicTotalPages}
                   />
                 ) : htmlContent ? (
                   <ReaderContent
@@ -1036,10 +1284,8 @@ const ReaderWorkspaceInner = () => {
                     proseClass={proseClass}
                     effectiveReadingMode={effectiveReadingMode}
                     readingDirection={readingDirection}
-                    pageFit={pageFit}
                     pageWidth={pageWidth}
                     columnsRef={columnsRef}
-                    isPendingLanding={pendingLandingRef.current === "end"}
                     onContentClick={handleContentClick}
                   />
                 ) : (
@@ -1050,7 +1296,7 @@ const ReaderWorkspaceInner = () => {
                 
                 {!isPdf && !isAudio && scrollLayout && nextInReadList && (
                   <button
-                    className="btn btn-primary btn-sm mx-auto mt-6 flex gap-1.5 rounded-xl"
+                    className="reader-action-btn btn btn-sm mx-auto mt-6 flex gap-1.5 rounded-xl"
                     onClick={goToNextInReadList}
                   >
                     {t("reader.readlist_next", "Next: {{title}}", { title: nextInReadList.title })}
@@ -1058,33 +1304,33 @@ const ReaderWorkspaceInner = () => {
                 )}
 
                 {!isPdf && !isAudio && scrollLayout && !nextInReadList && nextInSeries && (
-                  <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-5 shadow-sm text-center">
-                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) text-(--reader-ui-text) p-5 shadow-sm text-center">
+                    <p className="text-xs font-bold uppercase tracking-wider text-(--reader-ui-accent)">
                       {t("reader.series_next_label", "Next Volume in Series")}
                     </p>
-                    <div className="flex items-center gap-3.5 w-full text-left bg-base-200/50 p-3 rounded-xl border border-base-200">
+                    <div className="flex items-center gap-3.5 w-full text-left bg-(--reader-ui-soft) p-3 rounded-xl border border-(--reader-ui-border)">
                       {nextInSeries.cover_url ? (
                         <img
                           src={getMediaUrl(nextInSeries.cover_url)}
                           alt={nextInSeries.title}
-                          className="h-16 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-2xs"
+                          className="h-16 aspect-[3/4.2] rounded-lg object-cover bg-black/10 shrink-0 shadow-2xs"
                         />
                       ) : (
-                        <div className="h-16 aspect-[3/4.2] rounded-lg bg-primary/10 grid place-items-center text-primary shrink-0">
+                        <div className="h-16 aspect-[3/4.2] rounded-lg bg-(--reader-ui-accent-soft) grid place-items-center text-(--reader-ui-accent) shrink-0">
                           <BookOpen className="w-6 h-6" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-base-content truncate">
+                        <p className="text-sm font-bold text-(--reader-ui-text) truncate">
                           {nextInSeries.title}
                         </p>
-                        <p className="text-xs text-base-content/60 truncate mt-0.5">
+                        <p className="text-xs text-(--reader-ui-muted) truncate mt-0.5">
                           {nextInSeries.series_name} {nextInSeries.series_index ? `#${nextInSeries.series_index}` : ""}
                         </p>
                       </div>
                     </div>
                     <button
-                      className="btn btn-primary btn-sm w-full gap-2 rounded-xl mt-1"
+                      className="reader-action-btn btn btn-sm w-full gap-2 rounded-xl mt-1"
                       onClick={goToNextInSeries}
                     >
                       <BookOpen className="w-4 h-4" />
@@ -1094,7 +1340,7 @@ const ReaderWorkspaceInner = () => {
                   </div>
                 )}
 
-                {!isPdf && !isAudio && scrollLayout && (
+                {!isPdf && !isAudio && scrollLayout && effectiveReadingMode !== "webtoon" && !isVisualContent && (
                   <ReaderPageControls
                     t={t}
                     mode="footer"
@@ -1105,7 +1351,7 @@ const ReaderWorkspaceInner = () => {
                   />
                 )}
                 {!isPdf && !isAudio && scrollLayout && readerETA && readerETA.eta_minutes > 0 && (
-                  <p className="text-center text-xs text-base-content/50 mt-2">
+                  <p className="text-center text-xs text-(--reader-ui-muted) mt-2">
                     {t("reader.eta_left", "~{{minutes}} min left", { minutes: Math.max(1, readerETA.eta_minutes) })}
                   </p>
                 )}
@@ -1115,10 +1361,10 @@ const ReaderWorkspaceInner = () => {
                 <ReaderPageControls
                   t={t}
                   mode="floating"
-                  canGoPrev
-                  canGoNext
-                  onPrev={handlePagePrev}
-                  onNext={handlePageNext}
+                  canGoPrev={isComicFormat ? (comicPage > 0 || canGoPrev) : true}
+                  canGoNext={isComicFormat ? (comicPage + comicStep < comicTotalPages || canGoNext) : true}
+                  onPrev={isComicFormat ? (rtlPaging ? handleComicPageNext : handleComicPagePrev) : handlePagePrev}
+                  onNext={isComicFormat ? (rtlPaging ? handleComicPagePrev : handleComicPageNext) : handlePageNext}
                 />
               )}
             </div>
@@ -1145,6 +1391,24 @@ const ReaderWorkspaceInner = () => {
         onUpdateHighlight={allowHighlights ? (id, color, note) => void updateHighlight(id, color, note) : undefined}
         onDeleteHighlight={allowHighlights ? (id) => void removeHighlight(id) : undefined}
         onSelectHighlight={handleSelectHighlight}
+        isAudio={isAudio}
+        audioBookmarks={audioBookmarks}
+        onSelectAudioBookmark={(time) => {
+          setAudioSeekTime(time);
+          setTimeout(() => setAudioSeekTime(null), 100);
+        }}
+        onDeleteAudioBookmark={(id) => {
+          audioDeleteBookmarkRef.current?.(id);
+        }}
+        isVisualContent={isVisualContent}
+        imageBookmarks={imageBookmarks}
+        onSelectImageBookmark={handleSelectImageBookmark}
+        onDeleteImageBookmark={handleDeleteImageBookmark}
+        onOpenQuoteCard={(text, imageUrl) => {
+          setQuoteModalText(text || "");
+          setQuoteModalImageUrl(imageUrl);
+          setQuoteModalOpen(true);
+        }}
         nextInSeries={seriesContext?.next}
         nextInReadList={readListNext?.has_next ? readListNext.book : undefined}
         onGoToNextInSeries={goToNextInSeries}
@@ -1156,12 +1420,35 @@ const ReaderWorkspaceInner = () => {
           t={t}
           toolbarPos={toolbarPos}
           isSupported={isSupported && allowTTS}
+          selectedText={savedSelectionRef.current?.selectedText || selectionRange?.toString() || window.getSelection()?.toString() || ""}
           onReadSelection={handleReadSelection}
           onReadFromHere={handleReadFromHere}
           onCopyText={handleCopyText}
           onHighlight={allowHighlights ? handleHighlight : undefined}
+          onOpenQuoteCard={(text) => {
+            const txt = (text || savedSelectionRef.current?.selectedText || selectionRange?.toString() || window.getSelection()?.toString() || "").trim();
+            if (txt) {
+              setQuoteModalText(txt);
+              setQuoteModalImageUrl(undefined);
+              setQuoteModalOpen(true);
+            }
+          }}
         />
       )}
+
+      <QuoteCardModal
+        open={quoteModalOpen}
+        quote={quoteModalText}
+        imageUrl={quoteModalImageUrl}
+        bookTitle={book?.title}
+        bookAuthor={book?.author_name}
+        bookCover={book?.cover_url ? getMediaUrl(book.cover_url) : undefined}
+        chapterTitle={currentChapter?.title}
+        onClose={() => {
+          setQuoteModalOpen(false);
+          setQuoteModalImageUrl(undefined);
+        }}
+      />
 
       {searchOpen && book_id && (
         <div className="fixed top-16 right-6 z-50 animate-fade-in">

@@ -216,4 +216,116 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
 
     document.body.removeChild(container);
   });
+
+  it("isolates consecutive illustration images into dedicated .reader-image-page blocks on 1024x1336", () => {
+    const rawHtml = `
+      <div class="title-top">
+        <h2 class="title-item">Web Novel [ĐÃ HOÀN THÀNH]</h2>
+        <h4 class="title-item1">illustration</h4>
+      </div>
+      <div class="col" id="chapter-content">
+        <p id="2" class="calibre3"><img alt="u68792-1.jpg" src="http://localhost:5173/api/v1/reader/019ffa22-db85-7bbb-ab7e-fb89556f0b4f/asset/1.jpg?file_id=019ffa22-dbaa-78ae-8402-86c5f733772b" class="calibre7"></p>
+        <p id="3" class="calibre3"><img alt="u68792-2.jpg" src="http://localhost:5173/api/v1/reader/019ffa22-db85-7bbb-ab7e-fb89556f0b4f/asset/2.jpg?file_id=019ffa22-dbaa-78ae-8402-86c5f733772b" class="calibre7"></p>
+        <p id="4" class="calibre3"><img alt="u68792-3.jpg" src="http://localhost:5173/api/v1/reader/019ffa22-db85-7bbb-ab7e-fb89556f0b4f/asset/3.jpg?file_id=019ffa22-dbaa-78ae-8402-86c5f733772b" class="calibre7"></p>
+        <p id="5" class="calibre3"><img alt="u68792-4.jpg" src="http://localhost:5173/api/v1/reader/019ffa22-db85-7bbb-ab7e-fb89556f0b4f/asset/4.jpg?file_id=019ffa22-dbaa-78ae-8402-86c5f733772b" class="calibre7"></p>
+        <p id="9" class="calibre3">[Người gửi] Vợ tương lai</p>
+      </div>
+    `;
+
+    const sanitized = sanitizeReaderHtml(rawHtml);
+    const container = document.createElement("div");
+    container.className = "reader-content reader-mode-double";
+    container.innerHTML = sanitized;
+    document.body.appendChild(container);
+
+    const imageWrappers = container.querySelectorAll(".reader-image-page");
+    expect(imageWrappers.length).toBe(4);
+
+    // Each image wrapper contains exactly 1 image
+    imageWrappers.forEach((wrapper, i) => {
+      const img = wrapper.querySelector("img");
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute("src")).toContain(`asset/${i + 1}.jpg`);
+    });
+
+    // Text paragraph is NOT tagged as an image page
+    const textP = container.querySelector("#\\39");
+    expect(textP).not.toBeNull();
+    expect(textP?.classList.contains("reader-image-page")).toBe(false);
+    expect(textP?.textContent).toContain("[Người gửi] Vợ tương lai");
+
+    document.body.removeChild(container);
+  });
+
+  it("calculates 11 discrete pages for an 11-image illustration chapter on 1024x1366 without jumping", () => {
+    // Generate 11 illustration paragraphs identical to user's exact DOM
+    const imagesHtml = Array.from({ length: 11 }, (_, i) => 
+      `<p class="calibre3 reader-image-page"><img alt="" src="/api/v1/reader/book/asset/${i + 1}.jpg" class="calibre6"></p>`
+    ).join("\n");
+
+    const fullChapterHtml = `
+      <div class="title-top">
+        <h2 class="title-item">Minh họa LN</h2>
+        <h4 class="title-item1">Minh họa vol 1</h4>
+      </div>
+      <div class="col" id="chapter-content">
+        ${imagesHtml}
+      </div>
+    `;
+
+    const sanitized = sanitizeReaderHtml(fullChapterHtml);
+    const container = document.createElement("div");
+    container.className = "reader-content reader-mode-single reader-mode-measured";
+    container.innerHTML = sanitized;
+    document.body.appendChild(container);
+
+    const imagePages = container.querySelectorAll(".reader-image-page");
+    expect(imagePages.length).toBe(11);
+
+    // Simulate multi-column layout geometry on 1024x1366:
+    // Container clientWidth: 920px, Page gap: 40px, Step: 960px
+    const clientWidth = 920;
+    const pageGap = 40;
+    const scrollStep = clientWidth + pageGap; // 960px
+
+    // 1 title page + 11 image pages = 12 total pages
+    const totalPages = 12;
+    const totalScrollWidth = clientWidth + (totalPages - 1) * scrollStep; // 920 + 11 * 960 = 11480px
+
+    // Verify maxIndex calculation
+    const maxScroll = totalScrollWidth - clientWidth;
+    const maxIndex = Math.round(maxScroll / scrollStep);
+    expect(maxIndex).toBe(11); // Pages 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+
+    // Step-by-step navigation test: verify pageIndex increments from 0 to 11 without triggering chapter next
+    let currentPageIndex = 0;
+    let nextChapterCalled = false;
+
+    const onChapterNext = () => {
+      nextChapterCalled = true;
+    };
+
+    const handlePageNext = () => {
+      if (currentPageIndex >= maxIndex) {
+        onChapterNext();
+        return;
+      }
+      currentPageIndex++;
+    };
+
+    // Advancing through pages 0 to 11 must NOT call onChapterNext
+    for (let step = 0; step < 11; step++) {
+      expect(currentPageIndex).toBe(step);
+      handlePageNext();
+      expect(nextChapterCalled).toBe(false);
+      expect(currentPageIndex).toBe(step + 1);
+    }
+
+    // Now at last page (11), next click SHOULD call onChapterNext
+    expect(currentPageIndex).toBe(11);
+    handlePageNext();
+    expect(nextChapterCalled).toBe(true);
+
+    document.body.removeChild(container);
+  });
 });

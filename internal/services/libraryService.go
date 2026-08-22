@@ -33,6 +33,7 @@ type LibraryService interface {
 	ReadableLibraryIDs(ctx context.Context, claims *response.JWTClaims) ([]string, error)
 	UpdateLibrary(ctx context.Context, id string, dto *request.UpdateLibraryDto) (*response.LibraryResponse, error)
 	DeleteLibrary(ctx context.Context, id string) error
+	ProcessDeleteLibrary(ctx context.Context, id string) error
 	UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error)
 	ProcessSingleLocalFile(ctx context.Context, libraryID string, filename string, localFilePath string) error
 	StreamLibraryZip(ctx context.Context, libraryID string, w io.Writer) error
@@ -143,7 +144,76 @@ func (s *libraryService) UpdateLibrary(ctx context.Context, id string, dto *requ
 }
 
 func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
-	return s.libraryRepo.DeleteLibrary(ctx, id)
+	lib, err := s.libraryRepo.GetLibrary(ctx, id)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return apperrors.New(apperrors.ErrNotFound, "Library not found")
+		}
+		return err
+	}
+	if lib == nil {
+		return apperrors.New(apperrors.ErrNotFound, "Library not found")
+	}
+
+	if s.jobQueue != nil {
+		jobID := "delete_library_" + id + "_" + uuid.New().String()
+		job := worker.Job{
+			ID:      jobID,
+			Type:    "delete_library",
+			Payload: id,
+		}
+		if err := s.jobQueue.Enqueue(ctx, job); err != nil {
+			log.Warn().Err(err).Str("library_id", id).Msg("failed to enqueue delete_library job, executing synchronously")
+			return s.ProcessDeleteLibrary(ctx, id)
+		}
+		return nil
+	}
+
+	return s.ProcessDeleteLibrary(ctx, id)
+}
+
+func (s *libraryService) ProcessDeleteLibrary(ctx context.Context, id string) error {
+	log.Info().Str("library_id", id).Msg("starting deletion of library and associated book contents")
+
+	// Batch delete all books in the library to prevent long DB locks and timeouts
+	const batchSize = 500
+	for {
+		bookIDs, err := s.bookRepo.ListBookIDsByLibrary(ctx, id, batchSize)
+		if err != nil {
+			log.Error().Err(err).Str("library_id", id).Msg("failed to list book IDs for library deletion")
+			break
+		}
+		if len(bookIDs) == 0 {
+			break
+		}
+
+		// Delete FTS and DB records for this batch
+		for _, bID := range bookIDs {
+			_ = s.bookRepo.DeleteFTSBook(ctx, bID)
+		}
+		if err := s.bookRepo.BulkDeleteBooks(ctx, bookIDs); err != nil {
+			log.Error().Err(err).Str("library_id", id).Msg("failed to bulk delete books batch during library deletion")
+		}
+
+		// Remove physical files on disk for this batch
+		for _, bID := range bookIDs {
+			if err := s.fileRepo.RemoveBookDir(ctx, bID); err != nil {
+				log.Warn().Err(err).Str("book_id", bID).Msg("failed to remove book directory during library deletion")
+			}
+		}
+
+		// Flush cache for deleted batch
+		s.bookRepo.FlushCache(ctx)
+	}
+
+	// Delete the library record itself and purge RAM cache
+	if err := s.libraryRepo.DeleteLibrary(ctx, id); err != nil {
+		log.Error().Err(err).Str("library_id", id).Msg("failed to delete library record")
+		return err
+	}
+
+	log.Info().Str("library_id", id).Msg("successfully completed deletion of library")
+	return nil
 }
 
 // ponytail: flat cap, not a per-user quota. Each file enqueues 2 bounded jobs plus a DB row.

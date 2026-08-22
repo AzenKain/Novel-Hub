@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, FolderInput, Tag, X, Layers } from 'lucide-react';
+import { Trash2, FolderInput, Tag, X, Layers, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface BulkActionToolbarProps {
@@ -9,6 +9,7 @@ interface BulkActionToolbarProps {
   onBulkAddTags: () => void;
   onBulkDelete: () => void;
   onBulkEditMetadata?: () => void;
+  onBulkDownload?: () => void;
 }
 
 export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
@@ -18,6 +19,7 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
   onBulkAddTags,
   onBulkDelete,
   onBulkEditMetadata,
+  onBulkDownload,
 }) => {
   const { t } = useTranslation();
 
@@ -32,6 +34,17 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
       <div className="h-4 w-px bg-base-content/20" />
 
       <div className="flex items-center gap-2">
+        {onBulkDownload && (
+          <button
+            type="button"
+            onClick={onBulkDownload}
+            className="btn btn-primary btn-xs gap-1.5 font-medium"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {t('common.download', 'Download')}
+          </button>
+        )}
+
         {onBulkEditMetadata && (
           <button
             type="button"

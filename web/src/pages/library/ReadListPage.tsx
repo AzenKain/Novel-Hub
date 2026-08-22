@@ -11,16 +11,21 @@ import {
   useRemoveReadListBookMutation,
   useReorderReadListMutation,
 } from "@/hooks";
+import { useAuthStore, useDownloadManagerStore } from "@/stores";
 import type { ImportCBLResult, ReadList } from "@/types";
+import { hasPermission } from "@/utils/permission";
 import { ArrowLeft, ListOrdered, Plus, Trash2, Upload } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export const ReadListPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const user = useAuthStore((s) => s.user);
+  const allowDownload = hasPermission(user, "book.download");
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -80,6 +85,28 @@ export const ReadListPage: React.FC = () => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (file) importMutation.mutate(file);
+  };
+
+  const handleDownloadAll = () => {
+    const validBooks = books.map((b) => b.book).filter((b) => b && b.files && b.files.length > 0);
+    if (validBooks.length === 0) return;
+    const { addBulkDownloads, open } = useDownloadManagerStore.getState();
+    addBulkDownloads(
+      validBooks.map((b) => ({
+        bookId: b.id,
+        title: b.title,
+        coverUrl: b.cover_url,
+        format: b.files?.[0]?.format || "EPUB",
+        sizeBytes: b.files?.[0]?.size_bytes,
+      })),
+      false
+    );
+    open();
+    toast.success(
+      t("admin.bulk_download_started", "Added {{count}} books to download queue", {
+        count: validBooks.length,
+      })
+    );
   };
 
   // The reader walks the rest of the list itself once it knows which list it is inside, so opening
@@ -145,30 +172,46 @@ export const ReadListPage: React.FC = () => {
                 {t("library.readlist_empty", "No read lists yet. Create one or import a .cbl file.")}
               </div>
             ) : (
-              lists.map((list) => (
-                <div
-                  key={list.id}
-                  className={`flex items-center gap-2 rounded-xl border p-3 transition-all ${
-                    list.id === activeId
-                      ? "border-primary bg-primary/10"
-                      : "border-base-200 bg-base-100 hover:border-primary/40"
-                  }`}
-                >
-                  <button className="min-w-0 flex-1 text-left" onClick={() => setActiveId(list.id)}>
-                    <p className="truncate text-sm font-bold text-base-content">{list.name}</p>
-                    <p className="mt-0.5 text-xs text-base-content/50">
-                      {t("library.readlist_book_count", "{{n}} books", { n: list.book_count })}
-                    </p>
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-xs btn-square text-error hover:bg-error/10"
-                    onClick={() => setDeleteTarget(list)}
-                    title={t("library.readlist_delete", "Delete read list")}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))
+              <ul className="flex flex-col gap-1.5">
+                {lists.map((list) => {
+                  const isActive = list.id === activeId;
+                  return (
+                    <li key={list.id}>
+                      <div
+                        onClick={() => setActiveId(list.id)}
+                        className={`group flex cursor-pointer items-center justify-between gap-2 rounded-xl p-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-primary text-primary-content shadow-sm"
+                            : "bg-base-100 hover:bg-base-200 text-base-content"
+                        }`}
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <ListOrdered className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-content" : "text-primary"}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold">{list.name}</p>
+                            <p className={`text-xs ${isActive ? "text-primary-content/80" : "text-base-content/50"}`}>
+                              {list.book_count || 0} {t("library.readlist_books", "books")}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={`btn btn-ghost btn-xs btn-square opacity-0 transition-opacity group-hover:opacity-100 ${
+                            isActive ? "hover:bg-primary-focus text-primary-content" : "text-error hover:bg-error/20"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(list);
+                          }}
+                          title={t("common.delete", "Delete")}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
 
             {listsQuery.hasNextPage && (
@@ -186,11 +229,11 @@ export const ReadListPage: React.FC = () => {
             )}
           </aside>
 
-          <section className="min-w-0">
+          <section className="flex flex-col gap-4">
             {active ? (
               <div className="flex flex-col gap-4">
-                <div>
-                  <h2 className="text-lg font-black text-base-content">{active.name}</h2>
+                <div className="rounded-2xl border border-base-200 bg-base-100 p-5 shadow-2xs">
+                  <h2 className="text-xl font-black text-base-content">{active.name}</h2>
                   {active.description && (
                     <p className="mt-1 text-sm text-base-content/60">{active.description}</p>
                   )}
@@ -203,6 +246,7 @@ export const ReadListPage: React.FC = () => {
                   onRemove={(bookId) => removeBookMutation.mutate({ id: active.id, bookId })}
                   onOpenBook={openInReader}
                   onReadInOrder={() => books[0] && openInReader(books[0].book.id)}
+                  onDownloadAll={allowDownload ? handleDownloadAll : undefined}
                 />
               </div>
             ) : (

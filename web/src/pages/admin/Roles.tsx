@@ -34,12 +34,14 @@ interface PermissionAssignment {
 
 import { useRoleAdminStore } from "@/stores";
 import { Trans, useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 
 export function Roles() {
   const { t } = useTranslation();
-  const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRolesQuery();
-  const { data: permissions = [], isLoading: permissionsLoading, refetch: refetchPermissions } = usePermissionsQuery();
+  const queryClient = useQueryClient();
+  const { data: roles = [], isLoading: rolesLoading, isFetching: rolesFetching, refetch: refetchRoles } = useRolesQuery();
+  const { data: permissions = [], isLoading: permissionsLoading, isFetching: permissionsFetching, refetch: refetchPermissions } = usePermissionsQuery();
   const { data: libraries = [] } = useLibrariesQuery();
 
   const createRoleMutation = useCreateRoleMutation();
@@ -264,14 +266,17 @@ export function Roles() {
           <p className="text-sm text-base-content/60 mt-1">{t("admin.role_management_desc", "Create, edit roles and manage permissions")}</p>
         </div>
         <button
-          onClick={() => {
-            void refetchRoles();
-            void refetchPermissions();
+          onClick={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "permissions"] });
+            await Promise.all([refetchRoles(), refetchPermissions()]);
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("admin.operations.refresh", "Refresh")}
+          disabled={rolesFetching || permissionsFetching}
         >
-          <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-5 w-5 ${(rolesFetching || permissionsFetching) ? "animate-spin" : ""}`} />
         </button>
       </header>
 

@@ -197,13 +197,12 @@ describe("scrollToTextOffset", () => {
     expect(scrolled[0].textContent).toBe("abcdefghij");
   });
 
-  it("refuses offsets at or before the start, and past the end", () => {
+  it("refuses offsets before the start, and past the end", () => {
     const container = render("<p>short</p>");
 
-    expect(scrollToTextOffset(container, 0)).toBe(false);
+    expect(scrollToTextOffset(container, 0)).toBe(true);
     expect(scrollToTextOffset(container, -5)).toBe(false);
     // Total text is 5 chars; nothing to resolve past it.
     expect(scrollToTextOffset(container, 500)).toBe(false);
-    expect(scrolled).toHaveLength(0);
   });
 });

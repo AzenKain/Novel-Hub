@@ -23,16 +23,20 @@ export const ReaderPageControls: React.FC<ReaderPageControlsProps> = ({
     return (
       <>
         <button
+          type="button"
           onClick={onPrev}
-          className="reader-floating-btn btn btn-circle absolute left-4 top-1/2 z-20 -translate-y-1/2 animate-none shadow-lg"
+          className="reader-floating-btn btn btn-circle absolute left-4 top-1/2 z-20 -translate-y-1/2 animate-none shadow-xl hidden lg:flex opacity-40 hover:opacity-100 transition-all cursor-pointer"
           title={t("reader.prev_page", "Previous Page")}
+          aria-label={t("reader.prev_page", "Previous Page")}
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
         <button
+          type="button"
           onClick={onNext}
-          className="reader-floating-btn btn btn-circle absolute right-4 top-1/2 z-20 -translate-y-1/2 animate-none shadow-lg"
+          className="reader-floating-btn btn btn-circle absolute right-4 top-1/2 z-20 -translate-y-1/2 animate-none shadow-xl hidden lg:flex opacity-40 hover:opacity-100 transition-all cursor-pointer"
           title={t("reader.next_page", "Next Page")}
+          aria-label={t("reader.next_page", "Next Page")}
         >
           <ChevronLeft className="h-6 w-6 rotate-180" />
         </button>

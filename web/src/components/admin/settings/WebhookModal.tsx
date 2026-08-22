@@ -282,8 +282,13 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             </div>
           </div>
 
-          <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm">
-            <X className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 text-base-content stroke-[2.5]" />
           </button>
         </div>
 

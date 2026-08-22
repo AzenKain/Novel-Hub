@@ -25,11 +25,13 @@ import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { SmtpSettingsTab } from "@/components/admin/settings/SmtpSettingsTab";
 import { WebhooksTab } from "@/components/admin/settings/WebhooksTab";
 import { CustomizationTab } from "@/components/admin/settings/CustomizationTab";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Settings() {
   const { t } = useTranslation();
-  const { data: adminSettings, isLoading: settingsLoading, refetch: refetchSettings } = useAdminSettingsQuery();
-  const { data: librariesList = [], isLoading: librariesLoading, refetch: refetchLibraries } = useLibrariesQuery();
+  const queryClient = useQueryClient();
+  const { data: adminSettings, isLoading: settingsLoading, isFetching: settingsFetching, refetch: refetchSettings } = useAdminSettingsQuery();
+  const { data: librariesList = [], isLoading: librariesLoading, isFetching: librariesFetching, refetch: refetchLibraries } = useLibrariesQuery();
   const updateSettingsMutation = useUpdateAdminSettingsMutation();
 
   const {
@@ -258,14 +260,17 @@ export function Settings() {
           <p className="text-sm text-base-content/60 mt-1">{t("settings.subtitle", "Website customization, policies, and access control")}</p>
         </div>
         <button
-          onClick={() => {
-            void refetchSettings();
-            void refetchLibraries();
+          onClick={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+            await queryClient.invalidateQueries({ queryKey: ["libraries"] });
+            await Promise.all([refetchSettings(), refetchLibraries()]);
+            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("settings.refresh", "Refresh")}
+          disabled={settingsFetching || librariesFetching}
         >
-          <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-5 w-5 ${(settingsFetching || librariesFetching) ? "animate-spin" : ""}`} />
         </button>
       </header>
 

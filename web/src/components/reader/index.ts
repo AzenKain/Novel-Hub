@@ -7,3 +7,4 @@ export * from "./ReaderSelectionToolbar";
 export * from "./ReaderSidebar";
 export * from "./ReaderTopBar";
 export * from "./ComicReader";
+export * from "./ReaderImageToolbar";

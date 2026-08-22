@@ -19,7 +19,7 @@ import (
 
 type HighlightService interface {
 	CreateHighlight(ctx context.Context, userID string, dto *request.CreateHighlightDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
-	GetHighlights(ctx context.Context, userID string, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error)
+	GetHighlights(ctx context.Context, userID string, chapterID string, bookID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error)
 	UpdateHighlightNote(ctx context.Context, userID string, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error)
 	DeleteHighlight(ctx context.Context, userID string, id string, claims *response.JWTClaims) error
 }
@@ -69,15 +69,17 @@ func (s *highlightService) canHighlight(ctx context.Context, bookID, chapterID s
 		log.Warn().Err(err).Str("book_id", bookID).Str("chapter_id", chapterID).Msg("highlight.canHighlight: GetBook failed")
 		return false
 	}
-	// Validate chapter belongs to this book (supports both DB and virtual chapters)
-	resolvedBookID, ok := s.resolveBookIDFromChapterID(ctx, chapterID)
-	if !ok {
-		log.Warn().Str("book_id", bookID).Str("chapter_id", chapterID).Msg("highlight.canHighlight: resolveBookIDFromChapterID failed")
-		return false
-	}
-	if resolvedBookID != bookID {
-		log.Warn().Str("book_id", bookID).Str("resolved_book_id", resolvedBookID).Str("chapter_id", chapterID).Msg("highlight.canHighlight: resolved bookID mismatch")
-		return false
+	if chapterID != "" {
+		// Validate chapter belongs to this book (supports both DB and virtual chapters)
+		resolvedBookID, ok := s.resolveBookIDFromChapterID(ctx, chapterID)
+		if !ok {
+			log.Warn().Str("book_id", bookID).Str("chapter_id", chapterID).Msg("highlight.canHighlight: resolveBookIDFromChapterID failed")
+			return false
+		}
+		if resolvedBookID != bookID {
+			log.Warn().Str("book_id", bookID).Str("resolved_book_id", resolvedBookID).Str("chapter_id", chapterID).Msg("highlight.canHighlight: resolved bookID mismatch")
+			return false
+		}
 	}
 	resolved := resolveClaims(claims)
 	attrs := map[string]any{"library_id": book.LibraryID}
@@ -134,17 +136,36 @@ func (s *highlightService) CreateHighlight(ctx context.Context, userID string, d
 	return h.ToResponse(), nil
 }
 
-func (s *highlightService) GetHighlights(ctx context.Context, userID string, chapterID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error) {
-	bookID, ok := s.resolveBookIDFromChapterID(ctx, chapterID)
-	if !ok || !s.canHighlight(ctx, bookID, chapterID, claims) {
-		return nil, apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this chapter")
-	}
-	highlights, err := s.repo.GetByChapter(ctx, userID, chapterID)
-	if err != nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get highlights")
+func (s *highlightService) GetHighlights(ctx context.Context, userID string, chapterID string, bookID string, claims *response.JWTClaims) ([]*response.HighlightResponse, error) {
+	if chapterID != "" {
+		resolvedBookID, ok := s.resolveBookIDFromChapterID(ctx, chapterID)
+		if !ok || !s.canHighlight(ctx, resolvedBookID, chapterID, claims) {
+			return nil, apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this chapter")
+		}
+		highlights, err := s.repo.GetByChapter(ctx, userID, chapterID)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get highlights")
+		}
+
+		return models.HighlightEntitiesToResponse(highlights), nil
 	}
 
-	return models.HighlightEntitiesToResponse(highlights), nil
+	if bookID != "" {
+		if !s.canHighlight(ctx, bookID, "", claims) {
+			return nil, apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this book")
+		}
+		items, err := s.repo.GetHighlightsByBook(ctx, userID, bookID)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get highlights")
+		}
+		responses := make([]*response.HighlightResponse, len(items))
+		for i, item := range items {
+			responses[i] = item.ToResponse()
+		}
+		return responses, nil
+	}
+
+	return []*response.HighlightResponse{}, nil
 }
 
 func (s *highlightService) UpdateHighlightNote(ctx context.Context, userID string, id string, dto *request.UpdateHighlightNoteDto, claims *response.JWTClaims) (*response.HighlightResponse, error) {
