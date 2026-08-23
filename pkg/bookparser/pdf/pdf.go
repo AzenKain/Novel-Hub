@@ -39,6 +39,7 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	merged := bookparser.MergeMetadataSidecar(filePath, meta)
 	if len(merged.CoverData) == 0 {
 		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.IsDefaultCover = true
 		merged.CoverType = "image/svg+xml"
 	}
 	return merged, nil

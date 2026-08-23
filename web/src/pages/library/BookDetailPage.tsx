@@ -214,7 +214,7 @@ export const BookDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full pb-8">
+    <div className="w-full pb-8 animate-page-enter">
       {/* Action Bar */}
       <div className="flex items-center justify-between mb-4 mt-2">
         <button onClick={() => navigate("/")} className="btn btn-ghost btn-sm">
@@ -350,14 +350,16 @@ export const BookDetailPage: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-6 lg:gap-8">
           {/* Left Pane - Cover & Stats */}
           <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col items-center gap-6">
-            <div className="w-48 md:w-full aspect-2/3 rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
+            <div className="w-48 md:w-full aspect-2/3 rounded-xl overflow-hidden shadow-xl border border-base-200 bg-base-200 relative group transition-shadow duration-300">
               {book.cover_url && !imgError ? (
                 <img
                   src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
                   alt={book.title}
                   draggable={false}
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setImgError(true)}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-base-content/30 p-4 text-center bg-linear-to-br from-base-200 to-base-300">

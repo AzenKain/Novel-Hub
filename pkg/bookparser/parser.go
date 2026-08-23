@@ -16,6 +16,7 @@ type BookMetadata struct {
 	CoverType        string
 	MetadataJSON     string
 	ReadingDirection string
+	IsDefaultCover   bool
 }
 
 type ChapterData struct {

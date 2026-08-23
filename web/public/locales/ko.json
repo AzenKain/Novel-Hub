@@ -945,7 +945,18 @@
     "no_chapters_found": "챕터를 찾을 수 없습니다",
     "chapters_count": "챕터",
     "enter_fullscreen": "전체 화면",
-    "exit_fullscreen": "전체 화면 종료"
+    "exit_fullscreen": "전체 화면 종료",
+    "text_align": "텍스트 정렬",
+    "align_left": "왼쪽 정렬",
+    "align_left_short": "왼쪽",
+    "align_center": "가운데 정렬",
+    "align_center_short": "가운데",
+    "align_right": "오른쪽 정렬",
+    "align_right_short": "오른쪽",
+    "align_justify": "양쪽 맞춤",
+    "align_justify_short": "양쪽",
+    "align_original": "책 기본값",
+    "align_original_short": "원본"
   },
   "analytics": {
     "title": "독서 분석 및 통계",

@@ -945,7 +945,18 @@
     "no_chapters_found": "Bab tidak ditemukan",
     "chapters_count": "bab",
     "enter_fullscreen": "Layar Penuh",
-    "exit_fullscreen": "Keluar dari Layar Penuh"
+    "exit_fullscreen": "Keluar dari Layar Penuh",
+    "text_align": "Perataan Teks",
+    "align_left": "Rata Kiri",
+    "align_left_short": "Kiri",
+    "align_center": "Rata Tengah",
+    "align_center_short": "Tengah",
+    "align_right": "Rata Kanan",
+    "align_right_short": "Kanan",
+    "align_justify": "Rata Kiri Kanan",
+    "align_justify_short": "Justifikasi",
+    "align_original": "Bawaan Buku",
+    "align_original_short": "Asli"
   },
   "analytics": {
     "title": "Analitik & statistik bacaan",

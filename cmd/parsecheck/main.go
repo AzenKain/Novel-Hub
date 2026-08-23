@@ -10,7 +10,9 @@ import (
 
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/bookparser/archivebook"
+	"novelhub/pkg/bookparser/audiobook"
 	"novelhub/pkg/bookparser/comic"
+	"novelhub/pkg/bookparser/csv"
 	docparser "novelhub/pkg/bookparser/doc"
 	"novelhub/pkg/bookparser/docx"
 	"novelhub/pkg/bookparser/epub"
@@ -20,7 +22,10 @@ import (
 	"novelhub/pkg/bookparser/odt"
 	"novelhub/pkg/bookparser/pdf"
 	"novelhub/pkg/bookparser/plain"
+	"novelhub/pkg/bookparser/presentation"
 	"novelhub/pkg/bookparser/rtf"
+	"novelhub/pkg/bookparser/spreadsheet"
+	"novelhub/pkg/bookparser/tex"
 )
 
 type result struct {
@@ -43,6 +48,10 @@ func main() {
 
 	failed := 0
 	for _, path := range os.Args[1:] {
+		info, err := os.Stat(path)
+		if err == nil && info.IsDir() {
+			continue
+		}
 		res := checkPath(registry, path)
 		if !res.OK {
 			failed++
@@ -74,6 +83,11 @@ func newParserRegistry() bookparser.Registry {
 	registry.Register(comic.NewParser("cb7"), "cb7")
 	registry.Register(comic.NewParser("rar"), "rar")
 	registry.Register(comic.NewParser("7z"), "7z")
+	registry.Register(audiobook.New(), "mp3", "m4a", "m4b", "flac")
+	registry.Register(csv.NewParser(), "csv", "tsv")
+	registry.Register(tex.NewParser(), "tex", "latex", "ltx")
+	registry.Register(presentation.NewParser(), "pptx", "ppt", "odp")
+	registry.Register(spreadsheet.NewParser(), "xlsx", "xls", "ods")
 	return registry
 }
 

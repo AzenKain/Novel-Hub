@@ -945,7 +945,18 @@
     "no_chapters_found": "لم يتم العثور على فصول",
     "chapters_count": "فصول",
     "enter_fullscreen": "ملء الشاشة",
-    "exit_fullscreen": "الخروج من ملء الشاشة"
+    "exit_fullscreen": "الخروج من ملء الشاشة",
+    "text_align": "محاذاة النص",
+    "align_left": "محاذاة لليسار",
+    "align_left_short": "يسار",
+    "align_center": "توسيط",
+    "align_center_short": "وسط",
+    "align_right": "محاذاة لليمين",
+    "align_right_short": "يمين",
+    "align_justify": "ضبط المحاذاة",
+    "align_justify_short": "ضبط",
+    "align_original": "الأصلي للكتاب",
+    "align_original_short": "أصلي"
   },
   "analytics": {
     "title": "تحليلات القراءة وإحصاءاتها",

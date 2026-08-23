@@ -945,7 +945,18 @@
     "no_chapters_found": "Keine Kapitel gefunden",
     "chapters_count": "Kapitel",
     "enter_fullscreen": "Vollbild",
-    "exit_fullscreen": "Vollbild beenden"
+    "exit_fullscreen": "Vollbild beenden",
+    "text_align": "Textausrichtung",
+    "align_left": "Linksbündig",
+    "align_left_short": "Links",
+    "align_center": "Zentriert",
+    "align_center_short": "Mitte",
+    "align_right": "Rechtsbündig",
+    "align_right_short": "Rechts",
+    "align_justify": "Blocksatz",
+    "align_justify_short": "Blocksatz",
+    "align_original": "Buch-Standard",
+    "align_original_short": "Original"
   },
   "analytics": {
     "title": "Leseanalysen & Statistiken",

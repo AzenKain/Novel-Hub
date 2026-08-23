@@ -25,6 +25,17 @@ const READABLE_FORMATS = new Set([
   "cb7",
   "rar",
   "7z",
+  "csv",
+  "tsv",
+  "tex",
+  "latex",
+  "ltx",
+  "pptx",
+  "ppt",
+  "odp",
+  "xlsx",
+  "xls",
+  "ods",
 ]);
 
 export const emptyEngagement = (book_id: string): BookEngagementStats => ({

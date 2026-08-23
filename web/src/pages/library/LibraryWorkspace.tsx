@@ -4,7 +4,7 @@ import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, HorizontalBookShelf, SmartFilterShelf } from "@/components/library";
-import { BookCard, BookGrid } from "@/components/ui";
+import { BookCard, BookGrid, BookGridSkeleton } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
 import type { Book, LibraryNavItem, MetadataCount, MetadataFacetSection, SmartCollectionRule, SmartFilter } from "@/types";
@@ -1036,9 +1036,7 @@ export const LibraryWorkspace = () => {
         )}
 
         {loading && books.length === 0 ? (
-          <div className="flex justify-center items-center py-20">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-          </div>
+          <BookGridSkeleton count={12} />
         ) : books.length > 0 ? (
           <>
             <BookGrid books={books} onBookClick={openBookDetail} />
@@ -1089,7 +1087,7 @@ export const LibraryWorkspace = () => {
           <div
             className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || book_id ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
           >
-            <main className="min-w-0 flex flex-col gap-5">
+            <main className="min-w-0 flex flex-col gap-5 animate-page-enter">
               {book_id ? (
                 <BookDetailPage />
               ) : (

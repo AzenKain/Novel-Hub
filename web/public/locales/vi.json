@@ -800,6 +800,15 @@
     "chapter": "Chương",
     "theme_warm": "Ấm áp",
     "theme_dim": "Mờ",
+    "text_align": "Căn lề văn bản",
+    "align_left": "Căn lề trái",
+    "align_left_short": "Trái",
+    "align_center": "Căn giữa",
+    "align_center_short": "Giữa",
+    "align_right": "Căn lề phải",
+    "align_right_short": "Phải",
+    "align_justify": "Căn đều hai bên",
+    "align_justify_short": "Căn đều",
     "mode": "Chế độ đọc",
     "mode_scroll": "Cuộn",
     "mode_single": "Trang đơn",
@@ -945,7 +954,9 @@
     "no_chapters_found": "Không tìm thấy chương nào",
     "chapters_count": "chương",
     "enter_fullscreen": "Toàn màn hình",
-    "exit_fullscreen": "Thoát toàn màn hình"
+    "exit_fullscreen": "Thoát toàn màn hình",
+    "align_original": "Mặc định của sách",
+    "align_original_short": "Gốc"
   },
   "analytics": {
     "title": "Thống kê & tiến trình đọc",

@@ -532,28 +532,28 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 		desc, _ := rawData["description"].(string)
 
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("<b>📚 NovelHub Event: %s</b>\n", eventType))
+		fmt.Fprintf(&sb, "<b>📚 NovelHub Event: %s</b>\n", eventType)
 		if bookTitle != "" {
-			sb.WriteString(fmt.Sprintf("<b>📖 Book:</b> %s\n", bookTitle))
+			fmt.Fprintf(&sb, "<b>📖 Book:</b> %s\n", bookTitle)
 		}
 		if author != "" {
-			sb.WriteString(fmt.Sprintf("<b>👤 Author:</b> %s\n", author))
+			fmt.Fprintf(&sb, "<b>👤 Author:</b> %s\n", author)
 		}
 		if publisher != "" {
-			sb.WriteString(fmt.Sprintf("<b>🏢 Publisher:</b> %s\n", publisher))
+			fmt.Fprintf(&sb, "<b>🏢 Publisher:</b> %s\n", publisher)
 		}
 		if lang != "" {
-			sb.WriteString(fmt.Sprintf("<b>🌐 Language:</b> %s\n", lang))
+			fmt.Fprintf(&sb, "<b>🌐 Language:</b> %s\n", lang)
 		}
 		if series != "" {
-			sb.WriteString(fmt.Sprintf("<b>📖 Series:</b> %s\n", series))
+			fmt.Fprintf(&sb, "<b>📖 Series:</b> %s\n", series)
 		}
 		if desc != "" {
 			descClean := strings.TrimSpace(desc)
 			if len(descClean) > 250 {
 				descClean = descClean[:247] + "..."
 			}
-			sb.WriteString(fmt.Sprintf("<b>📝 Description:</b> %s\n", descClean))
+			fmt.Fprintf(&sb, "<b>📝 Description:</b> %s\n", descClean)
 		}
 
 		telegramMsg := map[string]any{

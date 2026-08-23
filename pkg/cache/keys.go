@@ -61,7 +61,7 @@ func appendPart(sb *strings.Builder, p any) {
 	case fmt.Stringer:
 		sb.WriteString(v.String())
 	default:
-		sb.WriteString(fmt.Sprint(p))
+		fmt.Fprint(sb, p)
 	}
 }
 

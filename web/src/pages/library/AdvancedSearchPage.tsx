@@ -154,7 +154,7 @@ export const AdvancedSearchPage: React.FC = () => {
   const availableFormats = useMemo(() => {
     const fetchedFormats = formats.map((f) => f.name.toLowerCase());
     // Fallback list ensures chips always appear even before API responds
-    const defaultFormats = ["epub", "pdf", "mobi", "azw3", "fb2", "cbz", "cbr", "docx", "odt", "html", "txt", "rtf", "djvu", "chm", "mp3", "m4b", "flac", "zip", "rar"];
+    const defaultFormats = ["epub", "pdf", "mobi", "azw3", "fb2", "cbz", "cbr", "docx", "odt", "html", "txt", "rtf", "djvu", "chm", "mp3", "m4b", "flac", "zip", "rar", "csv", "tex", "pptx", "ppt", "odp", "xlsx", "xls", "ods"];
     const set = new Set([...fetchedFormats, ...defaultFormats]);
     return Array.from(set);
   }, [formats]);

@@ -9,6 +9,8 @@ vendor/
 /web/dist/
 test-ebook/
 test_audio/
+/sample_file/
+
 # Environment & secrets
 .env
 .env.local

@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
+import React, { useRef, useEffect, useState } from "react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { BookCard } from "@/components/ui/BookCard";
 import type { Book } from "@/types";
 
@@ -40,10 +40,34 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
   const velocityRef = useRef(0);
   const animIdRef = useRef<number | null>(null);
 
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+  }, [books]);
+
   const stopInertia = () => {
     if (animIdRef.current !== null) {
       cancelAnimationFrame(animIdRef.current);
       animIdRef.current = null;
+    }
+  };
+
+  const scrollByAmount = (offset: number) => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({
+        left: offset,
+        behavior: "smooth",
+      });
+      setTimeout(updateScrollButtons, 350);
     }
   };
 
@@ -85,6 +109,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
       lastTimeRef.current = now;
 
       containerRef.current.scrollLeft = scrollLeftRef.current - deltaX;
+      updateScrollButtons();
     };
 
     const onMouseUp = () => {
@@ -103,7 +128,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
             const track = containerRef.current;
             if (!track) return;
             track.scrollLeft -= velocity;
-            velocity *= 0.93; // smooth friction
+            velocity *= 0.94; // smooth friction
 
             if (Math.abs(velocity) > 0.3) {
               animIdRef.current = requestAnimationFrame(stepInertia);
@@ -111,12 +136,14 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
               track.style.scrollBehavior = "";
               track.style.scrollSnapType = "";
               animIdRef.current = null;
+              updateScrollButtons();
             }
           };
           animIdRef.current = requestAnimationFrame(stepInertia);
         } else {
           containerRef.current.style.scrollBehavior = "";
           containerRef.current.style.scrollSnapType = "";
+          updateScrollButtons();
         }
       }
 
@@ -160,7 +187,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
               <button
                 type="button"
                 onClick={onViewAll}
-                className="btn btn-ghost btn-xs text-xs font-bold text-primary hover:bg-primary/10 gap-1 rounded-lg cursor-pointer"
+                className="btn btn-ghost btn-xs text-xs font-bold text-primary hover:bg-primary/10 gap-1 rounded-lg cursor-pointer transition-colors"
               >
                 <span>{viewAllText || "Xem toàn bộ"}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -183,21 +210,46 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
           </div>
         ) : null
       ) : (
-        <div
-          ref={containerRef}
-          onMouseDown={handleMouseDown}
-          onDragStart={(e) => e.preventDefault()}
-          className="flex gap-4 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory items-stretch select-none cursor-grab active:cursor-grabbing -mx-1 px-1 touch-pan-x"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {books.map((book) => (
-            <div
-              key={book.id}
-              className={`${itemWidthClass} shrink-0 flex flex-col snap-start pointer-events-auto`}
+        <div className="relative group/shelf">
+          {canScrollLeft && (
+            <button
+              type="button"
+              aria-label="Scroll shelf left"
+              onClick={() => scrollByAmount(-480)}
+              className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-base-100/90 hover:bg-base-100 border border-base-200/80 shadow-md text-base-content/80 hover:text-primary backdrop-blur-md transition-all duration-200 opacity-0 group-hover/shelf:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
             >
-              <BookCard book={book} onClick={handleBookClick} />
-            </div>
-          ))}
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          {canScrollRight && (
+            <button
+              type="button"
+              aria-label="Scroll shelf right"
+              onClick={() => scrollByAmount(480)}
+              className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-base-100/90 hover:bg-base-100 border border-base-200/80 shadow-md text-base-content/80 hover:text-primary backdrop-blur-md transition-all duration-200 opacity-0 group-hover/shelf:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+
+          <div
+            ref={containerRef}
+            onScroll={updateScrollButtons}
+            onMouseDown={handleMouseDown}
+            onDragStart={(e) => e.preventDefault()}
+            className="flex gap-4 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory items-stretch select-none cursor-grab active:cursor-grabbing -mx-1 px-1 touch-pan-x overscroll-x-contain"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {books.map((book) => (
+              <div
+                key={book.id}
+                className={`${itemWidthClass} shrink-0 flex flex-col snap-start pointer-events-auto`}
+              >
+                <BookCard book={book} onClick={handleBookClick} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>
@@ -206,7 +258,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
   if (title) {
     return (
       <section
-        className={`rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5 ${className}`}
+        className={`rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5 transition-shadow duration-300 ${className}`}
       >
         {content}
       </section>

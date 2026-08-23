@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
 )
 
 type Parser struct{}
@@ -31,12 +32,19 @@ type mobiAsset struct {
 }
 
 type palmDocHeader struct {
-	Compression uint16
-	TextLength  uint32
-	RecordCount uint16
-	RecordSize  uint16
-	Encoding    uint32
-	Title       string
+	Compression     uint16
+	TextLength      uint32
+	RecordCount     uint16
+	RecordSize      uint16
+	Encoding        uint32
+	Title           string
+	Author          string
+	Publisher       string
+	Description     string
+	Subjects        []string
+	Date            string
+	CoverOffset     int
+	FirstImageIndex uint32
 }
 
 var (
@@ -67,13 +75,62 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	}
 	header, err := parseHeader(data, filePath)
 	if err != nil {
-		return &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}, nil
+		meta := &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}
+		merged := bookparser.MergeMetadataSidecar(filePath, meta)
+		if len(merged.CoverData) == 0 {
+			merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+			merged.IsDefaultCover = true
+			merged.CoverType = "image/svg+xml"
+		}
+		return merged, nil
 	}
 	title := strings.TrimSpace(header.Title)
 	if title == "" {
 		title = bookparser.TitleFromPath(filePath)
 	}
-	return bookparser.MergeMetadataSidecar(filePath, &bookparser.BookMetadata{Title: title}), nil
+
+	meta := &bookparser.BookMetadata{
+		Title:       title,
+		Author:      header.Author,
+		Publisher:   header.Publisher,
+		Description: header.Description,
+		Subjects:    header.Subjects,
+		Date:        header.Date,
+	}
+
+	assets, _ := readMobiAssets(filePath)
+	if len(assets) > 0 {
+		var coverAsset *mobiAsset
+		// 1. Try exact cover record by EXTH CoverOffset (Record 201)
+		if header.CoverOffset >= 0 && header.FirstImageIndex > 0 {
+			targetRecord := int(header.FirstImageIndex) + header.CoverOffset
+			for i := range assets {
+				if assets[i].RecordIndex == targetRecord {
+					coverAsset = &assets[i]
+					break
+				}
+			}
+		}
+		// 2. Fallback to first asset if exact offset not found
+		if coverAsset == nil {
+			coverAsset = &assets[0]
+		}
+		if coverAsset != nil && len(coverAsset.Data) > 0 {
+			meta.CoverData = coverAsset.Data
+			meta.CoverType = "image/jpeg"
+			if coverAsset.Ext == ".png" {
+				meta.CoverType = "image/png"
+			}
+		}
+	}
+
+	merged := bookparser.MergeMetadataSidecar(filePath, meta)
+	if len(merged.CoverData) == 0 {
+		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.IsDefaultCover = true
+		merged.CoverType = "image/svg+xml"
+	}
+	return merged, nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
@@ -356,13 +413,22 @@ func parseHeader(data []byte, filePath string) (*palmDocHeader, error) {
 		RecordCount: binary.BigEndian.Uint16(first[8:10]),
 		RecordSize:  binary.BigEndian.Uint16(first[10:12]),
 		Title:       palmDatabaseName(data),
+		CoverOffset: -1,
 	}
 	if mobiStart := bytes.Index(first, []byte("MOBI")); mobiStart >= 0 {
 		if len(first) >= mobiStart+32 {
 			header.Encoding = binary.BigEndian.Uint32(first[mobiStart+28 : mobiStart+32])
 		}
+		if len(first) >= mobiStart+0x60 {
+			header.FirstImageIndex = binary.BigEndian.Uint32(first[mobiStart+0x5C : mobiStart+0x60])
+		}
 		if title := mobiFullName(first, mobiStart); title != "" {
 			header.Title = title
+		}
+		if len(first) >= mobiStart+8 {
+			headerLen := int(binary.BigEndian.Uint32(first[mobiStart+4 : mobiStart+8]))
+			exthStart := mobiStart + headerLen
+			parseEXTH(first, exthStart, header)
 		}
 	}
 	if header.Title == "" {
@@ -487,15 +553,68 @@ func palmDatabaseName(data []byte) string {
 }
 
 func mobiFullName(first []byte, mobiStart int) string {
-	if len(first) < mobiStart+0x5c {
+	if len(first) < mobiStart+0x4C {
 		return ""
 	}
-	offset := int(binary.BigEndian.Uint32(first[mobiStart+0x54 : mobiStart+0x58]))
-	length := int(binary.BigEndian.Uint32(first[mobiStart+0x58 : mobiStart+0x5c]))
+	offset := int(binary.BigEndian.Uint32(first[mobiStart+0x44 : mobiStart+0x48]))
+	length := int(binary.BigEndian.Uint32(first[mobiStart+0x48 : mobiStart+0x4C]))
 	if offset <= 0 || length <= 0 || offset+length > len(first) {
 		return ""
 	}
 	return cleanText(string(first[offset : offset+length]))
+}
+
+func parseEXTH(first []byte, exthStart int, header *palmDocHeader) {
+	if exthStart < 0 || len(first) < exthStart+12 {
+		return
+	}
+	if string(first[exthStart:exthStart+4]) != "EXTH" {
+		return
+	}
+	exthLen := int(binary.BigEndian.Uint32(first[exthStart+4 : exthStart+8]))
+	numRecords := int(binary.BigEndian.Uint32(first[exthStart+8 : exthStart+12]))
+	if exthLen < 12 || exthStart+exthLen > len(first) {
+		return
+	}
+	pos := exthStart + 12
+	var authors []string
+	for i := 0; i < numRecords && pos+8 <= exthStart+exthLen; i++ {
+		recType := binary.BigEndian.Uint32(first[pos : pos+4])
+		recLen := int(binary.BigEndian.Uint32(first[pos+4 : pos+8]))
+		if recLen < 8 || pos+recLen > exthStart+exthLen {
+			break
+		}
+		data := first[pos+8 : pos+recLen]
+		pos += recLen
+
+		switch recType {
+		case 100: // Author / Creator
+			if a := cleanText(string(data)); a != "" {
+				authors = append(authors, a)
+			}
+		case 101: // Publisher
+			header.Publisher = cleanText(string(data))
+		case 103: // Description
+			header.Description = cleanText(string(data))
+		case 105: // Subject
+			if s := cleanText(string(data)); s != "" {
+				header.Subjects = append(header.Subjects, s)
+			}
+		case 106: // Publishing Date
+			header.Date = cleanText(string(data))
+		case 201: // Cover Offset
+			if len(data) == 4 {
+				header.CoverOffset = int(binary.BigEndian.Uint32(data))
+			}
+		case 503: // Updated Title
+			if t := cleanText(string(data)); t != "" {
+				header.Title = t
+			}
+		}
+	}
+	if len(authors) > 0 {
+		header.Author = strings.Join(authors, ", ")
+	}
 }
 
 func decodeText(data []byte, encoding uint32) string {

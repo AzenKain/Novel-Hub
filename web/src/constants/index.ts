@@ -29,7 +29,7 @@ export const SIDEBAR_LABELS: Record<string, string> = {
 };
 
 export const BOOK_FILE_ACCEPT =
-  ".epub,.mobi,.azw,.azw3,.amz,.pdf,.doc,.docx,.odt,.txt,.md,.markdown,.html,.htm,.rtf,.fb2,.fbz,.zip,.cbz,.cbr,.cbt,.cb7,.rar,.7z,.mp3,.m4a,.m4b,.flac";
+  ".epub,.mobi,.azw,.azw3,.amz,.pdf,.doc,.docx,.odt,.txt,.md,.markdown,.html,.htm,.rtf,.fb2,.fbz,.zip,.cbz,.cbr,.cbt,.cb7,.rar,.7z,.mp3,.m4a,.m4b,.flac,.ogg,.wav,.aac,.csv,.tsv,.tex,.latex,.ltx,.pptx,.ppt,.odp,.xlsx,.xls,.ods";
 
 export const READER_PAGE_GAP = 40;
 export const READER_CONTENT_MEASURE = 72;

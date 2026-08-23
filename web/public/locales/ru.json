@@ -945,7 +945,18 @@
     "no_chapters_found": "Главы не найдены",
     "chapters_count": "глав",
     "enter_fullscreen": "Во весь экран",
-    "exit_fullscreen": "Выйти из полноэкранного режима"
+    "exit_fullscreen": "Выйти из полноэкранного режима",
+    "text_align": "Выравнивание текста",
+    "align_left": "По левому краю",
+    "align_left_short": "Слева",
+    "align_center": "По центру",
+    "align_center_short": "Центр",
+    "align_right": "По правому краю",
+    "align_right_short": "Справа",
+    "align_justify": "По ширине",
+    "align_justify_short": "По ширине",
+    "align_original": "По умолчанию книги",
+    "align_original_short": "Оригинал"
   },
   "analytics": {
     "title": "Аналитика и статистика чтения",

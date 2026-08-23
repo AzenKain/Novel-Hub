@@ -1,6 +1,10 @@
 import type { TFunction } from "i18next";
 import {
+  AlignCenter,
+  AlignJustify,
   AlignLeft,
+  AlignRight,
+  BookText,
   Minus,
   Moon,
   Plus,
@@ -12,7 +16,7 @@ import {
 } from "lucide-react";
 import React, { useEffect } from "react";
 
-import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
+import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode, TextAlignment } from "@/stores";
 import { useReaderStore } from "@/stores/readerStore";
 import { useCustomFontsQuery, useCustomThemesQuery } from "@/hooks/useCustomization";
 
@@ -23,6 +27,7 @@ type ReaderSettingsPanelProps = {
   fontSize: number;
   lineHeight: number;
   maxWidth: number;
+  textAlign?: TextAlignment;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
   isVisualContent: boolean;
@@ -34,6 +39,7 @@ type ReaderSettingsPanelProps = {
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
+  setTextAlign?: (align: TextAlignment) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
   setPageFit: (fit: PageFit) => void;
@@ -48,6 +54,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   fontSize,
   lineHeight,
   maxWidth,
+  textAlign = "justify",
   effectiveReadingMode,
   canUseDoubleMode,
   isVisualContent,
@@ -59,6 +66,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   setFontSize,
   setLineHeight,
   setMaxWidth,
+  setTextAlign,
   setReadingMode,
   setReadingDirection,
   setPageFit,
@@ -173,7 +181,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                 theme === "warm" ? "reader-theme-choice-active" : ""
               }`}
             >
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">W</span>
+              <span className="text-xs font-bold">W</span>
               <span className="text-[10px] font-medium">{t("reader.theme_warm", "Warm")}</span>
             </button>
             <button
@@ -182,7 +190,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                 theme === "coffee" ? "reader-theme-choice-active" : ""
               }`}
             >
-              <span className="text-xs font-bold text-amber-900 dark:text-amber-200">C</span>
+              <span className="text-xs font-bold">C</span>
               <span className="text-[10px] font-medium">{t("common.coffee", "Coffee")}</span>
             </button>
             <button
@@ -452,7 +460,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               theme === "warm" ? "reader-theme-choice-active" : ""
             }`}
           >
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">W</span>
+            <span className="text-xs font-bold">W</span>
             <span className="text-[10px] font-medium">{t("reader.theme_warm", "Warm")}</span>
           </button>
           <button
@@ -461,7 +469,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               theme === "coffee" ? "reader-theme-choice-active" : ""
             }`}
           >
-            <span className="text-xs font-bold text-amber-900 dark:text-amber-200">C</span>
+            <span className="text-xs font-bold">C</span>
             <span className="text-[10px] font-medium">{t("common.coffee", "Coffee")}</span>
           </button>
           <button
@@ -690,6 +698,72 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           onChange={(event) => setMaxWidth(parseInt(event.target.value))}
           className="range range-primary range-sm w-full"
         />
+      </div>
+
+      {/* Text Alignment (Dàn trang / Căn lề) */}
+      <div className="mb-4">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-medium opacity-80">
+            {t("reader.text_align", "Text Alignment")}
+          </span>
+        </div>
+        <div className="grid grid-cols-5 gap-1">
+          <button
+            type="button"
+            onClick={() => setTextAlign?.("original")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
+              textAlign === "original" ? "reader-segment-btn-active" : ""
+            }`}
+            title={t("reader.align_original", "Publisher Default")}
+          >
+            <BookText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t("reader.align_original_short", "Original")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTextAlign?.("left")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
+              textAlign === "left" ? "reader-segment-btn-active" : ""
+            }`}
+            title={t("reader.align_left", "Align Left")}
+          >
+            <AlignLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t("reader.align_left_short", "Left")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTextAlign?.("justify")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
+              textAlign === "justify" ? "reader-segment-btn-active" : ""
+            }`}
+            title={t("reader.align_justify", "Justify")}
+          >
+            <AlignJustify className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t("reader.align_justify_short", "Justify")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTextAlign?.("center")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
+              textAlign === "center" ? "reader-segment-btn-active" : ""
+            }`}
+            title={t("reader.align_center", "Align Center")}
+          >
+            <AlignCenter className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t("reader.align_center_short", "Center")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTextAlign?.("right")}
+            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
+              textAlign === "right" ? "reader-segment-btn-active" : ""
+            }`}
+            title={t("reader.align_right", "Align Right")}
+          >
+            <AlignRight className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t("reader.align_right_short", "Right")}</span>
+          </button>
+        </div>
       </div>
 
       {/* Reading Mode for Novels */}

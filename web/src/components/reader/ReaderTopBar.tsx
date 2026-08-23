@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { copyImageToClipboard } from "@/utils/clipboard";
 import { LanguageSwitcher } from "@/components/ui";
-import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode } from "@/stores";
+import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode, TextAlignment } from "@/stores";
 import { useSoundscapeStore } from "@/stores/soundscapeStore";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
@@ -23,6 +23,7 @@ type ReaderTopBarProps = {
   fontSize: number;
   lineHeight: number;
   maxWidth: number;
+  textAlign?: TextAlignment;
   effectiveReadingMode: ReadingMode;
   canUseDoubleMode: boolean;
   isVisualContent: boolean;
@@ -37,6 +38,7 @@ type ReaderTopBarProps = {
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
+  setTextAlign?: (align: TextAlignment) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
   setPageFit: (fit: PageFit) => void;
@@ -82,6 +84,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   fontSize,
   lineHeight,
   maxWidth,
+  textAlign,
   effectiveReadingMode,
   canUseDoubleMode,
   isVisualContent,
@@ -96,6 +99,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   setFontSize,
   setLineHeight,
   setMaxWidth,
+  setTextAlign,
   setReadingMode,
   setReadingDirection,
   setPageFit,
@@ -728,6 +732,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             fontSize={fontSize}
             lineHeight={lineHeight}
             maxWidth={maxWidth}
+            textAlign={textAlign}
             effectiveReadingMode={effectiveReadingMode}
             canUseDoubleMode={canUseDoubleMode}
             isVisualContent={isVisualContent}
@@ -739,6 +744,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             setFontSize={setFontSize}
             setLineHeight={setLineHeight}
             setMaxWidth={setMaxWidth}
+            setTextAlign={setTextAlign}
             setReadingMode={setReadingMode}
             setReadingDirection={setReadingDirection}
             setPageFit={setPageFit}

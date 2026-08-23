@@ -194,3 +194,85 @@ func TestDOCXParserWithImagesAndStyling(t *testing.T) {
 		t.Errorf("expected img tag with relative path in HTML, got %q", html)
 	}
 }
+
+func TestDOCXParserAlignmentAndAdvancedTypography(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "advanced_typography.docx")
+
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create docx: %v", err)
+	}
+	defer file.Close()
+
+	zw := zip.NewWriter(file)
+	files := map[string]string{
+		"word/document.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr><w:jc w:val="center"/></w:pPr>
+      <w:r><w:t>Centered Paragraph</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr><w:jc w:val="right"/></w:pPr>
+      <w:r><w:t>Right Paragraph</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr><w:jc w:val="both"/></w:pPr>
+      <w:r><w:t>Justified Paragraph</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:rPr><w:strike/></w:rPr>
+        <w:t>Strikethrough text</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr><w:caps/></w:rPr>
+        <w:t>Uppercase text</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr><w:smallCaps/></w:rPr>
+        <w:t>Smallcaps text</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`,
+	}
+
+	for name, content := range files {
+		writer, err := zw.Create(name)
+		if err != nil {
+			t.Fatalf("create entry %s: %v", name, err)
+		}
+		if _, err := writer.Write([]byte(content)); err != nil {
+			t.Fatalf("write entry %s: %v", name, err)
+		}
+	}
+	zw.Close()
+
+	parser := NewParser()
+	html, err := parser.GetChapterContent(path, "word/document.xml")
+	if err != nil {
+		t.Fatalf("GetChapterContent: %v", err)
+	}
+
+	if !strings.Contains(html, `<p align="center">Centered Paragraph</p>`) {
+		t.Errorf("expected centered paragraph, got %q", html)
+	}
+	if !strings.Contains(html, `<p align="right">Right Paragraph</p>`) {
+		t.Errorf("expected right-aligned paragraph, got %q", html)
+	}
+	if !strings.Contains(html, `<p align="justify">Justified Paragraph</p>`) {
+		t.Errorf("expected justified paragraph, got %q", html)
+	}
+	if !strings.Contains(html, `<s>Strikethrough text</s>`) {
+		t.Errorf("expected strikethrough text, got %q", html)
+	}
+	if !strings.Contains(html, `<span class="uppercase">Uppercase text</span>`) {
+		t.Errorf("expected uppercase text, got %q", html)
+	}
+	if !strings.Contains(html, `<span class="small-caps">Smallcaps text</span>`) {
+		t.Errorf("expected smallcaps text, got %q", html)
+	}
+}

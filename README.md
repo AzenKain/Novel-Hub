@@ -13,7 +13,9 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ## Features
 
 ### 📖 Reading Experience
-- **Multi-Format Reader**: Render EPUB, PDF, MOBI, AZW, DOCX, FB2, Comic CBZ/CBR, TXT, MD, HTML natively
+- **Universal Multi-Format Reader**: Render EPUB, KePub, MOBI, AZW, AZW3, PDF, DOCX, DOC, ODT, RTF, FB2, FBZ, Comic CBZ/CBR/CBT/CB7, TXT, MD, HTML, PPTX, PPT, ODP, XLSX, XLS, ODS, CSV, TSV, and LaTeX (`.tex`) natively
+- **High-Fidelity Typography & DTP Layout**: Preserves inline styling (bold, italic, underline, strikethrough, small-caps), paragraph alignment (left, center, right, justify), multi-column responsive tables, presentation slide decks, and embedded audio/video
+- **Configurable Text Alignment**: Select between `Original` (preserves publisher's native book CSS), `Left`, `Center`, `Right`, or `Justify`
 - **eBook Converter**: Built-in pure-Go converter between EPUB, MOBI, KePub, PDF, DOCX, FB2, CBZ, TXT formats
 - **Text-to-Speech (TTS)**: Multi-voice reader with speech speed control and active word highlighting
 - **PWA & Offline Reading**: Progressive Web App with browser-level IndexedDB storage for offline reading
@@ -201,20 +203,24 @@ Other languages: [Tiếng Việt](docs/vi/configuration.md) ·
 
 ## Supported Formats
 
-| Format | Extensions | Reader | Metadata | Cover |
-|---|---|---|---|---|
-| EPUB / KePub | `.epub`, `.kepub.epub` | ✅ HTML | ✅ | ✅ |
-| MOBI / AZW3 | `.mobi`, `.azw`, `.azw3`, `.amz` | ✅ HTML | ✅ | ✅ |
-| Audiobooks | `.mp3`, `.m4a`, `.m4b`, `.flac` | ✅ Audio | ✅ | ❌ |
-| PDF | `.pdf` | ✅ Native | ⚠️ Basic | ❌ |
-| DOCX / DOC | `.docx`, `.doc` | ✅ HTML | ✅ | ❌ |
-| ODT | `.odt` | ✅ HTML | ✅ | ❌ |
-| RTF | `.rtf` | ✅ HTML | ⚠️ Basic | ❌ |
-| FB2 | `.fb2` | ✅ HTML | ✅ | ✅ |
-| HTML | `.html`, `.htm` | ✅ HTML | ⚠️ Basic | ❌ |
-| Comics | `.cbz`, `.cbr`, `.cbt`, `.cb7` | ✅ Images | ⚠️ Basic | ❌ |
-| Archived books | `.zip`, `.fbz` | ✅ HTML | ⚠️ Basic | ❌ |
-| Plain Text / MD | `.txt`, `.md`, `.markdown` | ✅ HTML | ⚠️ Basic | ❌ |
+| Format | Extensions | Reader | Metadata | Typography & Formatting | Cover |
+|---|---|---|---|---|---|
+| **EPUB / KePub** | `.epub`, `.kepub.epub` | ✅ HTML | ✅ Full | Bold, Italic, Tables, Figures, Images, Audio/Video | ✅ Full |
+| **MOBI / AZW / AZW3** | `.mobi`, `.azw`, `.azw3`, `.amz` | ✅ HTML | ✅ EXTH | Bold, Italic, Caps, Tables, Images | ✅ EXTH |
+| **Microsoft Word** | `.docx`, `.doc` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment, Images | ✅ Full |
+| **OpenDocument Text** | `.odt` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment, Images | ✅ Full |
+| **Rich Text Format** | `.rtf` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment | ✅ Full |
+| **FictionBook** | `.fb2`, `.fbz` | ✅ HTML | ✅ Full | Bold, Italic, Figures, Images, TOC | ✅ Full |
+| **Presentations** | `.pptx`, `.ppt`, `.odp` | ✅ Slide Deck | ✅ Full | Multi-Slide, Bold, Alignment, Images, Media | ✅ Full |
+| **Spreadsheets** | `.xlsx`, `.xls`, `.ods` | ✅ Table View | ✅ Full | Responsive Tables, Sheet Tabs, ODS Thumbnails | ✅ Full |
+| **Tabular Data** | `.csv`, `.tsv` | ✅ Table View | ✅ Full | Responsive Tables, Delimiter Detection | ✅ Auto SVG |
+| **LaTeX / TeX** | `.tex`, `.latex`, `.ltx` | ✅ HTML | ✅ Full | Headings, Math, Figures, Images | ✅ Auto SVG |
+| **PDF** | `.pdf` | ✅ Native PDF | ⚠️ Basic | Vector PDF Render | ❌ |
+| **Audiobooks** | `.mp3`, `.m4a`, `.m4b`, `.flac` | ✅ Audio Stream | ✅ Full ID3 | Native Player, Chapters, Track Playback | ✅ Tag / SVG |
+| **Comics / Manga** | `.cbz`, `.cbr`, `.cbt`, `.cb7` | ✅ Comic Viewer | ⚠️ Basic | Double Page, RTL Manga Mode, Webtoon | ✅ First Page |
+| **HTML Documents** | `.html`, `.htm` | ✅ HTML | ⚠️ Basic | Full HTML/CSS formatting | ❌ |
+| **Archived Books** | `.zip`, `.rar`, `.7z` | ✅ Auto Detect | ⚠️ Basic | Archive unpacking and extraction | ❌ |
+| **Plain Text / Markdown** | `.txt`, `.md`, `.markdown` | ✅ HTML | ⚠️ Basic | Headings, Code Blocks, Lists | ✅ Auto SVG |
 
 ---
 

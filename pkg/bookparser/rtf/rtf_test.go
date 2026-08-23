@@ -18,7 +18,7 @@ func TestParserExtractsRTFText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetChapterContent failed: %v", err)
 	}
-	for _, want := range []string{"Hello world", "Unicode: ✣", "Hex: café"} {
+	for _, want := range []string{"Hello <b>world</b>", "Unicode: ✣", "Hex: café"} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("html does not contain %q: %s", want, html)
 		}

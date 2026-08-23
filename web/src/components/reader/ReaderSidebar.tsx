@@ -718,9 +718,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
     if (nextInReadList) {
       const coverUrl = nextInReadList.cover_url || (nextInReadList as any).cover_path;
       return (
-        <div className="mt-4 p-3.5 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-base-content/2 to-transparent shadow-xs">
+        <div className="mt-4 p-3.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-soft) shadow-xs">
           <div className="flex items-center gap-1.5 mb-2.5">
-            <span className="badge badge-primary badge-xs font-bold gap-1 py-1 px-2">
+            <span className="badge badge-xs font-bold gap-1 py-1.5 px-2 bg-(--reader-ui-accent-soft) text-(--reader-ui-accent) border border-(--reader-ui-border)">
               <BookOpen className="w-2.5 h-2.5" />
               {t("reader.next_in_read_list", "Next in read list")}
             </span>
@@ -730,11 +730,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               <img
                 src={getMediaUrl(coverUrl, nextInReadList.id, nextInReadList.updated_at)}
                 alt={nextInReadList.title}
-                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-sm border border-base-content/10"
+                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-(--reader-ui-surface-strong) shrink-0 shadow-sm border border-(--reader-ui-border)"
               />
             ) : (
-              <div className="h-14 aspect-[3/4.2] rounded-lg bg-base-200 flex items-center justify-center shrink-0 shadow-sm border border-base-content/10">
-                <BookOpen className="w-4 h-4 opacity-40 text-primary" />
+              <div className="h-14 aspect-[3/4.2] rounded-lg bg-(--reader-ui-surface-strong) flex items-center justify-center shrink-0 shadow-sm border border-(--reader-ui-border)">
+                <BookOpen className="w-4 h-4 opacity-40 text-(--reader-ui-accent)" />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -742,7 +742,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 {nextInReadList.title}
               </p>
               {nextInReadList.description && (
-                <p className="text-[10px] opacity-60 truncate mt-0.5 font-medium">
+                <p className="text-[10px] opacity-60 truncate mt-0.5 font-medium text-(--reader-ui-muted)">
                   {nextInReadList.description}
                 </p>
               )}
@@ -751,7 +751,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           <button
             type="button"
             onClick={onGoToNextInReadList}
-            className="btn btn-primary btn-xs w-full gap-1.5 rounded-xl mt-3 text-[11px] font-bold shadow-xs cursor-pointer"
+            className="btn btn-xs w-full gap-1.5 rounded-xl mt-3 text-[11px] font-bold shadow-xs cursor-pointer bg-(--reader-ui-accent) text-(--reader-ui-accent-text) border-0 hover:brightness-105"
           >
             <BookOpen className="w-3 h-3" />
             {t("reader.read_next_in_list", "Read next volume")}
@@ -765,9 +765,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
       const coverUrl = nextInSeries.cover_url || (nextInSeries as any).cover_path;
       const seriesTitle = nextInSeries.series_name || (nextInSeries as any).series;
       return (
-        <div className="mt-4 p-3.5 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-base-content/2 to-transparent shadow-xs">
+        <div className="mt-4 p-3.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-soft) shadow-xs">
           <div className="flex items-center gap-1.5 mb-2.5">
-            <span className="badge badge-primary badge-xs font-bold gap-1 py-1 px-2">
+            <span className="badge badge-xs font-bold gap-1 py-1.5 px-2 bg-(--reader-ui-accent-soft) text-(--reader-ui-accent) border border-(--reader-ui-border)">
               <BookOpen className="w-2.5 h-2.5" />
               {t("reader.next_in_series", "Next in series")}
             </span>
@@ -777,11 +777,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               <img
                 src={getMediaUrl(coverUrl, nextInSeries.book_id)}
                 alt={nextInSeries.title}
-                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-base-200 shrink-0 shadow-sm border border-base-content/10"
+                className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-(--reader-ui-surface-strong) shrink-0 shadow-sm border border-(--reader-ui-border)"
               />
             ) : (
-              <div className="h-14 aspect-[3/4.2] rounded-lg bg-base-200 flex items-center justify-center shrink-0 shadow-sm border border-base-content/10">
-                <BookOpen className="w-4 h-4 opacity-40 text-primary" />
+              <div className="h-14 aspect-[3/4.2] rounded-lg bg-(--reader-ui-surface-strong) flex items-center justify-center shrink-0 shadow-sm border border-(--reader-ui-border)">
+                <BookOpen className="w-4 h-4 opacity-40 text-(--reader-ui-accent)" />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -789,7 +789,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 {nextInSeries.title}
               </p>
               {seriesTitle && (
-                <p className="text-[10px] opacity-60 truncate mt-0.5 font-medium">
+                <p className="text-[10px] opacity-60 truncate mt-0.5 font-medium text-(--reader-ui-muted)">
                   {seriesTitle}
                   {nextInSeries.series_index ? ` #${nextInSeries.series_index}` : ""}
                 </p>
@@ -799,7 +799,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           <button
             type="button"
             onClick={onGoToNextInSeries}
-            className="btn btn-primary btn-xs w-full gap-1.5 rounded-xl mt-3 text-[11px] font-bold shadow-xs cursor-pointer"
+            className="btn btn-xs w-full gap-1.5 rounded-xl mt-3 text-[11px] font-bold shadow-xs cursor-pointer bg-(--reader-ui-accent) text-(--reader-ui-accent-text) border-0 hover:brightness-105"
           >
             <BookOpen className="w-3 h-3" />
             {t("reader.read_next_volume", "Read Next Volume")}
@@ -824,8 +824,8 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
         className={`reader-sidebar ${singleChapter ? "reader-sidebar-single" : ""} flex flex-col h-full max-h-screen min-h-0 w-80 sm:w-88 overflow-hidden border-r shadow-2xl transition-colors duration-300 ${sidebarBg}`}
       >
         {/* Modern Sidebar Header with Book Cover Thumbnail */}
-        <div className="flex items-start gap-3 p-4 border-b border-base-content/10 shrink-0 bg-base-content/2">
-          <div className="relative shrink-0 overflow-hidden rounded-lg shadow-sm border border-base-content/10 bg-base-200 w-11 h-15">
+        <div className="flex items-start gap-3 p-4 border-b border-(--reader-ui-border) shrink-0 bg-(--reader-ui-soft)">
+          <div className="relative shrink-0 overflow-hidden rounded-lg shadow-sm border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) w-11 h-15">
             {book.cover_url ? (
               <img
                 src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
@@ -833,7 +833,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-base-content/40">
+              <div className="w-full h-full flex items-center justify-center text-(--reader-ui-muted)">
                 <BookOpen className="w-5 h-5" />
               </div>
             )}
@@ -844,12 +844,12 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               {book.title}
             </h2>
             {book.author_name && (
-              <p className="text-xs opacity-60 truncate mt-0.5 font-medium">
+              <p className="text-xs text-(--reader-ui-muted) truncate mt-0.5 font-medium">
                 {book.author_name}
               </p>
             )}
             <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center text-[10px] font-semibold opacity-50 uppercase tracking-wider">
+              <span className="inline-flex items-center text-[10px] font-semibold text-(--reader-ui-muted) uppercase tracking-wider">
                 {!singleChapter
                   ? `${chapters.length} ${t("reader.chapters_count", "chapters")}`
                   : (book.status ? t(`book.status_${book.status.toLowerCase()}`, book.status) : t("reader.current_reading", "Reading now"))}
@@ -860,7 +860,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-ghost btn-xs btn-circle shrink-0 opacity-60 hover:opacity-100 hover:bg-base-content/10 transition-all cursor-pointer"
+            className="btn btn-ghost btn-xs btn-circle shrink-0 text-(--reader-ui-text) opacity-70 hover:opacity-100 hover:bg-(--reader-ui-hover) transition-all cursor-pointer"
             title={t("reader.close_toc", "Close table of contents")}
             aria-label={t("reader.close_toc", "Close table of contents")}
           >
@@ -870,20 +870,26 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
         {/* Segmented Tab Bar (iOS / Modern eReader pill control) */}
         <div className="px-3 pt-3 pb-2 shrink-0">
-          <div className="grid grid-cols-2 gap-1 p-1 bg-base-content/5 rounded-xl border border-base-content/5">
+          <div className="grid grid-cols-2 gap-1 p-1 bg-(--reader-ui-soft) rounded-xl border border-(--reader-ui-border)">
             <button
               type="button"
               onClick={() => setActiveTab("toc")}
               className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "toc"
-                  ? "bg-base-100 dark:bg-base-200 shadow-xs text-primary font-bold"
-                  : "text-base-content/70 hover:text-base-content hover:bg-base-content/5"
+                  ? "bg-(--reader-ui-accent) text-(--reader-ui-accent-text) shadow-xs font-bold"
+                  : "text-(--reader-ui-text) opacity-75 hover:opacity-100 hover:bg-(--reader-ui-hover)"
               }`}
             >
               <ListTree className="w-3.5 h-3.5" />
               <span>{t("reader.toc_tab", "Contents")}</span>
               {!singleChapter && chapters.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono bg-base-content/10 font-bold">
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                    activeTab === "toc"
+                      ? "bg-(--reader-ui-accent-text)/20 text-(--reader-ui-accent-text)"
+                      : "bg-(--reader-ui-surface-strong) text-(--reader-ui-text)"
+                  }`}
+                >
                   {chapters.length}
                 </span>
               )}
@@ -894,8 +900,8 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               onClick={() => setActiveTab("highlights")}
               className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "highlights"
-                  ? "bg-base-100 dark:bg-base-200 shadow-xs text-primary font-bold"
-                  : "text-base-content/70 hover:text-base-content hover:bg-base-content/5"
+                  ? "bg-(--reader-ui-accent) text-(--reader-ui-accent-text) shadow-xs font-bold"
+                  : "text-(--reader-ui-text) opacity-75 hover:opacity-100 hover:bg-(--reader-ui-hover)"
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
@@ -905,7 +911,13 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   : t("reader.highlights_tab", "Bookmarks")}
               </span>
               {totalBookmarksCount > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono bg-base-content/10 font-bold">
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                    activeTab === "highlights"
+                      ? "bg-(--reader-ui-accent-text)/20 text-(--reader-ui-accent-text)"
+                      : "bg-(--reader-ui-surface-strong) text-(--reader-ui-text)"
+                  }`}
+                >
                   {totalBookmarksCount}
                 </span>
               )}
@@ -917,19 +929,19 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
         {activeTab === "toc" && !singleChapter && chapters.length > 5 && (
           <div className="px-3 pb-2 shrink-0">
             <div className="relative flex items-center">
-              <Search className="w-3.5 h-3.5 absolute left-3 text-base-content/40 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 absolute left-3 text-(--reader-ui-muted) pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("reader.search_chapters", "Search chapters...")}
-                className="input input-xs w-full pl-8 pr-7 py-3 bg-base-content/5 border-base-content/10 rounded-lg text-xs focus:bg-base-100 focus:border-primary/50 transition-all placeholder:text-base-content/40"
+                className="input input-xs w-full pl-8 pr-7 py-3 bg-(--reader-ui-soft) border-(--reader-ui-border) rounded-lg text-xs text-(--reader-ui-text) focus:bg-(--reader-ui-surface-strong) focus:border-(--reader-ui-accent) transition-all placeholder:text-(--reader-ui-muted)"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 p-0.5 rounded-full hover:bg-base-content/10 text-base-content/40 hover:text-base-content cursor-pointer"
+                  className="absolute right-2 p-0.5 rounded-full hover:bg-(--reader-ui-hover) text-(--reader-ui-muted) hover:text-(--reader-ui-text) cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -945,9 +957,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               {singleChapter ? (
                 <div className="p-4 space-y-4">
                   {/* Modern Single Volume / Current File Card */}
-                  <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-base-content/3 to-transparent p-4 shadow-sm transition-all hover:border-primary/40">
+                  <div className="relative overflow-hidden rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-soft) p-4 shadow-sm transition-all hover:border-(--reader-ui-accent)/40">
                     <div className="flex items-start gap-3.5">
-                      <div className="relative h-16 aspect-[3/4.2] shrink-0 overflow-hidden rounded-xl bg-base-200 shadow-md border border-base-content/10">
+                      <div className="relative h-16 aspect-[3/4.2] shrink-0 overflow-hidden rounded-xl bg-(--reader-ui-surface-strong) shadow-md border border-(--reader-ui-border)">
                         {book.cover_url ? (
                           <img
                             src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
@@ -955,15 +967,15 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-base-200">
-                            <BookOpen className="h-6 w-6 opacity-40 text-primary" />
+                          <div className="flex h-full w-full items-center justify-center bg-(--reader-ui-surface-strong)">
+                            <BookOpen className="h-6 w-6 opacity-40 text-(--reader-ui-accent)" />
                           </div>
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="badge badge-primary badge-xs font-bold gap-1 py-1.5 px-2">
+                          <span className="badge badge-xs font-bold gap-1 py-1.5 px-2 bg-(--reader-ui-accent-soft) text-(--reader-ui-accent) border border-(--reader-ui-border)">
                             <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                             {t("reader.current_reading", "Reading now")}
                           </span>
@@ -973,7 +985,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                           {chapters[0] ? formatChapterTitle(chapters[0], t) : book.title}
                         </h3>
                         {book.author_name && (
-                          <p className="text-[11px] opacity-60 truncate mt-0.5 font-medium">
+                          <p className="text-[11px] text-(--reader-ui-muted) truncate mt-0.5 font-medium">
                             {book.author_name}
                           </p>
                         )}
@@ -983,7 +995,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                     <button
                       type="button"
                       onClick={() => chapters[0] && onSelectChapter(chapters[0])}
-                      className="btn btn-primary btn-sm w-full gap-2 rounded-xl mt-3.5 font-bold shadow-xs text-xs cursor-pointer"
+                      className="btn btn-xs w-full gap-2 rounded-xl mt-3.5 font-bold shadow-xs text-xs cursor-pointer bg-(--reader-ui-accent) text-(--reader-ui-accent-text) border-0 hover:brightness-105"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
                       <span>{t("reader.read", "Read")}</span>
@@ -996,8 +1008,8 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 <div className="flex flex-col min-h-0 py-1">
                   {filteredChapters.length === 0 ? (
                     <div className="py-12 px-4 text-center space-y-2 opacity-60">
-                      <Search className="w-6 h-6 mx-auto opacity-40" />
-                      <p className="text-xs font-medium">
+                      <Search className="w-6 h-6 mx-auto opacity-40 text-(--reader-ui-muted)" />
+                      <p className="text-xs font-medium text-(--reader-ui-text)">
                         {t("reader.no_chapters_found", "No chapters found")}
                       </p>
                     </div>
@@ -1020,16 +1032,16 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                               }}
                               className={`group relative flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs transition-all cursor-pointer ${
                                 isActive
-                                  ? "bg-primary/10 text-primary font-bold shadow-2xs border-l-3 border-primary pl-2.5"
-                                  : "text-(--reader-ui-text) opacity-80 hover:opacity-100 hover:bg-base-content/5"
+                                  ? "bg-(--reader-ui-accent-soft) text-(--reader-ui-accent) font-bold shadow-2xs border-l-3 border-(--reader-ui-accent) pl-2.5"
+                                  : "text-(--reader-ui-text) opacity-80 hover:opacity-100 hover:bg-(--reader-ui-hover)"
                               }`}
                             >
                               {entryKind === "chapter" && (
                                 <span
                                   className={`font-mono text-[11px] shrink-0 font-semibold px-1.5 py-0.5 rounded-md transition-colors ${
                                     isActive
-                                      ? "bg-primary text-primary-content font-bold"
-                                      : "bg-base-content/5 text-base-content/60 group-hover:bg-base-content/10"
+                                      ? "bg-(--reader-ui-accent) text-(--reader-ui-accent-text) font-bold"
+                                      : "bg-(--reader-ui-soft) text-(--reader-ui-muted) group-hover:bg-(--reader-ui-hover)"
                                   }`}
                                 >
                                   {String(chapter.chapter_index + 1).padStart(2, "0")}
@@ -1037,7 +1049,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                               )}
 
                               {entryKind !== "chapter" && (
-                                <span className="badge badge-xs badge-ghost text-[10px] font-semibold shrink-0 py-1 opacity-70">
+                                <span className="badge badge-xs bg-(--reader-ui-soft) text-(--reader-ui-muted) border-(--reader-ui-border) text-[10px] font-semibold shrink-0 py-1 opacity-70">
                                   ★
                                 </span>
                               )}
@@ -1047,7 +1059,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                               </span>
 
                               {isActive && (
-                                <span className="shrink-0 flex items-center justify-center text-primary">
+                                <span className="shrink-0 flex items-center justify-center text-(--reader-ui-accent)">
                                   <BookOpen className="w-3.5 h-3.5 animate-pulse" />
                                 </span>
                               )}
@@ -1071,8 +1083,8 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                 <div className="flex-1 min-h-0 overflow-y-auto p-4">
                   {!audioBookmarks || audioBookmarks.length === 0 ? (
                     <div className="py-12 text-center space-y-1.5 opacity-60">
-                      <Bookmark className="w-6 h-6 mx-auto opacity-40 text-primary" />
-                      <p className="text-xs">
+                      <Bookmark className="w-6 h-6 mx-auto opacity-40 text-(--reader-ui-accent)" />
+                      <p className="text-xs text-(--reader-ui-text)">
                         {t("reader.no_bookmarks", "No bookmarks saved yet.")}
                       </p>
                     </div>
@@ -1081,7 +1093,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                       {audioBookmarks.map((bm) => (
                         <li
                           key={bm.id}
-                          className="flex items-center justify-between gap-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) p-2.5 hover:border-primary/40 transition-colors"
+                          className="flex items-center justify-between gap-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) p-2.5 hover:border-(--reader-ui-accent)/40 transition-colors"
                         >
                           <button
                             type="button"
@@ -1091,15 +1103,15 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                             }}
                             className="flex flex-1 items-start gap-2 text-left min-w-0 group cursor-pointer"
                           >
-                            <span className="px-2 py-0.5 rounded-md bg-primary/15 text-primary font-mono text-[11px] font-bold shrink-0">
+                            <span className="px-2 py-0.5 rounded-md bg-(--reader-ui-accent-soft) text-(--reader-ui-accent) font-mono text-[11px] font-bold shrink-0">
                               {formatAudioTime(bm.time_sec)}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-(--reader-ui-text) line-clamp-2 group-hover:text-primary transition-colors">
+                              <p className="text-xs font-semibold text-(--reader-ui-text) line-clamp-2 group-hover:text-(--reader-ui-accent) transition-colors">
                                 {bm.note || bm.chapter_title || t("reader.bookmark", "Bookmark")}
                               </p>
                               {bm.note && bm.chapter_title && (
-                                <p className="text-[10px] opacity-50 truncate mt-0.5">
+                                <p className="text-[10px] text-(--reader-ui-muted) truncate mt-0.5">
                                   {bm.chapter_title}
                                 </p>
                               )}
@@ -1146,11 +1158,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
         </div>
 
         {/* Sidebar Footer */}
-        <div className="reader-sidebar-footer shrink-0 border-t border-base-content/10 p-3">
+        <div className="reader-sidebar-footer shrink-0 border-t border-(--reader-ui-border) p-3">
           <button
             type="button"
             onClick={onBack}
-            className="btn btn-ghost btn-sm w-full gap-2 rounded-xl text-xs font-semibold hover:bg-base-content/10 transition-all cursor-pointer"
+            className="btn btn-ghost btn-sm w-full gap-2 rounded-xl text-xs font-semibold text-(--reader-ui-text) hover:bg-(--reader-ui-hover) transition-all cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t("reader.back_to_previous", "Back")}</span>

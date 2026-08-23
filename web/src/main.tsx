@@ -212,7 +212,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <React.Suspense
         fallback={
-          <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 text-gray-500">
+          <div className="flex h-screen items-center justify-center bg-base-100 text-base-content/60">
             Loading translations...
           </div>
         }

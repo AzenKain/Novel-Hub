@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo } from "react";
 
-import type { ReadingDirection, ReadingMode } from "@/stores";
+import type { ReadingDirection, ReadingMode, TextAlignment } from "@/stores";
 import { sanitizeReaderHtml } from "@/utils/readerHtml";
 
 type ReaderContentProps = {
   htmlContent: string;
   proseClass: string;
+  textAlign?: TextAlignment;
   effectiveReadingMode: ReadingMode;
   readingDirection: ReadingDirection;
   pageWidth: number;
@@ -19,6 +20,7 @@ const isRawReaderContent = (html: string) =>
 export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   htmlContent,
   proseClass,
+  textAlign = "original",
   effectiveReadingMode,
   readingDirection,
   pageWidth,
@@ -115,6 +117,7 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
   return (
     <div
       ref={columnsRef}
+      data-align={textAlign}
       onClick={onContentClick}
       className={`reader-content ${proseClass} max-w-none w-full ${
         rawReader

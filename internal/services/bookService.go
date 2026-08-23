@@ -512,12 +512,7 @@ func (s *bookService) parserForFile(file *models.BookFileEntity) (bookparser.Par
 }
 
 func isAllowedBookFormat(ext string) bool {
-	switch strings.ToLower(ext) {
-	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z", ".mp3", ".m4a", ".m4b", ".flac", ".ogg", ".wav", ".aac":
-		return true
-	default:
-		return false
-	}
+	return bookparser.IsAllowedBookFormat(ext)
 }
 
 func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error {

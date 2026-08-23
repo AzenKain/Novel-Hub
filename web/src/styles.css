@@ -8,6 +8,13 @@
 
 :root {
   color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-fluid: cubic-bezier(0, 0, 0.2, 1);
 }
 
 * {
@@ -19,6 +26,10 @@ body {
   min-height: 100vh;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -26,8 +37,15 @@ a,
 input,
 select,
 textarea {
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease-spring);
+}
+
+button:active:not(:disabled),
+.btn:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.975);
+  transition-duration: 90ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -101,94 +119,94 @@ label.btn-primary:hover:not(:disabled) {
 }
 
 .reader-ui {
-  --reader-ui-text: #e5e7eb;
+  --reader-ui-text: #f3f4f6;
   --reader-ui-muted: #9ca3af;
-  --reader-ui-border: rgba(255, 255, 255, 0.12);
+  --reader-ui-border: rgba(255, 255, 255, 0.14);
   --reader-ui-hover: rgba(255, 255, 255, 0.1);
   --reader-ui-soft: rgba(255, 255, 255, 0.06);
-  --reader-ui-surface: rgba(30, 31, 41, 0.98);
-  --reader-ui-surface-strong: #242632;
+  --reader-ui-surface: rgba(19, 20, 27, 0.98);
+  --reader-ui-surface-strong: #20222e;
   --reader-ui-accent: #38bdf8;
   --reader-ui-accent-text: #08111d;
-  --reader-ui-accent-soft: rgba(56, 189, 248, 0.16);
+  --reader-ui-accent-soft: rgba(56, 189, 248, 0.18);
 }
 
 .reader-theme-light {
   --reader-ui-text: #111827;
-  --reader-ui-muted: #64748b;
-  --reader-ui-border: rgba(15, 23, 42, 0.14);
+  --reader-ui-muted: #4b5563;
+  --reader-ui-border: rgba(15, 23, 42, 0.16);
   --reader-ui-hover: rgba(15, 23, 42, 0.08);
   --reader-ui-soft: rgba(15, 23, 42, 0.05);
   --reader-ui-surface: rgba(255, 255, 255, 0.98);
-  --reader-ui-surface-strong: #ffffff;
-  --reader-ui-accent: #0369a1;
+  --reader-ui-surface-strong: #f3f4f6;
+  --reader-ui-accent: #0284c7;
   --reader-ui-accent-text: #ffffff;
-  --reader-ui-accent-soft: rgba(3, 105, 161, 0.12);
+  --reader-ui-accent-soft: rgba(2, 132, 199, 0.14);
 }
 
 .reader-theme-sepia {
-  --reader-ui-text: #4a3527;
-  --reader-ui-muted: #8a6f58;
-  --reader-ui-border: rgba(74, 53, 39, 0.18);
-  --reader-ui-hover: rgba(74, 53, 39, 0.09);
-  --reader-ui-soft: rgba(74, 53, 39, 0.06);
+  --reader-ui-text: #422d1f;
+  --reader-ui-muted: #6b4d37;
+  --reader-ui-border: rgba(66, 45, 31, 0.22);
+  --reader-ui-hover: rgba(66, 45, 31, 0.10);
+  --reader-ui-soft: rgba(66, 45, 31, 0.06);
   --reader-ui-surface: rgba(244, 236, 216, 0.98);
-  --reader-ui-surface-strong: #efe4c9;
-  --reader-ui-accent: #7c4a22;
-  --reader-ui-accent-text: #fff8ec;
-  --reader-ui-accent-soft: rgba(124, 74, 34, 0.14);
+  --reader-ui-surface-strong: #ece0c3;
+  --reader-ui-accent: #78350f;
+  --reader-ui-accent-text: #fffbeb;
+  --reader-ui-accent-soft: rgba(120, 53, 15, 0.16);
 }
 
 .reader-theme-warm {
-  --reader-ui-text: #2f2a20;
-  --reader-ui-muted: #7c7569;
-  --reader-ui-border: rgba(47, 42, 32, 0.16);
-  --reader-ui-hover: rgba(47, 42, 32, 0.08);
-  --reader-ui-soft: rgba(47, 42, 32, 0.05);
+  --reader-ui-text: #29251e;
+  --reader-ui-muted: #5c5445;
+  --reader-ui-border: rgba(41, 37, 30, 0.20);
+  --reader-ui-hover: rgba(41, 37, 30, 0.09);
+  --reader-ui-soft: rgba(41, 37, 30, 0.05);
   --reader-ui-surface: rgba(255, 252, 240, 0.98);
-  --reader-ui-surface-strong: #f5f1e1;
-  --reader-ui-accent: #6f4e25;
-  --reader-ui-accent-text: #fff8ea;
-  --reader-ui-accent-soft: rgba(111, 78, 37, 0.14);
+  --reader-ui-surface-strong: #f5eed8;
+  --reader-ui-accent: #6b4118;
+  --reader-ui-accent-text: #fffaf0;
+  --reader-ui-accent-soft: rgba(107, 65, 24, 0.15);
 }
 
 .reader-theme-coffee {
-  --reader-ui-text: #eadcc8;
-  --reader-ui-muted: #b9a58d;
-  --reader-ui-border: rgba(234, 220, 200, 0.16);
-  --reader-ui-hover: rgba(234, 220, 200, 0.11);
-  --reader-ui-soft: rgba(234, 220, 200, 0.07);
+  --reader-ui-text: #f0e6d6;
+  --reader-ui-muted: #c5b59e;
+  --reader-ui-border: rgba(240, 230, 214, 0.18);
+  --reader-ui-hover: rgba(240, 230, 214, 0.12);
+  --reader-ui-soft: rgba(240, 230, 214, 0.07);
   --reader-ui-surface: rgba(43, 33, 26, 0.98);
-  --reader-ui-surface-strong: #352920;
-  --reader-ui-accent: #f2c98b;
-  --reader-ui-accent-text: #21150e;
-  --reader-ui-accent-soft: rgba(242, 201, 139, 0.16);
+  --reader-ui-surface-strong: #382b22;
+  --reader-ui-accent: #f59e0b;
+  --reader-ui-accent-text: #1c130d;
+  --reader-ui-accent-soft: rgba(245, 158, 11, 0.18);
 }
 
 .reader-theme-dim {
-  --reader-ui-text: #d1d5db;
-  --reader-ui-muted: #8a8f98;
-  --reader-ui-border: rgba(209, 213, 219, 0.14);
-  --reader-ui-hover: rgba(209, 213, 219, 0.1);
-  --reader-ui-soft: rgba(209, 213, 219, 0.06);
+  --reader-ui-text: #e5e7eb;
+  --reader-ui-muted: #9ca3af;
+  --reader-ui-border: rgba(229, 231, 235, 0.16);
+  --reader-ui-hover: rgba(229, 231, 235, 0.1);
+  --reader-ui-soft: rgba(229, 231, 235, 0.06);
   --reader-ui-surface: rgba(34, 34, 34, 0.98);
-  --reader-ui-surface-strong: #2d2d2d;
-  --reader-ui-accent: #93c5fd;
-  --reader-ui-accent-text: #07111d;
-  --reader-ui-accent-soft: rgba(147, 197, 253, 0.16);
+  --reader-ui-surface-strong: #2c2c2c;
+  --reader-ui-accent: #60a5fa;
+  --reader-ui-accent-text: #0b1528;
+  --reader-ui-accent-soft: rgba(96, 165, 250, 0.18);
 }
 
 .reader-theme-eink {
   --reader-ui-text: #000000;
-  --reader-ui-muted: #444444;
+  --reader-ui-muted: #333333;
   --reader-ui-border: #000000;
   --reader-ui-hover: #e5e5e5;
   --reader-ui-soft: #f0f0f0;
   --reader-ui-surface: #ffffff;
-  --reader-ui-surface-strong: #ffffff;
+  --reader-ui-surface-strong: #f0f0f0;
   --reader-ui-accent: #000000;
   --reader-ui-accent-text: #ffffff;
-  --reader-ui-accent-soft: #e5e5e5;
+  --reader-ui-accent-soft: #e0e0e0;
 }
 
 .reader-theme-eink * {
@@ -400,14 +418,22 @@ label.btn-primary:hover:not(:disabled) {
   border-color: var(--reader-ui-accent) !important;
 }
 
-.reader-ui .reader-action-btn {
+.reader-ui .reader-action-btn,
+.reader-ui .btn-primary {
   color: var(--reader-ui-accent-text) !important;
   background-color: var(--reader-ui-accent) !important;
   border-color: var(--reader-ui-accent) !important;
 }
 
-.reader-ui .reader-action-btn:hover:not(:disabled) {
-  filter: brightness(1.06);
+.reader-ui .reader-action-btn:hover:not(:disabled),
+.reader-ui .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.reader-ui .badge-primary {
+  background-color: var(--reader-ui-accent) !important;
+  color: var(--reader-ui-accent-text) !important;
+  border-color: var(--reader-ui-accent) !important;
 }
 
 .reader-ui .reader-outline-btn,
@@ -686,8 +712,13 @@ label.btn-primary:hover:not(:disabled) {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #9ca3af; 
-  border-radius: 9999px; 
+  background-color: color-mix(in oklab, var(--color-base-content, #9ca3af) 20%, transparent); 
+  border-radius: 9999px;
+  transition: background-color 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--color-base-content, #9ca3af) 38%, transparent); 
 }
 
 ::-webkit-scrollbar-button {
@@ -1021,10 +1052,22 @@ label.btn-primary:hover:not(:disabled) {
   word-break: normal !important;
 }
 
-.reader-content :is(p, li, blockquote) {
+.reader-content :is(p, li, blockquote, dd, dt) {
   line-height: var(--reader-line-height, 1.8) !important;
   text-wrap: pretty !important;
 }
+
+[data-align]:not([data-align="original"]) .reader-content :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),
+.reader-content[data-align]:not([data-align="original"]) :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt) {
+  text-align: var(--reader-text-align) !important;
+}
+
+.reader-content [align="center"] { text-align: center; }
+.reader-content [align="right"] { text-align: right; }
+.reader-content [align="justify"] { text-align: justify; }
+.reader-content [align="left"] { text-align: left; }
+.reader-content .uppercase { text-transform: uppercase; }
+.reader-content .small-caps { font-variant: small-caps; }
 
 .reader-content p {
   margin: 0 !important;
@@ -1062,6 +1105,40 @@ label.btn-primary:hover:not(:disabled) {
   font-size: inherit !important;
 }
 
+.reader-content font[color] {
+  color: inherit !important;
+}
+
+.reader-content .novelhub-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 1em 0;
+}
+
+.reader-content .novelhub-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.reader-content .novelhub-table th {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  padding: 6px 10px;
+  font-weight: bold;
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.reader-content .novelhub-table td {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  padding: 5px 10px;
+}
+
+.reader-content .novelhub-table tr:nth-child(even) {
+  background: rgba(128, 128, 128, 0.04);
+}
+
 .reader-content p:not(.reader-image-page) + p:not(.reader-image-page) {
   margin-top: 1.05em !important;
 }
@@ -1089,8 +1166,6 @@ label.btn-primary:hover:not(:disabled) {
 .reader-content p[align="center"] b,
 .reader-content p[align="center"] strong {
   display: inline !important;
-  font-family: "Merriweather", "Lora", Georgia, serif !important;
-  font-size: clamp(1.15em, 1em + 0.5vw, 1.4em) !important;
   font-weight: 700 !important;
   line-height: 1.3 !important;
 }
@@ -1217,6 +1292,40 @@ label.btn-primary:hover:not(:disabled) {
   font-size: inherit !important;
 }
 
+.reader-content .novelhub-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 1em 0;
+}
+
+.reader-content .novelhub-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.reader-content .novelhub-table th {
+  border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+  padding: 6px 10px;
+  font-weight: bold;
+  background: color-mix(in oklab, currentColor 5%, transparent);
+}
+
+.reader-content .novelhub-table td {
+  border: 1px solid color-mix(in oklab, currentColor 15%, transparent);
+  padding: 5px 10px;
+}
+
+.reader-content .novelhub-table tr:nth-child(even) {
+  background: color-mix(in oklab, currentColor 3%, transparent);
+}
+
+.reader-content font[color] {
+  color: inherit !important;
+}
+
 .reader-ui:has(.novelhub-raw-reader) .flex-1.relative {
   padding: 56px 0 0 0 !important;
 }
@@ -1232,52 +1341,56 @@ label.btn-primary:hover:not(:disabled) {
   height: 100% !important;
 }
 
-/* Responsive application layout zoom to fit desktop resolutions beautifully */
-:root {
-  --zoom-ratio: 1;
-}
-
-@media (min-width: 1024px) {
-  html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.95;
-    zoom: var(--zoom-ratio);
+/* Global Smooth Animation Utilities (Apple / Linear Grade Motion) */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
   }
 }
 
-@media (min-width: 1280px) {
-  html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.90;
-    zoom: var(--zoom-ratio);
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-base-content, #000) 5%, var(--color-base-100)) 0%,
+    color-mix(in oklab, var(--color-base-content, #000) 12%, var(--color-base-100)) 50%,
+    color-mix(in oklab, var(--color-base-content, #000) 5%, var(--color-base-100)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (min-width: 1536px) {
-  html:not(:has(.reader-ui)) {
-    --zoom-ratio: 0.85;
-    zoom: var(--zoom-ratio);
+.animate-page-enter {
+  animation: page-enter 220ms var(--ease-spring) both;
+}
+
+@keyframes modal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
-/* Adjust viewport height values to span full physical screen under zoom */
-html:not(:has(.reader-ui)) {
-  --vh-unit: calc(100vh / var(--zoom-ratio));
-}
-
-html:not(:has(.reader-ui)) .h-screen {
-  height: var(--vh-unit) !important;
-}
-
-html:not(:has(.reader-ui)) .min-h-screen {
-  min-height: var(--vh-unit) !important;
-}
-
-html:not(:has(.reader-ui)) .max-h-screen {
-  max-height: var(--vh-unit) !important;
-}
-
-html:not(:has(.reader-ui)) .drawer-side,
-html:not(:has(.reader-ui)) .drawer-overlay {
-  height: var(--vh-unit) !important;
+.modal-open .modal-box,
+dialog[open] .modal-box {
+  animation: modal-pop 200ms var(--ease-spring) both;
 }
 
 /* Handle broken and dummy images inside reader content */

@@ -49,16 +49,17 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
             return (
               <button
                 key={`${item.book_id}-${item.chapter_id}`}
-                className="group grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl border border-transparent p-2 text-left transition-colors duration-150 hover:border-base-300 hover:bg-base-200/60"
+                className="group grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl border border-transparent p-2 text-left transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-base-300 hover:bg-base-200/70 active:scale-[0.985] cursor-pointer"
                 onClick={() => onOpen(item)}
               >
-                <span className="relative block aspect-[3/4.12] overflow-hidden rounded-lg bg-base-300 shadow-sm">
+                <span className="relative block aspect-[3/4.12] overflow-hidden rounded-lg bg-base-300 shadow-xs group-hover:shadow-sm">
                   {cover_url ? (
                     <img
                       src={cover_url}
                       alt={t("common.alt_cover", "Cover")}
                       loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover"
+                      decoding="async"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
                     />
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-[9px] font-black text-base-content/30">
@@ -67,7 +68,7 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
                   )}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold">
+                  <span className="block truncate text-sm font-bold group-hover:text-primary transition-colors">
                     {item.book_title}
                   </span>
                   <span className="mt-0.5 flex items-center gap-1 text-xs text-base-content/55">
@@ -76,16 +77,16 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
                       {item.chapter_title || `Chapter ${item.chapter_index}`}
                     </span>
                   </span>
-                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-base-300">
+                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-base-300/80">
                     <span
-                      className="block h-full rounded-full bg-primary"
+                      className="block h-full rounded-full bg-primary transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     />
                   </span>
                 </span>
                 <span className="flex flex-col items-end gap-1 text-xs font-bold text-base-content/45">
                   {progress}%
-                  <ArrowRight className="h-4 w-4 transition-colors duration-150 group-hover:text-primary" />
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
                 </span>
               </button>
             );

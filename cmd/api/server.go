@@ -34,6 +34,7 @@ import (
 	"novelhub/pkg/bookparser/archivebook"
 	"novelhub/pkg/bookparser/audiobook"
 	"novelhub/pkg/bookparser/comic"
+	"novelhub/pkg/bookparser/csv"
 	docparser "novelhub/pkg/bookparser/doc"
 	"novelhub/pkg/bookparser/docx"
 	"novelhub/pkg/bookparser/epub"
@@ -43,7 +44,10 @@ import (
 	"novelhub/pkg/bookparser/odt"
 	"novelhub/pkg/bookparser/pdf"
 	"novelhub/pkg/bookparser/plain"
+	"novelhub/pkg/bookparser/presentation"
 	"novelhub/pkg/bookparser/rtf"
+	"novelhub/pkg/bookparser/spreadsheet"
+	"novelhub/pkg/bookparser/tex"
 	"novelhub/pkg/cache"
 	"novelhub/pkg/config"
 	"novelhub/pkg/constants"
@@ -187,6 +191,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	parserRegistry.Register(comic.NewParser("rar"), "rar")
 	parserRegistry.Register(comic.NewParser("7z"), "7z")
 	parserRegistry.Register(audiobook.New(), "mp3", "m4a", "m4b", "flac")
+	parserRegistry.Register(csv.NewParser(), "csv", "tsv")
+	parserRegistry.Register(tex.NewParser(), "tex", "latex", "ltx")
+	parserRegistry.Register(presentation.NewParser(), "pptx", "ppt", "odp")
+	parserRegistry.Register(spreadsheet.NewParser(), "xlsx", "xls", "ods")
 
 	featureRepo := repositories.NewFeatureRepository(db, ramCache)
 	readListRepo := repositories.NewReadListRepository(db, ramCache)

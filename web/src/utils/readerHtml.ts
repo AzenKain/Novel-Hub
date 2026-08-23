@@ -19,9 +19,9 @@ export const sanitizeReaderHtml = (html: string) => {
 
   const clean = DOMPurify.sanitize(stripped, {
     USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: ["svg", "image", "g", "use", "figure", "figcaption"],
-    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height", "class"],
-    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "math", "link", "video", "audio", "source", "track"],
+    ADD_TAGS: ["svg", "image", "g", "use", "figure", "figcaption", "video", "audio", "source", "track"],
+    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height", "class", "align", "controls", "preload", "poster", "type", "muted", "loop", "playsinline"],
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "math", "link"],
     FORBID_ATTR: ["srcdoc", "style"],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });

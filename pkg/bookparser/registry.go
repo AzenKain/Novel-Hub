@@ -81,6 +81,9 @@ func NormalizeFormat(format string) string {
 	if format == "jpeg" {
 		return "jpg"
 	}
+	if format == "latex" || format == "ltx" {
+		return "tex"
+	}
 	return format
 }
 
@@ -97,15 +100,19 @@ func IsAllowedBookFormat(filenameOrExt string) bool {
 	if clean == "" {
 		return false
 	}
-	if strings.HasSuffix(clean, ".kepub.epub") {
+	if strings.HasSuffix(clean, ".kepub.epub") || clean == "kepub.epub" {
 		return true
 	}
 	ext := filepath.Ext(clean)
-	if ext == "" && strings.HasPrefix(clean, ".") {
-		ext = clean
+	if ext == "" {
+		if strings.HasPrefix(clean, ".") {
+			ext = clean
+		} else {
+			ext = "." + clean
+		}
 	}
 	switch ext {
-	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z", ".mp3", ".m4a", ".m4b", ".flac", ".ogg", ".wav", ".aac":
+	case ".epub", ".mobi", ".azw", ".azw3", ".amz", ".pdf", ".doc", ".docx", ".odt", ".txt", ".md", ".markdown", ".html", ".htm", ".rtf", ".fb2", ".fbz", ".zip", ".cbz", ".cbr", ".cbt", ".cb7", ".rar", ".7z", ".mp3", ".m4a", ".m4b", ".flac", ".ogg", ".wav", ".aac", ".csv", ".tsv", ".tex", ".latex", ".ltx", ".pptx", ".ppt", ".odp", ".xlsx", ".xls", ".ods":
 		return true
 	default:
 		return false

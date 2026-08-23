@@ -38,6 +38,8 @@ import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
 import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
 
+const ambientColorCache = new Map<string, { hex: string; rgba: string }>();
+
 const ReaderWorkspaceInner = () => {
   const { book_id } = useParams<{ book_id: string }>();
   const navigate = useNavigate();
@@ -83,6 +85,7 @@ const ReaderWorkspaceInner = () => {
     theme,
     lineHeight,
     maxWidth,
+    textAlign,
     readingMode,
     readingDirection,
     pageFit,
@@ -101,6 +104,7 @@ const ReaderWorkspaceInner = () => {
     setTheme,
     setLineHeight,
     setMaxWidth,
+    setTextAlign,
     setReadingMode,
     setReadingDirection,
     setPageFit,
@@ -126,6 +130,7 @@ const ReaderWorkspaceInner = () => {
     theme: state.theme,
     lineHeight: state.lineHeight,
     maxWidth: state.maxWidth,
+    textAlign: state.textAlign,
     readingMode: state.readingMode,
     readingDirection: state.readingDirection,
     pageFit: state.pageFit,
@@ -146,6 +151,7 @@ const ReaderWorkspaceInner = () => {
     setTheme: state.setTheme,
     setLineHeight: state.setLineHeight,
     setMaxWidth: state.setMaxWidth,
+    setTextAlign: state.setTextAlign,
     setReadingMode: state.setReadingMode,
     setReadingDirection: state.setReadingDirection,
     setPageFit: state.setPageFit,
@@ -408,20 +414,28 @@ const ReaderWorkspaceInner = () => {
       setAmbientColor("transparent");
       return;
     }
+    const coverUrl = book.cover_url;
+    if (ambientColorCache.has(coverUrl)) {
+      const cached = ambientColorCache.get(coverUrl)!;
+      setAmbientColor(theme === 'dark' ? cached.hex : cached.rgba);
+      return;
+    }
+
     const fac = new FastAverageColor();
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    img.src = book.cover_url;
+    img.src = coverUrl;
     img.onload = () => {
       try {
         const color = fac.getColor(img);
+        ambientColorCache.set(coverUrl, { hex: color.hex, rgba: color.rgba });
         setAmbientColor(theme === 'dark' ? color.hex : color.rgba);
       } catch (e) {
         setAmbientColor("transparent");
       }
     };
     return () => { fac.destroy(); };
-  }, [book, theme]);
+  }, [book?.cover_url, theme]);
 
   const { isScrolling: autoScrollActive, toggleScroll: onToggleAutoScroll, updateSpeed } = useAutoScroll(contentRef);
   const [comicPage, setComicPage] = useState(0);
@@ -1130,6 +1144,7 @@ const ReaderWorkspaceInner = () => {
           effectiveReadingMode={effectiveReadingMode}
           canUseDoubleMode={canUseDoubleMode}
           isVisualContent={isVisualContent}
+          textAlign={textAlign}
           readingDirection={readingDirection}
           pageFit={pageFit}
           pageAnimation={pageAnimation}
@@ -1145,6 +1160,7 @@ const ReaderWorkspaceInner = () => {
           setFontSize={setFontSize}
           setLineHeight={setLineHeight}
           setMaxWidth={setMaxWidth}
+          setTextAlign={setTextAlign}
           setReadingMode={setReadingMode}
           setReadingDirection={setReadingDirection}
           setPageFit={setPageFit}
@@ -1204,12 +1220,14 @@ const ReaderWorkspaceInner = () => {
             >
               <div
                 ref={pageFrameRef}
+                data-align={textAlign}
                 className={`w-full mx-auto ${isPdfAudio ? 'h-full flex-1 min-h-0 flex flex-col' : scrollLayout ? 'h-auto' : 'flex-1 min-h-0 flex flex-col'}`}
                 style={{
                   maxWidth: isPdfAudio || effectiveReadingMode === "webtoon" || isVisualContent ? '100%' : (maxWidth >= 1600 ? '100%' : `${maxWidth}px`),
                   fontSize: `${fontSize}px`,
                   lineHeight: lineHeight,
                   "--reader-font-family": fontFamily,
+                  "--reader-text-align": textAlign === "original" ? undefined : textAlign,
                   "--reader-link-color": linkColor,
                   "--reader-link-color-hover": linkColorHover,
                   "--reader-page-gap": `${READER_PAGE_GAP}px`,
@@ -1292,6 +1310,7 @@ const ReaderWorkspaceInner = () => {
                   <ReaderContent
                     htmlContent={htmlContent}
                     proseClass={proseClass}
+                    textAlign={textAlign}
                     effectiveReadingMode={effectiveReadingMode}
                     readingDirection={readingDirection}
                     pageWidth={pageWidth}

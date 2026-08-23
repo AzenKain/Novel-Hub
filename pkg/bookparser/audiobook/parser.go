@@ -67,6 +67,7 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 func withCoverFallback(meta *bookparser.BookMetadata) *bookparser.BookMetadata {
 	if len(meta.CoverData) == 0 {
 		meta.CoverData = defaultcover.GenerateSVG(meta.Title, meta.Author)
+		meta.IsDefaultCover = true
 		meta.CoverType = "image/svg+xml"
 	}
 	return meta

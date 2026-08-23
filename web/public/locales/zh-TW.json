@@ -945,7 +945,18 @@
     "no_chapters_found": "未找到章節",
     "chapters_count": "章",
     "enter_fullscreen": "全螢幕模式",
-    "exit_fullscreen": "結束全螢幕"
+    "exit_fullscreen": "結束全螢幕",
+    "text_align": "文字對齊",
+    "align_left": "靠左對齊",
+    "align_left_short": "靠左",
+    "align_center": "置中對齊",
+    "align_center_short": "置中",
+    "align_right": "靠右對齊",
+    "align_right_short": "靠右",
+    "align_justify": "左右對齊",
+    "align_justify_short": "左右對齊",
+    "align_original": "書籍預設",
+    "align_original_short": "原始"
   },
   "analytics": {
     "title": "閱讀分析與統計",

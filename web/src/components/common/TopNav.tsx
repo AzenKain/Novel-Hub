@@ -119,7 +119,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
   };
 
   return (
-    <div className="navbar flex-wrap gap-2 bg-base-100 shadow-sm border-b border-base-200 z-10 px-3 sm:px-4">
+    <div className="navbar sticky top-0 z-30 flex-wrap gap-2 backdrop-blur-md bg-base-100/85 shadow-xs border-b border-base-200/80 px-3 sm:px-4 transition-colors duration-200">
       {showSidebarToggle && (
         <div className="flex-none lg:hidden">
           <div className="tooltip tooltip-bottom" data-tip={t("common.toggle_sidebar", "Toggle Sidebar")}>

@@ -7,6 +7,7 @@ export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
 export type ReadingDirection = "ltr" | "rtl";
 export type PageFit = "width" | "height" | "original";
 export type PageAnimation = "eink" | "none" | "fade" | "slide";
+export type TextAlignment = "original" | "left" | "justify" | "center" | "right";
 
 interface ReaderState {
   book: Book | null;
@@ -25,6 +26,7 @@ interface ReaderState {
   customCss: string;
   lineHeight: number;
   maxWidth: number;
+  textAlign: TextAlignment;
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
   pageFit: PageFit;
@@ -48,6 +50,7 @@ interface ReaderState {
   setCustomThemeColors: (bg: string, text: string, accent: string, customCss?: string) => void;
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
+  setTextAlign: (textAlign: TextAlignment) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
   setPageFit: (fit: PageFit) => void;
@@ -83,6 +86,7 @@ const readerSettingDefaults = {
   customCss: "",
   lineHeight: 1.8,
   maxWidth: 920,
+  textAlign: "original" as TextAlignment,
   readingMode: "scroll" as const,
   readingDirection: "ltr" as const,
   pageFit: "height" as const,
@@ -116,6 +120,7 @@ export const useReaderStore = create<ReaderState>()(
         set({ customBg, customText, customAccent, customCss, theme: "custom" }),
       setLineHeight: (height) => set((state) => ({ lineHeight: typeof height === 'function' ? height(state.lineHeight) : height })),
       setMaxWidth: (width) => set((state) => ({ maxWidth: typeof width === 'function' ? width(state.maxWidth) : width })),
+      setTextAlign: (textAlign) => set({ textAlign }),
       setReadingMode: (readingMode) => set({ readingMode }),
       setReadingDirection: (readingDirection) => set({ readingDirection }),
       setPageFit: (pageFit) => set({ pageFit }),
@@ -142,6 +147,7 @@ export const useReaderStore = create<ReaderState>()(
         customCss: state.customCss,
         lineHeight: state.lineHeight,
         maxWidth: state.maxWidth,
+        textAlign: state.textAlign,
         readingMode: state.readingMode,
         readingDirection: state.readingDirection,
         pageFit: state.pageFit,

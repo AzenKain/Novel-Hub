@@ -945,7 +945,18 @@
     "no_chapters_found": "Nenhum capítulo encontrado",
     "chapters_count": "capítulos",
     "enter_fullscreen": "Tela cheia",
-    "exit_fullscreen": "Sair da tela cheia"
+    "exit_fullscreen": "Sair da tela cheia",
+    "text_align": "Alinhamento do texto",
+    "align_left": "Alinhar à esquerda",
+    "align_left_short": "Esquerda",
+    "align_center": "Centralizar",
+    "align_center_short": "Centro",
+    "align_right": "Alinhar à direita",
+    "align_right_short": "Direita",
+    "align_justify": "Justificar",
+    "align_justify_short": "Justificado",
+    "align_original": "Padrão do livro",
+    "align_original_short": "Original"
   },
   "analytics": {
     "title": "Análises e estatísticas de leitura",

@@ -2,6 +2,7 @@ package odt
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"html"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
 	"novelhub/pkg/constants"
 )
 
@@ -48,7 +50,26 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	if keyword := strings.TrimSpace(values["keyword"]); keyword != "" {
 		meta.Subjects = splitKeywords(keyword)
 	}
-	return bookparser.MergeMetadataSidecar(filePath, meta), nil
+
+	images, err := p.ListImages(filePath)
+	if err == nil && len(images) > 0 {
+		coverData, err := p.GetAsset(filePath, images[0])
+		if err == nil && len(coverData) > 0 {
+			meta.CoverData = coverData
+			meta.CoverType = "image/jpeg"
+			if strings.HasSuffix(strings.ToLower(images[0]), ".png") {
+				meta.CoverType = "image/png"
+			}
+		}
+	}
+
+	merged := bookparser.MergeMetadataSidecar(filePath, meta)
+	if len(merged.CoverData) == 0 {
+		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.IsDefaultCover = true
+		merged.CoverType = "image/svg+xml"
+	}
+	return merged, nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
@@ -176,12 +197,98 @@ func collectODFText(data []byte, wanted map[string]bool) map[string]string {
 	return values
 }
 
+type odfStyle struct {
+	Bold      bool
+	Italic    bool
+	Underline bool
+	Strike    bool
+	Align     string
+}
+
+func parseODFStyles(data []byte) map[string]odfStyle {
+	decoder := xml.NewDecoder(bytes.NewReader(data))
+	styles := make(map[string]odfStyle)
+
+	var currentStyleName string
+	var currentStyle odfStyle
+	inStyle := false
+
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			break
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			if t.Name.Local == "style" {
+				inStyle = true
+				currentStyle = odfStyle{}
+				for _, attr := range t.Attr {
+					if attr.Name.Local == "name" {
+						currentStyleName = attr.Value
+					}
+				}
+			} else if inStyle && t.Name.Local == "text-properties" {
+				for _, attr := range t.Attr {
+					val := strings.ToLower(attr.Value)
+					switch attr.Name.Local {
+					case "font-weight", "font-weight-asian", "font-weight-complex":
+						if val == "bold" || val == "700" || val == "800" || val == "900" {
+							currentStyle.Bold = true
+						}
+					case "font-style", "font-style-asian", "font-style-complex":
+						if val == "italic" || val == "oblique" {
+							currentStyle.Italic = true
+						}
+					case "text-underline-style", "text-underline-type":
+						if val != "none" && val != "" {
+							currentStyle.Underline = true
+						}
+					case "text-line-through-style", "text-line-through-type":
+						if val != "none" && val != "" {
+							currentStyle.Strike = true
+						}
+					}
+				}
+			} else if inStyle && t.Name.Local == "paragraph-properties" {
+				for _, attr := range t.Attr {
+					if attr.Name.Local == "text-align" {
+						val := strings.ToLower(attr.Value)
+						switch val {
+						case "center":
+							currentStyle.Align = "center"
+						case "right", "end":
+							currentStyle.Align = "right"
+						case "justify":
+							currentStyle.Align = "justify"
+						case "left", "start":
+							currentStyle.Align = "left"
+						}
+					}
+				}
+			}
+		case xml.EndElement:
+			if t.Name.Local == "style" && inStyle {
+				if currentStyleName != "" {
+					styles[currentStyleName] = currentStyle
+				}
+				inStyle = false
+				currentStyleName = ""
+			}
+		}
+	}
+	return styles
+}
+
 func contentXMLToHTML(data []byte) (string, error) {
-	decoder := xml.NewDecoder(strings.NewReader(string(data)))
+	styles := parseODFStyles(data)
+	decoder := xml.NewDecoder(bytes.NewReader(data))
 	var out strings.Builder
 	var block strings.Builder
 	blockTag := ""
+	blockAlign := ""
 	inBlock := false
+	var spanStyleStack []odfStyle
 
 	out.WriteString("<article>")
 	flush := func() {
@@ -189,14 +296,18 @@ func contentXMLToHTML(data []byte) (string, error) {
 		if value != "" {
 			out.WriteByte('<')
 			out.WriteString(blockTag)
+			if blockAlign != "" {
+				out.WriteString(fmt.Sprintf(` align="%s"`, blockAlign))
+			}
 			out.WriteByte('>')
 			out.WriteString(value)
 			out.WriteString("</")
 			out.WriteString(blockTag)
-			out.WriteByte('>')
+			out.WriteString(">\n")
 		}
 		block.Reset()
 		blockTag = ""
+		blockAlign = ""
 		inBlock = false
 	}
 
@@ -216,13 +327,59 @@ func contentXMLToHTML(data []byte) (string, error) {
 					flush()
 				}
 				blockTag = headingTag(t)
+				for _, attr := range t.Attr {
+					if attr.Name.Local == "style-name" {
+						if s, ok := styles[attr.Value]; ok && s.Align != "" {
+							blockAlign = s.Align
+						}
+					}
+				}
 				inBlock = true
 			case "p":
 				if inBlock {
 					flush()
 				}
 				blockTag = "p"
+				for _, attr := range t.Attr {
+					if attr.Name.Local == "style-name" {
+						if s, ok := styles[attr.Value]; ok && s.Align != "" {
+							blockAlign = s.Align
+						}
+					}
+				}
 				inBlock = true
+			case "span":
+				if inBlock {
+					var curStyle odfStyle
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "style-name" {
+							if s, ok := styles[attr.Value]; ok {
+								curStyle = s
+							}
+						}
+					}
+					spanStyleStack = append(spanStyleStack, curStyle)
+					if curStyle.Bold {
+						block.WriteString("<b>")
+					}
+					if curStyle.Italic {
+						block.WriteString("<i>")
+					}
+					if curStyle.Underline {
+						block.WriteString("<u>")
+					}
+					if curStyle.Strike {
+						block.WriteString("<s>")
+					}
+				}
+			case "image":
+				if inBlock {
+					for _, attr := range t.Attr {
+						if attr.Name.Local == "href" && attr.Value != "" {
+							block.WriteString(fmt.Sprintf(`<img src="%s" style="max-width: 100%%; height: auto;" />`, html.EscapeString(attr.Value)))
+						}
+					}
+				}
 			case "tab":
 				if inBlock {
 					block.WriteByte('\t')
@@ -242,6 +399,23 @@ func contentXMLToHTML(data []byte) (string, error) {
 			}
 		case xml.EndElement:
 			switch t.Name.Local {
+			case "span":
+				if inBlock && len(spanStyleStack) > 0 {
+					top := spanStyleStack[len(spanStyleStack)-1]
+					spanStyleStack = spanStyleStack[:len(spanStyleStack)-1]
+					if top.Strike {
+						block.WriteString("</s>")
+					}
+					if top.Underline {
+						block.WriteString("</u>")
+					}
+					if top.Italic {
+						block.WriteString("</i>")
+					}
+					if top.Bold {
+						block.WriteString("</b>")
+					}
+				}
 			case "h", "p":
 				if inBlock {
 					flush()

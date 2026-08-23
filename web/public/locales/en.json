@@ -800,6 +800,15 @@
     "chapter": "Chapter",
     "theme_warm": "Warm",
     "theme_dim": "Dim",
+    "text_align": "Text Alignment",
+    "align_left": "Align Left",
+    "align_left_short": "Left",
+    "align_center": "Align Center",
+    "align_center_short": "Center",
+    "align_right": "Align Right",
+    "align_right_short": "Right",
+    "align_justify": "Justify",
+    "align_justify_short": "Justify",
     "mode": "Reading Mode",
     "mode_scroll": "Scroll",
     "mode_single": "Single",
@@ -945,7 +954,9 @@
     "no_chapters_found": "No chapters found",
     "chapters_count": "chapters",
     "enter_fullscreen": "Fullscreen",
-    "exit_fullscreen": "Exit Fullscreen"
+    "exit_fullscreen": "Exit Fullscreen",
+    "align_original": "Publisher Default",
+    "align_original_short": "Original"
   },
   "analytics": {
     "title": "Reading Analytics & Stats",

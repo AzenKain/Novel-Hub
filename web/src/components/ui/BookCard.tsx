@@ -17,6 +17,7 @@ const GRADIENTS = [
 export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [imageLoaded, setImageLoaded] = React.useState(false);
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
   const gradientClass = GRADIENTS[charCode % 6];
   const format = (book.files?.[0]?.format || "BOOK").toUpperCase();
@@ -27,8 +28,8 @@ export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, co
 
   return (
     <article 
-      className={`group card card-compact bg-base-100 shadow-sm cursor-pointer rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color,ring] duration-200 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between ${
-        selected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-base-200 hover:border-primary/35"
+      className={`group card card-compact bg-base-100 shadow-xs cursor-pointer rounded-xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between ${
+        selected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border border-base-200/80 hover:border-primary/30"
       }`}
       onClick={() => onClick(book)}
       tabIndex={0}
@@ -39,7 +40,7 @@ export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, co
         }
       }}
     >
-      <figure className={`relative ${compact ? 'aspect-3/4' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0`}>
+      <figure className={`relative ${compact ? 'aspect-3/4' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0 overflow-hidden`}>
         {onSelectToggle && (
           <div 
             className="absolute top-2 left-2 z-20"
@@ -69,8 +70,16 @@ export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, co
         )}
         {book.cover_url ? (
           <>
-            <img src={getMediaUrl(book.cover_url, book.id, book.updated_at)} alt={book.title} loading="lazy" draggable={false} className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105 select-none pointer-events-none" />
-            <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
+            <img 
+              src={getMediaUrl(book.cover_url, book.id, book.updated_at)} 
+              alt={book.title} 
+              loading="lazy" 
+              decoding="async"
+              draggable={false} 
+              onLoad={() => setImageLoaded(true)}
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none group-hover:scale-[1.04] group-hover:brightness-105 select-none pointer-events-none ${imageLoaded ? "opacity-100" : "opacity-0"}`} 
+            />
+            <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/5" />
           </>
         ) : (
           <>

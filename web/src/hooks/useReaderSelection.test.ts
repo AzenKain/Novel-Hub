@@ -5,7 +5,7 @@ describe("getToolbarPosition", () => {
   it("positions toolbar above when selection has enough clearance", () => {
     const pos = getToolbarPosition({ left: 390, width: 20, top: 400, height: 20 }, 1000);
     expect(pos).toEqual({
-      top: 392,
+      top: 217,
       left: 210,
       placement: "above",
     });
@@ -25,7 +25,7 @@ describe("getToolbarPosition", () => {
   it("clamps toolbar edges on wide viewports near screen boundaries", () => {
     const edge = getToolbarPosition({ left: 790, width: 20, top: 400, height: 20 }, 800);
     expect(edge).toEqual({
-      top: 392,
+      top: 217,
       left: 412,
       placement: "above",
     });

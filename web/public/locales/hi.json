@@ -945,7 +945,18 @@
     "no_chapters_found": "कोई अध्याय नहीं मिला",
     "chapters_count": "अध्याय",
     "enter_fullscreen": "फुल स्क्रीन",
-    "exit_fullscreen": "फुल स्क्रीन से बाहर निकलें"
+    "exit_fullscreen": "फुल स्क्रीन से बाहर निकलें",
+    "text_align": "पाठ संरेखण",
+    "align_left": "बाएँ संरेखित करें",
+    "align_left_short": "बाएँ",
+    "align_center": "मध्य संरेखित करें",
+    "align_center_short": "मध्य",
+    "align_right": "दाएँ संरेखित करें",
+    "align_right_short": "दाएँ",
+    "align_justify": "उभयतः संरेखित करें",
+    "align_justify_short": "समान",
+    "align_original": "पुस्तक का मूल",
+    "align_original_short": "मूल"
   },
   "analytics": {
     "title": "पठन विश्लेषण और आँकड़े",

@@ -945,7 +945,18 @@
     "no_chapters_found": "未找到章节",
     "chapters_count": "章",
     "enter_fullscreen": "全屏模式",
-    "exit_fullscreen": "退出全屏"
+    "exit_fullscreen": "退出全屏",
+    "text_align": "文字对齐",
+    "align_left": "左对齐",
+    "align_left_short": "左对齐",
+    "align_center": "居中对齐",
+    "align_center_short": "居中",
+    "align_right": "右对齐",
+    "align_right_short": "右对齐",
+    "align_justify": "两端对齐",
+    "align_justify_short": "两端对齐",
+    "align_original": "书籍默认",
+    "align_original_short": "原始"
   },
   "analytics": {
     "title": "阅读分析与统计",

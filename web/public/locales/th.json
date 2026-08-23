@@ -945,7 +945,18 @@
     "no_chapters_found": "ไม่พบบท",
     "chapters_count": "บท",
     "enter_fullscreen": "เต็มหน้าจอ",
-    "exit_fullscreen": "ออกจากโหมดเต็มหน้าจอ"
+    "exit_fullscreen": "ออกจากโหมดเต็มหน้าจอ",
+    "text_align": "การจัดแนวข้อความ",
+    "align_left": "จัดชิดซ้าย",
+    "align_left_short": "ชิดซ้าย",
+    "align_center": "จัดกึ่งกลาง",
+    "align_center_short": "กึ่งกลาง",
+    "align_right": "จัดชิดขวา",
+    "align_right_short": "ชิดขวา",
+    "align_justify": "จัดเต็มแนว",
+    "align_justify_short": "เต็มแนว",
+    "align_original": "ค่าเริ่มต้นของหนังสือ",
+    "align_original_short": "ต้นฉบับ"
   },
   "analytics": {
     "title": "สถิติและการวิเคราะห์การอ่าน",

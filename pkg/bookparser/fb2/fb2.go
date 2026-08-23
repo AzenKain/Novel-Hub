@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"novelhub/pkg/bookparser"
-	"novelhub/pkg/jsonx"
 	"os"
 	"strings"
+
+	"novelhub/pkg/bookparser"
+	"novelhub/pkg/bookparser/defaultcover"
+	"novelhub/pkg/jsonx"
 )
 
 type Parser struct{}
@@ -120,6 +122,12 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 			meta.CoverType = contentType
 		}
 	}
+	if len(meta.CoverData) == 0 && len(book.Binaries) > 0 {
+		if data, contentType, ok := findBinary(book, book.Binaries[0].ID); ok {
+			meta.CoverData = data
+			meta.CoverType = contentType
+		}
+	}
 	metaJSON, _ := jsonx.MarshalString(map[string]any{
 		"title":       meta.Title,
 		"creator":     meta.Author,
@@ -131,7 +139,13 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 		"format":      "fb2",
 	})
 	meta.MetadataJSON = metaJSON
-	return bookparser.MergeMetadataSidecar(filePath, meta), nil
+	merged := bookparser.MergeMetadataSidecar(filePath, meta)
+	if len(merged.CoverData) == 0 {
+		merged.CoverData = defaultcover.GenerateSVG(merged.Title, merged.Author)
+		merged.IsDefaultCover = true
+		merged.CoverType = "image/svg+xml"
+	}
+	return merged, nil
 }
 
 func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
@@ -279,7 +293,54 @@ func topSections(book *fictionBook) []fb2Section {
 }
 
 func sectionTitle(section fb2Section) string {
-	return clean(strings.Join(titleParagraphs(section.Title), " "))
+	if t := clean(strings.Join(titleParagraphs(section.Title), " ")); t != "" {
+		return t
+	}
+	if len(section.Subtitles) > 0 {
+		if sub := clean(stripXML(section.Subtitles[0])); sub != "" && len(sub) <= 120 {
+			return sub
+		}
+	}
+	if len(section.Paragraphs) > 0 {
+		pText := clean(stripXML(section.Paragraphs[0]))
+		if isHeadingLikeText(pText) {
+			return pText
+		}
+	}
+	if len(section.Sections) > 0 {
+		if subTitle := sectionTitle(section.Sections[0]); subTitle != "" {
+			return subTitle
+		}
+	}
+	return ""
+}
+
+func isHeadingLikeText(s string) bool {
+	if s == "" || len(s) > 100 {
+		return false
+	}
+	lower := strings.ToLower(s)
+	if strings.HasPrefix(lower, "chapter") ||
+		strings.HasPrefix(lower, "chương") ||
+		strings.HasPrefix(lower, "part") ||
+		strings.HasPrefix(lower, "book") ||
+		strings.HasPrefix(lower, "section") ||
+		strings.HasPrefix(lower, "act") ||
+		strings.HasPrefix(lower, "scene") ||
+		strings.HasPrefix(lower, "prologue") ||
+		strings.HasPrefix(lower, "epilogue") ||
+		strings.HasPrefix(lower, "introduction") ||
+		strings.HasPrefix(lower, "conclusion") ||
+		strings.HasPrefix(lower, "appendix") ||
+		strings.HasPrefix(lower, "contents") ||
+		strings.HasPrefix(lower, "illustration") {
+		return true
+	}
+	// Short standalone header without sentence-ending punctuation
+	if len(s) <= 60 && !strings.Contains(s, ". ") && !strings.Contains(s, ", ") {
+		return true
+	}
+	return false
 }
 
 func writeSection(out *strings.Builder, section fb2Section, level int, currentTopIndex int, sectionIndexByID map[string]int) {
