@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SyntheticEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from 'react-toastify';
 import { useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
@@ -59,6 +60,7 @@ export function Users() {
     roleIDs: state.roleIDs, setRoleIDs: state.setRoleIDs,
     userToDelete: state.userToDelete, setUserToDelete: state.setUserToDelete,
   })));
+  const debouncedSearch = useDebounce(query || "", 400);
 
   const [cursor, setCursor] = useState("");
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
@@ -69,7 +71,7 @@ export function Users() {
   const { data: usersData, isLoading: usersLoading, isFetching: usersFetching, refetch: refetchUsers } = useUsersQuery({
     cursor: cursor || undefined,
     limit: 50,
-    search: query || undefined,
+    search: debouncedSearch || undefined,
     is_deleted: showDeleted ? undefined : false,
     sort: "created_at",
     order: "desc"

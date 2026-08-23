@@ -14,7 +14,7 @@ const GRADIENTS = [
   "from-[#df6071] via-[#c38a28] to-[#35418d]"
 ];
 
-export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
+export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const charCode = book.id ? book.id.charCodeAt(0) : 0;
@@ -108,4 +108,4 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick, compact, sele
       </div>
     </article>
   );
-};
+});

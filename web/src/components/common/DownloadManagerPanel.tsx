@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { 
-  Download, X, Pause, Play, RotateCcw, Trash2, 
+import { useShallow } from "zustand/react/shallow";
+import {
+  Download, X, Pause, Play, RotateCcw, Trash2,
   CheckCircle2, AlertCircle, Clock, Loader2, Info
 } from "lucide-react";
 import { useDownloadManagerStore } from "@/stores/downloadManagerStore";
@@ -12,7 +13,7 @@ import { formatFileSize } from "@/lib/bookDetail";
 export const DownloadManagerPanel: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
-  
+
   const {
     items,
     isOpen,
@@ -28,7 +29,22 @@ export const DownloadManagerPanel: React.FC = () => {
     pauseQueue,
     resumeQueue,
     cancelAll,
-  } = useDownloadManagerStore();
+  } = useDownloadManagerStore(useShallow((state) => ({
+    items: state.items,
+    isOpen: state.isOpen,
+    activeTab: state.activeTab,
+    isPaused: state.isPaused,
+    open: state.open,
+    close: state.close,
+    setActiveTab: state.setActiveTab,
+    removeDownload: state.removeDownload,
+    retryDownload: state.retryDownload,
+    clearCompleted: state.clearCompleted,
+    clearFailed: state.clearFailed,
+    pauseQueue: state.pauseQueue,
+    resumeQueue: state.resumeQueue,
+    cancelAll: state.cancelAll,
+  })));
 
   const isExcludedRoute =
     location.pathname.startsWith('/reader') ||
@@ -59,12 +75,12 @@ export const DownloadManagerPanel: React.FC = () => {
     return (
       <aside 
         aria-label={t("download_manager.title", "Downloads")}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[95] flex items-center gap-2 group animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-[calc(100vw-2rem)]"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-95 flex items-center gap-2 group animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-[calc(100vw-2rem)]"
       >
         <button
           type="button"
           onClick={open}
-          className={`btn shadow-2xl rounded-full px-3.5 sm:px-4 h-11 sm:h-12 min-h-[2.75rem] border gap-2 sm:gap-2.5 transition-all duration-300 hover:scale-105 ${
+          className={`btn shadow-2xl rounded-full px-3.5 sm:px-4 h-11 sm:h-12 min-h-11 border gap-2 sm:gap-2.5 transition-all duration-300 hover:scale-105 ${
             hasFailed
               ? "btn-error text-error-content shadow-error/30"
               : isDownloading
@@ -85,7 +101,7 @@ export const DownloadManagerPanel: React.FC = () => {
           )}
 
           <div className="flex flex-col items-start text-left leading-none min-w-0">
-            <span className="text-[11px] sm:text-xs font-bold tracking-tight truncate max-w-[120px] sm:max-w-none">
+            <span className="text-[11px] sm:text-xs font-bold tracking-tight truncate max-w-30 sm:max-w-none">
               {isDownloading
                 ? t("download_manager.downloading")
                 : hasFailed
@@ -112,10 +128,10 @@ export const DownloadManagerPanel: React.FC = () => {
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black/50 z-[100] transition-opacity" 
+        className="fixed inset-0 bg-black/50 z-100 transition-opacity" 
         onClick={close}
       />
-      <div className="fixed top-0 right-0 h-full w-full sm:max-w-md md:max-w-lg bg-base-100 shadow-2xl z-[101] flex flex-col transform transition-transform duration-300">
+      <div className="fixed top-0 right-0 h-full w-full sm:max-w-md md:max-w-lg bg-base-100 shadow-2xl z-101 flex flex-col transform transition-transform duration-300">
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-base-300">
           <div className="flex items-center gap-2 font-bold text-base sm:text-lg">
             <Download className="w-5 h-5 text-primary" />

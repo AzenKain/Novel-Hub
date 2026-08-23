@@ -10,6 +10,9 @@ import {
 import { useMetadataFacetQuery } from "@/hooks/useMetadataQueries";
 import type { SmartFilter, SmartFilterRuleItem } from "@/types";
 
+let ruleIdSeq = 0;
+const nextRuleId = () => `rule-${++ruleIdSeq}`;
+
 interface SmartFilterBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,19 +37,19 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
   useEffect(() => {
     if (filterToEdit) {
       setName(filterToEdit.name);
-      setRules(filterToEdit.rules || []);
+      setRules((filterToEdit.rules || []).map((r) => ({ ...r, id: r.id || nextRuleId() })));
       setIsPinnedSidebar(filterToEdit.is_pinned_sidebar);
       setIsPinnedHome(filterToEdit.is_pinned_home);
     } else {
       setName("");
-      setRules([{ field: "status", operator: "eq", value: "unread" }]);
+      setRules([{ id: nextRuleId(), field: "status", operator: "eq", value: "unread" }]);
       setIsPinnedSidebar(false);
       setIsPinnedHome(false);
     }
   }, [filterToEdit, isOpen]);
 
   const handleAddRule = () => {
-    setRules([...rules, { field: "status", operator: "eq", value: "unread" }]);
+    setRules([...rules, { id: nextRuleId(), field: "status", operator: "eq", value: "unread" }]);
   };
 
   const handleRemoveRule = (index: number) => {
@@ -92,7 +95,7 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
 
     const payload = {
       name: name.trim(),
-      rules: cleanedRules,
+      rules: cleanedRules.map(({ id: _id, ...rest }) => rest),
       is_pinned_sidebar: isPinnedSidebar,
       is_pinned_home: isPinnedHome,
     };
@@ -158,7 +161,7 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
             <div className="flex flex-col gap-3">
               {rules.map((rule, index) => (
                 <RuleRow
-                  key={index}
+                  key={rule.id}
                   rule={rule}
                   onChange={(key, val) => handleRuleChange(index, key, val)}
                   onRemove={() => handleRemoveRule(index)}

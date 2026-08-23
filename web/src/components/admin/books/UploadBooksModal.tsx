@@ -1,5 +1,7 @@
 import { Loader2, Upload, Zap } from "lucide-react";
 import React, { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { useBookAdminStore } from "@/stores";
 
 import type { Library } from "@/types";
 
@@ -8,11 +10,6 @@ type UploadBooksModalProps = {
   libraries: Library[];
   uploadLibraryId: string;
   uploading: boolean;
-  uploadProgress?: number;
-  uploadSpeed?: string;
-  uploadCurrentFile?: string;
-  uploadBytesText?: string;
-  uploadBatchInfo?: { current: number; total: number } | null;
   accept: string;
   onClose: () => void;
   onLibraryChange: (library_id: string) => void;
@@ -24,16 +21,18 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
   libraries,
   uploadLibraryId,
   uploading,
-  uploadProgress = 0,
-  uploadSpeed = "0 B/s",
-  uploadCurrentFile = "",
-  uploadBytesText = "",
-  uploadBatchInfo = null,
   accept,
   onClose,
   onLibraryChange,
   onUploadFiles,
 }) => {
+  const { uploadProgress, uploadSpeed, uploadCurrentFile, uploadBytesText, uploadBatchInfo } = useBookAdminStore(useShallow((state) => ({
+    uploadProgress: state.uploadProgress,
+    uploadSpeed: state.uploadSpeed,
+    uploadCurrentFile: state.uploadCurrentFile,
+    uploadBytesText: state.uploadBytesText,
+    uploadBatchInfo: state.uploadBatchInfo,
+  })));
   const [isDragging, setIsDragging] = useState(false);
 
   return (

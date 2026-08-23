@@ -67,8 +67,33 @@ export default defineConfig({
   build: {
     outDir: "../cmd/api/dist",
     emptyOutDir: true,
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return;
+          }
+          const sep = path.sep;
+          if (
+            id.includes(`${sep}react${sep}`) ||
+            id.includes(`${sep}react-dom${sep}`) ||
+            id.includes(`${sep}react-router`) ||
+            id.includes(`${sep}scheduler${sep}`)
+          ) {
+            return "vendor-react";
+          }
+          if (id.includes(`${sep}@tanstack${sep}`)) {
+            return "vendor-query";
+          }
+          if (
+            id.includes(`${sep}lucide-react${sep}`) ||
+            id.includes(`${sep}react-toastify${sep}`)
+          ) {
+            return "vendor-ui";
+          }
+        },
+      },
       onwarn(warning, warn) {
         if (
           warning.message?.includes("externalized for browser compatibility") ||

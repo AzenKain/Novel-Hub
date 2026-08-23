@@ -161,6 +161,12 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(({
 
   const sanitizedHTML = useMemo(() => sanitizeReaderHtml(htmlContent), [htmlContent]);
   const webtoonContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isWebtoon || !webtoonContainerRef.current) return;
+    const imgs = webtoonContainerRef.current.querySelectorAll("img");
+    imgs.forEach((img) => { img.loading = "lazy"; });
+  }, [isWebtoon, sanitizedHTML]);
   const isJumpingRef = useRef(false);
   const lastJumpedPageRef = useRef<number | null>(null);
 

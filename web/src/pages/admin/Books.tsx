@@ -1,7 +1,7 @@
 import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal, BulkEditMetadataModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
-import { getMediaUrl } from "@/config/api";
+import { API_BASE, getMediaUrl } from "@/config/api";
 import { BOOK_FILE_ACCEPT } from "@/constants";
 import { useBooksQuery, useCalibreImportMutation, useCreateLibraryMutation, useDebounce, useDeleteLibraryMutation, useLibrariesQuery, useUpdateLibraryMutation } from "@/hooks";
 import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetail";
@@ -28,7 +28,6 @@ export function Books() {
     coverTab: state.coverTab, epubImages: state.epubImages, loadingImages: state.loadingImages, linkUrl: state.linkUrl, coverPreview: state.coverPreview,
     searchSource: state.searchSource, onlineSearchQuery: state.onlineSearchQuery, searching: state.searching, searchResults: state.searchResults,
     showUploadModal: state.showUploadModal, uploadLibraryId: state.uploadLibraryId, uploading: state.uploading,
-    uploadProgress: state.uploadProgress, uploadSpeed: state.uploadSpeed, uploadCurrentFile: state.uploadCurrentFile, uploadBytesText: state.uploadBytesText, uploadBatchInfo: state.uploadBatchInfo,
     showLibraryModal: state.showLibraryModal, newLibraryName: state.newLibraryName,
     bookToDelete: state.bookToDelete, libraryToDelete: state.libraryToDelete,
     setSearch: state.setSearch, setSelectedLibraryId: state.setSelectedLibraryId, setSearchSource: state.setSearchSource, setOnlineSearchQuery: state.setOnlineSearchQuery, setCoverTab: state.setCoverTab, setLinkUrl: state.setLinkUrl,
@@ -67,7 +66,6 @@ export function Books() {
     coverTab, epubImages, loadingImages, linkUrl, coverPreview,
     searchSource, onlineSearchQuery, searching, searchResults,
     showUploadModal, uploadLibraryId, uploading,
-    uploadProgress, uploadSpeed, uploadCurrentFile, uploadBytesText, uploadBatchInfo,
     showLibraryModal, newLibraryName,
     bookToDelete, libraryToDelete,
     setSearch, setSelectedLibraryId, setSearchSource, setOnlineSearchQuery, setCoverTab, setLinkUrl,
@@ -155,7 +153,7 @@ export function Books() {
 
   const getImageAssetUrl = (imagePath: string) => {
     if (!editingBook) return "";
-    return `/api/v1/reader/${editingBook.id}/asset/${imagePath}`;
+    return `${API_BASE}/reader/${editingBook.id}/asset/${imagePath}`;
   };
 
   return (
@@ -433,6 +431,7 @@ export function Books() {
                                   <img
                                     src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
                                     alt={book.title}
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
@@ -569,7 +568,8 @@ export function Books() {
       />
 
       {/* ===================== EDIT METADATA MODAL ===================== */}
-      <dialog className={`modal ${editingBook ? "modal-open" : ""}`}>
+      {editingBook && (
+      <dialog className="modal modal-open">
         <div className="modal-box w-11/12 max-w-[96vw] 2xl:max-w-[1700px] h-[95vh] max-h-[96vh] bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col rounded-2xl">
           {/* Header */}
           <header className="px-6 py-4 border-b border-base-200 bg-base-200/30 flex items-center justify-between shrink-0">
@@ -941,17 +941,13 @@ export function Books() {
           <button onClick={() => setEditingBook(null)}>close</button>
         </form>
       </dialog>
+      )}
 
       <UploadBooksModal
         open={showUploadModal}
         libraries={libraries}
         uploadLibraryId={uploadLibraryId}
         uploading={uploading}
-        uploadProgress={uploadProgress}
-        uploadSpeed={uploadSpeed}
-        uploadCurrentFile={uploadCurrentFile}
-        uploadBytesText={uploadBytesText}
-        uploadBatchInfo={uploadBatchInfo}
         accept={BOOK_FILE_ACCEPT}
         onClose={() => setShowUploadModal(false)}
         onLibraryChange={setUploadLibraryId}

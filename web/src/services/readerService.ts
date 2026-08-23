@@ -28,6 +28,16 @@ export const readerService = {
     }
   },
 
+  prefetchChapter(book_id: string, chapter_id: string, file_id?: string): AbortController {
+    const ctrl = new AbortController();
+    const query = file_id ? `?file_id=${encodeURIComponent(file_id)}` : "";
+    api.get(`/reader/${book_id}/chapter/${encodeURIComponent(chapter_id)}${query}`, {
+      responseType: 'text',
+      signal: ctrl.signal,
+    }).catch(() => {});
+    return ctrl;
+  },
+
   async searchInBook(book_id: string, query: string): Promise<CommonResponse<SearchSnippet[]>> {
     try {
       const res = await api.get(`/books/${book_id}/search`, {

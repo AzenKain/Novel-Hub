@@ -47,6 +47,8 @@ export function useReaderPaging({
 }: UseReaderPagingArgs) {
   const prevModeRef = useRef<string>(effectiveReadingMode);
   const lastPageIndexRef = useRef<number>(pageIndex);
+  const cachedNodesRef = useRef<HTMLElement[] | null>(null);
+  const cachedNodesContentRef = useRef<string>("");
 
   useLayoutEffect(() => {
     if (!htmlContent || htmlContent.trim() === "") return;
@@ -161,8 +163,11 @@ export function useReaderPaging({
     const scrollStep = container.clientWidth + READER_PAGE_GAP;
     let scrollWidth = container.scrollWidth;
 
-    // Safety fallback for multi-column when container scrollWidth is clamped
-    const allChildren = Array.from(container.querySelectorAll<HTMLElement>("p, div, figure, h1, h2, h3, h4, h5, h6, img"));
+    if (cachedNodesContentRef.current !== htmlContent) {
+      cachedNodesRef.current = Array.from(container.querySelectorAll<HTMLElement>("p, div, figure, h1, h2, h3, h4, h5, h6, img"));
+      cachedNodesContentRef.current = htmlContent;
+    }
+    const allChildren = cachedNodesRef.current || [];
     if (allChildren.length > 0) {
       let maxChildRight = 0;
       for (let i = allChildren.length - 1; i >= Math.max(0, allChildren.length - 30); i--) {

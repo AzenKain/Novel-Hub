@@ -87,7 +87,7 @@ func TestVBookAudioPlaylistGroupsRuns(t *testing.T) {
 		{"Chương 6", "f1"}, // new run for the same file
 	})
 
-	tracks, err := svc.GetAudioPlaylist(ctx, "audio-1")
+	tracks, err := svc.GetAudioPlaylist(ctx, "audio-1", nil)
 	if err != nil {
 		t.Fatalf("GetAudioPlaylist failed: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestVBookAudioPlaylistEmptyIsNotFound(t *testing.T) {
 	// chapters exist but all are nil-file (never grouped into a track)
 	seedAudioChapters(t, db, "audio-empty", [][2]string{{"Chương 1", ""}, {"Chương 2", ""}})
 
-	if _, err := svc.GetAudioPlaylist(ctx, "audio-empty"); err == nil {
+	if _, err := svc.GetAudioPlaylist(ctx, "audio-empty", nil); err == nil {
 		t.Fatal("GetAudioPlaylist: want ErrNotFound, got nil")
 	}
 }
@@ -152,7 +152,7 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 	}
 
 	// Page 1: limit 2
-	page1, err := svc.GetAudioBooks(ctx, "http://localhost", "1", 2)
+	page1, err := svc.GetAudioBooks(ctx, "http://localhost", "1", 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 1 failed: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 	}
 
 	// Page 2 via cursor
-	page2, err := svc.GetAudioBooks(ctx, "http://localhost", *page1.Next, 2)
+	page2, err := svc.GetAudioBooks(ctx, "http://localhost", *page1.Next, 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 2 failed: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 	}
 
 	// Page 3 via cursor: 1 book left, no Next
-	page3, err := svc.GetAudioBooks(ctx, "http://localhost", *page2.Next, 2)
+	page3, err := svc.GetAudioBooks(ctx, "http://localhost", *page2.Next, 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 3 failed: %v", err)
 	}

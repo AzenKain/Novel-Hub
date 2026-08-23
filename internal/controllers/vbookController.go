@@ -79,7 +79,7 @@ func (c *VBookController) GetBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.GetBooks(reqCtx, getBaseURL(ctx, c.settingsService), searchPtr, sort, facet, facetID, pageStr, limit)
+	result, err := c.vbookService.GetBooks(reqCtx, getBaseURL(ctx, c.settingsService), searchPtr, sort, facet, facetID, pageStr, limit, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -108,7 +108,7 @@ func (c *VBookController) SearchBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.SearchBooks(reqCtx, getBaseURL(ctx, c.settingsService), query, pageStr, limit)
+	result, err := c.vbookService.SearchBooks(reqCtx, getBaseURL(ctx, c.settingsService), query, pageStr, limit, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -131,7 +131,7 @@ func (c *VBookController) GetDetail(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
 	}
 
-	detail, err := c.vbookService.GetBookDetail(reqCtx, getBaseURL(ctx, c.settingsService), bookID)
+	detail, err := c.vbookService.GetBookDetail(reqCtx, getBaseURL(ctx, c.settingsService), bookID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -154,7 +154,7 @@ func (c *VBookController) GetTOC(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
 	}
 
-	toc, err := c.vbookService.GetTOC(reqCtx, getBaseURL(ctx, c.settingsService), bookID)
+	toc, err := c.vbookService.GetTOC(reqCtx, getBaseURL(ctx, c.settingsService), bookID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -179,7 +179,7 @@ func (c *VBookController) GetChapterContent(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "book_id and chapter_id are required"))
 	}
 
-	content, err := c.vbookService.GetChapterContent(reqCtx, bookID, chapterID)
+	content, err := c.vbookService.GetChapterContent(reqCtx, bookID, chapterID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -241,7 +241,7 @@ func (c *VBookController) GetAudioBooks(ctx fiber.Ctx) error {
 		}
 	}
 
-	result, err := c.vbookService.GetAudioBooks(reqCtx, getBaseURL(ctx, c.settingsService), pageStr, limit)
+	result, err := c.vbookService.GetAudioBooks(reqCtx, getBaseURL(ctx, c.settingsService), pageStr, limit, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
@@ -264,7 +264,7 @@ func (c *VBookController) GetAudioPlaylist(ctx fiber.Ctx) error {
 		return apperrors.HandleError(ctx, apperrors.New(apperrors.ErrBadRequest, "Book ID is required"))
 	}
 
-	tracks, err := c.vbookService.GetAudioPlaylist(reqCtx, bookID)
+	tracks, err := c.vbookService.GetAudioPlaylist(reqCtx, bookID, getOptionalClaims(ctx))
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

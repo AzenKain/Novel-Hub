@@ -1,4 +1,5 @@
 export interface SmartFilterRuleItem {
+  id?: string;
   field: 'status' | 'format' | 'rating_gte' | 'author_id' | 'series_id' | 'tag_id';
   operator: 'eq' | 'gte' | 'lte';
   value: string;

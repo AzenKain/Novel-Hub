@@ -1,4 +1,5 @@
 import { useLogFilesQuery, useLogTailQuery } from "@/hooks";
+import { useDebounce } from "@/hooks/useDebounce";
 import { operationsService } from "@/services";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,10 +12,11 @@ export function LogsTab() {
   const [file, setFile] = useState("");
   const [level, setLevel] = useState("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 400);
   useEffect(() => {
     if (!file && files.data?.[0]) setFile(files.data[0].name);
   }, [file, files.data]);
-  const tail = useLogTailQuery(file, level, search);
+  const tail = useLogTailQuery(file, level, debouncedSearch);
 
   return (
     <div className="space-y-4">

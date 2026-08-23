@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -82,10 +82,6 @@ export const BookDetailPage: React.FC = () => {
       void queryClient.invalidateQueries({ queryKey: ["trackerReadingProgress", book_id] });
       void queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
     }
-    return () => {
-      void queryClient.invalidateQueries({ queryKey: ["books"] });
-      void queryClient.invalidateQueries({ queryKey: ["library"] });
-    };
   }, [book_id, queryClient]);
 
   const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(book_id || "");
@@ -118,6 +114,10 @@ export const BookDetailPage: React.FC = () => {
   const isBookmarked = user ? (userState?.bookmarked || false) : guestIsBookmarked;
 
   const meta = book ? parseMetadata(book.metadata_json) : {};
+  const sanitizedDescription = useMemo(
+    () => DOMPurify.sanitize(book?.description || meta.description || t("book.no_description", "No description available.")),
+    [book?.description, meta.description, t]
+  );
   const tags = toStringList(meta.subject);
   const seriesEntry = seriesContext?.series?.[0];
   const nextInSeries = seriesContext?.next;
@@ -350,7 +350,7 @@ export const BookDetailPage: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-6 lg:gap-8">
           {/* Left Pane - Cover & Stats */}
           <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col items-center gap-6">
-            <div className="w-48 md:w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
+            <div className="w-48 md:w-full aspect-2/3 rounded-xl overflow-hidden shadow-2xl border border-base-200 bg-base-200 relative group">
               {book.cover_url && !imgError ? (
                 <img
                   src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
@@ -360,7 +360,7 @@ export const BookDetailPage: React.FC = () => {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-base-content/30 p-4 text-center bg-gradient-to-br from-base-200 to-base-300">
+                <div className="w-full h-full flex flex-col items-center justify-center text-base-content/30 p-4 text-center bg-linear-to-br from-base-200 to-base-300">
                   <BookOpen className="w-12 h-12 mb-2 opacity-50" />
                   <span className="text-sm font-medium">{book.title}</span>
                 </div>
@@ -422,7 +422,7 @@ export const BookDetailPage: React.FC = () => {
           <div className="w-full md:w-2/3 lg:w-3/4 flex flex-col gap-4">
             <div>
               <div className="flex items-start gap-2 mb-2">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-base-content leading-tight break-words">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-base-content leading-tight wrap-break-word">
                   {book.title}
                 </h1>
                 <button
@@ -456,7 +456,7 @@ export const BookDetailPage: React.FC = () => {
                   title={`${seriesEntry.series_name}${seriesEntry.series_index ? ` #${seriesEntry.series_index}` : ""}`}
                 >
                   <Layers className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                  <span className="break-words line-clamp-2">
+                  <span className="wrap-break-word line-clamp-2">
                     {seriesEntry.series_name} {seriesEntry.series_index ? `#${seriesEntry.series_index}` : ""}
                   </span>
                 </div>
@@ -474,7 +474,7 @@ export const BookDetailPage: React.FC = () => {
                     title={tag}
                   >
                     <Tag className="w-3 h-3 opacity-70 shrink-0" />
-                    <span className="break-words line-clamp-2">{tag}</span>
+                    <span className="wrap-break-word line-clamp-2">{tag}</span>
                   </span>
                 ))}
               </div>
@@ -629,7 +629,7 @@ export const BookDetailPage: React.FC = () => {
 
                     {/* Smart Truncated File Format Dropdown */}
                     <select
-                      className="select select-bordered select-md font-medium max-w-[210px] shrink-0"
+                      className="select select-bordered select-md font-medium max-w-52.5 shrink-0"
                       value={effectiveFileId}
                       onChange={(e) => setSelectedFileId(e.target.value)}
                     >
@@ -651,7 +651,7 @@ export const BookDetailPage: React.FC = () => {
                           ? `${readingProgress.progress_percent}%`
                           : "0%"}
                       </span>
-                      <span className="truncate max-w-[450px]" title={readingProgress.chapter_title || undefined}>
+                      <span className="truncate max-w-112.5" title={readingProgress.chapter_title || undefined}>
                         <span className="opacity-70 mr-1">{t("reader.reading_chapter", "Currently at")}:</span>
                         <strong className="text-base-content font-semibold">
                           {readingProgress.chapter_title || t("reader.chapter_num", "Chapter {{num}}", { num: (readingProgress.chapter_index || 0) + 1 })}
@@ -671,7 +671,7 @@ export const BookDetailPage: React.FC = () => {
                             )}&start_over=true`
                           )
                         }
-                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                        className="btn btn-outline btn-md h-10 min-h-10 px-4 text-sm font-medium gap-2"
                         disabled={!book.files?.length}
                         title={t("reader.read_from_beginning", "Start from Beginning")}
                       >
@@ -682,7 +682,7 @@ export const BookDetailPage: React.FC = () => {
 
                     {allowRead && allowOffline && (
                       <button
-                        className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                        className="btn btn-outline btn-md h-10 min-h-10 px-4 text-sm font-medium gap-2"
                         disabled={offline.status === "downloading" || offline.status === "unknown"}
                         onClick={() => {
                           if (offline.status === "ready") {
@@ -718,7 +718,7 @@ export const BookDetailPage: React.FC = () => {
                       <>
                         <a
                           href={bookService.getDownloadUrl(book.id, effectiveFileId)}
-                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                          className="btn btn-outline btn-md h-10 min-h-10 px-4 text-sm font-medium gap-2"
                           download
                           onClick={(e) => {
                             if (!book.files?.length) e.preventDefault();
@@ -734,7 +734,7 @@ export const BookDetailPage: React.FC = () => {
 
                         <button
                           type="button"
-                          className="btn btn-outline btn-md h-10 min-h-[2.5rem] px-4 text-sm font-medium gap-2"
+                          className="btn btn-outline btn-md h-10 min-h-10 px-4 text-sm font-medium gap-2"
                           onClick={() => {
                             if (!book.files?.length) return;
                             const file = book.files.find((f) => f.id === effectiveFileId) || book.files[0];
@@ -773,7 +773,7 @@ export const BookDetailPage: React.FC = () => {
               <div
                 className="prose prose-sm md:prose-base dark:prose-invert max-w-none text-base-content/80 leading-relaxed"
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(book.description || meta.description || t("book.no_description", "No description available.")),
+                  __html: sanitizedDescription,
                 }}
               />
             </div>

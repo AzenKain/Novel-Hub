@@ -274,6 +274,10 @@ func (s *trackerService) SyncAniListProgress(ctx context.Context, userID string,
 }
 
 func (s *trackerService) SyncMyAnimeListProgress(ctx context.Context, userID string, mangaID string, chaptersRead int) error {
+	if _, err := strconv.Atoi(mangaID); err != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid MyAnimeList manga ID")
+	}
+
 	tracker, err := s.repo.GetUserTracker(ctx, userID, "myanimelist")
 	if err != nil || tracker == nil {
 		return apperrors.New(apperrors.ErrNotFound, "MyAnimeList integration not connected for user")

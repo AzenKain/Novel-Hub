@@ -23,6 +23,7 @@ import { LibrarySidebar } from "@/components/library/LibrarySidebar";
 import { BookGrid } from "@/components/ui/BookGrid";
 import { useBooksQuery } from "@/hooks/useBooksQuery";
 import { useAdvancedSearchFacets } from "@/hooks/useAdvancedSearchQueries";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAuthStore, useLibraryStore } from "@/stores";
 import type { MetadataCount } from "@/types";
 
@@ -52,6 +53,7 @@ export const AdvancedSearchPage: React.FC = () => {
 
   // Form State initialized from URL search params
   const [queryInput, setQueryInput] = useState(searchParams.get("q") || searchParams.get("search") || "");
+  const debouncedQuery = useDebounce(queryInput, 400);
   const [selectedFormat, setSelectedFormat] = useState(searchParams.get("format") || "");
   const [selectedSeries, setSelectedSeries] = useState(searchParams.get("series") || "");
   const [selectedAuthor, setSelectedAuthor] = useState(searchParams.get("author") || "");
@@ -95,7 +97,7 @@ export const AdvancedSearchPage: React.FC = () => {
     const params: Record<string, unknown> = {
       limit: 24,
     };
-    if (queryInput.trim()) params.search = queryInput.trim();
+    if (debouncedQuery.trim()) params.search = debouncedQuery.trim();
     if (selectedFormat) params.chip = selectedFormat;
     if (selectedSeries) {
       params.facet = "series";
@@ -115,7 +117,7 @@ export const AdvancedSearchPage: React.FC = () => {
     }
     return params;
   }, [
-    queryInput,
+    debouncedQuery,
     selectedFormat,
     selectedSeries,
     selectedAuthor,
@@ -158,7 +160,7 @@ export const AdvancedSearchPage: React.FC = () => {
   }, [formats]);
 
   const hasActiveFilters = Boolean(
-    queryInput.trim() ||
+    debouncedQuery.trim() ||
       selectedFormat ||
       selectedSeries ||
       selectedAuthor ||

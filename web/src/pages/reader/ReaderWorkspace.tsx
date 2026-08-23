@@ -253,6 +253,7 @@ const ReaderWorkspaceInner = () => {
   const [audioBookmarks, setAudioBookmarks] = useState<AudioBookmark[]>([]);
   const [audioSeekTime, setAudioSeekTime] = useState<number | null>(null);
   const audioDeleteBookmarkRef = useRef<((id: string) => void) | null>(null);
+  const lastAudioProgressRef = useRef<number>(0);
 
   // Image Bookmarks State
   const [imageBookmarks, setImageBookmarks] = useState<ImageBookmark[]>(() => {
@@ -727,6 +728,10 @@ const ReaderWorkspaceInner = () => {
       setHtmlContent(await resolveHTML(html));
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
+      }
+      const idx = chapters.findIndex((c) => c.id === chapter.id);
+      if (idx >= 0 && idx < chapters.length - 1) {
+        readerService.prefetchChapter(book_id, chapters[idx + 1].id, file_id);
       }
     } catch (err) {
       console.error("Failed to load chapter content", err);
@@ -1224,7 +1229,7 @@ const ReaderWorkspaceInner = () => {
                       rawUrl={offlineRawUrl || rawFileUrl}
                       title={book.title}
                       author={book.author_name || "Unknown"}
-                      cover_url={book.cover_url || `/api/v1/books/${book.id}/cover`}
+                      cover_url={book.cover_url || `${API_BASE}/books/${book.id}/cover`}
                       chapters={audiobookChapters?.map((c) => ({ title: c.title, start_sec: c.start_sec, end_sec: c.end_sec }))}
                       initialTime={pendingFragmentRef.current?.startsWith("audio:") ? parseFloat(pendingFragmentRef.current.slice(6)) : 0}
                       seekToTime={audioSeekTime}
@@ -1234,11 +1239,14 @@ const ReaderWorkspaceInner = () => {
                       }}
                       onTimeUpdate={(time) => {
                         pendingFragmentRef.current = `audio:${time}`;
+                        const now = Date.now();
+                        if (now - lastAudioProgressRef.current < 10_000) return;
+                        lastAudioProgressRef.current = now;
                         const chapterPosition = chapters.findIndex((c) => c.id === currentChapter?.id);
                         const progress_percent = chapterPosition >= 0
                           ? Math.round(((chapterPosition + 1) / chapters.length) * 100)
                           : 0;
-                  
+
                         void featureService.recordReadingActivity({
                           book_id: book_id || '',
                           file_id: file_id || '',

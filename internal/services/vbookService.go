@@ -24,13 +24,13 @@ import (
 type VBookService interface {
 	GetHomeSections(ctx context.Context, baseURL string) ([]*response.VBookHomeItem, error)
 	GetGenres(ctx context.Context, baseURL string) ([]*response.VBookGenreItem, error)
-	GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int) (*response.VBookBookListResponse, error)
-	SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int) (*response.VBookBookListResponse, error)
-	GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error)
-	GetTOC(ctx context.Context, baseURL string, bookID string) ([]*response.VBookTOCItem, error)
-	GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error)
-	GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int) (*response.VBookBookListResponse, error)
-	GetAudioPlaylist(ctx context.Context, bookID string) ([]*response.VBookAudioTrack, error)
+	GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error)
+	SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error)
+	GetBookDetail(ctx context.Context, baseURL string, bookID string, claims *response.JWTClaims) (*response.VBookBookDetailResponse, error)
+	GetTOC(ctx context.Context, baseURL string, bookID string, claims *response.JWTClaims) ([]*response.VBookTOCItem, error)
+	GetChapterContent(ctx context.Context, bookID string, chapterID string, claims *response.JWTClaims) (*response.VBookChapterContentResponse, error)
+	GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error)
+	GetAudioPlaylist(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.VBookAudioTrack, error)
 	ResolveAudioStream(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*models.BookFileEntity, error)
 	GetPluginJSON(ctx context.Context, baseURL string) (*response.VBookRegistryResponse, error)
 	GetPluginZip(ctx context.Context, baseURL string) ([]byte, error)
@@ -102,9 +102,15 @@ func (s *vbookService) GetGenres(ctx context.Context, baseURL string) ([]*respon
 	}, nil
 }
 
-func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
+func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *string, sort string, facet string, facetID string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
+	}
+
+	c := resolveClaims(claims)
+	userID := ""
+	if !isGuestClaims(c) {
+		userID = c.UId
 	}
 
 	var cursorTime *time.Time
@@ -144,24 +150,28 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 					facet = "tag"
 				}
 			}
-			books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, "", int64(limit*p+1), "")
+			books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, "", int64(limit*p+1), userID)
 			if err != nil {
 				return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
 			}
+			filtered, allowed := s.bookService.FilterReadableBooks(ctx, books, claims)
+			if !allowed {
+				return &response.VBookBookListResponse{List: []*response.VBookBookItem{}}, nil
+			}
 			start := (p - 1) * limit
-			if start >= len(books) {
+			if start >= len(filtered) {
 				return &response.VBookBookListResponse{List: []*response.VBookBookItem{}}, nil
 			}
 			end := start + limit
 			var nextPage *string
-			if end < len(books) {
+			if end < len(filtered) {
 				nextStr := strconv.Itoa(p + 1)
 				nextPage = &nextStr
 			}
-			if end > len(books) {
-				end = len(books)
+			if end > len(filtered) {
+				end = len(filtered)
 			}
-			slice := books[start:end]
+			slice := filtered[start:end]
 			items := mapBooksToItems(slice, baseURL)
 			return &response.VBookBookListResponse{
 				List: items,
@@ -197,23 +207,27 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 	if cursorTime != nil {
 		cursorStr = cursorTime.Format(time.RFC3339Nano) + "|" + cursorID
 	}
-	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, cursorStr, int64(limit+1), "")
+	books, err := s.bookService.SearchBooks(ctx, nil, search, nav, "", "ExcludeAudiobooks", facet, facetID, sort, cursorStr, int64(limit+1), userID)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load books")
+	}
+	filtered, allowed := s.bookService.FilterReadableBooks(ctx, books, claims)
+	if !allowed {
+		return &response.VBookBookListResponse{List: []*response.VBookBookItem{}}, nil
 	}
 
 	var nextPage *string
 	end := limit
-	if len(books) < end {
-		end = len(books)
+	if len(filtered) < end {
+		end = len(filtered)
 	}
-	if sort != "random" && len(books) > limit {
-		lastBook := books[limit-1]
+	if sort != "random" && len(filtered) > limit {
+		lastBook := filtered[limit-1]
 		nextStr := lastBook.CreatedAt.Format(time.RFC3339Nano) + "|" + lastBook.ID
 		nextPage = &nextStr
 	}
 
-	slice := books[:end]
+	slice := filtered[:end]
 	items := mapBooksToItems(slice, baseURL)
 
 	return &response.VBookBookListResponse{
@@ -251,7 +265,7 @@ func mapBooksToItems(books []*models.BookEntity, baseURL string) []*response.VBo
 	return items
 }
 
-func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
+func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -291,14 +305,16 @@ func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageSt
 		}
 	}
 
+	filtered, _ := s.bookService.FilterReadableBooks(ctx, ordered, claims)
+
 	end := limit
-	if len(ordered) < end {
-		end = len(ordered)
+	if len(filtered) < end {
+		end = len(filtered)
 	}
-	slice := ordered[:end]
+	slice := filtered[:end]
 
 	var nextPage *string
-	if len(ordered) > limit && len(slice) > 0 {
+	if len(filtered) > limit && len(slice) > 0 {
 		last := slice[len(slice)-1]
 		nextStr := last.UpdatedAt.Format(time.RFC3339Nano) + "|" + last.ID
 		nextPage = &nextStr
@@ -310,7 +326,18 @@ func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageSt
 	}, nil
 }
 
-func (s *vbookService) GetAudioPlaylist(ctx context.Context, bookID string) ([]*response.VBookAudioTrack, error) {
+func (s *vbookService) GetAudioPlaylist(ctx context.Context, bookID string, claims *response.JWTClaims) ([]*response.VBookAudioTrack, error) {
+	book, err := s.bookService.GetBook(ctx, bookID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load book")
+	}
+	if !s.bookService.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+	}
+
 	chapters, err := s.audiobookRepo.ListChapters(ctx, bookID)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio playlist")
@@ -402,17 +429,20 @@ func (s *vbookService) ResolveAudioStream(ctx context.Context, bookID string, fi
 	return file, nil
 }
 
-func (s *vbookService) SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int) (*response.VBookBookListResponse, error) {
-	return s.GetBooks(ctx, baseURL, &query, "", "", "", pageStr, limit)
+func (s *vbookService) SearchBooks(ctx context.Context, baseURL string, query string, pageStr string, limit int, claims *response.JWTClaims) (*response.VBookBookListResponse, error) {
+	return s.GetBooks(ctx, baseURL, &query, "", "", "", pageStr, limit, claims)
 }
 
-func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID string) (*response.VBookBookDetailResponse, error) {
-	book, err := s.bookRepo.GetBook(ctx, bookID)
+func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID string, claims *response.JWTClaims) (*response.VBookBookDetailResponse, error) {
+	book, err := s.bookService.GetBook(ctx, bookID)
 	if err != nil {
 		if apperrors.IsNotFound(err) {
 			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
 		}
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load book")
+	}
+	if !s.bookService.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
 	}
 
 	author := "Chưa rõ"
@@ -444,7 +474,18 @@ func (s *vbookService) GetBookDetail(ctx context.Context, baseURL string, bookID
 	}, nil
 }
 
-func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string) ([]*response.VBookTOCItem, error) {
+func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string, claims *response.JWTClaims) ([]*response.VBookTOCItem, error) {
+	book, err := s.bookService.GetBook(ctx, bookID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load book")
+	}
+	if !s.bookService.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+	}
+
 	chapters, err := s.bookService.ListChapters(ctx, bookID)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load table of contents")
@@ -465,7 +506,18 @@ func (s *vbookService) GetTOC(ctx context.Context, baseURL string, bookID string
 	return items, nil
 }
 
-func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, chapterID string) (*response.VBookChapterContentResponse, error) {
+func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, chapterID string, claims *response.JWTClaims) (*response.VBookChapterContentResponse, error) {
+	book, err := s.bookService.GetBook(ctx, bookID)
+	if err != nil {
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load book")
+	}
+	if !s.bookService.CanReadBook(ctx, book, claims) {
+		return nil, apperrors.New(apperrors.ErrNotFound, "Book not found")
+	}
+
 	htmlContent, err := s.bookService.GetChapterHTML(ctx, bookID, chapterID, "")
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load chapter content")

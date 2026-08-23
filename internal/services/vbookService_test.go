@@ -55,7 +55,7 @@ func TestVBookPaginationNextPageDetection(t *testing.T) {
 
 	// Test keyset cursor pagination (Production path)
 	// Page 1: limit 20. Expect 20 items and Next cursor
-	res1, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", "1", 20)
+	res1, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", "1", 20, nil)
 	if err != nil {
 		t.Fatalf("GetBooks page 1 failed: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestVBookPaginationNextPageDetection(t *testing.T) {
 	}
 
 	// Page 2 using cursor: limit 20. Expect 5 items and Next = nil
-	res2, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", *res1.Next, 20)
+	res2, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", *res1.Next, 20, nil)
 	if err != nil {
 		t.Fatalf("GetBooks page 2 failed: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestVBookPaginationNextPageDetection(t *testing.T) {
 	}
 
 	// Test offset fallback (Backward compatibility path)
-	resOffset, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", "2", 20)
+	resOffset, err := vbookSvc.GetBooks(ctx, baseURL, nil, "", "", "", "2", 20, nil)
 	if err != nil {
 		t.Fatalf("GetBooks offset page 2 failed: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestVBookPaginationNextPageDetection(t *testing.T) {
 	}
 
 	// Test random sorting
-	resRandom, err := vbookSvc.GetBooks(ctx, baseURL, nil, "random", "", "", "1", 10)
+	resRandom, err := vbookSvc.GetBooks(ctx, baseURL, nil, "random", "", "", "1", 10, nil)
 	if err != nil {
 		t.Fatalf("GetBooks random failed: %v", err)
 	}

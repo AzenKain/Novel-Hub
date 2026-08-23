@@ -2,22 +2,35 @@ import { DownloadManagerPanel, ProtectedRoute, UpdatePrompt } from "@/components
 import "@/i18n";
 import { queryClient } from "@/config/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { AdminLayout, Books, Duplicates, OAuthSettings, Operations, Reviews, Roles, Settings, Users } from "@/pages/admin";
-import { ForgotPasswordPage, LoginPage, RegisterPage, SetupWizard } from "@/pages/auth";
-import { ActivateMagicCodePage } from "@/pages/auth/ActivateMagicCodePage";
-import { LibraryWorkspace, ReadListPage } from "@/pages/library";
-import { PodcastsPage } from "@/pages/podcasts/PodcastsPage";
-import { AdvancedSearchPage } from "@/pages/library/AdvancedSearchPage";
-import { ReaderWorkspace } from "@/pages/reader";
-import { ReadingAnalyticsPage } from "@/pages/user/ReadingAnalyticsPage";
-import { OfflineBooksPage } from "@/pages/user/OfflineBooksPage";
-import { ProfilePage } from "@/pages/user/ProfilePage";
 import { useSettingsStore } from "@/stores";
-import React, { useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import "./styles.css";
+
+const AdminLayout = lazy(() => import("@/pages/admin").then(m => ({ default: m.AdminLayout })));
+const Books = lazy(() => import("@/pages/admin").then(m => ({ default: m.Books })));
+const Duplicates = lazy(() => import("@/pages/admin").then(m => ({ default: m.Duplicates })));
+const OAuthSettings = lazy(() => import("@/pages/admin").then(m => ({ default: m.OAuthSettings })));
+const Operations = lazy(() => import("@/pages/admin").then(m => ({ default: m.Operations })));
+const Reviews = lazy(() => import("@/pages/admin").then(m => ({ default: m.Reviews })));
+const Roles = lazy(() => import("@/pages/admin").then(m => ({ default: m.Roles })));
+const Settings = lazy(() => import("@/pages/admin").then(m => ({ default: m.Settings })));
+const Users = lazy(() => import("@/pages/admin").then(m => ({ default: m.Users })));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth").then(m => ({ default: m.ForgotPasswordPage })));
+const LoginPage = lazy(() => import("@/pages/auth").then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import("@/pages/auth").then(m => ({ default: m.RegisterPage })));
+const SetupWizard = lazy(() => import("@/pages/auth").then(m => ({ default: m.SetupWizard })));
+const ActivateMagicCodePage = lazy(() => import("@/pages/auth/ActivateMagicCodePage").then(m => ({ default: m.ActivateMagicCodePage })));
+const LibraryWorkspace = lazy(() => import("@/pages/library").then(m => ({ default: m.LibraryWorkspace })));
+const ReadListPage = lazy(() => import("@/pages/library").then(m => ({ default: m.ReadListPage })));
+const AdvancedSearchPage = lazy(() => import("@/pages/library/AdvancedSearchPage").then(m => ({ default: m.AdvancedSearchPage })));
+const PodcastsPage = lazy(() => import("@/pages/podcasts/PodcastsPage").then(m => ({ default: m.PodcastsPage })));
+const ReaderWorkspace = lazy(() => import("@/pages/reader").then(m => ({ default: m.ReaderWorkspace })));
+const ReadingAnalyticsPage = lazy(() => import("@/pages/user/ReadingAnalyticsPage").then(m => ({ default: m.ReadingAnalyticsPage })));
+const OfflineBooksPage = lazy(() => import("@/pages/user/OfflineBooksPage").then(m => ({ default: m.OfflineBooksPage })));
+const ProfilePage = lazy(() => import("@/pages/user/ProfilePage").then(m => ({ default: m.ProfilePage })));
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
   const { theme, customCss } = useSettingsStore(useShallow((state) => ({
@@ -120,6 +133,7 @@ function App() {
     <BrowserRouter>
       <ThemeInitializer>
         <SetupGuard>
+          <Suspense fallback={<div className="flex h-screen items-center justify-center bg-base-100 text-base-content"><span className="loading loading-spinner loading-lg text-primary"></span></div>}>
           <Routes>
             <Route path="/offline" element={<OfflineBooksPage />} />
             <Route path="/offline/reader/:book_id" element={<ReaderWorkspace />} />
@@ -178,6 +192,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </SetupGuard>
         <ToastContainer
           position="top-right"

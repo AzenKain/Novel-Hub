@@ -77,6 +77,7 @@ func (h *ReaderController) GetChapter(c fiber.Ctx) error {
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	c.Set("X-Content-Type-Options", "nosniff")
 	c.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self' data:")
+	c.Set("Cache-Control", "private, max-age=3600")
 	return c.SendString(content)
 }
 

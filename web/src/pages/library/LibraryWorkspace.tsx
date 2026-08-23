@@ -76,6 +76,7 @@ function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
 }
 
 const EMPTY_ARRAY: any[] = [];
+const numberFormatter = new Intl.NumberFormat();
 
 export const LibraryWorkspace = () => {
   const navigate = useNavigate();
@@ -849,7 +850,7 @@ export const LibraryWorkspace = () => {
                 {bookListTitle}
               </h2>
               <p className="mt-1 text-sm text-base-content/50">
-                {new Intl.NumberFormat().format(books.length)}{" "}
+                {numberFormatter.format(books.length)}{" "}
                 {t("library.books_indexed", "books indexed")}
               </p>
             </div>
@@ -1066,7 +1067,7 @@ export const LibraryWorkspace = () => {
               <div>
                 <h3 className="text-lg font-black">{bookListTitle}</h3>
                 <p className="text-sm text-base-content/50">
-                  {new Intl.NumberFormat().format(books.length)}{" "}
+                  {numberFormatter.format(books.length)}{" "}
                   {t("library.books_indexed", "books indexed")}
                 </p>
               </div>
@@ -1226,7 +1227,8 @@ export const LibraryWorkspace = () => {
       <LoginView />
       <UserProfile />
       {/* New Collection Modal */}
-      <dialog className={`modal ${showNewCollectionModal ? "modal-open" : ""}`}>
+      {showNewCollectionModal && (
+      <dialog className="modal modal-open">
         <div className="modal-box">
           <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
             {t("library.new_collection", "New Collection")}
@@ -1282,9 +1284,11 @@ export const LibraryWorkspace = () => {
           </button>
         </form>
       </dialog>
+      )}
 
       {/* Save current search as a smart collection */}
-      <dialog className={`modal ${showSaveSearchModal ? "modal-open" : ""}`}>
+      {showSaveSearchModal && (
+      <dialog className="modal modal-open">
         <div className="modal-box">
           <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
             {t("library.save_search", "Save current search")}
@@ -1335,6 +1339,7 @@ export const LibraryWorkspace = () => {
           <button onClick={() => setShowSaveSearchModal(false)}>close</button>
         </form>
       </dialog>
+      )}
     </div>
   );
 };

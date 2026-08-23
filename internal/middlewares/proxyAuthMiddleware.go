@@ -37,8 +37,15 @@ func ProxyAuth(
 			return c.Next()
 		}
 
-		// 2. Verify Trusted Proxy Client IP
-		clientIP := c.IP()
+		// 2. Verify Trusted Proxy Client IP — use raw socket peer, never proxy-header-resolved IP
+		rawAddr := ""
+		if rctx := c.RequestCtx(); rctx != nil {
+			rawAddr = rctx.RemoteAddr().String()
+		}
+		clientIP := rawAddr
+		if host, _, splitErr := net.SplitHostPort(rawAddr); splitErr == nil {
+			clientIP = host
+		}
 		isTrusted := false
 		for _, ipStr := range settings.ProxyAuth.TrustedProxies {
 			if ipStr == clientIP {
