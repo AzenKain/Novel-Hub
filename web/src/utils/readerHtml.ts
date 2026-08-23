@@ -30,28 +30,60 @@ export const sanitizeReaderHtml = (html: string) => {
     const doc = new DOMParser().parseFromString(`<body>${clean}</body>`, "text/html");
     const imgs = doc.querySelectorAll("img");
     imgs.forEach((img) => {
-      const parent = img.parentElement;
-      if (parent && parent.tagName.toLowerCase() === "body") {
-        const figure = doc.createElement("figure");
-        figure.className = "reader-image-page";
-        parent.insertBefore(figure, img);
-        figure.appendChild(img);
-      } else if (parent) {
-        let current: HTMLElement | null = parent;
-        while (current && current.tagName.toLowerCase() !== "body") {
-          const tag = current.tagName.toLowerCase();
-          if (tag === "p" || tag === "figure" || tag === "div" || tag === "section" || tag === "article") {
-            const imgCount = current.querySelectorAll("img").length;
-            const text = (current.textContent || "").trim();
-            if (imgCount === 1 && text === "") {
-              current.classList.add("reader-image-page");
+      let highestOnlyChild: HTMLElement | null = null;
+      let current = img.parentElement;
+      while (current && current.tagName.toLowerCase() !== "body" && current.tagName.toLowerCase() !== "html") {
+        const text = (current.textContent || "").trim();
+        const imgCount = current.querySelectorAll("img").length;
+        if (imgCount === 1 && text === "") {
+          highestOnlyChild = current;
+        }
+        current = current.parentElement;
+      }
+
+      if (highestOnlyChild) {
+        let node: HTMLElement | null = img.parentElement;
+        while (node && node !== highestOnlyChild.parentElement) {
+          node.classList.add("reader-image-page");
+          Array.from(node.childNodes).forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE && (child.textContent || "").trim() === "") {
+              child.remove();
+            } else if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName.toLowerCase() === "br") {
+              child.remove();
             }
-            break;
-          }
-          current = current.parentElement;
+          });
+          node = node.parentElement;
+        }
+      } else {
+        const parent = img.parentElement;
+        if (parent && parent.tagName.toLowerCase() === "body") {
+          const figure = doc.createElement("figure");
+          figure.className = "reader-image-page";
+          parent.insertBefore(figure, img);
+          figure.appendChild(img);
         }
       }
     });
+
+    // Auto-detect and tag chapter title paragraphs
+    const CHAPTER_TITLE_REGEX = /^(?:chương|chapter|ch\.|hồi|tiết|phần|tập|quyển|vol(?:ume)?\.?|mục|mở đầu|kết thúc|lời bạt|ngoại truyện|minh ho[aạ]|hình minh ho[aạ]|prologue|epilogue|afterword|interlude|side story|extra|bonus|act\b|scene\b|bài|thứ|đoạn|thông tin|giới thiệu|nhân vật)\b/i;
+    let foundFirstText = false;
+    doc.querySelectorAll<HTMLElement>("p, div, h1, h2, h3, h4, h5, h6").forEach((el) => {
+      if (el.classList.contains("reader-image-page") || el.querySelector("img")) return;
+      const text = (el.textContent || "").trim();
+      if (!text) return;
+
+      const isFirstParagraph = !foundFirstText;
+      foundFirstText = true;
+
+      const matchesTitlePattern = CHAPTER_TITLE_REGEX.test(text);
+      const isShortHeadingCandidate = isFirstParagraph && text.length <= 65 && !/[.!?]["']?\s*$/.test(text);
+
+      if (matchesTitlePattern || isShortHeadingCandidate || el.classList.contains("title") || el.classList.contains("title-top")) {
+        el.classList.add("chapter-title");
+      }
+    });
+
     return doc.body.innerHTML;
   }
 

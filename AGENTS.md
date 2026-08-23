@@ -8,13 +8,14 @@ These project-scoped rules are mandatory for all AI coding agents working on the
 
 To maintain clean code maintainability, the project enforces a strict three-layer boundary:
 
-```
+```text
 [ Controller ] <--> [ Service ] <--> [ Repository ] <--> [ Database / RAM Cache ]
 ```
 
 ### A. Controller Layer (`internal/controllers`)
+
 - **Responsibility**: Controllers must only handle parsing HTTP requests, triggering validations, invoking services, mapping outputs, and returning HTTP responses.
-- **Strict Constraints**: 
+- **Strict Constraints**:
   - Controllers **MUST NOT** directly handle any business logic, DB queries, file parsing, or HTML/CSS manipulation.
   - All input payloads (body, query, params) **MUST** be validated using the custom validator package [`pkg/validator`](./pkg/validator):
     - Use `validator.ValidateBodyDto(c, &dto)` for request bodies.
@@ -22,12 +23,14 @@ To maintain clean code maintainability, the project enforces a strict three-laye
   - Return responses using standard DTO envelopes from `internal/dtos/response`.
   - Handle all service/repository errors using `return apperrors.HandleError(c, err)` to map domain errors to standard HTTP response envelopes.
   - **Context Handling**: Controllers MUST NOT pass `c.Context()` (the fiber context) down to services. Instead, they MUST create a new context with timeout:
+
     ```go
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
     ```
 
 ### B. Service Layer (`internal/services`)
+
 - **Responsibility**: Houses core business rules, file parsing (EPUB, PDF, MOBI, FB2, DOCX, etc.), HTML/CSS reader scoping, and transactional use-cases.
 - **Modularization & File Size**:
   - **Do NOT overload a single service file**. If a service grows large, it **MUST** be split into focused domain sub-files (e.g. `bookService_reader.go`, `bookService_metadata.go`, `bookService_catalog.go`).
@@ -41,6 +44,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
   - Wrap database `sql.ErrNoRows` in `apperrors.New(apperrors.ErrNotFound, ...)` and validation failures in `apperrors.New(apperrors.ErrBadRequest, ...)` to ensure clean HTTP status mapping.
 
 ### C. Repository Layer (`internal/repositories`)
+
 - **Responsibility**: Data persistence layer wrapping database queries and RAM Caching.
 - **Cache-by-IDs Pattern (Mandatory)**:
   - All repository queries returning list datasets or searches **MUST** enforce the **Cache-by-IDs** pattern:
@@ -53,6 +57,7 @@ To maintain clean code maintainability, the project enforces a strict three-laye
   - However, all repository return types **MUST** be converted into entities defined in the [`internal/models`](./internal/models) package.
 
 ### D. Domain Models (`internal/models`)
+
 - **Responsibility**: Houses domain entity definitions (e.g., `BookEntity`, `UserEntity`, `JobEntity`, `JobScheduleEntity`).
 - **Mapping Helpers**:
   - Entities **MUST** provide `FromSqlc` conversion methods to construct entities from `sqlc` generated rows.

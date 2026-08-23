@@ -3,25 +3,7 @@ import { BookmarkPlus, Check, Copy, Loader2, MessageSquarePlus, Sparkles, X } fr
 import React, { useState, useLayoutEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { copyImageToClipboard } from "@/utils/clipboard";
-
-export interface ImageBookmark {
-  id: string;
-  image_url: string;
-  chapter_id?: string;
-  chapter_title?: string;
-  page_index?: number;
-  note?: string;
-  created_at: string;
-}
-
-export interface ActiveImageTarget {
-  image_url: string;
-  chapter_id?: string;
-  chapter_title?: string;
-  page_index?: number;
-  x?: number;
-  y?: number;
-}
+import type { ActiveImageTarget, ImageBookmark } from "@/types";
 
 interface ReaderImageToolbarProps {
   t: TFunction;
@@ -81,10 +63,10 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
     setCopying(false);
     if (success) {
       setCopied(true);
-      toast.success(t("reader.image_copied", "Đã sao chép ảnh vào clipboard!"));
+      toast.success(t("reader.image_copied", "Image copied to clipboard!"));
       setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error(t("reader.image_copy_failed", "Không thể sao chép ảnh"));
+      toast.error(t("reader.image_copy_failed", "Failed to copy image"));
     }
   };
 
@@ -122,10 +104,10 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
           type="button"
           onClick={handleSave}
           className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] font-medium transition-colors"
-          title={t("reader.bookmark_image", "Đánh dấu ảnh này")}
+          title={t("reader.bookmark_image", "Bookmark this image")}
         >
           <BookmarkPlus className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="truncate">{t("reader.bookmark", "Đánh dấu")}</span>
+          <span className="truncate">{t("reader.bookmark", "Bookmark")}</span>
         </button>
 
         {/* Copy Image Button */}
@@ -134,7 +116,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
           onClick={handleCopyImage}
           disabled={copying}
           className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] font-medium transition-colors"
-          title={t("reader.copy_image", "Sao chép ảnh")}
+          title={t("reader.copy_image", "Copy Image")}
         >
           {copying ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
@@ -143,7 +125,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
           ) : (
             <Copy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
           )}
-          <span className="truncate">{copied ? t("common.copied", "Đã chép") : t("common.copy", "Sao chép")}</span>
+          <span className="truncate">{copied ? t("common.copied", "Copied") : t("common.copy", "Copy")}</span>
         </button>
 
         {/* Quote Card Button */}
@@ -155,7 +137,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
               onClose();
             }}
             className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] font-medium transition-colors"
-            title={t("reader.quote_card", "Tạo ảnh trích dẫn")}
+            title={t("reader.quote_card", "Create quote image")}
           >
             <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
             <span className="truncate">{t("reader.quote", "Quote")}</span>
@@ -167,7 +149,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
           type="button"
           onClick={onClose}
           className="btn btn-ghost btn-circle btn-xs text-(--reader-ui-text) opacity-50 hover:opacity-100 shrink-0"
-          title={t("common.close", "Đóng")}
+          title={t("common.close", "Close")}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -191,7 +173,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
                 handleSave();
               }
             }}
-            placeholder={t("reader.image_note_placeholder", "Ghi chú cho ảnh (Ctrl+Enter để lưu)...")}
+            placeholder={t("reader.image_note_placeholder", "Add a note for this image...")}
             className="reader-input w-full rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) pl-8 pr-12 py-1.5 text-xs text-(--reader-ui-text) placeholder:text-(--reader-ui-muted)/70 focus:border-(--reader-ui-accent) focus:outline-hidden transition-colors resize-none leading-relaxed"
           />
           {note.trim() && (
@@ -200,7 +182,7 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
               onClick={handleSave}
               className="absolute right-2 top-2 btn btn-primary btn-xs h-6 rounded-lg px-2 text-[10px] font-bold"
             >
-              {t("common.save", "Lưu")}
+              {t("common.save", "Save")}
             </button>
           )}
         </div>

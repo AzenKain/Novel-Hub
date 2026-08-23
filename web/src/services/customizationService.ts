@@ -8,12 +8,8 @@ import type {
   UploadSoundscapePayload,
   CreateCustomThemePayload,
   UpdateCustomThemePayload,
+  CustomizationListParams,
 } from "@/types";
-
-export interface CustomizationListParams {
-  cursor?: string;
-  limit?: number;
-}
 
 export const customizationService = {
   // Soundscapes

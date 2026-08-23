@@ -124,9 +124,9 @@ export const UserDevicesCard: React.FC = () => {
                 onChange={(e) => setDeviceType(e.target.value)}
                 className="select select-bordered select-sm w-full text-xs"
               >
-                <option value="kindle">Kindle (Email)</option>
-                <option value="pocketbook">PocketBook (@pbsync.com)</option>
-                <option value="koreader">KOReader (HTTP Endpoint)</option>
+                <option value="kindle">{t("device.type_kindle")}</option>
+                <option value="pocketbook">{t("device.type_pocketbook")}</option>
+                <option value="koreader">{t("device.type_koreader")}</option>
               </select>
             </div>
             <div>

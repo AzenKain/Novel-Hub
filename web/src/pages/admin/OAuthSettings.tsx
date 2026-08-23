@@ -186,8 +186,8 @@ export function OAuthSettings() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="card-title text-base font-bold">Google OAuth2</h2>
-                    <p className="text-xs text-base-content/50">Allow signing in with Google accounts</p>
+                    <h2 className="card-title text-base font-bold">{t("settings.oauth.google_title")}</h2>
+                    <p className="text-xs text-base-content/50">{t("settings.oauth.google_desc")}</p>
                   </div>
                 </div>
                 
@@ -212,7 +212,7 @@ export function OAuthSettings() {
               {googleEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client ID</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_id")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -222,7 +222,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client Secret</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_secret")}</label>
                     <input
                       type="password"
                       className="input input-bordered w-full input-sm h-10"
@@ -232,7 +232,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Redirect URI</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.redirect_uri")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -257,8 +257,8 @@ export function OAuthSettings() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="card-title text-base font-bold">GitHub OAuth2</h2>
-                    <p className="text-xs text-base-content/50">Allow signing in with GitHub accounts</p>
+                    <h2 className="card-title text-base font-bold">{t("settings.oauth.github_title")}</h2>
+                    <p className="text-xs text-base-content/50">{t("settings.oauth.github_desc")}</p>
                   </div>
                 </div>
                 
@@ -283,7 +283,7 @@ export function OAuthSettings() {
               {githubEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client ID</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_id")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -293,7 +293,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client Secret</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_secret")}</label>
                     <input
                       type="password"
                       className="input input-bordered w-full input-sm h-10"
@@ -303,7 +303,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Redirect URI</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.redirect_uri")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -328,8 +328,8 @@ export function OAuthSettings() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="card-title text-base font-bold">Discord OAuth2</h2>
-                    <p className="text-xs text-base-content/50">Allow signing in with Discord accounts</p>
+                    <h2 className="card-title text-base font-bold">{t("settings.oauth.discord_title")}</h2>
+                    <p className="text-xs text-base-content/50">{t("settings.oauth.discord_desc")}</p>
                   </div>
                 </div>
                 
@@ -354,7 +354,7 @@ export function OAuthSettings() {
               {discordEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client ID</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_id")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -364,7 +364,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client Secret</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_secret")}</label>
                     <input
                       type="password"
                       className="input input-bordered w-full input-sm h-10"
@@ -374,7 +374,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Redirect URI</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.redirect_uri")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -397,8 +397,8 @@ export function OAuthSettings() {
                     <Shield className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="card-title text-base font-bold">OpenID Connect (OIDC)</h2>
-                    <p className="text-xs text-base-content/50">Configure Keycloak, Authentik, Authelia, Okta, etc.</p>
+                    <h2 className="card-title text-base font-bold">{t("settings.oauth.oidc_title")}</h2>
+                    <p className="text-xs text-base-content/50">{t("settings.oauth.oidc_desc")}</p>
                   </div>
                 </div>
                 
@@ -423,7 +423,7 @@ export function OAuthSettings() {
               {oidcEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Provider Display Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.provider_name")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -433,7 +433,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Issuer URL</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.issuer_url")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -443,7 +443,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client ID</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_id")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -453,7 +453,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Client Secret</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.client_secret")}</label>
                     <input
                       type="password"
                       className="input input-bordered w-full input-sm h-10"
@@ -463,7 +463,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Redirect URI</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.redirect_uri")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"
@@ -473,7 +473,7 @@ export function OAuthSettings() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">Scopes (Comma separated)</label>
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-60 pl-1">{t("settings.oauth.scopes")}</label>
                     <input
                       type="text"
                       className="input input-bordered w-full input-sm h-10"

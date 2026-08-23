@@ -2,15 +2,7 @@ import { BookOpen, Star } from "lucide-react";
 import React from "react";
 
 import { getMediaUrl } from "@/config/api";
-import type { MetadataCount } from "@/types";
-
-export type MetadataFacetSection = {
-  nav: string;
-  type: string;
-  label: string;
-  icon: React.ReactNode;
-  items: MetadataCount[];
-};
+import type { MetadataCount, MetadataFacetSection } from "@/types";
 
 type MetadataIndexViewProps = {
   section: MetadataFacetSection;
@@ -61,7 +53,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
           </p>
         </div>
       ) : isSeries ? (
-        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 min-[1900px]:grid-cols-10 items-start">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 items-start">
           {filteredItems.map((item) => {
             const cover_url = item.cover_url ? getMediaUrl(item.cover_url) : "";
             return (

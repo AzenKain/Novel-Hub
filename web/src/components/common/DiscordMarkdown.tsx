@@ -148,7 +148,7 @@ export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, class
   const lines = content.split("\n");
 
   return (
-    <div className={`space-y-1.5 leading-relaxed break-words ${className}`}>
+    <div className={`space-y-1.5 leading-relaxed wrap-break-word ${className}`}>
       {lines.map((line, idx) => {
         const trimmed = line.trimStart();
         if (trimmed.startsWith("> ")) {

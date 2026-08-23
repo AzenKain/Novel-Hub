@@ -214,7 +214,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
       try {
         headersObj = JSON.parse(customHeadersJSON);
       } catch {
-        toast.error("Invalid Custom HTTP Headers JSON format");
+        toast.error(t("settings.webhook_invalid_headers_json"));
         return;
       }
     }
@@ -366,10 +366,10 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     onChange={(e) => setForm({ ...form, template_type: e.target.value as any })}
                     className="select select-bordered select-sm w-full font-medium"
                   >
-                    <option value="discord">Discord Webhook Embed</option>
-                    <option value="telegram">Telegram Bot HTML</option>
-                    <option value="slack">Slack Block Kit</option>
-                    <option value="generic">Generic JSON (Custom / n8n / Zapier)</option>
+                    <option value="discord">{t("settings.webhook_tpl_discord")}</option>
+                    <option value="telegram">{t("settings.webhook_tpl_telegram")}</option>
+                    <option value="slack">{t("settings.webhook_tpl_slack")}</option>
+                    <option value="generic">{t("settings.webhook_tpl_generic")}</option>
                     <option value="email">{t("settings.template_email", "Email (SMTP)")}</option>
                   </select>
                 </div>
@@ -490,12 +490,12 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
                 {/* Bot Name */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">Bot Display Name</label>
+                  <label className="label text-xs font-bold text-base-content">{t("settings.webhook_bot_name")}</label>
                   <input
                     type="text"
                     value={botName}
                     onChange={(e) => setBotName(e.target.value)}
-                    placeholder="NovelHub Bot"
+                    placeholder={t("settings.webhook_bot_placeholder")}
                     className="input input-bordered input-sm w-full text-xs font-medium"
                   />
                 </div>
@@ -503,8 +503,8 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 {/* Edit Field Labels & Order */}
                 <div className="flex flex-col gap-2">
                   <label className="label text-xs font-bold text-base-content flex justify-between">
-                    <span>Edit Field Labels & Reorder</span>
-                    <span className="text-[11px] text-base-content/60">Rename labels & reorder for embed</span>
+                    <span>{t("settings.webhook_edit_fields")}</span>
+                    <span className="text-[11px] text-base-content/60">{t("settings.webhook_edit_fields_hint")}</span>
                   </label>
 
                   <div className="flex flex-col gap-2 border border-base-300 rounded-xl p-2.5 bg-base-200/40 max-h-72 overflow-y-auto">
@@ -534,7 +534,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                               type="button"
                               onClick={() => resetFieldLabel(f.id)}
                               className="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-base-content"
-                              title="Reset to default label"
+                              title={t("settings.webhook_reset_label")}
                             >
                               <RotateCcw className="w-3 h-3" />
                             </button>
@@ -615,12 +615,12 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-white text-sm hover:underline cursor-pointer">
-                      {botName || "NovelHub Bot"}
+                      {botName || t("settings.webhook_bot_placeholder")}
                     </span>
                     <span className="bg-[#5865F2] text-white text-[10px] px-1.5 py-0.2 rounded font-bold tracking-wider">
                       APP
                     </span>
-                    <span className="text-[11px] text-[#949ba4]">Today at 13:10</span>
+                    <span className="text-[11px] text-[#949ba4]">{t("settings.webhook_today_at")}</span>
                   </div>
                 </div>
 
@@ -652,7 +652,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                       {isFieldEnabled("cover") && (
                         <img
                           src={sampleData.cover_url}
-                          alt="Cover"
+                          alt={t("common.alt_cover")}
                           className="w-16 h-24 object-cover rounded-md shadow-md border border-[#1e1f22] shrink-0"
                         />
                       )}
@@ -718,7 +718,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     <div className="text-[11px] text-[#949ba4] pt-1 flex items-center gap-1.5 border-t border-[#35373c]/50">
                       <span>NovelHub</span>
                       <span>•</span>
-                      <span>Event: {previewEvent}</span>
+                      <span>{t("settings.webhook_event_label")} {previewEvent}</span>
                     </div>
                   </div>
                 </div>
@@ -760,7 +760,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     {isFieldEnabled("language") && <div>*{getFieldLabel("language")}:* {sampleData.language}</div>}
                   </div>
                   {isFieldEnabled("cover") && (
-                    <img src={sampleData.cover_url} alt="Cover" className="w-14 h-20 object-cover rounded shadow-sm shrink-0" />
+                    <img src={sampleData.cover_url} alt={t("common.alt_cover")} className="w-14 h-20 object-cover rounded shadow-sm shrink-0" />
                   )}
                 </div>
               </div>
@@ -769,7 +769,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             {/* Generic JSON Live Preview */}
             {form.template_type === "generic" && (
               <div className="bg-[#090d16] text-emerald-400 p-4 rounded-2xl border border-slate-800 font-mono text-xs shadow-xl flex flex-col gap-2">
-                <div className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">Raw HTTP POST Payload (JSON)</div>
+                <div className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">{t("settings.webhook_raw_payload")}</div>
                 <pre className="overflow-x-auto p-3 bg-black/60 rounded-xl leading-relaxed">
                   {JSON.stringify(
                     {

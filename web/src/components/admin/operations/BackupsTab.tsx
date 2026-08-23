@@ -110,7 +110,7 @@ export function BackupsTab() {
               onClick={async () => {
                 await queryClient.invalidateQueries({ queryKey: ["admin", "backups"] });
                 await backups.refetch();
-                toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+                toast.info(t("common.refreshed", "Data refreshed"));
               }}
               title={t("admin.operations.refresh")}
             >

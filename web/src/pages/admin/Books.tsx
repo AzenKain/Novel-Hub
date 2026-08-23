@@ -169,7 +169,7 @@ export function Books() {
             onClick={async () => {
               await queryClient.invalidateQueries({ queryKey: ["books"] });
               await refetch();
-              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+              toast.info(t("common.refreshed", "Data refreshed"));
             }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title={t("settings.refresh", "Refresh list")}
@@ -435,7 +435,7 @@ export function Books() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <span className="text-[9px] font-bold opacity-40 text-center px-1">NOVEL</span>
+                                  <span className="text-[9px] font-bold opacity-40 text-center px-1 uppercase">{t("book.novel_label")}</span>
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -598,7 +598,7 @@ export function Books() {
                             ? coverPreview
                             : getMediaUrl(coverPreview, editingBook?.id, editingBook?.updated_at)
                         }
-                        alt="Cover"
+                        alt={t("common.alt_cover")}
                         loading="lazy"
                         className="w-full h-full object-cover"
                       />
@@ -721,7 +721,7 @@ export function Books() {
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-lg bg-base-200/40 px-3 py-2 text-center text-xs text-base-content/45">No files attached</div>
+                      <div className="rounded-lg bg-base-200/40 px-3 py-2 text-center text-xs text-base-content/45">{t("admin.no_files_attached")}</div>
                     )}
                   </div>
                 </div>
@@ -734,7 +734,7 @@ export function Books() {
                 <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 sm:p-5">
                   <h4 className="font-bold text-sm text-primary mb-3 flex items-center gap-2">
                     <Globe size={18} />
-                    Search Online Metadata & Cover
+                    {t("admin.search_online_title")}
                   </h4>
                   <div className="flex flex-col sm:flex-row gap-2.5">
                     <select
@@ -742,15 +742,15 @@ export function Books() {
                       value={searchSource}
                       onChange={e => setSearchSource(e.target.value)}
                     >
-                      <option value="fallback">Auto (Fallback)</option>
-                      <option value="anilist">AniList (Light Novel)</option>
-                      <option value="google">Google Books</option>
-                      <option value="openlibrary">Open Library</option>
+                      <option value="fallback">{t("admin.source_auto")}</option>
+                      <option value="anilist">{t("admin.source_anilist")}</option>
+                      <option value="google">{t("admin.source_google")}</option>
+                      <option value="openlibrary">{t("admin.source_openlibrary")}</option>
                     </select>
                     <input
                       type="text"
                       className="input input-bordered input-md flex-1 bg-base-100 min-w-0 rounded-xl text-sm"
-                      placeholder="Search title, series or author..."
+                      placeholder={t("admin.online_search_placeholder")}
                       value={onlineSearchQuery}
                       onChange={e => setOnlineSearchQuery(e.target.value)}
                       onKeyDown={e => {
@@ -767,15 +767,15 @@ export function Books() {
                       className="btn btn-md btn-primary gap-1.5 shrink-0 rounded-xl font-bold"
                     >
                       {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                      {searching ? "Searching..." : "Search"}
+                      {searching ? t("admin.searching") : t("common.search")}
                     </button>
                   </div>
 
                   {searchResults.length > 0 && (
                     <div className="mt-3.5 border border-base-200 bg-base-100 rounded-xl max-h-56 overflow-y-auto shadow-inner p-2.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center px-2 py-1">
-                        <span className="text-xs font-bold text-base-content/60">Select a result to auto-fill:</span>
-                        <button type="button" onClick={() => setSearchResults([])} className="text-xs text-error font-bold hover:underline">Close</button>
+                        <span className="text-xs font-bold text-base-content/60">{t("admin.select_result_hint")}</span>
+                        <button type="button" onClick={() => setSearchResults([])} className="text-xs text-error font-bold hover:underline">{t("common.close")}</button>
                       </div>
                       {searchResults.map((res, idx) => (
                         <div
@@ -846,10 +846,10 @@ export function Books() {
                         className="select select-bordered select-md text-sm rounded-xl w-full font-medium"
                       >
                         <option value="">{t('common.none', 'None')}</option>
-                        <option value="safe">Safe / All Ages</option>
-                        <option value="teen">Teen / 13+</option>
-                        <option value="mature">Mature / 16+</option>
-                        <option value="explicit">Explicit / 18+</option>
+                        <option value="safe">{t("book.age_safe")}</option>
+                        <option value="teen">{t("book.age_teen")}</option>
+                        <option value="mature">{t("book.age_mature")}</option>
+                        <option value="explicit">{t("book.age_explicit")}</option>
                       </select>
                     </div>
                   </div>
@@ -995,7 +995,7 @@ export function Books() {
 
       <DeleteConfirmModal
         open={Boolean(bookToDelete)}
-        title="Delete Book"
+        title={t("admin.delete_book")}
         message={
           <>
             Are you sure you want to delete book{" "}
@@ -1015,19 +1015,19 @@ export function Books() {
 
       <DeleteConfirmModal
         open={Boolean(libraryToDelete)}
-        title={t("admin.delete_library_title", "Xoá thư viện vĩnh viễn")}
+        title={t("admin.delete_library_title", "Delete library permanently")}
         expectedConfirmationText={libraryToDelete?.name}
         message={
           <div className="space-y-2.5">
             <p>
               {t(
                 "admin.delete_library_confirm_msg",
-                "Bạn có chắc chắn muốn xoá thư viện {{name}}?",
+                "Are you sure you want to delete the library {{name}}?",
                 { name: libraryToDelete?.name }
               )}
             </p>
             <div className="rounded-xl bg-error/10 border border-error/20 p-3 text-xs text-error font-medium leading-relaxed">
-              ⚠️ <strong>{t("admin.danger_warning", "Cảnh báo nguy hiểm:")}</strong> {t("admin.delete_library_danger_desc", "Tiến trình sẽ xoá ngầm toàn bộ sách, chương, tệp tin và dữ liệu đọc thuộc thư viện này. Dữ liệu KHÔNG THỂ khôi phục!")}
+              ⚠️ <strong>{t("admin.danger_warning", "Danger warning:")}</strong> {t("admin.delete_library_danger_desc", "This will permanently delete all books, chapters, files and reading data belonging to this library. This data CANNOT be recovered!")}
             </div>
           </div>
         }
@@ -1036,7 +1036,7 @@ export function Books() {
           if (libraryToDelete) {
             deleteLibraryMutation.mutate(libraryToDelete.id, {
               onSuccess: () => {
-                toast.success(t("admin.library_delete_queued", "Đã tiếp nhận yêu cầu xoá thư viện. Tiến trình đang chạy ngầm."));
+                toast.success(t("admin.library_delete_queued", "Library deletion request received. The process is running in the background."));
                 if (selectedLibraryId === libraryToDelete.id) setSelectedLibraryId("");
                 if (uploadLibraryId === libraryToDelete.id) setUploadLibraryId("");
               },

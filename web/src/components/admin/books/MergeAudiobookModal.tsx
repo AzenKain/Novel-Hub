@@ -185,7 +185,7 @@ const VolumeEnvelope: React.FC<{
         }}
       >
         {/* The draggable horizontal line */}
-        <div className="h-[2px] bg-amber-400/70 group-hover/vol:bg-amber-400 group-hover/vol:h-[3px] transition-all relative">
+        <div className="h-0.5 bg-amber-400/70 group-hover/vol:bg-amber-400 group-hover/vol:h-0.75 transition-all relative">
           {/* Volume badge in the center */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-3.5 bg-amber-500/90 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm whitespace-nowrap opacity-0 group-hover/vol:opacity-100 transition-opacity select-none">
             {Math.round(gain * 100)}%
@@ -921,7 +921,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({ open, 
               <button type="button" className="btn btn-ghost" onClick={onClose}>
                 {t("common.cancel")}
               </button>
-              <button type="submit" className="btn btn-primary min-w-[120px]" disabled={merge.isPending || selected.size < 2}>
+              <button type="submit" className="btn btn-primary min-w-30" disabled={merge.isPending || selected.size < 2}>
                 {merge.isPending ? t("common.loading") : t("audiobook.start_merge", "Start merge")}
               </button>
             </div>

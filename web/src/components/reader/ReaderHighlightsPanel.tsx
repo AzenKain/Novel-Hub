@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
-import type { Chapter, Highlight } from "@/types";
-import type { ImageBookmark } from "./ReaderImageToolbar";
+import type { Chapter, Highlight, ImageBookmark } from "@/types";
 
 export const HIGHLIGHT_COLORS = [
   "#fef08a",
@@ -95,7 +94,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
         (bm.chapter_id ? chaptersMap.get(bm.chapter_id) : undefined) ||
         (bm.page_index !== undefined
           ? `${t("reader.page", "Trang")} ${bm.page_index + 1}`
-          : t("reader.illustration", "Minh họa"));
+          : t("reader.illustration", "Illustration"));
       items.push({
         id: `img-${bm.id}`,
         type: "image",
@@ -111,7 +110,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
     for (const hl of highlights) {
       const title =
         (hl.chapter_id ? chaptersMap.get(hl.chapter_id) : undefined) ||
-        t("reader.chapter", "Chương");
+        t("reader.chapter", "Chapter");
       items.push({
         id: `text-${hl.id}`,
         type: "text",
@@ -194,22 +193,22 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Search Bar & Compact Filter Toolbar */}
-      <div className="p-2.5 border-b border-[var(--reader-ui-border,rgba(255,255,255,0.12))] flex flex-col gap-2 bg-[var(--reader-ui-surface-strong,rgba(30,31,41,0.5))]">
+      <div className="p-2.5 border-b border-(--reader-ui-border,rgba(255,255,255,0.12)) flex flex-col gap-2 bg-(--reader-ui-surface-strong,rgba(30,31,41,0.5))">
         {/* Search Input */}
         <div className="relative flex items-center">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 opacity-40 pointer-events-none text-[var(--reader-ui-text)]" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 opacity-40 pointer-events-none text-(--reader-ui-text)" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("reader.search_highlights_placeholder", "Tìm kiếm đánh dấu, ghi chú...")}
-            className="input input-xs h-7 pl-7 pr-6 w-full rounded-lg bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] border-[var(--reader-ui-border,rgba(255,255,255,0.12))] text-xs text-[var(--reader-ui-text)] focus:border-[var(--reader-ui-accent)] focus:outline-hidden"
+            placeholder={t("reader.search_highlights_placeholder", "Search highlights & notes...")}
+            className="input input-xs h-7 pl-7 pr-6 w-full rounded-lg bg-(--reader-ui-soft,rgba(255,255,255,0.06)) border-(--reader-ui-border,rgba(255,255,255,0.12)) text-xs text-(--reader-ui-text) focus:border-(--reader-ui-accent) focus:outline-hidden"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 opacity-50 hover:opacity-100 text-[var(--reader-ui-text)] cursor-pointer"
+              className="absolute right-2 opacity-50 hover:opacity-100 text-(--reader-ui-text) cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -217,17 +216,17 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
         </div>
 
         {/* 3-Column Compact Segmented Filter (Tất cả | Chữ | Ảnh) */}
-        <div className="grid grid-cols-3 gap-1 p-0.5 bg-[var(--reader-ui-soft,rgba(255,255,255,0.05))] border border-[var(--reader-ui-border,rgba(255,255,255,0.1))] rounded-lg">
+        <div className="grid grid-cols-3 gap-1 p-0.5 bg-(--reader-ui-soft,rgba(255,255,255,0.05)) border border-(--reader-ui-border,rgba(255,255,255,0.1)) rounded-lg">
           <button
             type="button"
             onClick={() => setFilterType("all")}
             className={`h-6 rounded-md text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
               filterType === "all"
-                ? "bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] shadow-xs"
-                : "text-[var(--reader-ui-text)] opacity-70 hover:opacity-100 hover:bg-[var(--reader-ui-hover)]"
+                ? "bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) shadow-xs"
+                : "text-(--reader-ui-text) opacity-70 hover:opacity-100 hover:bg-(--reader-ui-hover)"
             }`}
           >
-            <span>{t("reader.filter_all", "Tất cả")}</span>
+            <span>{t("reader.filter_all", "All")}</span>
           </button>
 
           <button
@@ -235,12 +234,12 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
             onClick={() => setFilterType("text")}
             className={`h-6 rounded-md text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
               filterType === "text"
-                ? "bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] shadow-xs"
-                : "text-[var(--reader-ui-text)] opacity-70 hover:opacity-100 hover:bg-[var(--reader-ui-hover)]"
+                ? "bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) shadow-xs"
+                : "text-(--reader-ui-text) opacity-70 hover:opacity-100 hover:bg-(--reader-ui-hover)"
             }`}
           >
             <FileText className="w-3 h-3 shrink-0" />
-            <span>{t("reader.filter_text", "Chữ")}</span>
+            <span>{t("reader.filter_text", "Text")}</span>
           </button>
 
           <button
@@ -248,8 +247,8 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
             onClick={() => setFilterType("image")}
             className={`h-6 rounded-md text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
               filterType === "image"
-                ? "bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] shadow-xs"
-                : "text-[var(--reader-ui-text)] opacity-70 hover:opacity-100 hover:bg-[var(--reader-ui-hover)]"
+                ? "bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) shadow-xs"
+                : "text-(--reader-ui-text) opacity-70 hover:opacity-100 hover:bg-(--reader-ui-hover)"
             }`}
           >
             <ImageIcon className="w-3 h-3 shrink-0" />
@@ -260,8 +259,8 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
         {/* Color Filter Dots Row (Compact) */}
         {filterType !== "image" && (
           <div className="flex items-center justify-between px-0.5 pt-0.5">
-            <span className="text-[10px] uppercase font-bold opacity-50 text-[var(--reader-ui-text)]">
-              {t("reader.color", "Màu")}:
+            <span className="text-[10px] uppercase font-bold opacity-50 text-(--reader-ui-text)">
+              {t("reader.color", "Color")}:
             </span>
             <div className="flex items-center gap-1.5">
               {HIGHLIGHT_COLORS.map((c) => (
@@ -272,7 +271,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                   style={{ backgroundColor: c }}
                   className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${
                     selectedColor === c
-                      ? "ring-2 ring-[var(--reader-ui-accent,#38bdf8)] ring-offset-1 ring-offset-[var(--reader-ui-surface,#13141b)] scale-125 border-current shadow-xs"
+                      ? "ring-2 ring-(--reader-ui-accent,#38bdf8) ring-offset-1 ring-offset-(--reader-ui-surface,#13141b) scale-125 border-current shadow-xs"
                       : "border-black/25 opacity-75 hover:opacity-100 hover:scale-110"
                   }`}
                   title={c}
@@ -284,7 +283,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                   type="button"
                   onClick={() => setSelectedColor(null)}
                   className="btn btn-ghost btn-circle btn-xs h-3.5 w-3.5 min-h-0 text-[10px] opacity-60 hover:opacity-100"
-                  title={t("reader.clear_color_filter", "Xóa lọc màu")}
+                  title={t("reader.clear_color_filter", "Clear color filter")}
                 >
                   ✕
                 </button>
@@ -298,25 +297,25 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
         {allItems.length === 0 ? (
           <div className="py-12 text-center space-y-2 opacity-60">
-            <Filter className="w-8 h-8 mx-auto opacity-30 text-[var(--reader-ui-accent,#38bdf8)]" />
+            <Filter className="w-8 h-8 mx-auto opacity-30 text-(--reader-ui-accent,#38bdf8)" />
             <p className="text-xs font-medium">
-              {t("reader.no_highlights", "Chưa có đoạn đánh dấu nào.")}
+              {t("reader.no_highlights", "No highlights in this chapter yet.")}
             </p>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="py-12 text-center space-y-2 opacity-60">
-            <Search className="w-8 h-8 mx-auto opacity-30 text-[var(--reader-ui-text)]" />
+            <Search className="w-8 h-8 mx-auto opacity-30 text-(--reader-ui-text)" />
             <p className="text-xs font-medium">
-              {t("reader.no_matching_highlights", "Không tìm thấy đánh dấu phù hợp")}
+              {t("reader.no_matching_highlights", "No matching highlights found")}
             </p>
           </div>
         ) : (
           groupedItems.map((group) => (
             <div key={group.title} className="space-y-2">
               {/* Group Header */}
-              <div className="flex items-center justify-between px-1 text-[11px] font-bold uppercase tracking-wider text-[var(--reader-ui-text)] opacity-60">
-                <span className="truncate max-w-[210px]">{group.title}</span>
-                <span className="badge badge-xs font-mono font-bold bg-[var(--reader-ui-soft,rgba(255,255,255,0.1))] text-[var(--reader-ui-text)]">
+              <div className="flex items-center justify-between px-1 text-[11px] font-bold uppercase tracking-wider text-(--reader-ui-text) opacity-60">
+                <span className="truncate max-w-52.5">{group.title}</span>
+                <span className="badge badge-xs font-mono font-bold bg-(--reader-ui-soft,rgba(255,255,255,0.1)) text-(--reader-ui-text)">
                   {group.items.length}
                 </span>
               </div>
@@ -329,7 +328,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                     return (
                       <li
                         key={item.id}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-[var(--reader-ui-border,rgba(255,255,255,0.12))] bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] p-2.5 hover:border-[var(--reader-ui-accent,#38bdf8)]/50 transition-colors shadow-2xs"
+                        className="flex items-center justify-between gap-2 rounded-xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) bg-(--reader-ui-soft,rgba(255,255,255,0.06)) p-2.5 hover:border-(--reader-ui-accent,#38bdf8)/50 transition-colors shadow-2xs"
                       >
                         <button
                           type="button"
@@ -338,20 +337,20 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                         >
                           <img
                             src={bm.image_url}
-                            alt="Thumbnail"
-                            className="h-12 w-12 rounded-lg object-cover bg-base-300 shrink-0 shadow-xs border border-[var(--reader-ui-border,rgba(255,255,255,0.1))]"
+                            alt={t("common.alt_thumbnail")}
+                            className="h-12 w-12 rounded-lg object-cover bg-base-300 shrink-0 shadow-xs border border-(--reader-ui-border,rgba(255,255,255,0.1))"
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-[var(--reader-ui-text)] truncate group-hover:text-[var(--reader-ui-accent,#38bdf8)] transition-colors">
+                            <p className="text-xs font-bold text-(--reader-ui-text) truncate group-hover:text-(--reader-ui-accent,#38bdf8) transition-colors">
                               {item.chapter_title}
                             </p>
                             {bm.note && (
-                              <p className="text-xs italic opacity-75 line-clamp-2 mt-0.5 text-[var(--reader-ui-text)]">
+                              <p className="text-xs italic opacity-75 line-clamp-2 mt-0.5 text-(--reader-ui-text)">
                                 {bm.note}
                               </p>
                             )}
                             {bm.page_index !== undefined && (
-                              <p className="text-[10px] opacity-50 mt-0.5 font-mono text-[var(--reader-ui-text)]">
+                              <p className="text-[10px] opacity-50 mt-0.5 font-mono text-(--reader-ui-text)">
                                 {t("reader.page", "Trang")} {bm.page_index + 1}
                               </p>
                             )}
@@ -359,7 +358,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                         </button>
                         <div className="flex items-center gap-1 shrink-0">
                           {onOpenQuoteCard && (
-                            <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Tạo ảnh trích dẫn")}>
+                            <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Create quote image")}>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -369,19 +368,19 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                                   )
                                 }
                                 className="btn btn-ghost btn-xs text-amber-500 hover:text-amber-600"
-                                aria-label={t("reader.quote_card", "Tạo ảnh trích dẫn")}
+                                aria-label={t("reader.quote_card", "Create quote image")}
                               >
                                 <Sparkles className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
                           {onDeleteImageBookmark && (
-                            <div className="tooltip tooltip-top" data-tip={t("common.delete", "Xóa")}>
+                            <div className="tooltip tooltip-top" data-tip={t("common.delete", "Delete")}>
                               <button
                                 type="button"
                                 onClick={() => onDeleteImageBookmark(bm.id)}
                                 className="btn btn-ghost btn-xs text-error hover:bg-error/20"
-                                aria-label={t("common.delete", "Xóa")}
+                                aria-label={t("common.delete", "Delete")}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -399,7 +398,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                     return (
                       <li
                         key={item.id}
-                        className="rounded-xl border border-[var(--reader-ui-border,rgba(255,255,255,0.12))] bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] p-3 shadow-2xs hover:border-[var(--reader-ui-accent,#38bdf8)]/50 transition-colors"
+                        className="rounded-xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) bg-(--reader-ui-soft,rgba(255,255,255,0.06)) p-3 shadow-2xs hover:border-(--reader-ui-accent,#38bdf8)/50 transition-colors"
                       >
                         <div className="flex items-start gap-2">
                           <span
@@ -410,14 +409,14 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                           <button
                             type="button"
                             onClick={() => onSelect?.(highlight)}
-                            className="line-clamp-3 flex-1 text-left text-xs leading-snug hover:underline text-[var(--reader-ui-text)] cursor-pointer"
+                            className="line-clamp-3 flex-1 text-left text-xs leading-snug hover:underline text-(--reader-ui-text) cursor-pointer"
                           >
                             {highlight.text_content}
                           </button>
                         </div>
 
                         {isEditing ? (
-                          <div className="mt-2.5 flex flex-col gap-2 border-t border-[var(--reader-ui-border,rgba(255,255,255,0.1))] pt-2">
+                          <div className="mt-2.5 flex flex-col gap-2 border-t border-(--reader-ui-border,rgba(255,255,255,0.1)) pt-2">
                             <div className="flex items-center gap-1.5">
                               {HIGHLIGHT_COLORS.map((color) => (
                                 <button
@@ -427,7 +426,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                                   style={{ backgroundColor: color }}
                                   className={`h-4 w-4 rounded-full border transition-transform hover:scale-125 cursor-pointer ${
                                     draftColor === color
-                                      ? "border-current ring-2 ring-[var(--reader-ui-accent,#38bdf8)] ring-offset-1"
+                                      ? "border-current ring-2 ring-(--reader-ui-accent,#38bdf8) ring-offset-1"
                                       : "border-current/20"
                                   }`}
                                   aria-label={t("reader.highlight_color", "Highlight color")}
@@ -445,7 +444,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                                 }
                               }}
                               placeholder={t("reader.add_note_placeholder", "Add a note...")}
-                              className="textarea textarea-bordered textarea-xs w-full rounded-lg text-xs bg-[var(--reader-ui-soft)] border-[var(--reader-ui-border)] text-[var(--reader-ui-text)]"
+                              className="textarea textarea-bordered textarea-xs w-full rounded-lg text-xs bg-(--reader-ui-soft) border-(--reader-ui-border) text-(--reader-ui-text)"
                             />
                             <div className="flex justify-end gap-1">
                               <button
@@ -459,7 +458,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                               <button
                                 type="button"
                                 onClick={() => saveEditing(highlight.id)}
-                                className="btn btn-xs bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] border-0"
+                                className="btn btn-xs bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0"
                                 aria-label={t("common.save", "Save")}
                               >
                                 <Check className="h-3.5 w-3.5" />
@@ -471,36 +470,36 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                             {highlight.note && (
                               <p
                                 onClick={() => onSelect?.(highlight)}
-                                className="mt-1.5 text-xs italic opacity-80 hover:opacity-100 cursor-pointer hover:underline border-l-2 border-[var(--reader-ui-accent,#38bdf8)]/50 pl-2 text-[var(--reader-ui-text)]"
+                                className="mt-1.5 text-xs italic opacity-80 hover:opacity-100 cursor-pointer hover:underline border-l-2 border-(--reader-ui-accent,#38bdf8)/50 pl-2 text-(--reader-ui-text)"
                                 title={t("reader.jump_to_highlight", "Jump to highlight")}
                               >
                                 {highlight.note}
                               </p>
                             )}
-                            <div className="mt-2 flex justify-end gap-1 border-t border-[var(--reader-ui-border,rgba(255,255,255,0.06))] pt-1">
+                            <div className="mt-2 flex justify-end gap-1 border-t border-(--reader-ui-border,rgba(255,255,255,0.06)) pt-1">
                               {onOpenQuoteCard && (
-                                <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Tạo ảnh trích dẫn")}>
+                                <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Create quote image")}>
                                   <button
                                     type="button"
                                     onClick={() => onOpenQuoteCard(highlight.text_content, undefined)}
                                     className="btn btn-ghost btn-xs text-amber-500 hover:text-amber-600"
-                                    aria-label={t("reader.quote_card", "Tạo ảnh trích dẫn")}
+                                    aria-label={t("reader.quote_card", "Create quote image")}
                                   >
                                     <Sparkles className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               )}
-                              <div className="tooltip tooltip-top" data-tip={t("reader.edit_highlight", "Sửa ghi chú")}>
+                              <div className="tooltip tooltip-top" data-tip={t("reader.edit_highlight", "Edit note")}>
                                 <button
                                   type="button"
                                   onClick={() => startEditing(highlight)}
-                                  className="btn btn-ghost btn-xs text-[var(--reader-ui-text)] opacity-70 hover:opacity-100"
+                                  className="btn btn-ghost btn-xs text-(--reader-ui-text) opacity-70 hover:opacity-100"
                                   aria-label={t("reader.edit_highlight", "Edit note")}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               </div>
-                              <div className="tooltip tooltip-top" data-tip={t("common.delete", "Xóa")}>
+                              <div className="tooltip tooltip-top" data-tip={t("common.delete", "Delete")}>
                                 <button
                                   type="button"
                                   onClick={() => onDelete(highlight.id)}

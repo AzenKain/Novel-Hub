@@ -3,11 +3,11 @@ import { RecentlyReadPanel } from "@/components/book-detail";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { LoginView, TopNav } from "@/components/common";
-import { LibrarySidebar, MetadataIndexView, type LibraryNavItem, type MetadataFacetSection } from "@/components/library";
+import { LibrarySidebar, MetadataIndexView, HorizontalBookShelf, SmartFilterShelf } from "@/components/library";
 import { BookCard, BookGrid } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
-import { bookService, featureService } from "@/services";
-import type { Book, MetadataCount, SmartCollectionRule, SmartFilter } from "@/types";
+import { featureService } from "@/services";
+import type { Book, LibraryNavItem, MetadataCount, MetadataFacetSection, SmartCollectionRule, SmartFilter } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,11 +16,11 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuthStore, useLibraryStore, useGuestStore, useDownloadManagerStore } from "@/stores";
 
 import { SmartFilterBuilderModal } from "@/components/library/SmartFilterBuilderModal";
-import { SmartFilterShelf } from "@/components/library/SmartFilterShelf";
 
 import { settingsKeyToNavId } from "@/constants";
 import {
   useBookmarkedBooksQuery,
+  useGuestBookmarkedBooksQuery,
   useBooksQuery,
   useCollectionsQuery,
   useCreateSmartCollectionMutation,
@@ -177,10 +177,10 @@ export const LibraryWorkspace = () => {
   const publicSettings = usePublicSettings();
   const debouncedSearch = useDebounce(search, 500);
 
-  const { data: hotBooksData } = useHotBooksQuery(8);
+  const { data: hotBooksData } = useHotBooksQuery(12);
   const topBooks = hotBooksData || [];
 
-  const { data: randomBooksData } = useRandomBooksQuery(8);
+  const { data: randomBooksData } = useRandomBooksQuery(12);
   const randomBooks = randomBooksData || [];
 
   const recentReading = recentHistory.slice(0, 4);
@@ -366,6 +366,7 @@ export const LibraryWorkspace = () => {
     facet: effectiveFacetType,
     facet_id: effectiveFacetId,
     sort: effectiveSort,
+    limit: 24,
   }), [debouncedSearch, effectiveNav, effectiveCollection, effectiveChip, effectiveFacetType, effectiveFacetId, effectiveSort]);
 
   const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
@@ -402,6 +403,11 @@ export const LibraryWorkspace = () => {
   const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
   const guestProgressMap = useGuestStore((state) => state.progressMap);
   const guestBookmarks = useGuestStore((state) => state.bookmarks);
+  const guestBookmarkIds = useMemo(() => guestBookmarks.map((b) => b.book_id), [guestBookmarks]);
+  const { data: guestBookmarkedBooks, isLoading: guestBookmarksLoading } = useGuestBookmarkedBooksQuery(
+    guestBookmarkIds,
+    effectiveNav === "bookmarks" && !user
+  );
 
   const historyData = useMemo(() => {
     if (user) {
@@ -449,19 +455,13 @@ export const LibraryWorkspace = () => {
           }
         }
       } else {
-        const guestIds = guestBookmarks.map((b) => b.book_id);
-        if (guestIds.length === 0) {
+        if (guestBookmarkIds.length === 0) {
           setBooks([]);
-        } else {
-          bookService.getBooks({ limit: 100 }).then((res) => {
-            if (res.data) {
-              const filtered = res.data.filter(b => guestIds.includes(b.id));
-              setBooks(filtered);
-              if (filtered.length > 0 && !selectedBook) {
-                setSelectedBook(filtered[0]);
-              }
-            }
-          }).catch(() => setBooks([]));
+        } else if (guestBookmarkedBooks) {
+          setBooks(guestBookmarkedBooks);
+          if (guestBookmarkedBooks.length > 0 && !selectedBook) {
+            setSelectedBook(guestBookmarkedBooks[0]);
+          }
         }
       }
     } else if (activeSmartFilterId) {
@@ -479,17 +479,17 @@ export const LibraryWorkspace = () => {
         }
       }
     }
-  }, [isMetadataNav, effectiveNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, setBooks, setSelectedBook]);
+  }, [isMetadataNav, effectiveNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, guestBookmarkedBooks, guestBookmarkIds, setBooks, setSelectedBook]);
 
   useEffect(() => {
     if (effectiveNav === "bookmarks") {
-      setLoading(bookmarksLoading);
+      setLoading(user ? bookmarksLoading : guestBookmarksLoading);
     } else if (activeSmartFilterId) {
       setLoading(sfLoading);
     } else {
       setLoading(normalLoading);
     }
-  }, [effectiveNav, bookmarksLoading, normalLoading, setLoading]);
+  }, [effectiveNav, bookmarksLoading, guestBookmarksLoading, user, normalLoading, setLoading]);
 
   useEffect(() => {
     if (statsData) setStats(statsData);
@@ -913,78 +913,38 @@ export const LibraryWorkspace = () => {
           </section>
 
           {(!publicSettings || publicSettings.home_sections.random_books !== false) && (
-            <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary">
+            <HorizontalBookShelf
+              title={t("library.random_books", "Random books")}
+              subtitle={t(
+                "library.random_books_hint",
+                "Refresh the shelf when you want something unexpected.",
+              )}
+              icon={
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary shrink-0">
                   <Shuffle className="h-5 w-5" />
                 </span>
-                <div>
-                  <h3 className="text-lg font-black">
-                    {t("library.random_books", "Random books")}
-                  </h3>
-                  <p className="text-sm text-base-content/50">
-                    {t(
-                      "library.random_books_hint",
-                      "Refresh the shelf when you want something unexpected.",
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {randomBooks.length > 0 ? (
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scroll-smooth items-stretch">
-                  {randomBooks.map((book) => (
-                    <div key={book.id} className="w-36 sm:w-44 shrink-0 flex flex-col">
-                      <BookCard
-                        book={book}
-                        onClick={openBookDetail}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-sm text-base-content/45 shadow-2xs">
-                  {t(
-                    "library.no_random_books",
-                    "Add books to get random suggestions.",
-                  )}
-                </div>
-              )}
-            </section>
+              }
+              books={randomBooks}
+              onBookClick={openBookDetail}
+              emptyMessage={t("library.no_random_books", "Add books to get random suggestions.")}
+            />
           )}
 
           {(!publicSettings || publicSettings.home_sections.top_books !== false) && (
-            <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+            <HorizontalBookShelf
+              title={t("library.top_books", "Top books")}
+              subtitle={t("library.top_books_hint", "Most read books in your library.")}
+              icon={
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                   <Flame className="h-5 w-5" />
                 </span>
-                <div>
-                  <h3 className="text-lg font-black">
-                    {t("library.top_books", "Top books")}
-                  </h3>
-                  <p className="text-sm text-base-content/50">
-                    {t("library.top_books_hint", "Most read books in your library.")}
-                  </p>
-                </div>
-              </div>
-              {topBooks.length > 0 ? (
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scroll-smooth items-stretch">
-                  {topBooks.map((book) => (
-                    <div key={book.id} className="w-36 sm:w-44 shrink-0 flex flex-col">
-                      <BookCard key={book.id} book={book} onClick={openBookDetail} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-sm text-base-content/45 shadow-2xs">
-                  {t(
-                    "library.no_top_books",
-                    "Books will appear here once they start getting reads.",
-                  )}
-                </div>
-              )}
-            </section>
+              }
+              onViewAll={() => handleNavClick("hot")}
+              viewAllText={t("common.view_all", "View All")}
+              books={topBooks}
+              onBookClick={openBookDetail}
+              emptyMessage={t("library.no_top_books", "Books will appear here once they start getting reads.")}
+            />
           )}
           {smartFilters
             .filter((sf) => sf.is_pinned_home)

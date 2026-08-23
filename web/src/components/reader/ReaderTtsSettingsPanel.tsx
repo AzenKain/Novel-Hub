@@ -37,10 +37,10 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
       <div className="flex items-center justify-between border-b border-current/10 pb-2.5">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-current">
           <Volume2 className="size-4 opacity-80" />
-          <span>{t("reader.tts_settings_header", "CÀI ĐẶT GIỌNG ĐỌC & TỐC ĐỘ")}</span>
+          <span>{t("reader.tts_settings_header", "Voice & Speed Settings")}</span>
         </div>
         <span className="text-xs opacity-60 font-mono">
-          {ttsVoices.length} {t("reader.voices_count", "giọng")}
+          {ttsVoices.length} {t("reader.voices_count", "voices")}
         </span>
       </div>
 
@@ -49,10 +49,10 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-              {t("reader.current_voice", "GIỌNG ĐỌC HIỆN TẠI")}
+              {t("reader.current_voice", "Current Voice")}
             </div>
             <div className="truncate text-xs font-semibold text-current mt-0.5">
-              {ttsSelectedVoice?.name || t("reader.no_voice_selected", "Chưa chọn giọng đọc")}
+              {ttsSelectedVoice?.name || t("reader.no_voice_selected", "No voice selected")}
             </div>
           </div>
           {ttsSelectedVoice && (
@@ -67,7 +67,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
       <div>
         <input
           type="text"
-          placeholder={t("reader.search_voice_or_lang", "Tìm theo tên hoặc ngôn ngữ...")}
+          placeholder={t("reader.search_voice_or_lang", "Search by name or language...")}
           value={voiceSearch}
           onChange={(e) => setVoiceSearch(e.target.value)}
           className="input input-bordered input-sm w-full text-xs rounded-xl border border-current/20 bg-current/5 text-current placeholder:opacity-40 focus:border-primary focus:outline-hidden"
@@ -77,12 +77,12 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
       {/* Select Voice List */}
       <div className="space-y-1.5">
         <div className="text-xs font-medium opacity-80">
-          {t("reader.select_voice", "Chọn giọng đọc")}
+          {t("reader.select_voice", "Select Voice")}
         </div>
         <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-current/15 bg-current/5 p-2">
           {filteredVoices.length === 0 ? (
             <div className="py-6 text-center text-xs opacity-50">
-              {t("reader.no_voices_found", "Không tìm thấy giọng đọc")}
+              {t("reader.no_voices_found", "No voices matching your search")}
             </div>
           ) : (
             filteredVoices.map((voice) => {
@@ -114,7 +114,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
         <div className="flex items-center justify-between text-xs font-medium text-current">
           <span className="flex items-center gap-1.5 opacity-90">
             <Sliders className="size-3.5" />
-            {t("reader.tts_speed", "Tốc độ đọc")}
+            {t("reader.tts_speed", "Reading Speed")}
           </span>
           <span className="font-bold text-xs font-mono text-current">{ttsRate.toFixed(1)}x</span>
         </div>

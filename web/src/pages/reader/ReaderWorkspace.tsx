@@ -1,4 +1,4 @@
-import { ComicReader, ReaderContent, ReaderImageToolbar, type ImageBookmark, type ActiveImageTarget, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
+import { ComicReader, ReaderContent, ReaderImageToolbar, ReaderPageControls, ReaderSelectionToolbar, ReaderSidebar, ReaderTopBar } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
 import { QuoteCardModal } from "@/components/common";
 import { API_BASE, getMediaUrl } from "@/config/api";
@@ -8,12 +8,12 @@ import { useOfflineAssets } from "@/hooks/useOfflineAssets";
 import { rawFileKey } from "@/hooks/useOfflineBook";
 import { featureService, readerService } from "@/services";
 import { useAuthStore, useReaderStore, useGuestStore } from "@/stores";
-import type { Chapter, Highlight } from "@/types";
+import type { ActiveImageTarget, AudioBookmark, Chapter, Highlight, ImageBookmark } from "@/types";
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useTTS } from "@/hooks/useTTS";
-import { AudioPlayer, type AudioBookmark } from "@/components/reader/AudioPlayer";
+import { AudioPlayer } from "@/components/reader/AudioPlayer";
 import { FastAverageColor } from "fast-average-color";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
@@ -36,7 +36,7 @@ import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
 import { useAudiobookChaptersQuery } from "@/hooks/useAudiobookQueries";
 import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
-import { isNavOnlyChapter } from "@/utils/readerHtml";
+import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
 
 const ReaderWorkspaceInner = () => {
   const { book_id } = useParams<{ book_id: string }>();
@@ -281,7 +281,7 @@ const ReaderWorkspaceInner = () => {
     };
     const updated = [newBm, ...imageBookmarks];
     saveImageBookmarks(updated);
-    toast.success(t("reader.image_bookmarked", "Đã lưu mốc ảnh!"));
+    toast.success(t("reader.image_bookmarked", "Image bookmarked!"));
   };
 
   const handleDeleteImageBookmark = (id: string) => {
@@ -427,14 +427,15 @@ const ReaderWorkspaceInner = () => {
   const [comicPage, setComicPage] = useState(0);
   const [comicTotalPages, setComicTotalPages] = useState(0);
 
+  const isMobileScreen = typeof window !== "undefined" && (window.innerWidth < 768 || window.screen.width < 768);
   const doublePageWidth = pageFrameWidth > 0 ? Math.floor((pageFrameWidth - READER_PAGE_GAP) / 2) : 0;
-  const canUseDoubleMode = pageFrameWidth === 0 || doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH;
+  const canUseDoubleMode = !isMobileScreen && (pageFrameWidth === 0 ? (typeof window !== "undefined" && window.innerWidth >= 768) : doublePageWidth >= MIN_DOUBLE_PAGE_WIDTH);
   const effectiveReadingMode = readingMode === "double" && !canUseDoubleMode ? "single" : readingMode;
 
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const activeFile = file_id ? book?.files?.find(f => f.id === file_id) : book?.files?.[0];
   const isComicFormat = !!activeFile?.format.match(/^(cbz|cbr|cbt|cb7)$/i);
-  const isVisualContent = isComicFormat;
+  const isVisualContent = isComicFormat || isVisualChapter(htmlContent);
   const rtlPaging = isVisualContent && readingDirection === "rtl";
   const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.content_path?.toLowerCase().endsWith(".pdf"));
   const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
@@ -1213,6 +1214,7 @@ const ReaderWorkspaceInner = () => {
                   "--reader-link-color-hover": linkColorHover,
                   "--reader-page-gap": `${READER_PAGE_GAP}px`,
                   "--reader-page-width": pageWidth > 0 ? `${pageWidth}px` : undefined,
+                  "--reader-page-height": "calc(100vh - 100px)",
                   "--reader-line-height": lineHeight,
                   "--reader-content-measure": `${READER_CONTENT_MEASURE}ch`
                 } as React.CSSProperties}

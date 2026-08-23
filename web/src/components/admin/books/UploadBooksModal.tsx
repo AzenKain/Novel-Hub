@@ -1,5 +1,6 @@
 import { Loader2, Upload, Zap } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useBookAdminStore } from "@/stores";
 
@@ -26,6 +27,7 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
   onLibraryChange,
   onUploadFiles,
 }) => {
+  const { t } = useTranslation();
   const { uploadProgress, uploadSpeed, uploadCurrentFile, uploadBytesText, uploadBatchInfo } = useBookAdminStore(useShallow((state) => ({
     uploadProgress: state.uploadProgress,
     uploadSpeed: state.uploadSpeed,
@@ -46,11 +48,11 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
           ✕
         </button>
         <h3 className="mb-4 border-b border-base-200 pb-4 text-lg font-bold">
-          Upload Books
+          {t("admin.upload")}
         </h3>
         <div className="flex flex-col gap-4">
           <div className="flex w-full flex-col gap-1.5">
-            <label className="pl-1 text-sm font-medium">Target Library</label>
+            <label className="pl-1 text-sm font-medium">{t("admin.target_library")}</label>
             <select
               className="select select-bordered focus:select-primary w-full"
               value={uploadLibraryId}
@@ -58,7 +60,7 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
               onChange={(event) => onLibraryChange(event.target.value)}
             >
               <option value="" disabled>
-                Select a library...
+                {t("library.select_target_library")}
               </option>
               {libraries.map((library) => (
                 <option key={library.id} value={library.id}>
@@ -69,7 +71,7 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
           </div>
 
           <div className="mt-2 flex w-full flex-col gap-1.5">
-            <label className="pl-1 text-sm font-medium">Select ebook files</label>
+            <label className="pl-1 text-sm font-medium">{t("admin.select_ebook_files")}</label>
 
             {uploading ? (
               <div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 transition-all">
@@ -77,7 +79,7 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
                     <span className="font-semibold text-xs sm:text-sm truncate min-w-0" title={uploadCurrentFile}>
-                      {uploadCurrentFile || "Uploading..."}
+                      {uploadCurrentFile || t("admin.uploading")}
                     </span>
                   </div>
                   {uploadBatchInfo && uploadBatchInfo.total > 1 && (
@@ -155,11 +157,11 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
                   <div className="text-center">
                     <span className="font-semibold text-sm block">
                       {isDragging
-                        ? "Drop ebook files here to upload"
-                        : "Click or drag & drop ebook files here"}
+                        ? t("admin.drop_files_here")
+                        : t("admin.click_or_drop_files")}
                     </span>
                     <span className="text-xs opacity-50 block mt-1">
-                      Supports EPUB, MOBI, PDF, CBZ, FB2 files
+                      {t("admin.supported_formats")}
                     </span>
                   </div>
                 </label>

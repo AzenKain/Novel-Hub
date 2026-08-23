@@ -226,7 +226,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     const { onlineSearchQuery, formData, editingBook, searchSource } = get();
     const query = onlineSearchQuery?.trim() || formData.title?.trim() || editingBook?.title?.trim() || "";
     if (!query) {
-      toast.warn("Please enter a book title or keyword to search online");
+      toast.warn(i18n.t("admin.search_keyword_required"));
       return;
     }
     set({ searching: true, searchResults: [] });
@@ -234,7 +234,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       const results = await metadataService.searchOnline(query, searchSource);
       set({ searchResults: results });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error connecting to server or fetching metadata");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.metadata_fetch_error"));
     } finally {
       set({ searching: false });
     }
@@ -291,7 +291,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       coverPreview: linkUrl, 
       pendingCover: { type: 'url', value: linkUrl } 
     });
-    toast.success("Cover link applied. Click Save at the bottom to download and save.");
+    toast.success(i18n.t("admin.cover_link_applied"));
   },
 
   handleEditSubmit: async (e) => {
@@ -326,11 +326,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         }
       }
 
-      toast.success("Success!");
+      toast.success(i18n.t("common.success"));
       set({ editingBook: null });
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error updating book");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.book_update_error"));
     } finally {
       set({ submitting: false });
     }
@@ -354,9 +354,9 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         }
       }
 
-      if (successCount === 0) throw new Error("All file uploads failed");
+      if (successCount === 0) throw new Error(i18n.t("admin.upload_all_failed_generic"));
 
-      toast.success(`Successfully uploaded ${successCount} files!`);
+      toast.success(i18n.t("admin.files_uploaded", { count: successCount }));
       const res = await bookService.listFiles(editingBook.id);
       const nextFiles = res.data || [];
       set((state) => ({
@@ -365,7 +365,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       }));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error uploading files");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.upload_files_error"));
     } finally {
       e.target.value = "";
       set({ uploadingBookFiles: false });
@@ -454,10 +454,10 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   deleteBook: async (id) => {
     try {
       await bookService.deleteBook(id);
-      toast.success("Book deleted successfully!");
+      toast.success(i18n.t("admin.book_deleted"));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete book");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.book_delete_failed"));
     }
   },
 
@@ -465,10 +465,10 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     try {
       const res = await bookService.archiveBook(id, archived);
       if (!res.status) throw new Error(res.message || "Failed to update archive state");
-      toast.success(archived ? "Book archived" : "Book unarchived");
+      toast.success(archived ? i18n.t("admin.book_archived") : i18n.t("admin.book_unarchived"));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update archive state");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.archive_update_failed"));
     }
   },
 
@@ -478,7 +478,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     try {
       const res = await bookService.deleteBookFile(fileId);
       if (!res.status) throw new Error(res.message || "Failed to delete file");
-      toast.success("File deleted successfully!");
+      toast.success(i18n.t("admin.file_deleted"));
       const listRes = await bookService.listFiles(editingBook.id);
       const nextFiles = listRes.data || [];
       set((state) => ({
@@ -487,7 +487,7 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       }));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error deleting file");
+      toast.error(err instanceof Error ? err.message : i18n.t("admin.file_delete_error"));
     }
   }
 }));

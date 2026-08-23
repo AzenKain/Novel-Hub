@@ -234,7 +234,7 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_soundscapes", "System Default Soundscapes")}
-                  <span className="badge badge-primary badge-xs">SYSTEM</span>
+                  <span className="badge badge-primary badge-xs">{t("common.system")}</span>
                 </h2>
                 <p className="text-xs opacity-60">
                   {t("admin.system_soundscapes_desc", "Soundscapes managed here are instantly available to all users across the platform.")}
@@ -406,7 +406,7 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_fonts", "System Default Reader Fonts")}
-                  <span className="badge badge-secondary badge-xs">SYSTEM</span>
+                  <span className="badge badge-secondary badge-xs">{t("common.system")}</span>
                 </h2>
                 <p className="text-xs opacity-60">
                   {t("admin.system_fonts_desc", "Fonts configured here appear in the font selector for all readers.")}
@@ -550,7 +550,7 @@ export const CustomizationTab: React.FC = () => {
                     style={{ fontFamily: `'${f.font_family}', sans-serif` }}
                   >
                     <p className="text-sm line-clamp-1">
-                      The quick brown fox jumps over the lazy dog. 0123456789 (Hệ thống chữ mặc định NovelHub)
+                      The quick brown fox jumps over the lazy dog. 0123456789 {t("admin.default_font_note")}
                     </p>
                   </div>
                 </div>
@@ -570,7 +570,7 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_themes", "System Default Themes")}
-                  <span className="badge badge-accent badge-xs">SYSTEM</span>
+                  <span className="badge badge-accent badge-xs">{t("common.system")}</span>
                 </h2>
                 <p className="text-xs opacity-60">
                   {t("admin.system_themes_desc", "Pre-built color themes available to all readers.")}

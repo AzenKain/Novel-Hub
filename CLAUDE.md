@@ -3,6 +3,7 @@
 Please refer to `AGENTS.md` for full system architecture rules.
 
 ## Core Rules Summary
+
 - **Architecture Boundaries**: Controller <-> Service <-> Repository <-> DB/RAM Cache.
 - **Controllers (`internal/controllers`)**: HTTP binding, validation via `pkg/validator` (`ValidateBodyDto`/`ValidateQueryDto`), response mapping. ALWAYS handle errors with `return apperrors.HandleError(c, err)`. NO business/DB logic.
 - **Services (`internal/services`)**: Business rules, DTO inputs/outputs (`internal/dtos`), split large service files (`bookService_reader.go`, etc.). Multi-mutation DB operations MUST use atomic transactions via `pkg/database/transaction.go`. NO 1-line wrapper functions. Wrap `sql.ErrNoRows` in `apperrors.New(apperrors.ErrNotFound, ...)` and validation failures in `apperrors.New(apperrors.ErrBadRequest, ...)`.

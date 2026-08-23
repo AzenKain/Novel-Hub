@@ -270,3 +270,29 @@ export interface BookCardProps {
   selectionIndex?: number;
   onSelectToggle?: (book: Book) => void;
 }
+
+export interface ImageBookmark {
+  id: string;
+  image_url: string;
+  chapter_id?: string;
+  chapter_title?: string;
+  page_index?: number;
+  note?: string;
+  created_at: string;
+}
+
+export interface ActiveImageTarget {
+  image_url: string;
+  chapter_id?: string;
+  chapter_title?: string;
+  page_index?: number;
+  x?: number;
+  y?: number;
+}
+
+export type UploadProgressStats = {
+  progress: number;
+  uploadedBytes: number;
+  totalBytes: number;
+  speedBytesPerSec: number;
+};

@@ -33,3 +33,17 @@ export interface MergeAudioInput {
   title: string;
   segments: MergeAudioSegment[];
 }
+
+export interface AudioChapter {
+  title: string;
+  start_sec: number;
+  end_sec?: number | null;
+}
+
+export interface AudioBookmark {
+  id: string;
+  time_sec: number;
+  chapter_title?: string;
+  note?: string;
+  created_at: string;
+}

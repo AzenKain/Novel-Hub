@@ -114,32 +114,32 @@ export function JobsTab() {
       {cacheStats.data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">Cache Hit Rate</span>
+            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.cache_hit_rate")}</span>
             <div className="text-lg font-bold text-success">
               {(cacheStats.data.hit_rate * 100).toFixed(1)}%
             </div>
             <span className="text-[10px] text-base-content/40 font-mono">
-              {cacheStats.data.hits.toLocaleString()} hits / {cacheStats.data.misses.toLocaleString()} misses
+              {t("admin.operations.cache_hits_misses", { hits: cacheStats.data.hits.toLocaleString(), misses: cacheStats.data.misses.toLocaleString() })}
             </span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">Cached Entities</span>
+            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.cached_entities")}</span>
             <div className="text-lg font-bold text-primary">
               {cacheStats.data.entry_count.toLocaleString()}
             </div>
-            <span className="text-[10px] text-base-content/40">Active RAM entries</span>
+            <span className="text-[10px] text-base-content/40">{t("admin.operations.active_ram_entries")}</span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">RAM Budget</span>
+            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.ram_budget")}</span>
             <div className="text-lg font-bold text-info">
               {(cacheStats.data.max_cost / (1024 * 1024)).toFixed(0)} MB
             </div>
             <span className="text-[10px] text-base-content/40">Theine-Go MaxCost</span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">Singleflight Guard</span>
-            <div className="text-lg font-bold text-accent">Active</div>
-            <span className="text-[10px] text-base-content/40">Stampede Protection</span>
+            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.singleflight_guard")}</span>
+            <div className="text-lg font-bold text-accent">{t("common.active")}</div>
+            <span className="text-[10px] text-base-content/40">{t("admin.operations.stampede_protection")}</span>
           </div>
         </div>
       )}
@@ -183,7 +183,7 @@ export function JobsTab() {
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center gap-2 flex-nowrap min-w-0">
           <select
-            className="select select-bordered select-sm bg-base-100 rounded-xl text-xs h-8 min-w-[120px] max-w-[160px]"
+            className="select select-bordered select-sm bg-base-100 rounded-xl text-xs h-8 min-w-30 max-w-40"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             aria-label={t("admin.operations.status")}
@@ -197,7 +197,7 @@ export function JobsTab() {
           </select>
 
           <select
-            className="select select-bordered select-sm bg-base-100 rounded-xl text-xs h-8 min-w-[130px] max-w-[180px]"
+            className="select select-bordered select-sm bg-base-100 rounded-xl text-xs h-8 min-w-32.5 max-w-45"
             value={type}
             onChange={(e) => setType(e.target.value)}
             aria-label={t("admin.operations.task")}
@@ -219,7 +219,7 @@ export function JobsTab() {
             await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
             await queryClient.invalidateQueries({ queryKey: ["admin", "cache_stats"] });
             await Promise.all([jobs.refetch(), tasks.refetch(), cacheStats.refetch()]);
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${jobs.isFetching ? "animate-spin" : ""}`} />

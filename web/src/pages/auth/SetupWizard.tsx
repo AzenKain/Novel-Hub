@@ -1,4 +1,5 @@
 import { SIDEBAR_LABELS } from "@/constants";
+import { useSetupStatusQuery } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
 import { useTranslation } from "react-i18next";
 import { settingsService } from "@/services";
@@ -10,11 +11,9 @@ import { ImageCropperModal, PasswordStrength } from "@/components/common";
 export function SetupWizard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [setupRequired, setSetupRequired] = useState(false);
 
   const [form, setForm] = useState({
     username: "",
@@ -35,18 +34,13 @@ export function SetupWizard() {
   const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<"logo" | "favicon" | null>(null);
 
+  const { data: setupRequired = false, isLoading, isError } = useSetupStatusQuery();
+
   useEffect(() => {
-    settingsService.getSetupStatus().then((res) => {
-      if (res.status && res.data?.required) {
-        setSetupRequired(true);
-      } else {
-        navigate("/", { replace: true });
-      }
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
-  }, [navigate]);
+    if (!isLoading && !isError && !setupRequired) {
+      navigate("/", { replace: true });
+    }
+  }, [isLoading, isError, setupRequired, navigate]);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -157,7 +151,7 @@ export function SetupWizard() {
   };
 
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-base-200">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -165,7 +159,7 @@ export function SetupWizard() {
     );
   }
 
-  if (!setupRequired) return null;
+  if (isError || !setupRequired) return null;
 
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
@@ -285,7 +279,7 @@ export function SetupWizard() {
                   <div className="w-auto h-12 px-3 rounded-lg bg-base-100 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
                     {form.logo ? (
                       <div className="flex items-center gap-2">
-                        <img src={form.logo} alt="Logo preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                        <img src={form.logo} alt={t("common.alt_logo_preview")} className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
                         <ImageIcon className={`w-5 h-5 opacity-40 hidden`} />
                         <span className="font-bold whitespace-nowrap">{form.site_title || "NovelHub"}</span>
                       </div>
@@ -340,7 +334,7 @@ export function SetupWizard() {
                   
                   <div className="w-12 h-12 rounded-lg bg-base-100 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
                     {form.favicon ? (
-                      <img src={form.favicon} alt="Favicon preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                      <img src={form.favicon} alt={t("common.alt_favicon_preview")} className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
                     ) : null}
                     <ImageIcon className={`w-5 h-5 opacity-40 ${form.favicon ? 'hidden' : ''}`} />
                   </div>

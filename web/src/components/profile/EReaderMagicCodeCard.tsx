@@ -83,14 +83,14 @@ export const EReaderMagicCodeCard: React.FC = () => {
 
           {successMessage && (
             <div className="alert alert-success py-2 px-3 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {errorMessage && (
             <div className="alert alert-error py-2 px-3 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}

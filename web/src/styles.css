@@ -694,6 +694,17 @@ label.btn-primary:hover:not(:disabled) {
   display: none; 
 }
 
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .reader-content {
   background-color: transparent !important;
   width: 100% !important;
@@ -847,10 +858,10 @@ label.btn-primary:hover:not(:disabled) {
 /* Multi-column reader illustrations (Single & Double page modes): each image occupies its own dedicated column/page */
 .reader-mode-single .reader-image-page,
 .reader-mode-double .reader-image-page,
-.reader-mode-single :is(p, figure):has(> img:only-child),
-.reader-mode-double :is(p, figure):has(> img:only-child),
-.reader-mode-single :is(p, figure):has(> a:only-child > img:only-child),
-.reader-mode-double :is(p, figure):has(> a:only-child > img:only-child) {
+.reader-mode-single :is(p, figure, div, section):has(> img:only-child),
+.reader-mode-double :is(p, figure, div, section):has(> img:only-child),
+.reader-mode-single :is(p, figure, div, section):has(> a:only-child > img:only-child),
+.reader-mode-double :is(p, figure, div, section):has(> a:only-child > img:only-child) {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -859,23 +870,35 @@ label.btn-primary:hover:not(:disabled) {
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
-  min-height: 100% !important;
-  max-height: 100% !important;
+  min-height: 0 !important;
+  max-height: var(--reader-page-height, 100%) !important;
+  flex: 1 1 auto !important;
   margin: 0 auto !important;
   padding: 0 !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
   break-inside: avoid !important;
   break-inside: avoid-column !important;
   page-break-inside: avoid !important;
   break-before: column !important;
   page-break-before: always !important;
-  break-after: column !important;
-  page-break-after: always !important;
+  break-after: auto !important;
+  page-break-after: auto !important;
+}
+
+.reader-content p.reader-image-page,
+.reader-content p.reader-image-page + p,
+.reader-content p + p.reader-image-page,
+.reader-content p.reader-image-page + p.reader-image-page {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .reader-content > .reader-image-page:first-child,
 .reader-content > body > .reader-image-page:first-child,
-.reader-content > :is(p, figure):first-child:has(> img:only-child) {
+.reader-content > :is(p, figure, div, section):first-child:has(> img:only-child) {
   break-before: auto !important;
   page-break-before: auto !important;
 }
@@ -887,13 +910,15 @@ label.btn-primary:hover:not(:disabled) {
   justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
-  max-height: 100% !important;
+  max-height: var(--reader-page-height, 100%) !important;
   min-height: 0 !important;
 }
 
 /* Headings in multi-column layout */
-.reader-mode-single :is(h1, h2, h3, h4, h5, h6),
-.reader-mode-double :is(h1, h2, h3, h4, h5, h6) {
+.reader-mode-single :is(h1, h2, h3, h4, h5, h6, .chapter-title, .title, .title-top, [class*="title"]),
+.reader-mode-double :is(h1, h2, h3, h4, h5, h6, .chapter-title, .title, .title-top, [class*="title"]) {
+  text-align: center !important;
+  font-weight: 700 !important;
   break-after: avoid !important;
   page-break-after: avoid !important;
   break-inside: avoid !important;
@@ -902,20 +927,40 @@ label.btn-primary:hover:not(:disabled) {
   line-height: 1.3 !important;
 }
 
-/* Headings and title containers followed by illustration break cleanly to next column */
-.reader-mode-single .title-top,
-.reader-mode-double .title-top,
-.reader-mode-single :is(.title-top, h1, h2, h3, h4, h5, h6):has(~ :is(.reader-image-page, p:has(> img))),
-.reader-mode-double :is(.title-top, h1, h2, h3, h4, h5, h6):has(~ :is(.reader-image-page, p:has(> img))),
-.reader-mode-single :is(.title-top, h1, h2, h3, h4, h5, h6):has(~ [id="chapter-content"] :is(.reader-image-page, p:has(> img))),
-.reader-mode-double :is(.title-top, h1, h2, h3, h4, h5, h6):has(~ [id="chapter-content"] :is(.reader-image-page, p:has(> img))) {
+/* Headings and title containers immediately followed by illustration break cleanly to next column */
+.reader-mode-single .title-top:has(+ :is(.reader-image-page, p:has(> img:only-child))),
+.reader-mode-double .title-top:has(+ :is(.reader-image-page, p:has(> img:only-child))),
+.reader-mode-single :is(.title-top, .chapter-title, h1, h2, h3, h4, h5, h6):has(+ :is(.reader-image-page, p:has(> img:only-child))),
+.reader-mode-double :is(.title-top, .chapter-title, h1, h2, h3, h4, h5, h6):has(+ :is(.reader-image-page, p:has(> img:only-child))),
+.reader-mode-single :is(.title-top, .chapter-title, h1, h2, h3, h4, h5, h6):has(+ [id="chapter-content"] > :is(.reader-image-page, p:has(> img:only-child)):first-child),
+.reader-mode-double :is(.title-top, .chapter-title, h1, h2, h3, h4, h5, h6):has(+ [id="chapter-content"] > :is(.reader-image-page, p:has(> img:only-child)):first-child) {
   break-after: column !important;
   page-break-after: always !important;
 }
 
-/* Images & SVG in multi-column reader: maximized to full page size while preserving exact aspect ratio */
+/* Images & SVG in multi-column reader: maximized to full page frame without any clipping */
 .reader-mode-single .reader-image-page img,
 .reader-mode-double .reader-image-page img,
+.reader-mode-single :is(p, figure, div, section):has(> img:only-child) > img,
+.reader-mode-double :is(p, figure, div, section):has(> img:only-child) > img,
+.reader-mode-single :is(p, figure, div, section):has(> a:only-child > img:only-child) img,
+.reader-mode-double :is(p, figure, div, section):has(> a:only-child > img:only-child) img {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: var(--reader-page-height, calc(100vh - 90px)) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: auto !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  box-sizing: border-box !important;
+  break-inside: avoid !important;
+  break-inside: avoid-column !important;
+  page-break-inside: avoid !important;
+}
+
 .reader-mode-single img:not([src="#"]):not([src=""]),
 .reader-mode-single svg,
 .reader-mode-double img:not([src="#"]):not([src=""]),
@@ -924,7 +969,9 @@ label.btn-primary:hover:not(:disabled) {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
-  max-height: 100% !important;
+  max-height: var(--reader-page-height, calc(100vh - 90px)) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   margin: auto !important;
   object-fit: contain !important;
   object-position: center !important;
@@ -939,8 +986,8 @@ label.btn-primary:hover:not(:disabled) {
 .reader-mode-single:not(:has(body)),
 .reader-mode-single.reader-mode-measured body,
 .reader-mode-single.reader-mode-measured:not(:has(body)) {
-  column-count: auto !important;
-  column-width: var(--reader-page-width, 100vw) !important;
+  column-count: 1 !important;
+  column-width: var(--reader-page-width, 100%) !important;
   column-gap: var(--reader-page-gap, 40px) !important;
   column-fill: auto !important;
   inline-size: 100% !important;
@@ -955,8 +1002,8 @@ label.btn-primary:hover:not(:disabled) {
 .reader-mode-double:not(:has(body)),
 .reader-mode-double.reader-mode-measured body,
 .reader-mode-double.reader-mode-measured:not(:has(body)) {
-  column-count: auto !important;
-  column-width: var(--reader-page-width, 45vw) !important;
+  column-count: 2 !important;
+  column-width: var(--reader-page-width, calc((100% - 40px) / 2)) !important;
   column-gap: var(--reader-page-gap, 40px) !important;
   column-fill: auto !important;
   inline-size: 100% !important;
@@ -989,15 +1036,19 @@ label.btn-primary:hover:not(:disabled) {
   direction: rtl !important;
 }
 
-.webtoon-reader-container :is(img, svg) {
+.webtoon-reader-container :is(img, svg),
+.comic-webtoon-container :is(img, svg) {
   display: block !important;
   width: 100% !important;
+  max-width: 100% !important;
   height: auto !important;
-  margin: 0 !important;
+  margin: 0 auto !important;
 }
 
-.webtoon-reader-container :is(p, div, figure) {
+.webtoon-reader-container :is(p, div, figure),
+.comic-webtoon-container :is(p, div, figure) {
   margin: 0 !important;
+  width: 100% !important;
 }
 
 .reader-content img:not([src]),
@@ -1011,7 +1062,7 @@ label.btn-primary:hover:not(:disabled) {
   font-size: inherit !important;
 }
 
-.reader-content p + p {
+.reader-content p:not(.reader-image-page) + p:not(.reader-image-page) {
   margin-top: 1.05em !important;
 }
 
@@ -1081,34 +1132,41 @@ label.btn-primary:hover:not(:disabled) {
   color: var(--reader-link-color-hover, #2563eb) !important;
 }
 
-.reader-content h1,
-.reader-content h2,
-.reader-content h3,
-.reader-content .chapter-title {
+.reader-content :is(h1, h2, h3, h4, h5, h6, .chapter-title, .title, .title-top, .title_top, [class*="chapter-title"], [class*="title"]) {
   text-align: center !important;
-  text-transform: uppercase !important;
-  margin-top: 1.4rem !important;
-  margin-bottom: 0.8rem !important;
-  font-family: "Merriweather", "Lora", Georgia, serif !important;
   font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.03em !important;
   max-width: min(50ch, 100%) !important;
   margin-inline: auto !important;
 }
 
-.reader-content h1 {
-  font-size: clamp(1.8em, 1.5em + 1vw, 2.35em) !important;
-  line-height: 1.18 !important;
+.reader-content h1,
+.reader-content .chapter-title,
+.reader-content .title-top {
+  font-size: clamp(1.6em, 1.35em + 0.8vw, 2.2em) !important;
+  line-height: 1.22 !important;
+  font-weight: 800 !important;
+  margin-top: 1.2rem !important;
+  margin-bottom: 0.8rem !important;
+  text-align: center !important;
 }
 
 .reader-content h2 {
-  font-size: clamp(1.45em, 1.25em + 0.7vw, 1.9em) !important;
-  line-height: 1.24 !important;
+  font-size: clamp(1.35em, 1.2em + 0.5vw, 1.8em) !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.7rem !important;
+  text-align: center !important;
 }
 
-.reader-content h3 {
-  font-size: clamp(1.2em, 1.08em + 0.4vw, 1.45em) !important;
+.reader-content :is(h3, h4, h5, h6) {
+  font-size: clamp(1.15em, 1.05em + 0.3vw, 1.45em) !important;
   line-height: 1.3 !important;
+  font-weight: 700 !important;
+  margin-top: 0.8rem !important;
+  margin-bottom: 0.6rem !important;
+  text-align: center !important;
 }
 
 .reader-content hr {

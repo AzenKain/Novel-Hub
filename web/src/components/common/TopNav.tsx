@@ -343,7 +343,7 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
                     {user.avatar_url && (
                       <img
                         src={getMediaUrl(user.avatar_url, undefined, user.updated_at)}
-                        alt="Avatar"
+                        alt={t("common.alt_avatar")}
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";

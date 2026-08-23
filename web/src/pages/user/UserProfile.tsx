@@ -218,7 +218,7 @@ export const UserProfile = () => {
                           {avatarUrl && (
                             <img 
                               src={getMediaUrl(avatarUrl, undefined, user.updated_at)} 
-                              alt="Avatar" 
+                              alt={t("common.alt_avatar")} 
                               loading="lazy" 
                               className="object-cover w-full h-full animate-in fade-in duration-300"
                               onError={(e) => {

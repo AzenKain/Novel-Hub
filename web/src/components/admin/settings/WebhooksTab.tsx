@@ -110,7 +110,7 @@ export const WebhooksTab: React.FC = () => {
       case "slack":
         return <span className="badge badge-warning gap-1 font-medium">Slack</span>;
       default:
-        return <span className="badge badge-neutral gap-1 font-medium">Generic JSON</span>;
+        return <span className="badge badge-neutral gap-1 font-medium">{t("settings.webhook_generic_json")}</span>;
     }
   };
 
@@ -132,7 +132,7 @@ export const WebhooksTab: React.FC = () => {
             onClick={async () => {
               await queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
               await refetch();
-              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+              toast.info(t("common.refreshed", "Data refreshed"));
             }}
             className="btn btn-square btn-ghost btn-sm"
             title={t("settings.refresh", "Refresh")}
@@ -179,11 +179,11 @@ export const WebhooksTab: React.FC = () => {
                     </span>
                   ) : (
                     <span className="badge badge-ghost badge-xs gap-1 text-[10px] font-medium opacity-60">
-                      <XCircle className="h-3 w-3" /> Disabled
+                      <XCircle className="h-3 w-3" /> {t("common.disabled")}
                     </span>
                   )}
                   {wh.secret && (
-                    <span className="badge badge-outline badge-xs gap-1 text-[10px] font-mono" title="HMAC Signature enabled">
+                    <span className="badge badge-outline badge-xs gap-1 text-[10px] font-mono" title={t("settings.webhook_hmac_enabled")}>
                       <Shield className="h-3 w-3" /> HMAC
                     </span>
                   )}

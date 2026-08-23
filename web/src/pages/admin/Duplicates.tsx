@@ -177,7 +177,7 @@ export const Duplicates: React.FC = () => {
             onClick={async () => {
               await queryClient.invalidateQueries({ queryKey: ["admin", "duplicates"] });
               await refetch();
-              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+              toast.info(t("common.refreshed", "Data refreshed"));
             }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
             title={t("settings.refresh", "Refresh")}

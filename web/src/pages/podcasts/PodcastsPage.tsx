@@ -172,7 +172,7 @@ export const PodcastsPage: React.FC = () => {
                           e.currentTarget.nextElementSibling?.classList.remove("hidden");
                         }}
                       />
-                      <div className="hidden flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Rss className="h-6 w-6" />
                       </div>
                     </div>

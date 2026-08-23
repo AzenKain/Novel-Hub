@@ -87,8 +87,8 @@ export const DownloadManagerPanel: React.FC = () => {
               ? "btn-primary text-primary-content shadow-primary/30 ring-2 ring-primary/40 ring-offset-2 ring-offset-base-100"
               : "bg-base-200/95 border-base-300 backdrop-blur-md text-base-content hover:bg-base-300 shadow-base-content/10"
           }`}
-          title={t("download_manager.open_manager", "Mở quản lý tải xuống")}
-          aria-label={t("download_manager.open_manager", "Mở quản lý tải xuống")}
+          title={t("download_manager.open_manager", "Open Download Manager")}
+          aria-label={t("download_manager.open_manager", "Open Download Manager")}
         >
           {isDownloading ? (
             <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin shrink-0" />
@@ -110,8 +110,8 @@ export const DownloadManagerPanel: React.FC = () => {
             </span>
             <span className="text-[9px] sm:text-[10px] opacity-80 mt-0.5">
               {activeItems.length > 0
-                ? `${activeItems.length} ${t("download_manager.items", "tệp")}`
-                : `${completedItems.length} ${t("download_manager.completed_short", "xong")}`}
+                ? `${activeItems.length} ${t("download_manager.items", "items")}`
+                : `${completedItems.length} ${t("download_manager.completed_short", "completed")}`}
             </span>
           </div>
 
@@ -168,7 +168,7 @@ export const DownloadManagerPanel: React.FC = () => {
           <div className="rounded-xl bg-info/10 border border-info/20 p-3 flex items-start gap-2.5 text-xs text-base-content/80 leading-relaxed">
             <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
             <p>
-              {t("download_manager.permission_notice", "💡 Lưu ý: Trình duyệt có thể hỏi quyền tải nhiều tệp cùng lúc (Automatic Downloads). Vui lòng nhấn \"Cho phép\" (Allow) nếu được yêu cầu.")}
+              {t("download_manager.permission_notice", "💡 Note: If your browser prompts for permission to download multiple files (Automatic Downloads), please click \"Allow\".")}
             </p>
           </div>
 
@@ -261,7 +261,7 @@ export const DownloadManagerPanel: React.FC = () => {
                             </div>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <button onClick={() => retryDownload(item.id)} className="btn btn-ghost btn-square btn-sm hover:text-primary" title={t("download_manager.redownload", "Tải lại")}>
+                            <button onClick={() => retryDownload(item.id)} className="btn btn-ghost btn-square btn-sm hover:text-primary" title={t("download_manager.redownload", "Re-download")}>
                               <RotateCcw className="w-4 h-4" />
                             </button>
                             <button onClick={() => removeDownload(item.id)} className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-error" title={t("common.delete", "Delete")}>
@@ -286,7 +286,7 @@ export const DownloadManagerPanel: React.FC = () => {
                               className="btn btn-xs btn-primary gap-1 font-bold shadow-xs"
                             >
                               <Play className="w-3 h-3" />
-                              {t("download_manager.start_downloads", "Bắt đầu tải")}
+                              {t("download_manager.start_downloads", "Start Downloads")}
                             </button>
                           )}
                           <button onClick={cancelAll} className="btn btn-xs btn-ghost gap-1">
@@ -314,7 +314,7 @@ export const DownloadManagerPanel: React.FC = () => {
                             <button
                               onClick={() => resumeQueue()}
                               className="btn btn-ghost btn-square btn-sm text-primary hover:bg-primary/10"
-                              title={t("download_manager.start_downloads", "Bắt đầu tải")}
+                              title={t("download_manager.start_downloads", "Start Downloads")}
                             >
                               <Play className="w-4 h-4" />
                             </button>
@@ -375,8 +375,8 @@ export const DownloadManagerPanel: React.FC = () => {
                         <button 
                           onClick={() => retryDownload(item.id)} 
                           className="btn btn-ghost btn-square btn-sm hover:text-primary"
-                          title={t("download_manager.redownload", "Tải lại")}
-                          aria-label={t("download_manager.redownload", "Tải lại")}
+                          title={t("download_manager.redownload", "Re-download")}
+                          aria-label={t("download_manager.redownload", "Re-download")}
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>

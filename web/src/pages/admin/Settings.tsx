@@ -264,7 +264,7 @@ export function Settings() {
             await queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
             await queryClient.invalidateQueries({ queryKey: ["libraries"] });
             await Promise.all([refetchSettings(), refetchLibraries()]);
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("settings.refresh", "Refresh")}
@@ -368,7 +368,7 @@ export function Settings() {
                       <div className="w-auto h-12 px-3 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
                         {site.logo ? (
                           <div className="flex items-center gap-2">
-                            <img src={site.logo} alt="Logo preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                            <img src={site.logo} alt={t("common.alt_logo_preview")} className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
                             <div className={`w-5 h-5 opacity-40 hidden`} />
                             <span className="font-bold whitespace-nowrap">{site.title || "NovelHub"}</span>
                           </div>
@@ -419,7 +419,7 @@ export function Settings() {
                       </div>
                       <div className="w-12 h-12 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shrink-0">
                         {site.favicon ? (
-                          <img src={site.favicon} alt="Favicon preview" className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
+                          <img src={site.favicon} alt={t("common.alt_favicon_preview")} className="w-8 h-8 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} onLoad={(e) => { e.currentTarget.style.display = 'block'; e.currentTarget.nextElementSibling?.classList.add('hidden') }} />
                         ) : null}
                         <div className={`w-5 h-5 bg-base-300 rounded opacity-40 ${site.favicon ? 'hidden' : ''}`} />
                       </div>

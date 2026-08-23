@@ -310,8 +310,15 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(({
               target.style.display = "none";
             }
           }}
-          dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
-        />
+        >
+          <div
+            className="w-full flex flex-col items-center mx-auto"
+            style={{
+              maxWidth: maxWidth >= 1600 ? "100%" : `${maxWidth}px`,
+            }}
+            dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
+          />
+        </div>
       )}
 
       {/* Mode 2 & 3: Single Page or Double Page Spread */}

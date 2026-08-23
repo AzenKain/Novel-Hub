@@ -73,3 +73,8 @@ export interface UpdateCustomThemePayload {
   accent_color: string;
   custom_css?: string;
 }
+
+export interface CustomizationListParams {
+  cursor?: string;
+  limit?: number;
+}

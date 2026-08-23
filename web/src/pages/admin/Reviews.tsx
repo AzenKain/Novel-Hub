@@ -108,7 +108,7 @@ export function Reviews() {
             setPage(0);
             await queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
             await refetch();
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("admin.operations.refresh", "Refresh")}
@@ -124,7 +124,7 @@ export function Reviews() {
           {loading && reviews.length === 0 ? (
             <div className="flex items-center justify-center py-20 opacity-50">
               <Loader2 className="animate-spin h-8 w-8 text-primary mr-3" />
-              <span className="text-lg">Loading reviews...</span>
+              <span className="text-lg">{t("admin.loading_reviews")}</span>
             </div>
           ) : reviews.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
@@ -155,7 +155,7 @@ export function Reviews() {
                           <DiscordMarkdown content={review.review} />
                         </div>
                       ) : (
-                        <p className="text-sm italic text-base-content/60">Rating only</p>
+                        <p className="text-sm italic text-base-content/60">{t("admin.rating_only")}</p>
                       )}
                       <div className="flex items-center gap-2.5 mt-3 text-xs text-base-content/70 flex-wrap">
                         <span>

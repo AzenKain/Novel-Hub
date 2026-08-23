@@ -332,7 +332,7 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, onChange, onRemove, t }) => {
             />
             {showDropdown && (searchTerm.trim() !== "" || facetItems.length > 0) && (
               <ul className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-base-100 border border-base-200 rounded-lg shadow-lg py-1 text-sm">
-                {isPending && <li className="px-3 py-1.5 text-xs text-base-content/40">Loading...</li>}
+                {isPending && <li className="px-3 py-1.5 text-xs text-base-content/40">{t("common.loading")}</li>}
                 {!isPending && facetItems.length === 0 && (
                   <li
                     className="px-3 py-1.5 hover:bg-base-200 cursor-pointer text-xs"

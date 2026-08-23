@@ -1,11 +1,13 @@
 import { usePublicSettings } from "@/hooks/useSettings";
 import { ArrowRight, BookMarked, Library, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 export function HomeView() {
+  const { t } = useTranslation();
   const settings = usePublicSettings();
   const title = settings?.site?.title || "NovelHub";
-  const description = settings?.site?.description || "Local novel library manager";
+  const description = settings?.site?.description || t("home.default_description");
 
   return (
     <div className="home-container">
@@ -25,7 +27,7 @@ export function HomeView() {
           </div>
         </div>
         <Link to="/admin" className="admin-link-btn">
-          <span>Go to Admin</span>
+          <span>{t("home.go_to_admin")}</span>
           <ArrowRight size={16} />
         </Link>
       </header>
@@ -34,20 +36,17 @@ export function HomeView() {
         <section className="hero-text-area">
           <div className="hero-badge">
             <Sparkles size={14} className="sparkle-icon" />
-            <span>Local-First & Light Novel Focused</span>
+            <span>{t("home.badge")}</span>
           </div>
-          <h2>Dòng chảy câu chữ từ chiếc tủ sách cá nhân của bạn.</h2>
-          <p>
-            NovelHub là giải pháp quản lý và thưởng thức tiểu thuyết, sách điện tử nhẹ nhàng, hiện đại thay thế cho Calibre. 
-            Giữ trọn vẹn sự riêng tư với cơ chế lưu trữ cục bộ, quét thư mục thông minh, và trải nghiệm đọc trôi chảy ngay trên trình duyệt.
-          </p>
+          <h2>{t("home.hero_title")}</h2>
+          <p>{t("home.hero_desc")}</p>
           <div className="hero-ctas">
             <Link to="/admin" className="cta-button primary">
-              <span>Mở trang Quản trị</span>
+              <span>{t("home.open_admin")}</span>
               <Library size={18} />
             </Link>
             <a href="#features" className="cta-button secondary">
-              Tìm hiểu thêm
+              {t("home.learn_more")}
             </a>
           </div>
         </section>
@@ -56,11 +55,11 @@ export function HomeView() {
           <div className="book-card-3d">
             <div className="book-spine"></div>
             <div className="book-cover-art">
-              <small>NovelHub Edition</small>
-              <strong>Vườn Anh Đào Số Hóa</strong>
+              <small>{t("home.edition")}</small>
+              <strong>{t("home.demo_book_title")}</strong>
               <div className="book-cover-footer">
-                <span>Vol. 1</span>
-                <span>Self-hosted</span>
+                <span>{t("home.vol_1")}</span>
+                <span>{t("home.self_hosted")}</span>
               </div>
             </div>
             <div className="book-pages-side"></div>
@@ -69,28 +68,28 @@ export function HomeView() {
       </main>
 
       <section id="features" className="home-features">
-        <h3>Tính năng cốt lõi</h3>
+        <h3>{t("home.features_title")}</h3>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon"><Library size={20} /></div>
-            <h4>Quản lý thông minh</h4>
-            <p>Hỗ trợ cả chế độ liên kết (Reference) giữ nguyên file gốc lẫn chế độ sao chép (Managed) tự động phân loại thư mục.</p>
+            <h4>{t("home.feature_manage_title")}</h4>
+            <p>{t("home.feature_manage_desc")}</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon"><BookMarked size={20} /></div>
-            <h4>Trình đọc EPUB</h4>
-            <p>Trình đọc tối ưu, stream từng chương và tài nguyên ảnh trực tiếp từ ZIP/EPUB mà không gây tốn tài nguyên RAM.</p>
+            <h4>{t("home.feature_reader_title")}</h4>
+            <p>{t("home.feature_reader_desc")}</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon"><Sparkles size={20} /></div>
-            <h4>Tự động hoá Jobs</h4>
-            <p>Quét thư viện nhanh chóng, tự sinh ảnh bìa thumbnail, trích xuất text phục vụ tìm kiếm toàn văn FTS trong nền.</p>
+            <h4>{t("home.feature_jobs_title")}</h4>
+            <p>{t("home.feature_jobs_desc")}</p>
           </div>
         </div>
       </section>
 
       <footer className="home-footer">
-        <p>&copy; {new Date().getFullYear()} NovelHub. Nền tảng tủ sách local-first tinh gọn.</p>
+        <p>{t("home.footer", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   );

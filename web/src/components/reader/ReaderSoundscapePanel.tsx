@@ -98,9 +98,9 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
   return (
     <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-80 md:w-96 overflow-y-auto rounded-2xl border p-4 shadow-2xl backdrop-blur-md transition-colors duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 border-b border-[var(--reader-ui-border)] pb-2.5">
+      <div className="flex items-center justify-between mb-3 border-b border-(--reader-ui-border) pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-[var(--reader-ui-accent-soft)] text-[var(--reader-ui-accent)]">
+          <div className="p-1.5 rounded-lg bg-(--reader-ui-accent-soft) text-(--reader-ui-accent)">
             <Sliders className="w-4 h-4" />
           </div>
           <div>
@@ -138,7 +138,7 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
       </div>
 
       {/* Master Volume & Play/Pause Control Bar */}
-      <div className="mb-4 p-3 rounded-xl bg-[var(--reader-ui-soft)] border border-[var(--reader-ui-border)] flex flex-col gap-2">
+      <div className="mb-4 p-3 rounded-xl bg-(--reader-ui-soft) border border-(--reader-ui-border) flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -158,11 +158,11 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 min-w-[120px]">
+          <div className="flex items-center gap-1.5 min-w-30">
             {masterVolume === 0 ? (
               <VolumeX className="w-4 h-4 opacity-50 shrink-0" />
             ) : (
-              <Volume2 className="w-4 h-4 opacity-70 shrink-0 text-[var(--reader-ui-accent)]" />
+              <Volume2 className="w-4 h-4 opacity-70 shrink-0 text-(--reader-ui-accent)" />
             )}
             <input
               type="range"
@@ -180,22 +180,22 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
         </div>
 
         {/* Quick Focus Presets */}
-        <div className="flex items-center gap-1.5 pt-1.5 border-t border-[var(--reader-ui-border)] overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-1.5 pt-1.5 border-t border-(--reader-ui-border) overflow-x-auto custom-scrollbar">
           <span className="text-[10px] font-bold uppercase opacity-50 shrink-0">
-            <Sparkles className="w-3 h-3 inline mr-1 text-[var(--reader-ui-accent)]" />
+            <Sparkles className="w-3 h-3 inline mr-1 text-(--reader-ui-accent)" />
             {t("soundscape.presets", "Presets")}:
           </span>
           <button
             type="button"
             onClick={() => applyPreset("pink_focus")}
-            className="btn btn-xs reader-control-btn border border-[var(--reader-ui-border)] rounded-lg text-[11px] shrink-0"
+            className="btn btn-xs reader-control-btn border border-(--reader-ui-border) rounded-lg text-[11px] shrink-0"
           >
             Pink Focus
           </button>
           <button
             type="button"
             onClick={() => applyPreset("deep_brown")}
-            className="btn btn-xs reader-control-btn border border-[var(--reader-ui-border)] rounded-lg text-[11px] shrink-0"
+            className="btn btn-xs reader-control-btn border border-(--reader-ui-border) rounded-lg text-[11px] shrink-0"
           >
             Brown Cozy
           </button>
@@ -213,8 +213,8 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
               key={track.id}
               className={`p-2.5 rounded-xl border transition-all ${
                 isActive
-                  ? "bg-[var(--reader-ui-accent-soft)] border-[var(--reader-ui-accent)]/50 shadow-2xs"
-                  : "bg-[var(--reader-ui-soft)] border-[var(--reader-ui-border)] hover:bg-[var(--reader-ui-hover)]"
+                  ? "bg-(--reader-ui-accent-soft) border-(--reader-ui-accent)/50 shadow-2xs"
+                  : "bg-(--reader-ui-soft) border-(--reader-ui-border) hover:bg-(--reader-ui-hover)"
               }`}
             >
               <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -226,17 +226,17 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
                   <div
                     className={`p-1.5 rounded-lg transition-colors ${
                       isActive
-                        ? "bg-[var(--reader-ui-accent)] text-[var(--reader-ui-accent-text)]"
-                        : "bg-[var(--reader-ui-surface-strong)] text-[var(--reader-ui-text)] opacity-80"
+                        ? "bg-(--reader-ui-accent) text-(--reader-ui-accent-text)"
+                        : "bg-(--reader-ui-surface-strong) text-(--reader-ui-text) opacity-80"
                     }`}
                   >
                     {getCategoryIcon(track.category, track.icon)}
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-xs font-bold truncate ${isActive ? "text-[var(--reader-ui-accent)]" : "text-[var(--reader-ui-text)]"}`}>
+                    <p className={`text-xs font-bold truncate ${isActive ? "text-(--reader-ui-accent)" : "text-(--reader-ui-text)"}`}>
                       {track.name}
                     </p>
-                    <span className="badge badge-ghost badge-xs text-[10px] opacity-60 uppercase border border-[var(--reader-ui-border)]">
+                    <span className="badge badge-ghost badge-xs text-[10px] opacity-60 uppercase border border-(--reader-ui-border)">
                       {track.category}
                     </span>
                   </div>
@@ -252,8 +252,8 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
               </div>
 
               {isActive && (
-                <div className="flex items-center gap-2 pt-1.5 border-t border-[var(--reader-ui-border)] animate-in fade-in duration-200">
-                  <Volume2 className="w-3 h-3 opacity-60 shrink-0 text-[var(--reader-ui-accent)]" />
+                <div className="flex items-center gap-2 pt-1.5 border-t border-(--reader-ui-border) animate-in fade-in duration-200">
+                  <Volume2 className="w-3 h-3 opacity-60 shrink-0 text-(--reader-ui-accent)" />
                   <input
                     type="range"
                     min="0"
@@ -274,14 +274,14 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
       </div>
 
       {/* Footer link to manage / upload personal sounds */}
-      <div className="mt-3 pt-2.5 border-t border-[var(--reader-ui-border)] flex items-center justify-between text-xs">
+      <div className="mt-3 pt-2.5 border-t border-(--reader-ui-border) flex items-center justify-between text-xs">
         <span className="text-[11px] opacity-60">
           {t("soundscape.custom_soundscapes_hint", "Want your own sounds?")}
         </span>
         <Link
           to="/profile?tab=customization"
           target="_blank"
-          className="link link-hover text-[var(--reader-ui-accent)] font-medium text-[11px] inline-flex items-center gap-1"
+          className="link link-hover text-(--reader-ui-accent) font-medium text-[11px] inline-flex items-center gap-1"
         >
           <Plus className="w-3 h-3" />
           {t("soundscape.manage_sounds", "Manage in Profile")}

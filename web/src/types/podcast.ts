@@ -36,3 +36,8 @@ export interface SubscribePodcastInput {
 export interface UpdatePodcastInput {
   auto_download?: boolean;
 }
+
+export interface DownloadEpisodeParams {
+  episodeId: string;
+  episodeTitle?: string;
+}

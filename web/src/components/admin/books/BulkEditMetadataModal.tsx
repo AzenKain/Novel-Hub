@@ -465,7 +465,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   {item.modified && (
                     <span className="badge badge-sm badge-warning font-semibold text-[11px] gap-1 shrink-0">
                       <Check className="w-3 h-3" />
-                      {t('common.modified', 'Đã sửa')}
+                      {t('common.modified', 'Modified')}
                     </span>
                   )}
                 </div>
@@ -488,13 +488,13 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       ) : (
                         <div className="flex flex-col items-center gap-1.5 text-base-content/40">
                           <ImageIcon className="w-8 h-8" />
-                          <span className="text-[10px] font-bold uppercase">No cover</span>
+                          <span className="text-[10px] font-bold uppercase">{t('library.no_cover')}</span>
                         </div>
                       )}
                       {/* Hover Overlay */}
                       <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-opacity text-white p-2">
                         <Upload className="w-5 h-5 text-primary" />
-                        <span className="text-[11px] font-bold text-center leading-tight">Đổi ảnh</span>
+                        <span className="text-[11px] font-bold text-center leading-tight">{t('library.change_image')}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -516,9 +516,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                     {/* Cover Actions Button Group */}
                     <div className="flex flex-col gap-1.5 w-full">
                       <div className="grid grid-cols-2 gap-1.5 w-full">
-                        <label className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg" title="Tải ảnh lên từ máy">
+                        <label className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg" title={t('library.upload_image_title')}>
                           <Upload className="w-3 h-3" />
-                          <span>Tải ảnh</span>
+                          <span>{t('library.upload_image')}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -545,10 +545,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             });
                           }}
                           className="btn btn-xs btn-ghost border border-base-300 gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold rounded-lg hover:bg-base-200"
-                          title="Dán link ảnh trực tuyến"
+                          title={t('admin.paste_image_url')}
                         >
                           <LinkIcon className="w-3 h-3" />
-                          <span>URL</span>
+                          <span>{t('common.url')}</span>
                         </button>
                       </div>
 
@@ -556,10 +556,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         type="button"
                         onClick={() => handleOpenSyncModal(index, 'cover')}
                         className="btn btn-xs btn-outline btn-secondary gap-1 h-7 min-h-0 text-[11px] font-semibold rounded-lg w-full"
-                        title="Áp dụng bìa này cho các sách khác"
+                        title={t('library.apply_cover_to_others')}
                       >
                         <Copy className="w-3 h-3" />
-                        <span>{t('library.sync_cover', 'Đồng bộ bìa')}</span>
+                        <span>{t('library.sync_cover', 'Sync cover')}</span>
                       </button>
                     </div>
                   </div>
@@ -713,10 +713,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       className="select select-md select-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
                     >
                       <option value="">{t('common.none', 'None')}</option>
-                      <option value="safe">Safe / All Ages</option>
-                      <option value="teen">Teen / 13+</option>
-                      <option value="mature">Mature / 16+</option>
-                      <option value="explicit">Explicit / 18+</option>
+                      <option value="safe">{t('book.age_safe')}</option>
+                      <option value="teen">{t('book.age_teen')}</option>
+                      <option value="mature">{t('book.age_mature')}</option>
+                      <option value="explicit">{t('book.age_explicit')}</option>
                     </select>
                   </div>
                 </div>
@@ -927,7 +927,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
               {syncState.field === 'subjects' && (
                 <div className="space-y-3 p-4 bg-base-200/50 rounded-2xl border border-base-200">
                   <span className="text-xs font-bold text-base-content/80 block uppercase tracking-wider">
-                    {t('library.subject_operation_mode', 'Chế độ áp dụng Thẻ / Tag')}:
+                    {t('library.subject_operation_mode', 'Tag / Subject apply mode')}:
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
@@ -939,8 +939,8 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <div className="text-xs font-bold">+ Thêm thẻ (Append)</div>
-                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Giữ tag cũ & thêm tag nguồn</div>
+                      <div className="text-xs font-bold">{t('library.tag_mode_append')}</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">{t('library.tag_mode_append_desc')}</div>
                     </button>
                     <button
                       type="button"
@@ -951,8 +951,8 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <div className="text-xs font-bold">✕ Xóa thẻ (Remove)</div>
-                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Xóa 1 tag cụ thể khỏi các sách</div>
+                      <div className="text-xs font-bold">{t('library.tag_mode_remove')}</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">{t('library.tag_mode_remove_desc')}</div>
                     </button>
                     <button
                       type="button"
@@ -963,15 +963,15 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           : 'border-base-300 bg-base-100 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <div className="text-xs font-bold">⇄ Ghi đè (Replace)</div>
-                      <div className="text-[11px] font-normal opacity-70 mt-0.5">Thay thế tất cả bằng tag nguồn</div>
+                      <div className="text-xs font-bold">{t('library.tag_mode_replace')}</div>
+                      <div className="text-[11px] font-normal opacity-70 mt-0.5">{t('library.tag_mode_replace_desc')}</div>
                     </button>
                   </div>
 
                   {syncState.subjectMode === 'remove' && (
                     <div className="mt-3 pt-3 border-t border-base-300 space-y-2">
                       <label className="text-xs font-semibold text-base-content/80 block">
-                        {t('library.select_tag_to_remove', 'Chọn thẻ cần xóa')}:
+                        {t('library.select_tag_to_remove', 'Select a tag to remove')}:
                       </label>
                       <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
                         {allExistingSubjects.map((tag) => (
@@ -993,7 +993,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         type="text"
                         value={syncState.selectedTagToRemove || ''}
                         onChange={(e) => setSyncState((prev) => ({ ...prev, selectedTagToRemove: e.target.value }))}
-                        placeholder={t('library.or_type_tag_to_remove', 'Hoặc nhập tên tag cần xóa...')}
+                        placeholder={t('library.or_type_tag_to_remove', 'Or type a tag name to remove...')}
                         className="input input-sm input-bordered w-full rounded-xl text-xs mt-2"
                       />
                     </div>
@@ -1130,10 +1130,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 </div>
                 <div>
                   <div className="font-bold text-base leading-tight">
-                    {t('admin.cover_url_title', 'Nhập liên kết ảnh bìa')}
+                    {t('admin.cover_url_title', 'Enter cover image link')}
                   </div>
                   <div className="text-xs text-base-content/50 font-normal mt-0.5">
-                    Sách #{coverUrlModal.bookIndex + 1}: {items[coverUrlModal.bookIndex]?.title}
+                    {t('library.book_num', { n: coverUrlModal.bookIndex + 1 })}: {items[coverUrlModal.bookIndex]?.title}
                   </div>
                 </div>
               </div>
@@ -1162,7 +1162,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             >
               <div>
                 <label className="text-xs font-bold text-base-content/80 mb-1.5 block">
-                  {t('admin.image_url_label', 'Đường dẫn ảnh bìa trực tuyến (URL)')}
+                  {t('admin.image_url_label', 'Online cover image URL')}
                 </label>
                 <input
                   type="url"
@@ -1176,7 +1176,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   className="input input-bordered input-md w-full bg-base-100 rounded-xl text-sm font-medium focus:outline-hidden"
                 />
                 <span className="text-[11px] text-base-content/50 mt-1 block">
-                  {t('admin.cover_url_hint', 'Hỗ trợ các định dạng ảnh trực tiếp (JPG, PNG, WEBP, GIF)')}
+                  {t('admin.cover_url_hint', 'Supports direct image formats (JPG, PNG, WEBP, GIF)')}
                 </span>
               </div>
 
@@ -1186,7 +1186,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   <div className="w-12 h-16 rounded-xl bg-base-300 overflow-hidden shrink-0 border border-base-300 flex items-center justify-center">
                     <img
                       src={coverUrlModal.url}
-                      alt="Preview"
+                      alt={t('common.preview')}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
@@ -1195,7 +1195,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-base-content truncate">
-                      {t('common.preview', 'Xem trước ảnh')}
+                      {t('common.preview', 'Image preview')}
                     </div>
                     <div className="text-[11px] text-base-content/60 truncate font-mono mt-0.5">
                       {coverUrlModal.url}
@@ -1210,14 +1210,14 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                   onClick={() => setCoverUrlModal({ isOpen: false, bookIndex: null, url: '' })}
                   className="btn btn-md btn-ghost rounded-xl font-semibold"
                 >
-                  {t('common.cancel', 'Hủy')}
+                  {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={!coverUrlModal.url.trim()}
                   className="btn btn-md btn-primary rounded-xl px-5 font-bold shadow-md shadow-primary/20"
                 >
-                  {t('common.apply', 'Áp dụng')}
+                  {t('common.apply', 'Apply')}
                 </button>
               </div>
             </form>

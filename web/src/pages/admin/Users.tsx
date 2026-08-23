@@ -257,10 +257,10 @@ export function Users() {
               await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
               await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
               await Promise.all([refetchUsers(), refetchRoles()]);
-              toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+              toast.info(t("common.refreshed", "Data refreshed"));
             }}
             className="btn btn-square btn-ghost btn-sm sm:btn-md"
-            title="Refresh"
+            title={t("common.refresh")}
             disabled={usersFetching || rolesFetching}
           >
             <RefreshCw className={`h-5 w-5 ${(usersFetching || rolesFetching) ? "animate-spin" : ""}`} />

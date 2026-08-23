@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { podcastService } from "@/services";
-import type { Podcast, PodcastEpisode, SubscribePodcastInput, UpdatePodcastInput } from "@/types";
+import type { Podcast, PodcastEpisode, SubscribePodcastInput, UpdatePodcastInput, DownloadEpisodeParams } from "@/types";
 import { usePodcastDownloadStore } from "@/stores";
 import i18n from "@/i18n";
 import { toast } from "react-toastify";
@@ -103,11 +103,6 @@ export function useRefreshPodcastMutation() {
       void queryClient.invalidateQueries({ queryKey: ["podcasts"] });
     },
   });
-}
-
-export interface DownloadEpisodeParams {
-  episodeId: string;
-  episodeTitle?: string;
 }
 
 export function useDownloadEpisodeMutation(podcastId: string) {

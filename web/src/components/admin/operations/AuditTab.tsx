@@ -57,7 +57,7 @@ export function AuditTab() {
             await queryClient.invalidateQueries({ queryKey: ["admin", "audit_logs"] });
             await queryClient.invalidateQueries({ queryKey: ["admin", "audit_actions"] });
             await Promise.all([logs.refetch(), actions.refetch()]);
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
           title={t("admin.operations.refresh")}
         >
@@ -84,7 +84,7 @@ export function AuditTab() {
                 </td>
                 <td>{item.actor_email || t("admin.operations.audit_system")}</td>
                 <td className="font-mono text-xs">{item.action}</td>
-                <td className="max-w-md break-words whitespace-normal text-xs">
+                <td className="max-w-md wrap-break-word whitespace-normal text-xs">
                   {item.target_label || item.target_id || item.target_type}
                 </td>
                 <td className="font-mono text-xs">{item.ip}</td>

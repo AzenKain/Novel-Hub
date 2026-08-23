@@ -239,3 +239,15 @@ export function useTOTPRecoveryCodesMutation() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
   });
 }
+
+export function useSetupStatusQuery() {
+  return useQuery<boolean>({
+    queryKey: ["settings", "setup-status"],
+    queryFn: async () => {
+      const res = await settingsService.getSetupStatus();
+      return Boolean(res.status && res.data?.required);
+    },
+    staleTime: 0,
+    retry: false,
+  });
+}

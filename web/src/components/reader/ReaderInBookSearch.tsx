@@ -45,7 +45,7 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
     <div className="reader-settings-panel p-4 rounded-2xl shadow-2xl w-80 max-h-96 flex flex-col gap-3 backdrop-blur-md border transition-colors duration-300">
       <div className="flex items-center justify-between border-b border-current/10 pb-2">
         <h3 className="font-bold text-xs uppercase tracking-wider opacity-70 flex items-center gap-1.5">
-          <Search className="h-4 w-4 text-[var(--reader-ui-accent)]" />
+          <Search className="h-4 w-4 text-(--reader-ui-accent)" />
           {t('reader.in_book_search', 'Search in Book')}
         </h3>
         <button type="button" onClick={onClose} className="reader-control-btn btn btn-xs btn-ghost btn-circle">
@@ -67,14 +67,14 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
         </button>
       </form>
 
-      <div className="overflow-y-auto flex-1 flex flex-col gap-2 divide-y divide-[var(--reader-ui-border)]/40 pr-1">
+      <div className="overflow-y-auto flex-1 flex flex-col gap-2 divide-y divide-(--reader-ui-border)/40 pr-1">
         {results.map((res, idx) => (
           <div
             key={idx}
             onClick={() => onSelectResult(res.chapter_id, res.offset)}
-            className="pt-2 cursor-pointer hover:bg-[var(--reader-ui-hover)] p-2 rounded-lg transition-colors"
+            className="pt-2 cursor-pointer hover:bg-(--reader-ui-hover) p-2 rounded-lg transition-colors"
           >
-            <div className="font-semibold text-xs text-[var(--reader-ui-accent)]">{res.chapter_title}</div>
+            <div className="font-semibold text-xs text-(--reader-ui-accent)">{res.chapter_title}</div>
             <div className="text-xs opacity-80 line-clamp-2 mt-0.5" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(res.snippet) }} />
           </div>
         ))}

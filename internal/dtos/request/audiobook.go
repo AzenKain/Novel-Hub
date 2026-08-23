@@ -12,7 +12,7 @@ type LookupAudiobookChaptersDto struct {
 	ASIN string `json:"asin" validate:"required,min=9,max=20"`
 }
 
-// MergeAudioSegment mô tả một đoạn audio trong timeline merge.
+
 type MergeAudioSegment struct {
 	FileID   string  `json:"file_id" validate:"required"`
 	StartSec float64 `json:"start_sec" validate:"gte=0"`

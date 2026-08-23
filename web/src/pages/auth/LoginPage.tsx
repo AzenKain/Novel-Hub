@@ -6,6 +6,8 @@ import { SyntheticEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import { API_BASE } from "@/config/api";
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -132,7 +134,7 @@ export function LoginPage() {
                 {settings.oauth.providers
                   .filter((p) => p.enabled)
                   .map((p) => {
-                    let href = `/api/v1/auth/oauth2/${p.id}/login?redirect=${encodeURIComponent(window.location.origin)}`;
+                    let href = `${API_BASE}/auth/oauth2/${p.id}/login?redirect=${encodeURIComponent(window.location.origin)}`;
                     
                     let icon = null;
                     if (p.id === "google") {

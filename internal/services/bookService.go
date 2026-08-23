@@ -133,7 +133,7 @@ func (s *bookService) GetBook(ctx context.Context, id string) (*models.BookEntit
 
 func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search *string, nav, collection, chip, facet, facetID string, sort string, cursor string, limit int64, userID string) ([]*models.BookEntity, error) {
 	if limit <= 0 || limit > 100 {
-		limit = 20
+		limit = 18
 	}
 	books, err := s.bookRepo.SearchBooks(ctx, libraryID, search, nav, collection, chip, facet, facetID, sort, cursor, limit, userID)
 	if err != nil {
@@ -145,7 +145,7 @@ func (s *bookService) SearchBooks(ctx context.Context, libraryID *string, search
 
 func (s *bookService) SearchSmartFilterBooks(ctx context.Context, libraryID *string, rules []request.SmartFilterRuleItemDto, cursor *time.Time, cursorID string, limit int64, userID string) ([]*models.BookEntity, error) {
 	if limit <= 0 || limit > 100 {
-		limit = 20
+		limit = 18
 	}
 	books, err := s.bookRepo.SearchSmartFilterBooks(ctx, libraryID, rules, cursor, cursorID, limit, userID)
 	if err != nil {

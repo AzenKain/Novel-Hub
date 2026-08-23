@@ -1,15 +1,8 @@
 import { api } from "../config/api";
-import type { CommonResponse, UploadCommitParams } from "@/types";
+import type { CommonResponse, UploadCommitParams, UploadProgressStats } from "@/types";
 import axios from "axios";
 
 const CHUNK_SIZE = 10 * 1024 * 1024;
-
-export type UploadProgressStats = {
-  progress: number;
-  uploadedBytes: number;
-  totalBytes: number;
-  speedBytesPerSec: number;
-};
 
 export const uploadService = {
   uploadFileChunked: async (

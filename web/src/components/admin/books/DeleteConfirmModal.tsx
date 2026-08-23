@@ -51,7 +51,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         {expectedConfirmationText && (
           <div className="space-y-2 mb-2 p-3.5 bg-error/5 border border-error/15 rounded-2xl">
             <label className="text-xs font-bold text-base-content/80 block">
-              {t("admin.type_to_confirm", "Vui lòng nhập")} <span className="font-mono text-error font-extrabold select-all">"{expectedConfirmationText}"</span> {t("admin.or_type_delete", 'hoặc "DELETE" để xác nhận:')}
+              {t("admin.type_to_confirm", "Please type")} <span className="font-mono text-error font-extrabold select-all">"{expectedConfirmationText}"</span> {t("admin.or_type_delete", 'or type "DELETE" to confirm:')}
             </label>
             <input
               type="text"

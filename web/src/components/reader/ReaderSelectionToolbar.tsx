@@ -92,7 +92,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       setTranslatedText(res.text);
       saveTargetLanguagePreference(lang);
     } catch {
-      setTranslatedText(t("common.translate_error", "Không thể dịch đoạn này"));
+      setTranslatedText(t("common.translate_error", "Could not translate this passage"));
     } finally {
       setTranslating(false);
     }
@@ -224,10 +224,10 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           className={`btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] sm:text-xs font-medium transition-colors ${
             showTranslate ? "border-primary text-primary font-semibold" : ""
           }`}
-          title={t("reader.translate", "Dịch nghĩa")}
+          title={t("reader.translate", "Translate")}
         >
           <Languages className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-          <span>{t("reader.translate", "Dịch")}</span>
+          <span>{t("reader.translate", "Translate")}</span>
         </button>
 
         {/* Quote Card Button */}
@@ -246,7 +246,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
               onOpenQuoteCard(textToQuote);
             }}
             className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] sm:text-xs font-medium transition-colors"
-            title={t("reader.quote_card", "Tạo ảnh trích dẫn")}
+            title={t("reader.quote_card", "Create quote image")}
           >
             <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
             <span>{t("reader.quote", "Quote")}</span>
@@ -263,7 +263,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           <div className="flex items-center justify-between gap-2 border-b border-(--reader-ui-border)/60 p-2.5 pb-1.5 shrink-0">
             <div className="flex items-center gap-1.5 font-bold text-[11px] text-primary shrink-0">
               <Languages className="w-3.5 h-3.5" />
-              <span>{t("reader.translation_result", "Bản dịch")}</span>
+              <span>{t("reader.translation_result", "Translation")}</span>
             </div>
             <select
               value={targetLang}
@@ -286,7 +286,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
           {translating ? (
             <div className="py-2 flex items-center justify-center gap-2 text-xs text-(--reader-ui-muted) shrink-0">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>{t("common.loading", "Đang dịch...")}</span>
+              <span>{t("common.loading", "Loading...")}</span>
             </div>
           ) : (
             <div className="flex items-start justify-between gap-2 p-2.5 max-h-48 sm:max-h-56 min-h-0 overflow-y-auto overscroll-contain">
@@ -300,7 +300,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
                     setTimeout(() => setCopiedTrans(false), 2000);
                   }}
                   className="btn btn-ghost btn-circle btn-xs shrink-0 sticky top-0"
-                  title={t("common.copy", "Sao chép")}
+                  title={t("common.copy", "Copy")}
                 >
                   {copiedTrans ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                 </button>

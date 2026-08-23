@@ -137,7 +137,7 @@ export function SchedulesTab() {
             await queryClient.invalidateQueries({ queryKey: ["admin", "schedules"] });
             await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
             await Promise.all([schedules.refetch(), tasks.refetch()]);
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
           title={t("admin.operations.refresh")}
         >

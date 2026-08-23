@@ -2,6 +2,7 @@ import { useAuthStore } from "@/stores";
 import type { ProtectedRouteProps } from "@/types";
 import { hasPermission, isAdminUser, isBannedUser } from "@/utils/permission";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -19,6 +20,8 @@ export function ProtectedRoute({
     }))
   );
 
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!booted) {
       bootstrap();
@@ -28,7 +31,7 @@ export function ProtectedRoute({
   if (!booted) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div style={{ color: "var(--muted)" }}>Loading...</div>
+        <div style={{ color: "var(--muted)" }}>{t("common.loading")}</div>
       </div>
     );
   }

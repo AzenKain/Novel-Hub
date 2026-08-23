@@ -748,15 +748,15 @@ export const BookDetailPage: React.FC = () => {
                               sizeBytes: file?.size_bytes,
                             });
                             toast.success(
-                              t("download_manager.added_to_queue", "Đã thêm \"{{title}}\" vào hàng chờ tải", {
+                              t("download_manager.added_to_queue", "Added \"{{title}}\" to download queue", {
                                 title: book.title,
                               })
                             );
                           }}
-                          title={t("download_manager.add_to_queue", "Thêm vào hàng chờ tải")}
+                          title={t("download_manager.add_to_queue", "Add to download queue")}
                         >
                           <ListPlus className="w-4 h-4 shrink-0" />
-                          <span>{t("download_manager.add_to_queue_btn", "Thêm vào hàng chờ")}</span>
+                          <span>{t("download_manager.add_to_queue_btn", "Add to Queue")}</span>
                         </button>
                       </>
                     )}

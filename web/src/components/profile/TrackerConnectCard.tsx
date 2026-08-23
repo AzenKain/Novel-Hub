@@ -92,7 +92,7 @@ export const TrackerConnectCard: React.FC = () => {
                 type="password"
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="Paste your token (eyJ0eXAi...)"
+                placeholder={t("trackers.token_placeholder")}
                 className="input input-bordered w-full font-mono text-xs pr-10"
                 required
               />

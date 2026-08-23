@@ -1,4 +1,5 @@
 import type { Library as LibraryType } from "@/types";
+import { useTranslation } from "react-i18next";
 
 export function LibraryMultiSelect({
   ids,
@@ -9,10 +10,11 @@ export function LibraryMultiSelect({
   libraries: LibraryType[];
   onChange: (ids: string[]) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap gap-2 p-3 bg-base-200/50 rounded-lg border border-base-200 max-h-40 overflow-y-auto">
       {libraries.length === 0 ? (
-        <span className="text-xs opacity-50">No libraries available</span>
+        <span className="text-xs opacity-50">{t("admin.no_libraries_available")}</span>
       ) : (
         libraries.map((lib) => {
           const checked = ids.includes(lib.id);

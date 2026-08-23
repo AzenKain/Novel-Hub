@@ -384,7 +384,7 @@ func (s *featureService) GetBookmarkedBooks(ctx context.Context, userID string, 
 		return nil, apperrors.New(apperrors.ErrBadRequest, "userId is required")
 	}
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
-		limit = 20
+		limit = 18
 	}
 	bookmarkRows, err := s.repo.GetBookmarkedBooks(ctx, userID, cursor, cursorID, limit)
 	if err != nil {

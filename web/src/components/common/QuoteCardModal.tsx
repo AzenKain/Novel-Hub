@@ -363,7 +363,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
     link.download = `quote_${bookTitle.replace(/\s+/g, "_").slice(0, 20)}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    toast.success(t("reader.quote_downloaded", "Đã tải ảnh trích dẫn về máy!"));
+    toast.success(t("reader.quote_downloaded", "Quote image downloaded!"));
   };
 
   const handleCopyImage = async () => {
@@ -376,11 +376,11 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
           new ClipboardItem({ "image/png": blob }),
         ]);
         setCopiedImage(true);
-        toast.success(t("reader.quote_copied", "Đã sao chép ảnh vào Clipboard!"));
+        toast.success(t("reader.quote_copied", "Image copied to clipboard!"));
         setTimeout(() => setCopiedImage(false), 2000);
       });
     } catch {
-      toast.error(t("reader.quote_copy_failed", "Không thể sao chép ảnh"));
+      toast.error(t("reader.quote_copy_failed", "Could not copy image"));
     }
   };
 
@@ -391,17 +391,17 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       className="modal modal-open z-60 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
       data-reader-modal="true"
     >
-      <div className="modal-box max-w-lg p-5 rounded-2xl border border-[var(--reader-ui-border,rgba(255,255,255,0.12))] shadow-2xl bg-[var(--reader-ui-surface-strong,#1e202b)] text-[var(--reader-ui-text,#e2e8f0)] flex flex-col gap-4">
+      <div className="modal-box max-w-lg p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col gap-4">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[var(--reader-ui-border,rgba(255,255,255,0.1))] pb-3">
-          <div className="flex items-center gap-2 font-bold text-sm text-[var(--reader-ui-text)]">
-            <Sparkles className="w-4 h-4 text-[var(--reader-ui-accent,#38bdf8)]" />
-            <span>{t("reader.quote_card_title", "Tạo ảnh trích dẫn")}</span>
+        <div className="flex items-center justify-between border-b border-(--reader-ui-border,rgba(255,255,255,0.1)) pb-3">
+          <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">
+            <Sparkles className="w-4 h-4 text-(--reader-ui-accent,#38bdf8)" />
+            <span>{t("reader.quote_card_title", "Create quote image")}</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-xs btn-circle bg-[var(--reader-ui-soft,rgba(255,255,255,0.06))] hover:bg-[var(--reader-ui-hover,rgba(255,255,255,0.1))] text-[var(--reader-ui-text)] border border-[var(--reader-ui-border)]"
+            className="btn btn-xs btn-circle bg-(--reader-ui-soft,rgba(255,255,255,0.06)) hover:bg-(--reader-ui-hover,rgba(255,255,255,0.1)) text-(--reader-ui-text) border border-(--reader-ui-border)"
           >
             <X size={14} />
           </button>
@@ -409,7 +409,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
 
         {/* Canvas Preview */}
         <div className="flex justify-center items-center py-1">
-          <div className="relative rounded-xl overflow-hidden shadow-2xl border border-[var(--reader-ui-border,rgba(255,255,255,0.15))] max-h-[55vh] flex justify-center bg-black/20">
+          <div className="relative rounded-xl overflow-hidden shadow-2xl border border-(--reader-ui-border,rgba(255,255,255,0.15)) max-h-[55vh] flex justify-center bg-black/20">
             <canvas
               ref={canvasRef}
               className="max-h-[55vh] w-auto h-auto object-contain rounded-xl"
@@ -420,7 +420,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
         {/* Theme Selectors */}
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-xs font-semibold opacity-70">
-            {t("reader.quote_theme", "Chủ đề")}:
+            {t("reader.quote_theme", "Theme")}:
           </span>
           <div className="flex items-center gap-1.5">
             {[
@@ -435,7 +435,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
                 onClick={() => setTheme(th.id as CardTheme)}
                 className={`btn btn-xs rounded-lg text-[11px] font-medium px-2.5 transition-all cursor-pointer ${
                   theme === th.id
-                    ? "ring-2 ring-[var(--reader-ui-accent,#38bdf8)] ring-offset-1 ring-offset-[var(--reader-ui-surface-strong,#1e202b)] opacity-100 font-bold scale-105"
+                    ? "ring-2 ring-(--reader-ui-accent,#38bdf8) ring-offset-1 ring-offset-(--reader-ui-surface-strong,#1e202b) opacity-100 font-bold scale-105"
                     : "opacity-60 hover:opacity-100"
                 } ${th.bg}`}
               >
@@ -446,29 +446,29 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--reader-ui-border,rgba(255,255,255,0.1))]">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-(--reader-ui-border,rgba(255,255,255,0.1))">
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-sm rounded-xl bg-[var(--reader-ui-soft)] hover:bg-[var(--reader-ui-hover)] text-[var(--reader-ui-text)] border border-[var(--reader-ui-border)]"
+            className="btn btn-sm rounded-xl bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border)"
           >
-            {t("common.cancel", "Đóng")}
+            {t("common.cancel", "Cancel")}
           </button>
           <button
             type="button"
             onClick={handleCopyImage}
-            className="btn btn-sm rounded-xl gap-1.5 bg-[var(--reader-ui-soft)] hover:bg-[var(--reader-ui-hover)] text-[var(--reader-ui-text)] border border-[var(--reader-ui-border)] font-semibold"
+            className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border) font-semibold"
           >
             {copiedImage ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-            <span>{copiedImage ? t("reader.copied", "Đã chép") : t("reader.copy_image", "Sao chép ảnh")}</span>
+            <span>{copiedImage ? t("reader.copied", "Copied") : t("reader.copy_image", "Copy Image")}</span>
           </button>
           <button
             type="button"
             onClick={handleDownload}
-            className="btn btn-sm rounded-xl gap-1.5 bg-[var(--reader-ui-accent,#38bdf8)] text-[var(--reader-ui-accent-text,#08111d)] border-0 hover:opacity-90 font-bold"
+            className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90 font-bold"
           >
             <Download size={14} />
-            <span>{t("reader.download_image", "Tải ảnh về")}</span>
+            <span>{t("reader.download_image", "Download image")}</span>
           </button>
         </div>
       </div>

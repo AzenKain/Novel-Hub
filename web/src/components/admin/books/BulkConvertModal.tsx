@@ -191,11 +191,11 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                         <>
                           {/* Source File */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">Source File</label>
+                            <label className="text-[9px] font-bold uppercase opacity-50">{t("book.select_source_file")}</label>
                             <select
                               value={state.selectedFileId}
                               onChange={(e) => updateBookState(book.id, { selectedFileId: e.target.value })}
-                              className="select select-bordered select-xs max-w-[120px]"
+                              className="select select-bordered select-xs max-w-30"
                             >
                               {book.files?.map((f) => (
                                 <option key={f.id} value={f.id}>
@@ -207,7 +207,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
 
                           {/* Target Format */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">Target Format</label>
+                            <label className="text-[9px] font-bold uppercase opacity-50">{t("book.select_target_format")}</label>
                             <select
                               value={state.targetFormat}
                               onChange={(e) => updateBookState(book.id, { targetFormat: e.target.value, overwriteChecked: false })}
@@ -256,7 +256,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
             <button type="button" className="btn btn-ghost" onClick={onClose} disabled={bulkConvertMutation.isPending}>
               {t("common.cancel")}
             </button>
-            <button type="submit" className="btn btn-primary min-w-[120px]" disabled={bulkConvertMutation.isPending || needsConfirmation}>
+            <button type="submit" className="btn btn-primary min-w-30" disabled={bulkConvertMutation.isPending || needsConfirmation}>
               {bulkConvertMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-1.5" />

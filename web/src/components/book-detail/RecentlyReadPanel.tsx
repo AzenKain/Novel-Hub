@@ -56,7 +56,7 @@ export const RecentlyReadPanel: React.FC<RecentlyReadPanelProps> = ({
                   {cover_url ? (
                     <img
                       src={cover_url}
-                      alt="Cover"
+                      alt={t("common.alt_cover", "Cover")}
                       loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover"
                     />

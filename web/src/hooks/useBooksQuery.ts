@@ -25,12 +25,25 @@ export function useBookmarkedBooksQuery(enabled = true) {
     queryKey: ["books", "bookmarked"],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      const res = await featureService.getBookmarkedBooks(pageParam, 20);
+      const res = await featureService.getBookmarkedBooks(pageParam, 18);
       if (!res.status) throw new Error(res.message || "Failed to fetch bookmarked books");
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     enabled,
+  });
+}
+
+export function useGuestBookmarkedBooksQuery(bookIds: string[], enabled = true) {
+  return useQuery<Book[]>({
+    queryKey: ["books", "guest-bookmarked", bookIds],
+    queryFn: async () => {
+      const res = await bookService.getBooks({ limit: 100 });
+      if (!res.status) throw new Error(res.message || "Failed to fetch books");
+      const idSet = new Set(bookIds);
+      return (res.data || []).filter((b) => idSet.has(b.id));
+    },
+    enabled: enabled && bookIds.length > 0,
   });
 }
 

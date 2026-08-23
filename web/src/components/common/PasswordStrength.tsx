@@ -1,18 +1,20 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface PasswordStrengthProps {
   password?: string;
 }
 
 export function PasswordStrength({ password = "" }: PasswordStrengthProps) {
+  const { t } = useTranslation();
   if (password.length === 0) return null;
 
   const passwordReqs = [
-    { label: "At least 8 characters", valid: password.length >= 8 },
-    { label: "Contains uppercase letter", valid: /[A-Z]/.test(password) },
-    { label: "Contains lowercase letter", valid: /[a-z]/.test(password) },
-    { label: "Contains number", valid: /\d/.test(password) },
-    { label: "Contains special character", valid: /[^A-Za-z0-9]/.test(password) },
+    { label: t("auth.req_length"), valid: password.length >= 8 },
+    { label: t("auth.req_upper"), valid: /[A-Z]/.test(password) },
+    { label: t("auth.req_lower"), valid: /[a-z]/.test(password) },
+    { label: t("auth.req_number"), valid: /\d/.test(password) },
+    { label: t("auth.req_special"), valid: /[^A-Za-z0-9]/.test(password) },
   ];
 
   const validReqCount = passwordReqs.filter((r) => r.valid).length;
@@ -24,15 +26,15 @@ export function PasswordStrength({ password = "" }: PasswordStrengthProps) {
   };
 
   const getStrengthLabel = () => {
-    if (validReqCount <= 2) return "Weak";
-    if (validReqCount <= 4) return "Fair";
-    return "Strong";
+    if (validReqCount <= 2) return t("auth.strength_weak");
+    if (validReqCount <= 4) return t("auth.strength_fair");
+    return t("auth.strength_strong");
   };
 
   return (
     <div className="flex flex-col gap-2 mt-2">
       <div className="flex justify-between items-center text-xs font-semibold">
-        <span>Password Strength:</span>
+        <span>{t("auth.password_strength")}</span>
         <span
           className={
             validReqCount <= 2

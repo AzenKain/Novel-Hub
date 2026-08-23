@@ -47,6 +47,7 @@ export function useReaderPaging({
 }: UseReaderPagingArgs) {
   const prevModeRef = useRef<string>(effectiveReadingMode);
   const lastPageIndexRef = useRef<number>(pageIndex);
+  const isResizingRef = useRef<boolean>(false);
   const cachedNodesRef = useRef<HTMLElement[] | null>(null);
   const cachedNodesContentRef = useRef<string>("");
 
@@ -128,9 +129,29 @@ export function useReaderPaging({
     if (!frame) return;
 
     const updatePageFrameWidth = () => {
+      isResizingRef.current = true;
+      cachedNodesContentRef.current = "";
+      const targetPage = lastPageIndexRef.current;
       setPageFrameWidth(frame.clientWidth);
+
+      if (frame.clientHeight > 0) {
+        frame.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
+      }
+
+      const container = getPagedScrollContainer();
+      if (container) {
+        if (frame.clientHeight > 0) {
+          container.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
+        }
+        const newStep = frame.clientWidth + READER_PAGE_GAP;
+        container.scrollLeft = targetPage * newStep * (rtlPaging ? -1 : 1);
+      }
+
       requestAnimationFrame(() => {
-        scrollToPageIndex(lastPageIndexRef.current, true);
+        scrollToPageIndex(targetPage, true);
+        setTimeout(() => {
+          isResizingRef.current = false;
+        }, 60);
       });
     };
 
@@ -144,7 +165,7 @@ export function useReaderPaging({
       resizeObserver.disconnect();
       window.removeEventListener("resize", updatePageFrameWidth);
     };
-  }, [scrollLayout, maxWidth]);
+  }, [scrollLayout, maxWidth, effectiveReadingMode, rtlPaging]);
 
   useEffect(() => {
     lastPageIndexRef.current = pageIndex;
@@ -297,6 +318,7 @@ export function useReaderPaging({
     const container = getPagedScrollContainer();
     if (!container) return;
     const onScroll = () => {
+      if (isResizingRef.current) return;
       const metrics = getPagedScrollMetrics();
       if (!metrics) return;
       const idx = Math.round(Math.abs(container.scrollLeft) / metrics.scrollStep);

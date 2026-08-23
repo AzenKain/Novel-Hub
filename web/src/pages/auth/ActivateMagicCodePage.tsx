@@ -65,7 +65,7 @@ export const ActivateMagicCodePage: React.FC = () => {
 
           {!isAuthenticated ? (
             <div className="alert alert-warning text-xs mt-4 text-left flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">{t("auth.login_required", "Login Required")}</p>
                 <p>{t("auth.login_to_activate_ereader", "Please log in to your NovelHub account first to activate this eReader.")}</p>
@@ -112,7 +112,7 @@ export const ActivateMagicCodePage: React.FC = () => {
 
               {error && (
                 <div className="alert alert-error text-xs p-3 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}

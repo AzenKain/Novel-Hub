@@ -57,7 +57,7 @@ export function LogsTab() {
           disabled={tail.isFetching}
           onClick={async () => {
             await tail.refetch();
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${tail.isFetching ? "animate-spin" : ""}`} />

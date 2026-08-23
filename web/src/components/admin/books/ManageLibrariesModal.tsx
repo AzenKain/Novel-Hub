@@ -116,7 +116,7 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
                         type="button"
                         onClick={() => handleCopyId(library.id)}
                         className="btn btn-ghost btn-circle btn-xs hover:bg-base-300 h-5 w-5 min-h-0"
-                        title="Copy Library ID"
+                        title={t("admin.copy_library_id")}
                       >
                         {copiedId === library.id ? (
                           <Check size={11} className="text-success" />

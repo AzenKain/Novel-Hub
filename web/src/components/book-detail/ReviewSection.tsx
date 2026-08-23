@@ -44,7 +44,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
   const [deleteLoading, setDeleteLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const applyFormat = (prefix: string, suffix = prefix, placeholder = "nội dung") => {
+  const applyFormat = (prefix: string, suffix = prefix, placeholder = t("review.fmt_content")) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -196,33 +196,33 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 <div className="flex items-center gap-0.5 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => applyFormat("**", "**", "in đậm")}
+                    onClick={() => applyFormat("**", "**", t("review.fmt_bold"))}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 font-bold hover:bg-base-300 rounded"
-                    title="In đậm (**text**)"
+                    title={t("review.fmt_bold_title")}
                   >
                     <Bold className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("*", "*", "in nghiêng")}
+                    onClick={() => applyFormat("*", "*", t("review.fmt_italic"))}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 italic hover:bg-base-300 rounded"
-                    title="In nghiêng (*text*)"
+                    title={t("review.fmt_italic_title")}
                   >
                     <Italic className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("__", "__", "gạch chân")}
+                    onClick={() => applyFormat("__", "__", t("review.fmt_underline"))}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 underline hover:bg-base-300 rounded"
-                    title="Gạch chân (__text__)"
+                    title={t("review.fmt_underline_title")}
                   >
                     <UnderlineIcon className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("~~", "~~", "gạch ngang")}
+                    onClick={() => applyFormat("~~", "~~", t("review.fmt_strikethrough"))}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 line-through hover:bg-base-300 rounded"
-                    title="Gạch ngang (~~text~~)"
+                    title={t("review.fmt_strikethrough_title")}
                   >
                     <StrikeIcon className="w-3.5 h-3.5" />
                   </button>
@@ -230,24 +230,24 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                     type="button"
                     onClick={() => applyFormat("`", "`", "code")}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 font-mono hover:bg-base-300 rounded"
-                    title="Mã code (`code`)"
+                    title={t("review.fmt_code_title")}
                   >
                     <Code className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("> ", "", "trích dẫn")}
+                    onClick={() => applyFormat("> ", "", t("review.fmt_quote"))}
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 hover:bg-base-300 rounded"
-                    title="Trích dẫn (> quote)"
+                    title={t("review.fmt_quote_title")}
                   >
                     <Quote className="w-3.5 h-3.5" />
                   </button>
                   <div className="h-4 w-px bg-base-300 mx-1" />
                   <button
                     type="button"
-                    onClick={() => applyFormat("||", "||", "nội dung spoiler ẩn")}
+                    onClick={() => applyFormat("||", "||", t("review.fmt_spoiler"))}
                     className="btn btn-xs bg-neutral-800 text-white hover:bg-neutral-700 h-7 min-h-0 px-2 gap-1 rounded font-semibold text-[11px] shadow-xs"
-                    title="Ẩn nội dung Spoiler (||spoiler||)"
+                    title={t("review.fmt_spoiler_title")}
                   >
                     <EyeOff className="w-3 h-3 text-warning" />
                     <span>Spoiler</span>
@@ -264,7 +264,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                         : "btn-ghost opacity-60 hover:opacity-100"
                     }`}
                   >
-                    {t("common.write", "Viết")}
+                    {t("common.write", "Write")}
                   </button>
                   <button
                     type="button"
@@ -276,7 +276,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                     }`}
                   >
                     <Sparkles className="w-3 h-3" />
-                    {t("common.preview", "Xem trước")}
+                    {t("common.preview", "Image preview")}
                   </button>
                 </div>
               </div>
@@ -287,13 +287,13 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                   {reviewText.trim() ? (
                     <div className="space-y-1">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">
-                        {t("review.preview_hint", "Xem trước định dạng:")}
+                        {t("review.preview_hint", "Preview format:")}
                       </div>
                       <DiscordMarkdown content={reviewText} className="text-sm text-base-content" />
                     </div>
                   ) : (
                     <div className="py-8 text-center text-sm text-base-content/40 italic">
-                      {t("review.empty_preview", "Chưa có nội dung để xem trước")}
+                      {t("review.empty_preview", "No content to preview yet")}
                     </div>
                   )}
                 </div>
@@ -301,7 +301,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 <textarea
                   ref={textareaRef}
                   className="textarea bg-transparent border-0 w-full resize-none h-32 text-sm focus:outline-hidden p-3 font-normal"
-                  placeholder={t("review.placeholder", "Chia sẻ cảm nghĩ về cuốn sách này... (Hỗ trợ **đậm**, *nghiêng*, ||spoiler||)")}
+                  placeholder={t("review.placeholder", "What did you think about this book?")}
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
                   disabled={upsertMutation.isPending}
@@ -311,7 +311,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
               {/* Bottom bar */}
               <div className="flex items-center justify-between border-t border-base-200/60 bg-base-200/20 px-3 py-2">
                 <span className="text-[11px] text-base-content/50">
-                  💡 {t("review.spoiler_tip", "Dùng ||nội dung|| để ẩn spoiler")}
+                  💡 {t("review.spoiler_tip", "Use ||content|| to hide spoilers")}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {userReview && (
@@ -323,7 +323,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                       title={t("common.delete", "Delete")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>{t("common.delete", "Xoá")}</span>
+                      <span>{t("common.delete", "Delete")}</span>
                     </button>
                   )}
                   <button 
@@ -332,7 +332,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                     disabled={upsertMutation.isPending || deleteMutation.isPending || !reviewText.trim()}
                   >
                     {upsertMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    <span>{t("common.submit", "Gửi đánh giá")}</span>
+                    <span>{t("common.submit", "Submit")}</span>
                   </button>
                 </div>
               </div>

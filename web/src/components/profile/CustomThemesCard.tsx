@@ -191,18 +191,18 @@ export const CustomThemesCard: React.FC = () => {
               <div className="flex items-center justify-between text-xs mb-2 opacity-80">
                 <span className="font-bold flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5" />
-                  {t("theme.preview", "Live Preview")}: {name || "Untitled Theme"}
+                  {t("theme.preview", "Live Preview")}: {name || t("theme.untitled_theme")}
                 </span>
                 <span
                   className="px-2 py-0.5 rounded text-[10px] font-bold"
                   style={{ backgroundColor: accentColor, color: bgColor }}
                 >
-                  Accent Badge
+                  {t("theme.preview_accent_badge")}
                 </span>
               </div>
-              <h4 className="text-base font-bold mb-1">Chương 1: Khởi Đầu Hành Trình Mới</h4>
+              <h4 className="text-base font-bold mb-1">{t("theme.preview_title")}</h4>
               <p className="text-xs opacity-90 leading-relaxed">
-                Ánh hoàng hôn buông xuống trên mặt hồ yên ả. Những dòng chữ hiện lên sắc nét, dịu êm cho đôi mắt trong suốt hàng giờ đọc sách.
+                {t("theme.preview_text")}
               </p>
             </div>
 
@@ -300,7 +300,7 @@ export const CustomThemesCard: React.FC = () => {
                     </div>
 
                     <p className="text-xs opacity-85 line-clamp-2 leading-relaxed">
-                      Đoạn văn mẫu hiển thị giao diện đọc sách theo phối màu tùy biến này.
+                      {t("theme.preview_sample")}
                     </p>
                   </div>
                 );

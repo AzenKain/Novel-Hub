@@ -168,7 +168,7 @@ export function Roles() {
   function savePermissions() {
     if (!selectedRole) return;
     if (selectedRole.is_admin) {
-      toast.warning("Cannot modify admin role permissions.");
+      toast.warning(t("admin.role_no_modify_admin"));
       return;
     }
     assignPermissionsMutation.mutate(
@@ -181,7 +181,7 @@ export function Roles() {
         })),
       },
       {
-        onSuccess: () => toast.success("Permissions updated"),
+        onSuccess: () => toast.success(t("admin.permissions_updated")),
         onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
       }
     );
@@ -196,7 +196,7 @@ export function Roles() {
   function openEdit() {
     if (!selectedRole) return;
     if (selectedRole.is_admin) {
-      toast.warning("Cannot edit admin role.");
+      toast.warning(t("admin.role_no_edit_admin"));
       return;
     }
     setForm({
@@ -270,7 +270,7 @@ export function Roles() {
             await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
             await queryClient.invalidateQueries({ queryKey: ["admin", "permissions"] });
             await Promise.all([refetchRoles(), refetchPermissions()]);
-            toast.info(t("common.refreshed", "Đã làm mới dữ liệu"));
+            toast.info(t("common.refreshed", "Data refreshed"));
           }}
           className="btn btn-square btn-ghost btn-sm sm:btn-md"
           title={t("admin.operations.refresh", "Refresh")}
@@ -568,7 +568,7 @@ export function Roles() {
             <form onSubmit={handleSave} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Role Name</span>
+                  <span className="label-text font-semibold">{t("admin.role_name")}</span>
                 </label>
                 <input
                   type="text"
@@ -582,7 +582,7 @@ export function Roles() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Description</span>
+                  <span className="label-text font-semibold">{t("admin.description")}</span>
                 </label>
                 <textarea
                   rows={2}
@@ -603,8 +603,8 @@ export function Roles() {
                       className="checkbox checkbox-primary checkbox-sm"
                     />
                     <div>
-                      <span className="label-text font-semibold">Auto-assign on Register</span>
-                      <p className="text-xs text-base-content/60">Newly registered users automatically get this role.</p>
+                      <span className="label-text font-semibold">{t("admin.role_auto_assign")}</span>
+                      <p className="text-xs text-base-content/60">{t("admin.role_auto_assign_desc")}</p>
                     </div>
                   </label>
                 </div>

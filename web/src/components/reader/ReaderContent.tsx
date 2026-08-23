@@ -52,14 +52,31 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
         return;
       }
 
-      // Tag immediate block wrapper as reader-image-page
-      let wrapper = img.parentElement;
-      if (wrapper && wrapper.tagName.toLowerCase() === "a") {
-        wrapper = wrapper.parentElement;
+      // Tag all only-image ancestor containers as reader-image-page
+      let highestOnlyChild: HTMLElement | null = null;
+      let current = img.parentElement;
+      while (current && current !== el && !current.classList.contains("reader-content")) {
+        const text = (current.textContent || "").trim();
+        const imgCount = current.querySelectorAll("img").length;
+        if (imgCount === 1 && text === "") {
+          highestOnlyChild = current;
+        }
+        current = current.parentElement;
       }
-      if (wrapper && !wrapper.classList.contains("reader-image-page") && !wrapper.classList.contains("reader-content")) {
-        wrapper.classList.add("reader-image-page");
-        wrapper.style.position = "relative";
+
+      if (highestOnlyChild) {
+        let node: HTMLElement | null = img.parentElement;
+        while (node && node !== highestOnlyChild.parentElement) {
+          node.classList.add("reader-image-page");
+          Array.from(node.childNodes).forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE && (child.textContent || "").trim() === "") {
+              child.remove();
+            } else if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName.toLowerCase() === "br") {
+              child.remove();
+            }
+          });
+          node = node.parentElement;
+        }
       }
 
       img.style.cursor = "pointer";
@@ -71,6 +88,25 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
           parent.style.display = "none";
         }
       };
+    });
+
+    // Auto-detect and tag chapter title paragraphs
+    const CHAPTER_TITLE_REGEX = /^(?:chương|chapter|ch\.|hồi|tiết|phần|tập|quyển|vol(?:ume)?\.?|mục|mở đầu|kết thúc|lời bạt|ngoại truyện|minh ho[aạ]|hình minh ho[aạ]|prologue|epilogue|afterword|interlude|side story|extra|bonus|act\b|scene\b|bài|thứ|đoạn|thông tin|giới thiệu|nhân vật)\b/i;
+    let foundFirstText = false;
+    el.querySelectorAll<HTMLElement>("p, div, h1, h2, h3, h4, h5, h6").forEach((item) => {
+      if (item.classList.contains("reader-image-page") || item.querySelector("img")) return;
+      const text = (item.textContent || "").trim();
+      if (!text) return;
+
+      const isFirstParagraph = !foundFirstText;
+      foundFirstText = true;
+
+      const matchesTitlePattern = CHAPTER_TITLE_REGEX.test(text);
+      const isShortHeadingCandidate = isFirstParagraph && text.length <= 65 && !/[.!?]["']?\s*$/.test(text);
+
+      if (matchesTitlePattern || isShortHeadingCandidate || item.classList.contains("title") || item.classList.contains("title-top")) {
+        item.classList.add("chapter-title");
+      }
     });
   }, [sanitizedHTML, columnsRef]);
 

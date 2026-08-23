@@ -64,7 +64,7 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
           ))}
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth snap-x snap-mandatory">
           {books.map((b: Book) => {
             const isCurrent = b.id === currentBookId;
             return (

@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+
+import type { MetadataCount } from "./book";
+
 export interface Library {
   id: string;
   name: string;
@@ -44,3 +48,17 @@ export interface SmartCollection {
   created_at: string;
   updated_at: string;
 }
+
+export type LibraryNavItem = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+};
+
+export type MetadataFacetSection = {
+  nav: string;
+  type: string;
+  label: string;
+  icon: ReactNode;
+  items: MetadataCount[];
+};

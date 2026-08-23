@@ -105,7 +105,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           onClick={() => book && onRead(book)}
         >
           <BookOpen className="h-4 w-4 shrink-0" />
-          <span className="truncate">Read</span>
+          <span className="truncate">{t('reader.read')}</span>
         </button>
         <button
           type="button"
@@ -151,7 +151,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           onClick={() => book && onEdit(book)}
         >
           <Settings className="h-4 w-4 shrink-0" />
-          <span className="truncate">Edit</span>
+          <span className="truncate">{t('common.edit')}</span>
         </button>
         <button
           type="button"
@@ -160,7 +160,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           onClick={() => book && onConvert(book)}
         >
           <FileText className="h-4 w-4 shrink-0" />
-          <span className="truncate">Convert</span>
+          <span className="truncate">{t('book.convert')}</span>
         </button>
         <button
           type="button"
@@ -169,7 +169,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           onClick={() => book && onMerge(book)}
         >
           <AudioLines className="h-4 w-4 shrink-0" />
-          <span className="truncate">Merge</span>
+          <span className="truncate">{t('book.merge')}</span>
         </button>
         <button
           type="button"
@@ -180,12 +180,12 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           {isArchived ? (
             <>
               <ArchiveRestore className="h-4 w-4 shrink-0" />
-              <span className="truncate">Unarchive</span>
+              <span className="truncate">{t('book.unarchive')}</span>
             </>
           ) : (
             <>
               <Archive className="h-4 w-4 shrink-0" />
-              <span className="truncate">Archive</span>
+              <span className="truncate">{t('book.archive')}</span>
             </>
           )}
         </button>
@@ -196,7 +196,7 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           onClick={() => book && onDelete(book)}
         >
           <Trash2 className="h-4 w-4 shrink-0" />
-          <span className="truncate">Delete</span>
+          <span className="truncate">{t('common.delete')}</span>
         </button>
       </footer>
     </div>

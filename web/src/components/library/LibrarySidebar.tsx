@@ -6,14 +6,7 @@ import { featureService } from "@/services";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
 import { usePublicSettings } from "@/hooks/useSettings";
-import type { Collection, SmartCollection, SmartCollectionRule, User, SmartFilter } from "@/types";
-import type { MetadataFacetSection } from "./MetadataIndexView";
-
-export type LibraryNavItem = {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-};
+import type { Collection, LibraryNavItem, MetadataFacetSection, SmartCollection, SmartCollectionRule, User, SmartFilter } from "@/types";
 
 type LibrarySidebarProps = {
   t: (key: string, fallback: string) => string;
@@ -170,7 +163,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           className="mt-2 mb-3 flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"
         >
           {siteLogo ? (
-            <img src={siteLogo} alt="Logo" className="h-9 w-9 rounded-lg object-contain shadow-md" />
+            <img src={siteLogo} alt={t("common.alt_logo", "Logo")} className="h-9 w-9 rounded-lg object-contain shadow-md" />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-md shadow-primary/20">
               NH
@@ -243,7 +236,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                         <button
                           tabIndex={0}
                           className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mr-1"
-                          aria-label="Collection options"
+                          aria-label={t("library.collection_options", "Collection options")}
                         >
                           {isDeleting === collection.id ? (
                             <span className="loading loading-spinner loading-xs"></span>
@@ -462,11 +455,11 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             className="relative z-10 w-full max-w-sm rounded-2xl border border-base-200 bg-base-100 p-6 shadow-2xl space-y-4"
           >
             <h3 className="text-lg font-bold text-base-content">
-              {t("library.edit_collection", "Chỉnh sửa bộ sưu tập")}
+              {t("library.edit_collection", "Edit collection")}
             </h3>
             <div>
               <label className="text-xs font-medium text-base-content/70 mb-1 block">
-                {t("library.collection_name", "Tên bộ sưu tập")}
+                {t("library.collection_name", "Collection name")}
               </label>
               <input
                 type="text"
@@ -482,14 +475,14 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 className="btn btn-ghost rounded-xl"
                 onClick={() => setEditingCollection(null)}
               >
-                {t("common.cancel", "Hủy")}
+                {t("common.cancel", "Cancel")}
               </button>
               <button
                 type="submit"
                 className="btn btn-primary rounded-xl"
                 disabled={!editingName.trim()}
               >
-                {t("common.save", "Lưu")}
+                {t("common.save", "Save")}
               </button>
             </div>
           </form>

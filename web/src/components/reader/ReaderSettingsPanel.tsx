@@ -190,10 +190,10 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               className={`reader-theme-choice flex flex-col items-center justify-center gap-1 rounded-xl border py-2 px-1 transition-all ${
                 theme === "eink" ? "reader-theme-choice-active" : ""
               }`}
-              title="1-bit Pure E-Ink high contrast mode"
+              title={t("reader.eink_title")}
             >
               <Eye className="h-4 w-4" />
-              <span className="text-[10px] font-medium">E-Ink</span>
+              <span className="text-[10px] font-medium">{t("reader.eink")}</span>
             </button>
             <button
               onClick={() => setTheme("custom")}
@@ -487,10 +487,10 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             className={`reader-theme-choice flex flex-col items-center justify-center gap-1 rounded-xl border py-2 px-1 transition-all ${
               theme === "eink" ? "reader-theme-choice-active" : ""
             }`}
-            title="1-bit Pure E-Ink high contrast mode (0ms transitions, no shadows)"
+            title={t("reader.eink_title_fast")}
           >
             <Eye className="h-4 w-4" />
-            <span className="text-[10px] font-medium">E-Ink</span>
+            <span className="text-[10px] font-medium">{t("reader.eink")}</span>
           </button>
           <button
             onClick={() => setTheme("custom")}

@@ -69,13 +69,13 @@ export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, co
         )}
         {book.cover_url ? (
           <>
-            <img src={getMediaUrl(book.cover_url, book.id, book.updated_at)} alt={book.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105" />
+            <img src={getMediaUrl(book.cover_url, book.id, book.updated_at)} alt={book.title} loading="lazy" draggable={false} className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-150 ease-out motion-reduce:transition-none group-hover:brightness-105 select-none pointer-events-none" />
             <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/3" />
           </>
         ) : (
           <>
             <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90`}>NOVEL</small>
+            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90`}>{t('book.novel_label')}</small>
             <strong className={`z-10 ${compact ? 'text-sm' : 'text-lg'} leading-tight line-clamp-3 font-bold`} style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{book.title}</strong>
             <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90 self-end`}>{format}</small>
           </>
