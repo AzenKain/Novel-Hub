@@ -176,11 +176,11 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
       className={`relative z-50 flex h-14 w-full flex-none items-center justify-between border-b px-3 sm:px-4 ${headerBg} backdrop-blur-md`}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.toc", "Table of Contents")}>
+        <div className="tooltip tooltip-bottom" data-tip={t("reader.toc", "Contents")}>
           <label
             htmlFor="reader-drawer"
             className="reader-control-btn btn btn-square btn-sm cursor-pointer"
-            aria-label={t("reader.toc", "Table of Contents")}
+            aria-label={t("reader.toc", "Contents")}
           >
             <Menu className="h-5 w-5" />
           </label>
@@ -250,11 +250,11 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         )}
 
         {onOpenSearch && !isAudio && !isComic && (
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.in_book_search", "Search in Book")}>
+          <div className="tooltip tooltip-bottom" data-tip={t("reader.in_book_search", "Search")}>
             <button
               onClick={onOpenSearch}
               className="reader-control-btn btn btn-square btn-sm animate-none"
-              aria-label={t("reader.in_book_search", "Search in Book")}
+              aria-label={t("reader.in_book_search", "Search")}
             >
               <Search className="h-5 w-5" />
             </button>
@@ -264,7 +264,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         {/* Active Image Actions Button & Dropdown */}
         {activeImageTarget && (
           <div className="relative">
-            <div className="tooltip tooltip-bottom" data-tip={t("reader.bookmark_image", "Bookmark this image")}>
+            <div className="tooltip tooltip-bottom" data-tip={t("reader.bookmark_image", "Bookmark image")}>
               <button
                 type="button"
                 onClick={() => {
@@ -277,7 +277,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                 className={`reader-control-btn btn btn-square btn-sm animate-none relative ${
                   imageDropdownOpen ? "text-amber-400 reader-control-btn-active" : "text-amber-400"
                 }`}
-                aria-label={t("reader.bookmark_image", "Bookmark this image")}
+                aria-label={t("reader.bookmark_image", "Bookmark image")}
               >
                 <BookmarkPlus className="h-5 w-5" />
                 <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
@@ -411,7 +411,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                 className="tooltip tooltip-bottom"
                 data-tip={
                   ttsPlaying
-                    ? t("reader.tts_pause", "Pause Reading")
+                    ? t("reader.tts_pause", "Pause")
                     : t("reader.tts_play", "Read Aloud")
                 }
               >
@@ -422,7 +422,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   }`}
                   aria-label={
                     ttsPlaying
-                      ? t("reader.tts_pause", "Pause Reading")
+                      ? t("reader.tts_pause", "Pause")
                       : t("reader.tts_play", "Read Aloud")
                   }
                 >
@@ -430,17 +430,17 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                 </button>
               </div>
               {(ttsPlaying || ttsPaused) && (
-                <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_stop", "Stop Reading")}>
+                <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_stop", "Stop")}>
                   <button
                     onClick={onTtsStop}
                     className="reader-control-btn btn btn-square btn-sm animate-none text-error"
-                    aria-label={t("reader.tts_stop", "Stop Reading")}
+                    aria-label={t("reader.tts_stop", "Stop")}
                   >
                     <Square className="h-5 w-5" />
                   </button>
                 </div>
               )}
-              <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_settings", "Voice & Speed Settings")}>
+              <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_settings", "Voice & Speed")}>
                 <button
                   onClick={() => {
                     setTtsSettingsOpen(!ttsSettingsOpen);
@@ -450,7 +450,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   className={`reader-control-btn btn btn-square btn-sm animate-none ${
                     ttsSettingsOpen ? "reader-control-btn-active text-primary" : ""
                   }`}
-                  aria-label={t("reader.tts_settings", "Voice & Speed Settings")}
+                  aria-label={t("reader.tts_settings", "Voice & Speed")}
                 >
                   <Volume2 className="h-5 w-5" />
                 </button>
@@ -528,7 +528,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
 
         {/* Mobile More Tools Menu Button (Hidden on md+) */}
         <div className="relative md:hidden">
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.more_tools", "Reading Tools")}>
+          <div className="tooltip tooltip-bottom" data-tip={t("reader.more_tools", "Tools")}>
             <button
               onClick={() => {
                 setMoreMenuOpen(!moreMenuOpen);
@@ -539,7 +539,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
               className={`reader-control-btn btn btn-square btn-sm animate-none relative ${
                 moreMenuOpen || isSoundscapePlaying ? "text-primary" : ""
               }`}
-              aria-label={t("reader.more_tools", "Reading Tools")}
+              aria-label={t("reader.more_tools", "Tools")}
             >
               <MoreHorizontal className="h-5 w-5" />
               {activeSoundscapeCount > 0 && (
@@ -706,7 +706,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         </div>
 
         {!isAudio && (
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.open_settings", "Reader Settings")}>
+          <div className="tooltip tooltip-bottom" data-tip={t("reader.open_settings", "Settings")}>
             <button
               onClick={() => {
                 setSettingsOpen(!settingsOpen);
@@ -717,7 +717,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
               className={`reader-control-btn btn btn-square btn-sm animate-none ${
                 settingsOpen ? "reader-control-btn-active" : ""
               }`}
-              aria-label={t("reader.open_settings", "Reader Settings")}
+              aria-label={t("reader.open_settings", "Settings")}
             >
               <Settings className="h-5 w-5" />
             </button>

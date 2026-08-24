@@ -1,7 +1,6 @@
 import type { TFunction } from "i18next";
 import {
   AlignCenter,
-  AlignJustify,
   AlignLeft,
   AlignRight,
   BookText,
@@ -707,7 +706,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             {t("reader.text_align", "Text Alignment")}
           </span>
         </div>
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-4 gap-1">
           <button
             type="button"
             onClick={() => setTextAlign?.("original")}
@@ -729,17 +728,6 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           >
             <AlignLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t("reader.align_left_short", "Left")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTextAlign?.("justify")}
-            className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight cursor-pointer ${
-              textAlign === "justify" ? "reader-segment-btn-active" : ""
-            }`}
-            title={t("reader.align_justify", "Justify")}
-          >
-            <AlignJustify className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("reader.align_justify_short", "Justify")}</span>
           </button>
           <button
             type="button"

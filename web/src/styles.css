@@ -1057,14 +1057,23 @@ label.btn-primary:hover:not(:disabled) {
   text-wrap: pretty !important;
 }
 
-[data-align]:not([data-align="original"]) .reader-content :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),
-.reader-content[data-align]:not([data-align="original"]) :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt) {
-  text-align: var(--reader-text-align) !important;
+.reader-content[data-align="left"] :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),
+[data-align="left"] .reader-content :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt) {
+  text-align: left !important;
+}
+
+.reader-content[data-align="right"] :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),
+[data-align="right"] .reader-content :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt) {
+  text-align: right !important;
+}
+
+.reader-content[data-align="center"] :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),
+[data-align="center"] .reader-content :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt) {
+  text-align: center !important;
 }
 
 .reader-content [align="center"] { text-align: center; }
 .reader-content [align="right"] { text-align: right; }
-.reader-content [align="justify"] { text-align: justify; }
 .reader-content [align="left"] { text-align: left; }
 .reader-content .uppercase { text-transform: uppercase; }
 .reader-content .small-caps { font-variant: small-caps; }

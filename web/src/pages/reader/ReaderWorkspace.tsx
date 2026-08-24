@@ -197,7 +197,10 @@ const ReaderWorkspaceInner = () => {
   }, [reset]);
 
   const { isSupported, isPlaying, isPaused, speak, pause, resume, stop, voices, selectedVoice, setSelectedVoice, rate, setRate } = useTTS({
-    onEnd: () => clearHighlight(),
+    onEnd: () => {
+      clearHighlight();
+      ttsStartPointRef.current = null;
+    },
     onBoundary: (e) => {
       if (columnsRef.current && (e.name === 'word' || !e.name)) {
         const textToSearch = e.utterance?.text || "";
@@ -206,6 +209,12 @@ const ReaderWorkspaceInner = () => {
       }
     }
   });
+
+  const handleTtsStop = useCallback(() => {
+    stop();
+    clearHighlight();
+    ttsStartPointRef.current = null;
+  }, [stop]);
 
   useEffect(() => {
     if (ttsRate && ttsRate !== rate) {
@@ -238,7 +247,9 @@ const ReaderWorkspaceInner = () => {
     } else if (isPaused) {
       resume();
     } else if (htmlContent) {
-      const text = extractTextFromHtml(htmlContent);
+      ttsStartPointRef.current = null;
+      clearHighlight();
+      const text = extractTextFromHtml(htmlContent, columnsRef.current);
       if (text.trim()) {
         ttsOffsetRef.current = 0;
         speak(text);
@@ -737,7 +748,7 @@ const ReaderWorkspaceInner = () => {
     if (!book_id) return;
     setCurrentChapter(chapter);
     setHtmlContent("");
-    stop();
+    handleTtsStop();
     try {
       const html = await readerService.getChapterHtml(book_id, chapter.id, file_id);
       setHtmlContent(await resolveHTML(html));
@@ -1170,7 +1181,7 @@ const ReaderWorkspaceInner = () => {
           ttsPlaying={isPlaying}
           ttsPaused={isPaused}
           onTtsPlayPause={handleTtsPlayPause}
-          onTtsStop={stop}
+          onTtsStop={handleTtsStop}
           ttsVoices={voices}
           ttsSelectedVoice={selectedVoice}
           setTtsSelectedVoice={handleTtsVoiceChange}
@@ -1178,10 +1189,10 @@ const ReaderWorkspaceInner = () => {
           setTtsRate={handleTtsRateChange}
           autoScrollActive={autoScrollActive}
           onToggleAutoScroll={onToggleAutoScroll}
-          onOpenSearch={() => {
+          onOpenSearch={publicSettings?.enable_in_book_search ? () => {
             lastFocusedControlRef.current = document.activeElement as HTMLElement | null;
             setSearchOpen(true);
-          }}
+          } : undefined}
           isAudio={isAudio}
           nextTooltip={nextTooltip}
           isComic={isComicFormat}

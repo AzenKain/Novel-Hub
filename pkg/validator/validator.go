@@ -34,9 +34,41 @@ func init() {
 		return isImageURL(value)
 	})
 
+	_ = validate.RegisterValidation("server_url", func(fl validator.FieldLevel) bool {
+		value := fl.Field().String()
+		if value == "" {
+			return true
+		}
+		return isServerURL(value)
+	})
+
 	_ = validate.RegisterValidation("readlist_cursor", func(fl validator.FieldLevel) bool {
 		return isReadListCursor(fl.Field().String())
 	})
+}
+
+func isServerURL(value string) bool {
+	text := strings.TrimSpace(value)
+	if text == "" {
+		return true
+	}
+	if strings.ContainsAny(text, "\r\n") {
+		return false
+	}
+	parsed, err := url.Parse(text)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return false
+	}
+	if parsed.Host == "" {
+		return false
+	}
+	if strings.Trim(parsed.Path, "/") != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return false
+	}
+	return true
 }
 
 func isImageURL(value string) bool {
@@ -96,10 +128,26 @@ func formatValidationError(err error) []*ErrorResponse {
 				message = fieldError.Field() + " is too short (min " + fieldError.Param() + ")"
 			case "max":
 				message = fieldError.Field() + " is too long (max " + fieldError.Param() + ")"
+			case "url":
+				message = fieldError.Field() + " must be a valid URL"
+			case "server_url":
+				message = fieldError.Field() + " must be a valid http or https URL"
 			case "image_url":
 				message = fieldError.Field() + " must be a link to an image"
 			case "readlist_cursor":
 				message = fieldError.Field() + " is an invalid cursor format"
+			case "oneof":
+				message = fieldError.Field() + " must be one of: " + fieldError.Param()
+			case "uuid":
+				message = fieldError.Field() + " must be a valid UUID"
+			case "numeric":
+				message = fieldError.Field() + " must be numeric"
+			case "len":
+				message = fieldError.Field() + " must be exactly " + fieldError.Param() + " characters"
+			case "gte":
+				message = fieldError.Field() + " must be at least " + fieldError.Param()
+			case "lte":
+				message = fieldError.Field() + " must be at most " + fieldError.Param()
 			default:
 				message = "Field " + fieldError.Field() + " failed validation: " + fieldError.Tag()
 			}

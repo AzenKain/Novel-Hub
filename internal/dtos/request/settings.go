@@ -18,7 +18,7 @@ type UpdateSettingsDto struct {
 	SiteFavicon             *string                 `json:"site.favicon" validate:"omitempty,max=2048"`
 	SiteLogo                *string                 `json:"site.logo" validate:"omitempty,max=2048"`
 	SiteMetaDescription     *string                 `json:"site.meta_description" validate:"omitempty,max=1000"`
-	ServerURL               *string                 `json:"server.url" validate:"omitempty,url,max=2048"`
+	ServerURL               *string                 `json:"server.url" validate:"omitempty,server_url,max=2048"`
 	SidebarVisibleItems     *[]string               `json:"sidebar.visible_items" validate:"omitempty,max=100"`
 	HomeSections            *HomeSectionSettingsDto `json:"home.sections"`
 	RegistrationEnabled     *bool                   `json:"auth.registration_enabled"`

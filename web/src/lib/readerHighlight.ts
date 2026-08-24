@@ -1,4 +1,5 @@
 import { resolveCfiRange } from "./epubCfi";
+import { sanitizeReaderHtml } from "@/utils/readerHtml";
 
 /**
  * Helper functions for reader text extraction, word highlighting and text selection offsets.
@@ -574,7 +575,7 @@ export const extractTextFromHtml = (
     const container = renderedContainer.cloneNode(true) as HTMLElement;
     container
       .querySelectorAll(
-        "script, style, head, noscript, svg, nav, .reader-settings-panel, button"
+        "script, style, head, title, meta, noscript, svg, nav, .reader-settings-panel, button, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible"
       )
       .forEach((el) => el.remove());
     const rawText = container.innerText || container.textContent || "";
@@ -582,10 +583,13 @@ export const extractTextFromHtml = (
     if (cleaned) return cleaned;
   }
 
+  const cleanHtml = sanitizeReaderHtml(html);
   const temp = document.createElement("div");
-  temp.innerHTML = html;
+  temp.innerHTML = cleanHtml;
   temp
-    .querySelectorAll("script, style, head, noscript, svg, nav")
+    .querySelectorAll(
+      "script, style, head, title, meta, noscript, svg, nav, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible"
+    )
     .forEach((el) => el.remove());
   const rawText = temp.textContent || temp.innerText || "";
   return rawText.replace(/\s+/g, " ").trim();

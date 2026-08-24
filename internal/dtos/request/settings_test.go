@@ -1,6 +1,10 @@
 package request
 
-import "testing"
+import (
+	"testing"
+
+	"novelhub/pkg/jsonx"
+)
 
 // An absent field must not reach the service at all. It used to arrive as a typed
 // nil pointer boxed in a non-nil interface, which the settings service then
@@ -56,3 +60,29 @@ func TestValuesUnwrapsPresentFields(t *testing.T) {
 		t.Error("top_books was absent from the request and must not be set")
 	}
 }
+
+func TestUpdateSettingsDtoEmptyServerURL(t *testing.T) {
+	rawJSON := []byte(`{
+		"site.title": "NovelHub",
+		"site.description": "Local novel library",
+		"site.favicon": "/favicon.ico",
+		"site.logo": "/logo.svg",
+		"site.meta_description": "Self-hosted local-first digital book library manager.",
+		"server.url": ""
+	}`)
+
+	var dto UpdateSettingsDto
+	if err := jsonx.Unmarshal(rawJSON, &dto); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	if dto.ServerURL == nil || *dto.ServerURL != "" {
+		t.Fatalf("expected ServerURL to be empty string pointer, got %#v", dto.ServerURL)
+	}
+
+	values := dto.Values()
+	if v, ok := values["server.url"]; !ok || v != "" {
+		t.Fatalf("expected values['server.url'] to be empty string, got %#v", v)
+	}
+}
+

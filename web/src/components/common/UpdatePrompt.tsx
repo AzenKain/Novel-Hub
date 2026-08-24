@@ -28,7 +28,10 @@ export function UpdatePrompt() {
           <RefreshCw size={14} />
           {t("pwa.reload")}
         </button>
-        <button className="btn btn-sm btn-ghost" onClick={() => setNeedRefresh(false)}>
+        <button
+          className="btn btn-sm bg-transparent border border-current/25 text-current hover:bg-current/10 hover:text-current hover:border-current/40 animate-none"
+          onClick={() => setNeedRefresh(false)}
+        >
           {t("pwa.later")}
         </button>
       </div>
