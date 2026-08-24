@@ -91,25 +91,6 @@ export const ReaderContent: React.FC<ReaderContentProps> = React.memo(({
         }
       };
     });
-
-    // Auto-detect and tag chapter title paragraphs
-    const CHAPTER_TITLE_REGEX = /^(?:chương|chapter|ch\.|hồi|tiết|phần|tập|quyển|vol(?:ume)?\.?|mục|mở đầu|kết thúc|lời bạt|ngoại truyện|minh ho[aạ]|hình minh ho[aạ]|prologue|epilogue|afterword|interlude|side story|extra|bonus|act\b|scene\b|bài|thứ|đoạn|thông tin|giới thiệu|nhân vật)\b/i;
-    let foundFirstText = false;
-    el.querySelectorAll<HTMLElement>("p, div, h1, h2, h3, h4, h5, h6").forEach((item) => {
-      if (item.classList.contains("reader-image-page") || item.querySelector("img")) return;
-      const text = (item.textContent || "").trim();
-      if (!text) return;
-
-      const isFirstParagraph = !foundFirstText;
-      foundFirstText = true;
-
-      const matchesTitlePattern = CHAPTER_TITLE_REGEX.test(text);
-      const isShortHeadingCandidate = isFirstParagraph && text.length <= 65 && !/[.!?]["']?\s*$/.test(text);
-
-      if (matchesTitlePattern || isShortHeadingCandidate || item.classList.contains("title") || item.classList.contains("title-top")) {
-        item.classList.add("chapter-title");
-      }
-    });
   }, [sanitizedHTML, columnsRef]);
 
   if (!htmlContent) return null;

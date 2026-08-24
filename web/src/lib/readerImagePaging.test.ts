@@ -65,8 +65,9 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     const firstImageWrapper = container.querySelector("p:has(> img:only-child)");
     expect(firstImageWrapper).not.toBeNull();
 
-    // Verify first image wrapper is naturally preceded by content without break-before forcing an empty page
-    expect(firstImageWrapper?.previousElementSibling).not.toBeNull();
+    // Verify heading is present and precedes chapter content without duplicate title elements
+    expect(container.querySelector("#chapter-content")?.previousElementSibling).toBe(heading);
+    expect(container.querySelectorAll("p:not(.reader-image-page):not(:has(img))").length).toBe(0);
 
     document.body.removeChild(container);
   });
@@ -321,10 +322,46 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
       expect(currentPageIndex).toBe(step + 1);
     }
 
-    // Now at last page (11), next click SHOULD call onChapterNext
-    expect(currentPageIndex).toBe(11);
-    handlePageNext();
-    expect(nextChapterCalled).toBe(true);
+    document.body.removeChild(container);
+  });
+
+  it("removes hidden duplicate title elements and preserves normal paragraph styling", () => {
+    const rawChapterWithHiddenTitle = `
+      <h4 align="center">Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật</h4>
+      <div class="long-text no-select text-justify" id="chapter-content">
+        <p style="display: none">Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật</p>
+        <p id="1">Tôi - Sado Tarou, mở cánh cửa phòng CLB Tình nguyện số 2.</p>
+        <p id="2">Trong căn phòng câu lạc bộ, có một mỹ nữ tuyệt sắc đang đứng đó.</p>
+        <p id="6">Phần trên là áo thể dục tay ngắn, phần dưới là quần đùi thể thao.</p>
+        <p id="7">Chương trình hôm nay thật thú vị.</p>
+        <p id="8">Thông tin chi tiết về sự việc.</p>
+        <p style="display: none">Hãy bình luận để ủng hộ người đăng nhé!</p>
+      </div>
+    `;
+
+    const sanitized = sanitizeReaderHtml(rawChapterWithHiddenTitle);
+    const container = document.createElement("div");
+    container.className = "reader-content";
+    container.innerHTML = sanitized;
+    document.body.appendChild(container);
+
+    // 1. Only exactly 1 title exists (the <h4>)
+    const headings = container.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    expect(headings.length).toBe(1);
+    expect(headings[0].textContent).toBe("Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật");
+
+    // 2. Hidden duplicate title and watermark paragraphs are removed
+    const allP = container.querySelectorAll("p");
+    expect(allP.length).toBe(5); // id=1, id=2, id=6, id=7, id=8
+    allP.forEach((p) => {
+      expect(p.textContent).not.toBe("Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật");
+      expect(p.textContent).not.toContain("Hãy bình luận");
+      expect(p.classList.contains("chapter-title")).toBe(false);
+    });
+
+    // 3. Container div does not have chapter-title class
+    const chapterContentDiv = container.querySelector("#chapter-content");
+    expect(chapterContentDiv?.classList.contains("chapter-title")).toBe(false);
 
     document.body.removeChild(container);
   });

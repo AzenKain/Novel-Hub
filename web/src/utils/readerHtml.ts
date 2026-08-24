@@ -20,14 +20,20 @@ export const sanitizeReaderHtml = (html: string) => {
   const clean = DOMPurify.sanitize(stripped, {
     USE_PROFILES: { html: true, svg: true },
     ADD_TAGS: ["svg", "image", "g", "use", "figure", "figcaption", "video", "audio", "source", "track"],
-    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height", "class", "align", "controls", "preload", "poster", "type", "muted", "loop", "playsinline"],
+    ADD_ATTR: ["target", "xlink:href", "href", "src", "viewBox", "preserveAspectRatio", "width", "height", "class", "align", "controls", "preload", "poster", "type", "muted", "loop", "playsinline", "style", "hidden"],
     FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "base", "frame", "frameset", "math", "link"],
-    FORBID_ATTR: ["srcdoc", "style"],
+    FORBID_ATTR: ["srcdoc"],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });
 
   if (typeof document !== "undefined") {
     const doc = new DOMParser().parseFromString(`<body>${clean}</body>`, "text/html");
+
+    // Remove explicitly hidden elements (e.g. hidden duplicate titles, hidden watermarks/copyright)
+    doc.querySelectorAll("[hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible").forEach((el) => {
+      el.remove();
+    });
+
     const imgs = doc.querySelectorAll("img");
     imgs.forEach((img) => {
       let highestOnlyChild: HTMLElement | null = null;
@@ -62,25 +68,6 @@ export const sanitizeReaderHtml = (html: string) => {
           parent.insertBefore(figure, img);
           figure.appendChild(img);
         }
-      }
-    });
-
-    // Auto-detect and tag chapter title paragraphs
-    const CHAPTER_TITLE_REGEX = /^(?:chương|chapter|ch\.|hồi|tiết|phần|tập|quyển|vol(?:ume)?\.?|mục|mở đầu|kết thúc|lời bạt|ngoại truyện|minh ho[aạ]|hình minh ho[aạ]|prologue|epilogue|afterword|interlude|side story|extra|bonus|act\b|scene\b|bài|thứ|đoạn|thông tin|giới thiệu|nhân vật)\b/i;
-    let foundFirstText = false;
-    doc.querySelectorAll<HTMLElement>("p, div, h1, h2, h3, h4, h5, h6").forEach((el) => {
-      if (el.classList.contains("reader-image-page") || el.querySelector("img")) return;
-      const text = (el.textContent || "").trim();
-      if (!text) return;
-
-      const isFirstParagraph = !foundFirstText;
-      foundFirstText = true;
-
-      const matchesTitlePattern = CHAPTER_TITLE_REGEX.test(text);
-      const isShortHeadingCandidate = isFirstParagraph && text.length <= 65 && !/[.!?]["']?\s*$/.test(text);
-
-      if (matchesTitlePattern || isShortHeadingCandidate || el.classList.contains("title") || el.classList.contains("title-top")) {
-        el.classList.add("chapter-title");
       }
     });
 
