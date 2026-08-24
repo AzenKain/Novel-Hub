@@ -1,6 +1,6 @@
 module novelhub
 
-go 1.26.6
+go 1.27.0
 
 require (
 	github.com/Yiling-J/theine-go v0.6.2
@@ -8,6 +8,7 @@ require (
 	github.com/bodgit/sevenzip v1.6.5
 	github.com/bytedance/sonic v1.15.2
 	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/deepteams/webp v1.2.7
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/gofiber/contrib/v3/jwt v1.2.1
@@ -19,22 +20,16 @@ require (
 	github.com/nwaples/rardecode/v2 v2.4.1
 	github.com/richardlehane/mscfb v1.0.8
 	github.com/rs/zerolog v1.35.1
+	github.com/stretchr/testify v1.12.1
 	github.com/yuin/goldmark v1.8.5
 	golang.org/x/crypto v0.55.0
+	golang.org/x/image v0.45.0
 	golang.org/x/net v0.58.0
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/text v0.41.0
 	modernc.org/sqlite v1.57.0
 )
-
-require (
-	github.com/deepteams/webp v1.2.7
-	golang.org/x/image v0.45.0
-)
-
-require golang.org/x/oauth2 v0.36.0
-
-require go.yaml.in/yaml/v3 v3.0.5 // indirect
 
 require (
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
@@ -63,13 +58,13 @@ require (
 	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
-	github.com/stretchr/testify v1.12.1
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ulikunitz/xz v0.5.16 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.73.0 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/arch v0.30.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

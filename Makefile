@@ -45,4 +45,16 @@ DOCKER_IMAGE ?= azenkain/novel-hub:latest
 docker-build-multi:
 	docker buildx build --platform linux/amd64,linux/arm64 --no-cache -t $(DOCKER_IMAGE) --push .
 
+build-native-all:
+	node scripts/build-native.mjs all
+
+build-native-win:
+	node scripts/build-native.mjs windows
+
+build-native-linux:
+	node scripts/build-native.mjs linux
+
+build-native-mac:
+	node scripts/build-native.mjs mac
+
 

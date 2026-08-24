@@ -1,0 +1,76 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "release/**"
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Native Binaries & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Read release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const path = require("path");
+          const meta = JSON.parse(fs.readFileSync("release/release.json", "utf8"));
+          const version = String(meta.version || "").trim().replace(/^v/i, "");
+          if (!version) throw new Error("release/release.json is missing version");
+          const title = String(meta.title || `NovelHub v${version}`).trim();
+          const notes = String(meta.notes || "RELEASE_NOTES.md").trim();
+          const notesPath = path.join("release", notes);
+          if (!fs.existsSync(notesPath)) throw new Error(`Release notes not found: ${notesPath}`);
+          console.log(`version=${version}`);
+          console.log(`tag=v${version}`);
+          console.log(`title=${title}`);
+          console.log(`notes_path=${notesPath}`);
+          console.log(`prerelease=${Boolean(meta.prerelease)}`);
+          NODE
+
+      - name: Build native binaries
+        env:
+          RELEASE_VERSION: ${{ steps.release_meta.outputs.version }}
+        run: |
+          node scripts/build-native.mjs all
+
+      - name: Generate Checksums
+        run: |
+          cd dist-native
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          name: ${{ steps.release_meta.outputs.title }}
+          body_path: ${{ steps.release_meta.outputs.notes_path }}
+          prerelease: ${{ steps.release_meta.outputs.prerelease }}
+          files: |
+            dist-native/*

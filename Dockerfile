@@ -8,7 +8,7 @@ RUN bun install --frozen-lockfile
 COPY web/ ./
 RUN bun run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.0-alpine AS backend-builder
 WORKDIR /app
 
 RUN apk add --no-cache git build-base
@@ -27,11 +27,11 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s" -o novelhub ./cmd/api
 
-FROM --platform=$BUILDPLATFORM alpine:3.24 AS alpine-assets
+FROM --platform=$BUILDPLATFORM alpine:latest AS alpine-assets
 RUN apk add --no-cache ca-certificates tzdata
 RUN mkdir -p /data
 
-FROM alpine:3.24
+FROM alpine:latest
 WORKDIR /app
 
 COPY --from=alpine-assets /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

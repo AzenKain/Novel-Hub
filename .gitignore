@@ -7,6 +7,7 @@ vendor/
 /novelhub
 /cmd/api/dist/
 /web/dist/
+/dist-native/
 test-ebook/
 test_audio/
 /sample_file/
