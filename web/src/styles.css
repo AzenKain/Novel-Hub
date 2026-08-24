@@ -1139,6 +1139,38 @@ label.btn-primary:hover:not(:disabled) {
   background: rgba(128, 128, 128, 0.04);
 }
 
+.reader-content .novelhub-presentation-slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4em;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5em auto;
+  padding: clamp(16px, 5%, 56px);
+  background: #ffffff;
+  color: #1a202c;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  overflow-wrap: break-word;
+}
+
+.reader-content .novelhub-presentation-slide > p:first-child,
+.reader-content .novelhub-presentation-slide > h1:first-child,
+.reader-content .novelhub-presentation-slide > h2:first-child {
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+.reader-content .novelhub-presentation-slide img,
+.reader-content .novelhub-presentation-slide video {
+  max-width: 90%;
+  max-height: 70%;
+  margin: 0 auto;
+}
+
 .reader-content p:not(.reader-image-page) + p:not(.reader-image-page) {
   margin-top: 1.05em !important;
 }

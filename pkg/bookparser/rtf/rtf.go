@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -106,9 +107,10 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	assetPath = strings.TrimLeft(assetPath, "/")
+	assetPath = strings.TrimLeft(strings.SplitN(assetPath, "?", 2)[0], "/")
+	normalized := strings.TrimSuffix(assetPath, filepath.Ext(assetPath))
 	for _, asset := range assets {
-		if asset.Name == assetPath {
+		if asset.Name == assetPath || strings.TrimSuffix(asset.Name, filepath.Ext(asset.Name)) == normalized {
 			return asset.Data, nil
 		}
 	}
@@ -252,6 +254,7 @@ func extractRTFHTML(input string) string {
 	var activeBold, activeItalic, activeUnderline, activeStrike bool
 	var curAlign string
 	skipChars := 0
+	pictSeq := 0
 
 	out.WriteString("<article>")
 	flushPara := func() {
@@ -328,6 +331,15 @@ func extractRTFHTML(input string) string {
 		c := input[i]
 		switch c {
 		case '{':
+			if strings.HasPrefix(input[i:], `{\pict`) {
+				flushPara()
+				if end := balancedGroupEnd(input, i); end > i {
+					pictSeq++
+					pBuf.WriteString(fmt.Sprintf(`<img src="images/pict-%03d.img" style="max-width: 100%%; height: auto;" />`, pictSeq))
+					i = end
+					continue
+				}
+			}
 			stack = append(stack, state)
 			i++
 		case '}':

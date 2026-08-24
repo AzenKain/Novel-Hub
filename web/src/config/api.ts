@@ -149,7 +149,7 @@ api.interceptors.response.use(
         // (400 Bad Request or 401 Unauthorized). For network drops or 5xx
         // server issues, leave the cooldown at 0 so we can retry immediately.
         const status = (refreshErr as AxiosError)?.response?.status;
-        if (status === 400 || status === 401) {
+        if (status === 400 || status === 401 || status === 403) {
           refreshFailedAt = Date.now();
         }
         isRefreshing = false;

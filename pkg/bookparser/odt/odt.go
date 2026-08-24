@@ -132,6 +132,9 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 	var images []string
 	for _, file := range reader.File {
 		name := filepath.ToSlash(file.Name)
+		if strings.HasPrefix(name, "Thumbnails/") || strings.HasPrefix(name, "ObjectReplacements/") {
+			continue
+		}
 		switch strings.ToLower(filepath.Ext(name)) {
 		case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg":
 			images = append(images, name)
@@ -375,7 +378,7 @@ func contentXMLToHTML(data []byte) (string, error) {
 			case "image":
 				if inBlock {
 					for _, attr := range t.Attr {
-						if attr.Name.Local == "href" && attr.Value != "" {
+						if attr.Name.Local == "href" && isRenderableODFImage(attr.Value) {
 							block.WriteString(fmt.Sprintf(`<img src="%s" style="max-width: 100%%; height: auto;" />`, html.EscapeString(attr.Value)))
 						}
 					}
@@ -430,8 +433,18 @@ func contentXMLToHTML(data []byte) (string, error) {
 	return out.String(), nil
 }
 
-func headingTag(element xml.StartElement) string {
-	for _, attr := range element.Attr {
+// ObjectReplacements/* entries are StarView metafiles (VCLMTF) that browsers
+// cannot render; only real raster/vector picture files are usable.
+func isRenderableODFImage(href string) bool {
+	switch strings.ToLower(filepath.Ext(href)) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg":
+		return true
+	default:
+		return false
+	}
+}
+
+func headingTag(element xml.StartElement) string {	for _, attr := range element.Attr {
 		if attr.Name.Local != "outline-level" {
 			continue
 		}

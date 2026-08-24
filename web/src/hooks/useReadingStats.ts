@@ -55,7 +55,7 @@ export const useReadingStats = (book_id: string | undefined, isActive: boolean) 
     }, 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      void syncStats(book_id);
+      if (user) void syncStats(book_id);
     };
   }, [book_id, isActive, user]);
 };

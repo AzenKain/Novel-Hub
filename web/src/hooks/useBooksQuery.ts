@@ -197,7 +197,7 @@ export function useBookUserStateQuery(book_id: string, enabled = true) {
   });
 }
 
-export function useBookEngagementStatsQuery(book_id: string) {
+export function useBookEngagementStatsQuery(book_id: string, enabled = true) {
   return useQuery({
     queryKey: ["bookEngagement", book_id],
     queryFn: async () => {
@@ -205,7 +205,7 @@ export function useBookEngagementStatsQuery(book_id: string) {
       const res = await featureService.getBookEngagementStats(book_id);
       return res.status ? res.data : null;
     },
-    enabled: !!book_id,
+    enabled: !!book_id && enabled,
     retry: false,
   });
 }

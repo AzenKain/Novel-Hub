@@ -402,7 +402,7 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(({
               left: `${sideWidthPercent}%`,
               width: `${100 - 2 * sideWidthPercent}%`,
             }}
-            className="absolute inset-y-0 z-30 cursor-pointer pointer-events-auto"
+            className="absolute inset-y-0 z-10 cursor-pointer pointer-events-auto"
           />
 
           {sideWidthPercent > 0 && (

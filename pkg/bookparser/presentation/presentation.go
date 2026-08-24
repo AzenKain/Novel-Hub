@@ -352,8 +352,10 @@ func (p *Parser) getPPTXSlideContent(filePath, contentPath string) (string, erro
 				if xml.NewDecoder(io.LimitReader(rc, constants.MaxArchiveAssetSize)).Decode(&rels) == nil {
 					for _, item := range rels.Items {
 						target := item.Target
-						if !strings.HasPrefix(target, "/") && !strings.HasPrefix(target, "ppt/") {
-							target = "ppt/" + strings.TrimPrefix(target, "../")
+						if strings.HasPrefix(target, "/") {
+							if rel, relErr := filepath.Rel(filepath.Dir(contentPath), strings.TrimPrefix(target, "/")); relErr == nil {
+								target = rel
+							}
 						}
 						relMap[item.ID] = filepath.ToSlash(filepath.Clean(target))
 					}
@@ -909,11 +911,33 @@ func (p *Parser) parsePPTMetadata(filePath string) (*bookparser.BookMetadata, er
 }
 
 func (p *Parser) parsePPTSpine(filePath string) ([]bookparser.ChapterData, error) {
-	return []bookparser.ChapterData{{
-		Title:       bookparser.TitleFromPath(filePath),
-		ContentPath: "presentation",
-		Index:       0,
-	}}, nil
+	streams, err := readCompoundStreams(filePath)
+	if err != nil {
+		return nil, err
+	}
+	pptStream := streams["PowerPoint Document"]
+	if len(pptStream) == 0 {
+		return p.defaultSpine(filePath), nil
+	}
+
+	slides := extractPPTSlideContainers(pptStream)
+	if len(slides) <= 1 {
+		return []bookparser.ChapterData{{
+			Title:       bookparser.TitleFromPath(filePath),
+			ContentPath: "presentation",
+			Index:       0,
+		}}, nil
+	}
+
+	chapters := make([]bookparser.ChapterData, 0, len(slides))
+	for i := range slides {
+		chapters = append(chapters, bookparser.ChapterData{
+			Title:       fmt.Sprintf("Slide %d", i+1),
+			ContentPath: fmt.Sprintf("ppt-slide:%d", i),
+			Index:       i,
+		})
+	}
+	return chapters, nil
 }
 
 func (p *Parser) getPPTContent(filePath, contentPath string) (string, error) {
@@ -926,7 +950,23 @@ func (p *Parser) getPPTContent(filePath, contentPath string) (string, error) {
 		return "<article><p>No presentation stream found in PPT.</p></article>", nil
 	}
 
-	texts := extractPPTTextRecords(pptStream)
+	var slideData []byte
+	if strings.HasPrefix(contentPath, "ppt-slide:") {
+		idxStr := strings.TrimPrefix(contentPath, "ppt-slide:")
+		idx, convErr := strconv.Atoi(idxStr)
+		if convErr != nil || idx < 0 {
+			return "", fmt.Errorf("invalid ppt slide path %q", contentPath)
+		}
+		slides := extractPPTSlideContainers(pptStream)
+		if idx >= len(slides) {
+			return "", fmt.Errorf("ppt slide %d not found", idx)
+		}
+		slideData = slides[idx]
+	} else {
+		slideData = pptStream
+	}
+
+	texts := extractPPTTextRecords(slideData)
 	if len(texts) == 0 {
 		return "<article><p>No readable slide text found in PPT file.</p></article>", nil
 	}
@@ -942,12 +982,36 @@ func (p *Parser) getPPTContent(filePath, contentPath string) (string, error) {
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
 			if line != "" && isMeaningfulText(line) {
-				out.WriteString(fmt.Sprintf("<p>%s</p>\n", html.EscapeString(line)))
+				fmt.Fprintf(&out, "<p>%s</p>\n", html.EscapeString(line))
 			}
 		}
 	}
 	out.WriteString("</article>")
 	return out.String(), nil
+}
+
+// extractPPTSlideContainers returns the byte ranges of the top-level slide
+// containers (RT_SLIDE = 1006). Text records (RT_TextCharsAtom etc.) live
+// inside these containers, so extracting per-container yields per-slide text.
+// Main masters use RT_MAIN_MASTER = 1016 and are excluded.
+func extractPPTSlideContainers(data []byte) [][]byte {
+	var slides [][]byte
+	pos := 0
+	for pos+8 <= len(data) {
+		recVer := data[pos] & 0x0F
+		recType := binary.LittleEndian.Uint16(data[pos+2 : pos+4])
+		recLen := binary.LittleEndian.Uint32(data[pos+4 : pos+8])
+
+		bodyStart := pos + 8
+		if int64(bodyStart)+int64(recLen) > int64(len(data)) {
+			break
+		}
+		if recVer == 0x0F && recType == 1006 {
+			slides = append(slides, data[bodyStart:bodyStart+int(recLen)])
+		}
+		pos += 8 + int(recLen)
+	}
+	return slides
 }
 
 func cleanPPTString(s string) string {
@@ -1017,7 +1081,7 @@ func extractPPTTextRecords(data []byte) []string {
 		// RT_TextCharsAtom = 4000 (UTF-16)
 		if recType == 4000 && recLen > 0 {
 			u16 := make([]uint16, recLen/2)
-			for i := 0; i < len(u16); i++ {
+			for i := range u16 {
 				u16[i] = binary.LittleEndian.Uint16(data[pos+i*2 : pos+i*2+2])
 			}
 			txt := strings.TrimSpace(string(utf16.Decode(u16)))
@@ -1044,10 +1108,10 @@ func renderMediaElement(out *strings.Builder, mediaPath string) {
 
 	switch ext {
 	case ".mp3", ".m4a", ".wav", ".ogg", ".aac", ".wma", ".flac", ".opus", ".mid", ".midi":
-		out.WriteString(fmt.Sprintf(`<div class="slide-audio" style="margin: 1em 0; text-align: center;"><audio controls preload="metadata" src="%s" style="max-width: 100%%; width: 360px;"></audio></div>`, cleanPath))
+		fmt.Fprintf(out, `<div class="slide-audio" style="margin: 1em 0; text-align: center;"><audio controls preload="metadata" src="%s" style="max-width: 100%%; width: 360px;"></audio></div>`, cleanPath)
 	case ".mp4", ".webm", ".m4v", ".ogv", ".avi", ".mov", ".wmv", ".mkv", ".flv":
-		out.WriteString(fmt.Sprintf(`<div class="slide-video" style="margin: 1em 0; text-align: center;"><video controls preload="metadata" playsinline src="%s" style="max-width: 100%%; max-height: 480px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"></video></div>`, cleanPath))
+		fmt.Fprintf(out, `<div class="slide-video" style="margin: 1em 0; text-align: center;"><video controls preload="metadata" playsinline src="%s" style="max-width: 100%%; max-height: 480px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"></video></div>`, cleanPath)
 	default:
-		out.WriteString(fmt.Sprintf(`<div class="slide-image" style="margin: 1em 0; text-align: center;"><img src="%s" style="max-width: 100%%; height: auto; border-radius: 8px;" /></div>`, cleanPath))
+		fmt.Fprintf(out, `<div class="slide-image" style="margin: 1em 0; text-align: center;"><img src="%s" style="max-width: 100%%; height: auto; border-radius: 8px;" /></div>`, cleanPath)
 	}
 }

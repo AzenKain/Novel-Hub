@@ -311,7 +311,7 @@ func parseDocument(r io.Reader, relMap map[string]string) ([]*paragraph, error) 
 					}
 				}
 			case "numPr":
-				if currentParagraph != nil {
+				if currentParagraph != nil && !strings.HasPrefix(strings.ToLower(currentParagraph.style), "heading") {
 					currentParagraph.isList = true
 				}
 			case "r":

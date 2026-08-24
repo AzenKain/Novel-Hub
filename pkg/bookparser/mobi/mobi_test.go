@@ -21,20 +21,29 @@ func TestHTMLDocumentToReaderHTMLFallsBackToFragments(t *testing.T) {
 	}
 }
 
-func TestHTMLDocumentToReaderHTMLStripsUnsupportedKindleImages(t *testing.T) {
-	raw := `<html><body><p>Readable text</p><a href="kindle:pos:fid:0002:off:0000000000">TOC item</a><img src="kindle:embed:0008?mime=image/jpeg" alt="cover"><img src="kindle:flow:0005?mime=image/svg+xml"><p>More text</p></body></html>`
+func TestHTMLDocumentToReaderHTMLRewritesKindleImages(t *testing.T) {
+	raw := `<html><body><p>Readable text</p><a href="kindle:pos:fid:0002:off:0000000000">TOC item</a><img src="kindle:embed:0008?mime=image/jpeg" alt="cover"><img src="kindle:flow:0005?mime=image/svg+xml"><img recindex="00003"><p>More text</p></body></html>`
 	html := htmlDocumentToReaderHTML(raw)
 	if strings.Contains(html, "kindle:") {
-		t.Fatalf("expected unsupported kindle image references to be removed, got %s", html)
+		t.Fatalf("expected kindle scheme references to be rewritten, got %s", html)
 	}
-	if strings.Contains(html, "<img") {
-		t.Fatalf("expected unsupported image tag to be removed, got %s", html)
+	if !strings.Contains(html, `src="images/kindle-0008.img`) {
+		t.Fatalf("expected kindle:embed rewritten to asset path, got %s", html)
+	}
+	if !strings.Contains(html, `src="images/record-0003.img"`) {
+		t.Fatalf("expected recindex rewritten to asset path, got %s", html)
 	}
 	if strings.Contains(html, "href=") {
-		t.Fatalf("expected unsupported kindle link href to be removed, got %s", html)
+		t.Fatalf("expected kindle link href to be removed, got %s", html)
 	}
 	if !strings.Contains(html, "Readable text") || !strings.Contains(html, "TOC item") || !strings.Contains(html, "More text") {
 		t.Fatalf("expected text content to remain, got %s", html)
+	}
+}
+
+func TestMobiRecordRefIndexResolution(t *testing.T) {
+	if idx, ok := mobiRecordRefIndex("images/record-0001.img"); !ok || idx != 1 {
+		t.Fatalf("expected record 1, got %d %v", idx, ok)
 	}
 }
 

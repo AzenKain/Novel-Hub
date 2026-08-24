@@ -39,7 +39,7 @@ export const TrackerMapCard: React.FC<TrackerMapCardProps> = ({ book_id, title }
   const searchMutation = useSearchTrackerMutation();
   const mapMutation = useMapBookTrackerMutation();
   const syncMutation = useSyncTrackerProgressMutation();
-  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id);
+  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id, !!user);
 
   useEffect(() => {
     if (!progress && readingProgress?.chapter_index !== undefined) {

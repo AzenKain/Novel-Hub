@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"novelhub/pkg/bookparser"
@@ -89,11 +90,105 @@ func (p *Parser) ParseSpine(filePath string) ([]bookparser.ChapterData, error) {
 	if meta != nil && meta.Title != "" {
 		title = meta.Title
 	}
-	return []bookparser.ChapterData{{
-		Title:       title,
-		ContentPath: "word/document.xml",
-		Index:       0,
-	}}, nil
+
+	paragraphs, err := p.readDocxParagraphs(filePath)
+	if err != nil {
+		return []bookparser.ChapterData{{
+			Title:       title,
+			ContentPath: "word/document.xml",
+			Index:       0,
+		}}, nil
+	}
+
+	sections := splitDocxSections(paragraphs)
+	if len(sections) <= 1 {
+		return []bookparser.ChapterData{{
+			Title:       title,
+			ContentPath: "word/document.xml",
+			Index:       0,
+		}}, nil
+	}
+
+	var chapters []bookparser.ChapterData
+	for i, sec := range sections {
+		chapters = append(chapters, bookparser.ChapterData{
+			Title:       sec.title,
+			ContentPath: fmt.Sprintf("docx-section:%d", i),
+			Index:       i,
+		})
+	}
+	return chapters, nil
+}
+
+type docxSection struct {
+	title string
+	start int
+	end   int
+}
+
+func splitDocxSections(paragraphs []*paragraph) []docxSection {
+	var sections []docxSection
+	var pending docxSection
+	pending.start = 0
+
+	flushPending := func(end int) {
+		if end > pending.start {
+			sections = append(sections, docxSection{title: pending.title, start: pending.start, end: end})
+		}
+	}
+
+	isHeading1 := func(p *paragraph) bool {
+		lower := strings.ToLower(p.style)
+		return lower == "heading1" || lower == "heading 1"
+	}
+
+	for i, p := range paragraphs {
+		if isHeading1(p) {
+			flushPending(i)
+			pending = docxSection{title: paragraphPlainText(p), start: i}
+		}
+	}
+	flushPending(len(paragraphs))
+	return sections
+}
+
+func (p *Parser) readDocxParagraphs(filePath string) ([]*paragraph, error) {
+	r, err := zip.OpenReader(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	documentFile := findZipFile(r.File, "word/document.xml")
+	if documentFile == nil {
+		return nil, fmt.Errorf("docx document file not found")
+	}
+	rc, err := documentFile.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+
+	relMap, err := parseRelationships(&r.Reader)
+	if err != nil {
+		relMap = nil
+	}
+	return parseDocument(rc, relMap)
+}
+
+func paragraphPlainText(p *paragraph) string {
+	var pText strings.Builder
+	for _, el := range p.elements {
+		switch te := el.(type) {
+		case *textElement:
+			pText.WriteString(te.text)
+		case *hyperlinkElement:
+			pText.WriteString(te.text)
+		case *tabElement:
+			pText.WriteByte('\t')
+		}
+	}
+	return bookparser.CleanOfficeTextLine(pText.String())
 }
 
 func (p *Parser) ParseBook(filePath string) (*bookparser.BookData, error) {
@@ -121,10 +216,7 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	}
 	defer r.Close()
 
-	documentFile := findZipFile(r.File, contentPath)
-	if documentFile == nil {
-		documentFile = findZipFile(r.File, "word/document.xml")
-	}
+	documentFile := findZipFile(r.File, "word/document.xml")
 	if documentFile == nil {
 		return "", fmt.Errorf("docx document file not found")
 	}
@@ -144,8 +236,24 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 		return "", err
 	}
 
+	start, end := 0, len(paragraphs)
+	if sectionIdx, ok := strings.CutPrefix(contentPath, "docx-section:"); ok {
+		n, convErr := strconv.Atoi(sectionIdx)
+		sections := splitDocxSections(paragraphs)
+		if convErr != nil || n < 0 || n >= len(sections) {
+			return "", fmt.Errorf("docx section %q out of range", contentPath)
+		}
+		start, end = sections[n].start, sections[n].end
+	}
+
 	var out strings.Builder
 	out.WriteString("<article>")
+	renderDocxParagraphs(&out, paragraphs[start:end], contentPath)
+	out.WriteString("</article>")
+	return out.String(), nil
+}
+
+func renderDocxParagraphs(out *strings.Builder, paragraphs []*paragraph, contentPath string) {
 	for _, p := range paragraphs {
 		if p.tableData != nil {
 			out.WriteString(renderTable(p.tableData))
@@ -287,8 +395,6 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 			out.WriteString(fmt.Sprintf("<%s%s>%s</%s>\n", tag, attrs.String(), pText, tag))
 		}
 	}
-	out.WriteString("</article>")
-	return out.String(), nil
 }
 
 func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {

@@ -36,7 +36,7 @@ import { useBookSeriesQuery } from "@/hooks/useBooksQuery";
 import { useAudiobookChaptersQuery } from "@/hooks/useAudiobookQueries";
 import { useReaderETAQuery } from "@/hooks/useReadingStats";
 import { hasPermission } from "@/utils/permission";
-import { isNavOnlyChapter, isVisualChapter } from "@/utils/readerHtml";
+import { isNavOnlyChapter } from "@/utils/readerHtml";
 
 const ambientColorCache = new Map<string, { hex: string; rgba: string }>();
 
@@ -449,7 +449,7 @@ const ReaderWorkspaceInner = () => {
   const scrollLayout = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
   const activeFile = file_id ? book?.files?.find(f => f.id === file_id) : book?.files?.[0];
   const isComicFormat = !!activeFile?.format.match(/^(cbz|cbr|cbt|cb7)$/i);
-  const isVisualContent = isComicFormat || isVisualChapter(htmlContent);
+  const isVisualContent = isComicFormat;
   const rtlPaging = isVisualContent && readingDirection === "rtl";
   const isPdf = !!(activeFile?.format.match(/^pdf$/i) || currentChapter?.content_path?.toLowerCase().endsWith(".pdf"));
   const isAudio = !!activeFile?.format.match(/^(mp3|m4a|m4b|flac)$/i);
@@ -1091,7 +1091,7 @@ const ReaderWorkspaceInner = () => {
       if (sidebarOpen) { setSidebarOpen(false); restoreFocus(); return; }
       return;
     }
-    if (scrollLayout || isPdfAudio) return;
+    if (scrollLayout || isPdfAudio || isComicFormat) return;
     if (e.key === "ArrowLeft") {
       e.preventDefault();
       rtlPaging ? handlePageNext() : handlePagePrev();
@@ -1105,7 +1105,7 @@ const ReaderWorkspaceInner = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
     // ponytail: handler closes over live state; rebind on relevant deps
-  }, [selectionRange, searchOpen, settingsOpen, sidebarOpen, scrollLayout, isPdfAudio, rtlPaging, pageIndex]);
+  }, [selectionRange, searchOpen, settingsOpen, sidebarOpen, scrollLayout, isPdfAudio, isComicFormat, rtlPaging, pageIndex]);
 
   if (loading) {
     return (

@@ -3,7 +3,9 @@ package doc
 import (
 	"encoding/binary"
 	"fmt"
+	"html"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -78,6 +80,7 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	if len(word) == 0 {
 		return "", fmt.Errorf("WordDocument stream not found")
 	}
+	imageAssets, _ := readDocImageAssets(filePath)
 
 	pieces, err := extractPieceTable(word, table)
 	if err != nil || len(pieces) == 0 {
@@ -88,7 +91,7 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 		if strings.TrimSpace(text) == "" {
 			return `<article><p>No readable text was found in this DOC file.</p></article>`, nil
 		}
-		return bookparser.PlainTextToHTML(text), nil
+		return appendDocImages(bookparser.PlainTextToHTML(text), imageAssets), nil
 	}
 
 	docStreams := docStreams{word: word, table: table}
@@ -118,7 +121,26 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 		}
 	}
 
-	return formatsToHTML(pieces, formats, paraFormats), nil
+	return appendDocImages(formatsToHTML(pieces, formats, paraFormats), imageAssets), nil
+}
+
+// appendDocImages adds extracted embedded images as a figure block. Binary DOC
+// stores pictures in the Escher drawing layer with no cheap CP mapping, so an
+// appendix placement is used instead of inline positions.
+func appendDocImages(htmlOut string, assets []bookparser.EmbeddedImageAsset) string {
+	if len(assets) == 0 {
+		return htmlOut
+	}
+	var figures strings.Builder
+	figures.WriteString(`<div class="doc-images" style="margin-top: 2em;">`)
+	for _, asset := range assets {
+		switch strings.ToLower(filepath.Ext(asset.Name)) {
+		case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp":
+			figures.WriteString(fmt.Sprintf(`<figure style="text-align: center; margin: 1em 0;"><img src="%s" style="max-width: 100%%; height: auto;" /></figure>`, html.EscapeString(asset.Name)))
+		}
+	}
+	figures.WriteString("</div>")
+	return strings.Replace(htmlOut, "</article>", figures.String()+"</article>", 1)
 }
 
 func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {

@@ -86,8 +86,8 @@ export const BookDetailPage: React.FC = () => {
 
   const { data: book, isLoading: isBookLoading, error: bookError } = useBookQuery(book_id || "");
   const { data: userState } = useBookUserStateQuery(book_id || "", !!user);
-  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id || "");
-  const { data: engagementData } = useBookEngagementStatsQuery(book_id || "");
+  const { data: readingProgress } = useTrackerReadingProgressQuery(book_id || "", !!user);
+  const { data: engagementData } = useBookEngagementStatsQuery(book_id || "", !!user);
 
   React.useEffect(() => {
     if (book?.title) {

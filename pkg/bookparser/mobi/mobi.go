@@ -60,6 +60,7 @@ var (
 	kindleImageRegex        = regexp.MustCompile(`(?is)<img\b[^>]*(?:src|href)=["']kindle:[^"']*["'][^>]*>`)
 	kindleAttrRegex         = regexp.MustCompile(`(?is)\s+(?:src|href)=["']kindle:[^"']*["']`)
 	kindleRefRegex          = regexp.MustCompile(`(?i)kindle:(?:embed|flow):([0-9a-f]+)`)
+	recindexAttrRegex       = regexp.MustCompile(`(?is)\s+recindex=["']?([0-9a-fA-F]+)["']?`)
 	brokenAttrTextRegex     = regexp.MustCompile(`(?im)(^|[\s>])(?:[a-z][a-z0-9:_-]{0,31})\s*=\s*(?:"[^"\n<>]{0,160}"|'[^'\n<>]{0,160}')>`)
 	escapedEmptyAnchorRegex = regexp.MustCompile(`(?is)&lt;a\b[^&]*&gt;\s*&lt;/a&gt;`)
 )
@@ -253,6 +254,18 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 		}
 	}
 
+	if recordIndex, ok := mobiRecordRefIndex(assetPath); ok {
+		for _, asset := range assets {
+			if asset.RecordIndex == recordIndex {
+				return asset.Data, nil
+			}
+		}
+		// Legacy recindex="N" counts from the first image record, not from 0.
+		if len(assets) > 0 && recordIndex > 0 && recordIndex <= len(assets) {
+			return assets[recordIndex-1].Data, nil
+		}
+	}
+
 	for _, asset := range assets {
 		if mobiAssetNameMatches(asset, assetPath) {
 			return asset.Data, nil
@@ -360,6 +373,35 @@ func mobiAssetName(recordIndex int, kindleIndex int, ext string) string {
 	return fmt.Sprintf("images/record-%04d.%s", recordIndex, ext)
 }
 
+// rewriteMobiImageRefs turns legacy recindex attributes and kindle:embed
+// references into images/kindle-XXXX.ext paths that GetAsset resolves. The
+// extension is unknown at HTML time so a generic .img is used; GetAsset
+// matches on the numeric index instead of the extension.
+func rewriteMobiImageRefs(value string) string {
+	value = recindexAttrRegex.ReplaceAllStringFunc(value, func(m string) string {
+		sub := recindexAttrRegex.FindStringSubmatch(m)
+		if len(sub) < 2 {
+			return m
+		}
+		recordIndex, err := strconv.Atoi(sub[1])
+		if err != nil || recordIndex <= 0 {
+			return m
+		}
+		return fmt.Sprintf(` src="images/record-%04d.img"`, recordIndex)
+	})
+	return kindleRefRegex.ReplaceAllStringFunc(value, func(m string) string {
+		sub := kindleRefRegex.FindStringSubmatch(m)
+		if len(sub) < 2 {
+			return m
+		}
+		kindleIndex, err := strconv.ParseInt(sub[1], 16, 32)
+		if err != nil || kindleIndex <= 0 {
+			return m
+		}
+		return fmt.Sprintf("images/kindle-%04X.img", kindleIndex)
+	})
+}
+
 func normalizeMobiAssetPath(assetPath string) string {
 	assetPath = strings.TrimSpace(assetPath)
 	if decoded, err := url.PathUnescape(assetPath); err == nil {
@@ -380,6 +422,21 @@ func mobiKindleRefIndex(assetPath string) (int, bool) {
 		return 0, false
 	}
 	return int(value), true
+}
+
+var recordRefRegex = regexp.MustCompile(`(?i)images/record-0*(\d+)\.`)
+
+func mobiRecordRefIndex(assetPath string) (int, bool) {
+	pathWithoutQuery, _, _ := strings.Cut(assetPath, "?")
+	match := recordRefRegex.FindStringSubmatch(pathWithoutQuery)
+	if len(match) < 2 {
+		return 0, false
+	}
+	value, err := strconv.Atoi(match[1])
+	if err != nil || value < 0 {
+		return 0, false
+	}
+	return value, true
 }
 
 func mobiAssetNameMatches(asset mobiAsset, assetPath string) bool {
@@ -660,6 +717,7 @@ func htmlDocumentToReaderHTML(value string) string {
 	}
 	value = strings.ReplaceAll(value, "<mbp:pagebreak/>", "")
 	value = strings.ReplaceAll(value, "<mbp:pagebreak />", "")
+	value = rewriteMobiImageRefs(value)
 	value = kindleImageRegex.ReplaceAllString(value, "")
 	value = kindleAttrRegex.ReplaceAllString(value, "")
 	value = stripBrokenMobiTextNodes(value)
