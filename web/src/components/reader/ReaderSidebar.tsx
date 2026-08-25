@@ -27,6 +27,7 @@ type ReaderSidebarProps = {
   sidebarRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   onBack: () => void;
+  onGoToBookDetail?: () => void;
   onSelectChapter: (chapter: Chapter) => void;
   highlights?: Highlight[];
   onUpdateHighlight?: (id: string, color: string, note?: string) => void;
@@ -672,6 +673,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   sidebarRef,
   onClose,
   onBack,
+  onGoToBookDetail,
   onSelectChapter,
   highlights,
   onUpdateHighlight,
@@ -1159,14 +1161,32 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
         {/* Sidebar Footer */}
         <div className="reader-sidebar-footer shrink-0 border-t border-(--reader-ui-border) p-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="btn btn-ghost btn-sm w-full gap-2 rounded-xl text-xs font-semibold text-(--reader-ui-text) hover:bg-(--reader-ui-hover) transition-all cursor-pointer"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>{t("reader.back_to_previous", "Back")}</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="btn btn-ghost btn-sm gap-1.5 rounded-xl text-xs font-semibold text-(--reader-ui-text) hover:bg-(--reader-ui-hover) transition-all cursor-pointer truncate"
+              title={t("reader.back_to_previous", "Quay lại trang trước")}
+            >
+              <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t("reader.back_short", "Trang trước")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (onGoToBookDetail) {
+                  onGoToBookDetail();
+                } else if (book?.id) {
+                  window.location.href = `/books/${book.id}`;
+                }
+              }}
+              className="btn btn-ghost btn-sm gap-1.5 rounded-xl text-xs font-semibold text-(--reader-ui-text) hover:bg-(--reader-ui-hover) transition-all cursor-pointer truncate"
+              title={t("reader.back_to_book_detail", "Xem chi tiết sách")}
+            >
+              <BookOpen className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t("reader.book_detail_short", "Chi tiết sách")}</span>
+            </button>
+          </div>
         </div>
       </aside>
     </div>

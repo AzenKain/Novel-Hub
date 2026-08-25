@@ -7,20 +7,29 @@ import type { SearchSnippet } from '@/types';
 
 interface ReaderInBookSearchProps {
   book_id: string;
-  onSelectResult: (chapter_id: string, offset: number) => void;
+  query: string;
+  setQuery: (q: string) => void;
+  results: SearchSnippet[];
+  setResults: (res: SearchSnippet[]) => void;
+  searched: boolean;
+  setSearched: (s: boolean) => void;
+  onSelectResult: (result: SearchSnippet) => void;
   onClose: () => void;
 }
 
 export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
   book_id,
+  query,
+  setQuery,
+  results,
+  setResults,
+  searched,
+  setSearched,
   onSelectResult,
   onClose,
 }) => {
   const { t } = useTranslation();
-  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<SearchSnippet[]>([]);
-  const [searched, setSearched] = useState(false);
 
   const handleSearch = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -42,7 +51,10 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
   };
 
   return (
-    <div className="reader-settings-panel p-4 rounded-2xl shadow-2xl w-80 max-h-96 flex flex-col gap-3 backdrop-blur-md border transition-colors duration-300">
+    <div
+      data-reader-modal="true"
+      className="reader-settings-panel p-4 rounded-2xl shadow-2xl w-80 max-h-96 flex flex-col gap-3 backdrop-blur-md border transition-colors duration-300"
+    >
       <div className="flex items-center justify-between border-b border-current/10 pb-2">
         <h3 className="font-bold text-xs uppercase tracking-wider opacity-70 flex items-center gap-1.5">
           <Search className="h-4 w-4 text-(--reader-ui-accent)" />
@@ -71,7 +83,7 @@ export const ReaderInBookSearch: React.FC<ReaderInBookSearchProps> = ({
         {results.map((res, idx) => (
           <div
             key={idx}
-            onClick={() => onSelectResult(res.chapter_id, res.offset)}
+            onClick={() => onSelectResult(res)}
             className="pt-2 cursor-pointer hover:bg-(--reader-ui-hover) p-2 rounded-lg transition-colors"
           >
             <div className="font-semibold text-xs text-(--reader-ui-accent)">{res.chapter_title}</div>

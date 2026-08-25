@@ -956,7 +956,9 @@
     "align_justify": "양쪽 맞춤",
     "align_justify_short": "양쪽",
     "align_original": "책 기본값",
-    "align_original_short": "원본"
+    "align_original_short": "원본",
+    "back_short": "이전 페이지",
+    "book_detail_short": "도서 상세"
   },
   "analytics": {
     "title": "독서 분석 및 통계",

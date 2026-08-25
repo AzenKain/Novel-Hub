@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 const SUPPRESS_KEY = "novelhub:offline-warning-until";
@@ -42,6 +43,8 @@ export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfir
   const { t } = useTranslation();
   const [dontRemind, setDontRemind] = useState(false);
 
+  if (!open) return null;
+
   const confirm = () => {
     if (dontRemind) suppressOfflineWarning();
     onConfirm();
@@ -49,8 +52,8 @@ export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfir
 
   const size = formatBytes(sizeBytes || 0);
 
-  return (
-    <dialog className={`modal ${open ? "modal-open" : ""}`}>
+  return createPortal(
+    <dialog className="modal modal-open z-50">
       <div className="modal-box">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
@@ -85,6 +88,7 @@ export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfir
       <form method="dialog" className="modal-backdrop">
         <button onClick={onCancel}>close</button>
       </form>
-    </dialog>
+    </dialog>,
+    document.body
   );
 }

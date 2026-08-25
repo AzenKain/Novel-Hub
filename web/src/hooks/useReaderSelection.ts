@@ -206,9 +206,10 @@ export function useReaderSelection({
             setToolbarPos(getToolbarPosition(rect, window.innerWidth, window.innerHeight));
             return;
           }
+        } else {
+          savedSelectionRef.current = null;
+          setSelectionRange((prev) => (prev !== null ? null : prev));
         }
-        savedSelectionRef.current = null;
-        setSelectionRange(null);
       }, 20);
     };
 

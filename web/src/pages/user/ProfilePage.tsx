@@ -85,7 +85,15 @@ export const ProfilePage: React.FC = () => {
   if (!user) return null;
 
   const setTab = (tab: ProfileTab) => {
-    setSearchParams({ tab });
+    setSearchParams({ tab }, { replace: true });
+  };
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
   };
 
   const base64ToBlob = (base64: string): Blob => {
@@ -205,7 +213,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={handleBack}
                 className="btn btn-circle btn-sm btn-ghost"
                 title={t("common.back", "Back")}
               >

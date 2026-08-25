@@ -173,6 +173,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
 
   return (
     <header
+      data-reader-toolbar="true"
       className={`relative z-50 flex h-14 w-full flex-none items-center justify-between border-b px-3 sm:px-4 ${headerBg} backdrop-blur-md`}
     >
       <div className="flex items-center gap-2 min-w-0">

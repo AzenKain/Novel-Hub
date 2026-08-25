@@ -520,6 +520,35 @@ func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, cha
 
 	htmlContent, err := s.bookService.GetChapterHTML(ctx, bookID, chapterID, "")
 	if err != nil {
+		// Plugin may send a content path instead of a chapter id; resolve it
+		// against the TOC, exact match first, then segment-boundary suffix.
+		if chapters, listErr := s.bookService.ListChapters(ctx, bookID); listErr == nil {
+			targetPath := strings.ToLower(strings.TrimLeft(chapterID, "/"))
+			var match *models.ChapterEntity
+			for _, ch := range chapters {
+				if ch.ContentPath != nil && strings.EqualFold(strings.TrimLeft(*ch.ContentPath, "/"), targetPath) {
+					match = ch
+					break
+				}
+			}
+			if match == nil {
+				for _, ch := range chapters {
+					if ch.ContentPath == nil {
+						continue
+					}
+					chPath := strings.ToLower(strings.TrimLeft(*ch.ContentPath, "/"))
+					if strings.HasSuffix(targetPath, "/"+chPath) || strings.HasSuffix(chPath, "/"+targetPath) {
+						match = ch
+						break
+					}
+				}
+			}
+			if match != nil {
+				htmlContent, err = s.bookService.GetChapterHTML(ctx, bookID, match.ID, "")
+			}
+		}
+	}
+	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load chapter content")
 	}
 
@@ -543,7 +572,7 @@ func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*resp
 				Author:      "NovelHub",
 				Path:        baseURL + "/api/v1/vbook/plugin.zip",
 				Lib:         baseURL + "/api/v1/vbook/plugin.json",
-				Version:     2,
+				Version:     3,
 				Source:      baseURL,
 				Icon:        baseURL + "/vbook/icon.png",
 				Description: vbookDescription,
@@ -555,7 +584,7 @@ func (s *vbookService) GetPluginJSON(ctx context.Context, baseURL string) (*resp
 				Author:      "NovelHub",
 				Path:        baseURL + "/api/v1/vbook/plugin-audio.zip",
 				Lib:         baseURL + "/api/v1/vbook/plugin.json",
-				Version:     3,
+				Version:     4,
 				Source:      baseURL,
 				Icon:        baseURL + "/vbook/icon.png",
 				Description: vbookAudioDescription,
@@ -619,7 +648,7 @@ func (s *vbookService) buildPluginZip(_ context.Context, baseURL string) ([]byte
 			Metadata: response.VBookPluginMetadata{
 				Name:        "NovelHub",
 				Author:      "NovelHub",
-				Version:     2,
+				Version:     3,
 				Source:      baseURL,
 				Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
 				Description: vbookDescription,
@@ -644,7 +673,7 @@ func (s *vbookService) buildAudioPluginZip(_ context.Context, baseURL string) ([
 			Metadata: response.VBookPluginMetadata{
 				Name:        "NovelHub Audio",
 				Author:      "NovelHub",
-				Version:     3,
+				Version:     4,
 				Source:      baseURL,
 				Regexp:      ".*/api/v1/vbook/.*|.*/books/.*",
 				Description: vbookAudioDescription,

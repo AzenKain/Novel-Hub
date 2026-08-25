@@ -956,7 +956,9 @@
     "align_justify": "ضبط المحاذاة",
     "align_justify_short": "ضبط",
     "align_original": "الأصلي للكتاب",
-    "align_original_short": "أصلي"
+    "align_original_short": "أصلي",
+    "back_short": "السابق",
+    "book_detail_short": "تفاصيل الكتاب"
   },
   "analytics": {
     "title": "تحليلات القراءة وإحصاءاتها",

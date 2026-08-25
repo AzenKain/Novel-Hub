@@ -7,8 +7,6 @@ import { ThemeController, LanguageSwitcher } from "@/components/ui";
 import { useShallow } from "zustand/react/shallow";
 import { hasPermission } from "@/utils/permission";
 import { metadataNavIds } from "@/lib/libraryMetadata";
-import { LoginView } from "./LoginView";
-import { RegisterView } from "./RegisterView";
 import { useDebounce } from "@/hooks";
 import { bookService } from "@/services";
 import { getMediaUrl } from "@/config/api";
@@ -412,8 +410,6 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
           </button>
         ) : null}
       </div>
-      <LoginView />
-      <RegisterView />
     </div>
   );
 };

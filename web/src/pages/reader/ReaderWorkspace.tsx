@@ -22,7 +22,8 @@ import { useReaderNavigation } from "@/hooks/useReaderNavigation";
 import { useReaderPaging } from "@/hooks/useReaderPaging";
 import { useReaderSelection } from "@/hooks/useReaderSelection";
 import { queryClient } from "@/config/queryClient";
-import { applyUserHighlights, clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import { applyUserHighlights, clearHighlight, highlightTextRangeFromNode, extractTextFromHtml, scrollToTextOffset, scrollToSearchMatch, getVisibleTtsStartPoint, type TtsStartPoint, type SavedSelection } from "@/lib/readerHighlight";
+import type { SearchSnippet } from "@/types";
 import { generateCfi, resolveCfi } from "@/lib/epubCfi";
 import { BookOpen, ChevronRight } from "lucide-react";
 
@@ -49,6 +50,9 @@ const ReaderWorkspaceInner = () => {
   
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchSnippet[]>([]);
+  const [searchSearched, setSearchSearched] = useState(false);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteModalText, setQuoteModalText] = useState("");
   const [quoteModalImageUrl, setQuoteModalImageUrl] = useState<string | undefined>(undefined);
@@ -65,6 +69,7 @@ const ReaderWorkspaceInner = () => {
   const pendingFragmentRef = useRef<string | null>(null);
   const pendingLandingRef = useRef<string | null>(null);
   const pendingTextOffsetRef = useRef<number | null>(null);
+  const pendingSearchMatchRef = useRef<{ query: string; snippet?: string } | null>(null);
   const lastFocusedControlRef = useRef<HTMLElement | null>(null);
   const ttsOffsetRef = useRef<number>(0);
   const { resolveHTML, resolveBlobURL } = useOfflineAssets(book_id);
@@ -196,21 +201,33 @@ const ReaderWorkspaceInner = () => {
     };
   }, [reset]);
 
+  const ttsAutoContinueNextChapterRef = useRef<boolean>(false);
+  const handleNextRef = useRef<() => void>(() => {});
+  const canGoNextRef = useRef<boolean>(false);
+
   const { isSupported, isPlaying, isPaused, speak, pause, resume, stop, voices, selectedVoice, setSelectedVoice, rate, setRate } = useTTS({
     onEnd: () => {
       clearHighlight();
       ttsStartPointRef.current = null;
+      if (canGoNextRef.current) {
+        ttsAutoContinueNextChapterRef.current = true;
+        handleNextRef.current();
+      }
     },
     onBoundary: (e) => {
       if (columnsRef.current && (e.name === 'word' || !e.name)) {
-        const textToSearch = e.utterance?.text || "";
-        const wordLen = e.charLength || (textToSearch ? (textToSearch.slice(e.charIndex).match(/^\S+/)?.[0]?.length || 1) : 1);
-        highlightTextRangeFromNode(columnsRef.current, ttsStartPointRef.current, e.charIndex, wordLen);
+        highlightTextRangeFromNode(
+          columnsRef.current,
+          ttsStartPointRef.current,
+          e.charIndex,
+          e.charLength || 1
+        );
       }
     }
   });
 
   const handleTtsStop = useCallback(() => {
+    ttsAutoContinueNextChapterRef.current = false;
     stop();
     clearHighlight();
     ttsStartPointRef.current = null;
@@ -246,6 +263,17 @@ const ReaderWorkspaceInner = () => {
       pause();
     } else if (isPaused) {
       resume();
+    } else if (htmlContent && columnsRef.current) {
+      clearHighlight();
+      const { text, startPoint } = getVisibleTtsStartPoint(
+        columnsRef.current,
+        contentRef.current
+      );
+      if (text.trim()) {
+        ttsStartPointRef.current = startPoint;
+        ttsOffsetRef.current = 0;
+        speak(text);
+      }
     } else if (htmlContent) {
       ttsStartPointRef.current = null;
       clearHighlight();
@@ -589,6 +617,7 @@ const ReaderWorkspaceInner = () => {
     maxWidth,
     sidebarOpen,
     settingsOpen,
+    pageIndex,
   ]);
 
   useEffect(() => {
@@ -596,7 +625,7 @@ const ReaderWorkspaceInner = () => {
     if (container && highlights && highlights.length > 0) {
       applyUserHighlights(container, highlights);
     }
-  }, [selectionRange, isPlaying, isPaused, highlights, scrollLayout, autoScrollActive]);
+  }, [selectionRange, isPlaying, isPaused, highlights, scrollLayout, autoScrollActive, pageIndex]);
   const {
     getPagedScrollMetrics,
     scrollToPageIndex,
@@ -748,7 +777,13 @@ const ReaderWorkspaceInner = () => {
     if (!book_id) return;
     setCurrentChapter(chapter);
     setHtmlContent("");
-    handleTtsStop();
+    if (!ttsAutoContinueNextChapterRef.current) {
+      handleTtsStop();
+    } else {
+      stop();
+      clearHighlight();
+      ttsStartPointRef.current = null;
+    }
     try {
       const html = await readerService.getChapterHtml(book_id, chapter.id, file_id);
       setHtmlContent(await resolveHTML(html));
@@ -761,6 +796,7 @@ const ReaderWorkspaceInner = () => {
       }
     } catch (err) {
       console.error("Failed to load chapter content", err);
+      ttsAutoContinueNextChapterRef.current = false;
       const stored = await offlineStore.getChapter(book_id, chapter.id).catch(() => undefined);
       if (stored) {
         setHtmlContent(await resolveHTML(stored));
@@ -772,6 +808,29 @@ const ReaderWorkspaceInner = () => {
       setHtmlContent(`<div class='text-error p-4'>${t('offline.chapter_unavailable', 'This chapter is not available offline. Save the book for offline reading while you are connected.')}</div>`);
     }
   };
+
+  useEffect(() => {
+    if (!htmlContent || !ttsAutoContinueNextChapterRef.current) return;
+    ttsAutoContinueNextChapterRef.current = false;
+
+    const timer = setTimeout(() => {
+      const container = columnsRef.current;
+      if (container) {
+        clearHighlight();
+        const { text, startPoint } = getVisibleTtsStartPoint(
+          container,
+          contentRef.current
+        );
+        if (text.trim()) {
+          ttsStartPointRef.current = startPoint;
+          ttsOffsetRef.current = 0;
+          speak(text);
+        }
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [htmlContent]);
 
   useEffect(() => {
     if (!htmlContent || !pendingFragmentRef.current) return;
@@ -816,18 +875,33 @@ const ReaderWorkspaceInner = () => {
     });
   }, [htmlContent]);
 
-  // Resolve in-book search offset to a DOM range and scroll it into view.
+  // Resolve in-book search or offset to a DOM range and scroll it into view.
   useEffect(() => {
-    if (!htmlContent || pendingTextOffsetRef.current == null) return;
-    const offset = pendingTextOffsetRef.current;
-    pendingTextOffsetRef.current = null;
-    requestAnimationFrame(() => {
-      const container = columnsRef.current || contentRef.current;
-      if (container && scrollToTextOffset(container, offset)) return;
-      // ponytail: backend offset is currently always 0 (FTS snippet() only),
-      // so deep-link can't resolve — fall back to chapter top. BE contract gap.
-      if (contentRef.current) contentRef.current.scrollTop = 0;
-    });
+    if (!htmlContent) return;
+
+    if (pendingSearchMatchRef.current) {
+      const match = pendingSearchMatchRef.current;
+      pendingSearchMatchRef.current = null;
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const container = columnsRef.current || contentRef.current;
+          if (container) {
+            scrollToSearchMatch(container, match.query, match.snippet);
+          }
+        }, 80);
+      });
+      return;
+    }
+
+    if (pendingTextOffsetRef.current != null) {
+      const offset = pendingTextOffsetRef.current;
+      pendingTextOffsetRef.current = null;
+      requestAnimationFrame(() => {
+        const container = columnsRef.current || contentRef.current;
+        if (container && scrollToTextOffset(container, offset)) return;
+        if (contentRef.current) contentRef.current.scrollTop = 0;
+      });
+    }
   }, [htmlContent]);
 
   const invalidateProgressQueries = useCallback(() => {
@@ -1050,6 +1124,8 @@ const ReaderWorkspaceInner = () => {
       goToNextInSeries();
     }
   };
+  handleNextRef.current = handleNext;
+  canGoNextRef.current = canGoNext;
 
   const handlePrev = (startAtEnd = false) => {
     if (!currentChapter) return;
@@ -1225,7 +1301,9 @@ const ReaderWorkspaceInner = () => {
                         ? 'overflow-hidden flex flex-col p-0'
                         : 'overflow-hidden flex flex-col pt-4 pb-6 px-4 sm:px-20'
               } relative`}
-              onClick={() => setSettingsOpen(false)}
+              onClick={() => {
+                if (settingsOpen) setSettingsOpen(false);
+              }}
               onClickCapture={handleContentClickCapture}
               onScroll={handleScroll}
             >
@@ -1421,6 +1499,7 @@ const ReaderWorkspaceInner = () => {
         sidebarRef={sidebarRef}
         onClose={() => { setSidebarOpen(false); restoreFocus(); }}
         onBack={handleReaderBack}
+        onGoToBookDetail={() => navigate(`/books/${book_id}`)}
         onSelectChapter={(chapter) => {
           pendingTextOffsetRef.current = null;
           void loadChapter(chapter);
@@ -1494,12 +1573,31 @@ const ReaderWorkspaceInner = () => {
         <div className="fixed top-16 right-6 z-50 animate-fade-in">
           <ReaderInBookSearch
             book_id={book_id}
+            query={searchQuery}
+            setQuery={setSearchQuery}
+            results={searchResults}
+            setResults={setSearchResults}
+            searched={searchSearched}
+            setSearched={setSearchSearched}
             onClose={closeSearch}
-            onSelectResult={(chapter_id, offset) => {
-              const ch = chapters.find((c) => c.id === chapter_id);
+            onSelectResult={(res) => {
+              const ch = chapters.find(
+                (c) =>
+                  c.id === res.chapter_id ||
+                  (res.chapter_index !== undefined && c.chapter_index === res.chapter_index) ||
+                  c.id.endsWith(`:${res.chapter_index}`) ||
+                  (res.chapter_title && c.title === res.chapter_title)
+              );
               if (ch) {
-                pendingTextOffsetRef.current = offset > 0 ? offset : null;
-                void loadChapter(ch);
+                if (currentChapter?.id === ch.id) {
+                  const container = columnsRef.current || contentRef.current;
+                  if (container) {
+                    scrollToSearchMatch(container, searchQuery, res.snippet);
+                  }
+                } else {
+                  pendingSearchMatchRef.current = { query: searchQuery, snippet: res.snippet };
+                  void loadChapter(ch);
+                }
               }
               closeSearch();
             }}

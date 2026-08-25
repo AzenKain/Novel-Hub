@@ -53,7 +53,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   fontSize,
   lineHeight,
   maxWidth,
-  textAlign = "justify",
+  textAlign = "original",
   effectiveReadingMode,
   canUseDoubleMode,
   isVisualContent,

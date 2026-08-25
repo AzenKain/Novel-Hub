@@ -108,7 +108,7 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(({
       setInternalPage(0);
       onPageChange?.(0);
     }
-  }, [htmlContent, initialLanding, isWebtoon, isDouble]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [htmlContent, initialLanding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const step = isDouble ? 2 : 1;
   const isLastPage = currentPage >= imageUrls.length - step;
@@ -169,19 +169,49 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(({
   }, [isWebtoon, sanitizedHTML]);
   const isJumpingRef = useRef(false);
   const lastJumpedPageRef = useRef<number | null>(null);
+  const prevIsWebtoonRef = useRef(isWebtoon);
 
-  // Smooth scroll to target page when jumping in webtoon mode
+  // Smooth scroll to target page when jumping or switching into webtoon mode
   useEffect(() => {
-    if (!isWebtoon || !webtoonContainerRef.current) return;
-    if (lastJumpedPageRef.current === currentPage) return;
-    const imgs = Array.from(webtoonContainerRef.current.querySelectorAll("img"));
-    if (imgs && imgs[currentPage]) {
-      isJumpingRef.current = true;
-      lastJumpedPageRef.current = currentPage;
-      imgs[currentPage].scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(() => {
-        isJumpingRef.current = false;
-      }, 500);
+    if (!isWebtoon) {
+      prevIsWebtoonRef.current = false;
+      return;
+    }
+    const modeJustSwitched = !prevIsWebtoonRef.current && isWebtoon;
+    prevIsWebtoonRef.current = isWebtoon;
+
+    const scrollToTargetImage = (targetIndex: number, instant = false) => {
+      const container = webtoonContainerRef.current;
+      if (!container) return;
+      const imgs = Array.from(container.querySelectorAll("img"));
+      if (imgs && imgs[targetIndex]) {
+        isJumpingRef.current = true;
+        lastJumpedPageRef.current = targetIndex;
+        let top = imgs[targetIndex].offsetTop;
+        let parent = imgs[targetIndex].offsetParent as HTMLElement | null;
+        while (parent && container.contains(parent) && parent !== container) {
+          top += parent.offsetTop;
+          parent = parent.offsetParent as HTMLElement | null;
+        }
+        if (typeof container.scrollTo === "function") {
+          container.scrollTo({ top, behavior: instant ? "auto" : "smooth" });
+        } else {
+          container.scrollTop = top;
+        }
+        setTimeout(() => {
+          isJumpingRef.current = false;
+        }, 400);
+      }
+    };
+
+    if (modeJustSwitched) {
+      scrollToTargetImage(currentPage, true);
+      requestAnimationFrame(() => {
+        scrollToTargetImage(currentPage, true);
+        setTimeout(() => scrollToTargetImage(currentPage, true), 60);
+      });
+    } else if (lastJumpedPageRef.current !== currentPage) {
+      scrollToTargetImage(currentPage, false);
     }
   }, [currentPage, isWebtoon]);
 

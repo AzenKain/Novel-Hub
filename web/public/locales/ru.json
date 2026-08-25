@@ -956,7 +956,9 @@
     "align_justify": "По ширине",
     "align_justify_short": "По ширине",
     "align_original": "По умолчанию книги",
-    "align_original_short": "Оригинал"
+    "align_original_short": "Оригинал",
+    "back_short": "Назад",
+    "book_detail_short": "О книге"
   },
   "analytics": {
     "title": "Аналитика и статистика чтения",

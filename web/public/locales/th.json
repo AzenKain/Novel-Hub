@@ -956,7 +956,9 @@
     "align_justify": "จัดเต็มแนว",
     "align_justify_short": "เต็มแนว",
     "align_original": "ค่าเริ่มต้นของหนังสือ",
-    "align_original_short": "ต้นฉบับ"
+    "align_original_short": "ต้นฉบับ",
+    "back_short": "ก่อนหน้า",
+    "book_detail_short": "รายละเอียดหนังสือ"
   },
   "analytics": {
     "title": "สถิติและการวิเคราะห์การอ่าน",

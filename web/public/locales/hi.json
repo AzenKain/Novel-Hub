@@ -956,7 +956,9 @@
     "align_justify": "उभयतः संरेखित करें",
     "align_justify_short": "समान",
     "align_original": "पुस्तक का मूल",
-    "align_original_short": "मूल"
+    "align_original_short": "मूल",
+    "back_short": "पिछला",
+    "book_detail_short": "पुस्तक विवरण"
   },
   "analytics": {
     "title": "पठन विश्लेषण और आँकड़े",

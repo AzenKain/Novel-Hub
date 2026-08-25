@@ -956,7 +956,9 @@
     "enter_fullscreen": "Fullscreen",
     "exit_fullscreen": "Exit Fullscreen",
     "align_original": "Publisher Default",
-    "align_original_short": "Original"
+    "align_original_short": "Original",
+    "back_short": "Previous",
+    "book_detail_short": "Book Details"
   },
   "analytics": {
     "title": "Reading Analytics & Stats",

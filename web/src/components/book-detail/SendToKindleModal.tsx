@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Cpu, Send, Smartphone, Tablet, X } from "lucide-react";
 import { useDevicesQuery, usePushBookMutation, useSendBookToEmailMutation } from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
@@ -98,7 +99,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
 
   const isLoading = sendEmailMutation.isPending || pushBookMutation.isPending;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -251,6 +252,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
           </form>
         )}
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };

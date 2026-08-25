@@ -1,5 +1,6 @@
 import { Check, Copy, X } from "lucide-react";
 import React from "react";
+import { createPortal } from "react-dom";
 
 import type { Book } from "@/types";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
@@ -25,7 +26,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 }) => {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -70,6 +71,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
           </div>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };

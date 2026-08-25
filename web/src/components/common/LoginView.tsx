@@ -28,8 +28,10 @@ export function LoginView() {
     submit(email, password);
   }
 
+  if (!isLoginModalOpen) return null;
+
   return (
-    <dialog className={`modal ${isLoginModalOpen ? "modal-open" : ""}`}>
+    <dialog className="modal modal-open">
       <div className="modal-box">
         <button 
           onClick={() => setLoginModalOpen(false)}

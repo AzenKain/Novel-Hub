@@ -956,7 +956,9 @@
     "align_justify": "两端对齐",
     "align_justify_short": "两端对齐",
     "align_original": "书籍默认",
-    "align_original_short": "原始"
+    "align_original_short": "原始",
+    "back_short": "上一页",
+    "book_detail_short": "书籍详情"
   },
   "analytics": {
     "title": "阅读分析与统计",

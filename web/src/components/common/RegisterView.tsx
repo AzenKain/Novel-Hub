@@ -47,8 +47,10 @@ export function RegisterView() {
     setLoginModalOpen(true);
   };
 
+  if (!isRegisterModalOpen) return null;
+
   return (
-    <dialog className={`modal ${isRegisterModalOpen ? "modal-open" : ""}`}>
+    <dialog className="modal modal-open">
       <div className="modal-box max-w-md">
         <button
           onClick={() => setRegisterModalOpen(false)}

@@ -7,7 +7,7 @@ export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
 export type ReadingDirection = "ltr" | "rtl";
 export type PageFit = "width" | "height" | "original";
 export type PageAnimation = "eink" | "none" | "fade" | "slide";
-export type TextAlignment = "original" | "left" | "justify" | "center" | "right";
+export type TextAlignment = "original" | "left" | "center" | "right";
 
 interface ReaderState {
   book: Book | null;
@@ -136,7 +136,14 @@ export const useReaderStore = create<ReaderState>()(
     {
       name: 'novelhub-reader-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 5,
+      version: 6,
+      migrate: (persisted) => {
+        const state = (persisted as { state?: { textAlign?: string } })?.state;
+        if (state && !["original", "left", "center", "right"].includes(state.textAlign || "")) {
+          state.textAlign = "original";
+        }
+        return persisted;
+      },
       partialize: (state) => ({
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,

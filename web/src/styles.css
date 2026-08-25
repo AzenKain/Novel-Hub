@@ -792,7 +792,7 @@ label.btn-primary:hover:not(:disabled) {
 .reader-mode-single :is(article, .novelhub-mobi),
 .reader-mode-double :is(article, .novelhub-mobi) {
   max-width: none !important;
-  padding-inline: clamp(1.25rem, 2.2vw, 2rem) !important;
+  padding: 0 !important;
 }
 
 .reader-content :is(article, .novelhub-mobi) > :first-child {
@@ -1014,11 +1014,8 @@ label.btn-primary:hover:not(:disabled) {
 
 
 .reader-mode-single body,
-.reader-mode-single:not(:has(body)),
-.reader-mode-single.reader-mode-measured body,
-.reader-mode-single.reader-mode-measured:not(:has(body)) {
+.reader-mode-single:not(:has(body)) {
   column-count: 1 !important;
-  column-width: var(--reader-page-width, 100%) !important;
   column-gap: var(--reader-page-gap, 40px) !important;
   column-fill: auto !important;
   inline-size: 100% !important;
@@ -1030,11 +1027,8 @@ label.btn-primary:hover:not(:disabled) {
 }
 
 .reader-mode-double body,
-.reader-mode-double:not(:has(body)),
-.reader-mode-double.reader-mode-measured body,
-.reader-mode-double.reader-mode-measured:not(:has(body)) {
+.reader-mode-double:not(:has(body)) {
   column-count: 2 !important;
-  column-width: var(--reader-page-width, calc((100% - 40px) / 2)) !important;
   column-gap: var(--reader-page-gap, 40px) !important;
   column-fill: auto !important;
   inline-size: 100% !important;
@@ -1043,6 +1037,16 @@ label.btn-primary:hover:not(:disabled) {
   overflow-y: hidden !important;
   overflow-x: hidden !important;
   display: block !important;
+}
+
+.reader-mode-measured body,
+.reader-mode-measured:not(:has(body)),
+.reader-mode-single.reader-mode-measured body,
+.reader-mode-single.reader-mode-measured:not(:has(body)),
+.reader-mode-double.reader-mode-measured body,
+.reader-mode-double.reader-mode-measured:not(:has(body)) {
+  column-count: auto !important;
+  column-width: var(--reader-page-width) !important;
 }
 
 .reader-mode-single :is(p, div, section, article, blockquote),
@@ -1054,7 +1058,6 @@ label.btn-primary:hover:not(:disabled) {
 
 .reader-content :is(p, li, blockquote, dd, dt) {
   line-height: var(--reader-line-height, 1.8) !important;
-  text-wrap: pretty !important;
 }
 
 .reader-content[data-align="left"] :is(p:not(.reader-image-page):not(:has(> img:only-child)), li, blockquote, dd, dt),

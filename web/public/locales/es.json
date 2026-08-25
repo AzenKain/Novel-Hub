@@ -956,7 +956,9 @@
     "align_justify": "Justificar",
     "align_justify_short": "Justificado",
     "align_original": "Original del libro",
-    "align_original_short": "Original"
+    "align_original_short": "Original",
+    "back_short": "Anterior",
+    "book_detail_short": "Detalles del libro"
   },
   "analytics": {
     "title": "Analíticas y estadísticas de lectura",

@@ -3,6 +3,7 @@ import {
   extractTextFromHtml,
   getCharacterOffsetOfRange,
   getTextNodeIndex,
+  getVisibleTtsStartPoint,
   resolveToTextNode,
   saveSelection,
   scrollToTextOffset,
@@ -204,5 +205,95 @@ describe("scrollToTextOffset", () => {
     expect(scrollToTextOffset(container, -5)).toBe(false);
     // Total text is 5 chars; nothing to resolve past it.
     expect(scrollToTextOffset(container, 500)).toBe(false);
+  });
+});
+
+describe("getVisibleTtsStartPoint", () => {
+  it("extracts from offset 0 when whole text node is visible at the beginning", () => {
+    const container = render("<p>First line of chapter</p><p>Second line</p>");
+    container.classList.add("reader-mode-single");
+    const result = getVisibleTtsStartPoint(container);
+    expect(result.text).toContain("First line of chapter");
+    expect(result.startPoint?.offset).toBe(0);
+  });
+
+  it("extracts from overflowed text offset on current page when paragraph starts on previous page", () => {
+    const container = render("<p>Paragraph one line one. Paragraph one line two on page two.</p><p>Paragraph two.</p>");
+    container.classList.add("reader-mode-single");
+    Object.defineProperty(container, "clientWidth", { value: 800, configurable: true });
+
+    const originalGetBCR = container.getBoundingClientRect;
+    container.getBoundingClientRect = () => ({
+      left: 100,
+      right: 900,
+      top: 50,
+      bottom: 700,
+      width: 800,
+      height: 650,
+      x: 100,
+      y: 50,
+      toJSON: () => {},
+    });
+
+    const originalGetClientRects = Range.prototype.getClientRects;
+    Range.prototype.getClientRects = function () {
+      const nodeText = this.startContainer.textContent || "";
+      if (nodeText.includes("Paragraph one line one")) {
+        // If range starts at or after "Paragraph one line two" (offset 24)
+        if (this.startOffset >= 24) {
+          return [
+            {
+              left: 100,
+              right: 800,
+              top: 60,
+              bottom: 90,
+              width: 700,
+              height: 30,
+              x: 100,
+              y: 60,
+              toJSON: () => {},
+            } as DOMRect,
+          ] as unknown as DOMRectList;
+        }
+        // Entire node or start < 24: has 2 line boxes (one on previous page, one on page two)
+        return [
+          {
+            left: -700,
+            right: 0,
+            top: 60,
+            bottom: 90,
+            width: 700,
+            height: 30,
+            x: -700,
+            y: 60,
+            toJSON: () => {},
+          } as DOMRect,
+          {
+            left: 100,
+            right: 800,
+            top: 60,
+            bottom: 90,
+            width: 700,
+            height: 30,
+            x: 100,
+            y: 60,
+            toJSON: () => {},
+          } as DOMRect,
+        ] as unknown as DOMRectList;
+      }
+      return originalGetClientRects.call(this);
+    };
+
+    try {
+      const result = getVisibleTtsStartPoint(container);
+      expect(result.startPoint).not.toBeNull();
+      expect(result.startPoint?.textNodeIndex).toBe(0);
+      expect(result.startPoint?.offset).toBe(24);
+      expect(result.text).toBe("Paragraph one line two on page two.Paragraph two.");
+      expect(result.text.startsWith("Paragraph one line two")).toBe(true);
+    } finally {
+      Range.prototype.getClientRects = originalGetClientRects;
+      container.getBoundingClientRect = originalGetBCR;
+    }
   });
 });

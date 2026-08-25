@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import { RecentlyReadPanel } from "@/components/book-detail";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
-import { LoginView, TopNav } from "@/components/common";
+import { TopNav } from "@/components/common";
 import { LibrarySidebar, MetadataIndexView, HorizontalBookShelf, SmartFilterShelf } from "@/components/library";
 import { BookCard, BookGrid, BookGridSkeleton } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
@@ -1182,7 +1182,6 @@ export const LibraryWorkspace = () => {
         />
       )}
 
-      <LoginView />
       <UserProfile />
       {/* New Collection Modal */}
       {showNewCollectionModal && (

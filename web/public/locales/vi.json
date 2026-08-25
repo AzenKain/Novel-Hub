@@ -956,7 +956,9 @@
     "enter_fullscreen": "Toàn màn hình",
     "exit_fullscreen": "Thoát toàn màn hình",
     "align_original": "Mặc định của sách",
-    "align_original_short": "Gốc"
+    "align_original_short": "Gốc",
+    "back_short": "Trang trước",
+    "book_detail_short": "Chi tiết sách"
   },
   "analytics": {
     "title": "Thống kê & tiến trình đọc",

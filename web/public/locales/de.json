@@ -956,7 +956,9 @@
     "align_justify": "Blocksatz",
     "align_justify_short": "Blocksatz",
     "align_original": "Buch-Standard",
-    "align_original_short": "Original"
+    "align_original_short": "Original",
+    "back_short": "Zurück",
+    "book_detail_short": "Buchdetails"
   },
   "analytics": {
     "title": "Leseanalysen & Statistiken",

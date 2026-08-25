@@ -47,6 +47,11 @@ function loginError() {
     return Response.error("Cần đăng nhập NovelHub: mở trình duyệt trong app, truy cập " + CONFIG_URL + "/login, đăng nhập rồi quay lại thử");
 }
 
+function cleanHtml(html) {
+    if (!html) return html;
+    return html.replace(/<title[\s\S]*?<\/title>/gi, "");
+}
+
 function execute(url) {
     var fetchUrl = url;
     if (fetchUrl.indexOf("http") !== 0) {
@@ -54,7 +59,7 @@ function execute(url) {
     }
     var res = fetchJson(fetchUrl);
     if (res && res.status && res.data) {
-        return Response.success(makeAbsolute(res.data.content));
+        return Response.success(makeAbsolute(cleanHtml(res.data.content)));
     }
     if (res && res.needsLogin) return loginError();
     return Response.error("Không thể tải nội dung chương từ NovelHub");
@@ -62,8 +67,8 @@ function execute(url) {
 
 function makeAbsolute(html) {
     if (!html) return html;
-    return html.replace(/(src|xlink:href|href|poster)\s*=\s*(["'])([^"']+)\2/gi, function (m, attr, q, url) {
-        if (url.indexOf("http") === 0 || url.indexOf("//") === 0 || url.indexOf("data:") === 0 || url.indexOf("blob:") === 0 || url.charAt(0) === "#") {
+    return html.replace(/(src|xlink:href|poster)\s*=\s*(["'])([^"']+)\2/gi, function (m, attr, q, url) {
+        if (url.indexOf("http") === 0 || url.indexOf("//") === 0 || url.indexOf("data:") === 0 || url.indexOf("blob:") === 0) {
             return m;
         }
         var absUrl = CONFIG_URL + (url.charAt(0) === "/" ? "" : "/") + url;

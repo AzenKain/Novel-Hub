@@ -956,7 +956,9 @@
     "align_justify": "Rata Kiri Kanan",
     "align_justify_short": "Justifikasi",
     "align_original": "Bawaan Buku",
-    "align_original_short": "Asli"
+    "align_original_short": "Asli",
+    "back_short": "Sebelumnya",
+    "book_detail_short": "Detail Buku"
   },
   "analytics": {
     "title": "Analitik & statistik bacaan",

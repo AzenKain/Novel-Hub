@@ -1,4 +1,4 @@
-import { DownloadManagerPanel, ProtectedRoute, UpdatePrompt } from "@/components/common";
+import { DownloadManagerPanel, LoginView, ProtectedRoute, RegisterView, UpdatePrompt } from "@/components/common";
 import "@/i18n";
 import { queryClient } from "@/config/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -200,6 +200,8 @@ function App() {
           hideProgressBar
           theme="colored"
         />
+        <LoginView />
+        <RegisterView />
         <UpdatePrompt />
         <DownloadManagerPanel />
       </ThemeInitializer>

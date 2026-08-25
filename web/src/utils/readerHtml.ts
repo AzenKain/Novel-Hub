@@ -8,7 +8,8 @@ export const isNavOnlyChapter = (title?: string | null) => {
 };
 
 export const sanitizeReaderHtml = (html: string) => {
-  const stripped = html
+  const normalized = (html || "").normalize("NFC");
+  const stripped = normalized
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
     .replace(/<meta\b[^>]*>/gi, "")
     .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "")
@@ -32,6 +33,19 @@ export const sanitizeReaderHtml = (html: string) => {
     // Remove explicitly hidden elements (e.g. hidden duplicate titles, hidden watermarks/copyright)
     doc.querySelectorAll("[hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible").forEach((el) => {
       el.remove();
+    });
+
+    doc.querySelectorAll('[align="justify" i], [style*="justify" i]').forEach((el) => {
+      el.setAttribute("align", "left");
+      const style = el.getAttribute("style");
+      if (style) {
+        const cleaned = style
+          .replace(/text-align\s*:\s*justify\s*;?/gi, "")
+          .replace(/text-justify\s*:\s*[^;]+;?/gi, "")
+          .replace(/^\s*;\s*/, "")
+          .trim();
+        el.setAttribute("style", cleaned);
+      }
     });
 
     const imgs = doc.querySelectorAll("img");
