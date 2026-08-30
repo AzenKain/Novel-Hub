@@ -11,7 +11,7 @@ NovelHub mặc định bỏ qua chúng vì bất kỳ client nào cũng có th�
 Có hai nửa. Cả hai đều bắt buộc.
 
 | Nửa | Ở đâu |
-|---|---|
+| --- | --- |
 | NovelHub tin cậy proxy | `TRUST_PROXY` trong `.env` |
 | Proxy gửi các header | Cấu hình của proxy |
 

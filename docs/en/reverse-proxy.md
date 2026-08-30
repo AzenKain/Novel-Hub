@@ -11,7 +11,7 @@ forge them. `TRUST_PROXY` says who is allowed to set them.
 There are two halves. Both are required.
 
 | Half | Where |
-|---|---|
+| --- | --- |
 | NovelHub trusts the proxy | `TRUST_PROXY` in `.env` |
 | The proxy sends the headers | Your proxy's configuration |
 

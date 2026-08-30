@@ -185,7 +185,7 @@ instead, which handles this correctly.
 Five routes:
 
 | Route | How |
-|---|---|
+| --- | --- |
 | Upload | **Admin → Books → Upload**, chunked so large files survive a flaky connection |
 | Inbox | Drop files into `data/inbox/<libraryID>/`, then run **Operations → Jobs → Scan inbox**. Nested folders are scanned up to 5 levels deep; imported files are removed and empty directories cleaned up |
 | Calibre | **Admin → Library → Import from Calibre**, pointed at a folder containing `metadata.db` |
@@ -200,7 +200,7 @@ a partial copy is never picked up.
 ## E-reader clients
 
 | Protocol / App | Endpoint | Auth |
-|---|---|---|
+| --- | --- | --- |
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — your NovelHub email and password |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | The token in the path — a Kobo sends no Authorization header |
@@ -228,7 +228,6 @@ OPDS is rate-limited on *failed* authentication only, so normal polling is never
 throttled. If catalog links point at the wrong host — behind a path-rewriting
 proxy, for instance — set the **Server URL** under **Admin → Settings** to the
 correct absolute base URL. It applies immediately, with no restart.
-
 
 ---
 

@@ -18,7 +18,7 @@ openssl rand -hex 32   # run three times, one value each
 ```
 
 | 变量 | 用途 |
-|---|---|
+| --- | --- |
 | `JWT_SECRET` | 为访问令牌签名 |
 | `JWT_REFRESH_SECRET` | 为刷新令牌签名 |
 | `DB_ENCRYPTION_KEY` | 加密存放在数据库里的第三方令牌(AniList、MAL)和 SMTP 密码 |
@@ -48,7 +48,7 @@ TRUST_PROXY=false
   `Secure` 标记
 
 | 取值 | 适用场景 | 信任范围 |
-|---|---|---|
+| --- | --- | --- |
 | `false` | 浏览器直连 NovelHub | 什么都不信任 |
 | `true` | nginx/Caddy 与 NovelHub 在同一台主机,或是同一 Docker 网络内的另一个容器 | 回环、私有和链路本地地址:`127.0.0.0/8`、`::1`、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`fc00::/7`、`169.254.0.0/16` |
 | `1.2.3.0/24,5.6.7.8` | 代理位于公网地址上 —— 最常见的是 Cloudflare | 仅信任列出的 IP 和 CIDR |
@@ -73,14 +73,14 @@ TRUST_PROXY=false
 ### 网络
 
 | 变量 | 默认值 | 说明 |
-|---|---|---|
+| --- | --- | --- |
 | `SERVER_HOST` | `127.0.0.1` | Docker 会设为 `0.0.0.0`;不要在那里覆盖它,否则映射出去的端口无法访问 |
 | `SERVER_PORT` | `3434` | |
 
 ### 存储
 
 | 变量 | 默认值 | 说明 |
-|---|---|---|
+| --- | --- | --- |
 | `DATA_DIR` | `./data` | 下面所有内容的根目录 |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
 | `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | 只有位于该根目录下的目录才能导入。如果你的 Calibre 库在别处，请把它指向那里。 |
@@ -106,7 +106,7 @@ data/
 这些全部会自动调优。只有当你想刻意限制资源占用时才去设置。
 
 | 变量 | 默认值 |
-|---|---|
+| --- | --- |
 | `SQLITE_CACHE_SIZE_KB` | 按系统内存计算(64 MB–512 MB) |
 | `SQLITE_MMAP_SIZE_BYTES` | 按系统内存计算(256 MB–2 GB) |
 | `SQLITE_MAX_OPEN_CONNS` | CPU 核数 × 2,限制在 4–16 之间 |
@@ -122,7 +122,7 @@ data/
 ### 日志
 
 | 变量 | 默认值 | 说明 |
-|---|---|---|
+| --- | --- | --- |
 | `LOG_MAX_SIZE_MB` | `10` | 当前日志文件达到该大小时轮转 |
 | `LOG_MAX_FILES` | `5` | 保留的轮转文件数 |
 | `DISABLE_REQUEST_LOG` | `true` | 关闭逐请求日志以提升吞吐 |
@@ -134,7 +134,7 @@ data/
 ### 行为
 
 | 变量 | 默认值 | 说明 |
-|---|---|---|
+| --- | --- | --- |
 | `TOKEN_VERSION_CACHE` | `true` | 多个实例共用一个数据库时设为 `false`,那种情况下内存缓存会变成过期的脏数据 |
 | `DISABLE_RESPONSE_COMPRESSION` | `false` | |
 | `ENABLE_PREFORK` | `false` | 多进程 worker。会禁用令牌版本缓存 |
@@ -148,7 +148,7 @@ data/
 改动立即生效。
 
 | 区域 | 涵盖内容 |
-|---|---|
+| --- | --- |
 | 站点 | 标题、描述、Logo、favicon、侧边栏项目、首页板块 |
 | 服务器 URL | OPDS 目录和 Kobo 同步链接使用的绝对基础 URL。留空则按每个请求自动探测;仅当探测到的主机不正确时才需设置,例如位于代理之后 |
 | 访问 | 注册开关、是否必须登录、访客访问模式、按书库的访客可见性 |
@@ -196,25 +196,33 @@ NovelHub 是一套完整的渐进式 Web 应用 (PWA),支持原生应用安装:
 - **权限控制**: 离线保存书籍功能通过 `book.offline` 权限按角色精细化控制。
 
 ### OAuth / SSO (单点登录)
+
 在 **管理 → 设置 → OAuth** 下配置第三方认证服务。
+
 - **支持的服务商**: Google、GitHub、Discord、OIDC (OpenID Connect)。
 - **设置**: 输入 Client ID、Client Secret、重定向 URI（必须与 `/api/v1/auth/oauth/:provider/callback` 一致）以及发行者 URL（用于 OIDC）。
 - **行为**: 经由第三方登录的账户，如果系统允许注册，则会自动创建新账号，若邮箱已存在且已验证，则会自动映射到该账户。
 
 ### 播客 (Podcasts)
+
 在 **管理 → 设置 → Podcasts**（或播客页面）下订阅和管理 RSS 播客源。
+
 - 输入绝对 RSS 订阅源 URL 进行订阅。
 - 系统具备 Jekyll/Liquid 模板检测机制，自动拦截未编译的模板源，避免订阅出错。
 - 原生支持下载和解析高达 250MB 的巨型 RSS XML 播客源。
 - 可以设置定时调度自动刷新，或手动触发后台任务下载最新单集音频文件为图书。
 
 ### 儿童模式 & 年龄分级 (Kids Mode)
+
 根据内容分级限制未成年人接触的内容。
+
 - **内容分级**: G、PG、R、R18。
 - **儿童模式**: 在 **个人资料 → 儿童模式** 中设定 6 位数字 PIN 码启用。启用后，所有评级超出限制的书籍在书架和搜索结果中将被自动隐藏。解除该模式需输入正确的 PIN 码。
 
 ### VBook 联动
+
 允许直接在 Android 端 VBook 阅读器应用上浏览和阅读你的 NovelHub 图书馆。
+
 - **设置**: 在个人资料页面复制 VBook 专属的 plugin JSON 链接，或直接下载 `plugin.zip`。
 - **注册点**: 系统通过 `/api/v1/vbook/plugin.json` 暴露插件注册元数据，并通过 `/api/v1/vbook/plugin.zip` 提供 VBook 插件包的下载。
 

@@ -183,7 +183,7 @@ admin, nó xử lý việc này đúng cách.
 Năm đường:
 
 | Đường | Cách làm |
-|---|---|
+| --- | --- |
 | Upload | **Admin → Books → Upload**, chia chunk để file lớn vẫn qua được kết nối không ổn định |
 | Inbox | Thả file vào `data/inbox/<libraryID>/`, rồi chạy **Operations → Jobs → Scan inbox**. Thư mục lồng nhau được quét sâu tới 5 cấp; file đã nhập sẽ bị xóa và thư mục rỗng được dọn sạch |
 | Calibre | **Admin → Library → Import from Calibre**, trỏ vào thư mục chứa `metadata.db` |
@@ -198,7 +198,7 @@ bao giờ nhặt phải bản copy dở dang.
 ## Ứng dụng đọc sách
 
 | Giao thức / Ứng dụng | Endpoint | Xác thực |
-|---|---|---|
+| --- | --- | --- |
 | OPDS 1.2 | `/api/opds/v1` | HTTP Basic — email và mật khẩu NovelHub của bạn |
 | OPDS 2.0 | `/api/opds/v2/catalog` | HTTP Basic |
 | Kobo | `/kobo/<token>/v1/…` | Token nằm trong path — máy Kobo không gửi header Authorization |
@@ -226,7 +226,6 @@ OPDS chỉ bị rate limit khi xác thực *thất bại*, nên việc poll bìn
 giờ bị chặn. Nếu link catalog trỏ sai host — chẳng hạn khi nằm sau proxy có rewrite
 path — hãy đặt **URL máy chủ** trong **Admin → Cài đặt** thành base URL tuyệt đối
 đúng. Nó có hiệu lực ngay, không cần restart.
-
 
 ---
 

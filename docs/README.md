@@ -1,7 +1,7 @@
 # NovelHub Documentation
 
 | Language | |
-|---|---|
+| --- | --- |
 | English | [Configuration](en/configuration.md) · [Deployment](en/deployment.md) · [Reverse Proxy](en/reverse-proxy.md) |
 | Tiếng Việt | [Cấu hình](vi/configuration.md) · [Triển khai](vi/deployment.md) · [Reverse Proxy](vi/reverse-proxy.md) |
 | 日本語 | [設定](ja/configuration.md) · [デプロイ](ja/deployment.md) · [リバースプロキシ](ja/reverse-proxy.md) |

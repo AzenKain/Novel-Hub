@@ -13,6 +13,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ## Features
 
 ### 📖 Reading Experience
+
 - **Universal Multi-Format Reader**: Render EPUB, KePub, MOBI, AZW, AZW3, PDF, DOCX, DOC, ODT, RTF, FB2, FBZ, Comic CBZ/CBR/CBT/CB7, TXT, MD, HTML, PPTX, PPT, ODP, XLSX, XLS, ODS, CSV, TSV, and LaTeX (`.tex`) natively
 - **High-Fidelity Typography & DTP Layout**: Preserves inline styling (bold, italic, underline, strikethrough, small-caps), paragraph alignment (left, center, right, justify), multi-column responsive tables, presentation slide decks, and embedded audio/video
 - **Configurable Text Alignment**: Select between `Original` (preserves publisher's native book CSS), `Left`, `Center`, `Right`, or `Justify`
@@ -25,12 +26,14 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Book Archival**: Archive books to hide them from the main bookshelves without deleting files
 
 ### 🎧 Audio & Podcast Support
+
 - **Native Audio Streaming**: Play MP3, M4A, M4B, and FLAC files without FFmpeg or HLS dependencies
 - **Audiobook Merger**: Combine multiple audio tracks into a chaptered M4B audiobook natively
 - **ASIN Chapter Lookup**: Automatic audiobook chapter metadata lookup via Audnexus API
 - **Podcast Manager**: Subscribe to RSS XML feeds, auto-refresh feeds, and download episodes as books
 
 ### 📱 Integrations & Sync
+
 - **Native WebDAV Server**: Mount and browse your entire library directly from macOS Finder, Windows Explorer, Linux file managers, or third-party reader apps via `/webdav`
 - **AnkiConnect Integration**: Sync vocabulary, highlights, and book quotes directly to Anki decks with tag mapping and model customization
 - **Kobo Wi-Fi Sync**: Sync library, bookmarks, reading progress, and KePub conversion over Wi-Fi
@@ -42,6 +45,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Send-to-Kindle**: E-mail delivery of eBooks via secure SMTP with attachment size control
 
 ### 🔍 Discovery & Organization
+
 - **Fluid Responsive Bookshelves**: Proportional 2/3/4/5/6-column grid with touch & mouse drag-to-scroll momentum, mouse wheel horizontal translation, and page-aligned batching (LCM=60)
 - **Advanced Faceted Search**: Multi-facet filtering by authors, publishers, languages, formats, tags, series, and ratings
 - **Deep Full-Text Search**: Unicode FTS5 search across all chapter contents of all books
@@ -51,11 +55,13 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Calibre Import**: Full library metadata import from Calibre's `metadata.db`
 
 ### 📊 Analytics & Engagement
+
 - **Reading Analytics Dashboard**: Personal heatmaps, sessions, daily/annual goals, and library breakdowns
 - **Estimated Reading Time (ETA)**: Accurate reading speed calculations per book
 - **Book Reviews & Ratings**: User-written reviews, stars, and shareable public links
 
 ### 🔒 Security & Access
+
 - **OAuth2 & OIDC Support**: Authenticate using external identity providers (Google, GitHub, Keycloak, Authelia, etc.)
 - **PIN-Protected Kids Mode**: Toggle visibility of mature books based on G/PG/R/R18 ratings
 - **Magic Code Login**: 6-digit passwordless login for e-readers and smart devices
@@ -63,6 +69,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **SSRF & Path Traversal Prevention**: Socket-level network and file path hardening
 
 ### ⚙️ Operations & Architecture
+
 - **Single Binary Deployment**: Frontend and SQLite WAL schema compiled into a single file
 - **Zero-Downtime Backups**: SQLite online snapshots and staged integrity-verified restores
 - **Job Scheduler & Maintenance**: Queue engine with cron-like task schedulers (batch EPUB repair, orphaned upload GC, inbox scanner)
@@ -113,7 +120,7 @@ go run ./cmd/api
 ### Make Targets
 
 | Target | Description |
-|---|---|
+| --- | --- |
 | `make run` | Build frontend with Bun and start Go server |
 | `make test` | Run all Go unit tests |
 | `make sqlc` | Regenerate SQLC database models |
@@ -184,7 +191,7 @@ openssl rand -hex 32   # run three times, one per secret
 ```
 
 | Variable | Description |
-|---|---|
+| --- | --- |
 | `JWT_SECRET` | **Required.** Signs access tokens |
 | `JWT_REFRESH_SECRET` | **Required.** Signs refresh tokens |
 | `DB_ENCRYPTION_KEY` | **Required.** Encrypts tracker tokens, TOTP secrets and the SMTP password stored in the database |
@@ -208,7 +215,7 @@ Other languages: [Tiếng Việt](docs/vi/configuration.md) ·
 ## Supported Formats
 
 | Format | Extensions | Reader | Metadata | Typography & Formatting | Cover |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | **EPUB / KePub** | `.epub`, `.kepub.epub` | ✅ HTML | ✅ Full | Bold, Italic, Tables, Figures, Images, Audio/Video | ✅ Full |
 | **MOBI / AZW / AZW3** | `.mobi`, `.azw`, `.azw3`, `.amz` | ✅ HTML | ✅ EXTH | Bold, Italic, Caps, Tables, Images | ✅ EXTH |
 | **Microsoft Word** | `.docx`, `.doc` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment, Images | ✅ Full |

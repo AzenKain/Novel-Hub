@@ -21,7 +21,7 @@ openssl rand -hex 32   # run three times, one value each
 ```
 
 | Biến | Mục đích |
-|---|---|
+| --- | --- |
 | `JWT_SECRET` | Ký access token |
 | `JWT_REFRESH_SECRET` | Ký refresh token |
 | `DB_ENCRYPTION_KEY` | Mã hóa token của bên thứ ba (AniList, MAL) và mật khẩu SMTP lưu trong database |
@@ -52,7 +52,7 @@ Biến này quyết định NovelHub có tin hai header do proxy gửi tới hay
   đăng nhập có được gắn cờ `Secure` hay không
 
 | Giá trị | Dùng khi | Tin cậy |
-|---|---|---|
+| --- | --- | --- |
 | `false` | Trình duyệt kết nối trực tiếp tới NovelHub | Không gì cả |
 | `true` | nginx/Caddy trên cùng máy, hoặc một container khác trong cùng Docker network | Địa chỉ loopback, private và link-local: `127.0.0.0/8`, `::1`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`, `169.254.0.0/16` |
 | `1.2.3.0/24,5.6.7.8` | Proxy nằm trên địa chỉ public — thường gặp nhất là Cloudflare | Đúng những IP và CIDR được liệt kê |
@@ -81,14 +81,14 @@ bạn cần ghi đè.
 ### Mạng
 
 | Biến | Mặc định | Ghi chú |
-|---|---|---|
+| --- | --- | --- |
 | `SERVER_HOST` | `127.0.0.1` | Docker đặt `0.0.0.0`; đừng ghi đè ở đó nếu không port đã publish sẽ không truy cập được |
 | `SERVER_PORT` | `3434` | |
 
 ### Lưu trữ
 
 | Biến | Mặc định | Ghi chú |
-|---|---|---|
+| --- | --- | --- |
 | `DATA_DIR` | `./data` | Thư mục gốc cho mọi thứ bên dưới |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
 | `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | Chỉ những thư mục nằm dưới gốc này mới import được. Trỏ nó tới thư viện Calibre nếu thư viện nằm ở chỗ khác. |
@@ -114,7 +114,7 @@ Backup `DATA_DIR` là backup toàn bộ bản cài đặt.
 Tất cả đều tự điều chỉnh. Chỉ đặt khi bạn muốn chủ động giới hạn tài nguyên.
 
 | Biến | Mặc định |
-|---|---|
+| --- | --- |
 | `SQLITE_CACHE_SIZE_KB` | Tính theo RAM hệ thống (64 MB–512 MB) |
 | `SQLITE_MMAP_SIZE_BYTES` | Tính theo RAM hệ thống (256 MB–2 GB) |
 | `SQLITE_MAX_OPEN_CONNS` | Số CPU × 2, giới hạn trong khoảng 4–16 |
@@ -130,7 +130,7 @@ Tất cả đều tự điều chỉnh. Chỉ đặt khi bạn muốn chủ đ�
 ### Log
 
 | Biến | Mặc định | Ghi chú |
-|---|---|---|
+| --- | --- | --- |
 | `LOG_MAX_SIZE_MB` | `10` | Kích thước để log đang hoạt động được rotate |
 | `LOG_MAX_FILES` | `5` | Số file đã rotate được giữ lại |
 | `DISABLE_REQUEST_LOG` | `true` | Tắt log theo từng request để tăng throughput |
@@ -142,7 +142,7 @@ Chúng vẫn là biến môi trường vì hệ thống log khởi động trư�
 ### Hành vi
 
 | Biến | Mặc định | Ghi chú |
-|---|---|---|
+| --- | --- | --- |
 | `TOKEN_VERSION_CACHE` | `true` | Đặt `false` khi nhiều instance dùng chung một database, lúc đó cache trong RAM sẽ bị cũ |
 | `DISABLE_RESPONSE_COMPRESSION` | `false` | |
 | `ENABLE_PREFORK` | `false` | Worker đa tiến trình. Vô hiệu hóa cache token version |
@@ -156,7 +156,7 @@ Không phải biến môi trường. Được thiết lập trong wizard cài đ
 sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 
 | Khu vực | Bao gồm |
-|---|---|
+| --- | --- |
 | Site | Tiêu đề, mô tả, logo, favicon, mục sidebar, các section trang chủ |
 | Server URL | Base URL tuyệt đối dùng trong link catalog OPDS và Kobo sync. Để trống là tự nhận diện theo từng request — chỉ điền khi host tự nhận diện bị sai, ví dụ khi nằm sau proxy |
 | Access | Bật/tắt đăng ký, bắt buộc đăng nhập, chế độ truy cập cho khách, mức hiển thị cho khách theo từng library |
@@ -167,7 +167,6 @@ sửa tại **Admin → Settings**. Thay đổi có hiệu lực ngay.
 | Trackers | Bật/tắt sync tiến độ đọc với AniList, MyAnimeList, và Hardcover.app |
 | Upload limits | Kích thước chunk, số chunk, số session đồng thời, tổng dung lượng, TTL của session, kích thước ảnh bìa và asset của site |
 | Rate limits | Số lần thử đăng nhập và OPDS trong mỗi cửa sổ, và độ dài cửa sổ |
-
 
 ### Rate limit
 
@@ -207,25 +206,33 @@ NovelHub là một Progressive Web App (PWA) hoàn chỉnh với khả năng cà
 - **Phân quyền**: Tính năng lưu sách đọc offline được kiểm soát theo từng vai trò thông qua quyền `book.offline`.
 
 ### OAuth / SSO (Single Sign-On)
+
 Cấu hình đăng nhập từ bên thứ ba dưới mục **Admin → Settings → OAuth**.
+
 - **Nhà cung cấp được hỗ trợ**: Google, GitHub, Discord, OIDC (OpenID Connect).
 - **Thiết lập**: Cung cấp Client ID, Client Secret, Redirect URI (khớp với `/api/v1/auth/oauth/:provider/callback`), và Issuer URL (dành cho OIDC).
 - **Hành vi**: Người dùng đăng nhập qua OAuth sẽ tự động đăng ký tài khoản mới (nếu chức năng đăng ký đang bật) hoặc liên kết với tài khoản email đã xác minh có sẵn.
 
 ### Podcasts
+
 Đăng ký và quản lý nguồn phát thanh (podcast) dưới mục **Admin → Settings → Podcasts** (hoặc trang Podcasts).
+
 - Đăng ký bằng URL nguồn RSS tuyệt đối.
 - Cơ chế kiểm tra uncompiled template phát hiện và từ chối các nguồn dạng template thô của Jekyll để tránh lỗi đăng ký.
 - Hỗ trợ tải nguồn dữ liệu lớn (tối đa 250MB).
 - Đặt lịch định kỳ hoặc kích hoạt thủ công tác vụ làm mới và tải các tập podcast mới.
 
 ### Kids Mode & Age Rating (Chế độ Trẻ Em)
+
 Lọc các nội dung dành cho người lớn đối với khán giả nhỏ tuổi.
+
 - **Phân loại độ tuổi**: G, PG, R, R18.
 - **Kids Mode**: Kích hoạt bằng mã PIN trong **User Profile → Kids Mode**. Khi bật, tất cả sách vượt quá phân loại độ tuổi tối đa cho phép sẽ tự động ẩn khỏi kệ sách và tìm kiếm. Tắt chế độ này yêu cầu nhập mã PIN dạng số gồm 6 chữ số.
 
 ### Tích hợp VBook
+
 Cho phép duyệt và đọc sách từ thư viện của bạn bằng ứng dụng VBook trên Android.
+
 - **Thiết lập**: Sao chép URL plugin JSON hoặc tải file `plugin.zip` từ trang cá nhân của bạn.
 - **Registry**: Endpoint registry `/api/v1/vbook/plugin.json` cung cấp thông tin metadata, và `/api/v1/vbook/plugin.zip` cung cấp gói cài đặt cho VBook.
 

@@ -21,7 +21,7 @@ openssl rand -hex 32   # run three times, one value each
 ```
 
 | Variable | Purpose |
-|---|---|
+| --- | --- |
 | `JWT_SECRET` | Signs access tokens |
 | `JWT_REFRESH_SECRET` | Signs refresh tokens |
 | `DB_ENCRYPTION_KEY` | Encrypts third-party tokens (AniList, MAL) and the SMTP password stored in the database |
@@ -52,7 +52,7 @@ This decides whether NovelHub believes two headers a proxy sends:
   whether the login cookie gets the `Secure` flag
 
 | Value | Use when | Trusts |
-|---|---|---|
+| --- | --- | --- |
 | `false` | Browsers connect straight to NovelHub | Nothing |
 | `true` | nginx/Caddy on the same host, or another container on the same Docker network | Loopback, private and link-local addresses: `127.0.0.0/8`, `::1`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`, `169.254.0.0/16` |
 | `1.2.3.0/24,5.6.7.8` | The proxy is on a public address — most often Cloudflare | Exactly the listed IPs and CIDRs |
@@ -80,14 +80,14 @@ need to override.
 ### Network
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `SERVER_HOST` | `127.0.0.1` | Docker sets `0.0.0.0`; do not override it there or the published port is unreachable |
 | `SERVER_PORT` | `3434` | |
 
 ### Storage
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `DATA_DIR` | `./data` | Root for everything below |
 | `SQLITE_DB_PATH` | `$DATA_DIR/novelhub.db` | |
 | `CALIBRE_IMPORT_DIR` | `$DATA_DIR/calibre` | Only directories under this root can be imported. Point it at your Calibre library if it lives elsewhere. |
@@ -113,7 +113,7 @@ Back up `DATA_DIR` and it is the whole installation.
 All of these auto-tune. Set them only to cap resource use deliberately.
 
 | Variable | Default |
-|---|---|
+| --- | --- |
 | `SQLITE_CACHE_SIZE_KB` | Sized from system memory (64 MB–512 MB) |
 | `SQLITE_MMAP_SIZE_BYTES` | Sized from system memory (256 MB–2 GB) |
 | `SQLITE_MAX_OPEN_CONNS` | CPU count × 2, clamped to 4–16 |
@@ -129,7 +129,7 @@ All of these auto-tune. Set them only to cap resource use deliberately.
 ### Logging
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `LOG_MAX_SIZE_MB` | `10` | Size at which the active log rotates |
 | `LOG_MAX_FILES` | `5` | Rotated files kept |
 | `DISABLE_REQUEST_LOG` | `true` | Turn off per-request logging for throughput |
@@ -141,7 +141,7 @@ opens — a database failure has to be loggable.
 ### Behaviour
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `TOKEN_VERSION_CACHE` | `true` | Set `false` when several instances share one database, where an in-memory cache would go stale |
 | `DISABLE_RESPONSE_COMPRESSION` | `false` | |
 | `ENABLE_PREFORK` | `false` | Multi-process workers. Disables the token-version cache |
@@ -155,7 +155,7 @@ Not environment variables. Set during the setup wizard on first launch, then
 under **Admin → Settings**. Changes apply immediately.
 
 | Area | Covers |
-|---|---|
+| --- | --- |
 | Site | Title, description, logo, favicon, sidebar items, home sections |
 | Server URL | Absolute base URL used in OPDS catalog and Kobo sync links. Empty means detect it from each request — set it only if the detected host is wrong, for example behind a proxy |
 | Access | Registration on/off, sign-in required, guest access mode, per-library guest visibility |
@@ -168,25 +168,33 @@ under **Admin → Settings**. Changes apply immediately.
 | Rate limits | Sign-in and OPDS attempts per window, and the window length |
 
 ### OAuth / SSO (Single Sign-On)
+
 Configure third-party auth under **Admin → Settings → OAuth**.
+
 - **Supported Providers**: Google, GitHub, Discord, OIDC (generic OpenID Connect).
 - **Setup**: Provide Client ID, Client Secret, Redirect URI (matching `/api/v1/auth/oauth/:provider/callback`), and Issuer URL (for OIDC).
 - **Behavior**: Users signing in via OAuth will automatically register a new account if registration is enabled, or map to an existing verified email account.
 
 ### Podcasts
+
 Subscribe to and manage audio podcast feeds under **Admin → Settings → Podcasts** (or the Podcasts page).
+
 - Subscribe using absolute RSS URLs.
 - Uncompiled feed template checking rejects raw Jekyll template feeds to prevent subscription errors.
 - Support massive feeds (up to 250MB) natively.
 - Enqueue schedules or run manual background refresh and episode download jobs.
 
 ### Kids Mode & Age Rating
+
 Filter mature content from younger audiences using rating policies.
+
 - **Content Ratings**: G, PG, R, R18.
 - **Kids Mode**: Enable PIN-protected Kids Mode in **User Profile → Kids Mode**. Once active, all books exceeding the max allowed rating for Kids Mode are hidden from the bookshelves and searches. Toggling it off requires entering the configured 6-digit numeric PIN.
 
 ### VBook Integration
+
 Allows browsing and reading your library using the VBook Android app.
+
 - **Setup**: Copy the VBook plugin JSON URL or download `plugin.zip` from your user profile.
 - **Registry**: The built-in plugin registry endpoint `/api/v1/vbook/plugin.json` exposes metadata, and `/api/v1/vbook/plugin.zip` delivers the installable bundle to VBook.
 
@@ -258,7 +266,6 @@ Export reading highlights, new vocabulary, and book quotes directly to Anki flas
 
 - **AnkiConnect Bridge**: Connects seamlessly to your local or remote Anki instance running the AnkiConnect addon (default: `http://127.0.0.1:8765`).
 - **Custom Mapping**: Configure custom deck destinations, note types (Basic, Cloze, etc.), field mappings (Front, Back, Source, Book Title, Author), and tags in **User Profile → Integrations → Anki**.
-
 
 ---
 

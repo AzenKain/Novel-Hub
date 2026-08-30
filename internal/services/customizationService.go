@@ -363,7 +363,8 @@ func (s *customizationService) CreateCustomFont(
 	fontID := uuid.NewString()
 	filePath := ""
 
-	if dto.SourceType == "file" {
+	switch dto.SourceType {
+	case "file":
 		if len(fileData) == 0 {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "No font file uploaded")
 		}
@@ -382,11 +383,11 @@ func (s *customizationService) CreateCustomFont(
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to save font file to disk")
 		}
 		filePath = fullFilePath
-	} else if dto.SourceType == "url" {
+	case "url":
 		if dto.FontURL == "" {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "Font URL is required for url source type")
 		}
-	} else {
+	default:
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid source type (must be 'file' or 'url')")
 	}
 

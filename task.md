@@ -35,6 +35,7 @@ Tài liệu này tổng hợp và phân loại các nhiệm vụ phát triển t
 ## 🚀 Track 1: In-Book AI Copilot & Semantic Assistant (Hỏi đáp & Trợ lý AI)
 
 ### Mục tiêu
+
 Cung cấp khả năng tương tác thông minh với sách mà người dùng sở hữu trong thư viện. Sử dụng SQLite FTS5 làm bộ trích xuất ngữ cảnh RAG cục bộ và cho phép kết nối với Local LLM (Ollama) hoặc Cloud LLM (OpenAI, Gemini, Anthropic, DeepSeek).
 
 ### Nhiệm vụ chi tiết
@@ -68,6 +69,7 @@ Cung cấp khả năng tương tác thông minh với sách mà người dùng s
 ## 🌐 Track 2: Open Protocols & Ecosystem Expansion (Giao thức Mở & Hệ sinh thái)
 
 ### Mục tiêu
+
 Mở rộng khả năng tương thích của NovelHub với mọi ứng dụng đọc sách trên thị trường thông qua các tiêu chuẩn mở quốc tế mà không cần app phụ thuộc.
 
 ### Nhiệm vụ chi tiết
@@ -88,6 +90,7 @@ Mở rộng khả năng tương thích của NovelHub với mọi ứng dụng �
 ## 🎙️ Track 3: Local Neural TTS to Audiobook Engine (Tạo Sách nói Cục bộ)
 
 ### Mục tiêu
+
 Cung cấp khả năng chuyển đổi trực tiếp sách chữ (EPUB, TXT, MD) thành sách nói chaptered M4B chất lượng cao bằng engine AI Neural TTS mã nguồn mở (Piper TTS / Kokoro) chạy hoàn toàn trên server, không phụ thuộc API bên thứ 3.
 
 ### Nhiệm vụ chi tiết
@@ -110,6 +113,7 @@ Cung cấp khả năng chuyển đổi trực tiếp sách chữ (EPUB, TXT, MD)
 ## ☁️ Track 4: Storage Tiering & Cloud Backup (Hạ tầng Lưu trữ & Sao lưu)
 
 ### Mục tiêu
+
 Tách biệt tầng lưu trữ dữ liệu lớn (sách, audiobook) để hỗ trợ Cloud Object Storage chuẩn S3, giải phóng dung lượng đĩa cho các máy chủ/VPS nhỏ, đồng thời tự động hóa sao lưu an toàn ra ngoài (offsite backup).
 
 ### Nhiệm vụ chi tiết
@@ -140,6 +144,7 @@ Tách biệt tầng lưu trữ dữ liệu lớn (sách, audiobook) để hỗ t
 ## 👥 Track 5: Book Clubs & Collaborative Reading (Câu lạc bộ Sách & Ghi chú Chia sẻ)
 
 ### Mục tiêu
+
 Xây dựng trải nghiệm đọc sách tương tác giữa các tài khoản trong cùng một instance NovelHub (gia đình, bạn bè, nhóm nghiên cứu) một cách an toàn và riêng tư.
 
 ### Nhiệm vụ chi tiết
@@ -159,12 +164,14 @@ Xây dựng trải nghiệm đọc sách tương tác giữa các tài khoản t
 ## 📅 Lộ trình Triển khai Đề xuất (Phased Milestones)
 
 ### 🔹 Giai đoạn 1: v1.1.0 — Open Protocols & Storage Tiering
+
 - Triển khai **WebDAV Server Protocol (RFC 4918)**.
 - Triển khai **Calibre Content Server API Emulation**.
 - Triển khai **Storage Driver Abstraction (S3 / Cloudflare R2 / MinIO)**.
 - Triển khai **Book Doctor & EPUB Structure Auto-Repair Engine**.
 
 ### 🔹 Giai đoạn 2: v1.2.0 — AI Reading Copilot & Local Intelligence
+
 - Cấu hình AI Provider trong Admin Settings (Ollama, OpenAI, Gemini, Claude, DeepSeek).
 - Triển khai **Chat with Book (RAG trên SQLite FTS5)**.
 - Triển khai **Character Dossier & Lore Explorer**.
@@ -172,6 +179,7 @@ Xây dựng trải nghiệm đọc sách tương tác giữa các tài khoản t
 - Triển khai **Xuất Anki Flashcard (.apkg)**.
 
 ### 🔹 Giai đoạn 3: v1.3.0 — Neural TTS & Social Reading
+
 - Triển khai **Server-Side Neural TTS (Piper-TTS) sang Audiobook M4B**.
 - Triển khai **Book Clubs & Shared Highlights/Discussion Threads**.
 - Triển khai **Offsite Cloud Backup Replication (S3 / WebDAV)**.
