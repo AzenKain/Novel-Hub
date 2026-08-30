@@ -16,6 +16,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Universal Multi-Format Reader**: Render EPUB, KePub, MOBI, AZW, AZW3, PDF, DOCX, DOC, ODT, RTF, FB2, FBZ, Comic CBZ/CBR/CBT/CB7, TXT, MD, HTML, PPTX, PPT, ODP, XLSX, XLS, ODS, CSV, TSV, and LaTeX (`.tex`) natively
 - **High-Fidelity Typography & DTP Layout**: Preserves inline styling (bold, italic, underline, strikethrough, small-caps), paragraph alignment (left, center, right, justify), multi-column responsive tables, presentation slide decks, and embedded audio/video
 - **Configurable Text Alignment**: Select between `Original` (preserves publisher's native book CSS), `Left`, `Center`, `Right`, or `Justify`
+- **Book Doctor & EPUB Repair Engine**: Deep structural diagnostic and auto-repair for EPUB files (deduplicates manifests, fixes missing spine refs, resolves unmanifested files, cleans broken links, repairs malformed XHTML/mimetypes, upgrades EPUB2 to EPUB3, and rebuilds TOC/NCX)
 - **eBook Converter**: Built-in pure-Go converter between EPUB, MOBI, KePub, PDF, DOCX, FB2, CBZ, TXT formats
 - **Text-to-Speech (TTS)**: Multi-voice reader with speech speed control and active word highlighting
 - **PWA & Offline Reading**: Progressive Web App with browser-level IndexedDB storage for offline reading
@@ -30,6 +31,8 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Podcast Manager**: Subscribe to RSS XML feeds, auto-refresh feeds, and download episodes as books
 
 ### 📱 Integrations & Sync
+- **Native WebDAV Server**: Mount and browse your entire library directly from macOS Finder, Windows Explorer, Linux file managers, or third-party reader apps via `/webdav`
+- **AnkiConnect Integration**: Sync vocabulary, highlights, and book quotes directly to Anki decks with tag mapping and model customization
 - **Kobo Wi-Fi Sync**: Sync library, bookmarks, reading progress, and KePub conversion over Wi-Fi
 - **Mihon / Tachiyomi Sync**: Komga-compatible REST API for comic reading progress sync
 - **VBook Android Integration**: Built-in plugin registry API and downloadable ZIP package for VBook
@@ -39,6 +42,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 - **Send-to-Kindle**: E-mail delivery of eBooks via secure SMTP with attachment size control
 
 ### 🔍 Discovery & Organization
+- **Fluid Responsive Bookshelves**: Proportional 2/3/4/5/6-column grid with touch & mouse drag-to-scroll momentum, mouse wheel horizontal translation, and page-aligned batching (LCM=60)
 - **Advanced Faceted Search**: Multi-facet filtering by authors, publishers, languages, formats, tags, series, and ratings
 - **Deep Full-Text Search**: Unicode FTS5 search across all chapter contents of all books
 - **Smart Filters & Collections**: Create rule-based dynamic shelves pinned to home or sidebar
@@ -61,7 +65,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ### ⚙️ Operations & Architecture
 - **Single Binary Deployment**: Frontend and SQLite WAL schema compiled into a single file
 - **Zero-Downtime Backups**: SQLite online snapshots and staged integrity-verified restores
-- **Job Scheduler**: Queue engine with cron-like task schedulers
+- **Job Scheduler & Maintenance**: Queue engine with cron-like task schedulers (batch EPUB repair, orphaned upload GC, inbox scanner)
 - **Admin System Logs**: Live tail log viewer with rotating log files
 - **First-Run Setup Wizard**: Intuitive administrator setup and logo/favicon cropper
 - **Multi-Language UI**: i18n support for 16 languages

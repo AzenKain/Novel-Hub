@@ -85,6 +85,20 @@ export const highlightService = {
     return res.data as Blob;
   },
 
+  async exportAnki(book_id: string): Promise<Blob> {
+    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.apkg`, {
+      responseType: "blob",
+    });
+    return res.data as Blob;
+  },
+
+  async exportCSV(book_id: string): Promise<Blob> {
+    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.csv`, {
+      responseType: "blob",
+    });
+    return res.data as Blob;
+  },
+
   async extractErrorMessage(error: unknown, fallback: string): Promise<string> {
     if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
       try {

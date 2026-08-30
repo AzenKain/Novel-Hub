@@ -25,7 +25,7 @@ export function useBookmarkedBooksQuery(enabled = true) {
     queryKey: ["books", "bookmarked"],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      const res = await featureService.getBookmarkedBooks(pageParam, 18);
+      const res = await featureService.getBookmarkedBooks(pageParam, 60);
       if (!res.status) throw new Error(res.message || "Failed to fetch bookmarked books");
       return res;
     },

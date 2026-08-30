@@ -1,4 +1,4 @@
-import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal, BulkEditMetadataModal } from "@/components/admin";
+import { BookActionModal, CalibreImportModal, DeleteConfirmModal, ManageLibrariesModal, UploadBooksModal, ConvertBookModal, MergeAudiobookModal, BulkConvertModal, BulkEditMetadataModal, BookDoctorModal } from "@/components/admin";
 import { BookCard } from "@/components/ui";
 import { BulkDeleteModal } from "@/components/library";
 import { API_BASE, getMediaUrl } from "@/config/api";
@@ -8,7 +8,7 @@ import { fileNameFromPath, formatFileSize, parseMetadata } from "@/lib/bookDetai
 import { useAuthStore, useBookAdminStore, useDownloadManagerStore } from "@/stores";
 import type { Book, BookFile } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines, Layers, Plus, Download } from "lucide-react";
+import { BookOpen, DatabaseBackup, Edit3, Eye, FilePlus2, FileText, Globe, Image as ImageIcon, LayoutGrid, Link as LinkIcon, List, Loader2, RefreshCw, Save, Search, Trash2, Upload, AudioLines, Layers, Plus, Download, Stethoscope } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,6 +42,7 @@ export function Books() {
   const [actionBook, setActionBook] = useState<Book | null>(null);
   const [convertBook, setConvertBook] = useState<Book | null>(null);
   const [mergeBook, setMergeBook] = useState<Book | null>(null);
+  const [doctorBook, setDoctorBook] = useState<Book | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -356,7 +357,7 @@ export function Books() {
         ) : (
           <>
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 mb-8">
                 {books.map((book) => {
                   const selIndex = selectedBookIds.indexOf(book.id);
                   return (
@@ -398,6 +399,13 @@ export function Books() {
                       const seriesName = meta.series ? (meta.series_index ? `${meta.series} #${meta.series_index}` : meta.series) : "-";
                       const authorName = book.author_name || book.author_id || t('library.unknown_author', 'Unknown');
                       const file_id = book.files?.[0]?.id;
+                      const hasEpub = Boolean(
+                        book.files?.some(
+                          (f) =>
+                            f.format?.toLowerCase() === "epub" ||
+                            f.path?.toLowerCase().endsWith(".epub"),
+                        ),
+                      );
 
                       return (
                         <tr key={book.id} className={`hover ${isSelected ? "bg-primary/5" : ""}`}>
@@ -478,6 +486,15 @@ export function Books() {
                               >
                                 <Eye className="w-4 h-4 text-primary" />
                               </button>
+                              {hasEpub && (
+                                <button
+                                  onClick={() => setDoctorBook(book)}
+                                  className="btn btn-ghost btn-xs btn-square text-primary"
+                                  title={t("doctor.button", "Book Doctor")}
+                                >
+                                  <Stethoscope className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => openEditModal(book)}
                                 className="btn btn-ghost btn-xs btn-square"
@@ -531,6 +548,10 @@ export function Books() {
           navigate(
             `/reader/${book.id}${file_id ? `?file_id=${encodeURIComponent(file_id)}` : ""}`,
           );
+        }}
+        onDoctor={(book) => {
+          setActionBook(null);
+          setDoctorBook(book);
         }}
         onEdit={(book) => {
           setActionBook(null);
@@ -1107,6 +1128,15 @@ export function Books() {
             setSelectedBookIds([]);
             void queryClient.invalidateQueries({ queryKey: ["books"] });
           }}
+        />
+      )}
+
+      {doctorBook && (
+        <BookDoctorModal
+          bookId={doctorBook.id}
+          bookTitle={doctorBook.title}
+          isOpen={!!doctorBook}
+          onClose={() => setDoctorBook(null)}
         />
       )}
     </div>

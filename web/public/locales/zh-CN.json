@@ -161,7 +161,8 @@
         "merge_audio": "合并音频文件",
         "convert_book": "转换图书文件",
         "podcast_refresh": "刷新播客",
-        "podcast_download": "下载播客剧集"
+        "podcast_download": "下载播客剧集",
+        "repair_books": "诊断并修复EPUB电子书"
       },
       "job_queued": "任务已加入队列",
       "action_failed": "操作失败",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "导出划线",
-    "subtitle": "将本书的划线发送到 Readwise，或下载为 Markdown 供 Obsidian / Logseq 使用。",
+    "subtitle": "将高亮同步至 Readwise，导出为 Anki 记忆卡片，或下载为 Markdown/CSV。",
     "token_label": "Readwise API 令牌",
     "token_placeholder": "粘贴您的 Readwise 令牌",
     "connect_failed": "连接 Readwise 失败",
@@ -1609,7 +1610,9 @@
     "get_token_link": "获取 Readwise 访问令牌 ↗",
     "manage_in_profile": "在个人资料中管理",
     "connect_readwise_btn": "连接 Readwise",
-    "connect_in_profile_hint": "连接您的 Readwise 账户以导出高亮。"
+    "connect_in_profile_hint": "连接您的 Readwise 账户以导出高亮。",
+    "anki_btn": "Anki 卡组 (.apkg)",
+    "csv_btn": "CSV 文件 (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "自动化任务",
     "feature_jobs_desc": "快速扫描书库、自动生成封面缩略图，并在后台提取文本以支持全文搜索（FTS）。",
     "footer": "© {{year}} NovelHub。精简的本地优先书架平台。"
+  },
+  "doctor": {
+    "button": "电子书医生",
+    "button_title": "诊断并修复 EPUB 结构问题",
+    "modal_title": "电子书医生",
+    "diagnosing": "正在诊断 EPUB 结构与语法...",
+    "status_healthy": "EPUB 结构健康完整",
+    "status_healthy_desc": "未发现 XML 语法错误、失效链接或缺失的清单项声明。",
+    "status_issues_found": "检测到结构问题",
+    "status_issues_desc": "发现 {{errors}} 个错误和 {{warnings}} 个警告，可能会导致阅读器崩溃或章节缺失。",
+    "errors": "错误",
+    "warnings": "警告",
+    "info": "提示",
+    "detected_issues": "检测到的问题 ({{count}})",
+    "auto_fixable": "可自动修复",
+    "repair_options_title": "修复选项",
+    "opt_xhtml": "修复 XHTML 与 XML 实体",
+    "opt_mimetype": "规范化 Mimetype 项",
+    "opt_manifest": "调和清单与阅读顺序 (Spine)",
+    "opt_toc": "修复 NCX 与 Nav 目录",
+    "opt_links": "清理死链与无效引用",
+    "opt_metadata": "补全 EPUB3 元数据",
+    "last_repair_logs": "最近修复日志 ({{count}} 项修复)",
+    "start_repair_btn": "自动修复 EPUB",
+    "repair_success": "成功修复 {{count}} 个结构问题！",
+    "repair_failed": "修复 EPUB 结构失败"
+  },
+  "webdav": {
+    "title": "WebDAV 服务器 (RFC 4918)",
+    "subtitle": "连接 Moon+ Reader、KyBook 3、FBReader、Marvin、Foliate、Zotero 或系统文件管理器以浏览和下载图书。",
+    "url_label": "WebDAV 终端 URL",
+    "guide_title": "如何通过 WebDAV 连接：",
+    "step1": "Moon+ Reader / KyBook 3：打开网络书库 -> 添加 WebDAV -> 粘贴上方 URL。",
+    "step2": "身份验证：输入您的 NovelHub 邮箱/用户名和密码（或 Magic Code）。",
+    "step3": "将书库作为文件夹浏览，并直接将图书下载至您的设备。"
   }
 }

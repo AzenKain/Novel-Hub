@@ -1,5 +1,5 @@
 import { getMediaUrl } from "@/config/api";
-import { Archive, ArchiveRestore, BookOpen, Image as ImageIcon, Settings, Trash2, FileText, AudioLines, Download, ExternalLink } from "lucide-react";
+import { Archive, ArchiveRestore, BookOpen, Image as ImageIcon, Settings, Trash2, FileText, AudioLines, Download, ExternalLink, Stethoscope } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +17,7 @@ type BookActionModalProps = {
   onConvert: (book: Book) => void;
   onMerge: (book: Book) => void;
   onDownload?: (book: Book) => void;
+  onDoctor?: (book: Book) => void;
 };
 
 const MERGEABLE_FORMATS = new Set(["m4a", "m4b", "mp3", "flac", "ogg", "wav", "aac"]);
@@ -31,10 +32,18 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
   onConvert,
   onMerge,
   onDownload,
+  onDoctor,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isArchived = book?.status === "archived";
+  const hasEpub = Boolean(
+    book?.files?.some(
+      (f) =>
+        f.format?.toLowerCase() === "epub" ||
+        f.path?.toLowerCase().endsWith(".epub"),
+    ),
+  );
   const mergeableFiles = book?.files?.filter((f) => MERGEABLE_FORMATS.has(f.format.toLowerCase())) || [];
   const canMerge = mergeableFiles.length >= 2;
   return (
@@ -153,6 +162,17 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
           <Settings className="h-4 w-4 shrink-0" />
           <span className="truncate">{t('common.edit')}</span>
         </button>
+        {hasEpub && onDoctor && (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 text-primary"
+            disabled={!book}
+            onClick={() => book && onDoctor(book)}
+          >
+            <Stethoscope className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t('doctor.button', 'Book Doctor')}</span>
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"

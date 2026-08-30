@@ -161,7 +161,8 @@
         "merge_audio": "ऑडियो फ़ाइलें मर्ज करें",
         "convert_book": "पुस्तक फ़ाइल कनवर्ट करें",
         "podcast_refresh": "पॉडकास्ट रीफ्रेश करें",
-        "podcast_download": "पॉडकास्ट एपिसोड डाउनलोड करें"
+        "podcast_download": "पॉडकास्ट एपिसोड डाउनलोड करें",
+        "repair_books": "EPUB पुस्तकों का निदान और मरम्मत करें"
       },
       "job_queued": "कार्य कतार में जोड़ा गया",
       "action_failed": "कार्य विफल रहा",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "हाइलाइट्स निर्यात करें",
-    "subtitle": "इस पुस्तक के हाइलाइट्स Readwise को भेजें, या Obsidian / Logseq के लिए Markdown में डाउनलोड करें।",
+    "subtitle": "हाइलाइट्स को Readwise पर भेजें, Anki फ्लैशकार्ड में निर्यात करें, या Markdown/CSV के रूप में डाउनलोड करें।",
     "token_label": "Readwise API टोकन",
     "token_placeholder": "अपना Readwise टोकन पेस्ट करें",
     "connect_failed": "Readwise से कनेक्ट नहीं हो सका",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Readwise एक्सेस टोकन प्राप्त करें ↗",
     "manage_in_profile": "प्रोफ़ाइल में प्रबंधित करें",
     "connect_readwise_btn": "Readwise कनेक्ट करें",
-    "connect_in_profile_hint": "हाइलाइट निर्यात करने के लिए अपना Readwise खाता कनेक्ट करें।"
+    "connect_in_profile_hint": "हाइलाइट निर्यात करने के लिए अपना Readwise खाता कनेक्ट करें।",
+    "anki_btn": "Anki डेक (.apkg)",
+    "csv_btn": "CSV फ़ाइल (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "स्वचालित कार्य",
     "feature_jobs_desc": "तेज़ लाइब्रेरी स्कैनिंग, स्वचालित कवर थंबनेल निर्माण, और फुल-टेक्स्ट सर्च (FTS) के लिए पृष्ठभूमि में पाठ निष्कर्षण।",
     "footer": "© {{year}} NovelHub. एक हल्का लोकल-फर्स्ट बुकशेल्फ़ प्लेटफ़ॉर्म।"
+  },
+  "doctor": {
+    "button": "बुक डॉक्टर",
+    "button_title": "EPUB संरचनात्मक समस्याओं का निदान और स्वचालित सुधार",
+    "modal_title": "बुक डॉक्टर",
+    "diagnosing": "EPUB संरचना और सिंटैक्स का निदान किया जा रहा है...",
+    "status_healthy": "EPUB स्वस्थ और वैध है",
+    "status_healthy_desc": "कोई XML सिंटैक्स त्रुटि, टूटी हुई लिंक या अनुपलब्ध मैनिफ़ेस्ट घोषणा नहीं मिली।",
+    "status_issues_found": "संरचनात्मक समस्याएं पाई गईं",
+    "status_issues_desc": "{{errors}} त्रुटियां और {{warnings}} चेतावनियां मिलीं जो रीडर क्रैश या अध्यायों के गुम होने का कारण बन सकती हैं।",
+    "errors": "त्रुटियां",
+    "warnings": "चेतावनियां",
+    "info": "जानकारी",
+    "detected_issues": "पाई गई समस्याएं ({{count}})",
+    "auto_fixable": "स्वचालित रूप से ठीक करने योग्य",
+    "repair_options_title": "सुधार विकल्प",
+    "opt_xhtml": "XHTML और XML संस्थाओं को ठीक करें",
+    "opt_mimetype": "Mimetype प्रविष्टि को सामान्य करें",
+    "opt_manifest": "मैनिफ़ेस्ट और स्पाइन का मिलान करें",
+    "opt_toc": "NCX और Nav अनुक्रमणिका को ठीक करें",
+    "opt_links": "टूटी हुई लिंक साफ़ करें",
+    "opt_metadata": "EPUB3 मेटाडेटा सुनिश्चित करें",
+    "last_repair_logs": "अंतिम सुधार लॉग ({{count}} सुधार)",
+    "start_repair_btn": "EPUB को स्वचालित ठीक करें",
+    "repair_success": "{{count}} संरचनात्मक समस्याओं को सफलतापूर्वक ठीक किया गया!",
+    "repair_failed": "EPUB संरचना को ठीक करने में विफल"
+  },
+  "webdav": {
+    "title": "WebDAV सर्वर (RFC 4918)",
+    "subtitle": "किताबें ब्राउज़ और डाउनलोड करने के लिए Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero या फ़ाइल एक्सप्लोरर कनेक्ट करें।",
+    "url_label": "WebDAV एंडपॉइंट URL",
+    "guide_title": "WebDAV के माध्यम से कैसे कनेक्ट करें:",
+    "step1": "Moon+ Reader / KyBook 3: नेट लाइब्रेरी खोलें -> WebDAV जोड़ें -> ऊपर दिया गया URL पेस्ट करें।",
+    "step2": "प्रमाणीकरण: अपना NovelHub ईमेल/यूज़रनेम और पासवर्ड (या मैजिक कोड) दर्ज करें।",
+    "step3": "लाइब्रेरी को फ़ोल्डर के रूप में ब्राउज़ करें और किताबें सीधे डाउनलोड करें।"
   }
 }

@@ -12,6 +12,7 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
+	"novelhub/pkg/anki"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/jsonx"
@@ -24,6 +25,8 @@ var readwiseAPIEndpoint = "https://readwise.io/api/v2/highlights/"
 type IntegrationsService interface {
 	ExportHighlightsToReadwise(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (int, error)
 	ExportHighlightsMarkdown(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (string, error)
+	ExportHighlightsAnki(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) ([]byte, string, error)
+	ExportHighlightsCSV(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (string, error)
 }
 
 type integrationsService struct {
@@ -166,4 +169,115 @@ func (s *integrationsService) ExportHighlightsMarkdown(ctx context.Context, user
 		b.WriteString("\n")
 	}
 	return b.String(), nil
+}
+
+func (s *integrationsService) ExportHighlightsAnki(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) ([]byte, string, error) {
+	if !s.canExportBook(ctx, bookID, claims) {
+		return nil, "", apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this book")
+	}
+
+	highlights, err := s.highlightRepo.GetHighlightsByBook(ctx, userID, bookID)
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, "Failed to load highlights")
+	}
+	if len(highlights) == 0 {
+		return nil, "", apperrors.New(apperrors.ErrNotFound, "No highlights to export")
+	}
+
+	bookTitle := highlights[0].BookTitle
+	authorName := highlights[0].AuthorName
+
+	cards := make([]anki.Flashcard, 0, len(highlights))
+	for _, h := range highlights {
+		front := strings.TrimSpace(h.TextContent)
+		if front == "" {
+			continue
+		}
+		back := ""
+		if h.Note != nil {
+			back = strings.TrimSpace(*h.Note)
+		}
+		contextStr := bookTitle
+		if authorName != "" {
+			contextStr += " - " + authorName
+		}
+		tags := []string{"NovelHub", sanitizeAnkiTag(bookTitle)}
+
+		cards = append(cards, anki.Flashcard{
+			Front:   front,
+			Back:    back,
+			Context: contextStr,
+			Tags:    tags,
+		})
+	}
+
+	deckName := fmt.Sprintf("NovelHub::%s", bookTitle)
+	apkgBytes, err := anki.GenerateApkg(cards, anki.DeckOptions{
+		DeckName:    deckName,
+		Description: fmt.Sprintf("Exported from NovelHub: %s by %s", bookTitle, authorName),
+	})
+	if err != nil {
+		return nil, "", apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("Failed to generate Anki deck: %v", err))
+	}
+	return apkgBytes, bookTitle, nil
+}
+
+func (s *integrationsService) ExportHighlightsCSV(ctx context.Context, userID string, bookID string, claims *response.JWTClaims) (string, error) {
+	if !s.canExportBook(ctx, bookID, claims) {
+		return "", apperrors.New(apperrors.ErrForbidden, "Highlights are not allowed for this book")
+	}
+
+	highlights, err := s.highlightRepo.GetHighlightsByBook(ctx, userID, bookID)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, "Failed to load highlights")
+	}
+	if len(highlights) == 0 {
+		return "", apperrors.New(apperrors.ErrNotFound, "No highlights to export")
+	}
+
+	bookTitle := highlights[0].BookTitle
+	authorName := highlights[0].AuthorName
+
+	cards := make([]anki.Flashcard, 0, len(highlights))
+	for _, h := range highlights {
+		front := strings.TrimSpace(h.TextContent)
+		if front == "" {
+			continue
+		}
+		back := ""
+		if h.Note != nil {
+			back = strings.TrimSpace(*h.Note)
+		}
+		contextStr := bookTitle
+		if authorName != "" {
+			contextStr += " - " + authorName
+		}
+		tags := []string{"NovelHub", sanitizeAnkiTag(bookTitle)}
+
+		cards = append(cards, anki.Flashcard{
+			Front:   front,
+			Back:    back,
+			Context: contextStr,
+			Tags:    tags,
+		})
+	}
+
+	csvStr, err := anki.GenerateCSV(cards)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("Failed to generate CSV: %v", err))
+	}
+	return csvStr, nil
+}
+
+func sanitizeAnkiTag(tag string) string {
+	cleaned := strings.Map(func(r rune) rune {
+		if r == ' ' || r == ':' || r == ';' || r == ',' {
+			return '_'
+		}
+		return r
+	}, tag)
+	if cleaned == "" {
+		return "Book"
+	}
+	return cleaned
 }

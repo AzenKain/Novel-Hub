@@ -868,8 +868,6 @@ export const BookDetailPage: React.FC = () => {
         />
       )}
 
-
-
       <OfflineWarningModal
         open={offlineWarningOpen}
         title={book.title}

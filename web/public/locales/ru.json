@@ -161,7 +161,8 @@
         "merge_audio": "Объединить аудиофайлы",
         "convert_book": "Конвертировать файл книги",
         "podcast_refresh": "Обновить подкасты",
-        "podcast_download": "Скачать выпуск подкаста"
+        "podcast_download": "Скачать выпуск подкаста",
+        "repair_books": "Диагностика и восстановление книг EPUB"
       },
       "job_queued": "Задача добавлена в очередь",
       "action_failed": "Не удалось выполнить действие",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "Экспорт выделений",
-    "subtitle": "Отправьте выделения этой книги в Readwise или скачайте в Markdown для Obsidian / Logseq.",
+    "subtitle": "Отправляйте цитаты в Readwise, экспортируйте в карточки Anki или скачивайте в формате Markdown/CSV.",
     "token_label": "API-токен Readwise",
     "token_placeholder": "Вставьте токен Readwise",
     "connect_failed": "Не удалось подключиться к Readwise",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Получить токен доступа Readwise ↗",
     "manage_in_profile": "Управлять в профиле",
     "connect_readwise_btn": "Подключить Readwise",
-    "connect_in_profile_hint": "Подключите аккаунт Readwise, чтобы экспортировать выделения."
+    "connect_in_profile_hint": "Подключите аккаунт Readwise, чтобы экспортировать выделения.",
+    "anki_btn": "Колода Anki (.apkg)",
+    "csv_btn": "Файл CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "Автоматические задачи",
     "feature_jobs_desc": "Быстрое сканирование библиотеки, автоматическая генерация миниатюр обложек и фоновое извлечение текста для полнотекстового поиска (FTS).",
     "footer": "© {{year}} NovelHub. Лёгкая локальная платформа для книжной полки."
+  },
+  "doctor": {
+    "button": "Доктор Книг",
+    "button_title": "Диагностика и авто-исправление структуры EPUB",
+    "modal_title": "Доктор Книг",
+    "diagnosing": "Диагностика структуры и синтаксиса EPUB...",
+    "status_healthy": "EPUB исправен и валиден",
+    "status_healthy_desc": "Ошибок синтаксиса XML, битых ссылок или отсутствующих файлов в манифесте не найдено.",
+    "status_issues_found": "Обнаружены проблемы в структуре",
+    "status_issues_desc": "Найдено {{errors}} ошибок и {{warnings}} предупреждений, которые могут вызвать сбой читалки или потерю глав.",
+    "errors": "Ошибки",
+    "warnings": "Предупреждения",
+    "info": "Информация",
+    "detected_issues": "Обнаруженные проблемы ({{count}})",
+    "auto_fixable": "Авто-исправление",
+    "repair_options_title": "Параметры исправления",
+    "opt_xhtml": "Исправить XHTML и XML-сущности",
+    "opt_mimetype": "Нормализовать запись Mimetype",
+    "opt_manifest": "Синхронизировать Manifest и Spine",
+    "opt_toc": "Исправить оглавление NCX и Nav",
+    "opt_links": "Очистить битые ссылки",
+    "opt_metadata": "Дополнить метаданные EPUB3",
+    "last_repair_logs": "Журнал последнего исправления ({{count}} правок)",
+    "start_repair_btn": "Авто-исправление EPUB",
+    "repair_success": "Успешно исправлено {{count}} структурных проблем!",
+    "repair_failed": "Не удалось исправить структуру EPUB"
+  },
+  "webdav": {
+    "title": "Сервер WebDAV (RFC 4918)",
+    "subtitle": "Подключите Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero или файловые менеджеры для просмотра и скачивания книг.",
+    "url_label": "URL-адрес WebDAV",
+    "guide_title": "Как подключиться через WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: Сетевая библиотека -> Добавить WebDAV -> Вставить URL выше.",
+    "step2": "Аутентификация: Введите email/логин и пароль NovelHub (или Magic Code).",
+    "step3": "Просматривайте библиотеки как папки и скачивайте книги прямо на устройство."
   }
 }

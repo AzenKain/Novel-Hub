@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -68,4 +70,62 @@ func (c *IntegrationsController) ExportHighlightsMarkdown(ctx fiber.Ctx) error {
 	ctx.Set(fiber.HeaderContentType, "text/markdown; charset=utf-8")
 	ctx.Set(fiber.HeaderContentDisposition, `attachment; filename="highlights.md"`)
 	return ctx.SendString(markdown)
+}
+
+func (c *IntegrationsController) ExportHighlightsAnki(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	apkgBytes, bookTitle, err := c.service.ExportHighlightsAnki(reqCtx, userID, ctx.Params("book_id"), getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	filename := "highlights.apkg"
+	if bookTitle != "" {
+		filename = fmt.Sprintf("%s_highlights.apkg", sanitizeFilename(bookTitle))
+	}
+
+	ctx.Set(fiber.HeaderContentType, "application/apkg")
+	ctx.Set(fiber.HeaderContentDisposition, fmt.Sprintf(`attachment; filename="%s"`, filename))
+	return ctx.Send(apkgBytes)
+}
+
+func (c *IntegrationsController) ExportHighlightsCSV(ctx fiber.Ctx) error {
+	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID, ok := getUserIdFromLocals(ctx)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			Status:  false,
+			Message: "unauthorized",
+		})
+	}
+
+	csvStr, err := c.service.ExportHighlightsCSV(reqCtx, userID, ctx.Params("book_id"), getOptionalClaims(ctx))
+	if err != nil {
+		return apperrors.HandleError(ctx, err)
+	}
+
+	ctx.Set(fiber.HeaderContentType, "text/csv; charset=utf-8")
+	ctx.Set(fiber.HeaderContentDisposition, `attachment; filename="highlights.csv"`)
+	return ctx.SendString(csvStr)
+}
+
+func sanitizeFilename(name string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '/' || r == '\\' || r == ':' || r == '*' || r == '?' || r == '"' || r == '<' || r == '>' || r == '|' {
+			return '_'
+		}
+		return r
+	}, name)
 }

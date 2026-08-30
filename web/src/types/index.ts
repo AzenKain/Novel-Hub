@@ -14,3 +14,4 @@ export * from "./magicCode";
 export * from "./smartFilter";
 export * from "./podcast";
 export * from "./customization";
+export * from "./doctor";

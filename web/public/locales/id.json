@@ -161,7 +161,8 @@
         "merge_audio": "Gabungkan file audio",
         "convert_book": "Ubah file buku",
         "podcast_refresh": "Segarkan podcast",
-        "podcast_download": "Unduh episode podcast"
+        "podcast_download": "Unduh episode podcast",
+        "repair_books": "Diagnosis & perbaiki buku EPUB"
       },
       "job_queued": "Tugas masuk antrean",
       "action_failed": "Tindakan gagal",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "Ekspor Sorotan",
-    "subtitle": "Kirim sorotan buku ini ke Readwise, atau unduh sebagai Markdown untuk Obsidian / Logseq.",
+    "subtitle": "Kirim sorotan ke Readwise, ekspor ke kartu Anki, atau unduh sebagai Markdown/CSV.",
     "token_label": "Token API Readwise",
     "token_placeholder": "Tempel token Readwise Anda",
     "connect_failed": "Gagal menghubungkan Readwise",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Dapatkan token akses Readwise ↗",
     "manage_in_profile": "Kelola di Profil",
     "connect_readwise_btn": "Hubungkan Readwise",
-    "connect_in_profile_hint": "Hubungkan akun Readwise Anda untuk mengekspor sorotan."
+    "connect_in_profile_hint": "Hubungkan akun Readwise Anda untuk mengekspor sorotan.",
+    "anki_btn": "Dek Anki (.apkg)",
+    "csv_btn": "Berkas CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "Tugas Otomatis",
     "feature_jobs_desc": "Pemindaian perpustakaan cepat, pembuatan thumbnail sampul otomatis, dan ekstraksi teks di latar belakang untuk pencarian teks penuh (FTS).",
     "footer": "© {{year}} NovelHub. Platform rak buku local-first yang ringkas."
+  },
+  "doctor": {
+    "button": "Dokter Buku",
+    "button_title": "Diagnosis dan perbaiki masalah struktural EPUB otomatis",
+    "modal_title": "Dokter Buku",
+    "diagnosing": "Mendiagnosis struktur dan sintaks EPUB...",
+    "status_healthy": "EPUB Sehat & Valid",
+    "status_healthy_desc": "Tidak ditemukan kesalahan sintaks XML, tautan rusak, atau deklarasi manifes yang hilang.",
+    "status_issues_found": "Masalah Struktural Terdeteksi",
+    "status_issues_desc": "Ditemukan {{errors}} kesalahan dan {{warnings}} peringatan yang dapat menyebabkan pembaca mogok atau bab hilang.",
+    "errors": "Kesalahan",
+    "warnings": "Peringatan",
+    "info": "Info",
+    "detected_issues": "Masalah Terdeteksi ({{count}})",
+    "auto_fixable": "Dapat Diperbaiki Otomatis",
+    "repair_options_title": "Opsi Perbaikan",
+    "opt_xhtml": "Perbaiki XHTML & Entitas XML",
+    "opt_mimetype": "Normalisasi Entri Mimetype",
+    "opt_manifest": "Rekonsiliasi Manifest & Spine",
+    "opt_toc": "Perbaiki Navigasi NCX & Nav",
+    "opt_links": "Bersihkan Tautan Rusak",
+    "opt_metadata": "Pastikan Metadata EPUB3",
+    "last_repair_logs": "Log Perbaikan Terakhir ({{count}} perbaikan)",
+    "start_repair_btn": "Perbaiki EPUB Otomatis",
+    "repair_success": "Berhasil memperbaiki {{count}} masalah struktural!",
+    "repair_failed": "Gagal memperbaiki struktur EPUB"
+  },
+  "webdav": {
+    "title": "Server WebDAV (RFC 4918)",
+    "subtitle": "Hubungkan Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero, atau penjelajah file untuk menjelajahi dan mengunduh buku.",
+    "url_label": "URL Endpoint WebDAV",
+    "guide_title": "Cara menghubungkan via WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: Buka Net Library -> Tambah WebDAV -> Tempel URL di atas.",
+    "step2": "Autentikasi: Masukkan Email/Username dan Kata Sandi NovelHub (atau Kode Ajaib).",
+    "step3": "Jelajahi perpustakaan sebagai folder dan unduh buku langsung ke perangkat Anda."
   }
 }

@@ -16,4 +16,6 @@ func IntegrationRoutes(app fiber.Router, integrationsController *controllers.Int
 	trackerGroup.Post("/readwise/export", integrationsController.ExportHighlightsToReadwise)
 
 	app.Get("/highlights/:book_id/export.md", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookHighlight, middlewares.BookLibraryAttr(bookRepo, "book_id")), integrationsController.ExportHighlightsMarkdown)
+	app.Get("/highlights/:book_id/export.apkg", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookHighlight, middlewares.BookLibraryAttr(bookRepo, "book_id")), integrationsController.ExportHighlightsAnki)
+	app.Get("/highlights/:book_id/export.csv", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookHighlight, middlewares.BookLibraryAttr(bookRepo, "book_id")), integrationsController.ExportHighlightsCSV)
 }

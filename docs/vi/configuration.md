@@ -231,7 +231,6 @@ Cho phép duyệt và đọc sách từ thư viện của bạn bằng ứng d�
 
 ### Danh sách đọc & Nhập `.cbl`
 
-
 Collection trả lời "cuốn này thuộc nhóm nào". Danh sách đọc trả lời "đọc cuốn nào
 tiếp theo": mỗi mục mang một vị trí tường minh, nên thứ tự là do bạn đặt chứ
 không phải thứ tự file được nhập vào kho.
@@ -241,6 +240,35 @@ không phải thứ tự file được nhập vào kho.
 - **Đọc theo thứ tự**: mở mục đầu tiên kèm `?readlist=<id>`. Hết chương cuối, nút next có sẵn của reader sẽ dắt sang cuốn kế tiếp trong danh sách thay vì dừng lại. Sách đã lưu trữ (archived) bị bỏ qua. Vị trí đang đọc **không** được ghi nhớ — "Đọc theo thứ tự" luôn bắt đầu ở mục đầu tiên.
 - **Nhập `.cbl`**: tải lên một reading list của ComicRack (tối đa 8 MB). Thứ tự trong tài liệu *chính là* thứ tự đọc; không có gì bị sắp lại. Các mục khớp theo tên bộ truyện (không phân biệt hoa thường) cộng số tập, trong đó `01`, `1` và `1.0` được coi là cùng một số. `Year` và `Volume` bị bỏ qua vì bảng sách không có cột năm. Mục nào không tìm thấy trong thư viện sẽ được trả về trong báo cáo nhập kèm bộ truyện và số tập; nếu hai cuốn trùng cả bộ truyện lẫn số tập thì lấy cuốn tìm thấy đầu tiên.
 - **Endpoint** (tất cả dưới `/api/v1/read-lists`): `GET /`, `POST /`, `POST /import`, `GET|PUT|DELETE /:id`, `GET|POST /:id/books`, `DELETE /:id/books/:bookId`, `PUT /:id/order`, `GET /:id/next`.
+
+### Bác sĩ Sách & Công cụ Sửa lỗi EPUB (Book Doctor)
+
+NovelHub tích hợp bộ công cụ phân tích và tự động sửa chữa cấu trúc các file EPUB bị lỗi chuẩn hoặc hỏng hóc:
+
+- **Kiểm tra & Phát hiện lỗi**: Quét và chẩn đoán toàn diện header ZIP, vị trí file `mimetype`, cấu trúc file `container.xml`, cú pháp file `content.opf`, trùng lặp ID/href trong manifest, file rác chưa khai báo manifest, thiếu spine, link nội bộ HTML bị đứt gãy, lỗi cú pháp XML (như `&nbsp;` chưa escape) và thiếu mục lục NCX/Nav.
+- **Quy trình Tự động Sửa chữa**:
+  - Tái tạo file `mimetype` chuẩn không nén ở vị trí byte đầu tiên của file ZIP.
+  - Khử trùng lặp manifest và loại bỏ các mục manifest trỏ tới file không tồn tại.
+  - Tự động sửa XML namespace và làm sạch các thẻ liên kết nội bộ bị gãy.
+  - Tự động sinh mục lục chuẩn (`toc.ncx` / `nav.xhtml`) và nâng cấp chuẩn cũ EPUB 2.0 lên chuẩn hiện đại EPUB 3.0.
+- **Đồng bộ Hash & Xóa Cache**: Sau khi sửa chữa thành công, hệ thống tự động tính toán lại mã băm SHA-256 của file, cập nhật vào database và xóa toàn bộ RAM cache liên quan (`book:*`, `book_file:*`, `chapter:*`).
+- **Tác vụ Sửa lỗi Hàng loạt**: Quản trị viên có thể quét và tự động sửa lỗi toàn bộ thư viện sách thông qua cron job chạy ngầm (`repair_books`) trong mục **Admin → Operations → Maintenance**.
+
+### Máy chủ WebDAV Tích hợp
+
+NovelHub cung cấp máy chủ WebDAV chuẩn cho phép gắn kết thư viện sách trực tiếp như một ổ đĩa mạng trên máy tính:
+
+- **Endpoint**: `http(s)://<host-của-bạn>/webdav`
+- **Ứng dụng hỗ trợ**: macOS Finder (`Connect to Server`), Windows File Explorer (`Map Network Drive`), Linux (Nautilus/Dolphin/davfs2), cùng các ứng dụng đọc sách di động và máy đọc sách eReader (KOReader, Moon+ Reader).
+- **Xác thực**: Sử dụng HTTP Basic Auth bằng chính email và mật khẩu tài khoản NovelHub của bạn.
+- **Bảo mật & Phân quyền**: Được kiểm soát chặt chẽ thông qua quyền `system.webdav`. Các thư viện bị giới hạn theo vai trò của người dùng sẽ tự động ẩn khỏi cây thư mục WebDAV.
+
+### Tích hợp Thẻ ghi nhớ Anki (AnkiConnect)
+
+Đồng bộ các đoạn trích dẫn, từ vựng và ghi chú khi đọc sách trực tiếp vào bộ thẻ Anki:
+
+- **Kết nối AnkiConnect**: Kết nối liền mạch với ứng dụng Anki trên máy tính thông qua add-on AnkiConnect (mặc định: `http://127.0.0.1:8765`).
+- **Tùy biến ánh xạ**: Cấu hình bộ thẻ mục tiêu (Deck), loại thẻ (Basic, Cloze,...), ánh xạ các trường (Mặt trước, Mặt sau, Tên sách, Tác giả) và gắn thẻ (Tags) trong **User Profile → Integrations → Anki**.
 
 ---
 

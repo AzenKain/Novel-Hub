@@ -161,7 +161,8 @@
         "merge_audio": "รวมไฟล์เสียง",
         "convert_book": "แปลงไฟล์หนังสือ",
         "podcast_refresh": "รีเฟรชพอดแคสต์",
-        "podcast_download": "ดาวน์โหลดตอนพอดแคสต์"
+        "podcast_download": "ดาวน์โหลดตอนพอดแคสต์",
+        "repair_books": "วินิจฉัยและซ่อมแซมหนังสือ EPUB"
       },
       "job_queued": "เพิ่มงานเข้าคิวแล้ว",
       "action_failed": "การดำเนินการล้มเหลว",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "ส่งออกไฮไลต์",
-    "subtitle": "ส่งไฮไลต์ของหนังสือเล่มนี้ไปยัง Readwise หรือดาวน์โหลดเป็น Markdown สำหรับ Obsidian / Logseq",
+    "subtitle": "ส่งไฮไลต์ไปยัง Readwise ส่งออกไปยังการ์ด Anki หรือดาวน์โหลดเป็น Markdown/CSV",
     "token_label": "โทเค็น API ของ Readwise",
     "token_placeholder": "วางโทเค็น Readwise ของคุณ",
     "connect_failed": "เชื่อมต่อ Readwise ไม่สำเร็จ",
@@ -1609,7 +1610,9 @@
     "get_token_link": "รับ Access Token ของ Readwise ↗",
     "manage_in_profile": "จัดการในโปรไฟล์",
     "connect_readwise_btn": "เชื่อมต่อ Readwise",
-    "connect_in_profile_hint": "เชื่อมต่อบัญชี Readwise เพื่อส่งออกไฮไลต์"
+    "connect_in_profile_hint": "เชื่อมต่อบัญชี Readwise เพื่อส่งออกไฮไลต์",
+    "anki_btn": "สำรับ Anki (.apkg)",
+    "csv_btn": "ไฟล์ CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "งานอัตโนมัติ",
     "feature_jobs_desc": "สแกนคลังหนังสืออย่างรวดเร็ว สร้างภาพย่อปกอัตโนมัติ และสกัดข้อความเบื้องหลังสำหรับการค้นหาเต็มรูปแบบ (FTS)",
     "footer": "© {{year}} NovelHub แพลตฟอร์มชั้นหนังสือแบบโลคอลที่คล่องตัว"
+  },
+  "doctor": {
+    "button": "หมอหนังสือ",
+    "button_title": "วินิจฉัยและซ่อมแซมโครงสร้าง EPUB อัตโนมัติ",
+    "modal_title": "หมอหนังสือ",
+    "diagnosing": "กำลังวินิจฉัยโครงสร้างและไวยากรณ์ EPUB...",
+    "status_healthy": "EPUB สมบูรณ์และถูกต้อง",
+    "status_healthy_desc": "ไม่พบข้อผิดพลาดของไวยากรณ์ XML ลิงก์เสีย หรือการประกาศ Manifest ที่ขาดหายไป",
+    "status_issues_found": "ตรวจพบปัญหาเชิงโครงสร้าง",
+    "status_issues_desc": "พบ {{errors}} ข้อผิดพลาดและ {{warnings}} คำเตือนที่อาจทำให้โปรแกรมอ่านขัดข้องหรือบทหายไป",
+    "errors": "ข้อผิดพลาด",
+    "warnings": "คำเตือน",
+    "info": "ข้อมูล",
+    "detected_issues": "ปัญหาที่ตรวจพบ ({{count}})",
+    "auto_fixable": "ซ่อมแซมอัตโนมัติได้",
+    "repair_options_title": "ตัวเลือกการซ่อมแซม",
+    "opt_xhtml": "แก้ไข XHTML และเอนทิตี XML",
+    "opt_mimetype": "ปรับรูปแบบ Mimetype ให้เป็นมาตรฐาน",
+    "opt_manifest": "ปรับสมดุล Manifest และ Spine",
+    "opt_toc": "แก้ไขสารบัญ NCX และ Nav",
+    "opt_links": "ล้างลิงก์ที่เสียหาย",
+    "opt_metadata": "ตรวจสอบข้อมูลเมตา EPUB3",
+    "last_repair_logs": "บันทึกการซ่อมแซมล่าสุด ({{count}} รายการ)",
+    "start_repair_btn": "ซ่อมแซม EPUB อัตโนมัติ",
+    "repair_success": "ซ่อมแซมปัญหาโครงสร้าง {{count}} รายการสำเร็จ!",
+    "repair_failed": "การซ่อมแซมโครงสร้าง EPUB ล้มเหลว"
+  },
+  "webdav": {
+    "title": "เซิร์ฟเวอร์ WebDAV (RFC 4918)",
+    "subtitle": "เชื่อมต่อ Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero หรือตัวจัดการไฟล์เพื่อเรียกดูและดาวน์โหลดหนังสือ",
+    "url_label": "URL ปลายทาง WebDAV",
+    "guide_title": "วิธีเชื่อมต่อผ่าน WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: เปิด Net Library -> เพิ่ม WebDAV -> วาง URL ด้านบน",
+    "step2": "การยืนยันตัวตน: ป้อนอีเมล/ชื่อผู้ใช้และรหัสผ่าน NovelHub (หรือ Magic Code)",
+    "step3": "เรียกดูห้องสมุดในรูปแบบโฟลเดอร์และดาวน์โหลดหนังสือลงอุปกรณ์โดยตรง"
   }
 }

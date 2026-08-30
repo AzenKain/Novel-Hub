@@ -366,7 +366,7 @@ export const LibraryWorkspace = () => {
     facet: effectiveFacetType,
     facet_id: effectiveFacetId,
     sort: effectiveSort,
-    limit: 24,
+    limit: 60,
   }), [debouncedSearch, effectiveNav, effectiveCollection, effectiveChip, effectiveFacetType, effectiveFacetId, effectiveSort]);
 
   const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(

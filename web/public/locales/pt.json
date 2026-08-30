@@ -161,7 +161,8 @@
         "merge_audio": "Mesclar arquivos de áudio",
         "convert_book": "Converter arquivo de livro",
         "podcast_refresh": "Atualizar podcasts",
-        "podcast_download": "Baixar episódio de podcast"
+        "podcast_download": "Baixar episódio de podcast",
+        "repair_books": "Diagnosticar e reparar livros EPUB"
       },
       "job_queued": "Tarefa colocada na fila",
       "action_failed": "A ação falhou",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "Exportar destaques",
-    "subtitle": "Envie os destaques deste livro para o Readwise ou baixe-os como Markdown para Obsidian / Logseq.",
+    "subtitle": "Envie destaques para o Readwise, exporte para cartões Anki ou baixe como Markdown/CSV.",
     "token_label": "Token da API do Readwise",
     "token_placeholder": "Cole seu token do Readwise",
     "connect_failed": "Falha ao conectar ao Readwise",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Obter token de acesso Readwise ↗",
     "manage_in_profile": "Gerenciar no perfil",
     "connect_readwise_btn": "Conectar Readwise",
-    "connect_in_profile_hint": "Conecte sua conta Readwise para exportar os destaques."
+    "connect_in_profile_hint": "Conecte sua conta Readwise para exportar os destaques.",
+    "anki_btn": "Baralho Anki (.apkg)",
+    "csv_btn": "Arquivo CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "Tarefas automatizadas",
     "feature_jobs_desc": "Verificação rápida da biblioteca, geração automática de miniaturas de capas e extração de texto em segundo plano para busca de texto completo (FTS).",
     "footer": "© {{year}} NovelHub. Uma plataforma de estante local-first enxuta."
+  },
+  "doctor": {
+    "button": "Doutor do Livro",
+    "button_title": "Diagnosticar e reparar a estrutura do EPUB",
+    "modal_title": "Doutor do Livro",
+    "diagnosing": "Diagnosticando estrutura e sintaxe do EPUB...",
+    "status_healthy": "O EPUB está saudável e válido",
+    "status_healthy_desc": "Nenhum erro de sintaxe XML, links quebrados ou manifestos ausentes encontrados.",
+    "status_issues_found": "Problemas estruturais detectados",
+    "status_issues_desc": "Foram encontrados {{errors}} erros e {{warnings}} avisos que podem causar falhas no leitor ou capítulos ausentes.",
+    "errors": "Erros",
+    "warnings": "Avisos",
+    "info": "Informações",
+    "detected_issues": "Problemas detectados ({{count}})",
+    "auto_fixable": "Reparável automaticamente",
+    "repair_options_title": "Opções de reparo",
+    "opt_xhtml": "Reparar XHTML e entidades XML",
+    "opt_mimetype": "Normalizar entrada Mimetype",
+    "opt_manifest": "Reconciliar Manifest e Spine",
+    "opt_toc": "Reparar navegação NCX e Nav",
+    "opt_links": "Limpar links quebrados",
+    "opt_metadata": "Garantir metadados EPUB3",
+    "last_repair_logs": "Últimos registros de reparo ({{count}} correções)",
+    "start_repair_btn": "Auto-reparar EPUB",
+    "repair_success": "{{count}} problemas estruturais reparados com sucesso!",
+    "repair_failed": "Falha ao reparar a estrutura do EPUB"
+  },
+  "webdav": {
+    "title": "Servidor WebDAV (RFC 4918)",
+    "subtitle": "Conecte Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero ou gerenciadores de arquivos para navegar e baixar livros.",
+    "url_label": "URL do endpoint WebDAV",
+    "guide_title": "Como conectar via WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: Abrir biblioteca de rede -> Adicionar WebDAV -> Colar a URL acima.",
+    "step2": "Autenticação: Digite seu e-mail/usuário e senha do NovelHub (ou Magic Code).",
+    "step3": "Navegue pelas bibliotecas como pastas e baixe livros diretamente no seu dispositivo."
   }
 }

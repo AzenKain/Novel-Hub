@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -106,6 +107,7 @@ func NewHTTPServer() *FiberServer {
 		TrustProxyConfig:   trustProxyConfig,
 		ProxyHeader:        fiber.HeaderXForwardedFor,
 		EnableIPValidation: trustProxy,
+		RequestMethods:     append(slices.Clone(fiber.DefaultMethods), "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"),
 	})
 
 	app.Use(recover.New())
@@ -397,6 +399,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 		return bookService.BatchEnrichBooks(ctx)
 	})
 
+	jobQueue.RegisterHandler("repair_books", func(ctx context.Context, jobID string, payload string) error {
+		return bookService.ExecuteBatchRepairBooksJob(ctx, payload)
+	})
+
 	jobQueue.RegisterHandler("webhook.dispatch", func(ctx context.Context, jobID string, payload string) error {
 		var jobData struct {
 			WebhookID string `json:"webhook_id"`
@@ -515,6 +521,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	scrobbleService := services.NewScrobbleService(trackerRepo, bookRepo, settingsService, ramCache, permissionCache)
 	scrobbleController := controllers.NewScrobbleController(scrobbleService)
 	routes.ScrobbleRoutes(v1, scrobbleController, userRepo, permissionCache)
+
+	webdavService := services.NewWebDAVService(libraryService, bookService, permissionCache, settingsService)
+	webdavController := controllers.NewWebDAVController(webdavService)
+	routes.WebDAVRoutes(s.App, webdavController, authService, settingsService, permissionCache)
 
 	serveEmbeddedFrontend(s.App, bookService, settingsService)
 	routes.NotFoundRoute(s.App)

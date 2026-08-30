@@ -220,7 +220,6 @@ NovelHub is a full Progressive Web App (PWA) with native installability:
 
 ### Read Lists & `.cbl` Import
 
-
 A collection answers "which group is this book in". A read list answers "which
 book comes next": every entry carries an explicit position, so the order is
 yours instead of the order the files were imported in.
@@ -230,6 +229,35 @@ yours instead of the order the files were imported in.
 - **Read in order**: opens the first entry with `?readlist=<id>`. At the end of the last chapter the reader's existing next button carries over to the next book in the list instead of stopping. Archived books are skipped. The position is not remembered — **Read in order** always starts at the first entry.
 - **`.cbl` import**: upload a ComicRack reading list (max 8 MB). Document order *is* the reading order; nothing is re-sorted. Entries match on series name (case-insensitive) plus issue number, where `01`, `1` and `1.0` count as the same number. `Year` and `Volume` are ignored, since books carry no year column. Entries with no match in the library come back in an import report with their series and number; when two books share a series and number, the first one found wins.
 - **Endpoints** (all under `/api/v1/read-lists`): `GET /`, `POST /`, `POST /import`, `GET|PUT|DELETE /:id`, `GET|POST /:id/books`, `DELETE /:id/books/:bookId`, `PUT /:id/order`, `GET /:id/next`.
+
+### Book Doctor & EPUB Repair Engine
+
+NovelHub features an automated structural diagnostic and repair engine for corrupt or non-standard EPUB archives:
+
+- **Validation & Issue Detection**: Scans archive ZIP headers, mimetype positions, container definitions, OPF package syntax, manifest IDs/hrefs, unmanifested files, missing spine references, broken internal XHTML anchor links, unescaped XML entities (e.g. `&nbsp;`), and missing NCX/Nav table of contents.
+- **Auto-Repair Pipeline**:
+  - Rebuilds uncompressed mimetype at the first ZIP entry offset.
+  - Deduplicates manifest items and prunes orphaned manifest entries pointing to deleted files.
+  - Automatically fixes XML namespaces and sanitizes broken anchor links.
+  - Generates well-formed Table of Contents (`toc.ncx` / `nav.xhtml`) and upgrades legacy EPUB 2.0 packages to modern EPUB 3.0 standards.
+- **Cache & Hash Synchronization**: Every successful repair automatically recalculates the file's SHA-256 hash, updates the database, and purges corresponding RAM cache keys (`book:*`, `book_file:*`, `chapter:*`).
+- **Batch Repair Job**: Administrators can trigger library-wide batch EPUB repairs on-demand or schedule them via background maintenance tasks (`repair_books`).
+
+### Native WebDAV Server
+
+NovelHub exposes a full WebDAV server endpoint for mounting your libraries directly as local network drives:
+
+- **Endpoint**: `http(s)://<your-host>/webdav`
+- **Supported Clients**: macOS Finder (`Connect to Server`), Windows File Explorer (`Map Network Drive`), Linux (Nautilus/Dolphin/davfs2), and mobile/e-reader apps (KOReader, Moon+ Reader).
+- **Authentication**: HTTP Basic Auth using your NovelHub user account email and password.
+- **Security & Permissions**: Access is strictly gated by the `system.webdav` permission attribute. Libraries hidden from your role are automatically excluded from the root WebDAV folder hierarchy.
+
+### Anki Integration (AnkiConnect)
+
+Export reading highlights, new vocabulary, and book quotes directly to Anki flashcard decks:
+
+- **AnkiConnect Bridge**: Connects seamlessly to your local or remote Anki instance running the AnkiConnect addon (default: `http://127.0.0.1:8765`).
+- **Custom Mapping**: Configure custom deck destinations, note types (Basic, Cloze, etc.), field mappings (Front, Back, Source, Book Title, Author), and tags in **User Profile → Integrations → Anki**.
 
 
 ---

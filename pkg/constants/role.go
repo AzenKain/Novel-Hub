@@ -36,6 +36,7 @@ const (
 	//Book Content Management
 	PermBookUpload          = "book.upload"
 	PermBookEdit            = "book.edit"
+	PermBookRepair          = "book.repair"
 	PermBookMetadataFetch   = "book.metadata.fetch"
 	PermBookDelete          = "book.delete"
 	PermBookDuplicateManage = "book.duplicate.manage"
@@ -47,12 +48,14 @@ const (
 	PermLibraryManage = "library.manage"
 
 	//External Sync & Integration
-	PermOPDSRead     = "opds.read"
-	PermOPDSDownload = "opds.download"
-	PermKoboSync     = "kobo.sync"
-	PermKomgaSync    = "komga.sync"
-	PermCalibreSync  = "calibre.sync"
-	PermPodcastManage = "podcast.manage"
+	PermOPDSRead       = "opds.read"
+	PermOPDSDownload   = "opds.download"
+	PermWebDAVRead     = "webdav.read"
+	PermWebDAVDownload = "webdav.download"
+	PermKoboSync       = "kobo.sync"
+	PermKomgaSync      = "komga.sync"
+	PermCalibreSync    = "calibre.sync"
+	PermPodcastManage  = "podcast.manage"
 
 	//Personal Customization & Soundscape
 	PermUserFontManage       = "user.font.manage"
@@ -112,6 +115,8 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermLibraryRead,
 			PermOPDSRead,
 			PermOPDSDownload,
+			PermWebDAVRead,
+			PermWebDAVDownload,
 			PermKoboSync,
 			PermKomgaSync,
 			PermUserFontManage,
@@ -136,6 +141,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermTrackerSync,
 			PermBookUpload,
 			PermBookEdit,
+			PermBookRepair,
 			PermBookMetadataFetch,
 			PermBookDelete,
 			PermBookDuplicateManage,
@@ -145,6 +151,8 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermLibraryManage,
 			PermOPDSRead,
 			PermOPDSDownload,
+			PermWebDAVRead,
+			PermWebDAVDownload,
 			PermKoboSync,
 			PermKomgaSync,
 			PermCalibreSync,
@@ -159,9 +167,9 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 		return []string{
 			PermBookRead, PermBookTTS, PermBookSearchDeep, PermBookDownload, PermBookOffline, PermBookSendEmail, PermBookShare,
 			PermBookBookmark, PermBookCollection, PermBookHighlight, PermBookReviewCreate, PermBookReviewDelete, PermUserStatsRead, PermTrackerSync,
-			PermBookUpload, PermBookEdit, PermBookMetadataFetch, PermBookDelete, PermBookDuplicateManage, PermBookArchive, PermBookBulkManage,
+			PermBookUpload, PermBookEdit, PermBookRepair, PermBookMetadataFetch, PermBookDelete, PermBookDuplicateManage, PermBookArchive, PermBookBulkManage,
 			PermLibraryRead, PermLibraryManage,
-			PermOPDSRead, PermOPDSDownload, PermKoboSync, PermKomgaSync, PermCalibreSync, PermPodcastManage,
+			PermOPDSRead, PermOPDSDownload, PermWebDAVRead, PermWebDAVDownload, PermKoboSync, PermKomgaSync, PermCalibreSync, PermPodcastManage,
 			PermUserFontManage, PermUserSoundscapeManage, PermUserThemeManage,
 			PermAdminAccess, PermAdminSoundscapeManage, PermAdminFontManage, PermAdminThemeManage,
 			PermUserManage, PermRoleManage, PermSettingManage, PermJobRead, PermJobManage, PermSystemLogRead, PermSystemBackup, PermWebhookManage,

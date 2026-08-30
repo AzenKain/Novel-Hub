@@ -161,7 +161,8 @@
         "merge_audio": "Unisci file audio",
         "convert_book": "Converti file del libro",
         "podcast_refresh": "Aggiorna podcast",
-        "podcast_download": "Scarica episodio podcast"
+        "podcast_download": "Scarica episodio podcast",
+        "repair_books": "Diagnostica e ripara libri EPUB"
       },
       "job_queued": "Job in coda",
       "action_failed": "Azione non riuscita",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "Esporta evidenziazioni",
-    "subtitle": "Invia le evidenziazioni di questo libro a Readwise o scaricale come Markdown per Obsidian / Logseq.",
+    "subtitle": "Invia le evidenziazioni a Readwise, esportale in flashcard Anki o scaricale come Markdown/CSV.",
     "token_label": "Token API Readwise",
     "token_placeholder": "Incolla il tuo token Readwise",
     "connect_failed": "Connessione a Readwise fallita",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Ottieni token di accesso Readwise ↗",
     "manage_in_profile": "Gestisci nel profilo",
     "connect_readwise_btn": "Connetti Readwise",
-    "connect_in_profile_hint": "Connetti il tuo account Readwise per esportare le evidenziazioni."
+    "connect_in_profile_hint": "Connetti il tuo account Readwise per esportare le evidenziazioni.",
+    "anki_btn": "Mazzo Anki (.apkg)",
+    "csv_btn": "File CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "Processi automatici",
     "feature_jobs_desc": "Scansione rapida della libreria, generazione automatica delle miniature delle copertine ed estrazione del testo in background per la ricerca full-text (FTS).",
     "footer": "© {{year}} NovelHub. Una piattaforma libreria local-first essenziale."
+  },
+  "doctor": {
+    "button": "Dottore dei Libri",
+    "button_title": "Diagnostica e ripara i problemi strutturali di EPUB",
+    "modal_title": "Dottore dei Libri",
+    "diagnosing": "Diagnosi della struttura e della sintassi EPUB in corso...",
+    "status_healthy": "EPUB Sano e Valido",
+    "status_healthy_desc": "Nessun errore di sintassi XML, link interrotto o dichiarazione di manifesto mancante trovato.",
+    "status_issues_found": "Problemi strutturali rilevati",
+    "status_issues_desc": "Trovati {{errors}} errori e {{warnings}} avvisi che potrebbero causare arresti anomali del lettore o capitoli mancanti.",
+    "errors": "Errori",
+    "warnings": "Avvisi",
+    "info": "Info",
+    "detected_issues": "Problemi rilevati ({{count}})",
+    "auto_fixable": "Riparabile automaticamente",
+    "repair_options_title": "Opzioni di riparazione",
+    "opt_xhtml": "Ripara XHTML ed entità XML",
+    "opt_mimetype": "Normalizza voce Mimetype",
+    "opt_manifest": "Riconcilia Manifest e Spine",
+    "opt_toc": "Ripara navigazione NCX e Nav",
+    "opt_links": "Pulisci link interrotti",
+    "opt_metadata": "Assicura metadati EPUB3",
+    "last_repair_logs": "Ultimi log di riparazione ({{count}} correzioni)",
+    "start_repair_btn": "Auto-ripara EPUB",
+    "repair_success": "{{count}} problemi strutturali riparati con successo!",
+    "repair_failed": "Riparazione della struttura EPUB non riuscita"
+  },
+  "webdav": {
+    "title": "Server WebDAV (RFC 4918)",
+    "subtitle": "Connetti Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero o file manager per sfogliare e scaricare libri.",
+    "url_label": "URL endpoint WebDAV",
+    "guide_title": "Come connettersi tramite WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: Apri Libreria di rete -> Aggiungi WebDAV -> Incolla l'URL sopra.",
+    "step2": "Autenticazione: Inserisci la tua email/username e password NovelHub (o Magic Code).",
+    "step3": "Sfoglia le librerie come cartelle e scarica i libri direttamente sul tuo dispositivo."
   }
 }

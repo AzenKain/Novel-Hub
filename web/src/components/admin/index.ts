@@ -9,4 +9,5 @@ export * from "./books/ConvertBookModal";
 export * from "./books/MergeAudiobookModal";
 export * from "./books/BulkConvertModal";
 export * from "./books/BulkEditMetadataModal";
+export * from "./books/BookDoctorModal";
 

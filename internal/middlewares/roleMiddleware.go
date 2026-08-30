@@ -79,6 +79,44 @@ func RequireAnyPermission(permissionCache services.PermissionCache, permissions 
 	}
 }
 
+func RequireAnyPermissionAttr(permissionCache services.PermissionCache, permissions []string, resolvers ...PermissionAttrResolver) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if permissionCache == nil {
+			return apperrors.HandleError(c, errForbidden)
+		}
+		claimsVal := c.Locals("user_claims")
+		if claimsVal == nil {
+			return apperrors.HandleError(c, errUnauthorized)
+		}
+		claims, ok := claimsVal.(*response.JWTClaims)
+		if !ok || claims == nil {
+			return apperrors.HandleError(c, errUnauthorized)
+		}
+
+		attrs := map[string]any{}
+		for _, resolver := range resolvers {
+			if resolver == nil {
+				continue
+			}
+			resolved, err := resolver(c)
+			if err != nil {
+				return apperrors.HandleError(c, err)
+			}
+			for key, value := range resolved {
+				attrs[key] = value
+			}
+		}
+
+		ctx := services.WithPermissionContext(context.Background(), claims)
+		for _, permission := range permissions {
+			if permissionCache.Can(ctx, claims.UId, permission, attrs) {
+				return c.Next()
+			}
+		}
+		return apperrors.HandleError(c, errForbidden)
+	}
+}
+
 func RequirePermission(permissionCache services.PermissionCache, permission string, resolvers ...PermissionAttrResolver) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if permissionCache == nil {

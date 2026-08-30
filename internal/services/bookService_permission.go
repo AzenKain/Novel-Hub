@@ -83,6 +83,18 @@ func (s *bookService) CanUpdateBook(ctx context.Context, book *models.BookEntity
 	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookEdit, map[string]any{"library_id": book.LibraryID})
 }
 
+func (s *bookService) CanRepairBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
+	if book == nil {
+		return false
+	}
+	c := resolveClaims(claims)
+	if s.permissions.IsAdmin(c.RoleIDs, c.Roles) {
+		return true
+	}
+	return s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookRepair, map[string]any{"library_id": book.LibraryID}) ||
+		s.permissions.CanRoles(c.RoleIDs, c.Roles, constants.PermBookEdit, map[string]any{"library_id": book.LibraryID})
+}
+
 func (s *bookService) CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
 	if book == nil {
 		return false

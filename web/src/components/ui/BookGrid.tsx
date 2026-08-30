@@ -19,12 +19,12 @@ export const BookCardSkeleton: React.FC<{ compact?: boolean }> = ({ compact }) =
   </div>
 );
 
-export const BookGridSkeleton: React.FC<{ count?: number; compact?: boolean }> = ({ count = 12, compact }) => (
+export const BookGridSkeleton: React.FC<{ count?: number; compact?: boolean }> = ({ count = 10, compact }) => (
   <section
     className={
       compact
-        ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6"
-        : "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+        ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-7"
+        : "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
     }
   >
     {Array.from({ length: count }).map((_, i) => (
@@ -43,8 +43,8 @@ export const BookGrid: React.FC<BookGridProps> = ({ books, onBookClick, compact 
     <section
       className={
         compact
-          ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6"
-          : "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+          ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-7"
+          : "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
       }
       aria-label={t("library.book_grid")}
     >

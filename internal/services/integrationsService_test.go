@@ -214,3 +214,67 @@ func TestExportHighlightsToReadwiseAPIError(t *testing.T) {
 		t.Fatalf("expected ErrInternalError, got %v", err)
 	}
 }
+
+func TestExportHighlightsAnki(t *testing.T) {
+	created := time.Date(2026, 8, 12, 10, 0, 0, 0, time.UTC)
+	note := "Important concept"
+	highlights := []*models.HighlightBookEntity{
+		{
+			HighlightEntity: models.HighlightEntity{
+				TextContent: "To be or not to be, that is the question.",
+				Note:        &note,
+				CreatedAt:   &created,
+			},
+			BookTitle:  "Hamlet",
+			AuthorName: "William Shakespeare",
+		},
+	}
+
+	s := newTestIntegrationsService(&stubIntegrationsHighlightRepo{highlights: highlights}, &stubIntegrationsTrackerRepo{})
+	apkgBytes, bookTitle, err := s.ExportHighlightsAnki(context.Background(), "user-1", "book-1", nil)
+	if err != nil {
+		t.Fatalf("ExportHighlightsAnki failed: %v", err)
+	}
+
+	if len(apkgBytes) == 0 {
+		t.Fatal("expected non-empty apkg bytes")
+	}
+
+	if bookTitle != "Hamlet" {
+		t.Fatalf("expected bookTitle 'Hamlet', got '%s'", bookTitle)
+	}
+}
+
+func TestExportHighlightsCSV(t *testing.T) {
+	created := time.Date(2026, 8, 12, 10, 0, 0, 0, time.UTC)
+	note := "Key vocabulary"
+	highlights := []*models.HighlightBookEntity{
+		{
+			HighlightEntity: models.HighlightEntity{
+				TextContent: "Serendipity means a fortunate stroke of luck.",
+				Note:        &note,
+				CreatedAt:   &created,
+			},
+			BookTitle:  "Vocabulary Builder",
+			AuthorName: "John Doe",
+		},
+	}
+
+	s := newTestIntegrationsService(&stubIntegrationsHighlightRepo{highlights: highlights}, &stubIntegrationsTrackerRepo{})
+	csvStr, err := s.ExportHighlightsCSV(context.Background(), "user-1", "book-1", nil)
+	if err != nil {
+		t.Fatalf("ExportHighlightsCSV failed: %v", err)
+	}
+
+	if !strings.Contains(csvStr, "Serendipity") || !strings.Contains(csvStr, "Key vocabulary") {
+		t.Fatalf("CSV missing card content:\n%s", csvStr)
+	}
+}
+
+func TestExportHighlightsAnki_NotFound(t *testing.T) {
+	s := newTestIntegrationsService(&stubIntegrationsHighlightRepo{highlights: nil}, &stubIntegrationsTrackerRepo{})
+	_, _, err := s.ExportHighlightsAnki(context.Background(), "user-1", "book-1", nil)
+	if err == nil || !errors.Is(err, apperrors.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound for empty highlights, got %v", err)
+	}
+}

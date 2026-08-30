@@ -161,7 +161,8 @@
         "merge_audio": "دمج ملفات الصوت",
         "convert_book": "تحويل ملف الكتاب",
         "podcast_refresh": "تحديث البودكاست",
-        "podcast_download": "تنزيل حلقة بودكاست"
+        "podcast_download": "تنزيل حلقة بودكاست",
+        "repair_books": "تشخيص وإصلاح كتب EPUB"
       },
       "job_queued": "تمت إضافة المهمة إلى قائمة الانتظار",
       "action_failed": "فشل الإجراء",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "تصدير التمييزات",
-    "subtitle": "أرسل تمييزات هذا الكتاب إلى Readwise أو نزّلها بصيغة Markdown لـ Obsidian / Logseq.",
+    "subtitle": "أرسل التمييزات إلى Readwise، أو قم بالتصدير إلى بطاقات Anki، أو قم بالتنزيل بتنسيق Markdown/CSV.",
     "token_label": "رمز Readwise API",
     "token_placeholder": "الصق رمز Readwise الخاص بك",
     "connect_failed": "فشل الاتصال بـ Readwise",
@@ -1609,7 +1610,9 @@
     "get_token_link": "الحصول على رمز الوصول لـ Readwise ↗",
     "manage_in_profile": "إدارة في الملف الشخصي",
     "connect_readwise_btn": "ربط Readwise",
-    "connect_in_profile_hint": "اربط حساب Readwise الخاص بك لتصدير الإبرازات."
+    "connect_in_profile_hint": "اربط حساب Readwise الخاص بك لتصدير الإبرازات.",
+    "anki_btn": "مجموعة Anki (.apkg)",
+    "csv_btn": "ملف CSV (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "المهام التلقائية",
     "feature_jobs_desc": "فحص سريع للمكتبة وإنشاء تلقائي للصور المصغرة للأغلفة واستخراج النص في الخلفية للبحث النصي الكامل (FTS).",
     "footer": "© {{year}} NovelHub. منصة مكتبة محلية خفيفة ومحلية أولًا."
+  },
+  "doctor": {
+    "button": "طبيب الكتب",
+    "button_title": "تشخيص وإصلاح مشاكل بنية EPUB تلقائياً",
+    "modal_title": "طبيب الكتب",
+    "diagnosing": "جارٍ تشخيص بنية وصياغة EPUB...",
+    "status_healthy": "ملف EPUB سليم وصالح",
+    "status_healthy_desc": "لم يتم العثور على أخطاء في صياغة XML أو روابط معطلة أو إعلانات بيان مفقودة.",
+    "status_issues_found": "تم اكتشاف مشاكل في البنية",
+    "status_issues_desc": "تم العثور على {{errors}} أخطاء و {{warnings}} تحذيرات قد تسبب تعطل القارئ أو فقدان الفصول.",
+    "errors": "أخطاء",
+    "warnings": "تحذيرات",
+    "info": "معلومات",
+    "detected_issues": "المشاكل المكتشفة ({{count}})",
+    "auto_fixable": "قابل للإصلاح تلقائياً",
+    "repair_options_title": "خيارات الإصلاح",
+    "opt_xhtml": "إصلاح كائنات XHTML و XML",
+    "opt_mimetype": "توحيد إدخال Mimetype",
+    "opt_manifest": "مواءمة البيان وترتيب القراءة",
+    "opt_toc": "إصلاح فهرس NCX و Nav",
+    "opt_links": "تنظيف الروابط المعطلة",
+    "opt_metadata": "ضمان بيانات EPUB3 الوصفية",
+    "last_repair_logs": "سجل الإصلاح الأخير ({{count}} إصلاح)",
+    "start_repair_btn": "إصلاح EPUB تلقائياً",
+    "repair_success": "تم إصلاح {{count}} مشكلة هيكلية بنجاح!",
+    "repair_failed": "فشل إصلاح بنية EPUB"
+  },
+  "webdav": {
+    "title": "خادم WebDAV (RFC 4918)",
+    "subtitle": "قم بربط Moon+ Reader أو KyBook 3 أو FBReader أو Marvin أو Foliate أو Zotero أو متصفح الملفات لتصفح وتنزيل الكتب.",
+    "url_label": "رابط خادم WebDAV",
+    "guide_title": "كيفية الاتصال عبر WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: افتح مكتبة الشبكة -> أضف WebDAV -> الصق الرابط أعلاه.",
+    "step2": "المصادقة: أدخل البريد الإلكتروني/اسم المستخدم وكلمة المرور في NovelHub (أو الرمز السحري).",
+    "step3": "تصفح المكتبات كمجلدات وقم بتنزيل الكتب مباشرة إلى جهازك."
   }
 }

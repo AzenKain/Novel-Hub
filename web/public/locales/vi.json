@@ -162,7 +162,8 @@
         "merge_audio": "Gộp tệp âm thanh",
         "convert_book": "Chuyển đổi tệp sách",
         "podcast_refresh": "Làm mới podcast",
-        "podcast_download": "Tải tập podcast"
+        "podcast_download": "Tải tập podcast",
+        "repair_books": "Chẩn đoán & sửa lỗi sách EPUB"
       },
       "job_queued": "Đã xếp tác vụ",
       "action_failed": "Thao tác thất bại",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "Xuất Highlight",
-    "subtitle": "Gửi highlight của sách này tới Readwise, hoặc tải xuống dạng Markdown cho Obsidian / Logseq.",
+    "subtitle": "Gửi trích dẫn sang Readwise, xuất sang bộ thẻ Anki, hoặc tải về dạng Markdown/CSV.",
     "token_label": "Token API Readwise",
     "token_placeholder": "Dán token Readwise của bạn",
     "connect_failed": "Kết nối Readwise thất bại",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Lấy Access Token Readwise ↗",
     "manage_in_profile": "Quản lý ở Profile",
     "connect_readwise_btn": "Kết nối Readwise",
-    "connect_in_profile_hint": "Kết nối tài khoản Readwise để xuất highlight."
+    "connect_in_profile_hint": "Kết nối tài khoản Readwise để xuất highlight.",
+    "anki_btn": "Bộ thẻ Anki (.apkg)",
+    "csv_btn": "Tệp CSV (.csv)"
   },
   "soundscape": {
     "title": "Âm thanh môi trường",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "Tự động hoá Jobs",
     "feature_jobs_desc": "Quét thư viện nhanh chóng, tự sinh ảnh bìa thumbnail, trích xuất text phục vụ tìm kiếm toàn văn FTS trong nền.",
     "footer": "© {{year}} NovelHub. Nền tảng tủ sách local-first tinh gọn."
+  },
+  "doctor": {
+    "button": "Bác sĩ Sách",
+    "button_title": "Chẩn đoán và tự động sửa lỗi cấu trúc EPUB",
+    "modal_title": "Bác sĩ Sách",
+    "diagnosing": "Đang chẩn đoán cấu trúc và cú pháp EPUB...",
+    "status_healthy": "EPUB Chuẩn & Khỏe mạnh",
+    "status_healthy_desc": "Không phát hiện lỗi cú pháp XML, liên kết hỏng hoặc thiếu khai báo manifest.",
+    "status_issues_found": "Phát hiện Lỗi Cấu trúc",
+    "status_issues_desc": "Tìm thấy {{errors}} lỗi và {{warnings}} cảnh báo có thể gây văng trình đọc hoặc mất chương.",
+    "errors": "Lỗi",
+    "warnings": "Cảnh báo",
+    "info": "Thông tin",
+    "detected_issues": "Các vấn đề phát hiện ({{count}})",
+    "auto_fixable": "Tự sửa được",
+    "repair_options_title": "Tùy chọn sửa chữa",
+    "opt_xhtml": "Sửa XHTML & Thực thể XML",
+    "opt_mimetype": "Chuẩn hóa file Mimetype",
+    "opt_manifest": "Đồng bộ Manifest & Spine",
+    "opt_toc": "Sửa mục lục NCX & Nav",
+    "opt_links": "Dọn dẹp liên kết hỏng",
+    "opt_metadata": "Bổ sung siêu dữ liệu EPUB3",
+    "last_repair_logs": "Nhật ký sửa đổi gần nhất ({{count}} sửa đổi)",
+    "start_repair_btn": "Tự động sửa lỗi EPUB",
+    "repair_success": "Đã tự động sửa thành công {{count}} lỗi cấu trúc!",
+    "repair_failed": "Sửa cấu trúc EPUB thất bại"
+  },
+  "webdav": {
+    "title": "Máy chủ WebDAV (RFC 4918)",
+    "subtitle": "Kết nối Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero hoặc trình duyệt tệp hệ điều hành để duyệt và tải sách.",
+    "url_label": "Địa chỉ URL WebDAV",
+    "guide_title": "Hướng dẫn kết nối qua WebDAV:",
+    "step1": "Moon+ Reader / KyBook 3: Mở Net Library -> Thêm WebDAV -> Dán URL ở trên.",
+    "step2": "Xác thực: Nhập Email/Tên đăng nhập và Mật khẩu NovelHub (hoặc Mã Magic Code).",
+    "step3": "Duyệt các thư viện dưới dạng thư mục và tải sách trực tiếp về thiết bị."
   }
 }

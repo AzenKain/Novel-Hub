@@ -161,7 +161,8 @@
         "merge_audio": "音声ファイルを結合",
         "convert_book": "本ファイルを変換",
         "podcast_refresh": "ポッドキャストを更新",
-        "podcast_download": "ポッドキャストのエピソードをダウンロード"
+        "podcast_download": "ポッドキャストのエピソードをダウンロード",
+        "repair_books": "EPUB本の診断と修復"
       },
       "job_queued": "ジョブを登録しました",
       "action_failed": "操作に失敗しました",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "ハイライトを書き出す",
-    "subtitle": "この本のハイライトをReadwiseへ送信するか、Obsidian / Logseq用にMarkdownでダウンロードします。",
+    "subtitle": "ハイライトをReadwiseに送信、Ankiフラッシュカードにエクスポート、またはMarkdown/CSVとしてダウンロードします。",
     "token_label": "Readwise APIトークン",
     "token_placeholder": "Readwiseトークンを貼り付け",
     "connect_failed": "Readwiseへの接続に失敗",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Readwise アクセストークンを取得 ↗",
     "manage_in_profile": "プロフィールで管理",
     "connect_readwise_btn": "Readwise を接続",
-    "connect_in_profile_hint": "ハイライトをエクスポートするには Readwise アカウントを接続してください。"
+    "connect_in_profile_hint": "ハイライトをエクスポートするには Readwise アカウントを接続してください。",
+    "anki_btn": "Ankiデッキ (.apkg)",
+    "csv_btn": "CSV形式 (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "自動化ジョブ",
     "feature_jobs_desc": "高速なライブラリスキャン、カバーサムネイルの自動生成、全文検索（FTS）のためのテキスト抽出をバックグラウンドで実行します。",
     "footer": "© {{year}} NovelHub。スリムなローカルファースト本棚プラットフォーム。"
+  },
+  "doctor": {
+    "button": "ブックドクター",
+    "button_title": "EPUBの構造診断と自動修復",
+    "modal_title": "ブックドクター",
+    "diagnosing": "EPUBの構造と構文を診断中...",
+    "status_healthy": "EPUBは正常で有効です",
+    "status_healthy_desc": "XML構文エラー、破損リンク、未定義のマニフェストは見つかりませんでした。",
+    "status_issues_found": "構造上の問題が検出されました",
+    "status_issues_desc": "リーダーのクラッシュや章の欠落を引き起こす可能性のあるエラーが {{errors}} 件、警告が {{warnings}} 件あります。",
+    "errors": "エラー",
+    "warnings": "警告",
+    "info": "情報",
+    "detected_issues": "検出された問題 ({{count}})",
+    "auto_fixable": "自動修復可能",
+    "repair_options_title": "修復オプション",
+    "opt_xhtml": "XHTMLとXML実体の修復",
+    "opt_mimetype": "Mimetypeエントリの正規化",
+    "opt_manifest": "マニフェストとSpineの整合性調整",
+    "opt_toc": "NCXおよびNav目次の修復",
+    "opt_links": "リンク切れのクリーンアップ",
+    "opt_metadata": "EPUB3メタデータの補完",
+    "last_repair_logs": "前回の修復ログ ({{count}} 件修復)",
+    "start_repair_btn": "EPUBを自動修復",
+    "repair_success": "{{count}} 件の構造上の問題を修復しました！",
+    "repair_failed": "EPUB構造の修復に失敗しました"
+  },
+  "webdav": {
+    "title": "WebDAV サーバー (RFC 4918)",
+    "subtitle": "Moon+ Reader、KyBook 3、FBReader、Marvin、Foliate、Zotero、またはOSのファイルエクスプローラーを接続して本を閲覧・ダウンロードします。",
+    "url_label": "WebDAV エンドポイント URL",
+    "guide_title": "WebDAV 経由の接続方法:",
+    "step1": "Moon+ Reader / KyBook 3: ネットライブラリを開く -> WebDAV を追加 -> 上記のURLを貼り付けます。",
+    "step2": "認証: NovelHub のメールアドレス/ユーザー名とパスワード (またはマジックコード) を入力します。",
+    "step3": "ライブラリをフォルダとして閲覧し、本を端末に直接ダウンロードできます。"
   }
 }

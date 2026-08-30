@@ -3,6 +3,7 @@ import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
+import { WebDAVSyncCard } from "@/components/profile/WebDAVSyncCard";
 import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { EReaderMagicCodeCard } from "@/components/profile/EReaderMagicCodeCard";
@@ -426,6 +427,9 @@ export const UserProfile = () => {
 
                 {/* OPDS 2.0 & Progress Sync Card */}
                 <OPDSSyncCard />
+
+                {/* WebDAV Server Card */}
+                <WebDAVSyncCard />
 
                 {/* VBook Plugin Card */}
                 <VBookSyncCard />

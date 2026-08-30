@@ -345,3 +345,36 @@ func (h *BookController) BatchEnrichBooks(c fiber.Ctx) error {
 
 	return c.JSON(response.CommonResponse{Status: true, Message: "Batch enrichment job started in background"})
 }
+
+func (h *BookController) ValidateBookEPUB(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	bookID := c.Params("id")
+	fileID := c.Query("file_id")
+
+	report, err := h.bookService.ValidateBookEPUB(ctx, bookID, fileID, getOptionalClaims(c))
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Data: report})
+}
+
+func (h *BookController) RepairBookEPUB(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 60*time.Second)
+	defer cancel()
+
+	bookID := c.Params("id")
+	fileID := c.Query("file_id")
+
+	var req request.RepairBookRequest
+	_ = c.Bind().Body(&req)
+
+	res, err := h.bookService.RepairBookEPUB(ctx, bookID, fileID, &req, getOptionalClaims(c))
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{Status: true, Data: res})
+}

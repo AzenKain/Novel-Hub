@@ -1,4 +1,4 @@
-import { Download, Share2, Check } from "lucide-react";
+import { Download, Share2, Check, Layers, FileSpreadsheet } from "lucide-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -16,8 +16,7 @@ type HighlightsExportCardProps = {
 export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book_id }) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const setProfileModalOpen = useAuthStore((state) => state.setProfileModalOpen);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const canHighlight = hasPermission(user, "book.highlight");
   const { data: connections = [] } = useTrackerConnectionsQuery(!!user && canHighlight);
@@ -40,14 +39,26 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
     });
   };
 
-  const handleMarkdown = async () => {
-    setDownloading(true);
+  const handleDownloadBlob = async (type: "md" | "anki" | "csv") => {
+    setDownloading(type);
     try {
-      const blob = await highlightService.exportMarkdown(book_id);
+      let blob: Blob;
+      let filename: string;
+      if (type === "anki") {
+        blob = await highlightService.exportAnki(book_id);
+        filename = "highlights.apkg";
+      } else if (type === "csv") {
+        blob = await highlightService.exportCSV(book_id);
+        filename = "highlights.csv";
+      } else {
+        blob = await highlightService.exportMarkdown(book_id);
+        filename = "highlights.md";
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "highlights.md";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -59,7 +70,7 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
       );
       toast.error(message || t("highlights_export.no_highlights", "This book has no highlights to export"));
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
@@ -72,7 +83,7 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
       <p className="text-xs text-base-content/60">
         {t(
           "highlights_export.subtitle",
-          "Send this book's highlights to Readwise, or download them as Markdown for Obsidian / Logseq."
+          "Send highlights to Readwise, export to Anki flashcards, or download as Markdown/CSV."
         )}
       </p>
 
@@ -115,9 +126,32 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           )}
           {t("highlights_export.export_btn", "Export to Readwise")}
         </button>
-        <button type="button" onClick={handleMarkdown} className="btn btn-outline btn-sm gap-2" disabled={downloading}>
-          {downloading ? <span className="loading loading-spinner loading-xs" /> : <Download className="h-4 w-4" />}
-          {t("highlights_export.markdown_btn", "Download .md")}
+        <button
+          type="button"
+          onClick={() => handleDownloadBlob("anki")}
+          className="btn btn-outline btn-sm gap-2"
+          disabled={downloading !== null}
+        >
+          {downloading === "anki" ? <span className="loading loading-spinner loading-xs" /> : <Layers className="h-4 w-4 text-primary" />}
+          {t("highlights_export.anki_btn", "Anki Deck (.apkg)")}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDownloadBlob("md")}
+          className="btn btn-outline btn-sm gap-2"
+          disabled={downloading !== null}
+        >
+          {downloading === "md" ? <span className="loading loading-spinner loading-xs" /> : <Download className="h-4 w-4" />}
+          {t("highlights_export.markdown_btn", "Markdown (.md)")}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDownloadBlob("csv")}
+          className="btn btn-outline btn-sm gap-2"
+          disabled={downloading !== null}
+        >
+          {downloading === "csv" ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet className="h-4 w-4" />}
+          {t("highlights_export.csv_btn", "CSV (.csv)")}
         </button>
       </div>
     </div>

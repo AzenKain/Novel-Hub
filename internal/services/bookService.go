@@ -63,6 +63,9 @@ type BookService interface {
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
 	UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error)
+	ValidateBookEPUB(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*response.ValidationReportResponse, error)
+	RepairBookEPUB(ctx context.Context, bookID string, fileID string, req *request.RepairBookRequest, claims *response.JWTClaims) (*response.BookRepairResponse, error)
+	ExecuteBatchRepairBooksJob(ctx context.Context, payloadJSON string) error
 	AutoEnrichBook(ctx context.Context, bookID string) error
 	BatchEnrichBooks(ctx context.Context) error
 	ProxyCover(ctx context.Context, coverURL string) ([]byte, string, error)
@@ -84,6 +87,7 @@ type BookService interface {
 	CanReadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	CanDownloadBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	CanUpdateBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
+	CanRepairBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	CanDeleteBook(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool
 	FilterReadableBooks(ctx context.Context, books []*models.BookEntity, claims *response.JWTClaims) ([]*models.BookEntity, bool)
 	SafeDownloadFilename(title string, ext string) string

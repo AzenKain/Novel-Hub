@@ -161,7 +161,8 @@
         "merge_audio": "오디오 파일 병합",
         "convert_book": "책 파일 변환",
         "podcast_refresh": "팟캐스트 새로고침",
-        "podcast_download": "팟캐스트 에피소드 다운로드"
+        "podcast_download": "팟캐스트 에피소드 다운로드",
+        "repair_books": "EPUB 도서 진단 및 복구"
       },
       "job_queued": "작업이 대기열에 추가됨",
       "action_failed": "작업 실패",
@@ -1593,7 +1594,7 @@
   },
   "highlights_export": {
     "title": "하이라이트 내보내기",
-    "subtitle": "이 책의 하이라이트를 Readwise로 보내거나 Obsidian / Logseq용 Markdown으로 다운로드합니다.",
+    "subtitle": "하이라이트를 Readwise로 전송하거나, Anki 플래시카드로 내보내거나, Markdown/CSV로 다운로드하세요.",
     "token_label": "Readwise API 토큰",
     "token_placeholder": "Readwise 토큰 붙여넣기",
     "connect_failed": "Readwise 연결 실패",
@@ -1609,7 +1610,9 @@
     "get_token_link": "Readwise 액세스 토큰 받기 ↗",
     "manage_in_profile": "프로필에서 관리",
     "connect_readwise_btn": "Readwise 연결",
-    "connect_in_profile_hint": "하이라이트를 내보내려면 Readwise 계정을 연결하세요."
+    "connect_in_profile_hint": "하이라이트를 내보내려면 Readwise 계정을 연결하세요.",
+    "anki_btn": "Anki 덱 (.apkg)",
+    "csv_btn": "CSV 파일 (.csv)"
   },
   "soundscape": {
     "title": "Ambient Soundscapes",
@@ -1739,5 +1742,40 @@
     "feature_jobs_title": "자동화 작업",
     "feature_jobs_desc": "빠른 라이브러리 스캔, 표지 썸네일 자동 생성, 전체 텍스트 검색(FTS)을 위한 백그라운드 텍스트 추출.",
     "footer": "© {{year}} NovelHub. 가볍고 로컬 우선인 책장 플랫폼."
+  },
+  "doctor": {
+    "button": "북 닥터",
+    "button_title": "EPUB 구조 진단 및 자동 복구",
+    "modal_title": "북 닥터",
+    "diagnosing": "EPUB 구조 및 구문 진단 중...",
+    "status_healthy": "EPUB이 정상이자 유효합니다",
+    "status_healthy_desc": "XML 구문 오류, 손상된 링크 또는 누락된 매니페스트 선언이 없습니다.",
+    "status_issues_found": "구조적 문제 감지됨",
+    "status_issues_desc": "뷰어 충돌 또는 챕터 누락을 유발할 수 있는 오류 {{errors}}개와 경고 {{warnings}}개가 발견되었습니다.",
+    "errors": "오류",
+    "warnings": "경고",
+    "info": "정보",
+    "detected_issues": "감지된 문제 ({{count}})",
+    "auto_fixable": "자동 복구 가능",
+    "repair_options_title": "복구 옵션",
+    "opt_xhtml": "XHTML 및 XML 엔티티 복구",
+    "opt_mimetype": "Mimetype 항목 표준화",
+    "opt_manifest": "매니페스트 및 Spine 정합성 조정",
+    "opt_toc": "NCX 및 Nav 목차 복구",
+    "opt_links": "손상된 링크 정리",
+    "opt_metadata": "EPUB3 메타데이터 보완",
+    "last_repair_logs": "최근 복구 로그 ({{count}}개 복구됨)",
+    "start_repair_btn": "EPUB 자동 복구",
+    "repair_success": "{{count}}개의 구조적 문제를 성공적으로 복구했습니다!",
+    "repair_failed": "EPUB 구조 복구 실패"
+  },
+  "webdav": {
+    "title": "WebDAV 서버 (RFC 4918)",
+    "subtitle": "Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero 또는 OS 파일 탐색기를 연결하여 도서를 탐색하고 다운로드하세요.",
+    "url_label": "WebDAV 엔드포인트 URL",
+    "guide_title": "WebDAV 연결 방법:",
+    "step1": "Moon+ Reader / KyBook 3: 넷 라이브러리 열기 -> WebDAV 추가 -> 위의 URL을 붙여넣습니다.",
+    "step2": "인증: NovelHub 이메일/사용자 이름 및 비밀번호 (또는 매직 코드)를 입력하세요.",
+    "step3": "라이브러리를 폴더로 탐색하고 도서를 기기에 직접 다운로드하세요."
   }
 }

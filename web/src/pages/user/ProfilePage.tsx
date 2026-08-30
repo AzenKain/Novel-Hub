@@ -33,6 +33,7 @@ import { KidsModePinCard } from "@/components/profile/KidsModePinCard";
 import { EReaderMagicCodeCard } from "@/components/profile/EReaderMagicCodeCard";
 import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
+import { WebDAVSyncCard } from "@/components/profile/WebDAVSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
@@ -456,8 +457,9 @@ export const ProfilePage: React.FC = () => {
               <UserDevicesCard />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <OPDSSyncCard />
+              <WebDAVSyncCard />
               <KoboSyncCard />
               <VBookSyncCard />
             </div>

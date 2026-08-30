@@ -18,7 +18,7 @@ export function useSmartFiltersQuery(enabled = true) {
   });
 }
 
-export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string, limit = 20, enabled = true) {
+export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string, limit = 60, enabled = true) {
   const user = useAuthStore((state) => state.user);
   return useInfiniteQuery({
     queryKey: ["smart-filters", id, "books", { libraryId, limit }],
