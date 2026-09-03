@@ -81,9 +81,12 @@ Mở rộng khả năng tương thích của NovelHub với mọi ứng dụng �
   - **Frontend UI (`web/src/components/profile/WebDAVSyncCard.tsx`):** Card hướng dẫn kết nối WebDAV kèm URL, nút sao chép, mã QR Code và hướng dẫn cấu hình cho Moon+ Reader, KyBook 3, FBReader, Foliate, Zotero. Đồng bộ 16 ngôn ngữ i18n.
   - **Full test coverage:** 100% test pass (`pkg/webdav`, `webdavService_test.go`, `webdavController_test.go`, `webdavAuthMiddleware_test.go`).
 
-- [ ] **2.2. Calibre Content Server API Emulation**
-  - **Backend (`internal/controllers/calibreServerController.go`):** Giả lập endpoint JSON/HTML API của Calibre Content Server (`/calibre/ajax/category/...`, `/calibre/get/...`).
-  - **Khả năng tương thích:** Cho phép các ứng dụng hệ sinh thái Calibre (như Calibre Companion, Aldiko) kết nối trực tiếp vào NovelHub.
+- [x] **2.2. Calibre Content Server API Emulation**
+  - **Codec & Standards (`pkg/calibre/codec.go`):** Bộ mã hóa/giải mã tên UTF-8 hex chuẩn Calibre (`EncodeName`, `DecodeName`) kèm kiểm tra tính hợp lệ UTF-8 (`utf8.Valid`).
+  - **DTOs (`internal/dtos/request/calibre_server.go`, `internal/dtos/response/calibre_server.go`):** Mô hình hóa chuẩn 100% Calibre Content Server JSON schema (`library-info`, `categories`, `category_detail`, `books_in`, `search`, `books`, `book`).
+  - **Security & RBAC (`internal/middlewares/calibreAuthMiddleware.go`):** Xác thực HTTP Basic Auth, Bearer token, query token `?token=...`, cookie, và chế độ Guest. Tự động kiểm tra và trả về 403 Forbidden đối với tài khoản bị cấm (banned), đồng thời bảo vệ giới hạn tần suất request (Rate Limiting).
+  - **Service & Controller (`internal/services/calibreServerService.go`, `internal/controllers/calibreServerController.go`, `internal/routes/calibreServerRoutes.go`):** Triển khai đầy đủ các endpoint `/calibre/ajax/*` và `/calibre/get/:what/:book_id`. Hỗ trợ phân quyền đọc sách (`CanReadBook`), lọc sách theo quyền thư viện (`FilterReadableBooks`), phân quyền tải file (`CanDownloadBook`), chống path traversal qua `localfs.SafeJoin`, tối ưu hóa đếm sách nhanh qua `ListBookIDsByLibrary`, và áp dụng giới hạn phân trang tối đa 100 book IDs chống DoS.
+  - **Full Test Coverage:** 100% unit tests & e2e HTTP integration tests (`pkg/calibre/codec_test.go`, `calibreAuthMiddleware_test.go`, `calibreServerService_test.go`, `calibreServerController_test.go`, `cmd/api/calibre_contract_test.go`).
 
 ---
 

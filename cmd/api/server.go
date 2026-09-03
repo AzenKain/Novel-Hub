@@ -526,6 +526,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	webdavController := controllers.NewWebDAVController(webdavService)
 	routes.WebDAVRoutes(s.App, webdavController, authService, settingsService, permissionCache, userRepo)
 
+	calibreServerService := services.NewCalibreServerService(bookRepo, bookFileRepo, bookService, metadataService, libraryService, booksDir)
+	calibreServerController := controllers.NewCalibreServerController(calibreServerService)
+	routes.CalibreServerRoutes(s.App, calibreServerController, authService, settingsService, userRepo)
+
 	serveEmbeddedFrontend(s.App, bookService, settingsService)
 	routes.NotFoundRoute(s.App)
 }
