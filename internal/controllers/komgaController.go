@@ -7,10 +7,12 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/jsonx"
+	"novelhub/pkg/validator"
 )
 
 type KomgaController struct {
@@ -42,14 +44,24 @@ func (ctrl *KomgaController) ListSeries(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	page, _ := strconv.ParseInt(c.Query("page", "0"), 10, 64)
-	size, _ := strconv.ParseInt(c.Query("size", "20"), 10, 64)
-	// unpaged=true asks for everything in one response; the extension uses it for chapter lists.
-	if c.Query("unpaged") == "true" {
+	dto := &request.KomgaListSeriesQueryDto{Size: 20}
+	if errs := validator.ValidateQueryDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			Status: false,
+			Errors: errs,
+		})
+	}
+
+	page := dto.Page
+	size := dto.Size
+	if size <= 0 || size > 100 {
+		size = 20
+	}
+	if dto.Unpaged {
 		size = 100
 	}
 
-	res, err := ctrl.komgaService.ListSeries(ctx, c.Query("search"), page, size, claims)
+	res, err := ctrl.komgaService.ListSeries(ctx, dto.Search, page, size, claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -315,8 +327,18 @@ func (ctrl *KomgaController) ListReadLists(c fiber.Ctx) error {
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
-	page, _ := strconv.ParseInt(c.Query("page", "0"), 10, 64)
-	size, _ := strconv.ParseInt(c.Query("size", "20"), 10, 64)
+	dto := &request.KomgaListBooksQueryDto{Size: 20}
+	if errs := validator.ValidateQueryDto(c, dto); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			Status: false,
+			Errors: errs,
+		})
+	}
+	page := dto.Page
+	size := dto.Size
+	if size <= 0 || size > 100 {
+		size = 20
+	}
 	res, err := ctrl.komgaService.ListReadLists(ctx, page, size, claims)
 	if err != nil {
 		return apperrors.HandleError(c, err)

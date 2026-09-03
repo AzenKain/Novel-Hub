@@ -66,6 +66,25 @@ type RecordShareDto struct {
 	ClientID string `json:"client_id"`
 }
 
+type ReadingActivityInput struct {
+	UserID          string
+	BookID          string
+	FileID          *string
+	ChapterID       string
+	ChapterTitle    string
+	ChapterIndex    int64
+	ProgressPercent *float64
+	LocationCfi     *string
+	LocationType    *string
+	EventType       string
+}
+
+type ShareInput struct {
+	BookID     string
+	ActorKey   string
+	OccurredAt time.Time
+}
+
 type SetBookmarkDto struct {
 	Bookmarked bool `json:"bookmarked"`
 }

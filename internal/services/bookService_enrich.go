@@ -15,8 +15,10 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/models"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/netx"
+	"novelhub/pkg/worker"
 )
 
 var (
@@ -25,7 +27,7 @@ var (
 	googleBooksURL = "https://www.googleapis.com/books/v1/volumes"
 )
 
-type OnlineEnrichResult struct {
+type onlineEnrichResult struct {
 	Title         string
 	Creator       string
 	Publisher     string
@@ -39,15 +41,12 @@ type OnlineEnrichResult struct {
 }
 
 func cleanEnrichQuery(title string) string {
-	// Remove content in parenthesis, brackets, braces
 	reParens := regexp.MustCompile(`\s*[\(\[\{].*?[\)\]\}]\s*`)
 	cleaned := reParens.ReplaceAllString(title, "")
 
-	// Remove volume/chapter numbers (case insensitive)
 	reVol := regexp.MustCompile(`(?i)\s*(?:tập|vol(?:ume)?|quyển|chương|chuong)\b.*`)
 	cleaned = reVol.ReplaceAllString(cleaned, "")
 
-	// Remove punctuation/symbols, keeping alphanumeric characters and spaces
 	rePunct := regexp.MustCompile(`[^\p{L}\p{N}\s]+`)
 	cleaned = rePunct.ReplaceAllString(cleaned, "")
 
@@ -58,7 +57,7 @@ func cleanEnrichQuery(title string) string {
 	return cleaned
 }
 
-func searchAniList(ctx context.Context, client *http.Client, query string) (*OnlineEnrichResult, error) {
+func searchAniList(ctx context.Context, client *http.Client, query string) (*onlineEnrichResult, error) {
 	const aniListGraphQL = `query ($search: String) {
   Page(page: 1, perPage: 1) {
     media(search: $search, type: MANGA) {
@@ -173,7 +172,7 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*Onl
 		lang = "zh"
 	}
 
-	return &OnlineEnrichResult{
+	return &onlineEnrichResult{
 		Title:         title,
 		Creator:       creator,
 		Language:      lang,
@@ -184,7 +183,7 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*Onl
 	}, nil
 }
 
-func searchOpenLibrary(ctx context.Context, client *http.Client, query string) (*OnlineEnrichResult, error) {
+func searchOpenLibrary(ctx context.Context, client *http.Client, query string) (*onlineEnrichResult, error) {
 	url := fmt.Sprintf("%s?q=%s&limit=1", openLibraryURL, strings.ReplaceAll(query, " ", "+"))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -232,7 +231,7 @@ func searchOpenLibrary(ctx context.Context, client *http.Client, query string) (
 		coverURL = fmt.Sprintf("https://covers.openlibrary.org/b/id/%d-L.jpg", doc.CoverI)
 	}
 
-	return &OnlineEnrichResult{
+	return &onlineEnrichResult{
 		Title:         doc.Title,
 		Creator:       creator,
 		Publisher:     publisher,
@@ -243,7 +242,7 @@ func searchOpenLibrary(ctx context.Context, client *http.Client, query string) (
 	}, nil
 }
 
-func searchGoogleBooks(ctx context.Context, client *http.Client, query string) (*OnlineEnrichResult, error) {
+func searchGoogleBooks(ctx context.Context, client *http.Client, query string) (*onlineEnrichResult, error) {
 	url := fmt.Sprintf("%s?q=%s&maxResults=1", googleBooksURL, strings.ReplaceAll(query, " ", "+"))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -284,7 +283,7 @@ func searchGoogleBooks(ctx context.Context, client *http.Client, query string) (
 	}
 	coverURL = strings.Replace(coverURL, "http://", "https://", 1)
 
-	return &OnlineEnrichResult{
+	return &onlineEnrichResult{
 		Title:         item.VolumeInfo.Title,
 		Creator:       creator,
 		Publisher:     item.VolumeInfo.Publisher,
@@ -312,7 +311,7 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 	query := cleanEnrichQuery(book.Title)
 	client := netx.NewSafeHTTPClient(15 * time.Second)
 
-	var result *OnlineEnrichResult
+	var result *onlineEnrichResult
 
 	// Try AniList (GraphQL)
 	if res, err := searchAniList(ctx, client, query); err == nil && res != nil {
@@ -409,6 +408,21 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 	}
 
 	return nil
+}
+
+func (s *bookService) QueueBatchEnrichBooks(ctx context.Context) (string, error) {
+	jobID := uuid.Must(uuid.NewV7()).String()
+	if s.jobQueue != nil {
+		if err := s.jobQueue.Enqueue(ctx, worker.Job{
+			ID:      jobID,
+			Type:    "scan_metadata_enrich",
+			Payload: "{}",
+		}); err != nil {
+			return "", apperrors.New(apperrors.ErrInternalError, "Failed to enqueue batch enrich job")
+		}
+		return jobID, nil
+	}
+	return jobID, s.BatchEnrichBooks(ctx)
 }
 
 func (s *bookService) BatchEnrichBooks(ctx context.Context) error {

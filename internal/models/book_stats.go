@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
@@ -223,8 +224,5 @@ func (e *BookUserStateEntity) ToResponse() *response.BookUserStateResponse {
 	}
 }
 
-type ShareInput struct {
-	BookID     string
-	ActorKey   string
-	OccurredAt time.Time
-}
+type ShareInput = request.ShareInput
+

@@ -12,7 +12,6 @@ import (
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/bookparser"
 	"novelhub/pkg/validator"
 )
 
@@ -128,9 +127,6 @@ func (h *SettingsController) handleAssetUpload(ctx context.Context, c fiber.Ctx)
 		fileData, err = io.ReadAll(io.LimitReader(f, limit+1))
 		if err != nil {
 			return apperrors.HandleError(c, err)
-		}
-		if _, err := bookparser.ValidateImage(fileData, limit); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Uploaded file must be a valid JPEG, PNG, or GIF image"})
 		}
 
 		fileName = filepath.Base(fileHeader.Filename)

@@ -36,3 +36,7 @@ type KoboSyncDto struct {
 	SyncToken   string
 	EndpointURL string
 }
+
+type KoboAuthDeviceDto struct {
+	UserKey string `json:"UserKey"`
+}

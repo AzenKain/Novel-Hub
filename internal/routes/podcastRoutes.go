@@ -14,7 +14,7 @@ func PodcastRoutes(app fiber.Router, podcastController *controllers.PodcastContr
 	group := app.Group("/podcasts", middlewares.JwtAccess(userRepo))
 
 	group.Get("/", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage), podcastController.ListPodcasts)
-	group.Post("/", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage), podcastController.Subscribe)
+	group.Post("/", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage, middlewares.LibraryIDBody()), podcastController.Subscribe)
 	group.Put("/:id", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage, middlewares.PodcastLibraryAttr(podcastRepo, "id")), podcastController.UpdatePodcast)
 	group.Delete("/:id", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage, middlewares.PodcastLibraryAttr(podcastRepo, "id")), podcastController.DeletePodcast)
 	group.Post("/:id/refresh", middlewares.RequirePermission(permissionCache, constants.PermPodcastManage, middlewares.PodcastLibraryAttr(podcastRepo, "id")), podcastController.RefreshPodcast)

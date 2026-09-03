@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"novelhub/internal/dtos/response"
@@ -38,6 +39,7 @@ type TOTPService interface {
 type totpService struct {
 	repo  repositories.TOTPRepository
 	cache cache.Cache
+	mu    sync.Mutex
 }
 
 func NewTOTPService(repo repositories.TOTPRepository, c cache.Cache) TOTPService {
@@ -206,8 +208,6 @@ func (s *totpService) issueRecoveryCodes(ctx context.Context, userID string) (*r
 	return &response.TOTPRecoveryCodesResponse{Codes: codes}, nil
 }
 
-// A TOTP code stays valid across three steps, so without burning the counter a code read over
-// someone's shoulder works again for up to 90 seconds.
 func (s *totpService) checkCode(ctx context.Context, userID, secret, code string) error {
 	counter, ok := totp.ValidateWithCounter(secret, code, time.Now())
 	if !ok {
@@ -215,10 +215,14 @@ func (s *totpService) checkCode(ctx context.Context, userID, secret, code string
 	}
 	if s.cache != nil {
 		key := cache.BuildKey("totp", "used", userID, fmt.Sprintf("%d", counter))
-		if used, _ := s.cache.Exists(ctx, key); used {
+		s.mu.Lock()
+		used, _ := s.cache.Exists(ctx, key)
+		if used {
+			s.mu.Unlock()
 			return apperrors.New(apperrors.ErrBadRequest, "That code has already been used")
 		}
 		_ = s.cache.Set(ctx, key, true, constants.TOTPReplayWindow)
+		s.mu.Unlock()
 	}
 	return nil
 }

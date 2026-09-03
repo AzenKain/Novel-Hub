@@ -34,9 +34,7 @@ func (ctrl *KoboController) AuthDevice(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var payload struct {
-		UserKey string `json:"UserKey"`
-	}
+	var payload request.KoboAuthDeviceDto
 	_ = jsonx.Unmarshal(c.Body(), &payload)
 
 	res, err := ctrl.koboService.AuthDevice(ctx, payload.UserKey)

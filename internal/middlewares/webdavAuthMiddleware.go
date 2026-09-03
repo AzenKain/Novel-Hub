@@ -9,15 +9,21 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/repositories"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 )
 
-func WebDAVAuth(authService services.AuthService, settingsService services.SettingsService) fiber.Handler {
+func WebDAVAuth(authService services.AuthService, settingsService services.SettingsService, userRepo ...repositories.UserRepository) fiber.Handler {
+	var repo repositories.UserRepository
+	if len(userRepo) > 0 {
+		repo = userRepo[0]
+	}
+
 	return func(c fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
+		tokenQuery := strings.TrimSpace(c.Query("token"))
 
-		// 1. Basic Auth
 		if strings.HasPrefix(authHeader, "Basic ") {
 			payload, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authHeader, "Basic "))
 			if err == nil {
@@ -42,40 +48,14 @@ func WebDAVAuth(authService services.AuthService, settingsService services.Setti
 			return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Invalid credentials"))
 		}
 
-		// 2. Bearer Token Auth
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			token := strings.TrimPrefix(authHeader, "Bearer ")
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			claims, err := authService.ValidateCredentials(ctx, &request.SignInDto{
-				Email:    token,
-				Password: token,
-			})
-			if err == nil && claims != nil {
-				c.Locals("user_claims", claims)
-				c.Locals("uid", claims.UId)
-				return c.Next()
+		hasToken := strings.HasPrefix(authHeader, "Bearer ") || tokenQuery != "" || c.Cookies("access_token") != ""
+		if hasToken && repo != nil {
+			if !strings.HasPrefix(authHeader, "Bearer ") && tokenQuery != "" {
+				c.Request().Header.Set("Authorization", "Bearer "+tokenQuery)
 			}
+			return JwtAccess(repo)(c)
 		}
 
-		// 3. Query Token Auth (?token=...)
-		if token := c.Query("token"); token != "" {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			claims, err := authService.ValidateCredentials(ctx, &request.SignInDto{
-				Email:    token,
-				Password: token,
-			})
-			if err == nil && claims != nil {
-				c.Locals("user_claims", claims)
-				c.Locals("uid", claims.UId)
-				return c.Next()
-			}
-		}
-
-		// 4. Guest / Anonymous Fallback
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		settings, err := settingsService.Public(ctx)

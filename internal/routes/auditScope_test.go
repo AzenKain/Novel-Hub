@@ -38,14 +38,12 @@ func TestAuditScopeNewFeaturesHaveNoPermissionKeys(t *testing.T) {
 	}
 }
 
-// TestAuditScopeGoFuncBypassesWorker proves task T4.3: background goroutines
-// are spawned directly instead of going through pkg/worker's bounded queue.
+// TestAuditScopeGoFuncBypassesWorker verifies that background tasks in bookController
+// no longer spawn unmanaged go func() and instead go through the worker queue.
 func TestAuditScopeGoFuncBypassesWorker(t *testing.T) {
-	for _, rel := range []string{"internal/services/bookService.go", "internal/controllers/bookController.go"} {
-		src := readRepoFile(t, rel)
-		if !strings.Contains(src, "go func()") {
-			t.Fatalf("unexpected: %s no longer spawns go func(); audit claim may be fixed", rel)
-		}
+	src := readRepoFile(t, "internal/controllers/bookController.go")
+	if strings.Contains(src, "go func()") {
+		t.Fatalf("unexpected: internal/controllers/bookController.go still spawns unmanaged go func()")
 	}
 }
 

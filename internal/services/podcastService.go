@@ -23,6 +23,7 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/convert"
+	"novelhub/pkg/database"
 	"novelhub/pkg/jsonx"
 	"novelhub/pkg/netx"
 	"novelhub/pkg/worker"
@@ -65,9 +66,14 @@ type podcastService struct {
 	jobQueue       *worker.Queue
 	httpClient     *http.Client
 	downloadClient *http.Client
+	txManager      database.TxManager
 }
 
-func NewPodcastService(repo repositories.PodcastRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, libraryRepo repositories.LibraryRepository, jobQueue *worker.Queue) PodcastService {
+func NewPodcastService(repo repositories.PodcastRepository, bookRepo repositories.BookDBRepository, fileRepo repositories.BookFileRepository, libraryRepo repositories.LibraryRepository, jobQueue *worker.Queue, txManager ...database.TxManager) PodcastService {
+	var txMgr database.TxManager
+	if len(txManager) > 0 {
+		txMgr = txManager[0]
+	}
 	return &podcastService{
 		repo:           repo,
 		bookRepo:       bookRepo,
@@ -76,10 +82,9 @@ func NewPodcastService(repo repositories.PodcastRepository, bookRepo repositorie
 		jobQueue:       jobQueue,
 		httpClient:     netx.NewSafeHTTPClient(30 * time.Second),
 		downloadClient: netx.NewSafeHTTPClient(5 * time.Minute),
+		txManager:      txMgr,
 	}
 }
-
-// --- RSS parsing (pure, unit-testable) ---
 
 type rssFeed struct {
 	Channel rssChannel `xml:"channel"`
@@ -98,9 +103,6 @@ type rssImage struct {
 	Href string `xml:"href,attr"`
 }
 
-// rssFeedLegacy captures the legacy <image><url> cover fallback; it cannot live
-// on rssChannel because a no-namespace tag matches any namespace and would
-// conflict with the itunes:image field.
 type rssFeedLegacy struct {
 	Channel struct {
 		ImageURL string `xml:"image>url"`
@@ -293,17 +295,39 @@ func (s *podcastService) Subscribe(ctx context.Context, feedURL, libraryID strin
 		return nil, err
 	}
 
+	var txRepo repositories.PodcastRepository = s.repo
+	var tx *sql.Tx
+	if s.txManager != nil {
+		var err error
+		tx, err = s.txManager.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "failed to begin transaction")
+		}
+		defer func() {
+			if tx != nil {
+				_ = tx.Rollback()
+			}
+		}()
+		txRepo = s.repo.WithTx(tx)
+	}
+
 	id := uuid.Must(uuid.NewV7()).String()
-	podcast, err := s.repo.CreatePodcast(ctx, id, libraryID, feedURL, feed.Title,
+	podcast, err := txRepo.CreatePodcast(ctx, id, libraryID, feedURL, feed.Title,
 		strPtrOrNil(feed.Description), strPtrOrNil(feed.CoverURL), strPtrOrNil(feed.Author))
 	if err != nil {
 		return nil, err
 	}
 	for _, ep := range feed.Episodes {
-		if _, err := s.repo.UpsertEpisode(ctx, uuid.Must(uuid.NewV7()).String(), id, ep.GUID, ep.Title,
+		if _, err := txRepo.UpsertEpisode(ctx, uuid.Must(uuid.NewV7()).String(), id, ep.GUID, ep.Title,
 			strPtrOrNil(ep.Description), ep.AudioURL, ep.DurationSec, ep.PublishedAt); err != nil {
 			return nil, err
 		}
+	}
+	if tx != nil {
+		if err := tx.Commit(); err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "failed to commit transaction")
+		}
+		tx = nil
 	}
 	return podcast.ToResponse(), nil
 }

@@ -7,7 +7,6 @@ import (
 	"novelhub/pkg/apperrors"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/rs/zerolog/log"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -335,15 +334,19 @@ func (h *BookController) EnrichBook(c fiber.Ctx) error {
 }
 
 func (h *BookController) BatchEnrichBooks(c fiber.Ctx) error {
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-		if err := h.bookService.BatchEnrichBooks(ctx); err != nil {
-			log.Error().Err(err).Msg("failed to run batch book enrichment")
-		}
-	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	return c.JSON(response.CommonResponse{Status: true, Message: "Batch enrichment job started in background"})
+	jobID, err := h.bookService.QueueBatchEnrichBooks(ctx)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	return c.JSON(response.CommonResponse{
+		Status:  true,
+		Message: "Batch enrichment job queued successfully",
+		Data:    map[string]any{"job_id": jobID},
+	})
 }
 
 func (h *BookController) ValidateBookEPUB(c fiber.Ctx) error {

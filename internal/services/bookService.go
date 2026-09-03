@@ -68,6 +68,7 @@ type BookService interface {
 	ExecuteBatchRepairBooksJob(ctx context.Context, payloadJSON string) error
 	AutoEnrichBook(ctx context.Context, bookID string) error
 	BatchEnrichBooks(ctx context.Context) error
+	QueueBatchEnrichBooks(ctx context.Context) (string, error)
 	ProxyCover(ctx context.Context, coverURL string) ([]byte, string, error)
 	ArchiveBook(ctx context.Context, id string, archived bool) error
 	DeleteBook(ctx context.Context, id string) error

@@ -11,7 +11,6 @@ import (
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
-	"novelhub/internal/models"
 	"novelhub/internal/services"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/validator"
@@ -242,7 +241,7 @@ func (c *FeatureController) RecordReadingActivity(ctx fiber.Ctx) error {
 		fileID = &value
 	}
 
-	result, err := c.service.RecordReadingActivity(reqCtx, models.ReadingActivityInput{
+	result, err := c.service.RecordReadingActivity(reqCtx, request.ReadingActivityInput{
 		UserID:          userID,
 		BookID:          dto.BookID,
 		FileID:          fileID,
@@ -345,7 +344,7 @@ func (c *FeatureController) RecordBookShare(ctx fiber.Ctx) error {
 	if err := validator.ValidateBodyDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
-	stats, err := c.service.RecordShare(reqCtx, models.ShareInput{
+	stats, err := c.service.RecordShare(reqCtx, request.ShareInput{
 		BookID:     ctx.Params("id"),
 		ActorKey:   c.service.ShareActorKey(dto.ClientID, ctx.IP(), ctx.Get("User-Agent")),
 		OccurredAt: time.Now().UTC(),

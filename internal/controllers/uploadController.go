@@ -26,7 +26,7 @@ func (h *UploadController) InitUpload(c fiber.Ctx) error {
 	defer cancel()
 	claims, ok := getUserClaims(c)
 	if !ok {
-		return fiber.ErrUnauthorized
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 	var dto request.InitUploadDto
 	if err := validator.ValidateBodyDto(c, &dto); err != nil {
@@ -44,7 +44,7 @@ func (h *UploadController) UploadChunk(c fiber.Ctx) error {
 	defer cancel()
 	claims, ok := getUserClaims(c)
 	if !ok {
-		return fiber.ErrUnauthorized
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -61,7 +61,7 @@ func (h *UploadController) CommitUpload(c fiber.Ctx) error {
 	defer cancel()
 	claims, ok := getUserClaims(c)
 	if !ok {
-		return fiber.ErrUnauthorized
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
 	}
 	var dto request.CommitUploadDto
 	if err := validator.ValidateBodyDto(c, &dto); err != nil {

@@ -11,6 +11,7 @@ import (
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
+	"novelhub/pkg/jsonx"
 )
 
 var (
@@ -198,5 +199,21 @@ func PodcastLibraryAttr(podcastRepo repositories.PodcastRepository, param string
 			return nil, apperrors.New(apperrors.ErrNotFound, "Podcast not found")
 		}
 		return map[string]any{"library_id": podcast.LibraryID}, nil
+	}
+}
+
+func LibraryIDBody() PermissionAttrResolver {
+	return func(c fiber.Ctx) (map[string]any, error) {
+		body := c.Body()
+		if len(body) == 0 {
+			return nil, nil
+		}
+		var payload struct {
+			LibraryID string `json:"library_id"`
+		}
+		if err := jsonx.Unmarshal(body, &payload); err == nil && payload.LibraryID != "" {
+			return map[string]any{"library_id": payload.LibraryID}, nil
+		}
+		return nil, nil
 	}
 }

@@ -261,7 +261,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	audiobookRepo := repositories.NewAudiobookRepository(db, ramCache)
 	audiobookService := services.NewAudiobookService(audiobookRepo, bookRepo, bookFileRepo, jobQueue)
 	podcastRepo := repositories.NewPodcastRepository(db, ramCache)
-	podcastService := services.NewPodcastService(podcastRepo, bookRepo, bookFileRepo, libraryRepo, jobQueue)
+	podcastService := services.NewPodcastService(podcastRepo, bookRepo, bookFileRepo, libraryRepo, jobQueue, txManager)
 
 	authController := controllers.NewAuthController(authService)
 	oauthController := controllers.NewOAuthController(authService, settingsService)
@@ -479,7 +479,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.SetupUploadRoutes(v1, uploadController, userRepo, permissionCache)
 	routes.DeviceRoutes(v1, deviceController, userRepo, bookRepo, permissionCache)
 	routes.CustomizationRoutes(v1, customizationController, userRepo, permissionCache)
-	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync), calibreController.ImportCalibre)
+	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync, middlewares.LibraryIDBody()), calibreController.ImportCalibre)
 
 	opdsService := services.NewOPDSService(bookService, permissionCache)
 	opdsController := controllers.NewOPDSController(opdsService, settingsService)
@@ -524,7 +524,7 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 
 	webdavService := services.NewWebDAVService(libraryService, bookService, permissionCache, settingsService)
 	webdavController := controllers.NewWebDAVController(webdavService)
-	routes.WebDAVRoutes(s.App, webdavController, authService, settingsService, permissionCache)
+	routes.WebDAVRoutes(s.App, webdavController, authService, settingsService, permissionCache, userRepo)
 
 	serveEmbeddedFrontend(s.App, bookService, settingsService)
 	routes.NotFoundRoute(s.App)

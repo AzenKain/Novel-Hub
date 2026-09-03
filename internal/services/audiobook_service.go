@@ -35,21 +35,12 @@ const (
 
 type AudiobookService interface {
 	ListChapters(ctx context.Context, bookID string) ([]*response.AudiobookChapterResponse, error)
-	UpsertChapter(ctx context.Context, bookID string, dto UpsertAudiobookChapterInput) (*response.AudiobookChapterResponse, error)
+	UpsertChapter(ctx context.Context, bookID string, dto request.UpsertAudiobookChapterDto) (*response.AudiobookChapterResponse, error)
 	DeleteChapter(ctx context.Context, bookID string, id string) error
 	DeleteChaptersForBook(ctx context.Context, bookID string) error
 	LookupChaptersFromAudnexus(ctx context.Context, bookID string, asin string) ([]*response.AudiobookChapterResponse, error)
 	MergeAudio(ctx context.Context, bookID string, title string, segments []request.MergeAudioSegment) (string, error)
 	ExecuteMergeAudioJob(ctx context.Context, payloadJSON string) error
-}
-
-type UpsertAudiobookChapterInput struct {
-	ID           string
-	FileID       *string
-	ChapterIndex int64
-	Title        string
-	StartSec     float64
-	EndSec       *float64
 }
 
 type mergeAudioPayload struct {
@@ -100,7 +91,7 @@ func (s *audiobookService) ListChapters(ctx context.Context, bookID string) ([]*
 	return out, nil
 }
 
-func (s *audiobookService) UpsertChapter(ctx context.Context, bookID string, dto UpsertAudiobookChapterInput) (*response.AudiobookChapterResponse, error) {
+func (s *audiobookService) UpsertChapter(ctx context.Context, bookID string, dto request.UpsertAudiobookChapterDto) (*response.AudiobookChapterResponse, error) {
 	id := dto.ID
 	if id == "" {
 		id = uuid.NewString()

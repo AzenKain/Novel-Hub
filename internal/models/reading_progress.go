@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/convert"
@@ -134,18 +135,7 @@ func (e *ReadingProgressEntity) ToResponse() *response.ReadingProgressResponse {
 	}
 }
 
-type ReadingActivityInput struct {
-	UserID          string
-	BookID          string
-	FileID          *string
-	ChapterID       string
-	ChapterTitle    string
-	ChapterIndex    int64
-	ProgressPercent *float64
-	LocationCfi     *string
-	LocationType    *string
-	EventType       string
-}
+type ReadingActivityInput = request.ReadingActivityInput
 
 type ReadingActivityEntity struct {
 	Progress        *ReadingProgressEntity `json:"progress"`

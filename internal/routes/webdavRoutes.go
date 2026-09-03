@@ -5,6 +5,7 @@ import (
 
 	"novelhub/internal/controllers"
 	"novelhub/internal/middlewares"
+	"novelhub/internal/repositories"
 	"novelhub/internal/services"
 	"novelhub/pkg/constants"
 )
@@ -15,8 +16,9 @@ func WebDAVRoutes(
 	authService services.AuthService,
 	settingsService services.SettingsService,
 	permissionCache services.PermissionCache,
+	userRepo ...repositories.UserRepository,
 ) {
-	auth := middlewares.WebDAVAuth(authService, settingsService)
+	auth := middlewares.WebDAVAuth(authService, settingsService, userRepo...)
 
 	webdavGroup := app.Group("/webdav")
 	webdavGroup.Use(auth)

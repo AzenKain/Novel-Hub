@@ -1,6 +1,7 @@
 package request
 
 type UpsertAudiobookChapterDto struct {
+	ID           string   `json:"id,omitempty"`
 	FileID       *string  `json:"file_id"`
 	ChapterIndex int64    `json:"chapter_index" validate:"gte=0"`
 	Title        string   `json:"title" validate:"required,min=1,max=200"`

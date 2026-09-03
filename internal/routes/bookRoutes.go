@@ -30,6 +30,7 @@ func BookRoutes(app fiber.Router, bookController *controllers.BookController, us
 	bookGroup.Get("/:id/doctor/validate", middlewares.OptionalJwtAccess(userRepo), bookController.ValidateBookEPUB)
 	bookGroup.Post("/:id/doctor/repair", middlewares.JwtAccess(userRepo), middlewares.RequireAnyPermissionAttr(permissionCache, []string{constants.PermBookRepair, constants.PermBookEdit}, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.RepairBookEPUB)
 	bookGroup.Post("/:id/enrich", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.EnrichBook)
+	bookGroup.Put("/:id/metadata", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.UpdateMetadata)
 	bookGroup.Post("/batch-enrich", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BatchEnrichBooks)
 	bookGroup.Patch("/:id/archive", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookArchive, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.ArchiveBook)
 	bookGroup.Post("/:id/send-email", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookSendEmail, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.SendBookToEmail)

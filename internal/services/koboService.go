@@ -413,8 +413,9 @@ func (s *koboService) GetBookKePubStream(ctx context.Context, bookID string, cla
 		}
 
 		convertedBytes := buf.Bytes()
-		if s.cache != nil {
-			_ = s.cache.Set(ctx, cacheKey, convertedBytes, 24*time.Hour)
+		const maxKePubCacheBytes = 15 * 1024 * 1024
+		if s.cache != nil && int64(len(convertedBytes)) <= maxKePubCacheBytes {
+			_ = s.cache.Set(ctx, cacheKey, convertedBytes, 2*time.Hour)
 		}
 		return convertedBytes, nil
 	})

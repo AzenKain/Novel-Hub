@@ -41,14 +41,8 @@ func (c *AudiobookController) UpsertChapter(ctx fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	chapter, err := c.service.UpsertChapter(reqCtx, ctx.Params("book_id"), services.UpsertAudiobookChapterInput{
-		ID:           ctx.Params("id"),
-		FileID:       dto.FileID,
-		ChapterIndex: dto.ChapterIndex,
-		Title:        dto.Title,
-		StartSec:     dto.StartSec,
-		EndSec:       dto.EndSec,
-	})
+	dto.ID = ctx.Params("id")
+	chapter, err := c.service.UpsertChapter(reqCtx, ctx.Params("book_id"), *dto)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}
