@@ -142,10 +142,14 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const csrfToken = getCookie("csrf_token");
         await axios.post(
           `${API_BASE}/auth/refresh`,
           {},
-          { withCredentials: true },
+          {
+            withCredentials: true,
+            headers: csrfToken ? { "X-CSRF-Token": csrfToken } : undefined,
+          },
         );
 
         refreshFailedAt = 0;

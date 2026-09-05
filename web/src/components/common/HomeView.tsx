@@ -7,6 +7,7 @@ export function HomeView() {
   const { t } = useTranslation();
   const settings = usePublicSettings();
   const title = settings?.site?.title || "NovelHub";
+  const siteLogo = settings?.site?.logo || "/logo.svg";
   const description =
     settings?.site?.description || t("home.default_description");
 
@@ -19,11 +20,23 @@ export function HomeView() {
       </div>
 
       <header className="home-header">
-        <div className="home-brand">
-          <div className="home-brand-mark"></div>
+        <div className="home-brand flex items-center gap-2.5">
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={t("common.alt_logo", "Logo")}
+              className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm"
+            />
+          ) : (
+            <div className="home-brand-mark"></div>
+          )}
           <div>
-            <h1>{title}</h1>
-            <p>{description}</p>
+            <h1 className="text-lg font-black leading-none tracking-tight text-base-content">
+              {title}
+            </h1>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-base-content/50">
+              {description}
+            </p>
           </div>
         </div>
         <Link to="/admin" className="admin-link-btn">

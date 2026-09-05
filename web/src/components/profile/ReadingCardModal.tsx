@@ -48,7 +48,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const publicSettings = usePublicSettings();
 
-  const siteLogo = publicSettings?.site?.logo;
+  const siteLogo = publicSettings?.site?.logo || "/logo.svg";
   const siteTitle = publicSettings?.site?.title || "NovelHub";
 
   const defaultQuote = t(
@@ -565,7 +565,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
           </div>
 
           {/* Card Preview Column */}
-          <div className="lg:col-span-7 flex justify-center items-center overflow-auto p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-[440px]">
+          <div className="lg:col-span-7 flex justify-center items-center overflow-auto p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-110">
             <div
               ref={cardRef}
               className={`p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 ${themeStyles.container}`}
@@ -601,7 +601,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                       </div>
                     )}
                     <div>
-                      <div className="font-bold text-sm leading-tight truncate max-w-[160px]">
+                      <div className="font-bold text-sm leading-tight truncate max-w-40">
                         {displayName}
                       </div>
                       <div className={`text-[11px] ${themeStyles.subText}`}>
@@ -1016,7 +1016,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                         className="w-5 h-5 rounded-md object-contain shadow-xs"
                       />
                     ) : (
-                      <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center text-[9px] font-black shadow-xs">
+                      <div className="w-5 h-5 rounded-md bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center text-[9px] font-black shadow-xs">
                         NH
                       </div>
                     )}
@@ -1027,7 +1027,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                 )}
                 {customQuote.trim() && (
                   <div
-                    className={`text-[10px] italic ${themeStyles.subText} ${showLogo ? "text-right" : "text-center"} truncate max-w-[220px]`}
+                    className={`text-[10px] italic ${themeStyles.subText} ${showLogo ? "text-right" : "text-center"} truncate max-w-55`}
                   >
                     "{customQuote.trim()}"
                   </div>

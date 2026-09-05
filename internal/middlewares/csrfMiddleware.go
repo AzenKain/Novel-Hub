@@ -10,6 +10,24 @@ import (
 	"novelhub/internal/dtos/response"
 )
 
+func isLoopbackHost(h string) bool {
+	return h == "localhost" || h == "127.0.0.1" || h == "::1" || h == "[::1]"
+}
+
+func hostOnly(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if first, _, found := strings.Cut(raw, ","); found {
+		raw = strings.TrimSpace(first)
+	}
+	if h, _, found := strings.Cut(raw, ":"); found {
+		return strings.TrimSpace(h)
+	}
+	return raw
+}
+
 // sameOrigin reports whether the request's Origin (or Referer) header points at this host.
 func sameOrigin(c fiber.Ctx) bool {
 	source := c.Get("Origin")
@@ -23,11 +41,34 @@ func sameOrigin(c fiber.Ctx) bool {
 	if err != nil || u.Hostname() == "" {
 		return false
 	}
-	host := c.Host()
-	if h, _, found := strings.Cut(host, ":"); found {
-		host = h
+	originHost := u.Hostname()
+
+	candidateHosts := []string{
+		hostOnly(c.Host()),
+		hostOnly(c.Get("X-Forwarded-Host")),
 	}
-	return strings.EqualFold(u.Hostname(), host)
+	if fwd := c.Get("Forwarded"); fwd != "" {
+		for _, part := range strings.Split(fwd, ";") {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(strings.ToLower(part), "host=") {
+				candidateHosts = append(candidateHosts, hostOnly(part[5:]))
+			}
+		}
+	}
+
+	for _, ch := range candidateHosts {
+		if ch == "" {
+			continue
+		}
+		if strings.EqualFold(originHost, ch) {
+			return true
+		}
+		if isLoopbackHost(originHost) && isLoopbackHost(ch) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func CSRFProtection() fiber.Handler {
@@ -44,10 +85,14 @@ func CSRFProtection() fiber.Handler {
 
 		if strings.HasPrefix(path, "/api/v1/auth/") {
 			if !sameOrigin(c) {
-				return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
-					Status:  false,
-					Message: "Cross-origin auth request rejected",
-				})
+				csrfCookie := c.Cookies("csrf_token")
+				headerToken := c.Get("X-CSRF-Token")
+				if csrfCookie == "" || headerToken == "" || subtle.ConstantTimeCompare([]byte(csrfCookie), []byte(headerToken)) != 1 {
+					return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{
+						Status:  false,
+						Message: "Cross-origin auth request rejected",
+					})
+				}
 			}
 			return c.Next()
 		}

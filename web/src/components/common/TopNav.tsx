@@ -170,21 +170,21 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
           <Link
             to="/"
-            className="flex items-center gap-2 lg:hidden hover:opacity-85 transition-opacity mr-1"
+            className="flex items-center gap-2.5 lg:hidden hover:opacity-85 transition-opacity mr-1"
             title={siteTitle}
           >
             {siteLogo ? (
               <img
                 src={siteLogo}
                 alt={t("common.alt_logo", "Logo")}
-                className="h-8 w-auto max-w-10.5 object-contain drop-shadow-xs"
+                className="h-9 w-auto max-w-12 object-contain drop-shadow-xs"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content text-xs shadow-xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content text-xs shadow-xs">
                 NH
               </div>
             )}
-            <span className="text-base font-black tracking-tight text-base-content hidden sm:inline-block">
+            <span className="font-sans text-lg font-black tracking-tight text-base-content hidden sm:inline-block">
               {siteTitle}
             </span>
           </Link>
@@ -202,11 +202,11 @@ export const TopNav: React.FC<TopNavProps> = ({
               className="h-9 w-auto max-w-12 object-contain drop-shadow-xs"
             />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content text-xs shadow-xs">
               NH
             </div>
           )}
-          <span className="text-lg font-black tracking-tight text-base-content hidden sm:inline-block">
+          <span className="font-sans text-lg font-black tracking-tight text-base-content hidden sm:inline-block">
             {siteTitle}
           </span>
         </Link>

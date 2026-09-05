@@ -77,4 +77,57 @@ func TestCSRFProtectionMiddleware(t *testing.T) {
 	if resp5.StatusCode != fiber.StatusForbidden {
 		t.Fatalf("expected 403 for cross-origin auth request, got %d", resp5.StatusCode)
 	}
+
+	// 6. Reverse proxy forwarding X-Forwarded-Host
+	req6 := httptest.NewRequest("POST", "/api/v1/auth/login", nil)
+	req6.Header.Set("Origin", "https://calibre.kain.id.vn")
+	req6.Header.Set("X-Forwarded-Host", "calibre.kain.id.vn")
+	req6.Host = "127.0.0.1:3434"
+	resp6, err := app.Test(req6)
+	if err != nil {
+		t.Fatalf("Auth request with X-Forwarded-Host failed: %v", err)
+	}
+	if resp6.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200 for matching X-Forwarded-Host, got %d", resp6.StatusCode)
+	}
+
+	// 7. Dev loopback origin (localhost:5173 to 127.0.0.1:3434)
+	req7 := httptest.NewRequest("POST", "/api/v1/auth/login", nil)
+	req7.Header.Set("Origin", "http://localhost:5173")
+	req7.Host = "127.0.0.1:3434"
+	resp7, err := app.Test(req7)
+	if err != nil {
+		t.Fatalf("Auth request with loopback dev origin failed: %v", err)
+	}
+	if resp7.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200 for dev loopback origin, got %d", resp7.StatusCode)
+	}
+
+	// 8. Cross-origin auth with verified double-submit CSRF cookie + header
+	req8 := httptest.NewRequest("POST", "/api/v1/auth/login", nil)
+	req8.Header.Set("Origin", "https://external-client.com")
+	req8.Host = "novelhub.local"
+	req8.AddCookie(&http.Cookie{Name: "csrf_token", Value: "csrf-token-abc"})
+	req8.Header.Set("X-CSRF-Token", "csrf-token-abc")
+	resp8, err := app.Test(req8)
+	if err != nil {
+		t.Fatalf("Auth request with double-submit CSRF token failed: %v", err)
+	}
+	if resp8.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200 for double-submit CSRF token, got %d", resp8.StatusCode)
+	}
+
+	// 9. Cross-origin auth with mismatched CSRF token
+	req9 := httptest.NewRequest("POST", "/api/v1/auth/login", nil)
+	req9.Header.Set("Origin", "https://external-client.com")
+	req9.Host = "novelhub.local"
+	req9.AddCookie(&http.Cookie{Name: "csrf_token", Value: "csrf-token-abc"})
+	req9.Header.Set("X-CSRF-Token", "csrf-token-WRONG")
+	resp9, err := app.Test(req9)
+	if err != nil {
+		t.Fatalf("Auth request with mismatched CSRF token failed: %v", err)
+	}
+	if resp9.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("expected 403 for mismatched CSRF token, got %d", resp9.StatusCode)
+	}
 }

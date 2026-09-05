@@ -27,6 +27,8 @@ export function AdminLayout() {
   const location = useLocation();
   const { t } = useTranslation();
   const settings = usePublicSettings();
+  const siteLogo = settings?.site?.logo || "/logo.svg";
+  const siteTitle = settings?.site?.title || "NovelHub";
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -103,18 +105,40 @@ export function AdminLayout() {
       <input id="admin-drawer" type="checkbox" className="drawer-toggle" />
 
       <div className="drawer-content flex flex-col min-w-0 h-screen overflow-hidden">
-        <div className="navbar bg-base-100 shadow-sm lg:hidden border-b border-base-200 px-4">
-          <div className="flex-none">
+        <div className="navbar bg-base-100 shadow-sm lg:hidden border-b border-base-200 px-3 sm:px-4">
+          <div className="flex items-center gap-1.5 flex-none">
             <label
               htmlFor="admin-drawer"
-              aria-label="open sidebar"
-              className="btn btn-square btn-ghost"
+              aria-label={t("common.toggle_sidebar", "Toggle Sidebar")}
+              className="btn btn-square btn-ghost btn-sm sm:btn-md"
             >
               <Menu className="w-5 h-5" />
             </label>
-          </div>
-          <div className="flex-1 px-2 mx-2 font-bold">
-            {t("admin.panel", "Admin Panel")}
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 hover:opacity-85 transition-opacity mr-1"
+              title={siteTitle}
+            >
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={t("common.alt_logo", "Logo")}
+                  className="h-9 w-auto max-w-12 object-contain drop-shadow-xs"
+                />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content text-xs shadow-xs">
+                  NH
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="font-sans text-lg font-black tracking-tight text-base-content leading-none">
+                  {siteTitle}
+                </span>
+                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-base-content/50">
+                  {t("admin.panel", "Admin Panel")}
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
 
@@ -130,29 +154,29 @@ export function AdminLayout() {
           className="drawer-overlay"
         ></label>
         <aside className="bg-base-100 w-64 min-h-full flex flex-col">
-          <div className="h-20 flex flex-col justify-center px-6 border-b border-base-200">
+          <div className="h-20 flex flex-col justify-center px-3 border-b border-base-200">
             <Link
               to="/"
-              className="flex items-center hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"
             >
-              {settings?.site?.logo ? (
+              {siteLogo ? (
                 <img
-                  src={settings.site.logo}
-                  alt={t("common.alt_logo")}
-                  className="h-10 w-auto max-w-[50px] object-contain mr-3 shrink-0 drop-shadow-sm"
+                  src={siteLogo}
+                  alt={t("common.alt_logo", "Logo")}
+                  className="h-11 w-auto max-w-14 object-contain shrink-0 drop-shadow-sm"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3 shrink-0">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content shadow-xs shrink-0">
                   NH
                 </div>
               )}
-              <div className="flex flex-col">
-                <span className="text-xl font-bold leading-tight">
-                  {settings?.site?.title || "NovelHub"}
-                </span>
-                <span className="text-xs text-base-content/60 font-medium uppercase tracking-wider">
+              <div>
+                <h1 className="font-sans text-lg font-black leading-none tracking-tight text-base-content">
+                  {siteTitle}
+                </h1>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-base-content/50">
                   {t("admin.panel", "Admin Panel")}
-                </span>
+                </p>
               </div>
             </Link>
           </div>

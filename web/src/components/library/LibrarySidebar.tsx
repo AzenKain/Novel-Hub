@@ -78,7 +78,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   const settings = usePublicSettings();
   const siteTitle = settings?.site?.title || "NovelHub";
   const siteDesc = settings?.site?.description || "Local library manager";
-  const siteLogo = settings?.site?.logo;
+  const siteLogo = settings?.site?.logo || "/logo.svg";
 
   const { setSearch, setActiveFacet } = useLibraryStore(
     useShallow((state) => ({
@@ -189,15 +189,15 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             <img
               src={siteLogo}
               alt={t("common.alt_logo", "Logo")}
-              className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm"
+              className="h-11 w-auto max-w-14 object-contain shrink-0 drop-shadow-sm"
             />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-md shadow-primary/20 shrink-0">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary to-secondary font-bold text-primary-content shadow-xs shrink-0">
               NH
             </div>
           )}
           <div>
-            <h1 className="text-lg font-black leading-none tracking-tight text-base-content">
+            <h1 className="font-sans text-lg font-black leading-none tracking-tight text-base-content">
               {siteTitle}
             </h1>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-base-content/50">
@@ -228,7 +228,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
 
         <div>
           <div className="flex items-center justify-between px-2 pb-2">
-            <span className="menu-title !p-0 text-xs font-bold uppercase tracking-wider text-base-content/40">
+            <span className="menu-title p-0! text-xs font-bold uppercase tracking-wider text-base-content/40">
               {t("library.collections", "Collections")}
             </span>
             {user && (
@@ -252,7 +252,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               collections.map((collection) => (
                 <li key={collection.id}>
                   <div
-                    className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}
+                    className={`group flex items-center justify-between p-0! ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}
                   >
                     <button
                       className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none min-w-0"
@@ -360,7 +360,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           <div>
             <div className="flex items-center gap-1.5 px-2 pb-2">
               <Filter className="h-3.5 w-3.5 text-base-content/40" />
-              <span className="menu-title !p-0 text-xs font-bold uppercase tracking-wider text-base-content/40">
+              <span className="menu-title p-0! text-xs font-bold uppercase tracking-wider text-base-content/40">
                 {t("library.smart_collections", "Smart Collections")}
               </span>
             </div>
@@ -392,7 +392,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <div className="group flex items-center justify-between !p-0">
+                    <div className="group flex items-center justify-between p-0!">
                       <button
                         className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
                         onClick={() => onSmartCollectionClick?.(smart.rule)}
@@ -436,7 +436,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             <div className="flex items-center justify-between px-2 pb-2">
               <div className="flex items-center gap-1.5">
                 <Filter className="h-3.5 w-3.5 text-base-content/40" />
-                <span className="menu-title !p-0 text-xs font-bold uppercase tracking-wider text-base-content/40">
+                <span className="menu-title p-0! text-xs font-bold uppercase tracking-wider text-base-content/40">
                   {t("library.smart_filters", "Smart Filters")}
                 </span>
               </div>
@@ -456,7 +456,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 .map((sf) => (
                   <li key={sf.id}>
                     <div
-                      className={`group flex items-center justify-between !p-0 ${activeSmartFilterId === sf.id ? "bg-primary/10 text-primary font-semibold" : ""}`}
+                      className={`group flex items-center justify-between p-0! ${activeSmartFilterId === sf.id ? "bg-primary/10 text-primary font-semibold" : ""}`}
                     >
                       <button
                         className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"

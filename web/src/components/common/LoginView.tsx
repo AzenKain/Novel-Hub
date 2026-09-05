@@ -18,6 +18,8 @@ export function LoginView() {
     );
 
   const settings = usePublicSettings();
+  const siteLogo = settings?.site?.logo || "/logo.svg";
+  const siteTitle = settings?.site?.title || "NovelHub";
   const {
     mutation: loginMutation,
     needsCode,
@@ -46,11 +48,19 @@ export function LoginView() {
           ✕
         </button>
         <div className="flex flex-col items-center gap-4 mb-8 mt-2 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <BookOpen size={28} className="text-primary" />
-          </div>
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={t("common.alt_logo", "Logo")}
+              className="w-14 h-14 object-contain drop-shadow-xs"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <BookOpen size={28} className="text-primary" />
+            </div>
+          )}
           <div>
-            <h3 className="text-2xl font-bold">NovelHub</h3>
+            <h3 className="text-2xl font-bold">{siteTitle}</h3>
             <p className="text-base-content/60 font-medium text-sm mt-1">
               {t("auth.login_to_account")}
             </p>

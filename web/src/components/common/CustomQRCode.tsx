@@ -18,7 +18,10 @@ export const CustomQRCode: React.FC<CustomQRCodeProps> = ({
 }) => {
   const publicSettings = usePublicSettings();
   const siteTitle = publicSettings?.site?.title || "NovelHub";
-  const rawLogo = publicSettings?.site?.logo || publicSettings?.site?.favicon;
+  const rawLogo =
+    publicSettings?.site?.logo ||
+    publicSettings?.site?.favicon ||
+    "/logo.svg";
   const siteLogo = rawLogo ? getMediaUrl(rawLogo) : null;
 
   const getInitials = (name: string) => {

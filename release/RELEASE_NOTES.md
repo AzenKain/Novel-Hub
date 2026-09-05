@@ -1,31 +1,39 @@
-# NovelHub v1.0.5
+# NovelHub v1.0.6
 
-NovelHub **v1.0.5** brings mobile TTS page flipping fixes, enhanced tooltip behavior across touch and desktop interfaces, instant branding asset cache-busting, and web reader visual refinements.
+NovelHub **v1.0.6** delivers multi-device login persistence with concurrent refresh token rotation, enhanced reverse-proxy and CSRF compatibility, unified brand typography and logo sizing across all pages, and reader experience enhancements.
 
 ---
 
-## What's New in v1.0.5
+## What's New in v1.0.6
 
-### Mobile TTS Page Flipping & Word Boundary Stability
+### 🔄 Multi-Device Login Persistence & Concurrent Refresh Token Rotation
 
-- **Eliminated Page Bounce**: Fixed an issue on mobile devices where advancing TTS playback across line wraps or word boundaries would abruptly jump to the previous page before snapping back to the current position.
-- **Accurate Subpixel Paging**: Paged reader modes (single and double column) now use enhanced subpixel range boundary detection, keeping pages stable and continuous during speech synthesis and reading tracking.
+- **Stay Logged In Across Multiple Devices**: Fixed a critical session issue where logging in on a new device (e.g., mobile phone) would overwrite the user's single refresh token digest in the database, causing the other device (e.g., PC or laptop) to fail token refresh and forcibly log out after the 30-minute access token expired.
+- **Up to 10 Active Device Sessions**: NovelHub now tracks up to 10 concurrent active refresh token sessions per user account, allowing seamless simultaneous reading across phones, tablets, eReaders, and desktop browsers.
+- **Race-Safe CAS Token Rotation**: Refresh token rotation now uses an atomic Compare-And-Swap (CAS) mechanism backed by a bounded exponential retry loop, completely eliminating race condition failures when multiple devices attempt token refresh at the exact same moment.
+- **Global Invalidation on Logout**: Calling `/auth/logout` increments `token_version` and clears stored tokens, guaranteeing instant, secure session termination across all devices.
 
-### Tooltip Behavior & Touch Screen Optimization
+### 🛡️ Reverse Proxy, Cloudflare & CSRF Protection Compatibility
 
-- **Smart Auto-Dismissal**: Tooltips now automatically hide whenever a button is clicked, an active element is pressed, or when opening drawers and modal dialogs.
-- **Mobile Touch Friendly**: Suppressed persistent hover tooltips on touchscreens and mobile devices, preventing tooltips from sticking to the screen or obscuring navigation icons and toolbar controls.
-- **Reader Controls Polish**: Seamlessly dismisses tooltips when toggling reader settings panels, table of contents, and toolbar menus.
+- **Reverse Proxy Origin Validation**: Enhanced `sameOrigin` security checks to evaluate `X-Forwarded-Host` and RFC 7239 `Forwarded: host=...` headers, resolving `403 Forbidden: "Cross-origin auth request rejected"` when accessing NovelHub behind Cloudflare, NGINX, Caddy, or Cloudflare Tunnels (`cloudflared`).
+- **Dev Loopback Equivalence**: Handled loopback origin equivalence (`localhost` $\leftrightarrow$ `127.0.0.1`) to ensure seamless local development between Vite dev servers and backend APIs.
+- **Double-Submit CSRF Verification**: Supported authenticated double-submit CSRF token validation (`csrf_token` cookie + `X-CSRF-Token` header) on authentication endpoints, and updated the client-side axios response interceptor to attach `X-CSRF-Token` on session refresh calls.
+- **Accurate Cookie Cleanup**: Fixed non-HTTPOnly cookie clearing for `csrf_token` to ensure proper deletion across browsers.
 
-### Instant Branding & Logo Updates
+### 🎨 Unified Brand Identity, Logo Sizing & Typography
 
-- **Automatic Cache-Busting**: Uploading a new site logo or favicon now generates versioned asset paths on the server and cleans up outdated files, ensuring immediate updates across browsers and CDN caches without manual cache purging.
-- **Fresh Public Settings**: Fixed stale branding and site metadata persistence in browser local storage so configuration changes apply instantly upon page load.
+- **Pixel-Consistent Brand Typography**: Resolved a font metric mismatch where the brand text "NovelHub" rendered with different widths and sizes between pages (such as `/offline` at 94px vs `/podcasts` at 106px). Configured `--font-sans: Inter, ...` inside Tailwind CSS v4 `@theme` so all page wrappers and components render the same font family.
+- **Standardized Logo Dimensions**: Unified brand logo height and max-width across all application navigation bars:
+  - Top Navigation (`TopNav`): `h-9 w-auto max-w-12 object-contain drop-shadow-xs` with `font-sans text-lg font-black tracking-tight`.
+  - Sidebars (`LibrarySidebar`, `AdminLayout`): `h-11 w-auto max-w-14 object-contain drop-shadow-sm` with `font-sans text-lg font-black tracking-tight`.
+  - Unified across HomeView, ReadingCardModal, CustomQRCode, and Auth pages.
+- **Instant Branding Cache-Busting**: Logo and favicon uploads generate versioned asset paths with automatic cache-busting, preventing stale service worker and browser cache retention.
 
-### Reader UI & Visual Refinements
+### 📖 Reader & UX Enhancements
 
-- **Enhanced Highlights**: Improved rendering for active TTS word tracking, search result matches, and reader selections.
-- **Toolbar & Navigation**: Smoother transition states for sidebars, full-screen mode toggles, and reader action buttons.
+- **Mobile TTS Page Flipping Stability**: Fixed subpixel range boundary detection in paged reader modes (single and double column), eliminating jarring page bounce when speech synthesis advances across line wraps and word boundaries.
+- **Touch Screen Tooltip Optimization**: Auto-dismisses tooltips on button click, touch interaction, and drawer/modal toggles, preventing sticky tooltips on mobile devices.
+- **Reading Statistics Card (`ReadingCardModal`)**: Introduced an interactive modal component allowing users to view, customize, and export their light novel reading achievements and statistics.
 
 ---
 
@@ -33,7 +41,7 @@ NovelHub **v1.0.5** brings mobile TTS page flipping fixes, enhanced tooltip beha
 
 ### Docker Compose Update
 
-To upgrade your existing NovelHub instance to **v1.0.5**, run the following commands in the directory containing your `docker-compose.yml`:
+To upgrade your existing NovelHub instance to **v1.0.6**, run the following commands in the directory containing your `docker-compose.yml`:
 
 ```bash
 # 1. Pull the latest image
@@ -66,13 +74,14 @@ docker run -d \
   -e JWT_SECRET=your_jwt_secret \
   -e JWT_REFRESH_SECRET=your_jwt_refresh_secret \
   -e DB_ENCRYPTION_KEY=your_db_key \
+  -e TRUST_PROXY=true \
   -v $(pwd)/data:/data \
   azenkain/novel-hub:latest
 ```
 
 ### Standalone Native Binary Update
 
-1. Download the new executable (`v1.0.5`) matching your OS/Arch from the **Assets** section below.
+1. Download the new executable (`v1.0.6`) matching your OS/Arch from the **Assets** section below.
 2. Stop the running NovelHub service/process.
 3. Replace the executable with the new binary.
 4. Restart NovelHub (database migrations apply automatically).

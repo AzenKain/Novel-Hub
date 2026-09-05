@@ -77,7 +77,7 @@ func clearAuthCookie(c fiber.Ctx, name string) {
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		MaxAge:   -1,
-		HTTPOnly: true,
+		HTTPOnly: name != "csrf_token",
 		Secure:   settings.secure,
 		SameSite: settings.sameSite,
 		Path:     "/",

@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -72,17 +73,56 @@ func NewAuthService(userRepo repositories.UserRepository, roleRepo repositories.
 	return &authService{userRepo: userRepo, roleRepo: roleRepo, txManager: txManager, settingsRepo: settingsRepo, settings: settings, otp: store}
 }
 
+const maxActiveRefreshTokens = 10
+
 func refreshTokenDigest(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
-func refreshTokenMatches(stored, token string) bool {
-	actual := token
-	if len(stored) >= len("sha256:") && stored[:len("sha256:")] == "sha256:" {
-		actual = refreshTokenDigest(token)
+func parseRefreshTokens(raw string) []string {
+	if raw == "" {
+		return nil
 	}
-	return subtle.ConstantTimeCompare([]byte(stored), []byte(actual)) == 1
+	parts := strings.Split(raw, ",")
+	tokens := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			tokens = append(tokens, p)
+		}
+	}
+	return tokens
+}
+
+func findMatchingRefreshToken(storedTokens []string, token string) int {
+	actual := token
+	tokenDig := refreshTokenDigest(token)
+	for i, stored := range storedTokens {
+		stored = strings.TrimSpace(stored)
+		expected := tokenDig
+		if len(stored) < len("sha256:") || stored[:len("sha256:")] != "sha256:" {
+			expected = actual
+		}
+		if subtle.ConstantTimeCompare([]byte(stored), []byte(expected)) == 1 {
+			return i
+		}
+	}
+	return -1
+}
+
+func refreshTokenMatches(stored, token string) bool {
+	tokens := parseRefreshTokens(stored)
+	return findMatchingRefreshToken(tokens, token) >= 0
+}
+
+func addRefreshToken(rawStored string, newDigest string) string {
+	tokens := parseRefreshTokens(rawStored)
+	if len(tokens) >= maxActiveRefreshTokens {
+		tokens = tokens[len(tokens)-maxActiveRefreshTokens+1:]
+	}
+	tokens = append(tokens, newDigest)
+	return strings.Join(tokens, ",")
 }
 
 func tokenClaims(user *models.UserEntity, tokenType string, duration time.Duration) *response.JWTClaims {
@@ -185,7 +225,8 @@ func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*resp
 	}
 
 	refreshDigest := refreshTokenDigest(tokens.RefreshToken)
-	if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &refreshDigest); err != nil {
+	newList := addRefreshToken(user.RefreshToken, refreshDigest)
+	if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &newList); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
 	}
 
@@ -240,9 +281,19 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 	} else {
 		role, err := a.roleRepo.GetByName(ctx, constants.RoleTypeUser.String())
 		if err != nil {
-			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get default role")
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get user role")
 		}
 		roles = []*models.RoleEntity{role}
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to hash password")
+	}
+	passwordHash := string(hashed)
+	var fullName *string
+	if dto.FullName != "" {
+		fullName = &dto.FullName
 	}
 
 	tx, err := a.txManager.BeginTx(ctx, nil)
@@ -256,17 +307,7 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 	userRepoTx := a.userRepo.WithTx(tx)
 	roleRepoTx := a.roleRepo.WithTx(tx)
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to hash password")
-	}
-	passwordHash := string(hashed)
-	var fullName *string
-	if dto.FullName != "" {
-		fullName = &dto.FullName
-	}
-
-	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
+	newUser, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
 		ID:           uuid.Must(uuid.NewV7()).String(),
 		Email:        dto.Email,
 		PasswordHash: convert.StrPtrToNullString(&passwordHash),
@@ -277,25 +318,22 @@ func (a *authService) Register(ctx context.Context, dto *request.RegisterDto) (*
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to create user")
 	}
 
-	user.Roles = make([]*models.RoleSimple, 0, len(roles))
+	newUser.Roles = make([]*models.RoleSimple, 0, len(roles))
 	for _, role := range roles {
-		if err := roleRepoTx.CreateUserRole(ctx, user.ID, role.ID); err != nil {
+		if err := roleRepoTx.CreateUserRole(ctx, newUser.ID, role.ID); err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to assign roles")
 		}
-		user.Roles = append(user.Roles, role.ToRoleSimple())
+		newUser.Roles = append(newUser.Roles, role.ToRoleSimple())
 	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit user registration")
 	}
 
-	return user.ToResponse(), nil
+	return newUser.ToResponse(), nil
 }
 
 func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*response.UserResponse, error) {
-	if a.settingsRepo == nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Settings repository not configured")
-	}
 	if a.settings != nil {
 		if !a.settings.SetupRequired(ctx) {
 			return nil, apperrors.New(apperrors.ErrForbidden, "Setup has already been completed")
@@ -439,7 +477,12 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 	if err != nil && !apperrors.IsNotFound(err) {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Internal Server Error")
 	}
-	if user == nil || user.RefreshToken == "" || !refreshTokenMatches(user.RefreshToken, refreshToken) {
+	if user == nil || user.RefreshToken == "" {
+		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid refresh token")
+	}
+	tokensList := parseRefreshTokens(user.RefreshToken)
+	matchedIdx := findMatchingRefreshToken(tokensList, refreshToken)
+	if matchedIdx < 0 {
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid refresh token")
 	}
 	if slices.Contains(models.RolesEntityToRoleConstant(user.Roles), constants.RoleTypeBanned) {
@@ -450,9 +493,33 @@ func (a *authService) RefreshToken(ctx context.Context, userID string, refreshTo
 	if tokenErr != nil {
 		return nil, tokenErr
 	}
-	rotated, err := a.userRepo.RotateRefreshToken(ctx, id, user.RefreshToken, refreshTokenDigest(tokens.RefreshToken))
-	if err != nil {
-		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
+
+	newDigest := refreshTokenDigest(tokens.RefreshToken)
+	var rotated bool
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(5*attempt) * time.Millisecond)
+			user, err = a.userRepo.GetAuthByID(ctx, id)
+			if err != nil || user == nil || user.RefreshToken == "" {
+				return nil, apperrors.New(apperrors.ErrUnauthorized, "Invalid refresh token")
+			}
+			tokensList = parseRefreshTokens(user.RefreshToken)
+			matchedIdx = findMatchingRefreshToken(tokensList, refreshToken)
+			if matchedIdx < 0 {
+				return nil, apperrors.New(apperrors.ErrUnauthorized, "Refresh token has already been used")
+			}
+		}
+
+		tokensList[matchedIdx] = newDigest
+		newStored := strings.Join(tokensList, ",")
+
+		rotated, err = a.userRepo.RotateRefreshToken(ctx, id, user.RefreshToken, newStored)
+		if err != nil {
+			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
+		}
+		if rotated {
+			break
+		}
 	}
 	if !rotated {
 		return nil, apperrors.New(apperrors.ErrUnauthorized, "Refresh token has already been used")

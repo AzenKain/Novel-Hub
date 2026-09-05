@@ -89,7 +89,8 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 		}
 
 		refreshDigest := refreshTokenDigest(tokens.RefreshToken)
-		if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &refreshDigest); err != nil {
+		newList := addRefreshToken(user.RefreshToken, refreshDigest)
+		if err := a.userRepo.UpdateRefreshToken(ctx, user.ID, &newList); err != nil {
 			return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update refresh token")
 		}
 

@@ -123,7 +123,7 @@ export const ReadListPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-200/40 flex flex-col">
+    <div className="min-h-screen bg-base-200/40 flex flex-col font-sans">
       <TopNav showSidebarToggle={false} />
 
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">

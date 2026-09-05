@@ -13,6 +13,8 @@ export function LoginPage() {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const settings = usePublicSettings();
+  const siteLogo = settings?.site?.logo || "/logo.svg";
+  const siteTitle = settings?.site?.title || "NovelHub";
   const {
     mutation: loginMutation,
     needsCode,
@@ -52,10 +54,18 @@ export function LoginPage() {
         <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200">
           <div className="card-body">
             <div className="flex flex-col items-center gap-2 mb-6 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <BookOpen size={28} className="text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold">NovelHub</h2>
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={t("common.alt_logo", "Logo")}
+                  className="w-14 h-14 object-contain drop-shadow-xs"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen size={28} className="text-primary" />
+                </div>
+              )}
+              <h2 className="text-2xl font-bold">{siteTitle}</h2>
               <p className="text-sm text-base-content/60">
                 {t("auth.login_desc", "Sign in to access the library.")}
               </p>

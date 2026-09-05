@@ -9,6 +9,8 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const settings = usePublicSettings();
+  const siteLogo = settings?.site?.logo || "/logo.svg";
+  const siteTitle = settings?.site?.title || "NovelHub";
   const registerMutation = useRegisterMutation();
 
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
@@ -46,7 +48,15 @@ export function RegisterPage() {
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200 text-center">
             <div className="card-body items-center gap-4">
-              <BookOpen size={40} className="text-base-content/30" />
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={t("common.alt_logo", "Logo")}
+                  className="w-14 h-14 object-contain drop-shadow-xs"
+                />
+              ) : (
+                <BookOpen size={40} className="text-base-content/30" />
+              )}
               <h2 className="text-xl font-bold">
                 {t("auth.registration_disabled", "Registration Disabled")}
               </h2>
@@ -73,9 +83,17 @@ export function RegisterPage() {
         <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-200">
           <div className="card-body">
             <div className="flex flex-col items-center gap-2 mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <BookOpen size={28} className="text-primary" />
-              </div>
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={t("common.alt_logo", "Logo")}
+                  className="w-14 h-14 object-contain drop-shadow-xs"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen size={28} className="text-primary" />
+                </div>
+              )}
               <h2 className="text-2xl font-bold">
                 {t("auth.create_account", "Create Account")}
               </h2>
