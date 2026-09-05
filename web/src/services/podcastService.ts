@@ -1,5 +1,11 @@
 import { api } from "@/config/api";
-import type { CommonResponse, Podcast, PodcastEpisode, SubscribePodcastInput, UpdatePodcastInput } from "@/types";
+import type {
+  CommonResponse,
+  Podcast,
+  PodcastEpisode,
+  SubscribePodcastInput,
+  UpdatePodcastInput,
+} from "@/types";
 import axios from "axios";
 
 export const podcastService = {
@@ -15,7 +21,9 @@ export const podcastService = {
     }
   },
 
-  async subscribe(input: SubscribePodcastInput): Promise<CommonResponse<Podcast>> {
+  async subscribe(
+    input: SubscribePodcastInput,
+  ): Promise<CommonResponse<Podcast>> {
     try {
       const res = await api.post("/podcasts", input);
       return res.data;
@@ -27,7 +35,10 @@ export const podcastService = {
     }
   },
 
-  async updatePodcast(id: string, input: UpdatePodcastInput): Promise<CommonResponse<Podcast>> {
+  async updatePodcast(
+    id: string,
+    input: UpdatePodcastInput,
+  ): Promise<CommonResponse<Podcast>> {
     try {
       const res = await api.put(`/podcasts/${id}`, input);
       return res.data;
@@ -51,7 +62,9 @@ export const podcastService = {
     }
   },
 
-  async listEpisodes(podcastId: string): Promise<CommonResponse<PodcastEpisode[]>> {
+  async listEpisodes(
+    podcastId: string,
+  ): Promise<CommonResponse<PodcastEpisode[]>> {
     try {
       const res = await api.get(`/podcasts/${podcastId}/episodes`);
       return res.data;
@@ -63,7 +76,9 @@ export const podcastService = {
     }
   },
 
-  async refreshPodcast(id: string): Promise<CommonResponse<{ job_id: string }>> {
+  async refreshPodcast(
+    id: string,
+  ): Promise<CommonResponse<{ job_id: string }>> {
     try {
       const res = await api.post(`/podcasts/${id}/refresh`);
       return res.data;
@@ -75,9 +90,14 @@ export const podcastService = {
     }
   },
 
-  async downloadEpisode(podcastId: string, episodeId: string): Promise<CommonResponse<{ job_id: string }>> {
+  async downloadEpisode(
+    podcastId: string,
+    episodeId: string,
+  ): Promise<CommonResponse<{ job_id: string }>> {
     try {
-      const res = await api.post(`/podcasts/${podcastId}/episodes/${episodeId}/download`);
+      const res = await api.post(
+        `/podcasts/${podcastId}/episodes/${episodeId}/download`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

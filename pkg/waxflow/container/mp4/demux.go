@@ -20,62 +20,48 @@ var (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
-// Chapter is one parsed chapter marker, timed in the movie timeline. It
-// aliases the container-level type so demuxer chapters feed muxer options
-// (and the metadata mapper) without conversion.
+// Chapter is one parsed chapter marker, timed in the movie timeline.
 type Chapter = container.Chapter
 
-// Demuxer reads one audio track from an ISO base media file. It selects
-// the sound track, exposes it as a single track (ID 0), and reads sample
-// packets from mdat on demand.
+// Demuxer reads one audio track from an ISO base media file.
 type Demuxer struct {
 	src  container.Source
 	opts DemuxerOptions
 	size int64
 
 	track    container.Track
-	sel      *track // the selected audio track's parsed detail
+	sel      *track
 	brands   []string
 	chapters []Chapter
-	tags     map[string][]string // ilst tags, canonical keys
+	tags     map[string][]string
 	warnings []container.Warning
 
-	movieTimescale int64     // mvhd timescale (ticks per second)
-	chplChapters   []Chapter // Nero chpl markers, if present
+	movieTimescale int64
+	chplChapters   []Chapter
 
-	// iTunes iTunSMPB gapless fields, in samples; valid only when smpbOK.
 	smpbDelay int64
 	smpbTotal int64
 	smpbOK    bool
 
-	// seekPreroll is how many samples before the target SeekSample lands
-	// so the decoder's inter-frame state (AAC's IMDCT overlap) converges;
-	// format.Media discards the difference for a sample-exact seek.
 	seekPreroll int64
 
-	cur int64 // next sample index ReadPacket delivers
+	cur int64
 
-	// Fragmented (CMAF) reading state, populated when the movie carries an
-	// mvex box; the samples then live in moof+mdat fragments rather than the
-	// (empty) moov sample table. See fragdemux.go.
 	fragmented bool
 	trex       trexDefaults
-	fragStart  int64        // offset of the first top-level box after moov
-	fragOff    int64        // next top-level box the fragment iterator reads
-	fragQueue  []fragSample // the current fragment's samples
+	fragStart  int64
+	fragOff    int64
+	fragQueue  []fragSample
 	fragIdx    int
-	fragDecode int64 // running decode time (samples) for the next sample's PTS
+	fragDecode int64
 
-	// w is the shared read-ahead window over mdat sample data.
 	w srcwin.Window
 }
 
 // NewDemuxer parses the movie header and positions on the first sample.
-// The returned Demuxer implements container.Seeker and container.Warner.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src, size: src.Size(),
 		w: srcwin.New(src, src.Size(), "mp4: reading sample data")}
@@ -88,7 +74,6 @@ func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	return d, nil
 }
 
-// warn records tolerated damage, or fails in strict mode.
 func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if d.opts.Strict {
@@ -98,20 +83,10 @@ func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	return nil
 }
 
-// note records a Warning that Strict must not escalate: a limitation of this
-// decoder against a file that is well formed, rather than damage in the file.
-//
-// warn is for mess, and Strict turns mess into an error for conformance runs.
-// An HE-AAC config is not mess; it is a conformant file whose high band this
-// decoder does not synthesize. Routing that through warn would make
-// `probe --strict` reject valid HE-AAC files as malformed, which is why this
-// path exists and why it cannot fail.
 func (d *Demuxer) note(off int64, format string, args ...any) {
 	d.warnings = append(d.warnings, container.Warning{Offset: off, Msg: fmt.Sprintf(format, args...)})
 }
 
-// parse scans the top-level boxes, reads moov into memory, builds the
-// track tree, and selects the audio track.
 func (d *Demuxer) parse() error {
 	var moov []byte
 	sawFtyp := false
@@ -119,9 +94,6 @@ func (d *Demuxer) parse() error {
 	for off < d.size {
 		b, err := readBox(d.src, off, d.size)
 		if err != nil {
-			// A damaged top-level chain is unrecoverable: unlike a page
-			// stream there is no resync, so stop where we are. If moov was
-			// already found, use it; otherwise report the damage.
 			if moov != nil {
 				break
 			}
@@ -139,8 +111,6 @@ func (d *Demuxer) parse() error {
 			if err := container.ReadFull(d.src, moov, b.payloadOff()); err != nil {
 				return err
 			}
-			// Fragments (moof+mdat) of a fragmented movie follow moov; record
-			// where the fragment iterator starts scanning.
 			d.fragStart = b.off + b.size
 		}
 		if b.toEnd {
@@ -164,7 +134,6 @@ func (d *Demuxer) parse() error {
 	return d.selectAudio(tracks)
 }
 
-// readBrands records the ftyp major and compatible brands, for diagnostics.
 func (d *Demuxer) readBrands(b box) {
 	buf := make([]byte, min(b.payloadLen(), 256))
 	if container.ReadFull(d.src, buf, b.payloadOff()) != nil {
@@ -172,7 +141,7 @@ func (d *Demuxer) readBrands(b box) {
 	}
 	for i := 0; i+4 <= len(buf); i += 4 {
 		if i == 4 {
-			continue // minor_version, not a brand
+			continue
 		}
 		if brand := trimBrand(buf[i : i+4]); brand != "" {
 			d.brands = append(d.brands, brand)
@@ -180,22 +149,16 @@ func (d *Demuxer) readBrands(b box) {
 	}
 }
 
-// selectAudio picks the sound track carrying a codec we decode, builds its
-// container.Track, and resolves gapless trims and chapters.
 func (d *Demuxer) selectAudio(tracks []*track) error {
 	var audio *track
 	var foundCodecs []string
 	var stsdErr error
-	named := 0 // entries in foundCodecs that are a codec name, not "unknown"
+	named := 0
 	for _, t := range tracks {
 		if t.handler != "soun" {
 			continue
 		}
 		if t.codec == "" {
-			// A sound track with no codec failed to parse its sample
-			// description or carried none we could read; parseStbl deferred
-			// the reason here rather than rejecting a file whose other audio
-			// track is fine.
 			if stsdErr == nil {
 				stsdErr = t.stsdErr
 			}
@@ -212,13 +175,6 @@ func (d *Demuxer) selectAudio(tracks []*track) error {
 		}
 	}
 	if audio == nil {
-		// The deferred reason is the specific one: it says why this file is
-		// refused ("aac: audio object type 1 is not AAC-LC"), where "found:
-		// unknown" only says that something in a box we already read did not
-		// come out. It replaces the list when the list holds nothing else,
-		// and rides alongside it when the file also carries a codec we can
-		// name, since "there is also an mp3 track in here" is the actionable
-		// half of that case.
 		switch {
 		case stsdErr != nil && named == 0:
 			return stsdErr
@@ -239,15 +195,12 @@ func (d *Demuxer) selectAudio(tracks []*track) error {
 		return waxerr.Wrap(waxerr.CodeUnsupportedFormat, "mp4: unusable audio format", err)
 	}
 	if audio.codec == codec.AACLC {
-		d.seekPreroll = 1 // one frame of IMDCT overlap history
+		d.seekPreroll = 1
 	}
 
 	var delay, padding, samples int64
 	var exact bool
 	if d.fragmented {
-		// The fragmented sample tables are empty; gapless comes from the init
-		// edit list, and the length is authoritative (SamplesExact) when the
-		// edit list carries a segment duration.
 		delay, samples, exact = d.fragmentedGapless(audio)
 		d.fragOff = d.fragStart
 	} else {
@@ -267,9 +220,6 @@ func (d *Demuxer) selectAudio(tracks []*track) error {
 	return nil
 }
 
-// decodableAudio reports whether the demuxer decodes a codec: ALAC and AAC-LC
-// (progressive) plus Opus and FLAC (their sample entries are read for the
-// fragmented path, and their decoders are registered).
 func decodableAudio(id codec.ID) bool {
 	switch id {
 	case codec.ALAC, codec.AACLC, codec.Opus, codec.FLAC:
@@ -287,16 +237,13 @@ func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 // Chapters returns parsed chapter markers, nil when the file carries none.
 func (d *Demuxer) Chapters() []Chapter { return d.chapters }
 
-// Tags returns the ilst tags, nil when the file carries none. The map is
-// the demuxer's own and must not be mutated; format.Info hands it on to
-// read-only consumers.
+// Tags returns the ilst tags, nil when the file carries none.
 func (d *Demuxer) Tags() map[string][]string { return d.tags }
 
 // Brands returns the ftyp brands, for diagnostics.
 func (d *Demuxer) Brands() []string { return d.brands }
 
-// ReadPacket yields the next sample as a codec packet. Packet data aliases
-// the read window and is reused across calls.
+// ReadPacket yields the next sample as a codec packet.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	if d.fragmented {
 		return d.readFragmentedPacket(pkt)
@@ -333,10 +280,7 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	return nil
 }
 
-// SeekSample lands on a sync sample at or before the target in the raw
-// decoder timeline, backed off by seekPreroll samples so the decoder's
-// inter-frame state converges. format.Media pre-rolls the remainder for a
-// sample-exact landing.
+// SeekSample lands on a sync sample at or before the target in the raw decoder timeline, backed off by seekPreroll samples so the decoder's inter-frame state converges.
 func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	if track != 0 {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, fmt.Sprintf("mp4: no track %d", track))
@@ -372,8 +316,6 @@ func joinNames(names []string) string {
 	return out
 }
 
-// trimBrand renders a 4-byte brand, trimming trailing spaces and NULs, or
-// "" when it holds no printable content.
 func trimBrand(b []byte) string {
 	end := len(b)
 	for end > 0 && (b[end-1] == ' ' || b[end-1] == 0) {

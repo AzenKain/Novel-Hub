@@ -1,31 +1,31 @@
-# NovelHub v1.0.4
+# NovelHub v1.0.5
 
-NovelHub **v1.0.4** introduces social reading achievement cards, a bulk book title cleaner, Calibre app connectivity, and standalone Anki deck export.
+NovelHub **v1.0.5** brings mobile TTS page flipping fixes, enhanced tooltip behavior across touch and desktop interfaces, instant branding asset cache-busting, and web reader visual refinements.
 
 ---
 
-## What's New in v1.0.4
+## What's New in v1.0.5
 
-### Shareable Reading & Quote Cards
+### Mobile TTS Page Flipping & Word Boundary Stability
 
-- **Achievement Cards**: Generate and share beautiful summary cards of your reading stats, reading streak, and activity heatmap directly from the Analytics page.
-- **Quote Cards**: Highlight any memorable passage in a book and turn it into a styled quote card with book cover and author info.
+- **Eliminated Page Bounce**: Fixed an issue on mobile devices where advancing TTS playback across line wraps or word boundaries would abruptly jump to the previous page before snapping back to the current position.
+- **Accurate Subpixel Paging**: Paged reader modes (single and double column) now use enhanced subpixel range boundary detection, keeping pages stable and continuous during speech synthesis and reading tracking.
 
-### Bulk Book Title & Author Cleaner
+### Tooltip Behavior & Touch Screen Optimization
 
-- Clean up messy book titles in bulk from the Admin panel: strip tags like `[Light Novel]` or `(2024)`, auto-split author and title names, and preview changes before applying.
+- **Smart Auto-Dismissal**: Tooltips now automatically hide whenever a button is clicked, an active element is pressed, or when opening drawers and modal dialogs.
+- **Mobile Touch Friendly**: Suppressed persistent hover tooltips on touchscreens and mobile devices, preventing tooltips from sticking to the screen or obscuring navigation icons and toolbar controls.
+- **Reader Controls Polish**: Seamlessly dismisses tooltips when toggling reader settings panels, table of contents, and toolbar menus.
 
-### Calibre App Integration
+### Instant Branding & Logo Updates
 
-- Connect popular e-reader apps (like Calibre Companion or Aldiko) directly to your NovelHub library using Calibre's Content Server protocol.
+- **Automatic Cache-Busting**: Uploading a new site logo or favicon now generates versioned asset paths on the server and cleans up outdated files, ensuring immediate updates across browsers and CDN caches without manual cache purging.
+- **Fresh Public Settings**: Fixed stale branding and site metadata persistence in browser local storage so configuration changes apply instantly upon page load.
 
-### Direct Anki Deck Export (.apkg / .csv)
+### Reader UI & Visual Refinements
 
-- Export your highlighted vocabulary and notes directly into ready-to-use `.apkg` deck files to study on Anki Desktop, AnkiMobile, or AnkiDroid without needing extra plugins.
-
-### Performance & Stability
-
-- Improved two-factor authentication (2FA) security, smoother background metadata fetching, and various stability improvements.
+- **Enhanced Highlights**: Improved rendering for active TTS word tracking, search result matches, and reader selections.
+- **Toolbar & Navigation**: Smoother transition states for sidebars, full-screen mode toggles, and reader action buttons.
 
 ---
 
@@ -33,7 +33,7 @@ NovelHub **v1.0.4** introduces social reading achievement cards, a bulk book tit
 
 ### Docker Compose Update
 
-To upgrade your existing NovelHub instance to **v1.0.4**, run the following commands in the directory containing your `docker-compose.yml`:
+To upgrade your existing NovelHub instance to **v1.0.5**, run the following commands in the directory containing your `docker-compose.yml`:
 
 ```bash
 # 1. Pull the latest image
@@ -72,7 +72,7 @@ docker run -d \
 
 ### Standalone Native Binary Update
 
-1. Download the new executable (`v1.0.4`) matching your OS/Arch from the **Assets** section below.
+1. Download the new executable (`v1.0.5`) matching your OS/Arch from the **Assets** section below.
 2. Stop the running NovelHub service/process.
 3. Replace the executable with the new binary.
 4. Restart NovelHub (database migrations apply automatically).
@@ -84,8 +84,6 @@ docker run -d \
 ### Docker Compose
 
 ```yaml
-version: "3.8"
-
 services:
   novelhub:
     image: azenkain/novel-hub:latest

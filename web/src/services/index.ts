@@ -8,7 +8,7 @@ export * from "./metadataService";
 export * from "./operationsService";
 export * from "./readerService";
 export * from "./settingsService";
-export * from './uploadService';
+export * from "./uploadService";
 export * from "./webhookService";
 export * from "./trackerService";
 export * from "./koboService";

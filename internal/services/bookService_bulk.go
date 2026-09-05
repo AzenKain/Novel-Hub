@@ -377,7 +377,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 
 	txRepo := s.bookRepo.WithTx(tx)
 
-	// Pre-resolve common Author
 	var commonAuthorID *string
 	if dto.Author != nil && strings.TrimSpace(*dto.Author) != "" {
 		if aID, err := ensureAuthor(ctx, txRepo, *dto.Author); err == nil && aID != "" {
@@ -385,7 +384,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Pre-resolve common Series
 	var commonSeriesID string
 	if dto.Series != nil && strings.TrimSpace(*dto.Series) != "" {
 		seriesName := strings.TrimSpace(*dto.Series)
@@ -398,7 +396,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Pre-resolve common Publisher
 	var commonPublisherID string
 	if dto.Publisher != nil && strings.TrimSpace(*dto.Publisher) != "" {
 		pubName := strings.TrimSpace(*dto.Publisher)
@@ -411,7 +408,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Pre-resolve common Language
 	var commonLanguageID string
 	if dto.Language != nil && strings.TrimSpace(*dto.Language) != "" {
 		langName := strings.TrimSpace(*dto.Language)
@@ -424,7 +420,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Pre-resolve AddTags
 	addTagIDs := make([]string, 0, len(dto.AddTags))
 	for _, tName := range dto.AddTags {
 		tName = strings.TrimSpace(tName)
@@ -436,7 +431,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Pre-resolve RemoveTags
 	removeTagIDs := make([]string, 0, len(dto.RemoveTags))
 	for _, tName := range dto.RemoveTags {
 		tName = strings.TrimSpace(tName)
@@ -448,7 +442,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		}
 	}
 
-	// Build map for item overrides
 	itemMap := make(map[string]request.BulkUpdateMetadataItemDto, len(dto.Items))
 	for _, it := range dto.Items {
 		itemMap[it.BookID] = it
@@ -463,13 +456,11 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 		item, hasItem := itemMap[bookID]
 		bookChanged := false
 
-		// Title update
 		if hasItem && item.Title != nil && strings.TrimSpace(*item.Title) != "" {
 			book.Title = strings.TrimSpace(*item.Title)
 			bookChanged = true
 		}
 
-		// Description update
 		if hasItem && item.Description != nil {
 			d := strings.TrimSpace(*item.Description)
 			if d != "" {
@@ -480,7 +471,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 			bookChanged = true
 		}
 
-		// Author update: per-item takes precedence over common
 		if hasItem && item.Author != nil && strings.TrimSpace(*item.Author) != "" {
 			if aID, err := ensureAuthor(ctx, txRepo, *item.Author); err == nil && aID != "" {
 				book.AuthorID = &aID
@@ -499,7 +489,6 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 			}
 		}
 
-		// Series linkage
 		if commonSeriesID != "" {
 			var seriesIndex *string
 			if hasItem && item.SeriesIndex != nil && strings.TrimSpace(*item.SeriesIndex) != "" {
@@ -512,24 +501,20 @@ func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkU
 			_ = txRepo.LinkBookSeries(ctx, bookID, commonSeriesID, seriesIndex)
 		}
 
-		// Publisher linkage
 		if commonPublisherID != "" {
 			_ = txRepo.ClearBookPublishers(ctx, bookID)
 			_ = txRepo.LinkBookPublisher(ctx, bookID, commonPublisherID)
 		}
 
-		// Language linkage
 		if commonLanguageID != "" {
 			_ = txRepo.ClearBookLanguages(ctx, bookID)
 			_ = txRepo.LinkBookLanguage(ctx, bookID, commonLanguageID)
 		}
 
-		// Add tags
 		for _, tagID := range addTagIDs {
 			_ = txRepo.AddBookTag(ctx, bookID, tagID)
 		}
 
-		// Remove tags
 		for _, tagID := range removeTagIDs {
 			_ = txRepo.RemoveBookTag(ctx, bookID, tagID)
 		}

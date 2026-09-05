@@ -18,13 +18,10 @@ var (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
-// Demuxer reads one audio track from a Matroska/WebM segment. It selects the
-// sound track, exposes it as a single track (ID 0), and streams block frames
-// from the clusters as codec packets.
+// Demuxer reads one audio track from a Matroska/WebM segment.
 type Demuxer struct {
 	src  container.Source
 	opts DemuxerOptions
@@ -32,11 +29,11 @@ type Demuxer struct {
 
 	segmentDataOff int64
 	segmentEnd     int64
-	timestampScale int64   // nanoseconds per tick
-	durationTicks  float64 // Info Duration, in ticks; 0 when absent
+	timestampScale int64
+	durationTicks  float64
 
 	entries       []*trackEntry
-	seekPositions map[uint32]int64 // element ID -> absolute offset (via SeekHead)
+	seekPositions map[uint32]int64
 
 	sel   *trackEntry
 	setup codecSetup
@@ -47,33 +44,24 @@ type Demuxer struct {
 	firstClusterOff  int64
 	haveFirstCluster bool
 
-	// clusterIndex maps each cluster's start offset to the exact cumulative
-	// sample position at its first frame, frame-counted by walk. Seeks land on
-	// an indexed cluster, sample-exact, because the container's millisecond
-	// block timestamps cannot express a sample position. The full walk also
-	// yields the gapless raw total and DiscardPadding sum.
 	clusterIndex []clusterPos
-	walked       bool // the full walk has run; rawTotal and paddingNS are whole
+	walked       bool
 	rawTotal     int64
 	paddingNS    int64
-	recording    bool // walk is building the index
+	recording    bool
 
-	// In-flight walk state, carried across calls so a bounded walk extends the
-	// index rather than restarting. walkedTo is always a cluster boundary.
-	walkCumulative int64 // running sample count during the index walk
-	walkPaddingNS  int64 // running DiscardPadding sum, committed only by a full walk
-	walkFrames     int   // running frame count, against maxFrames
+	walkCumulative int64
+	walkPaddingNS  int64
+	walkFrames     int
 	walkLimit      int64
 	walkedTo       int64
-	walkStopped    bool // the walk in progress hit walkLimit rather than the end
+	walkStopped    bool
 
-	// Cues, parsed lazily on the first seek. Byte offsets only; see seekWalk.
 	cues         []cueEntry
 	cuesResolved bool
 
-	// Reading state: the frame iterator's cursor over clusters and blocks.
 	w              srcwin.Window
-	curOff         int64 // next element to read at the segment level
+	curOff         int64
 	inCluster      bool
 	clusterEnd     int64
 	clusterCursor  int64
@@ -81,17 +69,16 @@ type Demuxer struct {
 
 	pending           []frameLoc
 	pendingIdx        int
-	running           int64 // accumulated output position (raw decoder timeline)
-	curBlockDiscardNS int64 // DiscardPadding of the block in pending, in ns
+	running           int64
+	curBlockDiscardNS int64
 
 	vorbisPrevBlock int
 
 	warnings              []container.Warning
-	warnedNegativeDiscard bool // negative DiscardPadding is surfaced once per file
+	warnedNegativeDiscard bool
 }
 
 // NewDemuxer parses the segment header and positions on the first cluster.
-// The returned Demuxer implements container.Seeker and container.Warner.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{
 		src:            src,
@@ -110,7 +97,6 @@ func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	return d, nil
 }
 
-// warn records tolerated damage, or fails in strict mode.
 func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if d.opts.Strict {
@@ -120,16 +106,10 @@ func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	return nil
 }
 
-// note records a Warning that Strict must not escalate: a limitation of this
-// decoder against a file that is well formed, rather than damage in the file.
-// See mp4's note, which exists for the same reason: Strict rejects mess, and an
-// HE-AAC config is not mess.
 func (d *Demuxer) note(off int64, format string, args ...any) {
 	d.warnings = append(d.warnings, container.Warning{Offset: off, Msg: fmt.Sprintf(format, args...)})
 }
 
-// readBytes reads n bytes at off into a fresh buffer, bounded by a cap so a
-// crafted size cannot force a huge allocation.
 func (d *Demuxer) readBytes(off, n, cap int64) ([]byte, error) {
 	if n < 0 || n > cap {
 		return nil, malformed("element of %d bytes exceeds the %d cap", n, cap)
@@ -141,10 +121,7 @@ func (d *Demuxer) readBytes(off, n, cap int64) ([]byte, error) {
 	return buf, nil
 }
 
-// parse reads the EBML header, finds the segment, walks its header elements up
-// to the first cluster, selects the audio track, and resolves gapless trims.
 func (d *Demuxer) parse() error {
-	// EBML header at offset 0.
 	head, err := d.readElement(0, d.size)
 	if err != nil {
 		return err
@@ -153,15 +130,12 @@ func (d *Demuxer) parse() error {
 		return malformed("file does not begin with an EBML header")
 	}
 	if head.unknownSize {
-		// The header is a small fixed structure; an unknown length is
-		// malformed, and dataEnd() would sit one byte before the Segment.
 		return malformed("EBML header has unknown size")
 	}
 	if err := d.checkDocType(head); err != nil {
 		return err
 	}
 
-	// Segment follows the EBML header.
 	seg, err := d.readElement(head.dataEnd(), d.size)
 	if err != nil {
 		return err
@@ -191,8 +165,6 @@ func (d *Demuxer) parse() error {
 	return nil
 }
 
-// checkDocType reads the EBML header's DocType and warns on anything but
-// matroska or webm; the four magic bytes already gated the sniff.
 func (d *Demuxer) checkDocType(head element) error {
 	if head.size <= 0 || head.size > 1<<16 {
 		return nil
@@ -214,11 +186,6 @@ func (d *Demuxer) checkDocType(head element) error {
 	return nil
 }
 
-// scanSegment walks the segment's children from its start, parsing SeekHead,
-// Info, and Tracks, and stops at the first cluster (which marks the media
-// start). Anything after the first cluster (Cues, or Tracks that trail the
-// media) is not read here; resolveDeferred fetches what is still missing via
-// the SeekHead pointers.
 func (d *Demuxer) scanSegment() error {
 	off := d.segmentDataOff
 	for i := 0; off < d.segmentEnd; i++ {
@@ -227,8 +194,6 @@ func (d *Demuxer) scanSegment() error {
 		}
 		e, err := d.readElement(off, d.segmentEnd)
 		if err != nil {
-			// A damaged header chain is unrecoverable (no resync at this
-			// level); use whatever was parsed if a cluster was already found.
 			if d.haveFirstCluster {
 				break
 			}
@@ -240,8 +205,6 @@ func (d *Demuxer) scanSegment() error {
 			break
 		}
 		if e.unknownSize {
-			// A non-cluster master with no declared length cannot be skipped;
-			// stop the header scan and use what was parsed.
 			if werr := d.warn(off, "segment element %#x has unknown size", e.id); werr != nil {
 				return werr
 			}
@@ -255,12 +218,8 @@ func (d *Demuxer) scanSegment() error {
 	return nil
 }
 
-// headerLen is the byte length of element e's ID+size header, given the offset
-// it was read from. firstClusterOff must point at the cluster's ID so
-// ReadPacket can re-read the cluster header and its timestamp.
 func headerLen(e element, off int64) int64 { return e.dataOff - off }
 
-// parseSegmentChild parses one non-cluster segment child of interest.
 func (d *Demuxer) parseSegmentChild(e element) error {
 	switch e.id {
 	case idSeekHead:
@@ -287,9 +246,6 @@ func (d *Demuxer) parseSegmentChild(e element) error {
 	return nil
 }
 
-// resolveDeferred reads Tracks via SeekHead when the forward scan stopped at
-// the first cluster before encountering it (the uncommon case where Tracks
-// follows the media data).
 func (d *Demuxer) resolveDeferred() error {
 	if len(d.entries) == 0 {
 		if err := d.readViaSeek(idTracks, maxHeaderElement, d.parseTracksAt); err != nil {
@@ -302,8 +258,6 @@ func (d *Demuxer) resolveDeferred() error {
 	return nil
 }
 
-// readViaSeek reads the element the SeekHead placed at id's position, if any,
-// and hands its body to parse. cap bounds the allocation.
 func (d *Demuxer) readViaSeek(id uint32, cap int64, parse func([]byte) error) error {
 	off, ok := d.seekPositions[id]
 	if !ok || off < d.segmentDataOff || off >= d.segmentEnd {
@@ -311,7 +265,7 @@ func (d *Demuxer) readViaSeek(id uint32, cap int64, parse func([]byte) error) er
 	}
 	e, err := d.readElement(off, d.segmentEnd)
 	if err != nil || e.id != id || e.unknownSize {
-		return nil // a bad SeekHead pointer is tolerated, not fatal
+		return nil
 	}
 	body, err := d.readBytes(e.dataOff, e.size, cap)
 	if err != nil {
@@ -322,16 +276,11 @@ func (d *Demuxer) readViaSeek(id uint32, cap int64, parse func([]byte) error) er
 
 func (d *Demuxer) parseTracksAt(body []byte) error { return d.parseTracks(body) }
 
-// cueEntry is one index point: a cluster's timestamp and its byte offset.
 type cueEntry struct {
 	time int64
 	off  int64
 }
 
-// resolveCues parses the Cues index on first use. Nothing about reading it may
-// fail a seek: the index is an optimization, so a bad one leaves it empty and
-// the walk unbounded, exactly as a file with no Cues. Raising would also make
-// the outcome depend on call order, since cuesResolved latches before the read.
 func (d *Demuxer) resolveCues() {
 	if d.cuesResolved {
 		return
@@ -340,16 +289,6 @@ func (d *Demuxer) resolveCues() {
 	_ = d.readViaSeek(idCues, maxCuesElement, d.parseCues)
 }
 
-// parseCues reads the Cues index: one entry per CuePoint naming the selected
-// track, as an absolute cluster offset, sorted by time.
-//
-// Past maxCuePoints the index is thinned rather than truncated, as recordCue
-// does. Truncating in file order would leave a head-only index, where every
-// seek past the retained part finds no bound at all.
-//
-// Offsets are range-checked but not read back; cueLimit checks the one entry a
-// seek picks. Checking all of them would cost a scattered read apiece on the
-// first seek, and would discard the whole index over one stale offset.
 func (d *Demuxer) parseCues(body []byte) error {
 	var out []cueEntry
 	seen, stride := 0, 1
@@ -375,16 +314,13 @@ func (d *Demuxer) parseCues(body []byte) error {
 		return nil
 	})
 	if err != nil {
-		return nil // a damaged index is dropped, not raised
+		return nil
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].time < out[j].time })
 	d.cues = out
 	return nil
 }
 
-// parseCuePoint reads one CuePoint's time and its cluster position for the
-// selected track. One omitting CueTrack is taken; a single-track file often
-// writes none.
 func (d *Demuxer) parseCuePoint(body []byte) (cueEntry, bool) {
 	var e cueEntry
 	haveTime, havePos := false, false
@@ -411,8 +347,6 @@ func (d *Demuxer) parseCuePoint(body []byte) (cueEntry, bool) {
 				return nil
 			})
 			if pos >= 0 && (!haveTrack || track == d.sel.number) {
-				// A position near int64's ceiling wraps the sum negative,
-				// which the range check below rejects.
 				e.off, havePos = d.segmentDataOff+pos, true
 			}
 		}
@@ -424,8 +358,6 @@ func (d *Demuxer) parseCuePoint(body []byte) (cueEntry, bool) {
 	return e, true
 }
 
-// parseSeekHead records the byte positions SeekHead advertises for Tracks,
-// Info, and Cues. Positions are relative to the segment's data start.
 func (d *Demuxer) parseSeekHead(body []byte) {
 	_ = walkElements(body, func(id uint32, data []byte) error {
 		if id != idSeek {
@@ -454,7 +386,6 @@ func (d *Demuxer) parseSeekHead(body []byte) {
 	})
 }
 
-// parseInfo reads TimestampScale and Duration.
 func (d *Demuxer) parseInfo(body []byte) {
 	_ = walkElements(body, func(id uint32, data []byte) error {
 		switch id {
@@ -471,7 +402,6 @@ func (d *Demuxer) parseInfo(body []byte) {
 	})
 }
 
-// parseTracks parses each TrackEntry.
 func (d *Demuxer) parseTracks(body []byte) error {
 	return walkElements(body, func(id uint32, data []byte) error {
 		if id != idTrackEntry {
@@ -482,8 +412,6 @@ func (d *Demuxer) parseTracks(body []byte) error {
 		}
 		t, err := d.parseTrackEntry(data)
 		if err != nil {
-			// One malformed track (an over-cap CodecPrivate, say) does not
-			// doom a file that still carries a decodable audio track.
 			if werr := d.warn(-1, "skipping malformed track: %v", err); werr != nil {
 				return werr
 			}
@@ -494,7 +422,6 @@ func (d *Demuxer) parseTracks(body []byte) error {
 	})
 }
 
-// parseTrackEntry parses one TrackEntry's fields.
 func (d *Demuxer) parseTrackEntry(body []byte) (*trackEntry, error) {
 	t := &trackEntry{}
 	err := walkElements(body, func(id uint32, data []byte) error {
@@ -527,7 +454,6 @@ func (d *Demuxer) parseTrackEntry(body []byte) (*trackEntry, error) {
 	return t, nil
 }
 
-// parseAudioSettings reads the Audio element's rate, channels, and bit depth.
 func parseAudioSettings(t *trackEntry, body []byte) {
 	_ = walkElements(body, func(id uint32, data []byte) error {
 		switch id {
@@ -544,8 +470,6 @@ func parseAudioSettings(t *trackEntry, body []byte) {
 	})
 }
 
-// selectTrack picks the first audio track carrying a codec this build decodes,
-// preferring the container's default track, and resolves its codec setup.
 func (d *Demuxer) selectTrack() error {
 	var chosen, fallback *trackEntry
 	var found []string
@@ -588,18 +512,10 @@ func (d *Demuxer) selectTrack() error {
 	return nil
 }
 
-// finalizeTrack builds the container.Track, resolving gapless trims. A track
-// with CodecDelay (the Opus-in-WebM gapless case) walks the whole stream once
-// for an exact sample total; others take an advisory length from Duration.
 func (d *Demuxer) finalizeTrack() error {
 	rate := d.setup.fmt.Rate
 	delay := nsToSamples(d.sel.codecDelay, rate)
 
-	// The SeekPreRoll element wins when present (Opus writes it); otherwise a
-	// per-codec default lands the seek far enough before the target for an
-	// overlap-add decoder to rebuild its history before the first delivered
-	// sample. Without it, the first block after a seek onto a cluster boundary
-	// decodes cold and its leading output is wrong.
 	d.seekPreRollSamples = nsToSamples(d.sel.seekPreRoll, rate)
 	if d.seekPreRollSamples == 0 {
 		d.seekPreRollSamples = d.setup.preRoll()
@@ -608,13 +524,6 @@ func (d *Demuxer) finalizeTrack() error {
 	samples := int64(-1)
 	exact := false
 	if (d.sel.codecDelay > 0 || d.needsGaplessWalk()) && d.haveFirstCluster {
-		// A gapless track needs the exact decoder-output total to place the end
-		// trim. Opus signals it with CodecDelay (front) plus DiscardPadding
-		// (tail); Vorbis carries no absolute sample count in its bitstream and
-		// signals its tail trim with DiscardPadding alone (CodecDelay 0, the
-		// priming is inside its first packet), so it always needs the walk to
-		// resolve rawTotal - padding. The walk that finds the total also builds
-		// the seek index.
 		if err := d.ensureWalk(); err != nil {
 			return err
 		}
@@ -642,18 +551,10 @@ func (d *Demuxer) finalizeTrack() error {
 	return nil
 }
 
-// needsGaplessWalk reports whether the selected codec needs the frame-counting
-// walk to resolve an exact sample total independent of a CodecDelay signal.
-// Vorbis does: its packets carry no absolute position (unlike FLAC's numbered
-// frames) and it self-primes with no front delay, so the container's rawTotal
-// minus the DiscardPadding tail is the only exact length.
 func (d *Demuxer) needsGaplessWalk() bool {
 	return d.setup.id == codec.Vorbis
 }
 
-// durationSamples converts the Info Duration (in ticks) to a sample count, or
-// -1 when no usable duration was declared. It is an advisory length (millisecond
-// granularity), so the track it feeds leaves SamplesExact false.
 func (d *Demuxer) durationSamples(rate int) int64 {
 	if d.durationTicks <= 0 {
 		return -1

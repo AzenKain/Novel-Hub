@@ -15,9 +15,7 @@ const (
 	byteCacheMaxCostDivisor int64 = 32
 )
 
-// Stores []byte verbatim under its own budget. The shared Cache marshals through sonic, which
-// on a 1.4MB comic page costs 1.14ms and 1.33x inflation for no benefit, and would evict
-// book/series entities to make room.
+// Stores []byte verbatim under its own budget.
 type ByteCache interface {
 	GetOrLoad(key string, load func() ([]byte, error)) ([]byte, error)
 	Close()
@@ -47,8 +45,6 @@ func NewByteCache(maxCost int64, ttl time.Duration) (ByteCache, error) {
 	return &byteCache{items: items, ttl: ttl}, nil
 }
 
-// Half the entity cache's share, capped at 512MB: past that the RAM is better left to the OS
-// page cache that backs the archive reads underneath.
 func autoByteCacheMaxCost() int64 {
 	if configured := config.GetIntConfigWithDefault("ASSET_CACHE_MAX_COST_BYTES", 0); configured > 0 {
 		return int64(configured)
@@ -67,8 +63,7 @@ func autoByteCacheMaxCost() int64 {
 	return maxCost
 }
 
-// The returned slice is the cached buffer itself -- shared with every concurrent reader and
-// handed to fasthttp by fiber's Send without a copy -- so callers must not write to it.
+// The returned slice is the cached buffer itself -- shared with every concurrent reader and handed to fasthttp by fiber's Send without a copy -- so callers must not write to it.
 func (b *byteCache) GetOrLoad(key string, load func() ([]byte, error)) ([]byte, error) {
 	if data, ok := b.items.Get(key); ok {
 		return data, nil

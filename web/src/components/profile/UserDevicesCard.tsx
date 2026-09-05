@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { Cpu, Plus, Smartphone, Tablet, Trash2, HardDrive } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useCreateDeviceMutation, useDeleteDeviceMutation, useDevicesQuery } from "@/hooks";
+import {
+  useCreateDeviceMutation,
+  useDeleteDeviceMutation,
+  useDevicesQuery,
+} from "@/hooks";
 
 function getDeviceIcon(type: string) {
   switch (type?.toLowerCase()) {
@@ -24,7 +28,9 @@ export const UserDevicesCard: React.FC = () => {
   const [targetAddress, setTargetAddress] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data: devices = [], isLoading } = useDevicesQuery(true, { limit: 50 });
+  const { data: devices = [], isLoading } = useDevicesQuery(true, {
+    limit: 50,
+  });
   const createMutation = useCreateDeviceMutation();
   const deleteMutation = useDeleteDeviceMutation();
 
@@ -42,7 +48,11 @@ export const UserDevicesCard: React.FC = () => {
     }
 
     createMutation.mutate(
-      { name: name.trim(), device_type: deviceType, target_address: targetAddress.trim() },
+      {
+        name: name.trim(),
+        device_type: deviceType,
+        target_address: targetAddress.trim(),
+      },
       {
         onSuccess: (res) => {
           if (!res.status) {
@@ -56,7 +66,7 @@ export const UserDevicesCard: React.FC = () => {
         onError: (err: any) => {
           setErrorMsg(err?.message || "Failed to create device.");
         },
-      }
+      },
     );
   };
 
@@ -76,7 +86,10 @@ export const UserDevicesCard: React.FC = () => {
               {t("device.management", "Multi-Device Delivery Center")}
             </h3>
             <p className="text-xs text-base-content/60">
-              {t("device.management_desc", "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).")}
+              {t(
+                "device.management_desc",
+                "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+              )}
             </p>
           </div>
         </div>
@@ -90,7 +103,10 @@ export const UserDevicesCard: React.FC = () => {
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleCreate} className="p-4 rounded-xl border border-base-200 bg-base-200/40 space-y-3">
+        <form
+          onSubmit={handleCreate}
+          className="p-4 rounded-xl border border-base-200 bg-base-200/40 space-y-3"
+        >
           <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/70">
             {t("device.register_device", "Register New Reading Device")}
           </h4>
@@ -125,7 +141,9 @@ export const UserDevicesCard: React.FC = () => {
                 className="select select-bordered select-sm w-full text-xs"
               >
                 <option value="kindle">{t("device.type_kindle")}</option>
-                <option value="pocketbook">{t("device.type_pocketbook")}</option>
+                <option value="pocketbook">
+                  {t("device.type_pocketbook")}
+                </option>
                 <option value="koreader">{t("device.type_koreader")}</option>
               </select>
             </div>
@@ -163,7 +181,9 @@ export const UserDevicesCard: React.FC = () => {
               className="btn btn-primary btn-xs"
               disabled={createMutation.isPending}
             >
-              {createMutation.isPending && <span className="loading loading-spinner loading-xs" />}
+              {createMutation.isPending && (
+                <span className="loading loading-spinner loading-xs" />
+              )}
               {t("common.save", "Save Device")}
             </button>
           </div>
@@ -180,7 +200,10 @@ export const UserDevicesCard: React.FC = () => {
             {t("device.no_saved_devices", "No reading devices registered yet.")}
           </p>
           <p className="text-[11px] text-base-content/40 mt-1">
-            {t("device.register_tip", "Click 'Add Device' above to connect your Kindle, PocketBook, or KOReader.")}
+            {t(
+              "device.register_tip",
+              "Click 'Add Device' above to connect your Kindle, PocketBook, or KOReader.",
+            )}
           </p>
         </div>
       ) : (
@@ -196,7 +219,9 @@ export const UserDevicesCard: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-base-content">{device.name}</span>
+                    <span className="font-semibold text-xs text-base-content">
+                      {device.name}
+                    </span>
                     <span className="badge badge-xs uppercase font-mono tracking-wider font-semibold opacity-70">
                       {device.device_type}
                     </span>

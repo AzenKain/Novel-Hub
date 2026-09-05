@@ -63,15 +63,17 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               readOnly
             />
             <button className="btn btn-primary btn-sm gap-2" onClick={onCopy}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied
-                ? t("common.copied", "Copied")
-                : t("common.copy", "Copy")}
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {copied ? t("common.copied", "Copied") : t("common.copy", "Copy")}
             </button>
           </div>
         </div>
       </section>
     </div>,
-    document.body
+    document.body,
   );
 };

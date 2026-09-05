@@ -13,8 +13,6 @@ import (
 	"novelhub/pkg/bookparser"
 )
 
-// fragmentNodes parses an XHTML chapter fragment (the form every bookparser
-// GetChapterContent returns) into a node tree.
 func fragmentNodes(content string) []*nethtml.Node {
 	nodes, err := nethtml.ParseFragment(strings.NewReader(content), &nethtml.Node{Type: nethtml.ElementNode, Data: "body", DataAtom: atom.Body})
 	if err != nil {
@@ -23,11 +21,6 @@ func fragmentNodes(content string) []*nethtml.Node {
 	return nodes
 }
 
-// rebaseChapterLinks rewrites cross-chapter anchor hrefs so converted output
-// links land on the same chapter once re-read. Source book chapters carry
-// their original content paths; keyFor maps a chapter to the target format's
-// content key (e.g. "mobi-section:3"). Hrefs that are anchors, external URLs,
-// or already-format keys are left alone.
 func rebaseChapterLinks(content, basePath string, chapters []bookparser.ChapterData, keyFor func(bookparser.ChapterData) string) string {
 	nodes := fragmentNodes(content)
 	if len(nodes) == 0 {
@@ -80,8 +73,6 @@ func rebaseChapterLinks(content, basePath string, chapters []bookparser.ChapterD
 	return sb.String()
 }
 
-// fragmentText flattens a fragment to plain text: block elements and <br>
-// become line breaks.
 func fragmentText(content string) string {
 	var sb strings.Builder
 	for _, n := range fragmentNodes(content) {
@@ -115,8 +106,6 @@ func writeText(n *nethtml.Node, sb *strings.Builder) {
 	}
 }
 
-// splitParagraphs returns one HTML-snippet string per block-level element in
-// the fragment (p, headings, divs, figures). Used by the DOCX writer.
 func splitParagraphs(content string) []string {
 	var out []string
 	var add func(n *nethtml.Node, inline bool)
@@ -150,8 +139,6 @@ func splitParagraphs(content string) []string {
 	return out
 }
 
-// renderChildren serializes a node's children back to HTML, preserving inline
-// markup (strong/em/b/i) that the DOCX writer needs.
 func renderChildren(n *nethtml.Node) string {
 	var sb strings.Builder
 	for c := n.FirstChild; c != nil; c = c.NextSibling {

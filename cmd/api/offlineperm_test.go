@@ -5,9 +5,7 @@ import (
 	"testing"
 )
 
-// book.offline is a download that lives in the browser, so it must land on exactly the roles
-// that already hold book.download — and never on GUEST, whose offline copy would outlive the
-// anonymous session that made it and stay readable on a shared device.
+// book.offline is a download that lives in the browser, so it must land on exactly the roles that already hold book.download — and never on GUEST, whose offline copy would outlive the anonymous session that made it and stay readable on a shared device.
 func TestOfflinePermissionMatchesDownloadGrants(t *testing.T) {
 	_, db, err := setupTestAppWithDB(t)
 	if err != nil {
@@ -58,9 +56,7 @@ func TestOfflinePermissionMatchesDownloadGrants(t *testing.T) {
 	}
 }
 
-// The reader routes carry no book.offline gate: an offline copy is assembled from the same
-// bootstrap/chapter/asset responses the reader already serves, so the permission is a client
-// affordance layered on book.read, and the routes stay reachable for normal reading.
+// The reader routes carry no book.offline gate: an offline copy is assembled from the same bootstrap/chapter/asset responses the reader already serves, so the permission is a client affordance layered on book.read, and the routes stay reachable for normal reading.
 func TestOfflinePermissionDoesNotBlockReaderRoutes(t *testing.T) {
 	app, _, err := setupTestAppWithDB(t)
 	if err != nil {

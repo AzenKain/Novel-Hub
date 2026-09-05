@@ -204,7 +204,6 @@ func (r *trackerRepository) UpsertUserTracker(ctx context.Context, userID string
 		encRefreshToken = sql.NullString{String: encrypted, Valid: true}
 	}
 
-	// Consumed only when the upsert inserts; the conflict branch keeps the existing id.
 	res, err := r.q.UpsertUserTracker(ctx, sqlc.UpsertUserTrackerParams{
 		ID:           uuid.Must(uuid.NewV7()).String(),
 		UserID:       userID,
@@ -348,8 +347,6 @@ func (r *trackerRepository) GetBookTrackerMappingsByIDs(ctx context.Context, ids
 }
 
 func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string) (*models.BookTrackerMappingEntity, error) {
-	// userID belongs in the key as well as the query: a key without it would serve one reader's
-	// mapping to another out of cache even after the SQL was scoped.
 	key := cache.BuildKey("book_tracker_mapping", "user_book_provider", userID, bookID, provider)
 	if r.c != nil && !r.inTx {
 		var entity models.BookTrackerMappingEntity
@@ -382,7 +379,6 @@ func (r *trackerRepository) GetBookTrackerMapping(ctx context.Context, userID st
 }
 
 func (r *trackerRepository) UpsertBookTrackerMapping(ctx context.Context, userID string, bookID string, provider string, externalSeriesID string) (*models.BookTrackerMappingEntity, error) {
-	// Consumed only when the upsert inserts; the conflict branch keeps the existing id.
 	res, err := r.q.UpsertBookTrackerMapping(ctx, sqlc.UpsertBookTrackerMappingParams{
 		ID:               uuid.Must(uuid.NewV7()).String(),
 		UserID:           userID,

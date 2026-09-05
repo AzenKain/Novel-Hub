@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { ActivityCalendar } from 'react-activity-calendar';
-import { useReadingHeatmapQuery } from '@/hooks/useReadingStats';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore } from '@/stores/settingsStore';
+import React, { useMemo } from "react";
+import { ActivityCalendar } from "react-activity-calendar";
+import { useReadingHeatmapQuery } from "@/hooks/useReadingStats";
+import { useTranslation } from "react-i18next";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 type ReadingHeatmapProps = {
   className?: string;
@@ -22,9 +22,17 @@ export const ReadingHeatmap: React.FC<ReadingHeatmapProps> = ({
   const colorScheme = useMemo(() => {
     if (theme === "night" || theme === "coffee") return "dark";
     if (theme === "winter" || theme === "cupcake") return "light";
-    const dataTheme = typeof document !== 'undefined' ? document.documentElement.getAttribute("data-theme") : "";
-    if (dataTheme === "night" || dataTheme === "coffee" || dataTheme === "dark") return "dark";
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches && (theme === 'system' || !dataTheme)) {
+    const dataTheme =
+      typeof document !== "undefined"
+        ? document.documentElement.getAttribute("data-theme")
+        : "";
+    if (dataTheme === "night" || dataTheme === "coffee" || dataTheme === "dark")
+      return "dark";
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches &&
+      (theme === "system" || !dataTheme)
+    ) {
       return "dark";
     }
     return "light";
@@ -32,7 +40,9 @@ export const ReadingHeatmap: React.FC<ReadingHeatmapProps> = ({
 
   const formattedData = useMemo(() => {
     const dataMap: Record<string, { duration?: number; words?: number }> =
-      heatmapData && typeof heatmapData === "object" && !Array.isArray(heatmapData)
+      heatmapData &&
+      typeof heatmapData === "object" &&
+      !Array.isArray(heatmapData)
         ? heatmapData
         : {};
 
@@ -45,8 +55,8 @@ export const ReadingHeatmap: React.FC<ReadingHeatmapProps> = ({
 
     while (curr <= endDate) {
       const yearStr = curr.getFullYear();
-      const monthStr = String(curr.getMonth() + 1).padStart(2, '0');
-      const dayStr = String(curr.getDate()).padStart(2, '0');
+      const monthStr = String(curr.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(curr.getDate()).padStart(2, "0");
       const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
 
       const stats = dataMap[dateStr] || {};
@@ -69,36 +79,42 @@ export const ReadingHeatmap: React.FC<ReadingHeatmapProps> = ({
     return result;
   }, [heatmapData]);
 
-  const calendarLabels = useMemo(() => ({
-    months: [
-      t("common.months.jan", "Jan"),
-      t("common.months.feb", "Feb"),
-      t("common.months.mar", "Mar"),
-      t("common.months.apr", "Apr"),
-      t("common.months.may", "May"),
-      t("common.months.jun", "Jun"),
-      t("common.months.jul", "Jul"),
-      t("common.months.aug", "Aug"),
-      t("common.months.sep", "Sep"),
-      t("common.months.oct", "Oct"),
-      t("common.months.nov", "Nov"),
-      t("common.months.dec", "Dec"),
-    ],
-    weekdays: [
-      t("common.weekdays.sun", "Sun"),
-      t("common.weekdays.mon", "Mon"),
-      t("common.weekdays.tue", "Tue"),
-      t("common.weekdays.wed", "Wed"),
-      t("common.weekdays.thu", "Thu"),
-      t("common.weekdays.fri", "Fri"),
-      t("common.weekdays.sat", "Sat"),
-    ],
-    totalCount: t("analytics.activities_in_year", "{{count}} activities in {{year}}"),
-    legend: {
-      less: t("analytics.less", "Less"),
-      more: t("analytics.more", "More"),
-    },
-  }), [t]);
+  const calendarLabels = useMemo(
+    () => ({
+      months: [
+        t("common.months.jan", "Jan"),
+        t("common.months.feb", "Feb"),
+        t("common.months.mar", "Mar"),
+        t("common.months.apr", "Apr"),
+        t("common.months.may", "May"),
+        t("common.months.jun", "Jun"),
+        t("common.months.jul", "Jul"),
+        t("common.months.aug", "Aug"),
+        t("common.months.sep", "Sep"),
+        t("common.months.oct", "Oct"),
+        t("common.months.nov", "Nov"),
+        t("common.months.dec", "Dec"),
+      ],
+      weekdays: [
+        t("common.weekdays.sun", "Sun"),
+        t("common.weekdays.mon", "Mon"),
+        t("common.weekdays.tue", "Tue"),
+        t("common.weekdays.wed", "Wed"),
+        t("common.weekdays.thu", "Thu"),
+        t("common.weekdays.fri", "Fri"),
+        t("common.weekdays.sat", "Sat"),
+      ],
+      totalCount: t(
+        "analytics.activities_in_year",
+        "{{count}} activities in {{year}}",
+      ),
+      legend: {
+        less: t("analytics.less", "Less"),
+        more: t("analytics.more", "More"),
+      },
+    }),
+    [t],
+  );
 
   if (isLoading) {
     return (
@@ -124,8 +140,8 @@ export const ReadingHeatmap: React.FC<ReadingHeatmapProps> = ({
           blockMargin={compact ? 3 : 3}
           fontSize={11}
           theme={{
-            light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-            dark: ['#22272e', '#0e4429', '#006d32', '#26a641', '#39d353'],
+            light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+            dark: ["#22272e", "#0e4429", "#006d32", "#26a641", "#39d353"],
           }}
         />
       </div>

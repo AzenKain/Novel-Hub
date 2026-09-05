@@ -150,7 +150,6 @@ func (ctrl *KoboController) ArchiveBook(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true})
 }
 
-
 func (ctrl *KoboController) GetSetup(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

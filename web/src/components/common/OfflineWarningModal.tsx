@@ -25,7 +25,10 @@ export function offlineWarningSuppressed(): boolean {
 
 function suppressOfflineWarning() {
   try {
-    localStorage.setItem(SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+    localStorage.setItem(
+      SUPPRESS_KEY,
+      String(Date.now() + 24 * 60 * 60 * 1000),
+    );
   } catch {
     return;
   }
@@ -39,7 +42,13 @@ type Props = {
   onConfirm: () => void;
 };
 
-export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfirm }: Props) {
+export function OfflineWarningModal({
+  open,
+  title,
+  sizeBytes,
+  onCancel,
+  onConfirm,
+}: Props) {
   const { t } = useTranslation();
   const [dontRemind, setDontRemind] = useState(false);
 
@@ -64,7 +73,9 @@ export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfir
             ? t("offline.warning_body_with_size", { title, size })
             : t("offline.warning_body", { title })}
         </p>
-        <p className="mt-2 text-xs opacity-60">{t("offline.warning_storage_note")}</p>
+        <p className="mt-2 text-xs opacity-60">
+          {t("offline.warning_storage_note")}
+        </p>
 
         <label className="mt-4 flex items-center gap-2 cursor-pointer">
           <input
@@ -89,6 +100,6 @@ export function OfflineWarningModal({ open, title, sizeBytes, onCancel, onConfir
         <button onClick={onCancel}>close</button>
       </form>
     </dialog>,
-    document.body
+    document.body,
   );
 }

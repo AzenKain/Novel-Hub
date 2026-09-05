@@ -11,24 +11,20 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// trackEntry is the subset of a Matroska TrackEntry the demuxer keeps: enough
-// to select the audio track and wire its decoder.
 type trackEntry struct {
 	number      uint64
 	trackType   uint64
 	codecID     string
-	codecName   string // trimmed codecID prefix, for diagnostics
+	codecName   string
 	codecPriv   []byte
 	rate        int
 	channels    int
 	bitDepth    int
-	codecDelay  int64 // nanoseconds
-	seekPreRoll int64 // nanoseconds
+	codecDelay  int64
+	seekPreRoll int64
 	def         bool
 }
 
-// codecSetup is the result of resolving a TrackEntry to a wired codec: the
-// container.Track fields plus the state per-frame durations need.
 type codecSetup struct {
 	id     codec.ID
 	config []byte
@@ -40,15 +36,9 @@ type codecSetup struct {
 	vorbisModeBits   int
 	haveVorbis       bool
 
-	// warning is a note the resolving demuxer records once the track is
-	// selected, for a limitation knowable from the codec config alone (an
-	// explicitly signalled HE-AAC band limit). Empty for a clean track.
 	warning string
 }
 
-// mkvCodecs maps a Matroska CodecID to a waxflow codec.ID. A recognized but
-// unwired codec (ALAC, MP3, ...) resolves to its name so track selection can
-// report why it was skipped; an unknown one stays "".
 func mkvCodecID(codecID string) codec.ID {
 	switch {
 	case codecID == "A_OPUS":
@@ -68,9 +58,6 @@ func mkvCodecID(codecID string) codec.ID {
 
 func hasPrefix(s, p string) bool { return len(s) >= len(p) && s[:len(p)] == p }
 
-// resolveCodec builds the codec setup for an audio TrackEntry with one of the
-// five wired codecs. The container's CodecPrivate is translated to the
-// Track.CodecConfig the matching decoder parses.
 func resolveCodec(t *trackEntry) (codecSetup, error) {
 	switch mkvCodecID(t.codecID) {
 	case codec.Opus:
@@ -88,8 +75,6 @@ func resolveCodec(t *trackEntry) (codecSetup, error) {
 	}
 }
 
-// setupOpus wires an Opus track: CodecPrivate is the OpusHead the decoder and
-// the Ogg mapping both parse, passed through unchanged.
 func setupOpus(t *trackEntry) (codecSetup, error) {
 	cfg, err := opus.ParseOpusHead(t.codecPriv)
 	if err != nil {
@@ -98,9 +83,6 @@ func setupOpus(t *trackEntry) (codecSetup, error) {
 	return codecSetup{id: codec.Opus, config: t.codecPriv, fmt: cfg.Format()}, nil
 }
 
-// setupVorbis wires a Vorbis track: CodecPrivate is the Xiph-laced trio of
-// header packets, the exact blob PackHeaders produces, so it is the codec
-// config directly. The parsed config also drives per-packet durations.
 func setupVorbis(t *trackEntry) (codecSetup, error) {
 	cfg, err := vorbis.ParseConfig(t.codecPriv)
 	if err != nil {
@@ -116,8 +98,6 @@ func setupVorbis(t *trackEntry) (codecSetup, error) {
 	}, nil
 }
 
-// setupFLAC wires a FLAC track: CodecPrivate is the native fLaC header, from
-// which the 34-byte STREAMINFO the decoder needs is extracted.
 func setupFLAC(t *trackEntry) (codecSetup, error) {
 	si, err := flacStreamInfo(t.codecPriv)
 	if err != nil {
@@ -130,9 +110,6 @@ func setupFLAC(t *trackEntry) (codecSetup, error) {
 	return codecSetup{id: codec.FLAC, config: si, fmt: parsed.PCMFormat()}, nil
 }
 
-// setupAAC wires an AAC-LC track: CodecPrivate is the AudioSpecificConfig the
-// decoder parses. The ASC is authoritative for rate and channels; the Audio
-// element's channel count fills in only when the ASC left it implicit.
 func setupAAC(t *trackEntry) (codecSetup, error) {
 	if len(t.codecPriv) == 0 {
 		return codecSetup{}, malformed("AAC track has no CodecPrivate (AudioSpecificConfig)")
@@ -141,12 +118,6 @@ func setupAAC(t *trackEntry) (codecSetup, error) {
 	if err != nil {
 		return codecSetup{}, err
 	}
-	// ParseASC leaves Channels 0 for an in-band PCE, whose element order the
-	// decoder cannot know. Fill from the Audio element only up to stereo, the
-	// two shapes where every element order agrees; past that Format refuses,
-	// so a PCE track the container claims is multichannel is rejected by name
-	// rather than decoded into the wrong speakers. A stated configuration
-	// (1-6) carries its own count and layout and needs no fill-in.
 	if cfg.Channels == 0 && t.channels >= 1 && t.channels <= 2 {
 		cfg.Channels = t.channels
 	}
@@ -163,9 +134,6 @@ func setupAAC(t *trackEntry) (codecSetup, error) {
 	}, nil
 }
 
-// preRoll is the sample count a seek should land before its target so an
-// overlap-add decoder has rebuilt its inter-frame state by the first delivered
-// sample. FLAC and PCM carry no such state and need none.
 func (s codecSetup) preRoll() int64 {
 	switch s.id {
 	case codec.Opus:
@@ -175,13 +143,11 @@ func (s codecSetup) preRoll() int64 {
 			return int64(s.vorbisCfg.LongBlock())
 		}
 	case codec.AACLC:
-		return 1024 // one IMDCT frame of overlap history
+		return 1024
 	}
 	return 0
 }
 
-// setupPCM wires a raw-PCM track from the CodecID (endianness and encoding)
-// and the Audio element (rate, channels, bit depth).
 func setupPCM(t *trackEntry) (codecSetup, error) {
 	var enc pcm.Encoding
 	switch t.codecID {
@@ -214,19 +180,14 @@ func setupPCM(t *trackEntry) (codecSetup, error) {
 	}, nil
 }
 
-// flacStreamInfo extracts the 34-byte STREAMINFO body from a Matroska A_FLAC
-// CodecPrivate. The canonical form is the native "fLaC" magic followed by the
-// STREAMINFO metadata block; a bare 34-byte body from a terse muxer is
-// tolerated.
 func flacStreamInfo(priv []byte) ([]byte, error) {
 	b := priv
 	if len(b) >= 4 && string(b[:4]) == "fLaC" {
 		b = b[4:]
 	}
 	if len(b) == flac.StreamInfoLen {
-		return append([]byte(nil), b...), nil // bare STREAMINFO body
+		return append([]byte(nil), b...), nil
 	}
-	// Metadata block: a 1-byte type/flags header, a 24-bit length, then body.
 	if len(b) < 4 {
 		return nil, malformed("FLAC CodecPrivate of %d bytes too short", len(priv))
 	}
@@ -240,12 +201,6 @@ func flacStreamInfo(priv []byte) ([]byte, error) {
 	return append([]byte(nil), b[4:4+length]...), nil
 }
 
-// frameSamples returns one codec frame's output length in samples, in the
-// codec's decode timeline. It drives per-packet PTS/Dur and, for gapless
-// tracks, the raw-total pass; Vorbis carries state across the call, so a seek
-// restart resets it (resetTiming). A frame it cannot measure returns 0 rather
-// than failing: only Opus (the gapless codec) needs an exact answer, and the
-// others' durations are informational.
 func (d *Demuxer) frameSamples(data []byte) int64 {
 	switch d.setup.id {
 	case codec.Opus:
@@ -255,8 +210,6 @@ func (d *Demuxer) frameSamples(data []byte) int64 {
 		}
 		return int64(n)
 	case codec.AACLC:
-		// The ASC's frame length (1024, or 960 with the short-frame flag), so
-		// the count tracks whatever the track declares rather than assuming.
 		if d.setup.aacFrameLength > 0 {
 			return int64(d.setup.aacFrameLength)
 		}

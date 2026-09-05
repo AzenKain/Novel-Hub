@@ -14,8 +14,12 @@ export const TrackerConnectCard: React.FC = () => {
   const [accessToken, setAccessToken] = useState("");
 
   const canSync = hasPermission(user, "tracker.sync");
-  const { data: connections = [] } = useTrackerConnectionsQuery(!!user && canSync);
-  const serverConnected = connections.some((c) => c.provider === "anilist" && c.connected);
+  const { data: connections = [] } = useTrackerConnectionsQuery(
+    !!user && canSync,
+  );
+  const serverConnected = connections.some(
+    (c) => c.provider === "anilist" && c.connected,
+  );
   const [showForm, setShowForm] = useState(false);
   const connected = serverConnected && !showForm;
 
@@ -27,7 +31,9 @@ export const TrackerConnectCard: React.FC = () => {
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken.trim()) {
-      toast.error(t("trackers.enter_token", "Please paste your AniList Access Token"));
+      toast.error(
+        t("trackers.enter_token", "Please paste your AniList Access Token"),
+      );
       return;
     }
 
@@ -37,12 +43,20 @@ export const TrackerConnectCard: React.FC = () => {
         onSuccess: () => {
           setShowForm(false);
           setAccessToken("");
-          toast.success(t("trackers.connect_success", "AniList account connected successfully!"));
+          toast.success(
+            t(
+              "trackers.connect_success",
+              "AniList account connected successfully!",
+            ),
+          );
         },
         onError: (err: any) => {
-          toast.error(err?.message || t("trackers.connect_failed", "Failed to connect AniList account"));
+          toast.error(
+            err?.message ||
+              t("trackers.connect_failed", "Failed to connect AniList account"),
+          );
         },
-      }
+      },
     );
   };
 
@@ -50,7 +64,11 @@ export const TrackerConnectCard: React.FC = () => {
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
       <div className="flex items-start gap-3 border-b border-base-200 pb-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info/10 text-info mt-0.5">
-          {connected ? <Check className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
+          {connected ? (
+            <Check className="h-5 w-5" />
+          ) : (
+            <Link2 className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -64,14 +82,22 @@ export const TrackerConnectCard: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-base-content/60 leading-relaxed">
-            {t("trackers.anilist_subtitle", "Sync manga and light novel reading progress directly to AniList.")}
+            {t(
+              "trackers.anilist_subtitle",
+              "Sync manga and light novel reading progress directly to AniList.",
+            )}
           </p>
         </div>
       </div>
 
       {connected ? (
         <div className="flex items-center justify-between rounded-lg bg-success/10 p-3 text-sm">
-          <span>{t("trackers.connect_success", "AniList account connected successfully!")}</span>
+          <span>
+            {t(
+              "trackers.connect_success",
+              "AniList account connected successfully!",
+            )}
+          </span>
           <button
             type="button"
             className="btn btn-ghost btn-xs gap-1"
@@ -115,7 +141,11 @@ export const TrackerConnectCard: React.FC = () => {
               className="btn btn-primary btn-sm gap-2"
               disabled={connectMutation.isPending}
             >
-              {connectMutation.isPending ? <span className="loading loading-spinner loading-xs" /> : <Check className="h-4 w-4" />}
+              {connectMutation.isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               {t("trackers.connect_btn", "Connect AniList")}
             </button>
           </div>

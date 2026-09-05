@@ -14,7 +14,9 @@ export function LibraryMultiSelect({
   return (
     <div className="flex flex-wrap gap-2 p-3 bg-base-200/50 rounded-lg border border-base-200 max-h-40 overflow-y-auto">
       {libraries.length === 0 ? (
-        <span className="text-xs opacity-50">{t("admin.no_libraries_available")}</span>
+        <span className="text-xs opacity-50">
+          {t("admin.no_libraries_available")}
+        </span>
       ) : (
         libraries.map((lib) => {
           const checked = ids.includes(lib.id);
@@ -31,7 +33,9 @@ export function LibraryMultiSelect({
                 checked={checked}
                 onChange={() =>
                   onChange(
-                    checked ? ids.filter((i) => i !== lib.id) : [...ids, lib.id]
+                    checked
+                      ? ids.filter((i) => i !== lib.id)
+                      : [...ids, lib.id],
                   )
                 }
               />

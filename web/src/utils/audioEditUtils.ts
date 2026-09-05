@@ -31,7 +31,10 @@ export interface FileRange<T> {
   duration: number;
 }
 
-export function getActiveRange<T>(time: number, ranges: FileRange<T>[]): FileRange<T> | undefined {
+export function getActiveRange<T>(
+  time: number,
+  ranges: FileRange<T>[],
+): FileRange<T> | undefined {
   const match = ranges.find((r, idx) => {
     if (idx === ranges.length - 1) {
       return time >= r.start && time <= r.end;

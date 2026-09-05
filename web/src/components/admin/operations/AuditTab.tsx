@@ -54,14 +54,20 @@ export function AuditTab() {
           className="btn btn-sm btn-ghost gap-1.5 ml-auto"
           disabled={logs.isFetching}
           onClick={async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin", "audit_logs"] });
-            await queryClient.invalidateQueries({ queryKey: ["admin", "audit_actions"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "audit_logs"],
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "audit_actions"],
+            });
             await Promise.all([logs.refetch(), actions.refetch()]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
           title={t("admin.operations.refresh")}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${logs.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${logs.isFetching ? "animate-spin" : ""}`}
+          />
           <span>{t("admin.operations.refresh")}</span>
         </button>
       </div>
@@ -82,7 +88,9 @@ export function AuditTab() {
                 <td className="whitespace-nowrap">
                   {new Date(item.created_at).toLocaleString()}
                 </td>
-                <td>{item.actor_email || t("admin.operations.audit_system")}</td>
+                <td>
+                  {item.actor_email || t("admin.operations.audit_system")}
+                </td>
                 <td className="font-mono text-xs">{item.action}</td>
                 <td className="max-w-md wrap-break-word whitespace-normal text-xs">
                   {item.target_label || item.target_id || item.target_type}

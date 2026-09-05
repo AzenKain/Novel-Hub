@@ -8,16 +8,22 @@ import { useShallow } from "zustand/react/shallow";
 import { Link } from "react-router-dom";
 
 export function LoginView() {
-  const { isLoginModalOpen, setLoginModalOpen, setRegisterModalOpen } = useAuthStore(
-    useShallow((state) => ({
-      isLoginModalOpen: state.isLoginModalOpen,
-      setLoginModalOpen: state.setLoginModalOpen,
-      setRegisterModalOpen: state.setRegisterModalOpen,
-    }))
-  );
+  const { isLoginModalOpen, setLoginModalOpen, setRegisterModalOpen } =
+    useAuthStore(
+      useShallow((state) => ({
+        isLoginModalOpen: state.isLoginModalOpen,
+        setLoginModalOpen: state.setLoginModalOpen,
+        setRegisterModalOpen: state.setRegisterModalOpen,
+      })),
+    );
 
   const settings = usePublicSettings();
-  const { mutation: loginMutation, needsCode, resetCode, submit } = useLoginFlow();
+  const {
+    mutation: loginMutation,
+    needsCode,
+    resetCode,
+    submit,
+  } = useLoginFlow();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +39,7 @@ export function LoginView() {
   return (
     <dialog className="modal modal-open">
       <div className="modal-box">
-        <button 
+        <button
           onClick={() => setLoginModalOpen(false)}
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
         >
@@ -45,30 +51,36 @@ export function LoginView() {
           </div>
           <div>
             <h3 className="text-2xl font-bold">NovelHub</h3>
-            <p className="text-base-content/60 font-medium text-sm mt-1">{t("auth.login_to_account")}</p>
+            <p className="text-base-content/60 font-medium text-sm mt-1">
+              {t("auth.login_to_account")}
+            </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="form-control w-full">
             <label className="label">
-              <span className="label-text font-semibold">{t("auth.email")}</span>
+              <span className="label-text font-semibold">
+                {t("auth.email")}
+              </span>
             </label>
-            <input 
-              value={email} 
+            <input
+              value={email}
               onChange={(event) => {
                 setEmail(event.target.value);
                 resetCode();
               }}
-              type="email" 
+              type="email"
               placeholder={"account@example.com"}
-              autoComplete="email" 
+              autoComplete="email"
               className="input input-bordered w-full focus:input-primary"
             />
           </div>
           <div className="form-control w-full">
             <label className="label">
-              <span className="label-text font-semibold">{t("auth.password")}</span>
+              <span className="label-text font-semibold">
+                {t("auth.password")}
+              </span>
               {settings?.password_reset_enabled && (
                 <Link
                   to="/forgot-password"
@@ -91,7 +103,11 @@ export function LoginView() {
 
           {loginMutation.error && (
             <div className="alert alert-error mt-2 py-2 text-sm rounded-lg">
-              <span>{loginMutation.error instanceof Error ? loginMutation.error.message : String(loginMutation.error)}</span>
+              <span>
+                {loginMutation.error instanceof Error
+                  ? loginMutation.error.message
+                  : String(loginMutation.error)}
+              </span>
             </div>
           )}
 
@@ -105,7 +121,11 @@ export function LoginView() {
               className="btn btn-primary mt-4 w-full"
               disabled={loginMutation.isPending}
             >
-              {loginMutation.isPending ? <span className="loading loading-spinner"></span> : <LogIn size={20} />}
+              {loginMutation.isPending ? (
+                <span className="loading loading-spinner"></span>
+              ) : (
+                <LogIn size={20} />
+              )}
               {t("auth.sign_in")}
             </button>
           )}

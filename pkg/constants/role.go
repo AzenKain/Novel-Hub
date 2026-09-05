@@ -15,7 +15,6 @@ func (r RoleType) String() string {
 }
 
 const (
-	//Book Reading & Discovery
 	PermBookRead       = "book.read"
 	PermBookTTS        = "book.tts"
 	PermBookSearchDeep = "book.search.deep"
@@ -24,7 +23,6 @@ const (
 	PermBookSendEmail  = "book.send_email"
 	PermBookShare      = "book.share"
 
-	//Interactions & Personal
 	PermBookBookmark     = "book.bookmark"
 	PermBookCollection   = "book.collection"
 	PermBookHighlight    = "book.highlight"
@@ -33,7 +31,6 @@ const (
 	PermUserStatsRead    = "user.stats.read"
 	PermTrackerSync      = "tracker.sync"
 
-	//Book Content Management
 	PermBookUpload          = "book.upload"
 	PermBookEdit            = "book.edit"
 	PermBookRepair          = "book.repair"
@@ -43,11 +40,9 @@ const (
 	PermBookArchive         = "book.archive"
 	PermBookBulkManage      = "book.bulk.manage"
 
-	//Library Management
 	PermLibraryRead   = "library.read"
 	PermLibraryManage = "library.manage"
 
-	//External Sync & Integration
 	PermOPDSRead       = "opds.read"
 	PermOPDSDownload   = "opds.download"
 	PermWebDAVRead     = "webdav.read"
@@ -57,12 +52,10 @@ const (
 	PermCalibreSync    = "calibre.sync"
 	PermPodcastManage  = "podcast.manage"
 
-	//Personal Customization & Soundscape
 	PermUserFontManage       = "user.font.manage"
 	PermUserSoundscapeManage = "user.soundscape.manage"
 	PermUserThemeManage      = "user.theme.manage"
 
-	//System Administration
 	PermAdminAccess           = "admin.access"
 	PermAdminSoundscapeManage = "admin.soundscape.manage"
 	PermAdminFontManage       = "admin.font.manage"

@@ -62,12 +62,18 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     expect(heading).not.toBeNull();
     expect(heading?.textContent).toBe("Minh họa");
 
-    const firstImageWrapper = container.querySelector("p:has(> img:only-child)");
+    const firstImageWrapper = container.querySelector(
+      "p:has(> img:only-child)",
+    );
     expect(firstImageWrapper).not.toBeNull();
 
-    // Verify heading is present and precedes chapter content without duplicate title elements
-    expect(container.querySelector("#chapter-content")?.previousElementSibling).toBe(heading);
-    expect(container.querySelectorAll("p:not(.reader-image-page):not(:has(img))").length).toBe(0);
+    expect(
+      container.querySelector("#chapter-content")?.previousElementSibling,
+    ).toBe(heading);
+    expect(
+      container.querySelectorAll("p:not(.reader-image-page):not(:has(img))")
+        .length,
+    ).toBe(0);
 
     document.body.removeChild(container);
   });
@@ -77,7 +83,7 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     const viewportHeight = 1366;
     const headerHeight = 56;
     const footerHeight = 48;
-    const availableHeight = viewportHeight - headerHeight - footerHeight; // 1262px
+    const availableHeight = viewportHeight - headerHeight - footerHeight;
     const pageGap = 40;
     const columnCount = 2;
 
@@ -85,7 +91,6 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     expect(columnWidth).toBe(492);
     expect(availableHeight).toBe(1262);
 
-    // Each full-height image page in double-page mode takes exactly 1 column width + gap step
     const pageStep = viewportWidth + pageGap;
     expect(pageStep).toBe(1064);
   });
@@ -93,18 +98,19 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
   it("preserves pending landing 'end' across empty chapter transitions", () => {
     const pendingLanding = { current: "end" as string | null };
 
-    // When loading starts, html is temporarily empty
     let htmlContent = "";
     if (!htmlContent || htmlContent.trim() === "") {
-      // Pending landing ref should NOT be consumed/cleared on empty string
       expect(pendingLanding.current).toBe("end");
     }
 
-    // When html arrives:
     htmlContent = sampleChapterHtml;
-    if (htmlContent && htmlContent.trim().length > 0 && pendingLanding.current === "end") {
+    if (
+      htmlContent &&
+      htmlContent.trim().length > 0 &&
+      pendingLanding.current === "end"
+    ) {
       pendingLanding.current = null;
-      const targetIndex = 5; // e.g. maxIndex
+      const targetIndex = 5;
       expect(targetIndex).toBeGreaterThan(0);
     }
     expect(pendingLanding.current).toBeNull();
@@ -130,7 +136,6 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     expect(img).not.toBeNull();
     expect(img?.getAttribute("src")).toContain("prologue.jpeg");
 
-    // The heading and image wrapper are contiguous siblings
     const imgWrapper = img?.closest("p");
     expect(imgWrapper?.previousElementSibling).toBe(heading);
 
@@ -142,7 +147,7 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     const viewportHeight = 600;
     const headerHeight = 56;
     const footerHeight = 48;
-    const availableHeight = viewportHeight - headerHeight - footerHeight; // 496px
+    const availableHeight = viewportHeight - headerHeight - footerHeight;
     const pageGap = 40;
     const columnCount = 2;
 
@@ -150,15 +155,10 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     expect(columnWidth).toBe(492);
     expect(availableHeight).toBe(496);
 
-    // Height calculation:
-    // Heading: ~40px
-    // Image container max-height (calc(100cqh - 4.5rem)): 496px - 72px = 424px
-    // Total column height = 40px + 424px = 464px <= 496px (Fits perfectly in Column 1!)
     const headingHeight = 40;
     const maxImageHeight = availableHeight - 72;
     expect(headingHeight + maxImageHeight).toBeLessThanOrEqual(availableHeight);
 
-    // Test with real EPUB DOM containing div#chapter-content wrapper
     const wrappedEpubHtml = `
       <h4 align="center">Minh họa</h4>
       <div class="long-text no-select text-justify" id="chapter-content">
@@ -205,14 +205,12 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     expect(img).not.toBeNull();
     expect(img?.getAttribute("src")).toContain("img_5194460039730855310.jpg");
 
-    // Sibling relationship: figure.reader-image-page immediately follows h2
     expect(h2?.nextElementSibling).toBe(figure);
 
     const firstP = container.querySelector("p");
     expect(firstP).not.toBeNull();
     expect(firstP?.textContent).toContain("Bầu trời với nửa vầng trăng");
 
-    // Paragraph immediately follows figure
     expect(figure?.nextElementSibling).toBe(firstP);
 
     document.body.removeChild(container);
@@ -242,7 +240,6 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     const imageWrappers = container.querySelectorAll(".reader-image-page");
     expect(imageWrappers.length).toBe(4);
 
-    // Each image wrapper contains exactly 1 image
     imageWrappers.forEach((wrapper, i) => {
       const img = wrapper.querySelector("img");
       expect(img).not.toBeNull();
@@ -260,8 +257,10 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
 
   it("calculates 11 discrete pages for an 11-image illustration chapter on 1024x1366 without jumping", () => {
     // Generate 11 illustration paragraphs identical to user's exact DOM
-    const imagesHtml = Array.from({ length: 11 }, (_, i) => 
-      `<p class="calibre3 reader-image-page"><img alt="" src="/api/v1/reader/book/asset/${i + 1}.jpg" class="calibre6"></p>`
+    const imagesHtml = Array.from(
+      { length: 11 },
+      (_, i) =>
+        `<p class="calibre3 reader-image-page"><img alt="" src="/api/v1/reader/book/asset/${i + 1}.jpg" class="calibre6"></p>`,
     ).join("\n");
 
     const fullChapterHtml = `
@@ -276,7 +275,8 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
 
     const sanitized = sanitizeReaderHtml(fullChapterHtml);
     const container = document.createElement("div");
-    container.className = "reader-content reader-mode-single reader-mode-measured";
+    container.className =
+      "reader-content reader-mode-single reader-mode-measured";
     container.innerHTML = sanitized;
     document.body.appendChild(container);
 
@@ -348,13 +348,17 @@ describe("Reader Image Multi-column DOM & Paging at 1024x1366", () => {
     // 1. Only exactly 1 title exists (the <h4>)
     const headings = container.querySelectorAll("h1, h2, h3, h4, h5, h6");
     expect(headings.length).toBe(1);
-    expect(headings[0].textContent).toBe("Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật");
+    expect(headings[0].textContent).toBe(
+      "Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật",
+    );
 
     // 2. Hidden duplicate title and watermark paragraphs are removed
     const allP = container.querySelectorAll("p");
     expect(allP.length).toBe(5); // id=1, id=2, id=6, id=7, id=8
     allP.forEach((p) => {
-      expect(p.textContent).not.toBe("Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật");
+      expect(p.textContent).not.toBe(
+        "Chương 1: Buổi hẹn hò bất ngờ ẩn chứa bí mật",
+      );
       expect(p.textContent).not.toContain("Hãy bình luận");
       expect(p.classList.contains("chapter-title")).toBe(false);
     });

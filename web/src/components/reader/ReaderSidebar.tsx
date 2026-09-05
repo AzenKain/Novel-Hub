@@ -14,7 +14,14 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import type { AudioBookmark, Book, Chapter, Highlight, ImageBookmark, NextInSeries } from "@/types";
+import type {
+  AudioBookmark,
+  Book,
+  Chapter,
+  Highlight,
+  ImageBookmark,
+  NextInSeries,
+} from "@/types";
 import { ReaderHighlightsPanel } from "./ReaderHighlightsPanel";
 import { getMediaUrl } from "@/config/api";
 
@@ -48,15 +55,12 @@ type ReaderSidebarProps = {
   onDeleteImageBookmark?: (id: string) => void;
 };
 
-// Common CJK and standard punctuation delimiters for word boundaries
 const DELIMITERS =
   "\\s\\d:._\\-—–/\\\\|~#*(\\[\\]{}【】〔〕《》「」『』,;?!'\"：、。！？～・·（）　";
 
-// Section-level entries (volumes, parts, books, arcs, sagas, tomes, etc.)
 export const SECTION_RE = new RegExp(
   "^(" +
     [
-      // English / Romance / Germanic / Slavic
       "volume",
       "vol\\.?",
       "v\\.",
@@ -87,34 +91,27 @@ export const SECTION_RE = new RegExp(
       "bagian",
       "buku",
       "babak",
-      // Vietnamese sections (Quyển, Tập, Phần, Bộ, Phân đoạn)
       "quyển(?:\\s+(?:thứ|số))?",
       "tập(?:\\s+(?:thứ|số))?",
       "phần(?:\\s+(?:thứ|số))?",
       "bộ(?:\\s+(?:thứ|số))?",
-      // Russian
       "том",
       "часть",
       "книга",
       "сезон",
       "выпуск",
-      // Thai
       "เล่ม",
       "ภาค",
-      // Hindi
       "भाग",
       "खंड",
-      // Arabic
       "مجلد",
       "جزء",
       "كتاب",
       "قسم",
-      // CJK sections (卷, 部, 篇, 集, 册, 巻, 編, 권, 부, 막)
       "(?:第[0-9一二三四五六七八九十百]+|[0-9]+)?\\s*(?:卷|分卷|部|分部|篇|集|册|冊|巻|編)",
       "(?:제[0-9일이삼사오육칠팔구십]+|[0-9]+)?\\s*(?:권|부|막)",
       "巻之[0-9一二三四五六七八九十百]+",
       "卷[0-9一二三四五六七八九十百]+",
-      // Part with number or standalone (e.g. "Part 1", "Part I", "Part One")
       "part(?:\\s+(?:[0-9ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten))?",
     ].join("|") +
     ")(?=$|[" +
@@ -123,12 +120,9 @@ export const SECTION_RE = new RegExp(
   "iu",
 );
 
-// Special entries (prologues, epilogues, side stories, extra, bonus, afterwords, cover, TOC, end chapters, etc.)
 export const SPECIAL_RE = new RegExp(
   "^(" +
     [
-      // --- Vietnamese ---
-      // Mở đầu / Lời dẫn / Lời nói đầu / Lời tựa / v.v.
       "lời\\s+mở\\s+đầu",
       "lời\\s+nói\\s+đầu",
       "lời\\s+dẫn",
@@ -142,7 +136,6 @@ export const SPECIAL_RE = new RegExp(
       "dẫn\\s+nhập",
       "nhập\\s+môn",
       "chương\\s+mở(?:\\s+đầu)?",
-      // Kết thúc / Vĩ thanh / Lời bạt / Chương cuối / Chương kết / Kết đoạn / v.v.
       "chương\\s+cuối(?:\\s+cùng)?",
       "chương\\s+kết",
       "hồi\\s+kết",
@@ -164,7 +157,6 @@ export const SPECIAL_RE = new RegExp(
       "tổng\\s+kết",
       "cuối\\s+sách",
       "bạt",
-      // Ngoại truyện / Phiên ngoại / Phụ chương / Chương đặc biệt / v.v.
       "ngoại\\s+truyện",
       "phiên\\s+ngoại",
       "phụ\\s+chương",
@@ -177,7 +169,6 @@ export const SPECIAL_RE = new RegExp(
       "chuyện\\s+bên\\s+lề",
       "khoảng\\s+nghỉ",
       "chương\\s+xen",
-      // Bìa / Mục lục / Minh họa / Bản quyền / Phụ lục
       "bìa(?:\\s+(?:sách|trước|sau))?",
       "trang\\s+bìa",
       "mục\\s+lục",
@@ -191,7 +182,6 @@ export const SPECIAL_RE = new RegExp(
       "ghi\\s+chú",
       "chú\\s+thích",
 
-      // --- English ---
       "prologue",
       "prolog",
       "prelude",
@@ -251,7 +241,6 @@ export const SPECIAL_RE = new RegExp(
       "colophon",
       "about\\s+the\\s+author",
 
-      // --- Chinese (Simplified & Traditional) ---
       "序章",
       "序言",
       "序幕",
@@ -335,7 +324,6 @@ export const SPECIAL_RE = new RegExp(
       "术语表",
       "術語表",
 
-      // --- Japanese ---
       "プロローグ",
       "エピローグ",
       "序章",
@@ -379,7 +367,6 @@ export const SPECIAL_RE = new RegExp(
       "地図",
       "設定資料",
 
-      // --- Korean ---
       "프롤로그",
       "에필로그",
       "서문",
@@ -408,7 +395,6 @@ export const SPECIAL_RE = new RegExp(
       "판권",
       "용어집",
 
-      // --- Spanish, Portuguese, Italian ---
       "pr[oó]logo",
       "ep[ií]logo",
       "pref[aá]cio",
@@ -453,7 +439,6 @@ export const SPECIAL_RE = new RegExp(
       "ap[eê]ndice",
       "appendice",
 
-      // --- French ---
       "[eé]pilogue",
       "pr[eé]face",
       "avant-propos",
@@ -471,7 +456,6 @@ export const SPECIAL_RE = new RegExp(
       "personnages?",
       "annexe",
 
-      // --- German ---
       "prolog",
       "epilog",
       "vorwort",
@@ -492,7 +476,6 @@ export const SPECIAL_RE = new RegExp(
       "charaktere",
       "anhang",
 
-      // --- Russian ---
       "пролог",
       "эпилог",
       "предисловие",
@@ -516,7 +499,6 @@ export const SPECIAL_RE = new RegExp(
       "приложение",
       "примечания",
 
-      // --- Indonesian ---
       "prakata",
       "(?:kata\\s+)?pengantar",
       "pendahuluan",
@@ -527,7 +509,6 @@ export const SPECIAL_RE = new RegExp(
       "sampul",
       "lampiran",
 
-      // --- Thai ---
       "บทนำ",
       "คำนำ",
       "บทส่งท้าย",
@@ -538,7 +519,6 @@ export const SPECIAL_RE = new RegExp(
       "ปก",
       "ภาพประกอบ",
 
-      // --- Arabic ---
       "مقدمة",
       "تمهيد",
       "فاتحة",
@@ -553,7 +533,6 @@ export const SPECIAL_RE = new RegExp(
       "غلاف",
       "رسوم",
 
-      // --- Hindi ---
       "प्रस्तावना",
       "भूमिका",
       "उपसंहार",
@@ -571,7 +550,6 @@ export const SPECIAL_RE = new RegExp(
   "iu",
 );
 
-// Regular chapter pattern check (to avoid classifying numbered chapters as special/section)
 export const REGULAR_CHAPTER_PREFIX_RE = new RegExp(
   "^(" +
     [
@@ -605,7 +583,6 @@ function cleanTitle(raw: string): string {
   s = s.replace(/^[\[\(\{【〔《«「『<★◆#*\-_~—–\s]+/, "");
   s = s.replace(/[\]\)\}】〕》»」』>★◆#*\-_~—–\s]+$/, "");
 
-  // Strip leading numbering if followed by special/section words (e.g. "0. Prologue", "00 - Bìa")
   const strippedNumeric = s.replace(
     /^(?:[0-9]{1,4}(?:[.:\-_—–\s]+|\s+))(?=[a-zA-Z\u00C0-\u024F\u1EA0-\u1EFF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF\u0E00-\u0E7F\u0600-\u06FF\u0900-\u097F\u0400-\u04FF])/u,
     "",
@@ -622,21 +599,20 @@ function cleanTitle(raw: string): string {
   return s.trim();
 }
 
-export function getSidebarEntryKind(title: string): "section" | "special" | "chapter" {
+export function getSidebarEntryKind(
+  title: string,
+): "section" | "special" | "chapter" {
   const cleaned = cleanTitle(title);
   const normalized = cleaned.toLowerCase();
 
-  // If it's an explicit numbered chapter (e.g. "Chương 1: Mở đầu", "Chapter 5: Final Battle"), it's a chapter!
   if (REGULAR_CHAPTER_PREFIX_RE.test(normalized)) {
     return "chapter";
   }
 
-  // Check special entries first (e.g. "Chương cuối", "Chương kết", "Lời mở đầu", "Epilogue", "番外", "0. Prologue")
   if (SPECIAL_RE.test(normalized)) {
     return "special";
   }
 
-  // Check section entries (e.g. "Volume 1", "Quyển 1", "Tập 2", "Phần 1", "第1卷")
   if (SECTION_RE.test(normalized)) {
     return "section";
   }
@@ -646,7 +622,8 @@ export function getSidebarEntryKind(title: string): "section" | "special" | "cha
 
 function formatChapterTitle(chapter: Chapter, t: TFunction) {
   let displayTitle =
-    chapter.title || `${t("reader.chapter", "Chapter")} ${chapter.chapter_index + 1}`;
+    chapter.title ||
+    `${t("reader.chapter", "Chapter")} ${chapter.chapter_index + 1}`;
   if (displayTitle.match(/\.(x)?html$/i)) {
     displayTitle = displayTitle
       .replace(/\.(x)?html$/i, "")
@@ -698,7 +675,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   const activeChapterRef = useRef<HTMLLIElement | null>(null);
   const singleChapter = chapters.length === 1;
   const totalBookmarksCount =
-    (highlights?.length || 0) + (imageBookmarks?.length || 0) + (audioBookmarks?.length || 0);
+    (highlights?.length || 0) +
+    (imageBookmarks?.length || 0) +
+    (audioBookmarks?.length || 0);
 
   const filteredChapters = useMemo(() => {
     if (!searchQuery.trim()) return chapters;
@@ -712,13 +691,17 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
   useEffect(() => {
     if (activeTab === "toc" && activeChapterRef.current) {
-      activeChapterRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      activeChapterRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
     }
   }, [activeTab, currentChapter?.id]);
 
   const renderNextVolumeCard = () => {
     if (nextInReadList) {
-      const coverUrl = nextInReadList.cover_url || (nextInReadList as any).cover_path;
+      const coverUrl =
+        nextInReadList.cover_url || (nextInReadList as any).cover_path;
       return (
         <div className="mt-4 p-3.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-soft) shadow-xs">
           <div className="flex items-center gap-1.5 mb-2.5">
@@ -730,7 +713,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
           <div className="flex items-center gap-3">
             {coverUrl ? (
               <img
-                src={getMediaUrl(coverUrl, nextInReadList.id, nextInReadList.updated_at)}
+                src={getMediaUrl(
+                  coverUrl,
+                  nextInReadList.id,
+                  nextInReadList.updated_at,
+                )}
                 alt={nextInReadList.title}
                 className="h-14 aspect-[3/4.2] rounded-lg object-cover bg-(--reader-ui-surface-strong) shrink-0 shadow-sm border border-(--reader-ui-border)"
               />
@@ -764,8 +751,10 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
     }
 
     if (nextInSeries) {
-      const coverUrl = nextInSeries.cover_url || (nextInSeries as any).cover_path;
-      const seriesTitle = nextInSeries.series_name || (nextInSeries as any).series;
+      const coverUrl =
+        nextInSeries.cover_url || (nextInSeries as any).cover_path;
+      const seriesTitle =
+        nextInSeries.series_name || (nextInSeries as any).series;
       return (
         <div className="mt-4 p-3.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-soft) shadow-xs">
           <div className="flex items-center gap-1.5 mb-2.5">
@@ -793,7 +782,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               {seriesTitle && (
                 <p className="text-[10px] opacity-60 truncate mt-0.5 font-medium text-(--reader-ui-muted)">
                   {seriesTitle}
-                  {nextInSeries.series_index ? ` #${nextInSeries.series_index}` : ""}
+                  {nextInSeries.series_index
+                    ? ` #${nextInSeries.series_index}`
+                    : ""}
                 </p>
               )}
             </div>
@@ -854,7 +845,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               <span className="inline-flex items-center text-[10px] font-semibold text-(--reader-ui-muted) uppercase tracking-wider">
                 {!singleChapter
                   ? `${chapters.length} ${t("reader.chapters_count", "chapters")}`
-                  : (book.status ? t(`book.status_${book.status.toLowerCase()}`, book.status) : t("reader.current_reading", "Reading now"))}
+                  : book.status
+                    ? t(`book.status_${book.status.toLowerCase()}`, book.status)
+                    : t("reader.current_reading", "Reading now")}
               </span>
             </div>
           </div>
@@ -964,7 +957,11 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                       <div className="relative h-16 aspect-[3/4.2] shrink-0 overflow-hidden rounded-xl bg-(--reader-ui-surface-strong) shadow-md border border-(--reader-ui-border)">
                         {book.cover_url ? (
                           <img
-                            src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
+                            src={getMediaUrl(
+                              book.cover_url,
+                              book.id,
+                              book.updated_at,
+                            )}
                             alt={book.title}
                             className="h-full w-full object-cover"
                           />
@@ -984,7 +981,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                         </div>
 
                         <h3 className="text-xs font-bold leading-snug line-clamp-2 text-(--reader-ui-text)">
-                          {chapters[0] ? formatChapterTitle(chapters[0], t) : book.title}
+                          {chapters[0]
+                            ? formatChapterTitle(chapters[0], t)
+                            : book.title}
                         </h3>
                         {book.author_name && (
                           <p className="text-[11px] text-(--reader-ui-muted) truncate mt-0.5 font-medium">
@@ -996,7 +995,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => chapters[0] && onSelectChapter(chapters[0])}
+                      onClick={() =>
+                        chapters[0] && onSelectChapter(chapters[0])
+                      }
                       className="btn btn-xs w-full gap-2 rounded-xl mt-3.5 font-bold shadow-xs text-xs cursor-pointer bg-(--reader-ui-accent) text-(--reader-ui-accent-text) border-0 hover:brightness-105"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
@@ -1046,7 +1047,10 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                                       : "bg-(--reader-ui-soft) text-(--reader-ui-muted) group-hover:bg-(--reader-ui-hover)"
                                   }`}
                                 >
-                                  {String(chapter.chapter_index + 1).padStart(2, "0")}
+                                  {String(chapter.chapter_index + 1).padStart(
+                                    2,
+                                    "0",
+                                  )}
                                 </span>
                               )}
 
@@ -1070,9 +1074,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                         );
                       })}
                       {(nextInReadList || nextInSeries) && (
-                        <li className="px-1 pb-4">
-                          {renderNextVolumeCard()}
-                        </li>
+                        <li className="px-1 pb-4">{renderNextVolumeCard()}</li>
                       )}
                     </ul>
                   )}
@@ -1110,7 +1112,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-semibold text-(--reader-ui-text) line-clamp-2 group-hover:text-(--reader-ui-accent) transition-colors">
-                                {bm.note || bm.chapter_title || t("reader.bookmark", "Bookmark")}
+                                {bm.note ||
+                                  bm.chapter_title ||
+                                  t("reader.bookmark", "Bookmark")}
                               </p>
                               {bm.note && bm.chapter_title && (
                                 <p className="text-[10px] text-(--reader-ui-muted) truncate mt-0.5">
@@ -1169,7 +1173,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               title={t("reader.back_to_previous", "Quay lại trang trước")}
             >
               <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{t("reader.back_short", "Trang trước")}</span>
+              <span className="truncate">
+                {t("reader.back_short", "Trang trước")}
+              </span>
             </button>
             <button
               type="button"
@@ -1184,7 +1190,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
               title={t("reader.back_to_book_detail", "Xem chi tiết sách")}
             >
               <BookOpen className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{t("reader.book_detail_short", "Chi tiết sách")}</span>
+              <span className="truncate">
+                {t("reader.book_detail_short", "Chi tiết sách")}
+              </span>
             </button>
           </div>
         </div>
@@ -1192,4 +1200,3 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
     </div>
   );
 };
-

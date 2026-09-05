@@ -57,7 +57,6 @@ func TestCalibreSyncService_ImportCalibreLibrary(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Apply database schema
 	schemaFiles := []string{
 		"../../db/schema/10_auth.sql",
 		"../../db/schema/15_libraries.sql",
@@ -99,7 +98,6 @@ func TestCalibreSyncService_ImportCalibreLibrary(t *testing.T) {
 		t.Errorf("expected imported books count > 0, got %d", count)
 	}
 
-	// Verify imported metadata entities
 	ctx := context.Background()
 	facet := repositories.MetadataFacetFilter{Limit: 10}
 	authors, err := bookRepo.ListAuthorsWithCount(ctx, facet)

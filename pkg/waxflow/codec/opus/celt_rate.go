@@ -1,21 +1,14 @@
 package opus
 
-// CELT bit allocation (RFC 6716 section 4.3.3). Ported from libopus rate.c and
-// rate.h. The allocator converts the target bit budget
-// and the coarse allocation vectors into a per-band pulse count and fine-energy
-// bit count, decoding the band-skip, intensity, and dual-stereo flags from the
-// range coder along the way. It is pure integer arithmetic (identical in the
-// float and fixed builds), so the port is exact.
+// CELT bit allocation (RFC 6716 section 4.3.3).
 
 const (
-	allocSteps  = 6  // ALLOC_STEPS
-	logMaxPseu  = 6  // LOG_MAX_PSEUDO
-	fineOffset  = 21 // FINE_OFFSET
+	allocSteps  = 6
+	logMaxPseu  = 6
+	fineOffset  = 21
 	celtAllocVs = celtAllocRows
 )
 
-// log2FracTable: log2 in 1/8-bit units of the number of bands, used to size the
-// intensity-stereo parameter (libopus rate.c LOG2_FRAC_TABLE).
 var log2FracTable = [24]byte{
 	0, 8, 13, 16, 19, 21, 23, 24, 26, 27, 28, 29, 30, 31, 32,
 	32, 33, 34, 34, 35, 36, 36, 37, 37,
@@ -28,8 +21,6 @@ func b2i(b bool) int {
 	return 0
 }
 
-// getPulses maps a pseudo-pulse count index to the real pulse count (libopus
-// rate.h get_pulses).
 func getPulses(i int) int {
 	if i < 8 {
 		return i
@@ -37,8 +28,6 @@ func getPulses(i int) int {
 	return (8 + (i & 7)) << ((i >> 3) - 1)
 }
 
-// bits2pulses inverts the pulse cache: the largest pulse count whose coding cost
-// fits in `bits` (libopus rate.h).
 func bits2pulses(band, LM, bits int) int {
 	LM++
 	cache := celtCacheBits[celtCacheIndex[LM*celtNBands+band]:]
@@ -63,7 +52,6 @@ func bits2pulses(band, LM, bits int) int {
 	return hi
 }
 
-// pulses2bits returns the coding cost of `pulses` pulses in a band (libopus).
 func pulses2bits(band, LM, pulses int) int {
 	LM++
 	cache := celtCacheBits[celtCacheIndex[LM*celtNBands+band]:]
@@ -73,8 +61,6 @@ func pulses2bits(band, LM, pulses int) int {
 	return int(cache[pulses]) + 1
 }
 
-// initCaps fills cap[] with the per-band maximum useful allocation (libopus
-// celt.c init_caps).
 func initCaps(cap []int, LM, C int) {
 	for i := 0; i < celtNBands; i++ {
 		N := (int(celtEBands[i+1]) - int(celtEBands[i])) << LM
@@ -82,10 +68,6 @@ func initCaps(cap []int, LM, C int) {
 	}
 }
 
-// interpBits2Pulses is the decode-side allocator inner loop (libopus rate.c,
-// encode==0). It bisects an interpolation between the two allocation vectors,
-// decodes the manual band-skip flags plus intensity/dual-stereo, and splits each
-// band's budget into fine-energy bits (ebits) and PVQ bits (bits).
 func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []int, total int, balance *int,
 	skipRsv int, intensity *int, intensityRsv int, dualStereo *int, dualStereoRsv int,
 	bits, ebits, finePriority []int, C, LM int, enc *rangeEncoder, d *rangeDecoder, encode bool, prev, signalBandwidth int) int {
@@ -133,7 +115,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 		psum += tmp
 	}
 
-	// Decide which bands to skip, working backward from the end.
 	codedBands := end
 	for {
 		j := codedBands - 1
@@ -150,8 +131,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 		bandBits := bits[j] + percoeff*bandWidth + rem
 		if bandBits >= max(thresh[j], allocFloor+(1<<bitRes)) {
 			if encode {
-				// The only non-mandatory part of allocation: a band we skip
-				// must be signaled. Hysteresis keeps bands from fluctuating.
 				depthThreshold := 0
 				if codedBands > 17 {
 					if j < prev {
@@ -185,7 +164,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 		codedBands--
 	}
 
-	// Intensity and dual-stereo parameters.
 	if intensityRsv > 0 {
 		if encode {
 			if *intensity > codedBands {
@@ -212,7 +190,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 		*dualStereo = 0
 	}
 
-	// Allocate the remaining bits.
 	left := total - psum
 	span := int(celtEBands[codedBands]) - int(celtEBands[start])
 	percoeff := left / span
@@ -275,7 +252,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 	}
 	*balance = bal
 
-	// Skipped bands spend all their bits on fine energy.
 	for ; j < end; j++ {
 		ebits[j] = bits[j] >> stereo >> bitRes
 		bits[j] = 0
@@ -284,10 +260,6 @@ func interpBits2Pulses(start, end, skipStart int, bits1, bits2, thresh, cap []in
 	return codedBands
 }
 
-// cltComputeAllocation is the decode-side entry point (libopus rate.c
-// clt_compute_allocation, encode==0): it reserves the skip/stereo bits, builds
-// the two interpolation endpoints from the allocation vectors and trim, then
-// runs interpBits2Pulses.
 func cltComputeAllocation(start, end int, offsets, cap []int, allocTrim int, intensity, dualStereo *int,
 	total int, balance *int, pulses, ebits, finePriority []int, C, LM int,
 	enc *rangeEncoder, d *rangeDecoder, encode bool, prev, signalBandwidth int) int {

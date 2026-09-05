@@ -1,4 +1,3 @@
-
 package oauth
 
 import "golang.org/x/oauth2"

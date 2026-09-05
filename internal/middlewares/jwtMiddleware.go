@@ -49,8 +49,7 @@ func continueAsGuest(c fiber.Ctx) error {
 	return c.Next()
 }
 
-// No token is a guest; a token that fails to parse is a failed login and must 401, or the
-// frontend refresh interceptor never fires.
+// No token is a guest; a token that fails to parse is a failed login and must 401, or the frontend refresh interceptor never fires.
 func OptionalJwtAccess(userRepo repositories.UserRepository) fiber.Handler {
 	jwtSecret, err := config.GetConfig("JWT_SECRET")
 	if err != nil {
@@ -119,7 +118,6 @@ func jwtSuccess(userRepo repositories.UserRepository, optional bool, expectedTyp
 			return c.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "User account is banned"})
 		}
 
-		// Rejects a malformed subject (including the guest sentinel) before it reaches SQL.
 		userID, err := convert.ParseID(claims.UId)
 		if err != nil {
 			return unauthorized()

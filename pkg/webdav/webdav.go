@@ -24,9 +24,9 @@ type WebDAVNode struct {
 // XML Structs conforming to RFC 4918 (WebDAV)
 
 type responseXML struct {
-	XMLName  xml.Name     `xml:"D:response"`
-	Href     string       `xml:"D:href"`
-	Propstat propstatXML  `xml:"D:propstat"`
+	XMLName  xml.Name    `xml:"D:response"`
+	Href     string      `xml:"D:href"`
+	Propstat propstatXML `xml:"D:propstat"`
 }
 
 type propstatXML struct {
@@ -138,7 +138,7 @@ func ParseDepth(depthHeader string) int {
 	case "1":
 		return 1
 	case "infinity":
-		return 1 // Constrain infinity to depth 1 to prevent resource exhaustion
+		return 1
 	default:
 		return 1
 	}

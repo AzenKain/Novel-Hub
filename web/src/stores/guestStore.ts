@@ -53,7 +53,10 @@ export const useGuestStore = create<GuestState>()(
         const { bookmarks } = get();
         if (!bookmarks.some((b) => b.book_id === book_id)) {
           set({
-            bookmarks: [...bookmarks, { book_id, created_at: new Date().toISOString() }],
+            bookmarks: [
+              ...bookmarks,
+              { book_id, created_at: new Date().toISOString() },
+            ],
           });
         }
       },
@@ -72,7 +75,10 @@ export const useGuestStore = create<GuestState>()(
           return false;
         } else {
           set({
-            bookmarks: [...bookmarks, { book_id, created_at: new Date().toISOString() }],
+            bookmarks: [
+              ...bookmarks,
+              { book_id, created_at: new Date().toISOString() },
+            ],
           });
           return true;
         }
@@ -110,19 +116,18 @@ export const useGuestStore = create<GuestState>()(
 
       getReadingHistory: () => {
         return Object.values(get().progressMap).sort(
-          (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          (a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
         );
       },
 
       syncToServer: async (featureService) => {
         const { bookmarks, progressMap, clearGuestData } = get();
 
-        // 1. Sync bookmarks
         const bookmarkPromises = bookmarks.map((b) =>
-          featureService.setBookmark(b.book_id, true).catch(() => undefined)
+          featureService.setBookmark(b.book_id, true).catch(() => undefined),
         );
 
-        // 2. Sync reading progress/activity
         const historyList = Object.values(progressMap);
         const historyPromises = historyList.map((h) =>
           featureService
@@ -135,7 +140,7 @@ export const useGuestStore = create<GuestState>()(
               progress_percent: h.progress_percent,
               event_type: "progress_update",
             })
-            .catch(() => undefined)
+            .catch(() => undefined),
         );
 
         await Promise.allSettled([...bookmarkPromises, ...historyPromises]);
@@ -148,6 +153,6 @@ export const useGuestStore = create<GuestState>()(
     }),
     {
       name: "novelhub_guest_storage",
-    }
-  )
+    },
+  ),
 );

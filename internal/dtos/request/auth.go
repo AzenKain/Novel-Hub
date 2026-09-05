@@ -64,4 +64,3 @@ type ActivateMagicCodeDto struct {
 type PollMagicCodeDto struct {
 	PollToken string `json:"poll_token" validate:"required"`
 }
-

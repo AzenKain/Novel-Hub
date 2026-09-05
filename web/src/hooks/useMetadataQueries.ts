@@ -3,9 +3,21 @@ import { metadataService } from "@/services";
 import type { MetadataCount, MetadataFacetParams } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-export type MetadataFacet = "authors" | "series" | "tags" | "publishers" | "languages" | "formats" | "ratings";
+export type MetadataFacet =
+  | "authors"
+  | "series"
+  | "tags"
+  | "publishers"
+  | "languages"
+  | "formats"
+  | "ratings";
 
-const fetchers: Record<MetadataFacet, (params: MetadataFacetParams) => ReturnType<typeof metadataService.listAuthors>> = {
+const fetchers: Record<
+  MetadataFacet,
+  (
+    params: MetadataFacetParams,
+  ) => ReturnType<typeof metadataService.listAuthors>
+> = {
   authors: (params) => metadataService.listAuthors(params),
   series: (params) => metadataService.listSeries(params),
   tags: (params) => metadataService.listTags(params),
@@ -22,7 +34,8 @@ export function useMetadataFacetQuery(
   filters: { search?: string; alpha?: string } = {},
 ) {
   const search = filters.search?.trim() || undefined;
-  const alpha = filters.alpha && filters.alpha !== "All" ? filters.alpha : undefined;
+  const alpha =
+    filters.alpha && filters.alpha !== "All" ? filters.alpha : undefined;
 
   const query = useInfiniteQuery({
     queryKey: ["metadata", facet, { search, alpha }],
@@ -31,15 +44,17 @@ export function useMetadataFacetQuery(
       const fetch = fetchers[facet];
       if (!fetch) throw new Error("Invalid facet type");
       const res = await fetch({ cursor: pageParam, limit: 50, search, alpha });
-      if (!res.status) throw new Error(res.message || `Failed to fetch metadata ${facet}`);
+      if (!res.status)
+        throw new Error(res.message || `Failed to fetch metadata ${facet}`);
       return res;
     },
-    getNextPageParam: (lastPage) => lastPage.pagination?.next_cursor || undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination?.next_cursor || undefined,
   });
 
   const items = useMemo<MetadataCount[]>(
     () => query.data?.pages.flatMap((page) => page.data || []) ?? EMPTY_ARRAY,
-    [query.data]
+    [query.data],
   );
 
   return { ...query, items };

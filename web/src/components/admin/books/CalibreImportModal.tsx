@@ -51,7 +51,10 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
               id="calibre-path"
               type="text"
               className="input input-bordered focus:input-primary"
-              placeholder={t("admin.calibre_path_placeholder", "/path/to/calibre-library")}
+              placeholder={t(
+                "admin.calibre_path_placeholder",
+                "/path/to/calibre-library",
+              )}
               value={path}
               onChange={(event) => setPath(event.target.value)}
               disabled={importing}
@@ -59,13 +62,16 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
             <p className="pl-1 text-xs text-base-content/60">
               {t(
                 "admin.calibre_path_hint",
-                "Server-side path to the folder containing metadata.db. Re-importing the same library may create duplicates."
+                "Server-side path to the folder containing metadata.db. Re-importing the same library may create duplicates.",
               )}
             </p>
           </div>
 
           <div className="flex w-full flex-col gap-1.5">
-            <label className="pl-1 text-sm font-medium" htmlFor="calibre-library">
+            <label
+              className="pl-1 text-sm font-medium"
+              htmlFor="calibre-library"
+            >
               {t("admin.calibre_target_library", "Target library (optional)")}
             </label>
             <select
@@ -75,7 +81,9 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
               onChange={(event) => setLibraryId(event.target.value)}
               disabled={importing}
             >
-              <option value="">{t("admin.calibre_no_library", "No library")}</option>
+              <option value="">
+                {t("admin.calibre_no_library", "No library")}
+              </option>
               {libraries.map((library) => (
                 <option key={library.id} value={library.id}>
                   {library.name}

@@ -1,5 +1,9 @@
 import { api } from "../config/api";
-import type { CommonResponse, UploadCommitParams, UploadProgressStats } from "@/types";
+import type {
+  CommonResponse,
+  UploadCommitParams,
+  UploadProgressStats,
+} from "@/types";
 import axios from "axios";
 
 const CHUNK_SIZE = 10 * 1024 * 1024;
@@ -9,7 +13,7 @@ export const uploadService = {
     file: File,
     target: "library" | "book",
     id: string,
-    onProgress?: (stats: UploadProgressStats) => void
+    onProgress?: (stats: UploadProgressStats) => void,
   ): Promise<CommonResponse<any>> => {
     try {
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -22,7 +26,10 @@ export const uploadService = {
       if (target === "library") initPayload.library_id = id;
       else initPayload.book_id = id;
 
-      const initRes = await api.post<CommonResponse<any>>("/upload/init", initPayload);
+      const initRes = await api.post<CommonResponse<any>>(
+        "/upload/init",
+        initPayload,
+      );
       if (!initRes.data.status || !initRes.data.data?.upload_id) {
         throw new Error("Failed to initialize upload");
       }
@@ -41,26 +48,37 @@ export const uploadService = {
         formData.append("chunk_index", chunkIndex.toString());
         formData.append("total_chunks", totalChunks.toString());
 
-        const res = await api.post<CommonResponse<any>>(`/upload/${uploadId}/chunk`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          onUploadProgress: (progressEvent) => {
-            if (!onProgress) return;
-            const chunkLoaded = progressEvent.loaded || 0;
-            const currentTotalUploaded = start + Math.min(chunkLoaded, chunkSize);
-            const elapsedTimeSec = Math.max((Date.now() - startTime) / 1000, 0.1);
-            const speed = currentTotalUploaded / elapsedTimeSec;
-            const percent = Math.min(Math.round((currentTotalUploaded / file.size) * 100), 99);
+        const res = await api.post<CommonResponse<any>>(
+          `/upload/${uploadId}/chunk`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            onUploadProgress: (progressEvent) => {
+              if (!onProgress) return;
+              const chunkLoaded = progressEvent.loaded || 0;
+              const currentTotalUploaded =
+                start + Math.min(chunkLoaded, chunkSize);
+              const elapsedTimeSec = Math.max(
+                (Date.now() - startTime) / 1000,
+                0.1,
+              );
+              const speed = currentTotalUploaded / elapsedTimeSec;
+              const percent = Math.min(
+                Math.round((currentTotalUploaded / file.size) * 100),
+                99,
+              );
 
-            onProgress({
-              progress: percent,
-              uploadedBytes: currentTotalUploaded,
-              totalBytes: file.size,
-              speedBytesPerSec: speed,
-            });
+              onProgress({
+                progress: percent,
+                uploadedBytes: currentTotalUploaded,
+                totalBytes: file.size,
+                speedBytesPerSec: speed,
+              });
+            },
           },
-        });
+        );
 
         if (!res.data.status) {
           throw new Error(`Failed to upload chunk ${chunkIndex}`);
@@ -82,14 +100,17 @@ export const uploadService = {
         filename: file.name,
         total_chunks: totalChunks,
       };
-      
+
       if (target === "library") {
         commitParams.library_id = id;
       } else {
         commitParams.book_id = id;
       }
 
-      const commitRes = await api.post<CommonResponse<any>>(`/upload/${uploadId}/commit`, commitParams);
+      const commitRes = await api.post<CommonResponse<any>>(
+        `/upload/${uploadId}/commit`,
+        commitParams,
+      );
       return commitRes.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -97,5 +118,5 @@ export const uploadService = {
       }
       throw error;
     }
-  }
+  },
 };

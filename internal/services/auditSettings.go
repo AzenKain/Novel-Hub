@@ -9,9 +9,7 @@ import (
 
 const auditValueMaxLen = 60
 
-// SettingsAuditLabel renders what an admin changed. Values are included so the trail can answer
-// "who turned registration off", but a secret key is reduced to its name: smtp.password is
-// encrypted at rest precisely so it never lands somewhere every admin can read.
+// SettingsAuditLabel renders what an admin changed.
 func SettingsAuditLabel(values map[string]any) string {
 	parts := make([]string, 0, len(values))
 	for _, key := range slices.Sorted(maps.Keys(values)) {

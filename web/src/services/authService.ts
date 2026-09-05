@@ -1,11 +1,28 @@
 import { api } from "@/config/api";
-import type { AuthResponse, ChangePasswordRequest, CommonResponse, TOTPEnrollment, TOTPRecoveryCodes, TOTPStatus, UpdateProfileRequest, User } from "@/types";
+import type {
+  AuthResponse,
+  ChangePasswordRequest,
+  CommonResponse,
+  TOTPEnrollment,
+  TOTPRecoveryCodes,
+  TOTPStatus,
+  UpdateProfileRequest,
+  User,
+} from "@/types";
 import axios from "axios";
 
 export const authService = {
-  async signin(email: string, password: string, totpCode?: string): Promise<CommonResponse<AuthResponse>> {
+  async signin(
+    email: string,
+    password: string,
+    totpCode?: string,
+  ): Promise<CommonResponse<AuthResponse>> {
     try {
-      const response = await api.post("/auth/signin", { email, password, ...(totpCode ? { totp_code: totpCode } : {}) });
+      const response = await api.post("/auth/signin", {
+        email,
+        password,
+        ...(totpCode ? { totp_code: totpCode } : {}),
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -39,7 +56,9 @@ export const authService = {
     }
   },
 
-  async updateProfile(data: UpdateProfileRequest): Promise<CommonResponse<User>> {
+  async updateProfile(
+    data: UpdateProfileRequest,
+  ): Promise<CommonResponse<User>> {
     try {
       const response = await api.put("/users/current", data);
       return response.data;
@@ -51,7 +70,9 @@ export const authService = {
     }
   },
 
-  async uploadAvatar(file: File | Blob): Promise<CommonResponse<{ url: string }>> {
+  async uploadAvatar(
+    file: File | Blob,
+  ): Promise<CommonResponse<{ url: string }>> {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -65,7 +86,9 @@ export const authService = {
     }
   },
 
-  async changePassword(data: ChangePasswordRequest): Promise<CommonResponse<void>> {
+  async changePassword(
+    data: ChangePasswordRequest,
+  ): Promise<CommonResponse<void>> {
     try {
       const response = await api.patch("/users/current/password", data);
       return response.data;
@@ -97,8 +120,10 @@ export const authService = {
     return response.data;
   },
 
-  async totpRecoveryCodes(code: string): Promise<CommonResponse<TOTPRecoveryCodes>> {
+  async totpRecoveryCodes(
+    code: string,
+  ): Promise<CommonResponse<TOTPRecoveryCodes>> {
     const response = await api.post("/auth/totp/recovery-codes", { code });
     return response.data;
-  }
+  },
 };

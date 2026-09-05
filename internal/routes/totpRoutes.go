@@ -9,7 +9,6 @@ import (
 	"novelhub/internal/services"
 )
 
-
 func TOTPRoutes(router fiber.Router, controller *controllers.TOTPController, userRepo repositories.UserRepository, settingsService services.SettingsService) {
 	group := router.Group("/auth/totp", middlewares.JwtAccess(userRepo), middlewares.RateLimit(settingsService, middlewares.RateLimitAuth))
 

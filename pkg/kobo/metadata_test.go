@@ -8,14 +8,6 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// The assertions here are contract assertions, not behaviour assertions: there is no Kobo
-// device in CI, so the only thing that can be checked is that the bytes on the wire match the
-// shape calibre-web sends. Every expected value below was read out of calibre-web's source
-// (cps/kobo.py), which is the implementation validated against real hardware.
-
-// resourceString reads one entry as a URL string. Lives in the test rather than the package:
-// production code passes the whole map straight to the response, so nothing outside these
-// assertions ever needs one key as a string.
 func resourceString(t *testing.T, res map[string]any, key string) string {
 	t.Helper()
 	value, _ := res[key].(string)
@@ -24,20 +16,15 @@ func resourceString(t *testing.T, res map[string]any, key string) string {
 
 func TestResourcesHasFullNativeMap(t *testing.T) {
 	res := Resources("https://books.example.com/kobo/deadbeef")
-	// calibre-web's NATIVE_KOBO_RESOURCES() has 147 entries. A device derives every URL it
-	// calls from this map, so a short map silently disables device features.
 	if len(res) != 147 {
 		t.Fatalf("resource map has %d keys, want 147", len(res))
 	}
-	// A key that must still point at the real store — rewriting everything would break the
-	// device's shop and account pages.
 	if got := resourceString(t, res, "account_page"); got != "https://www.kobo.com/account/settings" {
 		t.Errorf("account_page = %q, want the upstream Kobo URL", got)
 	}
 }
 
-// Two entries of the native map are nested objects, not URL strings. Decoding the file into
-// map[string]string silently dropped all 147 keys, so this pins the type.
+// Two entries of the native map are nested objects, not URL strings.
 func TestResourcesKeepsNestedObjectEntries(t *testing.T) {
 	res := Resources("https://books.example.com/kobo/deadbeef")
 	for _, key := range []string{"blackstone_header", "free_books_page"} {
@@ -54,11 +41,9 @@ func TestResourcesRewritesOnlyTheSelfHostedKeys(t *testing.T) {
 	if got, want := resourceString(t, res, "library_sync"), endpoint+"/v1/library/sync"; got != want {
 		t.Errorf("library_sync = %q, want %q", got, want)
 	}
-	// image_host is the bare origin: the device joins it with the templates itself.
 	if got, want := resourceString(t, res, "image_host"), "https://books.example.com"; got != want {
 		t.Errorf("image_host = %q, want %q", got, want)
 	}
-	// Placeholders must survive verbatim — the device substitutes them, we must not.
 	for _, key := range []string{"image_url_template", "image_url_quality_template"} {
 		tmpl := resourceString(t, res, key)
 		if !strings.HasPrefix(tmpl, endpoint+"/") {
@@ -90,7 +75,6 @@ func TestFormatTimestampMatchesKoboFormat(t *testing.T) {
 	if got, want := FormatTimestamp(ts), "2026-03-14T15:09:26Z"; got != want {
 		t.Errorf("FormatTimestamp = %q, want %q", got, want)
 	}
-	// A zero time must not serialise as year 1: calibre-web substitutes now for exactly this.
 	if got := FormatTimestamp(time.Time{}); strings.HasPrefix(got, "0001-") {
 		t.Errorf("FormatTimestamp(zero) = %q, want a current timestamp", got)
 	}
@@ -132,7 +116,6 @@ func TestBookEntitlementFieldSet(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	// The exact 12 keys calibre-web's create_book_entitlement() emits.
 	want := []string{
 		"Accessibility", "ActivePeriod", "Created", "CrossRevisionId", "Id", "IsRemoved",
 		"IsHiddenFromArchive", "IsLocked", "LastModified", "OriginCategory", "RevisionId",
@@ -156,7 +139,6 @@ func TestBookEntitlementFieldSet(t *testing.T) {
 	if got["Status"] != "Active" {
 		t.Errorf("Status = %v, want Active", got["Status"])
 	}
-	// Id, CrossRevisionId and RevisionId are all the book UUID — the device correlates them.
 	for _, key := range []string{"Id", "CrossRevisionId", "RevisionId"} {
 		if got[key] != book.UUID {
 			t.Errorf("%s = %v, want the book UUID %s", key, got[key], book.UUID)
@@ -186,7 +168,6 @@ func TestBookMetadataFieldSet(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	// Keys calibre-web's get_metadata() always emits.
 	for _, key := range []string{
 		"Categories", "CoverImageId", "CrossRevisionId", "CurrentDisplayPrice",
 		"CurrentLoveDisplayPrice", "Description", "DownloadUrls", "EntitlementId",
@@ -199,7 +180,6 @@ func TestBookMetadataFieldSet(t *testing.T) {
 		}
 	}
 
-	// The UUID reuse the device relies on to tie metadata to its entitlement.
 	for _, key := range []string{"CoverImageId", "CrossRevisionId", "EntitlementId", "RevisionId", "WorkId"} {
 		if got[key] != book.UUID {
 			t.Errorf("%s = %v, want the book UUID", key, got[key])
@@ -219,7 +199,6 @@ func TestBookMetadataFieldSet(t *testing.T) {
 			t.Error("Publisher.Imprint must be present even when empty")
 		}
 	}
-	// Empty slices must serialise as [] not null: a null here has been seen to abort parsing.
 	if _, ok := got["ExternalIds"].([]any); !ok {
 		t.Errorf("ExternalIds = %#v, want an empty array", got["ExternalIds"])
 	}
@@ -254,8 +233,6 @@ func TestBookMetadataSeriesIDIsStableAndMatchesUUID3(t *testing.T) {
 	if meta.Series == nil {
 		t.Fatal("Series missing")
 	}
-	// uuid3(NAMESPACE_DNS, "Test Series") computed with Python's uuid module — the value
-	// calibre-web would produce for the same series name.
 	const want = "6f6b0366-32e3-310e-81a5-73826405caa4"
 	if meta.Series.ID != want {
 		t.Errorf("Series.Id = %q, want %q (uuid3 of the series name)", meta.Series.ID, want)
@@ -287,7 +264,6 @@ func TestBookDownloadURL(t *testing.T) {
 	if got.URL != "https://books.example.com/kobo/deadbeef/download/book-1/epub" {
 		t.Errorf("URL = %q", got.URL)
 	}
-	// Format is what the device is told; the URL carries the stored format, lowercased.
 	if got.Format != "EPUB3" {
 		t.Errorf("Format = %q, want the Kobo format name", got.Format)
 	}
@@ -300,7 +276,6 @@ func TestBookDownloadURL(t *testing.T) {
 }
 
 func TestKoboFormatsMapping(t *testing.T) {
-	// Straight from calibre-web's KOBO_FORMATS. EPUB advertises two names; the device picks.
 	if got := KoboFormats["EPUB"]; len(got) != 2 || got[0] != "EPUB3" || got[1] != "EPUB" {
 		t.Errorf("KoboFormats[EPUB] = %v, want [EPUB3 EPUB]", got)
 	}
@@ -319,7 +294,7 @@ func TestStatusFor(t *testing.T) {
 		want     string
 	}{
 		{0, 0, StatusReadyToRead},
-		{0, 1, StatusReading}, // opened but no progress recorded yet
+		{0, 1, StatusReading},
 		{42, 3, StatusReading},
 		{100, 5, StatusFinished},
 		{100, 0, StatusFinished},
@@ -347,7 +322,6 @@ func TestNewReadingStateShape(t *testing.T) {
 	if state.EntitlementID != in.BookUUID {
 		t.Errorf("EntitlementId = %q", state.EntitlementID)
 	}
-	// PriorityTimestamp tracks LastModified — calibre-web notes they are always equal.
 	if state.PriorityTimestamp != state.LastModified {
 		t.Errorf("PriorityTimestamp %q != LastModified %q", state.PriorityTimestamp, state.LastModified)
 	}
@@ -380,7 +354,6 @@ func TestNewReadingStateOmitsLocationWhenUnset(t *testing.T) {
 	if strings.Contains(string(raw), `"Location"`) {
 		t.Errorf("Location key leaked into JSON: %s", raw)
 	}
-	// Statistics has no data either, so only LastModified may be present.
 	if strings.Contains(string(raw), "SpentReadingMinutes") {
 		t.Error("SpentReadingMinutes must be omitted when unknown")
 	}
@@ -393,8 +366,7 @@ func TestNewReadingStateDefaultsLocationType(t *testing.T) {
 	}
 }
 
-// The request body these responses answer is request.PutKoboStateDto; its parsing is covered by
-// internal/dtos/request/kobo_test.go.
+// The request body these responses answer is request.PutKoboStateDto; its parsing is covered by internal/dtos/request/kobo_test.go.
 
 func TestPutStateResponseOmitsUnrequestedResults(t *testing.T) {
 	resp := PutStateResponse{
@@ -414,7 +386,6 @@ func TestPutStateResponseOmitsUnrequestedResults(t *testing.T) {
 	if !strings.Contains(body, `"CurrentBookmarkResult"`) {
 		t.Errorf("bookmark result missing: %s", body)
 	}
-	// calibre-web only adds a sub-result for a block the request contained.
 	if strings.Contains(body, "StatisticsResult") || strings.Contains(body, "StatusInfoResult") {
 		t.Errorf("unrequested sub-results leaked: %s", body)
 	}

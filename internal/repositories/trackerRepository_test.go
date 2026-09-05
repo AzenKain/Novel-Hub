@@ -13,10 +13,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// GetByID and GetMappingByID used to fold a real database failure into the same branch as an
-// empty result set (err != nil || len(rows) == 0 -> sql.ErrNoRows), so a broken or locked
-// database was reported to the caller as "this tracker does not exist" and the mapping was
-// silently dropped instead of surfacing as a 500.
+// GetByID and GetMappingByID used to fold a real database failure into the same branch as an empty result set (err != nil || len(rows) == 0 -> sql.ErrNoRows), so a broken or locked database was reported to the caller as "this tracker does not exist" and the mapping was silently dropped instead of surfacing as a 500.
 func TestTrackerRepositoryDoesNotReportDatabaseFailuresAsNotFound(t *testing.T) {
 	dir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(dir, "tracker.db"))
@@ -56,11 +53,7 @@ func TestTrackerRepositoryDoesNotReportDatabaseFailuresAsNotFound(t *testing.T) 
 	}
 }
 
-// book_tracker_mappings had no user_id and a UNIQUE(book_id, provider), so one row was shared by
-// the whole instance. Any account with read access to a book could repoint it, and the victim's
-// next sync then pushed progress to the attacker's chosen series using the victim's own OAuth
-// token. The cache key was book-scoped too, so scoping only the SQL would still have served one
-// reader's mapping to another out of RAM.
+// book_tracker_mappings had no user_id and a UNIQUE(book_id, provider), so one row was shared by the whole instance.
 func TestBookTrackerMappingIsPerUser(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "tracker-scope.db")
 	t.Setenv("SQLITE_DB_PATH", dbPath)
@@ -85,7 +78,6 @@ func TestBookTrackerMappingIsPerUser(t *testing.T) {
 	seed(`INSERT INTO libraries (id, name) VALUES ('lib-1', 'Main')`)
 	seed(`INSERT INTO books (id, library_id, title, status) VALUES ('book-1', 'lib-1', 'Shared', 'published')`)
 
-	// A live cache, because a book-scoped key would leak across users even with scoped SQL.
 	repo := NewTrackerRepository(db, cache.NewRamCache())
 	ctx := context.Background()
 
@@ -93,7 +85,6 @@ func TestBookTrackerMappingIsPerUser(t *testing.T) {
 		t.Fatalf("user A upsert: %v", err)
 	}
 	if _, err := repo.UpsertBookTrackerMapping(ctx, "user-b", "book-1", "anilist", "series-B"); err != nil {
-		// With UNIQUE(book_id, provider) this call overwrote A's row instead of adding B's.
 		t.Fatalf("user B upsert: %v", err)
 	}
 
@@ -113,7 +104,6 @@ func TestBookTrackerMappingIsPerUser(t *testing.T) {
 		}
 	}
 
-	// A third user has no mapping at all; a global row would hand them someone else's.
 	if _, err := repo.GetBookTrackerMapping(ctx, "user-c", "book-1", "anilist"); !apperrors.IsNotFound(err) {
 		t.Errorf("an unmapped user got a mapping: err = %v", err)
 	}

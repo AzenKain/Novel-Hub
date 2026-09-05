@@ -11,7 +11,16 @@ import {
   useUpdatePodcastMutation,
 } from "@/hooks";
 import type { Podcast } from "@/types";
-import { ArrowLeft, Check, Download, Plus, Podcast as PodcastIcon, RefreshCw, Rss, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  Plus,
+  Podcast as PodcastIcon,
+  RefreshCw,
+  Rss,
+  Trash2,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -23,7 +32,8 @@ function formatDuration(secs?: number | null): string {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
@@ -34,7 +44,9 @@ export const PodcastsPage: React.FC = () => {
   const [activePodcastId, setActivePodcastId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Podcast | null>(null);
 
-  const activeDownloads = usePodcastDownloadStore((state) => state.activeDownloads);
+  const activeDownloads = usePodcastDownloadStore(
+    (state) => state.activeDownloads,
+  );
 
   const podcastsQuery = usePodcastsQuery();
   const podcasts = podcastsQuery.data || [];
@@ -51,7 +63,8 @@ export const PodcastsPage: React.FC = () => {
   const downloadMutation = useDownloadEpisodeMutation(activePodcastId || "");
 
   useEffect(() => {
-    if (!activePodcastId && podcasts.length > 0) setActivePodcastId(podcasts[0].id);
+    if (!activePodcastId && podcasts.length > 0)
+      setActivePodcastId(podcasts[0].id);
   }, [activePodcastId, podcasts]);
 
   useEffect(() => {
@@ -68,19 +81,33 @@ export const PodcastsPage: React.FC = () => {
           setFeedURL("");
           if (podcast) setActivePodcastId(podcast.id);
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.subscribe_failed", "Failed to subscribe")),
+        onError: (err) =>
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t("podcasts.subscribe_failed", "Failed to subscribe"),
+          ),
       },
     );
   };
 
   const handleToggleAutoDownload = (podcast: Podcast) => {
-    updateMutation.mutate({ id: podcast.id, input: { auto_download: !podcast.auto_download } });
+    updateMutation.mutate({
+      id: podcast.id,
+      input: { auto_download: !podcast.auto_download },
+    });
   };
 
   const handleRefresh = (podcast: Podcast) => {
     refreshMutation.mutate(podcast.id, {
-      onSuccess: () => toast.success(t("podcasts.refresh_queued", "Refresh queued")),
-      onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.refresh_failed", "Failed to refresh")),
+      onSuccess: () =>
+        toast.success(t("podcasts.refresh_queued", "Refresh queued")),
+      onError: (err) =>
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t("podcasts.refresh_failed", "Failed to refresh"),
+        ),
     });
   };
 
@@ -88,8 +115,14 @@ export const PodcastsPage: React.FC = () => {
     downloadMutation.mutate(
       { episodeId, episodeTitle },
       {
-        onSuccess: () => toast.info(t("podcasts.download_queued", "Download queued")),
-        onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.download_failed", "Failed to enqueue download")),
+        onSuccess: () =>
+          toast.info(t("podcasts.download_queued", "Download queued")),
+        onError: (err) =>
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t("podcasts.download_failed", "Failed to enqueue download"),
+          ),
       },
     );
   };
@@ -102,7 +135,10 @@ export const PodcastsPage: React.FC = () => {
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5">
+            <Link
+              to="/"
+              className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5"
+            >
               <ArrowLeft className="h-4 w-4" />
               {t("library.back_to_library", "Back to Library")}
             </Link>
@@ -148,7 +184,11 @@ export const PodcastsPage: React.FC = () => {
             onClick={handleSubscribe}
             disabled={!feedURL.trim() || subscribeMutation.isPending}
           >
-            {subscribeMutation.isPending ? <span className="loading loading-spinner loading-xs" /> : <Plus className="w-4 h-4" />}
+            {subscribeMutation.isPending ? (
+              <span className="loading loading-spinner loading-xs" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
             {t("podcasts.subscribe", "Subscribe")}
           </button>
         </div>
@@ -159,8 +199,15 @@ export const PodcastsPage: React.FC = () => {
               <PodcastIcon className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-bold text-base text-base-content/80">{t("podcasts.empty", "No podcast feeds subscribed yet")}</p>
-              <p className="text-xs text-base-content/50 mt-1">{t("podcasts.empty_hint", "Paste an RSS feed URL above to subscribe to your favorite podcasts.")}</p>
+              <p className="font-bold text-base text-base-content/80">
+                {t("podcasts.empty", "No podcast feeds subscribed yet")}
+              </p>
+              <p className="text-xs text-base-content/50 mt-1">
+                {t(
+                  "podcasts.empty_hint",
+                  "Paste an RSS feed URL above to subscribe to your favorite podcasts.",
+                )}
+              </p>
             </div>
           </div>
         ) : (
@@ -179,7 +226,9 @@ export const PodcastsPage: React.FC = () => {
                 >
                   <div className="p-4 sm:p-5">
                     <div className="flex items-start gap-3.5">
-                      {podcast.cover_url && (podcast.cover_url.startsWith("http://") || podcast.cover_url.startsWith("https://")) ? (
+                      {podcast.cover_url &&
+                      (podcast.cover_url.startsWith("http://") ||
+                        podcast.cover_url.startsWith("https://")) ? (
                         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-base-200 shadow-2xs">
                           <img
                             src={podcast.cover_url}
@@ -187,10 +236,12 @@ export const PodcastsPage: React.FC = () => {
                             className="h-14 w-14 object-cover"
                             onError={(e) => {
                               e.currentTarget.style.display = "none";
-                              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                              e.currentTarget.nextElementSibling?.classList.remove(
+                                "hidden",
+                              );
                             }}
                           />
-                          <div className="hidden flex h-14 w-14 items-center justify-center bg-primary/10 text-primary">
+                          <div className="flex h-14 w-14 items-center justify-center bg-primary/10 text-primary">
                             <Rss className="h-6 w-6" />
                           </div>
                         </div>
@@ -200,14 +251,25 @@ export const PodcastsPage: React.FC = () => {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-bold text-base-content text-sm sm:text-base">{podcast.title}</h3>
-                        {podcast.author && <p className="truncate text-xs text-base-content/60 mt-0.5">{podcast.author}</p>}
+                        <h3 className="truncate font-bold text-base-content text-sm sm:text-base">
+                          {podcast.title}
+                        </h3>
+                        {podcast.author && (
+                          <p className="truncate text-xs text-base-content/60 mt-0.5">
+                            {podcast.author}
+                          </p>
+                        )}
                         <p className="text-xs text-base-content/50 mt-1">
-                          {t("podcasts.episode_count", "{{count}} episodes", { count: podcast.episode_count ?? 0 })}
+                          {t("podcasts.episode_count", "{{count}} episodes", {
+                            count: podcast.episode_count ?? 0,
+                          })}
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-base-200" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="mt-4 flex items-center justify-between pt-3 border-t border-base-200"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-base-content/70">
                         <input
                           type="checkbox"
@@ -223,7 +285,9 @@ export const PodcastsPage: React.FC = () => {
                           title={t("podcasts.refresh", "Refresh")}
                           onClick={() => handleRefresh(podcast)}
                         >
-                          <RefreshCw className={`h-4 w-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+                          <RefreshCw
+                            className={`h-4 w-4 ${refreshMutation.isPending ? "animate-spin" : ""}`}
+                          />
                         </button>
                         <button
                           className="btn btn-ghost btn-xs btn-square text-error rounded-lg hover:bg-error/10"
@@ -249,14 +313,20 @@ export const PodcastsPage: React.FC = () => {
                   <PodcastIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-base-content">{activePodcast.title}</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-base-content">
+                    {activePodcast.title}
+                  </h2>
                   {activePodcast.author && (
-                    <p className="text-xs text-base-content/60 truncate">{activePodcast.author}</p>
+                    <p className="text-xs text-base-content/60 truncate">
+                      {activePodcast.author}
+                    </p>
                   )}
                 </div>
               </div>
               <span className="text-xs font-semibold text-base-content/60 px-2.5 py-1 bg-base-200/70 rounded-lg">
-                {t("podcasts.episode_count", "{{count}} episodes", { count: episodes.length })}
+                {t("podcasts.episode_count", "{{count}} episodes", {
+                  count: episodes.length,
+                })}
               </span>
             </div>
 
@@ -266,54 +336,89 @@ export const PodcastsPage: React.FC = () => {
               </div>
             ) : episodes.length === 0 ? (
               <div className="p-12 text-center text-sm text-base-content/50">
-                {t("podcasts.no_episodes", "No episodes yet. Refresh to fetch the feed.")}
+                {t(
+                  "podcasts.no_episodes",
+                  "No episodes yet. Refresh to fetch the feed.",
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table table-sm sm:table-md">
                   <thead>
                     <tr className="border-b border-base-200 bg-base-200/40 text-xs font-bold uppercase tracking-wider text-base-content/60">
-                      <th className="py-3 pl-4 sm:pl-5">{t("common.title", "Title")}</th>
-                      <th className="py-3">{t("podcasts.duration", "Duration")}</th>
-                      <th className="py-3">{t("podcasts.published", "Published")}</th>
-                      <th className="py-3 pr-4 sm:pr-5 text-right">{t("podcasts.actions", "Actions")}</th>
+                      <th className="py-3 pl-4 sm:pl-5">
+                        {t("common.title", "Title")}
+                      </th>
+                      <th className="py-3">
+                        {t("podcasts.duration", "Duration")}
+                      </th>
+                      <th className="py-3">
+                        {t("podcasts.published", "Published")}
+                      </th>
+                      <th className="py-3 pr-4 sm:pr-5 text-right">
+                        {t("podcasts.actions", "Actions")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-base-200">
                     {episodes.map((ep) => {
                       const isDownloading = !!activeDownloads[ep.id];
                       return (
-                        <tr key={ep.id} className="hover:bg-base-200/30 transition-colors">
+                        <tr
+                          key={ep.id}
+                          className="hover:bg-base-200/30 transition-colors"
+                        >
                           <td className="py-3 pl-4 sm:pl-5">
                             <div className="flex items-center gap-2">
-                              <span className="truncate font-medium max-w-xs sm:max-w-md">{ep.title}</span>
+                              <span className="truncate font-medium max-w-xs sm:max-w-md">
+                                {ep.title}
+                              </span>
                               {ep.downloaded ? (
-                                <span className="badge badge-success badge-sm">{t("podcasts.downloaded", "Downloaded")}</span>
+                                <span className="badge badge-success badge-sm">
+                                  {t("podcasts.downloaded", "Downloaded")}
+                                </span>
                               ) : isDownloading ? (
                                 <span className="badge badge-warning badge-sm gap-1 animate-pulse">
                                   <span className="loading loading-spinner loading-xs" />
-                                  {t("podcasts.downloading_short", "Downloading...")}
+                                  {t(
+                                    "podcasts.downloading_short",
+                                    "Downloading...",
+                                  )}
                                 </span>
                               ) : null}
                             </div>
                           </td>
-                          <td className="whitespace-nowrap text-xs text-base-content/70">{formatDuration(ep.duration_sec)}</td>
+                          <td className="whitespace-nowrap text-xs text-base-content/70">
+                            {formatDuration(ep.duration_sec)}
+                          </td>
                           <td className="whitespace-nowrap text-xs text-base-content/60">
-                            {ep.published_at ? new Date(ep.published_at).toLocaleDateString() : "—"}
+                            {ep.published_at
+                              ? new Date(ep.published_at).toLocaleDateString()
+                              : "—"}
                           </td>
                           <td className="text-right py-3 pr-4 sm:pr-5">
                             {ep.downloaded ? (
                               <span className="text-xs text-success font-medium inline-flex items-center gap-1 px-1">
                                 <Check className="h-4 w-4" />
-                                <span className="hidden sm:inline">{t("podcasts.downloaded", "Downloaded")}</span>
+                                <span className="hidden sm:inline">
+                                  {t("podcasts.downloaded", "Downloaded")}
+                                </span>
                               </span>
                             ) : isDownloading ? (
                               <div
                                 className="inline-flex items-center gap-1 text-warning text-xs font-medium px-2 py-1 bg-warning/10 rounded-lg animate-pulse"
-                                title={t("podcasts.downloading", "Downloading episode...")}
+                                title={t(
+                                  "podcasts.downloading",
+                                  "Downloading episode...",
+                                )}
                               >
                                 <span className="loading loading-spinner loading-xs" />
-                                <span className="hidden sm:inline">{t("podcasts.downloading_short", "Downloading...")}</span>
+                                <span className="hidden sm:inline">
+                                  {t(
+                                    "podcasts.downloading_short",
+                                    "Downloading...",
+                                  )}
+                                </span>
                               </div>
                             ) : (
                               <button
@@ -341,16 +446,25 @@ export const PodcastsPage: React.FC = () => {
         <DeleteConfirmModal
           open={!!deleteTarget}
           title={t("podcasts.delete_title", "Delete Podcast")}
-          message={t("podcasts.delete_confirm", "Delete this podcast and its episodes? Download episodes already imported as books are kept.")}
+          message={t(
+            "podcasts.delete_confirm",
+            "Delete this podcast and its episodes? Download episodes already imported as books are kept.",
+          )}
           onClose={() => setDeleteTarget(null)}
           onConfirm={() => {
             deleteMutation.mutate(deleteTarget.id, {
               onSuccess: () => {
                 toast.success(t("podcasts.deleted", "Podcast deleted"));
-                if (activePodcastId === deleteTarget.id) setActivePodcastId(podcasts[0]?.id ?? null);
+                if (activePodcastId === deleteTarget.id)
+                  setActivePodcastId(podcasts[0]?.id ?? null);
                 setDeleteTarget(null);
               },
-              onError: (err) => toast.error(err instanceof Error ? err.message : t("podcasts.delete_failed", "Failed to delete podcast")),
+              onError: (err) =>
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : t("podcasts.delete_failed", "Failed to delete podcast"),
+                ),
             });
           }}
           loading={deleteMutation.isPending}

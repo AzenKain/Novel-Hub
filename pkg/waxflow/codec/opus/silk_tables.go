@@ -1,17 +1,9 @@
 package opus
 
-// SILK constants and table wiring, ported from libopus silk/define.h,
-// silk/tables_*.c, silk/structs.h, and silk/resampler_rom.h.
-// The raw numeric tables live in silk_tables_gen.go (mechanically
-// extracted); this file holds the constants, the NLSF codebook descriptors,
-// and the pointer-array tables that reference the generated arrays.
-
-// SILK_FIX_CONST(C, Q): the reference's compile-time float-to-fixed constant.
 func silkFixConst(c float64, q uint) int32 {
 	return int32(c*float64(int64(1)<<q) + 0.5)
 }
 
-// Constants from silk/define.h and silk/pitch_est_defines.h.
 const (
 	silkMaxLPCOrder  = 16
 	silkMinLPCOrder  = 10
@@ -19,14 +11,14 @@ const (
 	silkMaxNBSubfr   = 4
 	silkSubFrameMS   = 5
 	silkLTPMemMS     = 20
-	silkMaxFrameLen  = 320 // MAX_FRAME_LENGTH_MS(20) * MAX_FS_KHZ(16)
-	silkMaxSubfrLen  = 80  // SUB_FRAME_LENGTH_MS(5) * MAX_FS_KHZ(16)
-	shellFrameLen    = 16  // SHELL_CODEC_FRAME_LENGTH
+	silkMaxFrameLen  = 320
+	silkMaxSubfrLen  = 80
+	shellFrameLen    = 16
 	log2ShellFrame   = 4
 	maxNBShellBlocks = silkMaxFrameLen / shellFrameLen
 	nRateLevels      = 10
 	silkMaxPulses    = 16
-	nlsfQuantMaxAmp  = 4 // NLSF_QUANT_MAX_AMPLITUDE
+	nlsfQuantMaxAmp  = 4
 	quantLevelAdjQ10 = 80
 	nLevelsQGain     = 64
 	minQGainDB       = 2
@@ -53,7 +45,6 @@ const (
 	peMaxLagMS   = 18
 )
 
-// nlsfCB is the NLSF codebook descriptor (silk_NLSF_CB_struct).
 type nlsfCB struct {
 	nVectors, order    int
 	quantStepSizeQ16   int32
@@ -68,8 +59,6 @@ type nlsfCB struct {
 	deltaMinQ15        []int16
 }
 
-// silkNLSFCBNBMB and silkNLSFCBWB wire the generated tables into codebook
-// descriptors (silk/tables_NLSF_CB_NB_MB.c, silk/tables_NLSF_CB_WB.c).
 var silkNLSFCBNBMB = &nlsfCB{
 	nVectors: 32, order: 10,
 	quantStepSizeQ16:   silkFixConst(0.18, 16),
@@ -98,14 +87,12 @@ var silkNLSFCBWB = &nlsfCB{
 	deltaMinQ15:        silk_NLSF_DELTA_MIN_WB_Q15,
 }
 
-// Pointer-array tables (silk/tables_LTP.c, silk/tables_other.c).
 var silkLTPGainICDFPtrs = [][]uint8{silk_LTP_gain_iCDF_0, silk_LTP_gain_iCDF_1, silk_LTP_gain_iCDF_2}
 var silkLTPVQPtrsQ7 = [][][]int8{silk_LTP_gain_vq_0, silk_LTP_gain_vq_1, silk_LTP_gain_vq_2}
 var silkLBRRFlagsICDFPtr = [][]uint8{silk_LBRR_flags_2_iCDF, silk_LBRR_flags_3_iCDF}
 
-// Resampler constants (silk/resampler_rom.h, silk/resampler_private.h).
 const (
 	resamplerOrderFIR12 = 8
 	resamplerMaxBatchMS = 10
-	resamplerMaxFsKHz   = 48 // RESAMPLER_MAX_FS_KHZ (decoder side, up to 48k out)
+	resamplerMaxFsKHz   = 48
 )

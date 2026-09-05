@@ -157,7 +157,7 @@ func TestConvertBookEnqueuesJob(t *testing.T) {
 	q := worker.NewQueue(1)
 	defer q.Stop()
 	var (
-		mu sync.Mutex
+		mu          sync.Mutex
 		gotPayloads []string
 	)
 	q.RegisterHandler(convertBookJobType, func(_ context.Context, _ string, payload string) error {
@@ -255,7 +255,6 @@ func TestExecuteConvertBookJobFull(t *testing.T) {
 	if !strings.Contains(string(data), "First paragraph of prose.") {
 		t.Errorf("output missing prose: %.200s", data)
 	}
-	// physical file must sit under the book dir, named from the source stem
 	if filepath.Base(path) != "source.fb2" {
 		t.Errorf("output filename = %q, want source.fb2", filepath.Base(path))
 	}
@@ -268,7 +267,6 @@ func TestExecuteConvertBookJobCleanupOnFailure(t *testing.T) {
 	booksDir := t.TempDir()
 	svc, db, fileRepo := newConvertTestService(t, booksDir)
 	bookID, bfID := seedConvertSource(t, db, fileRepo, booksDir)
-	// Point the source row at a nonexistent path so Convert fails mid-job.
 	if _, err := db.Exec(`UPDATE book_files SET path = '/nonexistent/source.txt' WHERE id = 'bf-1'`); err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +291,6 @@ func TestConvertBookOverwritesOnDuplicatePath(t *testing.T) {
 	if err := svc.ExecuteConvertBookJob(context.Background(), string(payload)); err != nil {
 		t.Fatalf("first run: %v", err)
 	}
-	// second run: deletes/replaces the first run file, so only one row remains
 	if err := svc.ExecuteConvertBookJob(context.Background(), string(payload)); err != nil {
 		t.Fatalf("second run: %v", err)
 	}
@@ -338,7 +335,6 @@ func TestConvertBookTargetUppercase(t *testing.T) {
 func TestConvertBookSourceFormatFromExt(t *testing.T) {
 	booksDir := t.TempDir()
 	svc, db, fileRepo := newConvertTestService(t, booksDir)
-	// seed a book_file whose format field is blank; Convert must derive it from the path
 	if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES ('lib-2', 'L')`); err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +393,6 @@ func TestBulkConvertBooksEnqueuesJobs(t *testing.T) {
 	svc, db, fileRepo := newConvertTestService(t, t.TempDir())
 	_, bfID := seedConvertSource(t, db, fileRepo, t.TempDir())
 
-	// Seed another book & file for bulk test
 	if _, err := db.Exec(`INSERT INTO books (id, library_id, title, status) VALUES ('b-2', 'lib-1', 'Convert Me 2', 'ready')`); err != nil {
 		t.Fatal(err)
 	}
@@ -426,7 +421,7 @@ func TestBulkConvertBooksEnqueuesJobs(t *testing.T) {
 	q := worker.NewQueue(2)
 	defer q.Stop()
 	var (
-		mu sync.Mutex
+		mu          sync.Mutex
 		gotPayloads []string
 	)
 	q.RegisterHandler(convertBookJobType, func(_ context.Context, _ string, payload string) error {

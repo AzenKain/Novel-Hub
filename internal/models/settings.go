@@ -28,28 +28,28 @@ type LibraryPolicy struct {
 }
 
 type PublicSettings struct {
-	Site                   SiteSettings        `json:"site"`
-	SidebarVisibleItems    []string            `json:"sidebar_visible_items"`
-	HomeSections           HomeSectionSettings `json:"home_sections"`
-	RegistrationEnabled    bool                `json:"registration_enabled"`
-	GuestLoginRequired     bool                `json:"guest_login_required"`
-	GuestAccess            LibraryPolicy       `json:"guest_access"`
-	GuestPermissions       []string            `json:"guest_permissions"`
-	EnableInBookSearch     bool                `json:"enable_in_book_search"`
-	EnableCustomFontUpload bool                `json:"enable_custom_font_upload"`
-	EnableAniListTracking  bool                `json:"enable_anilist_tracking"`
-	EnableHardcoverScrobbling bool             `json:"enable_hardcover_scrobbling"`
-	EnableAutoEnrich       bool                `json:"enable_auto_enrich"`
-	EnableWebpCover        bool                `json:"enable_webp_cover"`
-	RequireEmailVerify     bool                `json:"require_email_verify"`
-	PasswordResetEnabled   bool                `json:"password_reset_enabled"`
-	SMTPEnabled            bool                `json:"smtp_enabled"`
-	SetupCompleted         bool                `json:"setup_completed"`
-	AvailableSidebarItems  []string            `json:"available_sidebar_items"`
-	AvailableHomeSections  []string            `json:"available_home_sections"`
-	AvailableGuestModes    []string            `json:"available_guest_modes"`
-	ProxyAuthEnabled       bool                `json:"proxy_auth_enabled"`
-	OAuth                  OAuthSettingsPublic `json:"oauth"`
+	Site                      SiteSettings        `json:"site"`
+	SidebarVisibleItems       []string            `json:"sidebar_visible_items"`
+	HomeSections              HomeSectionSettings `json:"home_sections"`
+	RegistrationEnabled       bool                `json:"registration_enabled"`
+	GuestLoginRequired        bool                `json:"guest_login_required"`
+	GuestAccess               LibraryPolicy       `json:"guest_access"`
+	GuestPermissions          []string            `json:"guest_permissions"`
+	EnableInBookSearch        bool                `json:"enable_in_book_search"`
+	EnableCustomFontUpload    bool                `json:"enable_custom_font_upload"`
+	EnableAniListTracking     bool                `json:"enable_anilist_tracking"`
+	EnableHardcoverScrobbling bool                `json:"enable_hardcover_scrobbling"`
+	EnableAutoEnrich          bool                `json:"enable_auto_enrich"`
+	EnableWebpCover           bool                `json:"enable_webp_cover"`
+	RequireEmailVerify        bool                `json:"require_email_verify"`
+	PasswordResetEnabled      bool                `json:"password_reset_enabled"`
+	SMTPEnabled               bool                `json:"smtp_enabled"`
+	SetupCompleted            bool                `json:"setup_completed"`
+	AvailableSidebarItems     []string            `json:"available_sidebar_items"`
+	AvailableHomeSections     []string            `json:"available_home_sections"`
+	AvailableGuestModes       []string            `json:"available_guest_modes"`
+	ProxyAuthEnabled          bool                `json:"proxy_auth_enabled"`
+	OAuth                     OAuthSettingsPublic `json:"oauth"`
 }
 
 type OAuthProviderPublic struct {
@@ -99,15 +99,15 @@ type ProxyAuthSettings struct {
 }
 
 type RuntimeLimits struct {
-	UploadChunkBytes        int64 `json:"upload_chunk_bytes"`
-	UploadChunks            int   `json:"upload_chunks"`
-	UploadSessions          int   `json:"upload_sessions"`
-	UploadBytes             int64 `json:"upload_bytes"`
-	UploadSessionTTLSeconds int64 `json:"upload_session_ttl_seconds"`
-	CoverBytes              int64 `json:"cover_bytes"`
-	SiteAssetBytes          int64 `json:"site_asset_bytes"`
-	SoundscapeBytes         int64 `json:"soundscape_bytes"`
-	FontBytes               int64 `json:"font_bytes"`
+	UploadChunkBytes           int64 `json:"upload_chunk_bytes"`
+	UploadChunks               int   `json:"upload_chunks"`
+	UploadSessions             int   `json:"upload_sessions"`
+	UploadBytes                int64 `json:"upload_bytes"`
+	UploadSessionTTLSeconds    int64 `json:"upload_session_ttl_seconds"`
+	CoverBytes                 int64 `json:"cover_bytes"`
+	SiteAssetBytes             int64 `json:"site_asset_bytes"`
+	SoundscapeBytes            int64 `json:"soundscape_bytes"`
+	FontBytes                  int64 `json:"font_bytes"`
 	RateLimitAuth              int   `json:"rate_limit_auth"`
 	RateLimitAuthWindowSeconds int64 `json:"rate_limit_auth_window_seconds"`
 }
@@ -132,12 +132,12 @@ type SMTPSettings struct {
 
 type AdminSettings struct {
 	PublicSettings
-	Limits    RuntimeLimits      `json:"limits"`
-	Bounds    RuntimeLimitBounds `json:"bounds"`
-	SMTP      SMTPSettings       `json:"smtp"`
-	ServerURL string             `json:"server_url"`
-	ProxyAuth ProxyAuthSettings  `json:"proxy_auth"`
-	OAuth     OAuthSettingsAdmin `json:"oauth"`
+	Limits    RuntimeLimits          `json:"limits"`
+	Bounds    RuntimeLimitBounds     `json:"bounds"`
+	SMTP      SMTPSettings           `json:"smtp"`
+	ServerURL string                 `json:"server_url"`
+	ProxyAuth ProxyAuthSettings      `json:"proxy_auth"`
+	OAuth     OAuthSettingsAdmin     `json:"oauth"`
 	Hardcover HardcoverSettingsAdmin `json:"hardcover"`
 }
 

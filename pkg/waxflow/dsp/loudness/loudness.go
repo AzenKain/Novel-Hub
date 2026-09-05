@@ -1,21 +1,4 @@
-// Package loudness implements the ITU-R BS.1770-4 / EBU R128 loudness
-// meter behind the engine's analysis jobs: gated integrated loudness,
-// loudness range per EBU Tech 3342, and oversampled true peak. It is a
-// pure streaming analyzer over planar float32 PCM, not a pipeline
-// Stage: the meter consumes chunks and produces only numbers.
-//
-// Measurement follows the standard's structure: per-channel K-weighting
-// (two biquads derived for the meter's sample rate), mean-square energy
-// over 400 ms blocks hopped every 100 ms, a weighted channel sum
-// (surround positions raised, LFE excluded), and two-stage gating
-// (absolute at -70 LUFS, relative 10 LU under the ungated mean) for the
-// integrated value. The loudness range applies the same machinery to
-// 3 s windows with a 20 LU relative gate and takes the spread between
-// the 10th and 95th percentiles of the surviving distribution.
-//
-// Filter state and accumulation run in float64; chunks may be any
-// length, including a single sample. A Meter carries per-channel state
-// and is not safe for concurrent use.
+// Package loudness implements the ITU-R BS.1770-4 / EBU R128 loudness meter behind the engine's analysis jobs: gated integrated loudness, loudness range per EBU Tech 3342, and oversampled true peak.
 package loudness
 
 import (
@@ -28,50 +11,28 @@ import (
 )
 
 // Version identifies the meter algorithm revision (ADR-0004 style).
-// WaxFlow itself computes loudness fresh per job, but external callers
-// that persist measurements (WaxBin's catalog is the anticipated one)
-// should store it alongside their results so a meter revision
-// invalidates them.
 const Version = "r128-1"
 
-// The gating windows in 100 ms sub-blocks: both the 400 ms momentary
-// window and the 3 s short-term window advance on the common 100 ms hop
-// (75 percent overlap for momentary per BS.1770-4, the Tech 3342 update
-// rate for short-term), so the meter accumulates energy once per
-// sub-block and sums sub-blocks per window.
 const (
 	momSub = 4
 	stSub  = 30
 )
 
-// loudnessOffset calibrates block loudness: L = loudnessOffset +
-// 10 log10(power). The constant makes a 0 dBFS 997 Hz sine in one
-// channel read -3.01 LKFS, the BS.1770 anchor.
 const loudnessOffset = -0.691
 
-// absGate is the absolute gate in LUFS; blocks at or below it never
-// enter any measurement.
 const absGate = -70.0
 
-// absGatePower is the absolute gate as a linear channel-sum power, the
-// domain blocks are stored in.
 var absGatePower = math.Pow(10, (absGate-loudnessOffset)/10)
 
-// Meter measures one stream. Feed planar chunks to Process, call Flush
-// after the last one, then read the results. The result methods may
-// also be read mid-stream; only the true-peak tail depends on Flush.
-// Not safe for concurrent use.
+// Meter measures one stream.
 type Meter struct {
 	rate     int
 	channels int
-	weights  []float64 // BS.1770 channel weights; 0 excludes (LFE)
+	weights  []float64
 
-	shelf, hp biquad   // K-weighting stages, shared by all channels
-	state     []kState // per-channel filter memory
+	shelf, hp biquad
+	state     []kState
 
-	// The current 100 ms sub-block: subFill samples of each channel's
-	// K-weighted energy accumulated so far, and a per-channel ring of
-	// the last stSub completed sub-block energies the windows sum over.
 	subLen  int
 	subFill int
 	subAcc  []float64
@@ -79,22 +40,17 @@ type Meter struct {
 	ringPos int
 	ringCnt int64
 
-	// Channel-sum powers of every window that passed the absolute gate,
-	// kept whole for the relative gate: one float64 per 100 ms of audio.
-	blocks []float64 // 400 ms momentary, for Integrated
-	st     []float64 // 3 s short-term, for Range
+	blocks []float64
+	st     []float64
 
-	tp    *truePeak // nil above 192 kHz (no oversampling)
+	tp    *truePeak
 	maxSP float64
 	maxTP float64
 
 	flushed bool
 }
 
-// NewMeter returns a meter for the given sample rate, channel count, and
-// channel layout. Layout 0 assumes the first channels in canonical order
-// (mono, stereo, etc.). Returns an error for rate <= 0, channels <= 0,
-// or channels > 8.
+// NewMeter returns a meter for the given sample rate, channel count, and channel layout.
 func NewMeter(rate, channels int, layout audio.ChannelMask) (*Meter, error) {
 	if rate <= 0 {
 		return nil, waxerr.New(waxerr.CodeInvalidRequest,
@@ -112,15 +68,10 @@ func NewMeter(rate, channels int, layout audio.ChannelMask) (*Meter, error) {
 		channels: channels,
 		weights:  channelWeights(channels, layout),
 		state:    make([]kState, channels),
-		// One 100 ms sub-block, by integer division: a rate not divisible
-		// by ten (11025 Hz) yields a sub-block a fraction of a millisecond
-		// short, so gating windows skew by under 0.05 percent. The
-		// consumer rates are all multiples of ten; the skew is noted, not
-		// compensated.
-		subLen: max(rate/10, 1),
-		subAcc: make([]float64, channels),
-		ring:   make([][]float64, channels),
-		tp:     newTruePeak(rate, channels),
+		subLen:   max(rate/10, 1),
+		subAcc:   make([]float64, channels),
+		ring:     make([][]float64, channels),
+		tp:       newTruePeak(rate, channels),
 	}
 	m.shelf, m.hp = kWeighting(rate)
 	for c := range m.ring {
@@ -129,13 +80,6 @@ func NewMeter(rate, channels int, layout audio.ChannelMask) (*Meter, error) {
 	return m, nil
 }
 
-// channelWeights maps a layout onto per-channel BS.1770-4 weights,
-// assigning mask bits to channels in ascending bit order: LFE weight 0
-// (excluded from the sum), back and side positions 1.41, every other
-// position 1.0. Channels beyond the mask's assigned positions, and
-// positions the mask leaves unknown, default to 1.0. This matches the
-// mapping ffmpeg's ebur128 filter applies, so the differential oracle
-// and the meter agree on multichannel content.
 func channelWeights(channels int, layout audio.ChannelMask) []float64 {
 	w := make([]float64, channels)
 	for i := range w {
@@ -159,9 +103,7 @@ func channelWeights(channels int, layout audio.ChannelMask) []float64 {
 	return w
 }
 
-// Process consumes one chunk of planar float32 PCM: chans[c][i] is
-// sample i of channel c. All channel slices must be the same length.
-// Values are nominal full scale +-1.0.
+// Process consumes one chunk of planar float32 PCM: chans[c][i] is sample i of channel c.
 func (m *Meter) Process(chans [][]float32) error {
 	if m.flushed {
 		return waxerr.New(waxerr.CodeInvalidRequest, "loudness: Process after Flush")
@@ -176,8 +118,6 @@ func (m *Meter) Process(chans [][]float32) error {
 			return waxerr.New(waxerr.CodeInvalidRequest, "loudness: channel slices differ in length")
 		}
 	}
-	// Walk the chunk in segments bounded by sub-block edges, so window
-	// accounting happens between segments and never inside the hot loop.
 	for off := 0; off < n; {
 		take := n - off
 		if rem := m.subLen - m.subFill; take > rem {
@@ -195,8 +135,6 @@ func (m *Meter) Process(chans [][]float32) error {
 	return nil
 }
 
-// consume runs one channel's segment through the peak trackers and the
-// K-weighting chain, accumulating the current sub-block's energy.
 func (m *Meter) consume(c int, seg []float32) {
 	st := &m.state[c]
 	acc := m.subAcc[c]
@@ -214,7 +152,6 @@ func (m *Meter) consume(c int, seg []float32) {
 		} else if a > maxTP {
 			maxTP = a
 		}
-		// The two K-weighting stages, direct form II transposed.
 		y := m.shelf.b0*x + st.s1a
 		st.s1a = m.shelf.b1*x - m.shelf.a1*y + st.s1b
 		st.s1b = m.shelf.b2*x - m.shelf.a2*y
@@ -227,9 +164,6 @@ func (m *Meter) consume(c int, seg []float32) {
 	m.maxSP, m.maxTP = maxSP, maxTP
 }
 
-// finishSubBlock retires the completed 100 ms sub-block into the ring
-// and emits whichever windows it completes, keeping only powers past
-// the absolute gate (blocks below it can never contribute).
 func (m *Meter) finishSubBlock() {
 	for c := range m.subAcc {
 		m.ring[c][m.ringPos] = m.subAcc[c]
@@ -250,10 +184,6 @@ func (m *Meter) finishSubBlock() {
 	}
 }
 
-// windowPower is the weighted channel-sum mean square over the last n
-// sub-blocks: the value inside BS.1770's 10 log10, before the offset.
-// Each window re-sums its sub-blocks from the ring, so no running sum
-// can drift over long streams.
 func (m *Meter) windowPower(n int) float64 {
 	var sum float64
 	for c, w := range m.weights {
@@ -270,11 +200,7 @@ func (m *Meter) windowPower(n int) float64 {
 	return sum / float64(n*m.subLen)
 }
 
-// Flush finalizes measurement. The loudness windows advance on whole
-// 100 ms sub-blocks (a partial final sub-block is discarded, matching
-// the standard's complete-block gating), so the only buffered state is
-// the true-peak interpolator's half-window tail; Flush drains it. Flush
-// is idempotent; Process must not be called after it.
+// Flush finalizes measurement.
 func (m *Meter) Flush() {
 	if m.flushed {
 		return
@@ -287,9 +213,7 @@ func (m *Meter) Flush() {
 	}
 }
 
-// Integrated returns the gated integrated loudness in LUFS per
-// BS.1770-4. Returns math.Inf(-1) when no block passed the absolute
-// gate (silence).
+// Integrated returns the gated integrated loudness in LUFS per BS.1770-4.
 func (m *Meter) Integrated() float64 {
 	if len(m.blocks) == 0 {
 		return math.Inf(-1)
@@ -298,20 +222,6 @@ func (m *Meter) Integrated() float64 {
 	for _, p := range m.blocks {
 		sum += p
 	}
-	// The relative gate sits 10 LU below the power mean of the
-	// absolute-gated blocks: a factor 10 in power, the loudness offset
-	// cancelling on both sides of the comparison.
-	//
-	// Strictly greater, which is BS.1770-4's own formula; Range uses >=,
-	// which is what libebur128 and ffmpeg use at both gates (ffmpeg's
-	// f_ebur128.c carries a comment on the same split: "example code in
-	// EBU 3342 is >= but formula in BS.1770 specs is >"). The asymmetry
-	// here is inherited rather than reasoned, and it is left alone rather
-	// than tidied because it cannot change a reading: it takes a block
-	// power exactly equal to a mean divided by ten, in float64, to
-	// separate the two, and unifying them would still spend a Version
-	// bump (ADR-0004) invalidating every stored measurement to move
-	// nothing.
 	thresh := sum / float64(len(m.blocks)) / 10
 	var gated float64
 	var n int
@@ -327,15 +237,7 @@ func (m *Meter) Integrated() float64 {
 	return loudnessOffset + 10*math.Log10(gated/float64(n))
 }
 
-// Range returns the loudness range (LRA) in LU per EBU Tech 3342,
-// verified against the document's four test cases (see
-// TestEBUTech3342Vectors).
-//
-// Returns 0 when there is not enough audio to have a range, which covers
-// two cases that both mean "no answer" rather than "no spread": under 3 s
-// of input completes no short-term window at all, and a single surviving
-// window has nothing to take a spread across. Callers reporting LRA on
-// short material should read it as absent, not as zero dynamic range.
+// Range returns the loudness range (LRA) in LU per EBU Tech 3342, verified against the document's four test cases (see TestEBUTech3342Vectors).
 func (m *Meter) Range() float64 {
 	if len(m.st) == 0 {
 		return 0
@@ -344,8 +246,6 @@ func (m *Meter) Range() float64 {
 	for _, p := range m.st {
 		sum += p
 	}
-	// Tech 3342 gates 20 LU below the power mean, a factor 100. The
-	// comparison is >= where Integrated's is >; see the note there.
 	thresh := sum / float64(len(m.st)) / 100
 	gated := make([]float64, 0, len(m.st))
 	for _, p := range m.st {
@@ -362,33 +262,16 @@ func (m *Meter) Range() float64 {
 	return 10 * math.Log10(hi/lo)
 }
 
-// percentileIndex is the nearest-rank index into n sorted values,
-// index = round(f*(n-1)), the libebur128 convention.
-//
-// ffmpeg's ebur128 filter ranks differently, and that is the larger half
-// of why the two disagree on real material: it bins every short-term
-// loudness into a fixed 0.01 LU histogram (floored, and the gate position
-// floored onto the same grid), then walks the bins until the cumulative
-// count reaches round(f*n) -- one rank off this, against a quantized
-// value. Both differences are small where the distribution is smooth
-// through the percentile and grow where it is steep, which is why
-// synthetic material agrees to a fraction of an LU while real music can
-// separate by half of one. Neither is more correct: Tech 3342 specifies
-// the quantity to +-1 LU and the vectors are what settle conformance.
 func percentileIndex(n int, f float64) int {
 	return int(f*float64(n-1) + 0.5)
 }
 
-// TruePeak returns the maximum true-peak level in dBTP (oversampled per
-// BS.1770-4 Annex 2; rates above 192 kHz are dense enough that the
-// sample grid is used directly). Complete only after Flush, which
-// drains the interpolator tail. Returns math.Inf(-1) for silence.
+// TruePeak returns the maximum true-peak level in dBTP (oversampled per BS.1770-4 Annex 2; rates above 192 kHz are dense enough that the sample grid is used directly).
 func (m *Meter) TruePeak() float64 {
 	return dbOrNegInf(m.maxTP)
 }
 
-// SamplePeak returns the maximum absolute sample level in dBFS, or
-// math.Inf(-1) for silence.
+// SamplePeak returns the maximum absolute sample level in dBFS, or math.Inf(-1) for silence.
 func (m *Meter) SamplePeak() float64 {
 	return dbOrNegInf(m.maxSP)
 }

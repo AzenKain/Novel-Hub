@@ -134,14 +134,20 @@ export function SchedulesTab() {
           className="btn btn-sm btn-ghost gap-1.5"
           disabled={schedules.isFetching}
           onClick={async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin", "schedules"] });
-            await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "schedules"],
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "job_tasks"],
+            });
             await Promise.all([schedules.refetch(), tasks.refetch()]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
           title={t("admin.operations.refresh")}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${schedules.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${schedules.isFetching ? "animate-spin" : ""}`}
+          />
           <span>{t("admin.operations.refresh")}</span>
         </button>
       </div>
@@ -225,7 +231,10 @@ export function SchedulesTab() {
       <ConfirmModal
         open={deleteScheduleId !== null}
         title={t("admin.operations.confirm_delete_title", "Delete Schedule")}
-        message={t("admin.operations.confirm_delete", "Are you sure you want to delete this schedule?")}
+        message={t(
+          "admin.operations.confirm_delete",
+          "Are you sure you want to delete this schedule?",
+        )}
         onClose={() => setDeleteScheduleId(null)}
         onConfirm={handleConfirmDelete}
         variant="danger"

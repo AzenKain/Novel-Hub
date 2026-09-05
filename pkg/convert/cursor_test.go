@@ -5,10 +5,7 @@ import (
 	"time"
 )
 
-// DecodeCursor split on the first comma, so any sort value containing one produced fewer or more
-// than two parts and the caller treated the cursor as absent — serving page 1 again. Author names
-// are the live case: "Surname, Given" is the standard dc:creator form, and the EPUB parser joins
-// multiple creators with ", ".
+// DecodeCursor split on the first comma, so any sort value containing one produced fewer or more than two parts and the caller treated the cursor as absent — serving page 1 again.
 func TestCursorSurvivesCommasInTheSortValue(t *testing.T) {
 	const id = "01920000-0000-7000-8000-000000000001"
 

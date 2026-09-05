@@ -76,7 +76,6 @@ func TestWebDAVService_ResolvePathAndGetBookFile(t *testing.T) {
 	svc := NewWebDAVService(libService, bookService, perms, settings)
 	ctx := context.Background()
 
-	// 1. Test Root Path (Depth 0)
 	rootNodes, err := svc.ResolvePath(ctx, "/", nil, 0)
 	if err != nil {
 		t.Fatalf("ResolvePath root failed: %v", err)
@@ -85,24 +84,22 @@ func TestWebDAVService_ResolvePathAndGetBookFile(t *testing.T) {
 		t.Fatalf("expected 1 root node, got: %#v", rootNodes)
 	}
 
-	// 2. Test Root Path (Depth 1)
 	rootChildren, err := svc.ResolvePath(ctx, "/", nil, 1)
 	if err != nil {
 		t.Fatalf("ResolvePath root depth 1 failed: %v", err)
 	}
-	if len(rootChildren) != 2 { // root + 1 library
+	if len(rootChildren) != 2 {
 		t.Fatalf("expected 2 nodes, got %d", len(rootChildren))
 	}
 	if rootChildren[1].Href != "/webdav/Light Novels/" || rootChildren[1].DisplayName != "Light Novels" {
 		t.Fatalf("unexpected library node: %#v", rootChildren[1])
 	}
 
-	// 3. Test Library Path (Depth 1)
 	libNodes, err := svc.ResolvePath(ctx, "/Light Novels", nil, 1)
 	if err != nil {
 		t.Fatalf("ResolvePath library failed: %v", err)
 	}
-	if len(libNodes) != 2 { // library + 1 book file
+	if len(libNodes) != 2 {
 		t.Fatalf("expected 2 nodes for library, got %d", len(libNodes))
 	}
 	if libNodes[1].Href != "/webdav/Light Novels/Overlord Vol 1.epub" {
@@ -112,7 +109,6 @@ func TestWebDAVService_ResolvePathAndGetBookFile(t *testing.T) {
 		t.Fatalf("unexpected ContentType: %s", libNodes[1].ContentType)
 	}
 
-	// 4. Test Single File Path
 	fileNodes, err := svc.ResolvePath(ctx, "/Light Novels/Overlord Vol 1.epub", nil, 0)
 	if err != nil {
 		t.Fatalf("ResolvePath file failed: %v", err)
@@ -121,7 +117,6 @@ func TestWebDAVService_ResolvePathAndGetBookFile(t *testing.T) {
 		t.Fatalf("unexpected single file node: %#v", fileNodes)
 	}
 
-	// 5. Test GetBookFile
 	filePath, mimeType, downloadName, err := svc.GetBookFile(ctx, "/Light Novels/Overlord Vol 1.epub", nil)
 	if err != nil {
 		t.Fatalf("GetBookFile failed: %v", err)
@@ -136,7 +131,6 @@ func TestWebDAVService_ResolvePathAndGetBookFile(t *testing.T) {
 		t.Fatalf("expected Overlord Vol 1.epub, got %s", downloadName)
 	}
 
-	// 6. Test WebDAV Permission Denial
 	perms.allow = false
 	if _, err := svc.ResolvePath(ctx, "/", nil, 0); err == nil {
 		t.Fatal("expected forbidden error when user lacks webdav.read permission")

@@ -1,23 +1,11 @@
 package opus
 
-// SILK resampler, ported from libopus silk/resampler.c,
-// resampler_private_up2_HQ.c, resampler_private_IIR_FIR.c,
-// resampler_private_down_FIR.c, and resampler_private_AR2.c.
-// The decoder upsamples SILK's internal 8/12/16 kHz rate to the 48 kHz output
-// (always the IIR_FIR flavor: a 2x HQ IIR upsample followed by a 12-phase
-// fractional FIR). The encoder runs the opposite direction, 48 kHz API input
-// down to the internal rate, which is always the down-FIR flavor (a
-// second-order AR filter followed by FIR interpolation).
-
-// delayMatrixDec[rateID(in)][rateID(out)] is the resampler input delay
-// (silk/resampler.c). rateID(48000) == 4.
 var delayMatrixDec = [3][6]int8{
 	{4, 0, 2, 0, 0, 0},
 	{0, 9, 4, 7, 4, 4},
 	{0, 3, 12, 7, 7, 7},
 }
 
-// delayMatrixEnc[rateID(in)][rateID(out)] is the encoder-direction input delay.
 var delayMatrixEnc = [6][3]int8{
 	{6, 0, 3},
 	{0, 7, 3},
@@ -27,7 +15,6 @@ var delayMatrixEnc = [6][3]int8{
 	{0, 0, 44},
 }
 
-// rateID maps a sample rate to its delay-matrix column (silk/resampler.c).
 func rateID(r int) int {
 	id := (((r >> 12) - b2iRate(r > 16000)) >> b2iRate(r > 24000)) - 1
 	if id > 5 {
@@ -43,7 +30,6 @@ func b2iRate(b bool) int {
 	return 0
 }
 
-// Resampler flavors (silk/resampler.c USE_silk_resampler_*).
 const (
 	resamplerCopy = iota
 	resamplerUp2HQWrapper
@@ -51,7 +37,6 @@ const (
 	resamplerDownFIR
 )
 
-// Down-FIR orders (silk/resampler_structs.h).
 const (
 	resamplerDownOrderFIR0 = 18
 	resamplerDownOrderFIR1 = 24
@@ -59,7 +44,6 @@ const (
 	resamplerMaxFIROrder   = 36
 )
 
-// silkResampler holds one channel's resampler state (silk_resampler_state_struct).
 type silkResampler struct {
 	sIIR        [6]int32
 	sFIR16      [resamplerMaxFIROrder]int16
@@ -76,9 +60,6 @@ type silkResampler struct {
 	coefs       []int16
 }
 
-// init configures the resampler for the given input/output rates (Hz).
-// forEnc selects the encoder direction (downsampling to 8/12/16 kHz);
-// otherwise the decoder direction (upsampling from 8/12/16 kHz).
 func (S *silkResampler) init(fsInHz, fsOutHz int, forEnc bool) {
 	*S = silkResampler{}
 	if forEnc {
@@ -137,7 +118,6 @@ func (S *silkResampler) init(fsInHz, fsOutHz int, forEnc bool) {
 	}
 }
 
-// resample resamples inLen input samples to out (silk_resampler).
 func (S *silkResampler) resample(out, in []int16, inLen int) {
 	nSamples := S.fsInKHz - S.inputDelay
 	copy(S.delayBuf[S.inputDelay:S.fsInKHz], in[:nSamples])
@@ -158,14 +138,10 @@ func (S *silkResampler) resample(out, in []int16, inLen int) {
 	copy(S.delayBuf[:S.inputDelay], in[inLen-S.inputDelay:inLen])
 }
 
-// up2HQWrapper is the exact-2x upsampling flavor
-// (silk_resampler_private_up2_HQ_wrapper).
 func (S *silkResampler) up2HQWrapper(out, in []int16, inLen int) {
 	silkResamplerUp2HQ(S.sIIR[:], out, in, inLen)
 }
 
-// iirFIR runs the 2x HQ upsampler then the fractional FIR interpolation
-// (silk_resampler_private_IIR_FIR).
 func (S *silkResampler) iirFIR(out, in []int16, inLen int) {
 	buf := make([]int16, resamplerOrderFIR12+2*S.batchSize)
 	copy(buf[:resamplerOrderFIR12], S.sFIR16[:resamplerOrderFIR12])
@@ -191,8 +167,6 @@ func (S *silkResampler) iirFIR(out, in []int16, inLen int) {
 	copy(S.sFIR16[:resamplerOrderFIR12], buf[nSamplesIn<<1:])
 }
 
-// iirFIRInterpol applies the 12-phase fractional FIR and returns the number of
-// output samples written (silk_resampler_private_IIR_FIR_INTERPOL).
 func iirFIRInterpol(out []int16, buf []int16, maxIndexQ16, indexIncQ16 int32) int {
 	n := 0
 	for indexQ16 := int32(0); indexQ16 < maxIndexQ16; indexQ16 += indexIncQ16 {
@@ -212,8 +186,6 @@ func iirFIRInterpol(out []int16, buf []int16, maxIndexQ16, indexIncQ16 int32) in
 	return n
 }
 
-// downFIR runs the second-order AR filter then FIR interpolation
-// (silk_resampler_private_down_FIR).
 func (S *silkResampler) downFIR(out, in []int16, inLen int) {
 	buf := make([]int32, S.batchSize+S.firOrder)
 	copy(buf[:S.firOrder], S.sFIR32[:S.firOrder])
@@ -240,8 +212,6 @@ func (S *silkResampler) downFIR(out, in []int16, inLen int) {
 	copy(S.sFIR32[:S.firOrder], buf[nSamplesIn:])
 }
 
-// silkResamplerAR2 is the second-order AR filter with single delay elements
-// (silk_resampler_private_AR2). Output is Q8.
 func silkResamplerAR2(S []int32, outQ8 []int32, in []int16, aQ14 []int16, length int) {
 	for k := 0; k < length; k++ {
 		out32 := S[0] + silkLSHIFT(int32(in[k]), 8)
@@ -252,8 +222,6 @@ func silkResamplerAR2(S []int32, outQ8 []int32, in []int16, aQ14 []int16, length
 	}
 }
 
-// downFIRInterpol applies the down-FIR interpolation and returns the number of
-// output samples written (silk_resampler_private_down_FIR_INTERPOL).
 func downFIRInterpol(out []int16, buf []int32, firCoefs []int16, firOrder, firFracs int, maxIndexQ16, indexIncQ16 int32) int {
 	n := 0
 	switch firOrder {
@@ -297,8 +265,6 @@ func downFIRInterpol(out []int16, buf []int32, firCoefs []int16, firOrder, firFr
 	return n
 }
 
-// silkResamplerUp2HQ is the 2x high-quality IIR upsampler
-// (silk_resampler_private_up2_HQ). S is the 6-element IIR state.
 func silkResamplerUp2HQ(S []int32, out, in []int16, length int) {
 	for k := 0; k < length; k++ {
 		in32 := silkLSHIFT(int32(in[k]), 10)

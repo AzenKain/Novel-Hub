@@ -53,4 +53,3 @@ type ToggleKidsModeDto struct {
 	Enable bool   `json:"enable"`
 	Pin    string `json:"pin,omitempty" validate:"omitempty,len=6,numeric"`
 }
-

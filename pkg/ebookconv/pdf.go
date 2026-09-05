@@ -102,9 +102,6 @@ func (w *pdfWriter) gid(r rune) uint16 {
 	w.glyphIDs[r] = id
 	if _, ok := w.widths[id]; !ok {
 		adv, _ := w.font.GlyphAdvance(w.buf, index, fixed.I(w.upem), font.HintingNone)
-		// PDF /W is in per-mille of the em square; GlyphAdvance at ppem=upem
-		// returns font design units, so scale by 1000/upem. Without this the
-		// widths are ~2x too big and a reader spaces every glyph apart.
 		w.widths[id] = int(adv)>>6*1000 + w.upem/2
 		w.widths[id] /= w.upem
 		w.unicode[id] = r

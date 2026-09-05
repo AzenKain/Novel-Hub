@@ -19,7 +19,6 @@ import (
 	"novelhub/pkg/worker"
 )
 
-// A nil queue makes DispatchEvent a silent no-op, so the queue must be real here.
 func jobFailedHarness(t *testing.T) (*jobService, <-chan string) {
 	t.Helper()
 	t.Setenv("DB_ENCRYPTION_KEY", "job-failed-test-key")
@@ -106,8 +105,7 @@ func TestJobFailedDispatchesWebhookOnce(t *testing.T) {
 	}
 }
 
-// Failed must record the status even with no webhook service injected. Queued instead of Trigger:
-// Trigger hands the job to the worker, whose Completed overwrites the "failed" this asserts on.
+// Failed must record the status even with no webhook service injected.
 func TestJobFailedStillRecordsWithoutWebhookService(t *testing.T) {
 	service, _ := jobFailedHarness(t)
 	service.SetWebhookService(nil)

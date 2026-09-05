@@ -39,9 +39,7 @@ type ReadingGoalResponse struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
-// Rule is the parsed rule, never the stored JSON string — clients build a library
-// URL straight from these fields. Reusing the request DTO keeps the shape defined
-// in exactly one place; request imports nothing from here, so there is no cycle.
+// Rule is the parsed rule, never the stored JSON string — clients build a library URL straight from these fields.
 type SmartCollectionResponse struct {
 	ID        string                         `json:"id"`
 	UserID    string                         `json:"user_id"`
@@ -82,12 +80,12 @@ type NameCountResponse struct {
 }
 
 type LibraryBreakdownResponse struct {
-	Formats    []NameCountResponse   `json:"formats"`
-	Tags       []NameCountResponse   `json:"tags"`
-	Authors    []NameCountResponse   `json:"authors"`
-	Publishers []NameCountResponse   `json:"publishers"`
-	Languages  []NameCountResponse   `json:"languages"`
-	Listening  []ListeningMonthCount `json:"listening"`
+	Formats     []NameCountResponse   `json:"formats"`
+	Tags        []NameCountResponse   `json:"tags"`
+	Authors     []NameCountResponse   `json:"authors"`
+	Publishers  []NameCountResponse   `json:"publishers"`
+	Languages   []NameCountResponse   `json:"languages"`
+	Listening   []ListeningMonthCount `json:"listening"`
 	AvgSpeedWpm float64               `json:"avg_speed_wpm"`
 }
 
@@ -215,13 +213,13 @@ type ReadingActivityResponse struct {
 }
 
 type SmartFilterResponse struct {
-	ID              string                         `json:"id"`
-	UserID          string                         `json:"user_id"`
-	Name            string                         `json:"name"`
+	ID              string                           `json:"id"`
+	UserID          string                           `json:"user_id"`
+	Name            string                           `json:"name"`
 	Rules           []request.SmartFilterRuleItemDto `json:"rules"`
-	IsPinnedSidebar bool                           `json:"is_pinned_sidebar"`
-	IsPinnedHome    bool                           `json:"is_pinned_home"`
-	HomePosition    int64                          `json:"home_position"`
-	CreatedAt       time.Time                      `json:"created_at"`
-	UpdatedAt       time.Time                      `json:"updated_at"`
+	IsPinnedSidebar bool                             `json:"is_pinned_sidebar"`
+	IsPinnedHome    bool                             `json:"is_pinned_home"`
+	HomePosition    int64                            `json:"home_position"`
+	CreatedAt       time.Time                        `json:"created_at"`
+	UpdatedAt       time.Time                        `json:"updated_at"`
 }

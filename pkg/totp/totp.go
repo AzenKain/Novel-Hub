@@ -53,8 +53,7 @@ func Generate(secret string, now time.Time) (string, error) {
 	return codeAt(key, uint64(now.Unix())/uint64(Period/time.Second)), nil
 }
 
-// Returns the matched step counter so the caller can reject a replay: a code stays valid for
-// the whole window, which is long enough for a shoulder-surfed code to be used twice.
+// Returns the matched step counter so the caller can reject a replay: a code stays valid for the whole window, which is long enough for a shoulder-surfed code to be used twice.
 func ValidateWithCounter(secret, code string, now time.Time) (uint64, bool) {
 	key, err := encoding.DecodeString(strings.ToUpper(strings.TrimSpace(secret)))
 	if err != nil || len(key) == 0 {

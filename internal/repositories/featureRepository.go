@@ -91,11 +91,7 @@ func NewFeatureRepository(db *sql.DB, c cache.Cache) FeatureRepository {
 	}
 }
 
-// The transactional copy gets its own singleflight group and writes nothing to the cache
-// (inTx guards every Set). Sharing the parent's group let a plain reader join a call already
-// in flight inside the transaction and receive a row that was not committed yet — which then
-// vanished on rollback while the cache kept serving it. Both halves are needed: gating the
-// writes alone still leaks through the shared group, and vice versa.
+// The transactional copy gets its own singleflight group and writes nothing to the cache (inTx guards every Set).
 func (r *featureRepository) WithTx(tx *sql.Tx) FeatureRepository {
 	if tx == nil {
 		return r
@@ -1019,7 +1015,6 @@ func (r *featureRepository) getBookReviewsByCompositeKeys(ctx context.Context, k
 
 	cacheKeys := make([]string, len(keys))
 	for i, k := range keys {
-		// Keys are "<userID>:<bookID>"; both are UUIDs, so they never contain a colon.
 		userID, bookID, ok := strings.Cut(k, ":")
 		if !ok || userID == "" || bookID == "" {
 			return nil, false
@@ -1416,7 +1411,7 @@ func (r *featureRepository) DeleteSmartCollection(ctx context.Context, id string
 
 func (r *featureRepository) ListSmartFilters(ctx context.Context, userID string) ([]*models.SmartFilterEntity, error) {
 	listKey := cache.BuildKey("smart_filter_list", userID)
-	
+
 	var ids []string
 	if r.c != nil && !r.inTx {
 		if err := r.c.Get(ctx, listKey, &ids); err == nil {

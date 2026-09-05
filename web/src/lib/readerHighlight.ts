@@ -1,10 +1,6 @@
 import { resolveCfiRange } from "./epubCfi";
 import { sanitizeReaderHtml } from "@/utils/readerHtml";
 
-/**
- * Helper functions for reader text extraction, word highlighting and text selection offsets.
- */
-
 const ensureHighlightStyle = () => {
   if (typeof document === "undefined") return;
   const styleId = "tts-active-word-style";
@@ -72,8 +68,7 @@ const ensureHighlightStyle = () => {
         border-bottom: 2px dashed #14b8a6 !important;
       }
 
-      /* E-Ink Theme Optimizations (High Contrast, No Blurs, Jitter-Free) */
-      [data-theme="e-ink"] .reader-selection-toolbar {
+            [data-theme="e-ink"] .reader-selection-toolbar {
         animation: none !important;
         transition: none !important;
         box-shadow: none !important;
@@ -104,27 +99,37 @@ const ensureHighlightStyle = () => {
 export const setActiveSelectionHighlight = (
   range: Range | null,
   container?: HTMLElement | null,
-  saved?: SavedSelection | null
+  saved?: SavedSelection | null,
 ) => {
-  if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
+  if (
+    typeof CSS !== "undefined" &&
+    "highlights" in CSS &&
+    typeof (window as any).Highlight !== "undefined"
+  ) {
     ensureHighlightStyle();
     try {
       if (range && !range.collapsed) {
         let liveRange = range;
-        if (container && saved && typeof saved.startIndex === "number" && typeof saved.endIndex === "number") {
-          const fresh = createRangeFromCharOffset(container, saved.startIndex, saved.endIndex);
+        if (
+          container &&
+          saved &&
+          typeof saved.startIndex === "number" &&
+          typeof saved.endIndex === "number"
+        ) {
+          const fresh = createRangeFromCharOffset(
+            container,
+            saved.startIndex,
+            saved.endIndex,
+          );
           if (fresh) {
             liveRange = fresh;
           }
         }
-        // @ts-ignore
-        const activeSelHl = new Highlight(liveRange);
+        const activeSelHl = new (window as any).Highlight(liveRange);
         activeSelHl.priority = 1;
-        // @ts-ignore
-        CSS.highlights.set("reader-active-selection", activeSelHl);
+        (CSS as any).highlights.set("reader-active-selection", activeSelHl);
       } else {
-        // @ts-ignore
-        CSS.highlights.delete("reader-active-selection");
+        (CSS as any).highlights.delete("reader-active-selection");
       }
     } catch (e) {}
   }
@@ -133,18 +138,21 @@ export const setActiveSelectionHighlight = (
 export const clearActiveSelectionHighlight = () => {
   if (typeof CSS !== "undefined" && "highlights" in CSS) {
     try {
-      // @ts-ignore
-      CSS.highlights.delete("reader-active-selection");
+      (CSS as any).highlights.delete("reader-active-selection");
     } catch (e) {}
   }
 };
 
+let lastTtsPageTurnTime = 0;
+let lastTtsTargetPageIndex = -1;
+
 export const clearHighlight = () => {
   invalidateTextNodesCache();
+  lastTtsPageTurnTime = 0;
+  lastTtsTargetPageIndex = -1;
   if (typeof CSS !== "undefined" && "highlights" in CSS) {
     try {
-      // @ts-ignore
-      CSS.highlights.delete("tts-active-word");
+      (CSS as any).highlights.delete("tts-active-word");
     } catch (e) {}
   }
 };
@@ -158,24 +166,18 @@ export interface SavedSelection {
   selectedText: string;
   textNodeIndex: number;
   offset: number;
-  /**
-   * Document-relative character offsets captured at selection time, so the
-   * highlight can be created even if the reader DOM is rebuilt (and the
-   * cloned Range invalidated) between selecting text and clicking a color.
-   */
   startIndex: number;
   endIndex: number;
 }
 
 export const getCharacterOffsetOfRange = (
   container: HTMLElement,
-  range: Range
+  range: Range,
 ): { start: number; end: number } | null => {
   if (!container || !range) return null;
-  const isWithin = (node: Node) => node === container || container.contains(node);
+  const isWithin = (node: Node) =>
+    node === container || container.contains(node);
 
-  // A range covering the full container text; reused for the spanning check and
-  // to compute the container's total text length (clamp ceiling).
   let fullRange: Range;
   try {
     fullRange = document.createRange();
@@ -196,22 +198,10 @@ export const getCharacterOffsetOfRange = (
     }
   };
 
-  // Clamp boundaries that fall outside the reader container to the container's
-  // text bounds. A selection released near the floating toolbar can extend
-  // beyond the reader; rejecting it outright would make the toolbar appear but
-  // leave highlighting silently doing nothing (no request, no error). Clamp so
-  // the in-reader portion is still highlighted — but only when the selection
-  // actually overlaps the reader. A selection entirely outside the reader
-  // still resolves to null so we never highlight the wrong text.
   const startIn = isWithin(range.startContainer);
   const endIn = isWithin(range.endContainer);
 
   if (!startIn && !endIn) {
-    // Both boundaries are outside; only act if the range actually spans the
-    // container (start before it, end after it). Otherwise the selection does
-    // not touch the reader at all and must stay unresolved. compareBoundaryPoints
-    // can throw when the range lives in a different tree (e.g. a detached node),
-    // which we treat as "no overlap".
     let spansContainer = false;
     try {
       spansContainer =
@@ -230,12 +220,10 @@ export const getCharacterOffsetOfRange = (
   let endOffset = range.endOffset;
 
   if (!startIn) {
-    // Selection starts before the reader → clamp to the very beginning.
     startNode = container;
     startOffset = 0;
   }
   if (!endIn) {
-    // Selection ends after the reader → clamp to the very end.
     endNode = container;
     endOffset = container.childNodes.length;
   }
@@ -245,7 +233,6 @@ export const getCharacterOffsetOfRange = (
 
   if (start === null || end === null) return null;
   if (end <= start) return null;
-  // Guard against a clamped end overshooting the container's true text length.
   if (total >= 0 && end > total) {
     if (start >= total) return null;
     return { start, end: total };
@@ -253,11 +240,14 @@ export const getCharacterOffsetOfRange = (
   return { start, end };
 };
 
-export const getTextNodeIndex = (container: HTMLElement, targetNode: Node): number => {
+export const getTextNodeIndex = (
+  container: HTMLElement,
+  targetNode: Node,
+): number => {
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
   let index = 0;
   while (treeWalker.nextNode()) {
@@ -272,11 +262,10 @@ export const getTextNodeIndex = (container: HTMLElement, targetNode: Node): numb
 export const resolveToTextNode = (
   container: HTMLElement,
   node: Node,
-  offset: number
+  offset: number,
 ): { textNode: Node; textOffset: number } | null => {
   if (!node || !container) return null;
 
-  // Case 1: If node is already a TEXT_NODE
   if (node.nodeType === Node.TEXT_NODE) {
     const parent = node.parentNode;
     if (parent && container.contains(parent)) {
@@ -288,7 +277,6 @@ export const resolveToTextNode = (
     return null;
   }
 
-  // Case 2: If node is an ELEMENT_NODE (e.g., DIV, P, SECTION)
   if (node.nodeType === Node.ELEMENT_NODE) {
     const elem = node as HTMLElement;
     if (!container.contains(elem) && elem !== container) return null;
@@ -306,7 +294,7 @@ export const resolveToTextNode = (
     const treeWalker = document.createTreeWalker(
       container,
       NodeFilter.SHOW_TEXT,
-      null
+      null,
     );
 
     while (treeWalker.nextNode()) {
@@ -326,7 +314,10 @@ export const resolveToTextNode = (
   return null;
 };
 
-export const saveSelection = (container: HTMLElement, range: Range): SavedSelection | null => {
+export const saveSelection = (
+  container: HTMLElement,
+  range: Range,
+): SavedSelection | null => {
   const selectedText = range.toString().trim();
   if (!selectedText) return null;
 
@@ -336,16 +327,28 @@ export const saveSelection = (container: HTMLElement, range: Range): SavedSelect
   let textNodeIndex = -1;
   let textOffset = 0;
 
-  const resolved = resolveToTextNode(container, range.startContainer, range.startOffset);
+  const resolved = resolveToTextNode(
+    container,
+    range.startContainer,
+    range.startOffset,
+  );
   if (resolved) {
     textNodeIndex = getTextNodeIndex(container, resolved.textNode);
     textOffset = resolved.textOffset;
   }
 
   if (textNodeIndex < 0) {
-    const fallbackRange = createRangeFromCharOffset(container, offsets.start, offsets.end);
+    const fallbackRange = createRangeFromCharOffset(
+      container,
+      offsets.start,
+      offsets.end,
+    );
     if (fallbackRange) {
-      const fallbackResolved = resolveToTextNode(container, fallbackRange.startContainer, fallbackRange.startOffset);
+      const fallbackResolved = resolveToTextNode(
+        container,
+        fallbackRange.startContainer,
+        fallbackRange.startOffset,
+      );
       if (fallbackResolved) {
         textNodeIndex = getTextNodeIndex(container, fallbackResolved.textNode);
         textOffset = fallbackResolved.textOffset;
@@ -364,12 +367,12 @@ export const saveSelection = (container: HTMLElement, range: Range): SavedSelect
 
 export const getTextFromHereFromSaved = (
   container: HTMLElement,
-  saved: SavedSelection
+  saved: SavedSelection,
 ): string => {
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
 
   let currentIndex = 0;
@@ -416,7 +419,7 @@ export const getTextNodesCache = (container: HTMLElement): TextNodeCache => {
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
   const nodes: Text[] = [];
   const lengths: number[] = [];
@@ -437,7 +440,7 @@ export const highlightTextRangeFromNode = (
   container: HTMLElement,
   startPoint: TtsStartPoint | null,
   charIndex: number,
-  length: number
+  length: number,
 ) => {
   ensureHighlightStyle();
   if (!container || length <= 0) return;
@@ -446,10 +449,15 @@ export const highlightTextRangeFromNode = (
   const { nodes, lengths } = cache;
   if (nodes.length === 0) return;
 
-  const startIndex = startPoint && startPoint.textNodeIndex >= 0 && startPoint.textNodeIndex < nodes.length
-    ? startPoint.textNodeIndex
+  const startIndex =
+    startPoint &&
+    startPoint.textNodeIndex >= 0 &&
+    startPoint.textNodeIndex < nodes.length
+      ? startPoint.textNodeIndex
+      : 0;
+  const startOffsetInFirstNode = startPoint
+    ? Math.max(0, startPoint.offset)
     : 0;
-  const startOffsetInFirstNode = startPoint ? Math.max(0, startPoint.offset) : 0;
 
   let startNode: Text | null = null;
   let startNodeOffset = 0;
@@ -461,21 +469,32 @@ export const highlightTextRangeFromNode = (
   for (let i = startIndex; i < nodes.length; i++) {
     const node = nodes[i];
     const nodeLen = lengths[i];
-    const offsetInNode = (i === startIndex) ? startOffsetInFirstNode : 0;
+    const offsetInNode = i === startIndex ? startOffsetInFirstNode : 0;
     const availableInNode = Math.max(0, nodeLen - offsetInNode);
 
     if (!startNode) {
-      if (currentGlobalOffset + availableInNode > charIndex || (currentGlobalOffset + availableInNode >= charIndex && i === nodes.length - 1)) {
+      if (
+        currentGlobalOffset + availableInNode > charIndex ||
+        (currentGlobalOffset + availableInNode >= charIndex &&
+          i === nodes.length - 1)
+      ) {
         startNode = node;
-        startNodeOffset = offsetInNode + Math.max(0, charIndex - currentGlobalOffset);
+        startNodeOffset =
+          offsetInNode + Math.max(0, charIndex - currentGlobalOffset);
       }
     }
 
     if (startNode && !endNode) {
       const targetEndOffset = charIndex + length;
-      if (currentGlobalOffset + availableInNode >= targetEndOffset || i === nodes.length - 1) {
+      if (
+        currentGlobalOffset + availableInNode >= targetEndOffset ||
+        i === nodes.length - 1
+      ) {
         endNode = node;
-        endNodeOffset = Math.min(nodeLen, offsetInNode + Math.max(0, targetEndOffset - currentGlobalOffset));
+        endNodeOffset = Math.min(
+          nodeLen,
+          offsetInNode + Math.max(0, targetEndOffset - currentGlobalOffset),
+        );
         break;
       }
     }
@@ -486,62 +505,132 @@ export const highlightTextRangeFromNode = (
   if (!startNode) return;
   if (!endNode) {
     endNode = startNode;
-    endNodeOffset = Math.min(startNode.textContent?.length || 0, startNodeOffset + length);
+    endNodeOffset = Math.min(
+      startNode.textContent?.length || 0,
+      startNodeOffset + length,
+    );
   }
 
   try {
     const range = document.createRange();
-    range.setStart(startNode, Math.min(startNodeOffset, startNode.textContent?.length || 0));
-    range.setEnd(endNode, Math.min(endNodeOffset, endNode.textContent?.length || 0));
+    range.setStart(
+      startNode,
+      Math.min(startNodeOffset, startNode.textContent?.length || 0),
+    );
+    range.setEnd(
+      endNode,
+      Math.min(endNodeOffset, endNode.textContent?.length || 0),
+    );
 
     if (
       typeof CSS !== "undefined" &&
       "highlights" in CSS &&
-      typeof Highlight !== "undefined"
+      typeof (window as any).Highlight !== "undefined"
     ) {
-      // @ts-ignore
-      const ttsHl = new Highlight(range);
+      const ttsHl = new (window as any).Highlight(range);
       ttsHl.priority = 3;
-      // @ts-ignore
-      CSS.highlights.set("tts-active-word", ttsHl);
+      (CSS as any).highlights.set("tts-active-word", ttsHl);
     }
 
-    // Auto-scroll or auto-flip page for active word smoothly via rAF
     if (typeof requestAnimationFrame !== "undefined") {
       requestAnimationFrame(() => {
         try {
-          const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
-          const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+          const isPaged =
+            container.classList?.contains("reader-mode-single") ||
+            container.classList?.contains("reader-mode-double");
+          const pagedContainer = (container.querySelector("body") ||
+            container) as HTMLElement;
 
-          if (isPaged && pagedContainer.clientWidth > 0 && typeof pagedContainer.scrollTo === "function") {
-            const rect = range.getBoundingClientRect();
+          if (
+            isPaged &&
+            pagedContainer.clientWidth > 0 &&
+            typeof pagedContainer.scrollTo === "function"
+          ) {
             const containerRect = pagedContainer.getBoundingClientRect();
+            const rawRects = Array.from(range.getClientRects()).filter(
+              (r) => r.width > 0 && r.height > 0,
+            );
+            const validRects =
+              rawRects.length > 0
+                ? rawRects
+                : [range.getBoundingClientRect()].filter(
+                    (r) => r.width > 0 && r.height > 0,
+                  );
+            if (validRects.length === 0) return;
+
+            const isAlreadyVisible = validRects.some(
+              (r) =>
+                r.right > containerRect.left + 2 &&
+                r.left < containerRect.right - 2,
+            );
+            if (isAlreadyVisible) {
+              return;
+            }
+
+            const targetRect = validRects[validRects.length - 1];
             const pageGap = 40;
-            const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+            const containerWidth =
+              containerRect.width > 0
+                ? containerRect.width
+                : pagedContainer.clientWidth;
             const scrollStep = containerWidth + pageGap;
             const currentScrollLeft = pagedContainer.scrollLeft;
-            const relativeLeft = (rect.left - containerRect.left) + currentScrollLeft;
-            const targetPageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
-            const currentCalculatedPage = Math.round(currentScrollLeft / scrollStep);
+            const isRtl = container.classList?.contains("reader-dir-rtl");
+            const relativeLeft =
+              targetRect.left - containerRect.left + currentScrollLeft;
+            const targetPageIndex = Math.max(
+              0,
+              Math.floor((relativeLeft + pageGap / 2) / scrollStep),
+            );
+            const currentCalculatedPage = Math.round(
+              Math.abs(currentScrollLeft) / scrollStep,
+            );
 
-            if (targetPageIndex !== currentCalculatedPage && targetPageIndex >= 0) {
+            if (
+              targetPageIndex !== currentCalculatedPage &&
+              targetPageIndex >= 0
+            ) {
+              const now = Date.now();
+              if (
+                targetPageIndex === lastTtsTargetPageIndex &&
+                now - lastTtsPageTurnTime < 450
+              ) {
+                return;
+              }
+              lastTtsPageTurnTime = now;
+              lastTtsTargetPageIndex = targetPageIndex;
+
+              const targetLeft =
+                Math.round(targetPageIndex * scrollStep) * (isRtl ? -1 : 1);
               pagedContainer.scrollTo({
-                left: Math.round(targetPageIndex * scrollStep),
+                left: targetLeft,
                 behavior: "smooth",
               });
             }
           } else {
-            const rect = range.getBoundingClientRect();
-            if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
-              const scrollable =
-                container.closest(".overflow-y-auto") || container.parentElement;
-              if (scrollable) {
-                const containerRect = scrollable.getBoundingClientRect();
-                const scrollTop =
-                  scrollable.scrollTop +
-                  (rect.top - containerRect.top) -
-                  scrollable.clientHeight / 2;
-                scrollable.scrollTo({ top: Math.max(0, scrollTop), behavior: "smooth" });
+            const rawRects = Array.from(range.getClientRects()).filter(
+              (r) => r.width > 0 && r.height > 0,
+            );
+            const rect =
+              rawRects.length > 0
+                ? rawRects[rawRects.length - 1]
+                : range.getBoundingClientRect();
+            if (rect.width > 0 || rect.height > 0) {
+              if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
+                const scrollable =
+                  container.closest(".overflow-y-auto") ||
+                  container.parentElement;
+                if (scrollable) {
+                  const containerRect = scrollable.getBoundingClientRect();
+                  const scrollTop =
+                    scrollable.scrollTop +
+                    (rect.top - containerRect.top) -
+                    scrollable.clientHeight / 2;
+                  scrollable.scrollTo({
+                    top: Math.max(0, scrollTop),
+                    behavior: "smooth",
+                  });
+                }
               }
             }
           }
@@ -554,28 +643,27 @@ export const highlightTextRangeFromNode = (
 export const highlightTextRange = (
   container: HTMLElement,
   startChar: number,
-  length: number
+  length: number,
 ) => {
   highlightTextRangeFromNode(container, null, startChar, length);
 };
 
-/**
- * Determine the first visible text node and starting offset currently in view,
- * both for CSS multi-column paged modes and vertical continuous scroll mode.
- */
 export const getVisibleTtsStartPoint = (
   container: HTMLElement,
-  scrollContainer?: HTMLElement | null
+  scrollContainer?: HTMLElement | null,
 ): { text: string; startPoint: TtsStartPoint | null } => {
   if (!container) return { text: "", startPoint: null };
 
-  const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
-  const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+  const isPaged =
+    container.classList?.contains("reader-mode-single") ||
+    container.classList?.contains("reader-mode-double");
+  const pagedContainer = (container.querySelector("body") ||
+    container) as HTMLElement;
 
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
 
   let textNodeIndex = 0;
@@ -585,10 +673,22 @@ export const getVisibleTtsStartPoint = (
   let firstNonEmptyNode: Node | null = null;
   let firstNonEmptyNodeIndex = 0;
 
-  if (isPaged && (pagedContainer.clientWidth > 0 || (typeof window !== "undefined" && window.innerWidth > 0))) {
-    const containerRect = pagedContainer.clientWidth > 0
-      ? pagedContainer.getBoundingClientRect()
-      : { left: 0, right: typeof window !== "undefined" ? window.innerWidth : 1024, top: 0, bottom: typeof window !== "undefined" ? window.innerHeight : 800, width: 1024, height: 800 };
+  if (
+    isPaged &&
+    (pagedContainer.clientWidth > 0 ||
+      (typeof window !== "undefined" && window.innerWidth > 0))
+  ) {
+    const containerRect =
+      pagedContainer.clientWidth > 0
+        ? pagedContainer.getBoundingClientRect()
+        : {
+            left: 0,
+            right: typeof window !== "undefined" ? window.innerWidth : 1024,
+            top: 0,
+            bottom: typeof window !== "undefined" ? window.innerHeight : 800,
+            width: 1024,
+            height: 800,
+          };
 
     while (treeWalker.nextNode()) {
       const node = treeWalker.currentNode;
@@ -602,7 +702,8 @@ export const getVisibleTtsStartPoint = (
           const range = document.createRange();
           range.selectNodeContents(node);
           const rawRects = Array.from(range.getClientRects());
-          const rects = rawRects.length > 0 ? rawRects : [range.getBoundingClientRect()];
+          const rects =
+            rawRects.length > 0 ? rawRects : [range.getBoundingClientRect()];
 
           let hasVisibleRect = false;
           let firstVisibleRectIndex = -1;
@@ -630,8 +731,6 @@ export const getVisibleTtsStartPoint = (
             if (firstVisibleRectIndex === 0) {
               targetOffset = 0;
             } else {
-              // The text node started on a previous page and overflowed onto this page.
-              // Binary search to find the exact character offset where the visible portion begins.
               const nodeLen = node.textContent?.length || 0;
               let low = 0;
               let high = nodeLen;
@@ -649,7 +748,6 @@ export const getVisibleTtsStartPoint = (
                 }
                 const firstSub = subRects[0];
                 if (firstSub.right <= containerRect.left + 2) {
-                  // Still on previous page
                   low = mid + 1;
                 } else {
                   foundOffset = mid;
@@ -665,9 +763,18 @@ export const getVisibleTtsStartPoint = (
       textNodeIndex++;
     }
   } else {
-    // Vertical scroll mode
-    const scrollParent = scrollContainer || container.closest(".overflow-y-auto") || container.parentElement;
-    const scrollRect = scrollParent ? scrollParent.getBoundingClientRect() : { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
+    const scrollParent =
+      scrollContainer ||
+      container.closest(".overflow-y-auto") ||
+      container.parentElement;
+    const scrollRect = scrollParent
+      ? scrollParent.getBoundingClientRect()
+      : {
+          top: 0,
+          bottom: window.innerHeight,
+          left: 0,
+          right: window.innerWidth,
+        };
 
     while (treeWalker.nextNode()) {
       const node = treeWalker.currentNode;
@@ -681,7 +788,8 @@ export const getVisibleTtsStartPoint = (
           const range = document.createRange();
           range.selectNodeContents(node);
           const rawRects = Array.from(range.getClientRects());
-          const rects = rawRects.length > 0 ? rawRects : [range.getBoundingClientRect()];
+          const rects =
+            rawRects.length > 0 ? rawRects : [range.getBoundingClientRect()];
 
           let hasVisibleRect = false;
           let firstVisibleRectIndex = -1;
@@ -764,7 +872,6 @@ export const getVisibleTtsStartPoint = (
     } catch (e) {}
   }
 
-  // Fallback: entire container text
   const fullText = extractTextFromHtml(container.innerHTML, container);
   return {
     text: fullText,
@@ -774,7 +881,7 @@ export const getVisibleTtsStartPoint = (
 
 export const extractTextFromHtml = (
   html: string,
-  renderedContainer?: HTMLElement | null
+  renderedContainer?: HTMLElement | null,
 ) => {
   if (typeof document === "undefined" || !html) return "";
 
@@ -782,7 +889,7 @@ export const extractTextFromHtml = (
     const container = renderedContainer.cloneNode(true) as HTMLElement;
     container
       .querySelectorAll(
-        "script, style, head, title, meta, noscript, svg, nav, .reader-settings-panel, button, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible"
+        "script, style, head, title, meta, noscript, svg, nav, .reader-settings-panel, button, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible",
       )
       .forEach((el) => el.remove());
     const rawText = container.innerText || container.textContent || "";
@@ -795,24 +902,23 @@ export const extractTextFromHtml = (
   temp.innerHTML = cleanHtml;
   temp
     .querySelectorAll(
-      "script, style, head, title, meta, noscript, svg, nav, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible"
+      "script, style, head, title, meta, noscript, svg, nav, [hidden], [style*='display: none'], [style*='display:none'], [style*='visibility: hidden'], [style*='visibility:hidden'], .d-none, .hidden, .invisible",
     )
     .forEach((el) => el.remove());
   const rawText = temp.textContent || temp.innerText || "";
   return rawText.replace(/\s+/g, " ").trim();
 };
 
-/**
- * Resolve a character offset (from in-book search) to a DOM range over the
- * rendered text nodes and scroll it into view. Returns true if resolved.
- */
-export const scrollToTextOffset = (container: HTMLElement, startChar: number): boolean => {
+export const scrollToTextOffset = (
+  container: HTMLElement,
+  startChar: number,
+): boolean => {
   if (!container || startChar < 0) return false;
 
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
   let currentOffset = 0;
   let startNode: Node | null = null;
@@ -821,7 +927,10 @@ export const scrollToTextOffset = (container: HTMLElement, startChar: number): b
   while (treeWalker.nextNode()) {
     const node = treeWalker.currentNode;
     const nodeLength = node.textContent?.length || 0;
-    if (currentOffset + nodeLength > startChar || (startChar === 0 && nodeLength > 0)) {
+    if (
+      currentOffset + nodeLength > startChar ||
+      (startChar === 0 && nodeLength > 0)
+    ) {
       startNode = node;
       startNodeOffset = Math.max(0, startChar - currentOffset);
       break;
@@ -834,32 +943,55 @@ export const scrollToTextOffset = (container: HTMLElement, startChar: number): b
   try {
     const range = document.createRange();
     range.setStart(startNode, startNodeOffset);
-    range.setEnd(startNode, Math.min(startNodeOffset + 1, startNode.textContent?.length || 1));
+    range.setEnd(
+      startNode,
+      Math.min(startNodeOffset + 1, startNode.textContent?.length || 1),
+    );
 
-    // Check if container is in CSS multi-column paginated mode
-    const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
-    const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+    const isPaged =
+      container.classList?.contains("reader-mode-single") ||
+      container.classList?.contains("reader-mode-double");
+    const pagedContainer = (container.querySelector("body") ||
+      container) as HTMLElement;
 
-    if (isPaged && pagedContainer.clientWidth > 0 && typeof range.getBoundingClientRect === "function") {
-      const rangeRect = range.getBoundingClientRect();
+    if (
+      isPaged &&
+      pagedContainer.clientWidth > 0 &&
+      typeof range.getBoundingClientRect === "function"
+    ) {
+      const rawRects = Array.from(range.getClientRects()).filter(
+        (r) => r.width > 0 && r.height > 0,
+      );
+      const rangeRect =
+        rawRects.length > 0
+          ? rawRects[rawRects.length - 1]
+          : range.getBoundingClientRect();
       const containerRect = pagedContainer.getBoundingClientRect();
       const pageGap = 40;
-      const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+      const containerWidth =
+        containerRect.width > 0
+          ? containerRect.width
+          : pagedContainer.clientWidth;
       const scrollStep = containerWidth + pageGap;
       const currentScrollLeft = pagedContainer.scrollLeft;
-      const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
-      const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
+      const isRtl = container.classList?.contains("reader-dir-rtl");
+      const relativeLeft =
+        rangeRect.left - containerRect.left + currentScrollLeft;
+      const pageIndex = Math.max(
+        0,
+        Math.floor((relativeLeft + pageGap / 2) / scrollStep),
+      );
       pagedContainer.scrollTo({
-        left: Math.round(pageIndex * scrollStep),
+        left: Math.round(pageIndex * scrollStep) * (isRtl ? -1 : 1),
         behavior: "smooth",
       });
       return true;
     }
 
-    // Vertical scroll mode
-    const el = range.startContainer.nodeType === Node.ELEMENT_NODE
-      ? (range.startContainer as HTMLElement)
-      : (range.startContainer.parentElement);
+    const el =
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? (range.startContainer as HTMLElement)
+        : range.startContainer.parentElement;
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
     return true;
   } catch (e) {
@@ -882,20 +1014,15 @@ export const clearSearchHighlight = () => {
   }
   try {
     if (typeof CSS !== "undefined" && "highlights" in CSS) {
-      // @ts-ignore
-      CSS.highlights.delete("search-result-match");
+      (CSS as any).highlights.delete("search-result-match");
     }
   } catch {}
 };
 
-/**
- * Find search term or snippet in the rendered reader DOM, scroll to it,
- * and visually highlight the match with CSS Highlight API or pulse.
- */
 export const scrollToSearchMatch = (
   container: HTMLElement,
   searchTerm: string,
-  snippet?: string
+  snippet?: string,
 ): boolean => {
   if (!container || (!searchTerm && !snippet)) return false;
   ensureHighlightStyle();
@@ -907,7 +1034,10 @@ export const scrollToSearchMatch = (
   if (snippet) {
     const markMatch = snippet.match(/<mark[^>]*>(.*?)<\/mark>/i);
     if (markMatch) {
-      markWord = markMatch[1].replace(/<[^>]+>/g, "").trim().toLowerCase();
+      markWord = markMatch[1]
+        .replace(/<[^>]+>/g, "")
+        .trim()
+        .toLowerCase();
     }
     snippetPhrase = snippet
       .replace(/<[^>]+>/g, "")
@@ -920,7 +1050,7 @@ export const scrollToSearchMatch = (
   const treeWalker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    null,
   );
 
   const textNodes: Node[] = [];
@@ -1003,15 +1133,13 @@ export const scrollToSearchMatch = (
     if (
       typeof CSS !== "undefined" &&
       "highlights" in CSS &&
-      typeof Highlight !== "undefined"
+      typeof (window as any).Highlight !== "undefined"
     ) {
       clearSearchHighlight();
 
-      // @ts-ignore
-      const searchHl = new Highlight(range);
+      const searchHl = new (window as any).Highlight(range);
       searchHl.priority = 10;
-      // @ts-ignore
-      CSS.highlights.set("search-result-match", searchHl);
+      (CSS as any).highlights.set("search-result-match", searchHl);
 
       searchHighlightTimer = setTimeout(() => {
         clearSearchHighlight();
@@ -1029,28 +1157,50 @@ export const scrollToSearchMatch = (
       }, 150);
     }
 
-    const isPaged = container.classList?.contains("reader-mode-single") || container.classList?.contains("reader-mode-double");
-    const pagedContainer = (container.querySelector("body") || container) as HTMLElement;
+    const isPaged =
+      container.classList?.contains("reader-mode-single") ||
+      container.classList?.contains("reader-mode-double");
+    const pagedContainer = (container.querySelector("body") ||
+      container) as HTMLElement;
 
-    if (isPaged && pagedContainer.clientWidth > 0 && typeof range.getBoundingClientRect === "function") {
-      const rangeRect = range.getBoundingClientRect();
+    if (
+      isPaged &&
+      pagedContainer.clientWidth > 0 &&
+      typeof range.getBoundingClientRect === "function"
+    ) {
+      const rawRects = Array.from(range.getClientRects()).filter(
+        (r) => r.width > 0 && r.height > 0,
+      );
+      const rangeRect =
+        rawRects.length > 0
+          ? rawRects[rawRects.length - 1]
+          : range.getBoundingClientRect();
       const containerRect = pagedContainer.getBoundingClientRect();
       const pageGap = 40;
-      const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+      const containerWidth =
+        containerRect.width > 0
+          ? containerRect.width
+          : pagedContainer.clientWidth;
       const scrollStep = containerWidth + pageGap;
       const currentScrollLeft = pagedContainer.scrollLeft;
-      const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
-      const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
+      const isRtl = container.classList?.contains("reader-dir-rtl");
+      const relativeLeft =
+        rangeRect.left - containerRect.left + currentScrollLeft;
+      const pageIndex = Math.max(
+        0,
+        Math.floor((relativeLeft + pageGap / 2) / scrollStep),
+      );
       pagedContainer.scrollTo({
-        left: Math.round(pageIndex * scrollStep),
+        left: Math.round(pageIndex * scrollStep) * (isRtl ? -1 : 1),
         behavior: "smooth",
       });
       return true;
     }
 
-    const el = range.startContainer.nodeType === Node.ELEMENT_NODE
-      ? (range.startContainer as HTMLElement)
-      : range.startContainer.parentElement;
+    const el =
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? (range.startContainer as HTMLElement)
+        : range.startContainer.parentElement;
     if (el) {
       el.scrollIntoView({ block: "center", behavior: "smooth" });
     }
@@ -1063,7 +1213,11 @@ export const scrollToSearchMatch = (
 export const getSelectionInfo = (container: HTMLElement, range: Range) => {
   const selectedText = range.toString().trim();
 
-  const resolved = resolveToTextNode(container, range.startContainer, range.startOffset);
+  const resolved = resolveToTextNode(
+    container,
+    range.startContainer,
+    range.startOffset,
+  );
 
   if (!resolved) {
     return {
@@ -1094,7 +1248,11 @@ export const getSelectionInfo = (container: HTMLElement, range: Range) => {
   };
 };
 
-export const createRangeFromCharOffset = (container: HTMLElement, startChar: number, endChar: number): Range | null => {
+export const createRangeFromCharOffset = (
+  container: HTMLElement,
+  startChar: number,
+  endChar: number,
+): Range | null => {
   if (!container || startChar < 0 || endChar <= startChar) return null;
   const cache = getTextNodesCache(container);
   const { nodes, lengths } = cache;
@@ -1111,7 +1269,11 @@ export const createRangeFromCharOffset = (container: HTMLElement, startChar: num
     const nodeLen = lengths[i];
 
     if (!startNode) {
-      if (currentOffset + nodeLen > startChar || (currentOffset + nodeLen >= startChar && (i === nodes.length - 1 || startChar === 0))) {
+      if (
+        currentOffset + nodeLen > startChar ||
+        (currentOffset + nodeLen >= startChar &&
+          (i === nodes.length - 1 || startChar === 0))
+      ) {
         startNode = node;
         startNodeOffset = Math.max(0, startChar - currentOffset);
       }
@@ -1128,14 +1290,23 @@ export const createRangeFromCharOffset = (container: HTMLElement, startChar: num
 
   if (startNode && !endNode) {
     endNode = startNode;
-    endNodeOffset = Math.min(startNode.textContent?.length || 0, startNodeOffset + (endChar - startChar));
+    endNodeOffset = Math.min(
+      startNode.textContent?.length || 0,
+      startNodeOffset + (endChar - startChar),
+    );
   }
 
   if (startNode && endNode) {
     try {
       const range = document.createRange();
-      range.setStart(startNode, Math.min(startNodeOffset, startNode.textContent?.length || 0));
-      range.setEnd(endNode, Math.min(endNodeOffset, endNode.textContent?.length || 0));
+      range.setStart(
+        startNode,
+        Math.min(startNodeOffset, startNode.textContent?.length || 0),
+      );
+      range.setEnd(
+        endNode,
+        Math.min(endNodeOffset, endNode.textContent?.length || 0),
+      );
       return range;
     } catch (e) {
       return null;
@@ -1155,7 +1326,7 @@ export interface HighlightEntity {
 
 export const applyUserHighlights = (
   container: HTMLElement | null,
-  highlights: HighlightEntity[]
+  highlights: HighlightEntity[],
 ) => {
   if (typeof document === "undefined" || !container) return;
   ensureHighlightStyle();
@@ -1173,11 +1344,14 @@ export const applyUserHighlights = (
   };
 
   if (!highlights || highlights.length === 0) {
-    if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
+    if (
+      typeof CSS !== "undefined" &&
+      "highlights" in CSS &&
+      typeof (window as any).Highlight !== "undefined"
+    ) {
       for (const color of Object.keys(colorGroups)) {
         try {
-          // @ts-ignore
-          CSS.highlights.delete(`user-highlight-${color}`);
+          (CSS as any).highlights.delete(`user-highlight-${color}`);
         } catch (e) {}
       }
     }
@@ -1185,7 +1359,10 @@ export const applyUserHighlights = (
   }
 
   const cache = getTextNodesCache(container);
-  const fullText = cache.nodes.map(n => n.textContent || "").join("").normalize("NFC");
+  const fullText = cache.nodes
+    .map((n) => n.textContent || "")
+    .join("")
+    .normalize("NFC");
 
   for (const h of highlights) {
     if (!h.text_content || !h.text_content.trim()) continue;
@@ -1195,12 +1372,28 @@ export const applyUserHighlights = (
       range = resolveCfiRange(container, h.cfi_range);
     }
 
-    if (!range && typeof h.start_index === "number" && typeof h.end_index === "number" && h.end_index > h.start_index) {
+    if (
+      !range &&
+      typeof h.start_index === "number" &&
+      typeof h.end_index === "number" &&
+      h.end_index > h.start_index
+    ) {
       range = createRangeFromCharOffset(container, h.start_index, h.end_index);
       if (range) {
-        const normRange = range.toString().normalize("NFC").replace(/\s+/g, " ").trim();
-        const normTarget = (h.text_content || "").normalize("NFC").replace(/\s+/g, " ").trim();
-        if (normRange !== normTarget && !normRange.includes(normTarget) && !normTarget.includes(normRange)) {
+        const normRange = range
+          .toString()
+          .normalize("NFC")
+          .replace(/\s+/g, " ")
+          .trim();
+        const normTarget = (h.text_content || "")
+          .normalize("NFC")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (
+          normRange !== normTarget &&
+          !normRange.includes(normTarget) &&
+          !normTarget.includes(normRange)
+        ) {
           range = null;
         }
       }
@@ -1217,43 +1410,92 @@ export const applyUserHighlights = (
           const match = new RegExp(regexPattern).exec(fullText);
           if (match) {
             idx = match.index;
-            range = createRangeFromCharOffset(container, idx, idx + match[0].length);
+            range = createRangeFromCharOffset(
+              container,
+              idx,
+              idx + match[0].length,
+            );
           }
         } catch (e) {}
       } else {
-        range = createRangeFromCharOffset(container, idx, idx + targetText.length);
+        range = createRangeFromCharOffset(
+          container,
+          idx,
+          idx + targetText.length,
+        );
       }
     }
 
     if (range) {
       const rawColor = (h.color || "").toLowerCase().trim();
       let colorKey = "yellow";
-      if (rawColor === "#fef08a" || rawColor === "#facc15" || rawColor === "yellow") colorKey = "yellow";
-      else if (rawColor === "#bbf7d0" || rawColor === "#4ade80" || rawColor === "green") colorKey = "green";
-      else if (rawColor === "#bfdbfe" || rawColor === "#60a5fa" || rawColor === "blue") colorKey = "blue";
-      else if (rawColor === "#fbcfe8" || rawColor === "#f472b6" || rawColor === "pink") colorKey = "pink";
-      else if (rawColor === "#fed7aa" || rawColor === "#fb923c" || rawColor === "orange") colorKey = "orange";
-      else if (rawColor === "#e9d5ff" || rawColor === "#c084fc" || rawColor === "purple") colorKey = "purple";
-      else if (rawColor === "#fecaca" || rawColor === "#f87171" || rawColor === "red") colorKey = "red";
-      else if (rawColor === "#99f6e4" || rawColor === "#2dd4bf" || rawColor === "cyan") colorKey = "cyan";
+      if (
+        rawColor === "#fef08a" ||
+        rawColor === "#facc15" ||
+        rawColor === "yellow"
+      )
+        colorKey = "yellow";
+      else if (
+        rawColor === "#bbf7d0" ||
+        rawColor === "#4ade80" ||
+        rawColor === "green"
+      )
+        colorKey = "green";
+      else if (
+        rawColor === "#bfdbfe" ||
+        rawColor === "#60a5fa" ||
+        rawColor === "blue"
+      )
+        colorKey = "blue";
+      else if (
+        rawColor === "#fbcfe8" ||
+        rawColor === "#f472b6" ||
+        rawColor === "pink"
+      )
+        colorKey = "pink";
+      else if (
+        rawColor === "#fed7aa" ||
+        rawColor === "#fb923c" ||
+        rawColor === "orange"
+      )
+        colorKey = "orange";
+      else if (
+        rawColor === "#e9d5ff" ||
+        rawColor === "#c084fc" ||
+        rawColor === "purple"
+      )
+        colorKey = "purple";
+      else if (
+        rawColor === "#fecaca" ||
+        rawColor === "#f87171" ||
+        rawColor === "red"
+      )
+        colorKey = "red";
+      else if (
+        rawColor === "#99f6e4" ||
+        rawColor === "#2dd4bf" ||
+        rawColor === "cyan"
+      )
+        colorKey = "cyan";
       else if (colorGroups[rawColor]) colorKey = rawColor;
 
       colorGroups[colorKey].push(range);
     }
   }
 
-  if (typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined") {
+  if (
+    typeof CSS !== "undefined" &&
+    "highlights" in CSS &&
+    typeof (window as any).Highlight !== "undefined"
+  ) {
     for (const [color, ranges] of Object.entries(colorGroups)) {
       try {
         if (ranges.length > 0) {
-          // @ts-ignore
-          const userHl = new Highlight(...ranges);
+          const userHl = new (window as any).Highlight(...ranges);
           userHl.priority = 2;
-          // @ts-ignore
-          CSS.highlights.set(`user-highlight-${color}`, userHl);
+          (CSS as any).highlights.set(`user-highlight-${color}`, userHl);
         } else {
-          // @ts-ignore
-          CSS.highlights.delete(`user-highlight-${color}`);
+          (CSS as any).highlights.delete(`user-highlight-${color}`);
         }
       } catch (e) {}
     }

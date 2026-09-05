@@ -2,34 +2,12 @@ package flac
 
 import "math"
 
-// Linear-prediction analysis for the encoder: Tukey apodization,
-// autocorrelation, the Levinson-Durbin recursion, coefficient
-// quantization with error feedback, and integer residual computation.
-// The analysis runs in float64; only the quantized integer predictor
-// touches samples, with the same arithmetic the decoder reverses, so
-// reconstruction is exact regardless of analysis precision.
-//
-// The apodization strategy (Tukey windows, precision-15 quantization
-// with error feedback) follows libFLAC's encoder design (BSD); see
-// THIRD-PARTY-NOTICES.md.
-
-// maxLPCOrder is the largest predictor order the encoder uses. The wire
-// format allows 32; levels stop at 12, which is also the streamable
-// subset ceiling for rates up to 48 kHz.
 const maxLPCOrder = 12
 
-// lpcPrecision is the quantized coefficient width in bits. 15 is the
-// largest the wire format can signal and costs at most order*15 bits per
-// subframe, noise next to the residual body, so the encoder always uses
-// full precision.
 const lpcPrecision = 15
 
-// maxLPCShift is the largest coefficient scale exponent the 5-bit
-// signed shift field can carry; negative shifts are forbidden.
 const maxLPCShift = 15
 
-// tukey fills w with a Tukey (tapered cosine) window: cosine ramps over
-// the fraction p of the length, split between both ends, flat middle.
 func tukey(w []float64, p float64) {
 	n := len(w)
 	taper := int(p * float64(n-1) / 2)
@@ -43,7 +21,6 @@ func tukey(w []float64, p float64) {
 	}
 }
 
-// autocorr computes autocorrelation lags 0..len(r)-1 of x into r.
 func autocorr(x []float64, r []float64) {
 	for lag := range r {
 		sum := 0.0
@@ -54,12 +31,6 @@ func autocorr(x []float64, r []float64) {
 	}
 }
 
-// levinson runs the Levinson-Durbin recursion on autocorrelation r,
-// filling coeffs[m-1][:m] with the prediction coefficients for each
-// order m (predicting x[i] as the sum of coeffs[j]*x[i-1-j]) and errs[m]
-// with the residual energy after order m. It returns the highest usable
-// order, which falls short of len(r)-1 when the recursion degenerates
-// (perfectly predictable or silent input).
 func levinson(r []float64, coeffs [][]float64, errs []float64) int {
 	maxOrder := len(r) - 1
 	e := r[0]
@@ -92,10 +63,6 @@ func levinson(r []float64, coeffs [][]float64, errs []float64) int {
 	return maxOrder
 }
 
-// estimateOrder picks the predictor order with the lowest expected total
-// bits: expected residual bits per sample follow from the prediction
-// error energy (half the log of the per-sample variance), plus the
-// per-order header cost of warmup samples and quantized coefficients.
 func estimateOrder(errs []float64, usable, n int, bps uint) int {
 	best, bestBits := 1, math.Inf(1)
 	for m := 1; m <= usable; m++ {
@@ -111,10 +78,6 @@ func estimateOrder(errs []float64, usable, n int, bps uint) int {
 	return best
 }
 
-// quantizeLPC converts float prediction coefficients to the integer
-// coefficients and shift the wire format carries. Quantization error
-// feeds back into the next coefficient, which keeps the quantized
-// predictor's response close to the designed one.
 func quantizeLPC(c []float64, q []int64) (shift uint) {
 	cmax := 0.0
 	for _, v := range c {
@@ -125,7 +88,7 @@ func quantizeLPC(c []float64, q []int64) (shift uint) {
 	if cmax <= 0 {
 		return 0
 	}
-	_, exp := math.Frexp(cmax) // cmax in [2^(exp-1), 2^exp)
+	_, exp := math.Frexp(cmax)
 	s := lpcPrecision - 1 - exp
 	if s > maxLPCShift {
 		s = maxLPCShift
@@ -150,9 +113,6 @@ func quantizeLPC(c []float64, q []int64) (shift uint) {
 	return uint(s)
 }
 
-// lpcResidual computes the integer prediction residual for x[order:]
-// into res[order:], using exactly the arithmetic the decoder inverts
-// (64-bit accumulate, arithmetic shift).
 func lpcResidual(x []int64, q []int64, shift uint, res []int64) {
 	order := len(q)
 	for i := order; i < len(x); i++ {
@@ -164,9 +124,6 @@ func lpcResidual(x []int64, q []int64, shift uint, res []int64) {
 	}
 }
 
-// fixedResidual computes the residual of the fixed predictor of the
-// given order for x[order:] into res[order:]. The closed forms are the
-// binomial-coefficient differences the decoder adds back.
 func fixedResidual(x []int64, order int, res []int64) {
 	switch order {
 	case 0:
@@ -190,10 +147,6 @@ func fixedResidual(x []int64, order int, res []int64) {
 	}
 }
 
-// bestFixedOrder estimates the cheapest fixed predictor order for x by
-// comparing the summed residual magnitudes of successive difference
-// orders, the standard proxy for coded size. maxOrder is bounded by the
-// block length.
 func bestFixedOrder(x []int64, scratch []int64) int {
 	n := len(x)
 	maxOrder := 4

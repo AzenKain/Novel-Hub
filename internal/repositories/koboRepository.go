@@ -82,8 +82,7 @@ func (r *koboRepository) GetAuthTokenByUser(ctx context.Context, userID string) 
 	return value.(*models.KoboAuthTokenEntity), nil
 }
 
-// ResolveToken runs on every single device request, so it is cached by token. The token is
-// the credential, so the cache key is namespaced and never logged.
+// ResolveToken runs on every single device request, so it is cached by token.
 func (r *koboRepository) ResolveToken(ctx context.Context, token string) (*models.KoboAuthTokenEntity, error) {
 	key := cache.BuildKey("kobo", "token", token)
 	if r.c != nil && !r.inTx {

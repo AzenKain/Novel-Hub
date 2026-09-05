@@ -20,7 +20,10 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: books = [], isLoading } = useSeriesBooksQuery(seriesId, Boolean(seriesId));
+  const { data: books = [], isLoading } = useSeriesBooksQuery(
+    seriesId,
+    Boolean(seriesId),
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -187,7 +190,7 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
         <button
           onClick={() =>
             navigate(
-              `/?nav=series&facet=series&facet_id=${encodeURIComponent(seriesId)}&name=${encodeURIComponent(seriesName)}`
+              `/?nav=series&facet=series&facet_id=${encodeURIComponent(seriesId)}&name=${encodeURIComponent(seriesName)}`,
             )
           }
           className="btn btn-ghost btn-xs gap-1 text-primary hover:bg-primary/10 shrink-0"
@@ -200,7 +203,10 @@ export const SeriesBooksSection: React.FC<SeriesBooksSectionProps> = ({
       {isLoading ? (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="w-28 shrink-0 flex flex-col gap-2 animate-pulse">
+            <div
+              key={i}
+              className="w-28 shrink-0 flex flex-col gap-2 animate-pulse"
+            >
               <div className="w-28 h-40 bg-base-300 rounded-lg" />
               <div className="h-3 bg-base-300 rounded w-3/4" />
             </div>

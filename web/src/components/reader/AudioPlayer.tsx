@@ -1,5 +1,11 @@
 import { useTranslation } from "react-i18next";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Bookmark,
   BookmarkPlus,
@@ -48,13 +54,16 @@ function loadPrefs(): AudioPrefs {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AudioPrefs>;
       return {
-        volume: typeof parsed.volume === "number" ? Math.min(1, Math.max(0, parsed.volume)) : 1,
-        rate: SPEED_STEPS.includes(parsed.rate as number) ? (parsed.rate as number) : 1,
+        volume:
+          typeof parsed.volume === "number"
+            ? Math.min(1, Math.max(0, parsed.volume))
+            : 1,
+        rate: SPEED_STEPS.includes(parsed.rate as number)
+          ? (parsed.rate as number)
+          : 1,
       };
     }
-  } catch {
-    // corrupted prefs fall back to defaults
-  }
+  } catch {}
   return { volume: 1, rate: 1 };
 }
 
@@ -64,7 +73,8 @@ function formatTime(time: number): string {
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  if (h > 0)
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
@@ -90,7 +100,9 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
   const [chaptersOpen, setChaptersOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"chapters" | "bookmarks">("chapters");
+  const [drawerTab, setDrawerTab] = useState<"chapters" | "bookmarks">(
+    "chapters",
+  );
   const [speedOpen, setSpeedOpen] = useState(false);
   const [sleepOpen, setSleepOpen] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
@@ -123,7 +135,9 @@ export function AudioPlayer({
       note: noteText?.trim() || undefined,
       created_at: new Date().toISOString(),
     };
-    const updated = [...bookmarks, newBm].sort((a, b) => a.time_sec - b.time_sec);
+    const updated = [...bookmarks, newBm].sort(
+      (a, b) => a.time_sec - b.time_sec,
+    );
     saveBookmarks(updated);
     setShowAddBookmarkModal(false);
     setBookmarkNote("");
@@ -161,7 +175,7 @@ export function AudioPlayer({
 
   const sortedChapters = useMemo(
     () => [...(chapters ?? [])].sort((a, b) => a.start_sec - b.start_sec),
-    [chapters]
+    [chapters],
   );
 
   const currentChapterIndex = useMemo(() => {
@@ -171,7 +185,8 @@ export function AudioPlayer({
     return -1;
   }, [sortedChapters, currentTime]);
 
-  const currentChapter = currentChapterIndex >= 0 ? sortedChapters[currentChapterIndex] : undefined;
+  const currentChapter =
+    currentChapterIndex >= 0 ? sortedChapters[currentChapterIndex] : undefined;
 
   // Countdown timer effect
   useEffect(() => {
@@ -242,8 +257,10 @@ export function AudioPlayer({
   useEffect(() => {
     if (!speedOpen && !sleepOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (speedRef.current && !speedRef.current.contains(e.target as Node)) setSpeedOpen(false);
-      if (sleepRef.current && !sleepRef.current.contains(e.target as Node)) setSleepOpen(false);
+      if (speedRef.current && !speedRef.current.contains(e.target as Node))
+        setSpeedOpen(false);
+      if (sleepRef.current && !sleepRef.current.contains(e.target as Node))
+        setSleepOpen(false);
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
@@ -260,7 +277,10 @@ export function AudioPlayer({
   const skip = useCallback((seconds: number) => {
     const el = audioRef.current;
     if (!el) return;
-    el.currentTime = Math.min(Math.max(0, el.currentTime + seconds), el.duration || Infinity);
+    el.currentTime = Math.min(
+      Math.max(0, el.currentTime + seconds),
+      el.duration || Infinity,
+    );
   }, []);
 
   const jumpChapter = useCallback(
@@ -279,7 +299,7 @@ export function AudioPlayer({
         el.currentTime = sortedChapters[idx + 1].start_sec;
       }
     },
-    [sortedChapters, currentChapterIndex]
+    [sortedChapters, currentChapterIndex],
   );
 
   const setSpeed = (rate: number) => {
@@ -319,7 +339,12 @@ export function AudioPlayer({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      )
+        return;
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
@@ -343,9 +368,15 @@ export function AudioPlayer({
     });
     navigator.mediaSession.setActionHandler("play", togglePlay);
     navigator.mediaSession.setActionHandler("pause", togglePlay);
-    navigator.mediaSession.setActionHandler("seekbackward", () => skip(-SKIP_SECONDS));
-    navigator.mediaSession.setActionHandler("seekforward", () => skip(SKIP_SECONDS));
-    navigator.mediaSession.setActionHandler("previoustrack", () => jumpChapter(-1));
+    navigator.mediaSession.setActionHandler("seekbackward", () =>
+      skip(-SKIP_SECONDS),
+    );
+    navigator.mediaSession.setActionHandler("seekforward", () =>
+      skip(SKIP_SECONDS),
+    );
+    navigator.mediaSession.setActionHandler("previoustrack", () =>
+      jumpChapter(-1),
+    );
     navigator.mediaSession.setActionHandler("nexttrack", () => jumpChapter(1));
   }, [title, author, cover_url, togglePlay, skip, jumpChapter, t]);
 
@@ -380,8 +411,15 @@ export function AudioPlayer({
       {loadError ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <div className="rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) px-8 py-10 text-center">
-            <p className="font-semibold">{t("reader.audio_load_failed", "Could not load this audio file")}</p>
-            <p className="mt-1 text-sm opacity-60">{t("reader.audio_load_failed_hint", "Check the file format and try again.")}</p>
+            <p className="font-semibold">
+              {t("reader.audio_load_failed", "Could not load this audio file")}
+            </p>
+            <p className="mt-1 text-sm opacity-60">
+              {t(
+                "reader.audio_load_failed_hint",
+                "Check the file format and try again.",
+              )}
+            </p>
           </div>
         </div>
       ) : (
@@ -392,7 +430,11 @@ export function AudioPlayer({
               className={`relative aspect-square w-44 shrink-0 overflow-hidden rounded-xl bg-base-300 shadow-lg transition-shadow sm:w-56 ${isPlaying ? "shadow-2xl" : ""}`}
             >
               {cover_url ? (
-                <img src={cover_url} alt={t("reader.cover_art")} className="h-full w-full object-cover" />
+                <img
+                  src={cover_url}
+                  alt={t("reader.cover_art")}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Play className="h-12 w-12 opacity-25" />
@@ -405,8 +447,12 @@ export function AudioPlayer({
               )}
             </div>
             <div className="max-w-xl text-center">
-              <h2 className="line-clamp-2 text-xl font-bold sm:text-2xl">{title || t("reader.audiobook")}</h2>
-              <p className="mt-1 truncate text-sm opacity-60">{author || t("common.unknown")}</p>
+              <h2 className="line-clamp-2 text-xl font-bold sm:text-2xl">
+                {title || t("reader.audiobook")}
+              </h2>
+              <p className="mt-1 truncate text-sm opacity-60">
+                {author || t("common.unknown")}
+              </p>
               {currentChapter && (
                 <p className="mt-2 truncate text-sm font-medium text-(--reader-ui-accent,#7c9885)">
                   {currentChapter.title}
@@ -431,7 +477,10 @@ export function AudioPlayer({
                     }`}
                   >
                     <ListMusic size={14} />
-                    <span>{t("reader.chapters_list", "Chapters")} ({sortedChapters.length})</span>
+                    <span>
+                      {t("reader.chapters_list", "Chapters")} (
+                      {sortedChapters.length})
+                    </span>
                   </button>
 
                   <button
@@ -444,7 +493,9 @@ export function AudioPlayer({
                     }`}
                   >
                     <Bookmark size={14} />
-                    <span>{t("reader.bookmarks", "Bookmarks")} ({bookmarks.length})</span>
+                    <span>
+                      {t("reader.bookmarks", "Bookmarks")} ({bookmarks.length})
+                    </span>
                   </button>
                 </div>
 
@@ -454,12 +505,22 @@ export function AudioPlayer({
                       type="button"
                       onClick={() => setShowAddBookmarkModal(true)}
                       className="btn btn-xs btn-outline btn-primary rounded-xl gap-1.5 font-semibold inline-flex items-center"
-                      title={t("reader.add_bookmark", "Bookmark current position")}
+                      title={t(
+                        "reader.add_bookmark",
+                        "Bookmark current position",
+                      )}
                     >
                       <Plus size={13} className="shrink-0" />
                       <span className="inline-flex items-center gap-1 leading-none">
-                        <span className="hidden sm:inline">{t("reader.add_bookmark", "Bookmark current position")}</span>
-                        <span className="font-mono text-xs tabular-nums font-normal">{formatTime(currentTime)}</span>
+                        <span className="hidden sm:inline">
+                          {t(
+                            "reader.add_bookmark",
+                            "Bookmark current position",
+                          )}
+                        </span>
+                        <span className="font-mono text-xs tabular-nums font-normal">
+                          {formatTime(currentTime)}
+                        </span>
                       </span>
                     </button>
                   )}
@@ -485,7 +546,9 @@ export function AudioPlayer({
                       <li key={`${ch.start_sec}-${i}`}>
                         <button
                           className={`flex w-full items-baseline justify-between gap-4 px-4 py-2.5 text-left text-sm transition-colors hover:bg-(--reader-ui-hover,rgba(127,127,127,0.12)) ${
-                            i === currentChapterIndex ? "font-bold text-(--reader-ui-accent,#7c9885) bg-(--reader-ui-hover,rgba(127,127,127,0.08))" : ""
+                            i === currentChapterIndex
+                              ? "font-bold text-(--reader-ui-accent,#7c9885) bg-(--reader-ui-hover,rgba(127,127,127,0.08))"
+                              : ""
                           }`}
                           onClick={() => {
                             const el = audioRef.current;
@@ -494,7 +557,9 @@ export function AudioPlayer({
                           }}
                         >
                           <span className="min-w-0 truncate">{ch.title}</span>
-                          <span className="shrink-0 text-xs tabular-nums opacity-60">{formatTime(ch.start_sec)}</span>
+                          <span className="shrink-0 text-xs tabular-nums opacity-60">
+                            {formatTime(ch.start_sec)}
+                          </span>
                         </button>
                       </li>
                     ))
@@ -517,7 +582,11 @@ export function AudioPlayer({
                         className="btn btn-xs btn-primary rounded-xl gap-1"
                       >
                         <Plus size={13} />
-                        {t("reader.bookmark_current_pos", "Save current position")} ({formatTime(currentTime)})
+                        {t(
+                          "reader.bookmark_current_pos",
+                          "Save current position",
+                        )}{" "}
+                        ({formatTime(currentTime)})
                       </button>
                     </div>
                   ) : (
@@ -541,7 +610,9 @@ export function AudioPlayer({
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-semibold text-(--reader-ui-text) truncate">
-                                {bm.note || bm.chapter_title || t("reader.bookmark", "Bookmark")}
+                                {bm.note ||
+                                  bm.chapter_title ||
+                                  t("reader.bookmark", "Bookmark")}
                               </p>
                               {bm.note && bm.chapter_title && (
                                 <p className="text-[10px] text-base-content/50 truncate mt-0.5">
@@ -574,7 +645,9 @@ export function AudioPlayer({
               {/* Timeline */}
               <div className="flex select-none items-center justify-between gap-3 text-xs font-medium tabular-nums opacity-80">
                 <span>{formatTime(currentTime)}</span>
-                {duration > 0 && <span className="opacity-60">−{formatTime(remaining)}</span>}
+                {duration > 0 && (
+                  <span className="opacity-60">−{formatTime(remaining)}</span>
+                )}
               </div>
               <div
                 ref={barRef}
@@ -604,7 +677,7 @@ export function AudioPlayer({
                         className="absolute top-1/2 h-2.5 w-0.5 -translate-y-1/2 rounded-full bg-current/40"
                         style={{ left: `${(ch.start_sec / duration) * 100}%` }}
                       />
-                    ) : null
+                    ) : null,
                   )}
                   <div
                     className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-(--reader-ui-accent,#7c9885) opacity-0 shadow transition-opacity group-hover:opacity-100"
@@ -619,9 +692,17 @@ export function AudioPlayer({
                   <button
                     className="btn btn-circle btn-ghost btn-xs"
                     onClick={() => setVolume(prefs.volume === 0 ? 1 : 0)}
-                    aria-label={prefs.volume === 0 ? t("reader.unmute") : t("reader.mute")}
+                    aria-label={
+                      prefs.volume === 0 ? t("reader.unmute") : t("reader.mute")
+                    }
                   >
-                    {prefs.volume === 0 ? <VolumeX size={18} /> : prefs.volume < 0.5 ? <Volume1 size={18} /> : <Volume2 size={18} />}
+                    {prefs.volume === 0 ? (
+                      <VolumeX size={18} />
+                    ) : prefs.volume < 0.5 ? (
+                      <Volume1 size={18} />
+                    ) : (
+                      <Volume2 size={18} />
+                    )}
                   </button>
                   <input
                     type="range"
@@ -653,7 +734,9 @@ export function AudioPlayer({
                   >
                     <div className="flex flex-col items-center">
                       <RotateCcw size={20} />
-                      <span className="text-[8px] font-bold leading-none">15</span>
+                      <span className="text-[8px] font-bold leading-none">
+                        15
+                      </span>
                     </div>
                   </button>
                   <button
@@ -661,7 +744,11 @@ export function AudioPlayer({
                     onClick={togglePlay}
                     aria-label={t("reader.play_pause")}
                   >
-                    {isPlaying ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
+                    {isPlaying ? (
+                      <Pause size={22} />
+                    ) : (
+                      <Play size={22} className="ml-0.5" />
+                    )}
                   </button>
                   <button
                     className="btn btn-circle btn-ghost btn-sm"
@@ -671,7 +758,9 @@ export function AudioPlayer({
                   >
                     <div className="flex flex-col items-center">
                       <RotateCw size={20} />
-                      <span className="text-[8px] font-bold leading-none">15</span>
+                      <span className="text-[8px] font-bold leading-none">
+                        15
+                      </span>
                     </div>
                   </button>
                   <button
@@ -689,7 +778,9 @@ export function AudioPlayer({
                   {/* Bookmark Button */}
                   <button
                     className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 font-medium ${
-                      drawerTab === "bookmarks" && chaptersOpen ? "text-primary bg-primary/10" : ""
+                      drawerTab === "bookmarks" && chaptersOpen
+                        ? "text-primary bg-primary/10"
+                        : ""
                     }`}
                     onClick={() => {
                       if (chaptersOpen && drawerTab === "bookmarks") {
@@ -705,7 +796,9 @@ export function AudioPlayer({
                   >
                     <Bookmark size={15} />
                     {bookmarks.length > 0 && (
-                      <span className="text-[11px] ml-0.5 tabular-nums font-bold">{bookmarks.length}</span>
+                      <span className="text-[11px] ml-0.5 tabular-nums font-bold">
+                        {bookmarks.length}
+                      </span>
                     )}
                   </button>
 
@@ -713,7 +806,9 @@ export function AudioPlayer({
                   {sortedChapters.length > 0 && (
                     <button
                       className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 ${
-                        drawerTab === "chapters" && chaptersOpen ? "text-primary bg-primary/10" : ""
+                        drawerTab === "chapters" && chaptersOpen
+                          ? "text-primary bg-primary/10"
+                          : ""
                       }`}
                       onClick={() => {
                         if (chaptersOpen && drawerTab === "chapters") {
@@ -728,7 +823,9 @@ export function AudioPlayer({
                       aria-label={t("reader.chapters_list", "Chapters")}
                     >
                       <ListMusic size={16} />
-                      <span className="hidden text-xs sm:inline">{t("reader.chapters_list", "Chapters")}</span>
+                      <span className="hidden text-xs sm:inline">
+                        {t("reader.chapters_list", "Chapters")}
+                      </span>
                     </button>
                   )}
 
@@ -736,7 +833,9 @@ export function AudioPlayer({
                   <div className="relative" ref={sleepRef}>
                     <button
                       className={`btn btn-ghost btn-sm min-h-0 rounded-full px-2.5 font-medium tabular-nums ${
-                        sleepMode !== "off" ? "text-primary font-bold bg-primary/10" : ""
+                        sleepMode !== "off"
+                          ? "text-primary font-bold bg-primary/10"
+                          : ""
                       }`}
                       onClick={() => {
                         setSleepOpen((v) => !v);
@@ -749,9 +848,13 @@ export function AudioPlayer({
                     >
                       <Moon size={15} />
                       {sleepMode === "end_of_chapter" ? (
-                        <span className="text-[11px] ml-0.5">{t("reader.end_of_chapter", "End of chapter")}</span>
+                        <span className="text-[11px] ml-0.5">
+                          {t("reader.end_of_chapter", "End of chapter")}
+                        </span>
                       ) : sleepRemaining !== null && sleepRemaining > 0 ? (
-                        <span className="text-[11px] ml-0.5 font-mono">{formatTime(sleepRemaining)}</span>
+                        <span className="text-[11px] ml-0.5 font-mono">
+                          {formatTime(sleepRemaining)}
+                        </span>
                       ) : null}
                     </button>
                     {sleepOpen && (
@@ -764,19 +867,47 @@ export function AudioPlayer({
                         </div>
                         {[
                           { key: "off", label: t("common.off", "Off") },
-                          { key: "5m", label: t("reader.sleep_minutes", { n: 5 }), sec: 300 },
-                          { key: "15m", label: t("reader.sleep_minutes", { n: 15 }), sec: 900 },
-                          { key: "30m", label: t("reader.sleep_minutes", { n: 30 }), sec: 1800 },
-                          { key: "45m", label: t("reader.sleep_minutes", { n: 45 }), sec: 2700 },
-                          { key: "60m", label: t("reader.sleep_minutes", { n: 60 }), sec: 3600 },
-                          { key: "end_of_chapter", label: t("reader.sleep_end_chapter", "At the end of this chapter") },
+                          {
+                            key: "5m",
+                            label: t("reader.sleep_minutes", { n: 5 }),
+                            sec: 300,
+                          },
+                          {
+                            key: "15m",
+                            label: t("reader.sleep_minutes", { n: 15 }),
+                            sec: 900,
+                          },
+                          {
+                            key: "30m",
+                            label: t("reader.sleep_minutes", { n: 30 }),
+                            sec: 1800,
+                          },
+                          {
+                            key: "45m",
+                            label: t("reader.sleep_minutes", { n: 45 }),
+                            sec: 2700,
+                          },
+                          {
+                            key: "60m",
+                            label: t("reader.sleep_minutes", { n: 60 }),
+                            sec: 3600,
+                          },
+                          {
+                            key: "end_of_chapter",
+                            label: t(
+                              "reader.sleep_end_chapter",
+                              "At the end of this chapter",
+                            ),
+                          },
                         ].map((opt) => (
                           <button
                             key={opt.key}
                             role="menuitemradio"
                             aria-checked={sleepMode === opt.key}
                             className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-(--reader-ui-hover,rgba(127,127,127,0.12)) ${
-                              sleepMode === opt.key ? "font-bold text-(--reader-ui-accent,#7c9885)" : ""
+                              sleepMode === opt.key
+                                ? "font-bold text-(--reader-ui-accent,#7c9885)"
+                                : ""
                             }`}
                             onClick={() => setSleepTimer(opt.key, opt.sec)}
                           >
@@ -815,12 +946,13 @@ export function AudioPlayer({
                             role="menuitemradio"
                             aria-checked={prefs.rate === step}
                             className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm tabular-nums transition-colors hover:bg-(--reader-ui-hover,rgba(127,127,127,0.12)) ${
-                              prefs.rate === step ? "font-semibold text-(--reader-ui-accent,#7c9885)" : ""
+                              prefs.rate === step
+                                ? "font-semibold text-(--reader-ui-accent,#7c9885)"
+                                : ""
                             }`}
                             onClick={() => setSpeed(step)}
                           >
-                            {step}×
-                            {prefs.rate === step && <Check size={14} />}
+                            {step}×{prefs.rate === step && <Check size={14} />}
                           </button>
                         ))}
                       </div>
@@ -838,7 +970,9 @@ export function AudioPlayer({
                 <div className="flex items-center justify-between pb-2 mb-3 border-b border-(--reader-ui-border,rgba(255,255,255,0.12))">
                   <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">
                     <BookmarkPlus className="w-4 h-4 text-(--reader-ui-accent,#38bdf8)" />
-                    <span>{t("reader.add_bookmark", "Bookmark current position")}</span>
+                    <span>
+                      {t("reader.add_bookmark", "Bookmark current position")}
+                    </span>
                   </div>
                   <button
                     onClick={() => setShowAddBookmarkModal(false)}
@@ -849,8 +983,12 @@ export function AudioPlayer({
                 </div>
 
                 <div className="p-3 bg-(--reader-ui-soft,rgba(255,255,255,0.06)) border border-(--reader-ui-border) rounded-xl mb-3 flex items-center justify-between">
-                  <span className="text-xs opacity-70">{t("reader.timestamp", "Timestamp")}:</span>
-                  <span className="font-mono font-bold text-(--reader-ui-accent,#38bdf8) text-sm">{formatTime(currentTime)}</span>
+                  <span className="text-xs opacity-70">
+                    {t("reader.timestamp", "Timestamp")}:
+                  </span>
+                  <span className="font-mono font-bold text-(--reader-ui-accent,#38bdf8) text-sm">
+                    {formatTime(currentTime)}
+                  </span>
                 </div>
 
                 <div className="space-y-1.5 mb-4">
@@ -868,7 +1006,10 @@ export function AudioPlayer({
                         handleAddBookmark(bookmarkNote);
                       }
                     }}
-                    placeholder={t("reader.bookmark_note_ph", "Enter a note for this bookmark...")}
+                    placeholder={t(
+                      "reader.bookmark_note_ph",
+                      "Enter a note for this bookmark...",
+                    )}
                     className="textarea textarea-bordered textarea-sm w-full rounded-xl text-xs resize-none bg-(--reader-ui-soft) border-(--reader-ui-border) text-(--reader-ui-text) focus:border-(--reader-ui-accent)"
                   />
                 </div>

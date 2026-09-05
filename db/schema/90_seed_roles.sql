@@ -1,4 +1,3 @@
--- System role IDs are fixed UUIDv7 literals so seeds stay idempotent across restarts.
 INSERT INTO roles (id, name, is_system, is_admin, is_banned, auto_assign, description) VALUES
     ('01920000-0000-7000-8000-000000000001', 'USER',   1, 0, 0, 1, 'Default user role'),
     ('01920000-0000-7000-8000-000000000002', 'ADMIN',  1, 1, 0, 0, 'Built-in administrator role with full access'),
@@ -12,7 +11,6 @@ ON CONFLICT(name) DO UPDATE SET
     auto_assign = excluded.auto_assign,
     description = excluded.description;
 
--- ADMIN gets all permissions
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -22,8 +20,6 @@ ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = 'allow',
     conditions_json = '{}';
 
--- GUEST default permissions. Deliberately no book.offline even though it has book.read:
--- an offline copy outlives the anonymous session that made it and stays readable on a shared device.
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -36,7 +32,6 @@ JOIN permissions p ON p.key IN (
 WHERE r.name = 'GUEST'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 
--- USER default permissions
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -63,7 +58,6 @@ JOIN permissions p ON p.key IN (
 WHERE r.name = 'USER'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 
--- MOD default permissions
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r

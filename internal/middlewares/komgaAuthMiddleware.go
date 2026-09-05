@@ -34,7 +34,6 @@ func KomgaAuth(authService services.AuthService, settingsService services.Settin
 	}
 }
 
-// X-API-Key carries "<email>:<password>": there is no separate key store.
 func komgaCredentials(c fiber.Ctx) (string, string, bool) {
 	if apiKey := strings.TrimSpace(c.Get("X-API-Key")); apiKey != "" {
 		if email, password, found := strings.Cut(apiKey, ":"); found {

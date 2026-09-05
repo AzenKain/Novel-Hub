@@ -1,18 +1,4 @@
 // Package mix converts channel layouts with per-stream gain matrices.
-// Matrices are energy-normalized: any output row whose summed power gain
-// would exceed unity is scaled back to unit energy, so downmixes preserve
-// loudness for uncorrelated content and rarely clip. Rarely is not never:
-// correlated content can still sum past full scale, which is why the
-// chain inserts the true-peak limiter whenever MaxGain reports a row
-// whose worst-case sum exceeds unity (protection is by
-// analysis, not hope).
-//
-// The position gain table follows ITU-R BS.775 conventions: full passes
-// to matching sides, -3 dB (1/sqrt(2)) for center and surround content
-// folded into a side, -6 dB for positions split twice. LFE is dropped on
-// downmix, the common default for music delivery: bass management is a
-// playback-system decision, and blindly summing LFE doubles bass on
-// systems that already fold it. Mono to stereo duplicates at unity.
 package mix
 
 import (
@@ -23,8 +9,7 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// Version is this node's algorithm revision for cache keys: bump on any
-// change to the gain table or normalization (ADR-0004).
+// Version is this node's algorithm revision for cache keys: bump on any change to the gain table or normalization (ADR-0004).
 const Version = "mix-1"
 
 // Matrix is an immutable channel conversion: out[o] = sum_i coef[o][i] * in[i].
@@ -34,14 +19,11 @@ type Matrix struct {
 }
 
 const (
-	db3 = 0.7071067811865476 // -3 dB, 1/sqrt(2)
-	db6 = 0.5                // -6 dB
-	db9 = 0.3535533905932738 // -9 dB
+	db3 = 0.7071067811865476
+	db6 = 0.5
+	db9 = 0.3535533905932738
 )
 
-// stereoGain maps each WAVE_FORMAT_EXTENSIBLE position to its (left,
-// right) downmix contribution. Mono folds through this table too, as
-// db3*(l+r), so a center position reaches mono at unity.
 var stereoGain = map[audio.ChannelMask][2]float64{
 	audio.FrontLeft:          {1, 0},
 	audio.FrontRight:         {0, 1},
@@ -63,11 +45,7 @@ var stereoGain = map[audio.ChannelMask][2]float64{
 	audio.TopBackRight:       {0, db6},
 }
 
-// For builds the conversion matrix from src to dst. Supported targets
-// are mono and stereo (lossy outputs downmix, lossless passes layout
-// through by design) plus unity mono-to-stereo duplication. Equal
-// layouts are refused: the caller decides identity, no-op nodes are never
-// built.
+// For builds the conversion matrix from src to dst.
 func For(src, dst audio.ChannelMask) (*Matrix, error) {
 	if src == 0 || dst == 0 {
 		return nil, waxerr.New(waxerr.CodeInvalidRequest, "mix: unknown layout")
@@ -81,8 +59,6 @@ func For(src, dst audio.ChannelMask) (*Matrix, error) {
 	var rows [][]float64
 	switch {
 	case src.Count() == 1 && dst == audio.FrontLeft|audio.FrontRight:
-		// Mono to stereo: duplicate at unity, the least surprising
-		// convention (level matches the mono original on either speaker).
 		rows = [][]float64{{1}, {1}}
 	case dst == audio.FrontLeft|audio.FrontRight:
 		l := make([]float64, len(positions))
@@ -112,8 +88,6 @@ func For(src, dst audio.ChannelMask) (*Matrix, error) {
 			fmt.Sprintf("mix: unsupported target layout %v (only mono and stereo targets exist)", dst))
 	}
 
-	// Energy normalization: rows are scaled down to unit power gain,
-	// never up, so quiet mixes stay untouched.
 	coef := make([][]float32, len(rows))
 	for o, row := range rows {
 		var energy float64
@@ -136,9 +110,7 @@ func For(src, dst audio.ChannelMask) (*Matrix, error) {
 func (m *Matrix) In() int  { return len(m.coef[0]) }
 func (m *Matrix) Out() int { return len(m.coef) }
 
-// MaxGain returns the worst-case peak gain, the largest row sum of
-// absolute coefficients. Above 1, fully correlated full-scale input can
-// clip and the chain must protect with the limiter.
+// MaxGain returns the worst-case peak gain, the largest row sum of absolute coefficients.
 func (m *Matrix) MaxGain() float64 {
 	var worst float64
 	for _, row := range m.coef {
@@ -151,9 +123,7 @@ func (m *Matrix) MaxGain() float64 {
 	return worst
 }
 
-// Apply converts n frames from src channels into dst channels. Slices
-// follow the DSP kernel convention: one contiguous []float32 per channel.
-// dst and src must not alias.
+// Apply converts n frames from src channels into dst channels.
 func (m *Matrix) Apply(dst, src [][]float32, n int) {
 	if len(dst) != m.Out() || len(src) != m.In() {
 		panic(fmt.Sprintf("mix: Apply with %d in / %d out slices on a %d->%d matrix",
@@ -174,8 +144,6 @@ func (m *Matrix) Apply(dst, src [][]float32, n int) {
 	}
 }
 
-// maskPositions expands a mask into positions in channel order
-// (ascending bit position, the audio package convention).
 func maskPositions(m audio.ChannelMask) []audio.ChannelMask {
 	out := make([]audio.ChannelMask, 0, m.Count())
 	for bit := 0; bit < 32; bit++ {

@@ -13,14 +13,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// The facet endpoints carried OptionalJwtAccess but no authorization at all, and the queries were
-// unscoped. A facet list is an index of the catalog — every author, tag, publisher and language in
-// every library, with counts — so an unauthenticated visitor read the shape of a closed library
-// even though /books and /libraries both refused it.
-//
-// Scoped inside the SQL via ReadableLibraryIDs rather than filtered after the fetch: filtering
-// afterwards would let LIMIT page over rows the caller cannot see, so a page of 20 could arrive
-// with 3 entries and the cursor would still advance past the other 17.
+// The facet endpoints carried OptionalJwtAccess but no authorization at all, and the queries were unscoped.
 func TestMetadataFacetsAreScopedToReadableLibraries(t *testing.T) {
 	seedFacetFixture := func(t *testing.T, extra ...string) *sql.DB {
 		t.Helper()
@@ -104,7 +97,6 @@ func TestMetadataFacetsAreScopedToReadableLibraries(t *testing.T) {
 
 		for path, want := range facets {
 			got := names(t, server, path)
-			// Both assertions matter: a guard that returned nothing would satisfy the first.
 			if contains(got, want.closed) {
 				t.Errorf("%s leaked %q from the closed library: %v", path, want.closed, got)
 			}
@@ -142,8 +134,7 @@ func TestMetadataFacetsAreScopedToReadableLibraries(t *testing.T) {
 	})
 }
 
-// A library the caller cannot read must not be named either — /libraries checked library.read but
-// not the guest_access setting that GUEST is actually gated by, so a closed library's name leaked.
+// A library the caller cannot read must not be named either — /libraries checked library.read but not the guest_access setting that GUEST is actually gated by, so a closed library's name leaked.
 func TestLibraryListHidesLibrariesClosedToGuests(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "library-scope.db"))
 	db, err := database.NewSQLiteDB()

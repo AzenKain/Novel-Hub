@@ -77,8 +77,6 @@ func TestMergeBooks(t *testing.T) {
 			t.Fatalf("seed: %v", err)
 		}
 	}
-	// fts_chapters has no trigger; the app populates it via InsertFTSChapter.
-	// Mirror that so MergeFTSChapters is exercised.
 	if _, err := db.Exec(`INSERT INTO fts_chapters (rowid, book_id, chapter_id, title, content)
 		SELECT c.rowid, c.book_id, c.id, c.title, '' FROM chapters c`); err != nil {
 		t.Fatalf("seed fts_chapters: %v", err)

@@ -163,8 +163,7 @@ func (a *authService) ValidateCredentials(ctx context.Context, dto *request.Sign
 	return tokenClaims(user, "access", constants.AccessTokenDuration), nil
 }
 
-// The gate sits here and never in authenticate: ValidateCredentials shares that path and is
-// the OPDS/Kobo Basic-auth entry point, where no device can type a code.
+// The gate sits here and never in authenticate: ValidateCredentials shares that path and is the OPDS/Kobo Basic-auth entry point, where no device can type a code.
 func (a *authService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
 	user, err := a.authenticate(ctx, dto)
 	if err != nil {
@@ -381,7 +380,6 @@ func (a *authService) SubmitSetup(ctx context.Context, dto *request.SetupDto) (*
 	if err := settingsRepoTx.UpsertSetupState(ctx, "completed", "true"); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to complete setup")
 	}
-	// Root admin identity is derived from this record, so a lost write leaves the install ownerless.
 	if err := settingsRepoTx.UpsertSetupState(ctx, "root_admin_id", user.ID); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to record root admin")
 	}

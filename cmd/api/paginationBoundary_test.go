@@ -14,9 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// SearchUser emitted a next_cursor whenever the page was non-empty, with no comparison against
-// the limit, so a short page still advertised another one — the admin list rendered an empty page
-// after a complete one. Every sibling list compares against the limit.
+// SearchUser emitted a next_cursor whenever the page was non-empty, with no comparison against the limit, so a short page still advertised another one — the admin list rendered an empty page after a complete one.
 func TestUserSearchOmitsCursorOnAShortPage(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -40,7 +38,6 @@ func TestUserSearchOmitsCursorOnAShortPage(t *testing.T) {
 		INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = 'ADMIN'`, adminID); err != nil {
 		t.Fatalf("seed role: %v", err)
 	}
-	// Four more accounts: five total, well under the limit asked for below.
 	for i := range 4 {
 		id := uuid.Must(uuid.NewV7()).String()
 		if _, err := db.Exec(`
@@ -96,10 +93,7 @@ func TestUserSearchOmitsCursorOnAShortPage(t *testing.T) {
 	}
 }
 
-// The collection filter bypasses the keyset SQL and pages in Go instead. That filter compared
-// created_at only, with no id tiebreaker, while the SQL path it replaces has one. created_at is
-// CURRENT_TIMESTAMP at second resolution, so every book in a bulk upload shares a value: page 2
-// kept only rows strictly before the boundary and silently dropped the book that tied with it.
+// The collection filter bypasses the keyset SQL and pages in Go instead.
 func TestCollectionPagingKeepsBooksSharingATimestamp(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -131,7 +125,6 @@ func TestCollectionPagingKeepsBooksSharingATimestamp(t *testing.T) {
 		t.Fatalf("seed collection: %v", err)
 	}
 
-	// One timestamp for all five, which is what a bulk upload produces.
 	const stamp = "2026-08-05 10:00:00"
 	bookIDs := make([]string, 5)
 	for i := range bookIDs {

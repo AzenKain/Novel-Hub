@@ -1,10 +1,5 @@
 package opus
 
-// SILK per-frame decode: indices, excitation, parameters, and LTP+LPC
-// synthesis, plus stereo unmixing and the packet driver. Ported from libopus
-// as noted per function.
-
-// decodeIndices reads one SILK frame's quantization indices (silk_decode_indices).
 func (cs *silkChannelState) decodeIndices(dec *rangeDecoder, frameIndex int, decodeLBRR bool, condCoding int) {
 	ix := &cs.indices
 	var Ix int
@@ -16,7 +11,6 @@ func (cs *silkChannelState) decodeIndices(dec *rangeDecoder, frameIndex int, dec
 	ix.signalType = int8(Ix >> 1)
 	ix.quantOffsetType = int8(Ix & 1)
 
-	// Gains.
 	if condCoding == codeConditionally {
 		ix.GainsIndices[0] = int8(dec.decodeICDF(silk_delta_gain_iCDF, 8))
 	} else {
@@ -27,7 +21,6 @@ func (cs *silkChannelState) decodeIndices(dec *rangeDecoder, frameIndex int, dec
 		ix.GainsIndices[i] = int8(dec.decodeICDF(silk_delta_gain_iCDF, 8))
 	}
 
-	// NLSF indices.
 	cb := cs.psNLSFCB
 	ix.NLSFIndices[0] = int8(dec.decodeICDF(cb.cb1ICDF[int(ix.signalType>>1)*cb.nVectors:], 8))
 	var ecIx [silkMaxLPCOrder]int16
@@ -80,7 +73,6 @@ func (cs *silkChannelState) decodeIndices(dec *rangeDecoder, frameIndex int, dec
 	ix.Seed = int8(dec.decodeICDF(silk_uniform4_iCDF, 8))
 }
 
-// decodeParameters converts indices to parameters (silk_decode_parameters).
 func (cs *silkChannelState) decodeParameters(ctrl *silkDecoderControl, condCoding int) {
 	ix := &cs.indices
 	silkGainsDequant(ctrl.GainsQ16[:], ix.GainsIndices[:], &cs.LastGainIndex, condCoding == codeConditionally, cs.nbSubfr)
@@ -124,13 +116,12 @@ func (cs *silkChannelState) decodeParameters(ctrl *silkDecoderControl, condCodin
 	}
 }
 
-// decodePulses reads the excitation signal (silk_decode_pulses).
 func silkDecodePulses(dec *rangeDecoder, pulses []int16, signalType, quantOffsetType int8, frameLength int) {
 	var sumPulses, nLshifts [maxNBShellBlocks]int
 	rateLevel := dec.decodeICDF(silk_rate_levels_iCDF[signalType>>1], 8)
 	iter := frameLength >> log2ShellFrame
 	if iter*shellFrameLen < frameLength {
-		iter++ // only for 10 ms @ 12 kHz
+		iter++
 	}
 	cdf := silk_pulses_per_block_iCDF[rateLevel]
 	for i := 0; i < iter; i++ {
@@ -172,7 +163,6 @@ func silkDecodePulses(dec *rangeDecoder, pulses []int16, signalType, quantOffset
 	decodeSigns(dec, pulses, frameLength, signalType, quantOffsetType, sumPulses[:])
 }
 
-// shellDecoder splits a pulse count down the shell tree (silk_shell_decoder).
 func shellDecoder(pulses0 []int16, dec *rangeDecoder, pulses4 int) {
 	var pulses3 [2]int16
 	var pulses2 [4]int16
@@ -204,7 +194,6 @@ func decodeSplit(child1, child2 *int16, dec *rangeDecoder, p int, shellTable []u
 	}
 }
 
-// decodeSigns attaches signs to the pulses (silk_decode_signs).
 func decodeSigns(dec *rangeDecoder, pulses []int16, length int, signalType, quantOffsetType int8, sumPulses []int) {
 	var icdf [2]uint8
 	i := 7 * (int(quantOffsetType) + int(signalType)<<1)
@@ -224,7 +213,6 @@ func decodeSigns(dec *rangeDecoder, pulses []int16, length int, signalType, quan
 	}
 }
 
-// decodeCore runs LTP and LPC synthesis into xq (silk_decode_core).
 func (cs *silkChannelState) decodeCore(ctrl *silkDecoderControl, xq []int16, pulses []int16) {
 	sLTP := make([]int16, cs.ltpMemLength)
 	sLTPQ15 := make([]int32, cs.ltpMemLength+cs.frameLength)
@@ -345,7 +333,6 @@ func (cs *silkChannelState) decodeCore(ctrl *silkDecoderControl, xq []int16, pul
 	copy(cs.sLPCQ14Buf[:], sLPCQ14[:silkMaxLPCOrder])
 }
 
-// decodeFrame decodes one SILK frame into out[0:frameLength] (silk_decode_frame).
 func (cs *silkChannelState) decodeFrame(dec *rangeDecoder, out []int16, condCoding int) {
 	var ctrl silkDecoderControl
 	pulses := make([]int16, (cs.frameLength+shellFrameLen-1) & ^(shellFrameLen-1))

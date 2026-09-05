@@ -118,7 +118,6 @@ func (h *SettingsController) handleAssetUpload(ctx context.Context, c fiber.Ctx)
 	if err == nil && fileHeader != nil {
 		f, err := fileHeader.Open()
 		if err != nil {
-			// The client's part parsed fine; failing to open the spooled copy is our side.
 			return apperrors.HandleError(c, apperrors.New(apperrors.ErrInternalError, "Failed to open uploaded file"))
 		}
 		defer f.Close()

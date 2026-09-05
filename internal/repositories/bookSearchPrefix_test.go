@@ -116,7 +116,6 @@ func BenchmarkBookSearchPrefix(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	// Seed 500 books
 	tx, _ := db.Begin()
 	st, _ := tx.Prepare(`INSERT INTO books (id, library_id, title) VALUES (?, 'lib-1', ?)`)
 	for i := 0; i < 500; i++ {
@@ -128,7 +127,6 @@ func BenchmarkBookSearchPrefix(b *testing.B) {
 	repo := NewBookDBRepository(db, nil)
 	query := "assass"
 
-	
 	b.ReportAllocs()
 	for b.Loop() {
 		_, err := repo.SearchBooks(ctx, nil, &query, "", "", "", "", "", "", "", 20, "u1")

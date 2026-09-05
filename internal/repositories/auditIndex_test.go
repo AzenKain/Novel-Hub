@@ -61,10 +61,6 @@ func auditIndexExec(tb testing.TB, db *sql.DB, q string, args ...any) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// 1. Redundant / duplicate index inventory, read straight out of sqlite_master.
-// ---------------------------------------------------------------------------
-
 type auditIndexInfo struct {
 	name    string
 	table   string
@@ -151,7 +147,6 @@ func TestAuditIndexRedundant(t *testing.T) {
 	db := auditIndexDB(t)
 	inv := auditIndexInventory(t, db)
 
-	// Exact duplicates: same table, identical key column list, both non-partial.
 	byKey := map[string][]auditIndexInfo{}
 	for _, ix := range inv {
 		if ix.partial {
@@ -180,8 +175,6 @@ func TestAuditIndexRedundant(t *testing.T) {
 		t.Logf("  %s  ->  %s", k, strings.Join(names, " + "))
 	}
 
-	// Prefix redundancy: index A is redundant if another index B on the same table has A's
-	// key columns as a strict leading prefix.
 	t.Logf("=== PREFIX-REDUNDANT INDEXES (A's columns are a leading prefix of B's) ===")
 	for _, a := range inv {
 		if a.partial || a.unique {
@@ -198,7 +191,6 @@ func TestAuditIndexRedundant(t *testing.T) {
 			}
 			match := true
 			for i := range ac {
-				// direction does not matter for prefix usability in SQLite
 				if strings.Fields(ac[i])[0] != strings.Fields(bc[i])[0] {
 					match = false
 					break
@@ -221,19 +213,6 @@ func TestAuditIndexRedundant(t *testing.T) {
 	t.Logf("total indexes present after ApplySchema: %d", total)
 }
 
-// ---------------------------------------------------------------------------
-// 2. FK child columns with no usable index -> DELETE FROM books scans them.
-// ---------------------------------------------------------------------------
-
-// auditIndexSeedCascade builds a library whose child tables are large but where the book being deleted
-// owns *zero* child rows. Any time spent is therefore pure "find the children" scan cost.
-//
-// Two details decide whether this measures reality or an artifact:
-//   - users: the child tables are keyed (user_id, book_id). With ONE user that prefix is
-//     degenerate and a scan of it looks like a seek. Real instances have many readers.
-//   - analyze: production never runs ANALYZE (no call anywhere in pkg/database or db/schema),
-//     and SQLite's skip-scan optimisation only activates with sqlite_stat1 present. Seeding
-//     with ANALYZE therefore grants the planner a rescue production does not have.
 func auditIndexSeedCascade(tb testing.TB, childRows, users int, analyze bool) *sql.DB {
 	tb.Helper()
 	db := auditIndexDB(tb)
@@ -263,7 +242,6 @@ func auditIndexSeedCascade(tb testing.TB, childRows, users int, analyze bool) *s
 	insColl := prep(`INSERT INTO collection_books (collection_id,book_id) VALUES ('c-1',?)`)
 	insRP := prep(`INSERT INTO reading_progress (user_id,book_id,file_id,chapter_ref) VALUES (?,?,?,'c')`)
 
-	// books that OWN the child rows
 	for i := 0; i < childRows; i++ {
 		bid := fmt.Sprintf("owner-%07d", i)
 		uid := fmt.Sprintf("u-%05d", i%users)
@@ -291,7 +269,6 @@ func auditIndexSeedCascade(tb testing.TB, childRows, users int, analyze bool) *s
 			tb.Fatal(err)
 		}
 	}
-	// 200 childless victims to delete and time
 	for i := 0; i < 200; i++ {
 		bid := fmt.Sprintf("victim-%04d", i)
 		if _, err := insBook.Exec(bid, "lib-1", bid); err != nil {
@@ -307,8 +284,6 @@ func auditIndexSeedCascade(tb testing.TB, childRows, users int, analyze bool) *s
 	return db
 }
 
-// Deletes run inside ONE transaction: a per-statement commit costs a WAL fsync that dwarfs
-// the child-lookup CPU and hides the scan entirely. We want the scan cost, not the fsync.
 func auditIndexTimeCascadeDeletes(tb testing.TB, db *sql.DB, n int) time.Duration {
 	tb.Helper()
 	tx, err := db.Begin()
@@ -331,8 +306,6 @@ func auditIndexTimeCascadeDeletes(tb testing.TB, db *sql.DB, n int) time.Duratio
 	return d
 }
 
-// The four FK child columns that EQP reports as INDEX-SCAN. Each is a book_id that is not the
-// leading column of any index, so SQLite's FK enforcement walks the whole child index per delete.
 var auditIndexMissingFKIndexes = []string{
 	`CREATE INDEX ix_fix_highlights_book ON highlights(book_id)`,
 	`CREATE INDEX ix_fix_sessions_book ON reading_sessions(book_id)`,
@@ -418,8 +391,6 @@ func TestAuditIndexFKProbeCost(t *testing.T) {
 // Which of the child tables can the planner actually seek on book_id?
 func TestAuditIndexFKChildCoverage(t *testing.T) {
 	db := auditIndexDB(t)
-	// Every table with a REFERENCES books(id) / users(id) column, probed the way SQLite's
-	// FK enforcement probes it: WHERE <child_col> = ?
 	cases := []struct{ table, col string }{
 		{"highlights", "book_id"},
 		{"highlights", "chapter_id"},
@@ -441,9 +412,6 @@ func TestAuditIndexFKChildCoverage(t *testing.T) {
 		{"user_devices", "user_id"},
 		{"user_trackers", "user_id"},
 	}
-	// SEARCH ...(col=?) is a true O(log n) seek. "SCAN t USING COVERING INDEX ix" is NOT a
-	// seek -- it is a full traversal of ix, which happens whenever col is not the LEADING
-	// column of any index. Bare "SCAN t" is a full table scan. Both scan variants are O(n).
 	t.Logf("=== FK child-column seekability ===")
 	t.Logf("    SEEK          = SEARCH ...(col=?), O(log n)")
 	t.Logf("    INDEX-SCAN    = col not leading in any index -> full index traversal, O(n)")
@@ -469,9 +437,6 @@ func TestAuditIndexFKChildCoverage(t *testing.T) {
 	}
 }
 
-// The gaps this audit measured. Listing them keeps the test green on today's schema while
-// still failing if a NEW unindexed CASCADE FK child column is introduced -- that is the
-// regression this file exists to catch. Delete an entry when its index is added.
 var auditIndexKnownUnindexedFK = map[string]bool{
 	"highlights.book_id":            true,
 	"reading_sessions.book_id":      true,
@@ -480,10 +445,7 @@ var auditIndexKnownUnindexedFK = map[string]bool{
 	"reading_progress.file_id":      true,
 }
 
-// ---------------------------------------------------------------------------
-// 3. reading_progress.file_id + highlights.chapter_id LIKE, hit by the duplicate
-//    file merge path (bookFileRecordRepository.RepointFileUserData).
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- 3.
 
 func TestAuditIndexRepointFileUserData(t *testing.T) {
 	var prev time.Duration
@@ -514,10 +476,6 @@ func TestAuditIndexRepointFileUserData(t *testing.T) {
 		prev = d
 	}
 }
-
-// ---------------------------------------------------------------------------
-// 4. ORDER BY / GROUP BY that cannot ride an index.
-// ---------------------------------------------------------------------------
 
 func auditIndexSeedBooks(tb testing.TB, n int) *sql.DB {
 	tb.Helper()
@@ -597,8 +555,7 @@ func TestAuditIndexOrderByTempBTree(t *testing.T) {
 	}
 }
 
-// Does the cursor page actually get cheaper with a cursor, or does datetime() force a
-// full index walk every page?
+// Does the cursor page actually get cheaper with a cursor, or does datetime() force a full index walk every page?
 func TestAuditIndexKeysetCursorCost(t *testing.T) {
 	var prev time.Duration
 	for _, n := range []int{10000, 40000} {
@@ -620,10 +577,6 @@ func TestAuditIndexKeysetCursorCost(t *testing.T) {
 		}
 		run("ListBookIDs page1", `SELECT id FROM books WHERE (?1 IS NULL OR datetime(created_at) < datetime(?1) OR (datetime(created_at) = datetime(?1) AND id < ?2)) ORDER BY created_at DESC, id DESC LIMIT ?3`, nil, nil, 24)
 
-		// Page 1 has a NULL cursor, so it proves nothing about the cursor predicate. The
-		// question for keyset pagination is whether a DEEP page still costs the same as a
-		// shallow one -- that is the entire point of keyset over OFFSET. datetime(created_at)
-		// is a function call on the column, so no index on created_at can seek it.
 		var deepTime string
 		var deepID string
 		row := db.QueryRow(`SELECT created_at, id FROM books ORDER BY created_at DESC, id DESC LIMIT 1 OFFSET ?`, n-500)
@@ -634,7 +587,6 @@ func TestAuditIndexKeysetCursorCost(t *testing.T) {
 		run("ListBookIDs DEEP page (datetime())", cursorQ, deepTime, deepID, 24)
 		t.Logf("  deep-page plan:\n%s", auditIndexPlan(t, db, cursorQ, deepTime, deepID, 24))
 
-		// Same page, same result set, but comparing the raw column instead of datetime(col).
 		const sargableQ = `SELECT id FROM books WHERE (?1 IS NULL OR created_at < ?1 OR (created_at = ?1 AND id < ?2)) ORDER BY created_at DESC, id DESC LIMIT ?3`
 		run("ListBookIDs DEEP page (sargable)", sargableQ, deepTime, deepID, 24)
 		t.Logf("  sargable plan:\n%s", auditIndexPlan(t, db, sargableQ, deepTime, deepID, 24))
@@ -647,9 +599,7 @@ func TestAuditIndexKeysetCursorCost(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// 5. Indexes that can never be used.
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- 5.
 
 func TestAuditIndexUnusable(t *testing.T) {
 	db := auditIndexSeedBooks(t, 20000)
@@ -729,11 +679,6 @@ func TestAuditIndexRedundantWriteCost(t *testing.T) {
 		"idx_user_roles_user_id",
 		"idx_book_share_events_book",
 	}
-	// Order matters: the first arm warms the page cache and the tmpfs, so whichever arm runs
-	// second is systematically penalised. Running both orders and averaging cancels that bias.
-	// Three same-order runs gave -2.2%, -10.2%, -5.0% -- a negative "cost" for ADDING indexes
-	// is physically impossible, which is the tell that the harness, not the schema, is being
-	// measured.
 	withA := insert(nil)
 	withoutA := insert(redundant)
 	withoutB := insert(redundant)
@@ -747,15 +692,7 @@ func TestAuditIndexRedundantWriteCost(t *testing.T) {
 	t.Logf("  -> redundant index write overhead: %.1f%%", (float64(with)/float64(without)-1)*100)
 }
 
-// The two-arm deep-page test conflated two independent non-sargable constructs, so it could
-// not attribute cost. There are three suspects in ListBookIDs' WHERE clause and they must be
-// separated before any of them is reported as the cause:
-//
-//	a) datetime(created_at) -- a function on the column; no index on created_at can seek it.
-//	b) the `?1 IS NULL OR ...` disjunction sqlc emits for every narg cursor -- a disjunction
-//	   over a non-column term also blocks a range seek.
-//	c) ORDER BY created_at DESC, id DESC against an index that stores created_at only, which
-//	   forces the "LAST TERM OF ORDER BY" temp b-tree regardless of the WHERE clause.
+// The two-arm deep-page test conflated two independent non-sargable constructs, so it could not attribute cost.
 func TestAuditIndexKeysetDecompose(t *testing.T) {
 	for _, n := range []int{10000, 40000} {
 		db := auditIndexSeedBooks(t, n)

@@ -1,11 +1,5 @@
 package vorbis
 
-// residue decodes the fine spectral structure that multiplies the floor
-// envelope (spec 8). All three residue formats share a classification-driven,
-// multi-pass partition decode; they differ only in how a partition's scalars
-// are laid out (format 0 interleaves by dimension, formats 1 and 2 are
-// sequential) and in whether channels are decoded separately (0/1) or as one
-// interleaved vector (2).
 type residue struct {
 	kind      int
 	begin     int
@@ -13,7 +7,7 @@ type residue struct {
 	partSize  int
 	classes   int
 	classbook int
-	books     [][]int // [classification][pass]; -1 when a pass is unused
+	books     [][]int
 	maxPass   int
 }
 
@@ -67,10 +61,6 @@ func parseResidue(r *bitReader, numBooks int) (residue, error) {
 	return res, nil
 }
 
-// decode reads the residue for a submap's channels into out (each out[j] is a
-// per-channel spectral buffer of length size, pre-zeroed by the caller for
-// decoded channels). doNotDecode[j] skips channel j. cbs is the codebook set;
-// vec is caller-owned VQ scratch of length >= the largest codebook dimension.
 func (res *residue) decode(r *bitReader, cbs []codebook, out [][]float32, doNotDecode []bool, size int, vec []float32) error {
 	ch := len(out)
 	classbook := &cbs[res.classbook]
@@ -83,7 +73,6 @@ func (res *residue) decode(r *bitReader, cbs []codebook, out [][]float32, doNotD
 		return res.decodeType2(r, cbs, out, doNotDecode, size, classbook, classwords, vec)
 	}
 
-	// Formats 0 and 1: per-channel classification and layout.
 	begin, end := res.begin, res.end
 	if end > size {
 		end = size
@@ -142,7 +131,6 @@ func (res *residue) decode(r *bitReader, cbs []codebook, out [][]float32, doNotD
 	return nil
 }
 
-// decodeType2 decodes all channels as one interleaved vector (spec 8.6.5).
 func (res *residue) decodeType2(r *bitReader, cbs []codebook, out [][]float32, doNotDecode []bool, size int, classbook *codebook, classwords int, vec []float32) error {
 	ch := len(out)
 	anyDecode := false
@@ -197,9 +185,6 @@ func (res *residue) decodeType2(r *bitReader, cbs []codebook, out [][]float32, d
 	return nil
 }
 
-// partition decodes one partition's scalars into target at off, per the
-// format's layout (spec 8.6.3 for format 0, 8.6.4 for format 1). vec is caller
-// scratch of length >= book.dimensions.
 func (res *residue) partition(r *bitReader, book *codebook, target []float32, off int, vec []float32) error {
 	dim := book.dimensions
 	if res.kind == 0 {
@@ -219,7 +204,6 @@ func (res *residue) partition(r *bitReader, book *codebook, target []float32, of
 		}
 		return nil
 	}
-	// Format 1: sequential.
 	for i := 0; i < res.partSize; {
 		entry, err := book.decodeScalar(r)
 		if err != nil {
@@ -235,8 +219,6 @@ func (res *residue) partition(r *bitReader, book *codebook, target []float32, of
 	return nil
 }
 
-// partitionInterleaved decodes one format-2 partition (spec 8.6.5): scalars go
-// to interleaved position p -> channel p%ch, bin p/ch.
 func (res *residue) partitionInterleaved(r *bitReader, book *codebook, out [][]float32, off, ch int, vec []float32) error {
 	dim := book.dimensions
 	for i := 0; i < res.partSize; {
@@ -257,8 +239,6 @@ func (res *residue) partitionInterleaved(r *bitReader, book *codebook, out [][]f
 	return nil
 }
 
-// residueEOF maps a codeword read past the packet end to a silent finish: the
-// spec ends residue decode there rather than failing the stream.
 func residueEOF(err error) error {
 	if err == errEndOfPacket {
 		return nil
@@ -266,7 +246,6 @@ func residueEOF(err error) error {
 	return err
 }
 
-// maxDim returns the largest codebook dimension, sizing residue VQ scratch.
 func maxDim(cbs []codebook) int {
 	m := 1
 	for i := range cbs {

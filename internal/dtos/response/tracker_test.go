@@ -6,9 +6,7 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// The tracker search controller used to rebuild each result into a fiber.Map by hand, listing
-// the four key names a second time. It now returns the struct directly, so these json tags are
-// the wire contract that web/src/types/tracker.ts AniListSearchItem is typed against.
+// The tracker search controller used to rebuild each result into a fiber.Map by hand, listing the four key names a second time.
 func TestTrackerSearchResultKeepsItsWireKeys(t *testing.T) {
 	raw, err := jsonx.Marshal(TrackerSearchResultResponse{
 		ExternalSeriesID: "12345",

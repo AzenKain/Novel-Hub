@@ -67,7 +67,13 @@ export type SearchUserParams = {
   search?: string;
   is_deleted?: boolean;
   role_ids?: string[];
-  sort?: "id" | "created_at" | "updated_at" | "email" | "is_deleted" | "auth_provider";
+  sort?:
+    | "id"
+    | "created_at"
+    | "updated_at"
+    | "email"
+    | "is_deleted"
+    | "auth_provider";
   order?: "asc" | "desc";
 };
 

@@ -40,8 +40,18 @@ import { useShallow } from "zustand/react/shallow";
 export function Roles() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { data: roles = [], isLoading: rolesLoading, isFetching: rolesFetching, refetch: refetchRoles } = useRolesQuery();
-  const { data: permissions = [], isLoading: permissionsLoading, isFetching: permissionsFetching, refetch: refetchPermissions } = usePermissionsQuery();
+  const {
+    data: roles = [],
+    isLoading: rolesLoading,
+    isFetching: rolesFetching,
+    refetch: refetchRoles,
+  } = useRolesQuery();
+  const {
+    data: permissions = [],
+    isLoading: permissionsLoading,
+    isFetching: permissionsFetching,
+    refetch: refetchPermissions,
+  } = usePermissionsQuery();
   const { data: libraries = [] } = useLibrariesQuery();
 
   const createRoleMutation = useCreateRoleMutation();
@@ -52,7 +62,8 @@ export function Roles() {
 
   const reorderRoles = (ids: string[]) =>
     reorderRolesMutation.mutate(ids, {
-      onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : String(err)),
     });
 
   const handleMoveUp = (index: number, e: SyntheticEvent) => {
@@ -95,20 +106,34 @@ export function Roles() {
   };
 
   const {
-    selectedRole, setSelectedRole,
-    assignments, setAssignments,
-    showModal, setShowModal,
-    modalMode, setModalMode,
-    form, setForm,
-    roleToDelete, setRoleToDelete,
-  } = useRoleAdminStore(useShallow((state) => ({
-    selectedRole: state.selectedRole, setSelectedRole: state.setSelectedRole,
-    assignments: state.assignments, setAssignments: state.setAssignments,
-    showModal: state.showModal, setShowModal: state.setShowModal,
-    modalMode: state.modalMode, setModalMode: state.setModalMode,
-    form: state.form, setForm: state.setForm,
-    roleToDelete: state.roleToDelete, setRoleToDelete: state.setRoleToDelete,
-  })));
+    selectedRole,
+    setSelectedRole,
+    assignments,
+    setAssignments,
+    showModal,
+    setShowModal,
+    modalMode,
+    setModalMode,
+    form,
+    setForm,
+    roleToDelete,
+    setRoleToDelete,
+  } = useRoleAdminStore(
+    useShallow((state) => ({
+      selectedRole: state.selectedRole,
+      setSelectedRole: state.setSelectedRole,
+      assignments: state.assignments,
+      setAssignments: state.setAssignments,
+      showModal: state.showModal,
+      setShowModal: state.setShowModal,
+      modalMode: state.modalMode,
+      setModalMode: state.setModalMode,
+      form: state.form,
+      setForm: state.setForm,
+      roleToDelete: state.roleToDelete,
+      setRoleToDelete: state.setRoleToDelete,
+    })),
+  );
 
   const loading = rolesLoading || permissionsLoading;
   const saving =
@@ -135,7 +160,7 @@ export function Roles() {
           permission_key: rp.permission_key,
           effect: rp.effect || "allow",
           conditions: rp.conditions || {},
-        }))
+        })),
       );
     } else {
       setAssignments([]);
@@ -155,13 +180,16 @@ export function Roles() {
       if (prev.some((a) => a.permission_key === key)) {
         return prev.filter((a) => a.permission_key !== key);
       }
-      return [...prev, { permission_key: key, effect: "allow", conditions: {} }];
+      return [
+        ...prev,
+        { permission_key: key, effect: "allow", conditions: {} },
+      ];
     });
   }
 
   function setEffect(key: string, effect: "allow" | "deny") {
     setAssignments((prev) =>
-      prev.map((a) => (a.permission_key === key ? { ...a, effect } : a))
+      prev.map((a) => (a.permission_key === key ? { ...a, effect } : a)),
     );
   }
 
@@ -182,8 +210,9 @@ export function Roles() {
       },
       {
         onSuccess: () => toast.success(t("admin.permissions_updated")),
-        onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
-      }
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : String(err)),
+      },
     );
   }
 
@@ -221,7 +250,8 @@ export function Roles() {
           toast.success(t("admin.role_created", "Role created"));
           setShowModal(false);
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : String(err)),
       });
     } else if (selectedRole) {
       updateRoleMutation.mutate(
@@ -238,8 +268,9 @@ export function Roles() {
             toast.success(t("admin.role_updated", "Role updated"));
             setShowModal(false);
           },
-          onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
-        }
+          onError: (err) =>
+            toast.error(err instanceof Error ? err.message : String(err)),
+        },
       );
     }
   }
@@ -251,24 +282,36 @@ export function Roles() {
         toast.success(t("admin.role_deleted", "Role deleted"));
         setRoleToDelete(null);
       },
-      onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : String(err)),
     });
   }
 
-  const canModify = selectedRole && !selectedRole.is_admin && !selectedRole.is_banned;
+  const canModify =
+    selectedRole && !selectedRole.is_admin && !selectedRole.is_banned;
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("admin.role_management", "Role Management")}</h1>
-          <p className="text-sm text-base-content/60 mt-1">{t("admin.role_management_desc", "Create, edit roles and manage permissions")}</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("admin.role_management", "Role Management")}
+          </h1>
+          <p className="text-sm text-base-content/60 mt-1">
+            {t(
+              "admin.role_management_desc",
+              "Create, edit roles and manage permissions",
+            )}
+          </p>
         </div>
         <button
           onClick={async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
-            await queryClient.invalidateQueries({ queryKey: ["admin", "permissions"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "roles"],
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "permissions"],
+            });
             await Promise.all([refetchRoles(), refetchPermissions()]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
@@ -276,7 +319,9 @@ export function Roles() {
           title={t("admin.operations.refresh", "Refresh")}
           disabled={rolesFetching || permissionsFetching}
         >
-          <RefreshCw className={`h-5 w-5 ${(rolesFetching || permissionsFetching) ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-5 w-5 ${rolesFetching || permissionsFetching ? "animate-spin" : ""}`}
+          />
         </button>
       </header>
 
@@ -287,7 +332,10 @@ export function Roles() {
           <div className="lg:col-span-4 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Roles ({roles.length})</h2>
-              <button onClick={openCreate} className="btn btn-primary btn-sm gap-1.5">
+              <button
+                onClick={openCreate}
+                className="btn btn-primary btn-sm gap-1.5"
+              >
                 <Plus className="h-4 w-4" /> {t("admin.add_role", "Add Role")}
               </button>
             </div>
@@ -303,24 +351,47 @@ export function Roles() {
                     onDragOver={handleDragOver}
                     onDrop={() => handleDrop(index)}
                     onClick={() => setSelectedRole(r)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isSelected
-                      ? "bg-primary/10 border-primary shadow-sm"
-                      : "bg-base-100 border-base-200 hover:border-base-300"
-                      }`}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? "bg-primary/10 border-primary shadow-sm"
+                        : "bg-base-100 border-base-200 hover:border-base-300"
+                    }`}
                   >
                     <div className="min-w-0 flex-1 flex items-center gap-2">
                       <GripVertical className="h-4 w-4 shrink-0 text-base-content/30 cursor-grab active:cursor-grabbing" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <Shield className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`} />
-                          <span className="font-bold text-sm truncate">{r.name}</span>
-                          <span className="badge badge-ghost badge-xs font-mono">{t("admin.role_rank", "Rank #{{n}}", { n: index + 1 })}</span>
-                          {r.is_admin && <span className="badge badge-error badge-xs">{t("admin.role_badge_admin", "Admin")}</span>}
-                          {r.is_system && !r.is_admin && <span className="badge badge-neutral badge-xs">{t("admin.role_badge_system", "System")}</span>}
-                          {r.auto_assign && <span className="badge badge-info badge-xs">{t("admin.role_badge_auto", "Auto")}</span>}
+                          <Shield
+                            className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`}
+                          />
+                          <span className="font-bold text-sm truncate">
+                            {r.name}
+                          </span>
+                          <span className="badge badge-ghost badge-xs font-mono">
+                            {t("admin.role_rank", "Rank #{{n}}", {
+                              n: index + 1,
+                            })}
+                          </span>
+                          {r.is_admin && (
+                            <span className="badge badge-error badge-xs">
+                              {t("admin.role_badge_admin", "Admin")}
+                            </span>
+                          )}
+                          {r.is_system && !r.is_admin && (
+                            <span className="badge badge-neutral badge-xs">
+                              {t("admin.role_badge_system", "System")}
+                            </span>
+                          )}
+                          {r.auto_assign && (
+                            <span className="badge badge-info badge-xs">
+                              {t("admin.role_badge_auto", "Auto")}
+                            </span>
+                          )}
                         </div>
                         {r.description && (
-                          <p className="text-xs text-base-content/60 truncate mt-1 pl-6">{r.description}</p>
+                          <p className="text-xs text-base-content/60 truncate mt-1 pl-6">
+                            {r.description}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -335,7 +406,10 @@ export function Roles() {
                         <ChevronUp className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        disabled={index === roles.length - 1 || reorderRolesMutation.isPending}
+                        disabled={
+                          index === roles.length - 1 ||
+                          reorderRolesMutation.isPending
+                        }
                         onClick={(e) => handleMoveDown(index, e)}
                         className="btn btn-ghost btn-xs btn-square"
                         title={t("admin.role_move_down", "Move Down Priority")}
@@ -369,18 +443,34 @@ export function Roles() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold">{selectedRole.name}</h2>
-                      {selectedRole.is_admin && <span className="badge badge-error">{t("admin.role_full_access", "Full Admin Access")}</span>}
-                      {selectedRole.is_banned && <span className="badge badge-warning text-warning-content font-bold">{t("admin.role_blocked", "Blocked Account")}</span>}
+                      {selectedRole.is_admin && (
+                        <span className="badge badge-error">
+                          {t("admin.role_full_access", "Full Admin Access")}
+                        </span>
+                      )}
+                      {selectedRole.is_banned && (
+                        <span className="badge badge-warning text-warning-content font-bold">
+                          {t("admin.role_blocked", "Blocked Account")}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-base-content/60 mt-1">
-                      {selectedRole.description || t("admin.role_no_description", "No description provided.")}
+                      {selectedRole.description ||
+                        t(
+                          "admin.role_no_description",
+                          "No description provided.",
+                        )}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-center">
                     {canModify && (
-                      <button onClick={openEdit} className="btn btn-outline btn-sm gap-1.5">
-                        <Pencil className="h-3.5 w-3.5" /> {t("admin.role_edit", "Edit Role")}
+                      <button
+                        onClick={openEdit}
+                        className="btn btn-outline btn-sm gap-1.5"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />{" "}
+                        {t("admin.role_edit", "Edit Role")}
                       </button>
                     )}
                     {!selectedRole.is_admin && !selectedRole.is_banned && (
@@ -389,7 +479,11 @@ export function Roles() {
                         disabled={saving}
                         className="btn btn-primary btn-sm gap-1.5"
                       >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                         {t("admin.role_save_permissions", "Save Permissions")}
                       </button>
                     )}
@@ -399,25 +493,43 @@ export function Roles() {
                 {selectedRole.is_admin ? (
                   <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-error opacity-80" />
-                    <h3 className="font-bold text-lg">{t("admin.role_admin_title", "Administrator Role")}</h3>
+                    <h3 className="font-bold text-lg">
+                      {t("admin.role_admin_title", "Administrator Role")}
+                    </h3>
                     <p className="text-xs text-base-content/60 max-w-md">
-                      {t("admin.role_admin_desc", "Users with the ADMIN role automatically bypass all permission checks and have full unrestricted system access.")}
+                      {t(
+                        "admin.role_admin_desc",
+                        "Users with the ADMIN role automatically bypass all permission checks and have full unrestricted system access.",
+                      )}
                     </p>
                   </div>
                 ) : selectedRole.is_banned ? (
                   <div className="bg-base-200/30 border border-base-200 rounded-xl p-8 text-center flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-warning opacity-80" />
-                    <h3 className="font-bold text-lg">{t("admin.role_banned_title", "Banned / Blocked Role")}</h3>
+                    <h3 className="font-bold text-lg">
+                      {t("admin.role_banned_title", "Banned / Blocked Role")}
+                    </h3>
                     <p className="text-xs text-base-content/60 max-w-md">
-                      {t("admin.role_banned_desc", "Users with the BANNED role are blocked immediately. They are denied all actions and system permissions.")}
+                      {t(
+                        "admin.role_banned_desc",
+                        "Users with the BANNED role are blocked immediately. They are denied all actions and system permissions.",
+                      )}
                     </p>
                   </div>
                 ) : (
                   <div className="bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm">
                     <div className="p-4 border-b border-base-200 bg-base-200/30 font-bold text-sm flex items-center justify-between">
-                      <span>{t("admin.role_permissions_count", "Permissions ({{n}})", { n: permissions.length })}</span>
+                      <span>
+                        {t(
+                          "admin.role_permissions_count",
+                          "Permissions ({{n}})",
+                          { n: permissions.length },
+                        )}
+                      </span>
                       <span className="text-xs font-normal text-base-content/60">
-                        {t("admin.role_assigned_count", "{{n}} assigned", { n: assignments.length })}
+                        {t("admin.role_assigned_count", "{{n}} assigned", {
+                          n: assignments.length,
+                        })}
                       </span>
                     </div>
 
@@ -427,123 +539,209 @@ export function Roles() {
                           {
                             id: "reading",
                             name: "📖 Book Reading & Discovery",
-                            keys: ["book.read", "book.tts", "book.search.deep", "book.download", "book.offline", "book.send_email", "book.share"]
+                            keys: [
+                              "book.read",
+                              "book.tts",
+                              "book.search.deep",
+                              "book.download",
+                              "book.offline",
+                              "book.send_email",
+                              "book.share",
+                            ],
                           },
                           {
                             id: "interactions",
                             name: "💬 Interactions & Personal Features",
-                            keys: ["book.bookmark", "book.collection", "book.highlight", "book.review.create", "book.review.delete", "user.stats.read", "tracker.sync"]
+                            keys: [
+                              "book.bookmark",
+                              "book.collection",
+                              "book.highlight",
+                              "book.review.create",
+                              "book.review.delete",
+                              "user.stats.read",
+                              "tracker.sync",
+                            ],
                           },
                           {
                             id: "content",
                             name: "📦 Book Content Management",
-                            keys: ["book.upload", "book.edit", "book.metadata.fetch", "book.delete", "book.duplicate.manage", "book.archive", "book.bulk.manage"]
+                            keys: [
+                              "book.upload",
+                              "book.edit",
+                              "book.metadata.fetch",
+                              "book.delete",
+                              "book.duplicate.manage",
+                              "book.archive",
+                              "book.bulk.manage",
+                            ],
                           },
                           {
                             id: "library",
                             name: "📚 Library Management",
-                            keys: ["library.read", "library.manage"]
+                            keys: ["library.read", "library.manage"],
                           },
                           {
                             id: "integration",
                             name: "🔄 External Sync & Integration",
-                            keys: ["opds.read", "opds.download", "kobo.sync", "komga.sync", "calibre.sync"]
+                            keys: [
+                              "opds.read",
+                              "opds.download",
+                              "kobo.sync",
+                              "komga.sync",
+                              "calibre.sync",
+                            ],
                           },
                           {
                             id: "admin",
                             name: "⚙️ System Administration",
-                            keys: ["admin.access", "user.manage", "role.manage", "setting.manage", "job.read", "job.manage", "system.log.read", "system.backup", "webhook.manage"]
-                          }
+                            keys: [
+                              "admin.access",
+                              "user.manage",
+                              "role.manage",
+                              "setting.manage",
+                              "job.read",
+                              "job.manage",
+                              "system.log.read",
+                              "system.backup",
+                              "webhook.manage",
+                            ],
+                          },
                         ];
-                        const allCategoryKeys = categories.flatMap((cat) => cat.keys);
+                        const allCategoryKeys = categories.flatMap(
+                          (cat) => cat.keys,
+                        );
 
                         return categories.map((category) => {
-                          const categoryPerms = permissions.filter((p) => category.keys.includes(p.key));
-                          const otherPerms = permissions.filter((p) => !allCategoryKeys.includes(p.key));
-                          if (category.id === "admin" && otherPerms.length > 0) {
+                          const categoryPerms = permissions.filter((p) =>
+                            category.keys.includes(p.key),
+                          );
+                          const otherPerms = permissions.filter(
+                            (p) => !allCategoryKeys.includes(p.key),
+                          );
+                          if (
+                            category.id === "admin" &&
+                            otherPerms.length > 0
+                          ) {
                             categoryPerms.push(...otherPerms);
                           }
-                        if (categoryPerms.length === 0) return null;
+                          if (categoryPerms.length === 0) return null;
 
-                        const assignedCount = categoryPerms.filter((p) => isAssigned(p.key)).length;
+                          const assignedCount = categoryPerms.filter((p) =>
+                            isAssigned(p.key),
+                          ).length;
 
-                        return (
-                          <div key={category.id} className="border-b border-base-200 last:border-b-0">
-                            <div className="bg-base-200/40 px-4 py-2.5 flex items-center justify-between font-semibold text-xs tracking-wide uppercase text-base-content/70">
-                              <span>{category.name}</span>
-                              <span className="badge badge-sm badge-ghost">{assignedCount}/{categoryPerms.length} assigned</span>
-                            </div>
-                            <div className="divide-y divide-base-200/60">
-                              {categoryPerms.map((perm) => {
-                                const assigned = isAssigned(perm.key);
-                                const assignment = getAssignment(perm.key);
+                          return (
+                            <div
+                              key={category.id}
+                              className="border-b border-base-200 last:border-b-0"
+                            >
+                              <div className="bg-base-200/40 px-4 py-2.5 flex items-center justify-between font-semibold text-xs tracking-wide uppercase text-base-content/70">
+                                <span>{category.name}</span>
+                                <span className="badge badge-sm badge-ghost">
+                                  {assignedCount}/{categoryPerms.length}{" "}
+                                  assigned
+                                </span>
+                              </div>
+                              <div className="divide-y divide-base-200/60">
+                                {categoryPerms.map((perm) => {
+                                  const assigned = isAssigned(perm.key);
+                                  const assignment = getAssignment(perm.key);
 
-                                return (
-                                  <div key={perm.key} className="p-4 flex flex-col gap-3 hover:bg-base-200/20 transition-colors">
-                                    <div className="flex items-start justify-between gap-4">
-                                      <div className="flex items-start gap-3">
-                                        <input
-                                          type="checkbox"
-                                          checked={assigned}
-                                          onChange={() => togglePermission(perm.key)}
-                                          className="checkbox checkbox-primary checkbox-sm mt-0.5"
-                                        />
-                                        <div>
-                                          <div className="font-bold text-sm flex items-center gap-2">
-                                            <span>{perm.description || perm.key}</span>
-                                            <span className="font-mono text-[10px] bg-base-200 text-base-content/70 px-1.5 py-0.5 rounded">
-                                              {perm.key}
-                                            </span>
+                                  return (
+                                    <div
+                                      key={perm.key}
+                                      className="p-4 flex flex-col gap-3 hover:bg-base-200/20 transition-colors"
+                                    >
+                                      <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                          <input
+                                            type="checkbox"
+                                            checked={assigned}
+                                            onChange={() =>
+                                              togglePermission(perm.key)
+                                            }
+                                            className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                                          />
+                                          <div>
+                                            <div className="font-bold text-sm flex items-center gap-2">
+                                              <span>
+                                                {perm.description || perm.key}
+                                              </span>
+                                              <span className="font-mono text-[10px] bg-base-200 text-base-content/70 px-1.5 py-0.5 rounded">
+                                                {perm.key}
+                                              </span>
+                                            </div>
                                           </div>
                                         </div>
+
+                                        {assigned && (
+                                          <div className="flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setEffect(perm.key, "allow")
+                                              }
+                                              className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success font-bold" : "btn-ghost text-base-content/60"}`}
+                                            >
+                                              {t(
+                                                "admin.role_effect_allow",
+                                                "Allow",
+                                              )}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setEffect(perm.key, "deny")
+                                              }
+                                              className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error font-bold" : "btn-ghost text-base-content/60"}`}
+                                            >
+                                              {t(
+                                                "admin.role_effect_deny",
+                                                "Deny",
+                                              )}
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
 
+                                      {/* Conditional Scope */}
                                       {assigned && (
-                                        <div className="flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => setEffect(perm.key, "allow")}
-                                            className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success font-bold" : "btn-ghost text-base-content/60"}`}
-                                          >
-                                            {t("admin.role_effect_allow", "Allow")}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => setEffect(perm.key, "deny")}
-                                            className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error font-bold" : "btn-ghost text-base-content/60"}`}
-                                          >
-                                            {t("admin.role_effect_deny", "Deny")}
-                                          </button>
+                                        <div className="pl-7">
+                                          <LibraryScopeSelector
+                                            selectedLibraryIds={
+                                              (assignment?.conditions
+                                                ?.library_ids as string[]) || []
+                                            }
+                                            onChange={(ids) => {
+                                              setAssignments((prev) =>
+                                                prev.map((a) =>
+                                                  a.permission_key === perm.key
+                                                    ? {
+                                                        ...a,
+                                                        conditions:
+                                                          ids.length > 0
+                                                            ? {
+                                                                library_ids:
+                                                                  ids,
+                                                              }
+                                                            : {},
+                                                      }
+                                                    : a,
+                                                ),
+                                              );
+                                            }}
+                                            libraries={libraries}
+                                          />
                                         </div>
                                       )}
                                     </div>
-
-                                    {/* Conditional Scope */}
-                                    {assigned && (
-                                      <div className="pl-7">
-                                        <LibraryScopeSelector
-                                          selectedLibraryIds={(assignment?.conditions?.library_ids as string[]) || []}
-                                          onChange={(ids) => {
-                                            setAssignments((prev) =>
-                                              prev.map((a) =>
-                                                a.permission_key === perm.key
-                                                  ? { ...a, conditions: ids.length > 0 ? { library_ids: ids } : {} }
-                                                  : a
-                                              )
-                                            );
-                                          }}
-                                          libraries={libraries}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      });
-                    })()}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )}
@@ -551,7 +749,12 @@ export function Roles() {
             ) : (
               <div className="bg-base-200/30 border border-base-200 rounded-xl p-12 text-center flex flex-col items-center gap-2">
                 <Shield className="h-10 w-10 text-base-content/30" />
-                <p className="text-sm font-medium text-base-content/60">{t("admin.role_select_prompt", "Select a role from the sidebar to edit permissions.")}</p>
+                <p className="text-sm font-medium text-base-content/60">
+                  {t(
+                    "admin.role_select_prompt",
+                    "Select a role from the sidebar to edit permissions.",
+                  )}
+                </p>
               </div>
             )}
           </div>
@@ -563,59 +766,98 @@ export function Roles() {
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="font-bold text-lg mb-4">
-              {modalMode === "create" ? t("admin.role_create_title", "Create New Role") : t("admin.role_edit", "Edit Role")}
+              {modalMode === "create"
+                ? t("admin.role_create_title", "Create New Role")
+                : t("admin.role_edit", "Edit Role")}
             </h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t("admin.role_name")}</span>
+                  <span className="label-text font-semibold">
+                    {t("admin.role_name")}
+                  </span>
                 </label>
                 <input
                   type="text"
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder={t("admin.role_name_placeholder", "e.g. LIBRARIAN")}
+                  placeholder={t(
+                    "admin.role_name_placeholder",
+                    "e.g. LIBRARIAN",
+                  )}
                   className="input input-bordered w-full focus:input-primary font-mono"
                 />
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t("admin.description")}</span>
+                  <span className="label-text font-semibold">
+                    {t("admin.description")}
+                  </span>
                 </label>
                 <textarea
                   rows={2}
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder={t("admin.role_desc_placeholder", "Role description and scope")}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder={t(
+                    "admin.role_desc_placeholder",
+                    "Role description and scope",
+                  )}
                   className="textarea textarea-bordered w-full focus:textarea-primary text-sm"
                 />
               </div>
 
-              {!(modalMode === "edit" && (selectedRole?.is_admin || selectedRole?.is_banned || selectedRole?.name?.toUpperCase() === "GUEST")) && (
+              {!(
+                modalMode === "edit" &&
+                (selectedRole?.is_admin ||
+                  selectedRole?.is_banned ||
+                  selectedRole?.name?.toUpperCase() === "GUEST")
+              ) && (
                 <div className="form-control">
                   <label className="label cursor-pointer justify-start gap-3">
                     <input
                       type="checkbox"
                       checked={form.auto_assign}
-                      onChange={(e) => setForm({ ...form, auto_assign: e.target.checked })}
+                      onChange={(e) =>
+                        setForm({ ...form, auto_assign: e.target.checked })
+                      }
                       className="checkbox checkbox-primary checkbox-sm"
                     />
                     <div>
-                      <span className="label-text font-semibold">{t("admin.role_auto_assign")}</span>
-                      <p className="text-xs text-base-content/60">{t("admin.role_auto_assign_desc")}</p>
+                      <span className="label-text font-semibold">
+                        {t("admin.role_auto_assign")}
+                      </span>
+                      <p className="text-xs text-base-content/60">
+                        {t("admin.role_auto_assign_desc")}
+                      </p>
                     </div>
                   </label>
                 </div>
               )}
 
               <div className="modal-action">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="btn btn-ghost"
+                >
                   {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : modalMode === "create" ? t("admin.role_create_action", "Create Role") : t("admin.save_changes", "Save Changes")}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : modalMode === "create" ? (
+                    t("admin.role_create_action", "Create Role")
+                  ) : (
+                    t("admin.save_changes", "Save Changes")
+                  )}
                 </button>
               </div>
             </form>
@@ -633,21 +875,36 @@ export function Roles() {
             <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-lg">{t("admin.role_delete_title", "Delete Role?")}</h3>
+            <h3 className="font-bold text-lg">
+              {t("admin.role_delete_title", "Delete Role?")}
+            </h3>
             <p className="text-xs text-base-content/60 mt-1 mb-6">
               <Trans
                 i18nKey="admin.role_delete_confirm"
                 values={{ name: roleToDelete.name }}
                 defaults="Are you sure you want to delete role <bold>{{name}}</bold>? Users assigned this role will lose its permissions."
-                components={{ bold: <span className="font-bold text-base-content" /> }}
+                components={{
+                  bold: <span className="font-bold text-base-content" />,
+                }}
               />
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setRoleToDelete(null)} className="btn btn-ghost flex-1">
+              <button
+                onClick={() => setRoleToDelete(null)}
+                className="btn btn-ghost flex-1"
+              >
                 {t("common.cancel", "Cancel")}
               </button>
-              <button onClick={confirmDelete} disabled={saving} className="btn btn-error text-white flex-1">
-                {saving ? <span className="loading loading-spinner"></span> : t("common.delete", "Delete")}
+              <button
+                onClick={confirmDelete}
+                disabled={saving}
+                className="btn btn-error text-white flex-1"
+              >
+                {saving ? (
+                  <span className="loading loading-spinner"></span>
+                ) : (
+                  t("common.delete", "Delete")
+                )}
               </button>
             </div>
           </div>

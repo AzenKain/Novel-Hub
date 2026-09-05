@@ -1,9 +1,6 @@
 package response
 
-// Field names come from two Kotlin clients that must both decode the same JSON: the Mihon
-// extension (keiyoushi/extensions-source .../komga/dto) and Mihon's built-in tracker
-// (mihonapp/mihon .../data/track/komga). Their DTOs disagree, so this emits the union — and a
-// non-nullable Kotlin field that is absent throws at decode time, hence no omitempty.
+// Field names come from two Kotlin clients that must both decode the same JSON: the Mihon extension (keiyoushi/extensions-source .../komga/dto) and Mihon's built-in tracker (mihonapp/mihon .../data/track/komga).
 
 type KomgaPageWrapper[T any] struct {
 	Content          []T   `json:"content"`
@@ -178,4 +175,3 @@ type KomgaBookReadProgressUpdate struct {
 	Page      int  `json:"page"`
 	Completed bool `json:"completed"`
 }
-

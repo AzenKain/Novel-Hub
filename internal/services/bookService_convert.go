@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"novelhub/internal/gen/sqlc"
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/gen/sqlc"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
 	"novelhub/pkg/ebookconv"
@@ -95,7 +95,6 @@ func (s *bookService) ExecuteConvertBookJob(ctx context.Context, payloadJSON str
 		return err
 	}
 
-	// Clean up any existing file of the same target format to implement "overwrite/replace" behavior
 	existingFiles, err := s.bookRepo.GetFilesByBookId(ctx, payload.BookID)
 	if err == nil {
 		for _, f := range existingFiles {

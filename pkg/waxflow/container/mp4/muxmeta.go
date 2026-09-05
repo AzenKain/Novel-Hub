@@ -12,16 +12,6 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// Muxer-side movie metadata: the moov's udta box holding iTunes-style
-// ilst tags (with optional cover art), Nero chpl chapters, and the
-// iTunSMPB gapless atom. Everything here is built once at Begin, so the
-// output stays deterministic; the only later writes are the fixed-width
-// iTunSMPB back-patches at End on a seekable destination.
-
-// ilstText maps canonical tag keys onto their iTunes text atoms, in the
-// fixed order the atoms are written (map iteration would break byte
-// determinism). Multi-valued keys join with "; ": an ilst data atom is a
-// single string.
 var ilstText = []struct{ key, atom string }{
 	{"TITLE", "\xa9nam"},
 	{"ARTIST", "\xa9ART"},
@@ -34,10 +24,6 @@ var ilstText = []struct{ key, atom string }{
 	{"LYRICS", "\xa9lyr"},
 }
 
-// ilstFreeform lists the canonical keys written as iTunes freeform
-// (----:com.apple.iTunes:KEY) atoms: the ReplayGain fields players read
-// from M4A. iTunSMPB is freeform too but is muxer-owned, not caller tag
-// data.
 var ilstFreeform = []string{
 	"REPLAYGAIN_TRACK_GAIN",
 	"REPLAYGAIN_TRACK_PEAK",
@@ -45,13 +31,8 @@ var ilstFreeform = []string{
 	"REPLAYGAIN_ALBUM_PEAK",
 }
 
-// smpb is the iTunSMPB payload template: twelve space-prefixed fixed-width
-// hex fields (the iTunes spelling). Field 2 is the encoder delay, field 3
-// the trailing padding, field 4 the 64-bit trimmed sample count; the rest
-// are always zero. The widths are fixed, so End can patch values into a
-// written header without moving a byte.
 const (
-	smpbDelayOff   = 10 // " 00000000 " then eight delay digits
+	smpbDelayOff   = 10
 	smpbPaddingOff = 19
 	smpbLengthOff  = 28
 )
@@ -62,10 +43,6 @@ func smpbPayload(delay, length int64) string {
 		uint32(delay), uint32(0), uint64(length))
 }
 
-// udtaBox assembles the moov user-data box: meta/ilst when there are tags,
-// art, or an iTunSMPB payload, plus chpl when there are chapters. smpb is
-// the pre-built iTunSMPB freeform atom (nil for none). Returns nil when
-// there is nothing to say.
 func udtaBox(tags []container.Tag, chapters []container.Chapter, art *container.Picture, smpb []byte) []byte {
 	ilst := ilstBox(tags, art, smpb)
 	chpl := chplBox(chapters)
@@ -87,7 +64,6 @@ func udtaBox(tags []container.Tag, chapters []container.Chapter, art *container.
 	return makeBox("udta", parts...)
 }
 
-// ilstBox builds the ilst payload (concatenated item atoms), nil when empty.
 func ilstBox(tags []container.Tag, art *container.Picture, smpb []byte) []byte {
 	vals := make(map[string][]string, len(tags))
 	for _, t := range tags {
@@ -113,7 +89,7 @@ func ilstBox(tags []container.Tag, art *container.Picture, smpb []byte) []byte {
 		}
 	}
 	if art != nil && len(art.Data) > 0 {
-		flag := uint32(13) // JPEG
+		flag := uint32(13)
 		if strings.Contains(art.MIME, "png") {
 			flag = 14
 		}
@@ -123,20 +99,14 @@ func ilstBox(tags []container.Tag, art *container.Picture, smpb []byte) []byte {
 	return out
 }
 
-// itemAtom wraps a data atom in its ilst item box.
 func itemAtom(atom string, data []byte) []byte {
 	return makeBox(atom, data)
 }
 
-// dataAtom builds the ilst value carrier: type flag (1 UTF-8 text, 0 raw
-// binary, 13 JPEG, 14 PNG), a zero locale, then the payload.
 func dataAtom(flag uint32, payload []byte) []byte {
 	return makeBox("data", u32(flag), u32(0), payload)
 }
 
-// numberPairAtom renders trkn/disk: 16-bit index and total inside a raw
-// binary data atom (trkn carries a trailing reserved pair, disk does not).
-// Unparsable or absent numbers yield nil rather than a zero atom.
 func numberPairAtom(atom string, nums, totals []string, size int) []byte {
 	n := firstUint16(nums)
 	t := firstUint16(totals)
@@ -160,8 +130,6 @@ func firstUint16(vs []string) uint16 {
 	return uint16(n)
 }
 
-// freeformAtom builds an iTunes freeform (----) item: mean, name, then a
-// UTF-8 data atom.
 func freeformAtom(name, value string) []byte {
 	return makeBox("----",
 		makeFullBox("mean", 0, 0, []byte("com.apple.iTunes")),
@@ -169,11 +137,6 @@ func freeformAtom(name, value string) []byte {
 		dataAtom(1, []byte(value)))
 }
 
-// chplBox renders a Nero chapter list (version 1 with the reserved word,
-// the form shipping encoders write and both our demuxer and ffmpeg read).
-// Times are 100-nanosecond units; the one-byte count caps the list at 255
-// entries and the one-byte title length caps each title at 255 bytes,
-// truncated on a rune boundary.
 func chplBox(chapters []container.Chapter) []byte {
 	if len(chapters) == 0 {
 		return nil
@@ -195,7 +158,6 @@ func chplBox(chapters []container.Chapter) []byte {
 	return makeFullBox("chpl", 1, 0, u32(0), body)
 }
 
-// truncateRunes cuts s to at most max bytes without splitting a rune.
 func truncateRunes(s string, max int) string {
 	if len(s) <= max {
 		return s
@@ -213,16 +175,8 @@ type FreeformPatcher interface {
 	io.WriterAt
 }
 
-// maxPatchScanBytes caps the header scan for PatchFreeform: a moov
-// bigger than this is not something the muxer writes (metadata values
-// are bounded upstream), so the cap only guards a corrupt size field.
 const maxPatchScanBytes = 64 << 20
 
-// patchScanLen resolves how much of the file PatchFreeform must scan:
-// the muxer writes ftyp then moov at the head, so their two size fields
-// name the exact extent holding every ilst atom, however large the
-// metadata grew. A layout this muxer did not write falls back to the
-// cap.
 func patchScanLen(f FreeformPatcher) int {
 	var hdr [8]byte
 	if _, err := f.ReadAt(hdr[:], 0); err != nil || string(hdr[4:]) != "ftyp" {
@@ -239,13 +193,7 @@ func patchScanLen(f FreeformPatcher) int {
 	return int(n)
 }
 
-// PatchFreeform replaces the value of the freeform ilst tag key in a
-// finished file, in place. placeholder must be the exact value the muxer
-// wrote at Begin and value must be the same length, so no byte moves:
-// this is how measured ReplayGain values land in a fragmented MP4 after
-// the encode, which no tag rewriter can restructure. The written atom
-// bytes are matched whole, so a payload that happens to spell the
-// placeholder can never redirect the patch.
+// PatchFreeform replaces the value of the freeform ilst tag key in a finished file, in place.
 func PatchFreeform(f FreeformPatcher, key, placeholder, value string) error {
 	if len(value) != len(placeholder) {
 		return waxerr.New(waxerr.CodeInternal,

@@ -16,9 +16,6 @@ func writeKEPUB(book *bookparser.BookData, images []Image) ([]byte, error) {
 	return writeEPUBWithKobo(book, images, true)
 }
 
-// kepubify wraps every word in Kobo's semantic spans so the output is a real
-// .kepub.epub (word-by-word lookup/sync on Kobo devices), not just a renamed
-// epub. Whitespace runs stay bare text; ids are unique per chapter.
 func kepubify(content string) string {
 	nodes := fragmentNodes(content)
 	if len(nodes) == 0 {

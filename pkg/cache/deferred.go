@@ -5,9 +5,7 @@ import (
 	"sync"
 )
 
-// DeferredCache buffers invalidations and replays them deduplicated on Flush. Issuing them inline
-// costs the SQLite write lock for the length of a full-cache scan, once per row; deferring also
-// closes the window where a concurrent reader re-caches the pre-commit value after the Del.
+// DeferredCache buffers invalidations and replays them deduplicated on Flush.
 type DeferredCache struct {
 	Cache
 	mu       sync.Mutex

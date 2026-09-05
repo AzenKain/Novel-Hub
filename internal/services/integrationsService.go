@@ -19,7 +19,6 @@ import (
 	"novelhub/pkg/netx"
 )
 
-// var so tests can point it at an httptest.Server.
 var readwiseAPIEndpoint = "https://readwise.io/api/v2/highlights/"
 
 type IntegrationsService interface {
@@ -91,12 +90,12 @@ func (s *integrationsService) postReadwiseBatch(ctx context.Context, token strin
 	items := make([]map[string]any, 0, len(highlights))
 	for _, h := range highlights {
 		item := map[string]any{
-			"text":          h.TextContent,
-			"title":         h.BookTitle,
-			"author":        h.AuthorName,
-			"source_type":   "novelhub",
-			"category":      "books",
-			"location_type": "cfi",
+			"text":           h.TextContent,
+			"title":          h.BookTitle,
+			"author":         h.AuthorName,
+			"source_type":    "novelhub",
+			"category":       "books",
+			"location_type":  "cfi",
 			"highlighted_at": h.CreatedAt.Format(time.RFC3339),
 		}
 		if h.CfiRange != nil {

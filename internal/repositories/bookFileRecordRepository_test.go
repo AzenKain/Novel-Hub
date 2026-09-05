@@ -42,14 +42,11 @@ func newBookFileTestRepo(t *testing.T) (*bookDBRepository, *sql.DB) {
 	return NewBookDBRepository(db, nil).(*bookDBRepository), db
 }
 
-// GetFilesByBookIDs writes the same cache key that GetFilesByBookId reads back, so both
-// must agree on order: epub first, then created_at. Callers take files[0] as the epub
-// (send-to-Kindle in bookService_email.go, kepub conversion in koboService.go).
+// GetFilesByBookIDs writes the same cache key that GetFilesByBookId reads back, so both must agree on order: epub first, then created_at.
 func TestGetFilesByBookIDsOrdersEpubFirst(t *testing.T) {
 	repo, db := newBookFileTestRepo(t)
 	ctx := context.Background()
 
-	// pdf inserted first so rowid order is the opposite of the wanted order
 	if _, err := db.ExecContext(ctx,
 		`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time, created_at) VALUES
 		 ('f-pdf',  'book-1', '/tmp/a.pdf',  'pdf',  1, '2024-01-01', '2024-01-01'),
@@ -74,10 +71,7 @@ func TestGetFilesByBookIDsOrdersEpubFirst(t *testing.T) {
 	}
 }
 
-// ListFileIDsByBookId and GetBookFilesByIDs are two separate queries with no transaction
-// between them, so the id list can be longer than the entities that come back. The
-// surviving entities must be returned in id-list order with no holes; indexing the id
-// array by id-list position (the previous code) panicked once a gap appeared before a hit.
+// ListFileIDsByBookId and GetBookFilesByIDs are two separate queries with no transaction between them, so the id list can be longer than the entities that come back.
 func TestGetFilesByBookIdSkipsMissingRows(t *testing.T) {
 	repo, db := newBookFileTestRepo(t)
 	ctx := context.Background()
@@ -94,8 +88,6 @@ func TestGetFilesByBookIdSkipsMissingRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Delete the middle id, then run the second half of the read against the stale list:
-	// f-last is a hit at id-list index 2 while only 2 entities exist.
 	if _, err := db.ExecContext(ctx, `DELETE FROM book_files WHERE id = 'f-mid'`); err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +120,7 @@ func TestGetFilesByBookIdSkipsMissingRows(t *testing.T) {
 	}
 }
 
-// reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") carry no FK to
-// book_files, so deleting a duplicate file orphans them silently. RepointFileUserData moves
-// them onto the surviving file.
+// reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") carry no FK to book_files, so deleting a duplicate file orphans them silently.
 func TestRepointFileUserDataMovesProgressAndHighlights(t *testing.T) {
 	repo, db := newBookFileTestRepo(t)
 	ctx := context.Background()

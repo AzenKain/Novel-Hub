@@ -165,14 +165,12 @@ func TestCalibreServerController_GetBooks(t *testing.T) {
 func TestCalibreServerController_GetBook_SuccessAndNotFound(t *testing.T) {
 	app, _ := setupCalibreControllerApp(t)
 
-	// Success
 	req := httptest.NewRequest("GET", "/calibre/ajax/book/book-1", nil)
 	resp, err := app.Test(req)
 	if err != nil || resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got status %d, err %v", resp.StatusCode, err)
 	}
 
-	// Not Found
 	reqNF := httptest.NewRequest("GET", "/calibre/ajax/book/notfound", nil)
 	respNF, err := app.Test(reqNF)
 	if err != nil || respNF.StatusCode != 404 {
@@ -183,14 +181,12 @@ func TestCalibreServerController_GetBook_SuccessAndNotFound(t *testing.T) {
 func TestCalibreServerController_GetContent(t *testing.T) {
 	app, _ := setupCalibreControllerApp(t)
 
-	// Cover
 	reqCover := httptest.NewRequest("GET", "/calibre/get/cover/book-1", nil)
 	respCover, err := app.Test(reqCover)
 	if err != nil || respCover.StatusCode != 200 {
 		t.Fatalf("expected 200 for cover, got status %d, err %v", respCover.StatusCode, err)
 	}
 
-	// File EPUB
 	reqFile := httptest.NewRequest("GET", "/calibre/get/epub/book-1", nil)
 	respFile, err := app.Test(reqFile)
 	if err != nil || respFile.StatusCode != 200 {

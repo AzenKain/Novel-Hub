@@ -5,21 +5,17 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// frameLoc is one codec frame's byte range in the source.
 type frameLoc struct {
 	off  int64
 	size int
 }
 
-// blockHeader is one parsed (Simple)Block: its track, cluster-relative
-// timestamp, and the byte ranges of the frames it laces together.
 type blockHeader struct {
 	track   uint64
 	relTime int64
 	frames  []frameLoc
 }
 
-// lacing selectors, from bits 0x06 of the block flags byte.
 const (
 	laceNone  = 0
 	laceXiph  = 1
@@ -27,11 +23,6 @@ const (
 	laceEBML  = 3
 )
 
-// parseBlock reads the (Simple)Block header at dataOff (spanning size bytes)
-// through the window and resolves its laced frames into byte ranges. It reads
-// only the header and lacing table; frame payloads stay on disk until a packet
-// needs them. A read failure surfaces through the window's sticky error, which
-// the caller checks.
 func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 	var bh blockHeader
 	if size < 4 {
@@ -42,7 +33,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 	}
 	end := dataOff + size
 
-	// Track number: a VINT whose marker is stripped like a size.
 	head := w.BytesAt(dataOff, int(min(8, size)))
 	if len(head) == 0 {
 		return bh, readErr(w, "block track number")
@@ -52,7 +42,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 		return bh, malformed("block track number is not a valid vint")
 	}
 	pos := dataOff + int64(tlen)
-	// Two-byte relative timestamp, then the flags byte.
 	if pos+3 > end {
 		return bh, malformed("block header truncated")
 	}
@@ -71,7 +60,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 		return bh, nil
 	}
 
-	// Laced: a count byte (frames minus one) precedes the size table.
 	cb := w.BytesAt(pos, 1)
 	if len(cb) < 1 {
 		return bh, readErr(w, "block lace count")
@@ -86,8 +74,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 	var err error
 	switch lacing {
 	case laceFixed:
-		// No size table: every frame is the same length, and pos already
-		// points at the frame data. The shared tail fills sizes[n-1].
 		total := end - pos
 		if total < 0 || total%int64(n) != 0 {
 			return bh, malformed("fixed-lace block of %d bytes not divisible by %d frames", total, n)
@@ -105,8 +91,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 		return bh, err
 	}
 
-	// The last frame runs from the table's end to the block's end; the earlier
-	// sizes must not overrun that span.
 	used := int64(0)
 	for i := 0; i < n-1; i++ {
 		if sizes[i] < 0 {
@@ -128,9 +112,6 @@ func parseBlock(w *srcwin.Window, dataOff, size int64) (blockHeader, error) {
 	return bh, nil
 }
 
-// readXiphSizes fills all but the last of sizes from a Xiph lacing table
-// (each size is a run of 0xFF bytes plus a final byte below 255) and returns
-// the offset just past the table.
 func readXiphSizes(w *srcwin.Window, pos, end int64, sizes []int) (int64, error) {
 	for i := 0; i < len(sizes)-1; i++ {
 		total := 0
@@ -153,9 +134,6 @@ func readXiphSizes(w *srcwin.Window, pos, end int64, sizes []int) (int64, error)
 	return pos, nil
 }
 
-// readEBMLSizes fills all but the last of sizes from an EBML lacing table: the
-// first size is an unsigned VINT, each following is a signed VINT difference
-// from its predecessor. It returns the offset just past the table.
 func readEBMLSizes(w *srcwin.Window, pos, end int64, sizes []int) (int64, error) {
 	prev := int64(0)
 	for i := 0; i < len(sizes)-1; i++ {
@@ -172,8 +150,6 @@ func readEBMLSizes(w *srcwin.Window, pos, end int64, sizes []int) (int64, error)
 		if i == 0 {
 			prev = int64(val)
 		} else {
-			// The stored value is biased by half its range to encode a signed
-			// difference (EBML lacing, Matroska spec section on Block Lacing).
 			bias := int64(1)<<(7*vlen-1) - 1
 			prev += int64(val) - bias
 		}
@@ -185,8 +161,6 @@ func readEBMLSizes(w *srcwin.Window, pos, end int64, sizes []int) (int64, error)
 	return pos, nil
 }
 
-// readErr reports the window's sticky read failure, or an unexpected-EOF-style
-// malformed error when the window simply ran short of data.
 func readErr(w *srcwin.Window, what string) error {
 	if err := w.Err(); err != nil {
 		return err

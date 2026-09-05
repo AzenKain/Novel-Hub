@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Cpu, Send, Smartphone, Tablet, X } from "lucide-react";
-import { useDevicesQuery, usePushBookMutation, useSendBookToEmailMutation } from "@/hooks";
+import {
+  useDevicesQuery,
+  usePushBookMutation,
+  useSendBookToEmailMutation,
+} from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
 import type { Book, UserDevice } from "@/types";
 
@@ -57,16 +61,24 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
       { bookId: book.id, deviceId: device.id },
       {
         onSuccess: () => {
-          setSuccessMsg(t("email.sent_success", `Book successfully dispatched to ${device.name}!`));
+          setSuccessMsg(
+            t(
+              "email.sent_success",
+              `Book successfully dispatched to ${device.name}!`,
+            ),
+          );
           if (onSuccess) onSuccess();
           setTimeout(() => {
             onClose();
           }, 1800);
         },
         onError: (err: any) => {
-          setErrorMsg(err?.message || t("email.send_failed", "Failed to deliver book to device."));
+          setErrorMsg(
+            err?.message ||
+              t("email.send_failed", "Failed to deliver book to device."),
+          );
         },
-      }
+      },
     );
   };
 
@@ -84,16 +96,27 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
       { book_id: book.id, recipientEmail: email },
       {
         onSuccess: () => {
-          setSuccessMsg(t("email.sent_success", "Book successfully dispatched to your email!"));
+          setSuccessMsg(
+            t(
+              "email.sent_success",
+              "Book successfully dispatched to your email!",
+            ),
+          );
           if (onSuccess) onSuccess();
           setTimeout(() => {
             onClose();
           }, 1800);
         },
         onError: (err: any) => {
-          setErrorMsg(err?.message || t("email.send_failed", "Failed to send email. Check SMTP configuration."));
+          setErrorMsg(
+            err?.message ||
+              t(
+                "email.send_failed",
+                "Failed to send email. Check SMTP configuration.",
+              ),
+          );
         },
-      }
+      },
     );
   };
 
@@ -164,7 +187,10 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
                   {t("device.no_devices", "No saved devices found.")}
                 </p>
                 <p className="text-[11px] text-base-content/40 mt-1">
-                  {t("device.add_device_tip", "Use Manual Email or register devices in settings.")}
+                  {t(
+                    "device.add_device_tip",
+                    "Use Manual Email or register devices in settings.",
+                  )}
                 </p>
               </div>
             ) : (
@@ -178,7 +204,9 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
                       {getDeviceIcon(device.device_type)}
                     </div>
                     <div>
-                      <div className="font-semibold text-xs text-base-content">{device.name}</div>
+                      <div className="font-semibold text-xs text-base-content">
+                        {device.name}
+                      </div>
                       <div className="text-[10px] text-base-content/50 font-mono truncate max-w-[180px]">
                         {device.target_address}
                       </div>
@@ -206,7 +234,12 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
           <form onSubmit={handleManualSend} className="space-y-4">
             {publicSettings?.smtp_enabled === false && (
               <div className="alert alert-warning text-xs py-2 px-3 rounded-lg">
-                <span>{t("email.smtp_disabled", "SMTP server is not configured or disabled by administrator.")}</span>
+                <span>
+                  {t(
+                    "email.smtp_disabled",
+                    "SMTP server is not configured or disabled by administrator.",
+                  )}
+                </span>
               </div>
             )}
             <div>
@@ -223,7 +256,10 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
                 required
               />
               <p className="mt-1.5 text-xs text-base-content/50">
-                {t("email.kindle_tip", "Enter your Kindle device email or personal email address.")}
+                {t(
+                  "email.kindle_tip",
+                  "Enter your Kindle device email or personal email address.",
+                )}
               </p>
             </div>
 
@@ -253,6 +289,6 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
         )}
       </section>
     </div>,
-    document.body
+    document.body,
   );
 };

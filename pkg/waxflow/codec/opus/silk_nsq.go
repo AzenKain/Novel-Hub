@@ -1,16 +1,7 @@
 package opus
 
-// SILK noise shaping quantizer, ported from libopus silk/NSQ.c,
-// silk/NSQ_del_dec.c, and silk/NSQ.h. The FLP encoder calls into this
-// fixed-point core through nsqWrapper (silk/float/wrappers_FLP.c), so the
-// quantized excitation and the decoder-side reconstruction stay bit-exact
-// with the reference regardless of analysis-side float differences.
+const quantLevelAdjustQ10 = 80
 
-const quantLevelAdjustQ10 = 80 // QUANT_LEVEL_ADJUST_Q10
-
-// nsqShortPrediction is the short-term LPC prediction over the last order
-// samples (silk_noise_shape_quantizer_short_prediction_c). buf is indexed
-// backward from pos.
 func nsqShortPrediction(buf []int32, pos int, coef []int16, order int) int32 {
 	out := int32(order >> 1)
 	for j := 0; j < order; j++ {
@@ -19,8 +10,6 @@ func nsqShortPrediction(buf []int32, pos int, coef []int16, order int) int32 {
 	return out
 }
 
-// nsqNoiseShapeFeedbackLoop runs the noise shaping AR filter with the
-// two-at-a-time state rotation (silk_NSQ_noise_shape_feedback_loop_c).
 func nsqNoiseShapeFeedbackLoop(data0 int32, data1 []int32, coef []int16, order int) int32 {
 	tmp2 := data0
 	tmp1 := data1[0]
@@ -37,11 +26,9 @@ func nsqNoiseShapeFeedbackLoop(data0 int32, data1 []int32, coef []int16, order i
 	}
 	data1[order-1] = tmp1
 	out = silkSMLAWB(out, tmp1, int32(coef[order-1]))
-	return silkLSHIFT32(out, 1) // Q11 -> Q12
+	return silkLSHIFT32(out, 1)
 }
 
-// nsq runs the single-state noise shaping quantizer over one frame
-// (silk_NSQ_c).
 func (ch *silkEncoderChannel) nsq(NSQ *silkNSQState, psIndices *silkIndices, x16 []int16, pulses []int8,
 	predCoefQ12 *[2][silkMaxLPCOrder]int16, ltpCoefQ14 []int16, arQ13 []int16,
 	harmShapeGainQ14, tiltQ14 []int32, lfShpQ14 []int32, gainsQ16 []int32, pitchL []int,
@@ -99,7 +86,6 @@ func (ch *silkEncoderChannel) nsq(NSQ *silkNSQState, psIndices *silkIndices, x16
 	copy(NSQ.sLTPShpQ14[:ch.ltpMemLength], NSQ.sLTPShpQ14[ch.frameLength:ch.frameLength+ch.ltpMemLength])
 }
 
-// noiseShapeQuantizer quantizes one subframe (silk_noise_shape_quantizer).
 func noiseShapeQuantizer(NSQ *silkNSQState, signalType int, xScQ10 []int32, pulses []int8, xq []int16,
 	sLTPQ15 []int32, aQ12, bQ14, arShpQ13 []int16, lag int, harmShapeFIRPackedQ14 int32,
 	tiltQ14, lfShpQ14, gainQ16, lambdaQ10, offsetQ10 int32, length, shapingLPCOrder, predictLPCOrder int) {
@@ -132,7 +118,7 @@ func noiseShapeQuantizer(NSQ *silkNSQState, signalType int, xScQ10 []int32, puls
 		nLFQ12 := silkSMULWB(NSQ.sLTPShpQ14[NSQ.sLTPShpBufIdx-1], lfShpQ14)
 		nLFQ12 = silkSMLAWT(nLFQ12, NSQ.sLFARShpQ14, lfShpQ14)
 
-		tmp1 := silkSUB32ovflw(silkLSHIFT32(lpcPredQ10, 2), nARQ12) // Q12
+		tmp1 := silkSUB32ovflw(silkLSHIFT32(lpcPredQ10, 2), nARQ12)
 		tmp1 = silkSUB32ovflw(tmp1, nLFQ12)
 		if lag > 0 {
 			nLTPQ13 := silkSMULWB(silkADDSAT32(NSQ.sLTPShpQ14[shpLagPtr], NSQ.sLTPShpQ14[shpLagPtr-2]), harmShapeFIRPackedQ14)
@@ -189,13 +175,10 @@ func noiseShapeQuantizer(NSQ *silkNSQState, signalType int, xScQ10 []int32, puls
 	copy(NSQ.sLPCQ14[:nsqLPCBufLength], NSQ.sLPCQ14[length:length+nsqLPCBufLength])
 }
 
-// nsqQuantCandidates finds the two quantization level candidates and their
-// rate costs (shared candidate logic of NSQ.c and NSQ_del_dec.c).
 func nsqQuantCandidates(rQ10, offsetQ10, lambdaQ10 int32) (q1Q10, q2Q10, rd1, rd2 int32) {
 	q1Q10 = rQ10 - offsetQ10
 	q1Q0 := silkRSHIFT(q1Q10, 10)
 	if lambdaQ10 > 2048 {
-		// For aggressive RDO the bias exceeds one pulse.
 		rdoOffset := lambdaQ10/2 - 512
 		switch {
 		case q1Q10 > rdoOffset:
@@ -225,7 +208,7 @@ func nsqQuantCandidates(rQ10, offsetQ10, lambdaQ10 int32) (q1Q10, q2Q10, rd1, rd
 		q1Q10 = q2Q10 - (1024 - quantLevelAdjustQ10)
 		rd1 = silkSMULBB(-q1Q10, lambdaQ10)
 		rd2 = silkSMULBB(q2Q10, lambdaQ10)
-	default: // q1Q0 < -1
+	default:
 		q1Q10 = silkLSHIFT(q1Q0, 10) + quantLevelAdjustQ10
 		q1Q10 += offsetQ10
 		q2Q10 = q1Q10 + 1024
@@ -235,8 +218,6 @@ func nsqQuantCandidates(rQ10, offsetQ10, lambdaQ10 int32) (q1Q10, q2Q10, rd1, rd
 	return
 }
 
-// nsqScaleStates scales the NSQ states to the current subframe gain
-// (silk_nsq_scale_states).
 func (ch *silkEncoderChannel) nsqScaleStates(NSQ *silkNSQState, x16 []int16, xScQ10 []int32,
 	sLTP []int16, sLTPQ15 []int32, subfr int, ltpScaleQ14 int32, gainsQ16 []int32, pitchL []int, signalType int) {
 
@@ -279,7 +260,6 @@ func (ch *silkEncoderChannel) nsqScaleStates(NSQ *silkNSQState, x16 []int16, xSc
 	}
 }
 
-// nsqDelDecState is one delayed-decision state (NSQ_del_dec_struct).
 type nsqDelDecState struct {
 	sLPCQ14   [silkMaxSubfrLen + nsqLPCBufLength]int32
 	RandState [decisionDelay]int32
@@ -295,7 +275,6 @@ type nsqDelDecState struct {
 	RDQ10     int32
 }
 
-// nsqSampleState is one per-sample candidate (NSQ_sample_struct).
 type nsqSampleState struct {
 	QQ10       int32
 	RDQ10      int32
@@ -306,8 +285,6 @@ type nsqSampleState struct {
 	LPCExcQ14  int32
 }
 
-// nsqDelDec runs the delayed-decision noise shaping quantizer over one frame
-// (silk_NSQ_del_dec_c).
 func (ch *silkEncoderChannel) nsqDelDec(NSQ *silkNSQState, psIndices *silkIndices, x16 []int16, pulses []int8,
 	predCoefQ12 *[2][silkMaxLPCOrder]int16, ltpCoefQ14 []int16, arQ13 []int16,
 	harmShapeGainQ14, tiltQ14 []int32, lfShpQ14 []int32, gainsQ16 []int32, pitchL []int,
@@ -373,7 +350,6 @@ func (ch *silkEncoderChannel) nsqDelDec(NSQ *silkNSQState, psIndices *silkIndice
 			lag = pitchL[k]
 			if k&(3-(lsfInterpolationFlag<<1)) == 0 {
 				if k == 2 {
-					// Reset delayed decisions: flush the winner mid-frame.
 					rdMin := psDelDec[0].RDQ10
 					winnerInd := 0
 					for i := 1; i < ch.nStatesDelayedDecision; i++ {
@@ -422,7 +398,6 @@ func (ch *silkEncoderChannel) nsqDelDec(NSQ *silkNSQState, psIndices *silkIndice
 		pxqOff += ch.subfrLength
 	}
 
-	// Find winner.
 	rdMin := psDelDec[0].RDQ10
 	winnerInd := 0
 	for k := 1; k < ch.nStatesDelayedDecision; k++ {
@@ -457,8 +432,6 @@ func (ch *silkEncoderChannel) nsqDelDec(NSQ *silkNSQState, psIndices *silkIndice
 	copy(NSQ.sLTPShpQ14[:ch.ltpMemLength], NSQ.sLTPShpQ14[ch.frameLength:ch.frameLength+ch.ltpMemLength])
 }
 
-// noiseShapeQuantizerDelDec quantizes one subframe with delayed decision
-// (silk_noise_shape_quantizer_del_dec).
 func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDelDec []nsqDelDecState,
 	signalType int, xQ10 []int32, pulses []int8, pulsesOff int, xq []int16, xqOff int, sLTPQ15 []int32, delayedGainQ10 []int32,
 	aQ12, bQ14, arShpQ13 []int16, lag int, harmShapeFIRPackedQ14 int32, tiltQ14, lfShpQ14, gainQ16 int32,
@@ -472,7 +445,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 	gainQ10 := silkRSHIFT(gainQ16, 6)
 
 	for i := 0; i < length; i++ {
-		// Long-term prediction, shared across states.
 		var ltpPredQ14 int32
 		if signalType == typeVoiced {
 			ltpPredQ14 = 2
@@ -503,7 +475,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			lpcPredQ14 := nsqShortPrediction(psDD.sLPCQ14[:], psLPC, aQ12, predictLPCOrder)
 			lpcPredQ14 = silkLSHIFT(lpcPredQ14, 4)
 
-			// Warped noise shape feedback.
 			tmp2 := silkSMLAWB(psDD.DiffQ14, psDD.sAR2Q14[0], warpingQ16)
 			tmp1 := silkSMLAWB(psDD.sAR2Q14[0], silkSUB32ovflw(psDD.sAR2Q14[1], tmp2), warpingQ16)
 			psDD.sAR2Q14[0] = tmp2
@@ -519,9 +490,9 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			}
 			psDD.sAR2Q14[shapingLPCOrder-1] = tmp1
 			nARQ14 = silkSMLAWB(nARQ14, tmp1, int32(arShpQ13[shapingLPCOrder-1]))
-			nARQ14 = silkLSHIFT(nARQ14, 1)                     // Q11 -> Q12
-			nARQ14 = silkSMLAWB(nARQ14, psDD.LFARQ14, tiltQ14) // Q12
-			nARQ14 = silkLSHIFT(nARQ14, 2)                     // Q12 -> Q14
+			nARQ14 = silkLSHIFT(nARQ14, 1)
+			nARQ14 = silkSMLAWB(nARQ14, psDD.LFARQ14, tiltQ14)
+			nARQ14 = silkLSHIFT(nARQ14, 2)
 
 			nLFQ14 := silkSMULWB(psDD.ShapeQ14[*smplBufIdx], lfShpQ14)
 			nLFQ14 = silkSMLAWT(nLFQ14, psDD.LFARQ14, lfShpQ14)
@@ -579,7 +550,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 		}
 		lastSmpleIdx := (*smplBufIdx + dd) % decisionDelay
 
-		// Find winner among first candidates.
 		rdMin := psSampleState[0][0].RDQ10
 		winnerInd := 0
 		for k := 1; k < nStatesDelayedDecision; k++ {
@@ -589,7 +559,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			}
 		}
 
-		// Expire states that disagree with the winner's committed dither.
 		winnerRandState := psDelDec[winnerInd].RandState[lastSmpleIdx]
 		for k := 0; k < nStatesDelayedDecision; k++ {
 			if psDelDec[k].RandState[lastSmpleIdx] != winnerRandState {
@@ -598,8 +567,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			}
 		}
 
-		// Replace the worst first-candidate state with the best second
-		// candidate when the latter wins.
 		rdMax := psSampleState[0][0].RDQ10
 		rdMin = psSampleState[0][1].RDQ10
 		rdMaxInd, rdMinInd := 0, 0
@@ -614,9 +581,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			}
 		}
 		if rdMin < rdMax {
-			// The reference copies the struct from int32-offset i, keeping
-			// the already-committed prefix of sLPC_Q14; replicate that
-			// field-wise.
 			dst, src := &psDelDec[rdMaxInd], &psDelDec[rdMinInd]
 			copy(dst.sLPCQ14[i:], src.sLPCQ14[i:])
 			dst.RandState = src.RandState
@@ -633,7 +597,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 			psSampleState[rdMaxInd][0] = psSampleState[rdMinInd][1]
 		}
 
-		// Write the decision-delayed sample from the winner.
 		psDD := &psDelDec[winnerInd]
 		if subfr > 0 || i >= dd {
 			pulses[pulsesOff+i-dd] = int8(silkRSHIFTROUND(psDD.QQ10[lastSmpleIdx], 10))
@@ -668,8 +631,6 @@ func (ch *silkEncoderChannel) noiseShapeQuantizerDelDec(NSQ *silkNSQState, psDel
 	}
 }
 
-// nsqDelDecScaleStates scales all delayed-decision states to the current
-// subframe gain (silk_nsq_del_dec_scale_states).
 func (ch *silkEncoderChannel) nsqDelDecScaleStates(NSQ *silkNSQState, psDelDec []nsqDelDecState,
 	x16 []int16, xScQ10 []int32, sLTP []int16, sLTPQ15 []int32, subfr, nStatesDelayedDecision int,
 	ltpScaleQ14 int32, gainsQ16 []int32, pitchL []int, signalType int, dd int) {

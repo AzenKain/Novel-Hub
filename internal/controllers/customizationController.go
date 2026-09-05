@@ -27,7 +27,6 @@ func NewCustomizationController(service services.CustomizationService, settings 
 	return &CustomizationController{service: service, settings: settings}
 }
 
-
 func (h *CustomizationController) ListSoundscapes(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -319,7 +318,6 @@ func (h *CustomizationController) ServeFontFile(c fiber.Ctx) error {
 
 	return c.SendFile(filePath, fiber.SendFile{ByteRange: true})
 }
-
 
 func (h *CustomizationController) ListCustomThemes(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

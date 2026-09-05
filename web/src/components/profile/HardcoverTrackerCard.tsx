@@ -16,7 +16,10 @@ export const HardcoverTrackerCard: React.FC = () => {
   const connectMutation = useConnectHardcoverMutation();
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("hardcover") === "connected") {
+    if (
+      new URLSearchParams(window.location.search).get("hardcover") ===
+      "connected"
+    ) {
       setConnected(true);
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -27,24 +30,31 @@ export const HardcoverTrackerCard: React.FC = () => {
 
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
-    connectMutation.mutate(
-      undefined,
-      {
-        onSuccess: (authorizeUrl) => {
-          window.location.href = authorizeUrl;
-        },
-        onError: (err: any) => {
-          toast.error(err?.message || t("trackers.hardcover_connect_failed", "Failed to start Hardcover connect"));
-        },
-      }
-    );
+    connectMutation.mutate(undefined, {
+      onSuccess: (authorizeUrl) => {
+        window.location.href = authorizeUrl;
+      },
+      onError: (err: any) => {
+        toast.error(
+          err?.message ||
+            t(
+              "trackers.hardcover_connect_failed",
+              "Failed to start Hardcover connect",
+            ),
+        );
+      },
+    });
   };
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
       <div className="flex items-start gap-3 border-b border-base-200 pb-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info/10 text-info mt-0.5">
-          {connected ? <Check className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
+          {connected ? (
+            <Check className="h-5 w-5" />
+          ) : (
+            <BookOpen className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -58,7 +68,10 @@ export const HardcoverTrackerCard: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-base-content/60 leading-relaxed">
-            {t("trackers.hardcover_subtitle", "Scrobble your reading progress to your Hardcover profile automatically.")}
+            {t(
+              "trackers.hardcover_subtitle",
+              "Scrobble your reading progress to your Hardcover profile automatically.",
+            )}
           </p>
         </div>
       </div>
@@ -70,7 +83,11 @@ export const HardcoverTrackerCard: React.FC = () => {
           onClick={handleConnect}
           disabled={connectMutation.isPending}
         >
-          {connectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+          {connectMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ExternalLink className="h-4 w-4" />
+          )}
           {t("trackers.hardcover_connect_btn", "Connect Hardcover")}
         </button>
         <a

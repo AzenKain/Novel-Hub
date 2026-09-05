@@ -38,7 +38,6 @@ func IsPrivateIP(ip net.IP) bool {
 		return true
 	}
 
-	// AWS metadata IP
 	if ip.Equal(net.IPv4(169, 254, 169, 254)) {
 		return true
 	}

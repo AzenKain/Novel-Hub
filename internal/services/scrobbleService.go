@@ -22,7 +22,6 @@ import (
 	"novelhub/pkg/netx"
 )
 
-// vars, not consts, so tests can point them at local mock servers
 var (
 	hardcoverAuthorizeURL = "https://hardcover.app/oauth/authorize"
 	hardcoverTokenURL     = "https://hardcover.app/oauth/token"
@@ -36,12 +35,12 @@ type ScrobbleService interface {
 }
 
 type scrobbleService struct {
-	trackerRepo  repositories.TrackerRepository
-	bookRepo     repositories.BookDBRepository
-	settings     SettingsService
-	cache        cache.Cache
-	permissions  PermissionCache
-	httpClient   *http.Client
+	trackerRepo repositories.TrackerRepository
+	bookRepo    repositories.BookDBRepository
+	settings    SettingsService
+	cache       cache.Cache
+	permissions PermissionCache
+	httpClient  *http.Client
 }
 
 func NewScrobbleService(trackerRepo repositories.TrackerRepository, bookRepo repositories.BookDBRepository, settings SettingsService, c cache.Cache, permissions PermissionCache) ScrobbleService {
@@ -145,9 +144,9 @@ func (s *scrobbleService) exchangeCode(ctx context.Context, config *models.Hardc
 	}
 
 	var parsed struct {
-		AccessToken  string  `json:"access_token"`
-		RefreshToken string  `json:"refresh_token"`
-		ExpiresIn    int64   `json:"expires_in"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int64  `json:"expires_in"`
 	}
 	if err := jsonx.Unmarshal(body, &parsed); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Invalid Hardcover token response")
@@ -197,16 +196,12 @@ func (s *scrobbleService) SyncHardcoverProgress(ctx context.Context, userID stri
 		return apperrors.New(apperrors.ErrNotFound, "Book not found")
 	}
 
-	// BOLA: verify that the user has permission to read the book before syncing progress
 	resolved := resolveClaims(claims)
 	attrs := map[string]any{"library_id": book.LibraryID}
 	if !s.permissions.CanRoles(resolved.RoleIDs, resolved.Roles, constants.PermBookRead, attrs) {
 		return apperrors.New(apperrors.ErrForbidden, "You do not have access to this book")
 	}
 
-	// ponytail: Hardcover's GraphQL schema (api.hardcover.app) is verified here — the
-	// search query and mutation field names below follow their documented Hasura-style API.
-	// If a field name drifts, this is the single place to fix.
 	searchQuery := `query SearchBook($title: String!) {
 		books(where: {title: {_ilike: $title}}, limit: 1) {
 			id

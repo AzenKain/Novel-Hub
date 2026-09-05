@@ -25,4 +25,3 @@ func OPDSRoutes(app fiber.Router, opdsController *controllers.OPDSController, au
 	v2 := app.Group("/opds/v2", middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), middlewares.OPDSAuth(authService, settingsService))
 	v2.Get("/catalog", opdsController.GetOPDS2Catalog)
 }
-

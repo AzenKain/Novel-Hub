@@ -31,7 +31,9 @@ export const ReadListPage: React.FC = () => {
   const [newName, setNewName] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ReadList | null>(null);
-  const [importResult, setImportResult] = useState<ImportCBLResult | null>(null);
+  const [importResult, setImportResult] = useState<ImportCBLResult | null>(
+    null,
+  );
 
   const listsQuery = useReadListsQuery();
   const lists = useMemo(
@@ -88,7 +90,9 @@ export const ReadListPage: React.FC = () => {
   };
 
   const handleDownloadAll = () => {
-    const validBooks = books.map((b) => b.book).filter((b) => b && b.files && b.files.length > 0);
+    const validBooks = books
+      .map((b) => b.book)
+      .filter((b) => b && b.files && b.files.length > 0);
     if (validBooks.length === 0) return;
     const { addBulkDownloads, open } = useDownloadManagerStore.getState();
     addBulkDownloads(
@@ -99,18 +103,20 @@ export const ReadListPage: React.FC = () => {
         format: b.files?.[0]?.format || "EPUB",
         sizeBytes: b.files?.[0]?.size_bytes,
       })),
-      false
+      false,
     );
     open();
     toast.success(
-      t("admin.bulk_download_started", "Added {{count}} books to download queue", {
-        count: validBooks.length,
-      })
+      t(
+        "admin.bulk_download_started",
+        "Added {{count}} books to download queue",
+        {
+          count: validBooks.length,
+        },
+      ),
     );
   };
 
-  // The reader walks the rest of the list itself once it knows which list it is inside, so opening
-  // position 0 with ?readlist= is the whole of "read in order".
   const openInReader = (bookId: string) => {
     if (!activeId) return;
     navigate(`/reader/${bookId}?readlist=${activeId}`);
@@ -123,7 +129,10 @@ export const ReadListPage: React.FC = () => {
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5">
+            <Link
+              to="/"
+              className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5"
+            >
               <ArrowLeft className="h-4 w-4" />
               {t("library.back_to_library", "Back to Library")}
             </Link>
@@ -154,7 +163,10 @@ export const ReadListPage: React.FC = () => {
               )}
               {t("library.readlist_import_cbl", "Import .cbl")}
             </button>
-            <button className="btn btn-primary btn-sm gap-1.5 rounded-xl" onClick={() => setIsCreateOpen(true)}>
+            <button
+              className="btn btn-primary btn-sm gap-1.5 rounded-xl"
+              onClick={() => setIsCreateOpen(true)}
+            >
               <Plus className="h-4 w-4" />
               {t("library.readlist_new", "New read list")}
             </button>
@@ -169,7 +181,10 @@ export const ReadListPage: React.FC = () => {
               </div>
             ) : lists.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-center text-sm text-base-content/60">
-                {t("library.readlist_empty", "No read lists yet. Create one or import a .cbl file.")}
+                {t(
+                  "library.readlist_empty",
+                  "No read lists yet. Create one or import a .cbl file.",
+                )}
               </div>
             ) : (
               <ul className="flex flex-col gap-1.5">
@@ -186,18 +201,25 @@ export const ReadListPage: React.FC = () => {
                         }`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                          <ListOrdered className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-content" : "text-primary"}`} />
+                          <ListOrdered
+                            className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-content" : "text-primary"}`}
+                          />
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-bold">{list.name}</p>
-                            <p className={`text-xs ${isActive ? "text-primary-content/80" : "text-base-content/50"}`}>
-                              {list.book_count || 0} {t("library.readlist_books", "books")}
+                            <p
+                              className={`text-xs ${isActive ? "text-primary-content/80" : "text-base-content/50"}`}
+                            >
+                              {list.book_count || 0}{" "}
+                              {t("library.readlist_books", "books")}
                             </p>
                           </div>
                         </div>
                         <button
                           type="button"
                           className={`btn btn-ghost btn-xs btn-square opacity-0 transition-opacity group-hover:opacity-100 ${
-                            isActive ? "hover:bg-primary-focus text-primary-content" : "text-error hover:bg-error/20"
+                            isActive
+                              ? "hover:bg-primary-focus text-primary-content"
+                              : "text-error hover:bg-error/20"
                           }`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -233,19 +255,29 @@ export const ReadListPage: React.FC = () => {
             {active ? (
               <div className="flex flex-col gap-4">
                 <div className="rounded-2xl border border-base-200 bg-base-100 p-5 shadow-2xs">
-                  <h2 className="text-xl font-black text-base-content">{active.name}</h2>
+                  <h2 className="text-xl font-black text-base-content">
+                    {active.name}
+                  </h2>
                   {active.description && (
-                    <p className="mt-1 text-sm text-base-content/60">{active.description}</p>
+                    <p className="mt-1 text-sm text-base-content/60">
+                      {active.description}
+                    </p>
                   )}
                 </div>
                 <ReadListBooksPanel
                   books={books}
                   isLoading={booksQuery.isLoading}
                   isReordering={reorderMutation.isPending}
-                  onReorder={(bookIds) => reorderMutation.mutate({ id: active.id, bookIds })}
-                  onRemove={(bookId) => removeBookMutation.mutate({ id: active.id, bookId })}
+                  onReorder={(bookIds) =>
+                    reorderMutation.mutate({ id: active.id, bookIds })
+                  }
+                  onRemove={(bookId) =>
+                    removeBookMutation.mutate({ id: active.id, bookId })
+                  }
                   onOpenBook={openInReader}
-                  onReadInOrder={() => books[0] && openInReader(books[0].book.id)}
+                  onReadInOrder={() =>
+                    books[0] && openInReader(books[0].book.id)
+                  }
                   onDownloadAll={allowDownload ? handleDownloadAll : undefined}
                 />
               </div>
@@ -255,7 +287,10 @@ export const ReadListPage: React.FC = () => {
                   <ListOrdered className="h-8 w-8" />
                 </div>
                 <p className="text-sm text-base-content/60">
-                  {t("library.readlist_select_hint", "Select a read list to see its reading order.")}
+                  {t(
+                    "library.readlist_select_hint",
+                    "Select a read list to see its reading order.",
+                  )}
                 </p>
               </div>
             )}
@@ -265,17 +300,25 @@ export const ReadListPage: React.FC = () => {
 
       <dialog className={`modal ${isCreateOpen ? "modal-open" : ""}`}>
         <div className="modal-box">
-          <h3 className="text-lg font-bold">{t("library.readlist_new", "New read list")}</h3>
+          <h3 className="text-lg font-bold">
+            {t("library.readlist_new", "New read list")}
+          </h3>
           <input
             type="text"
             className="input input-bordered mt-4 w-full"
-            placeholder={t("library.readlist_name_placeholder", "e.g. Civil War reading order")}
+            placeholder={t(
+              "library.readlist_name_placeholder",
+              "e.g. Civil War reading order",
+            )}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
           <div className="modal-action">
-            <button className="btn btn-ghost" onClick={() => setIsCreateOpen(false)}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setIsCreateOpen(false)}
+            >
               {t("common.cancel", "Cancel")}
             </button>
             <button
@@ -283,7 +326,9 @@ export const ReadListPage: React.FC = () => {
               disabled={!newName.trim() || createMutation.isPending}
               onClick={handleCreate}
             >
-              {createMutation.isPending && <span className="loading loading-spinner loading-xs"></span>}
+              {createMutation.isPending && (
+                <span className="loading loading-spinner loading-xs"></span>
+              )}
               {t("common.create", "Create")}
             </button>
           </div>
@@ -293,9 +338,13 @@ export const ReadListPage: React.FC = () => {
       <DeleteConfirmModal
         open={!!deleteTarget}
         title={t("library.readlist_delete", "Delete read list")}
-        message={t("library.readlist_delete_confirm", "Delete \"{{name}}\"? The books themselves stay in your library.", {
-          name: deleteTarget?.name || "",
-        })}
+        message={t(
+          "library.readlist_delete_confirm",
+          'Delete "{{name}}"? The books themselves stay in your library.',
+          {
+            name: deleteTarget?.name || "",
+          },
+        )}
         loading={deleteMutation.isPending}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}

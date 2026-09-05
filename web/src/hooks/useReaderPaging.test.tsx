@@ -5,7 +5,6 @@ import { useReaderPaging } from "./useReaderPaging";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Mock ResizeObserver for JSDOM
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
@@ -17,12 +16,14 @@ describe("useReaderPaging mode transition tests", () => {
     document.body.innerHTML = "";
   });
 
-  function setupHarness(initialProps: {
-    htmlContent?: string;
-    effectiveReadingMode?: string;
-    scrollLayout?: boolean;
-    pageIndex?: number;
-  } = {}) {
+  function setupHarness(
+    initialProps: {
+      htmlContent?: string;
+      effectiveReadingMode?: string;
+      scrollLayout?: boolean;
+      pageIndex?: number;
+    } = {},
+  ) {
     const container = document.createElement("div");
     const content = document.createElement("div");
     const columns = document.createElement("div");
@@ -32,20 +33,42 @@ describe("useReaderPaging mode transition tests", () => {
     Object.defineProperty(content, "scrollTop", {
       configurable: true,
       get: () => mockScrollTop,
-      set: (v) => { mockScrollTop = v; },
+      set: (v) => {
+        mockScrollTop = v;
+      },
     });
-    Object.defineProperty(content, "clientHeight", { configurable: true, value: 500 });
-    Object.defineProperty(content, "scrollHeight", { configurable: true, value: 1500 });
-    Object.defineProperty(pageFrame, "clientWidth", { configurable: true, value: 800 });
-    Object.defineProperty(pageFrame, "clientHeight", { configurable: true, value: 500 });
-    Object.defineProperty(columns, "clientWidth", { configurable: true, value: 800 });
-    Object.defineProperty(columns, "scrollWidth", { configurable: true, value: 8400 }); // ~10 pages
+    Object.defineProperty(content, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(content, "scrollHeight", {
+      configurable: true,
+      value: 1500,
+    });
+    Object.defineProperty(pageFrame, "clientWidth", {
+      configurable: true,
+      value: 800,
+    });
+    Object.defineProperty(pageFrame, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(columns, "clientWidth", {
+      configurable: true,
+      value: 800,
+    });
+    Object.defineProperty(columns, "scrollWidth", {
+      configurable: true,
+      value: 8400,
+    });
 
     let mockScrollLeft = 0;
     Object.defineProperty(columns, "scrollLeft", {
       configurable: true,
       get: () => mockScrollLeft,
-      set: (v) => { mockScrollLeft = v; },
+      set: (v) => {
+        mockScrollLeft = v;
+      },
     });
     (columns as any).scrollTo = (opts: any) => {
       if (opts && typeof opts.left === "number") {
@@ -53,14 +76,22 @@ describe("useReaderPaging mode transition tests", () => {
       }
     };
 
-    // Add multiple paragraph nodes to columns
     for (let i = 0; i < 20; i++) {
       const p = document.createElement("p");
       p.id = `para-${i}`;
       p.textContent = `Paragraph content ${i}`;
-      Object.defineProperty(p, "offsetTop", { configurable: true, value: i * 75 });
-      Object.defineProperty(p, "offsetLeft", { configurable: true, value: i * 420 });
-      Object.defineProperty(p, "offsetWidth", { configurable: true, value: 700 });
+      Object.defineProperty(p, "offsetTop", {
+        configurable: true,
+        value: i * 75,
+      });
+      Object.defineProperty(p, "offsetLeft", {
+        configurable: true,
+        value: i * 420,
+      });
+      Object.defineProperty(p, "offsetWidth", {
+        configurable: true,
+        value: 700,
+      });
       columns.appendChild(p);
     }
 
@@ -89,16 +120,14 @@ describe("useReaderPaging mode transition tests", () => {
 
     let rerenderFn: (props: Partial<typeof initialProps>) => void;
 
-    function Harness(props: {
-      mode: string;
-      scroll: boolean;
-      html: string;
-    }) {
+    function Harness(props: { mode: string; scroll: boolean; html: string }) {
       const [idx, setIdx] = useState(storePageIndex);
       useEffect(() => {
         const l = () => setIdx(storePageIndex);
         listeners.add(l);
-        return () => { listeners.delete(l); };
+        return () => {
+          listeners.delete(l);
+        };
       }, []);
 
       api = useReaderPaging({
@@ -113,7 +142,11 @@ describe("useReaderPaging mode transition tests", () => {
         pageAnimation: "eink",
         pageIndex: idx,
         setPageIndex: (newIdx) => {
-          setStorePageIndex(typeof newIdx === "function" ? (newIdx as any)(storePageIndex) : newIdx);
+          setStorePageIndex(
+            typeof newIdx === "function"
+              ? (newIdx as any)(storePageIndex)
+              : newIdx,
+          );
         },
         setPageFrameWidth: pageFrameWidthSetter,
         onChapterNext: vi.fn(),
@@ -131,21 +164,26 @@ describe("useReaderPaging mode transition tests", () => {
           mode={currentMode}
           scroll={currentScrollLayout}
           html={initialProps.htmlContent ?? "<p>Test</p>"}
-        />
+        />,
       );
     });
 
     rerenderFn = (newProps) => {
-      if (newProps.effectiveReadingMode !== undefined) currentMode = newProps.effectiveReadingMode;
-      if (newProps.scrollLayout !== undefined) currentScrollLayout = newProps.scrollLayout;
-      if (newProps.pageIndex !== undefined) setStorePageIndex(newProps.pageIndex);
+      if (newProps.effectiveReadingMode !== undefined)
+        currentMode = newProps.effectiveReadingMode;
+      if (newProps.scrollLayout !== undefined)
+        currentScrollLayout = newProps.scrollLayout;
+      if (newProps.pageIndex !== undefined)
+        setStorePageIndex(newProps.pageIndex);
       act(() => {
         root.render(
           <Harness
             mode={currentMode}
             scroll={currentScrollLayout}
-            html={newProps.htmlContent ?? initialProps.htmlContent ?? "<p>Test</p>"}
-          />
+            html={
+              newProps.htmlContent ?? initialProps.htmlContent ?? "<p>Test</p>"
+            }
+          />,
         );
       });
     };
@@ -350,4 +388,3 @@ describe("useReaderPaging mode transition tests", () => {
     harness.cleanup();
   });
 });
-

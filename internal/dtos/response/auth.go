@@ -33,5 +33,3 @@ type OAuthCallbackResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	RedirectURL  string `json:"redirect_url"`
 }
-
-

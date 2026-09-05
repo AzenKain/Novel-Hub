@@ -1,39 +1,24 @@
-// Package ogg demuxes Ogg streams (RFC 3533): page parsing with CRC
-// verification, packet reassembly across pages, and per-mapping content
-// handling. The only mapping wired so far is Ogg-FLAC (the Xiph FLAC-in-
-// Ogg mapping, version 1); Vorbis and Opus land with their codec
-// codecs. Other mappings are still recognized by name so errors can
-// say what was found.
-//
-// Seeking bisects on page granule positions to get near the target, then
-// lands exactly using the positions FLAC frame headers carry themselves;
-// the demuxer hands format.Media the frame containing the target and
-// Media pre-rolls to the sample.
+// Package ogg demuxes Ogg streams (RFC 3533): page parsing with CRC verification, packet reassembly across pages, and per-mapping content handling.
 package ogg
 
 // Page framing constants (RFC 3533 section 6).
 const (
-	headerLen = 27
-	// maxPageSize bounds one page: header, 255 lacing values, and 255
-	// segments of 255 bytes.
+	headerLen   = 27
 	maxPageSize = headerLen + 255 + 255*255
 )
 
-// Header type flags.
 const (
 	flagContinued = 0x01
 	flagBOS       = 0x02
 	flagEOS       = 0x04
 )
 
-// Match reports whether head begins with an Ogg page capture pattern. It
-// is the format sniff-table entry.
+// Match reports whether head begins with an Ogg page capture pattern.
 func Match(head []byte) bool {
 	return len(head) >= 4 && string(head[:4]) == "OggS"
 }
 
-// crcTable is the Ogg page checksum table: polynomial 0x04C11DB7,
-// unreflected, zero initial value and no final XOR (RFC 3533 section 6).
+// crcTable is the Ogg page checksum table: polynomial 0x04C11DB7, unreflected, zero initial value and no final XOR (RFC 3533 section 6).
 var crcTable = func() (t [256]uint32) {
 	for i := range t {
 		c := uint32(i) << 24

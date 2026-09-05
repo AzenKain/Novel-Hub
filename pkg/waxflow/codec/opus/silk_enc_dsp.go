@@ -1,12 +1,5 @@
 package opus
 
-// SILK encoder support DSP, ported from libopus silk/VAD.c, sigm_Q15.c,
-// ana_filt_bank_1.c, biquad_alt.c, LP_variable_cutoff.c, and
-// HP_variable_cutoff.c, plus the silk/tuning_parameters.h constants the
-// encoder analysis chain consumes.
-
-// Encoder tuning parameters (silk/tuning_parameters.h). The float-valued ones
-// feed the FLP analysis chain directly.
 const (
 	bitreservoirDecayTimeMS = 500
 
@@ -57,7 +50,6 @@ const (
 	maxBandwidthSwitchDelayMS = 5000
 )
 
-// VAD constants (silk/define.h).
 const (
 	vadNBands              = 4
 	vadInternalSubfrsLog2  = 2
@@ -72,7 +64,6 @@ const (
 	maxConsecutiveDTX       = 20
 )
 
-// silk_ADD_POS_SAT32: saturating add for positive operands.
 func silkADDPOSSAT32(a, b int32) int32 {
 	if (uint32(a)+uint32(b))&0x80000000 != 0 {
 		return silkInt32Max
@@ -80,12 +71,10 @@ func silkADDPOSSAT32(a, b int32) int32 {
 	return a + b
 }
 
-// sigmoid lookup tables (silk/sigm_Q15.c).
 var sigmLUTSlopeQ10 = [6]int32{237, 153, 73, 30, 12, 7}
 var sigmLUTPosQ15 = [6]int32{16384, 23955, 28861, 31213, 32178, 32548}
 var sigmLUTNegQ15 = [6]int32{16384, 8812, 3906, 1554, 589, 219}
 
-// silkSigmQ15 approximates 32767/(1+exp(-inQ5/32)) (silk_sigm_Q15).
 func silkSigmQ15(inQ5 int32) int32 {
 	if inQ5 < 0 {
 		inQ5 = -inQ5
@@ -102,14 +91,11 @@ func silkSigmQ15(inQ5 int32) int32 {
 	return sigmLUTPosQ15[ind] + silkSMULBB(sigmLUTSlopeQ10[ind], inQ5&0x1F)
 }
 
-// First-order allpass coefficients for the 2-band split (silk/ana_filt_bank_1.c).
 const (
 	aFB120 = 5394 << 1
 	aFB121 = -24290
 )
 
-// silkAnaFiltBank1 splits in into two decimated bands using first-order
-// allpass sections (silk_ana_filt_bank_1). State and internals are Q10.
 func silkAnaFiltBank1(in []int16, S []int32, outL, outH []int16, N int) {
 	N2 := N >> 1
 	for k := 0; k < N2; k++ {
@@ -130,7 +116,6 @@ func silkAnaFiltBank1(in []int16, S []int32, outL, outH []int16, N int) {
 	}
 }
 
-// silkVADState is the SILK VAD state (silk_VAD_state).
 type silkVADState struct {
 	AnaState       [2]int32
 	AnaState1      [2]int32
@@ -144,7 +129,6 @@ type silkVADState struct {
 	counter        int32
 }
 
-// init resets the VAD state (silk_VAD_Init).
 func (v *silkVADState) init() {
 	*v = silkVADState{}
 	for b := 0; b < vadNBands; b++ {
@@ -160,18 +144,14 @@ func (v *silkVADState) init() {
 	v.counter = 15
 }
 
-// tiltWeights are the per-band weights of the tilt measure (silk/VAD.c).
 var vadTiltWeights = [vadNBands]int32{30000, 6000, -12000, -12000}
 
-// vadResult carries silk_VAD_GetSA_Q8's outputs into the encoder state.
 type vadResult struct {
 	speechActivityQ8     int32
 	inputTiltQ15         int32
 	inputQualityBandsQ15 [vadNBands]int32
 }
 
-// getSAQ8 measures the speech activity level of one frame
-// (silk_VAD_GetSA_Q8_c). pIn holds frameLength samples at fsKHz.
 func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 	var res vadResult
 	decimatedFramelength1 := frameLength >> 1
@@ -185,12 +165,10 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 	xOffset[3] = xOffset[2] + decimatedFramelength2
 	X := make([]int16, xOffset[3]+decimatedFramelength1)
 
-	// Split 0-8 kHz into 0-4/4-8, then 0-4 into 0-2/2-4, then 0-2 into 0-1/1-2.
 	silkAnaFiltBank1(pIn, v.AnaState[:], X, X[xOffset[3]:], frameLength)
 	silkAnaFiltBank1(X, v.AnaState1[:], X, X[xOffset[2]:], decimatedFramelength1)
 	silkAnaFiltBank1(X, v.AnaState2[:], X, X[xOffset[1]:], decimatedFramelength2)
 
-	// HP filter on the lowest band (differentiator).
 	X[decimatedFramelength-1] >>= 1
 	HPstateTmp := X[decimatedFramelength-1]
 	for i := decimatedFramelength - 1; i > 0; i-- {
@@ -221,7 +199,6 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 			if s < vadInternalSubfrs-1 {
 				Xnrg[b] = silkADDPOSSAT32(Xnrg[b], sumSquared)
 			} else {
-				// Look-ahead subframe.
 				Xnrg[b] = silkADDPOSSAT32(Xnrg[b], sumSquared>>1)
 			}
 			decSubframeOffset += decSubframeLength
@@ -231,13 +208,12 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 
 	v.getNoiseLevels(Xnrg[:])
 
-	// Signal-plus-noise to noise ratio estimation.
 	var sumSquared, inputTilt int32
 	var nrgToNoiseRatioQ8 [vadNBands]int32
 	for b := 0; b < vadNBands; b++ {
 		speechNrg := Xnrg[b] - v.NL[b]
 		if speechNrg > 0 {
-			if Xnrg[b]&int32(-8388608) == 0 { // 0xFF800000
+			if Xnrg[b]&int32(-8388608) == 0 {
 				nrgToNoiseRatioQ8[b] = silkDIV32(silkLSHIFT(Xnrg[b], 8), v.NL[b]+1)
 			} else {
 				nrgToNoiseRatioQ8[b] = silkDIV32(Xnrg[b], (v.NL[b]>>8)+1)
@@ -259,7 +235,6 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 	SAQ15 := silkSigmQ15(silkSMULWB(vadSNRFactorQ16, pSNRdBQ7) - vadNegativeOffsetQ5)
 	res.inputTiltQ15 = silkLSHIFT(silkSigmQ15(inputTilt)-16384, 1)
 
-	// Scale the sigmoid output based on power levels.
 	var speechNrg int32
 	for b := 0; b < vadNBands; b++ {
 		speechNrg += int32(b+1) * ((Xnrg[b] - v.NL[b]) >> 4)
@@ -277,7 +252,6 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 
 	res.speechActivityQ8 = silkMinInt(SAQ15>>7, 255)
 
-	// Energy level and SNR estimation per band.
 	smoothCoefQ16 := silkSMULWB(vadSNRSmoothCoefQ18, silkSMULWB(SAQ15, SAQ15))
 	if frameLength == 10*fsKHz {
 		smoothCoefQ16 >>= 1
@@ -291,8 +265,6 @@ func (v *silkVADState) getSAQ8(pIn []int16, frameLength, fsKHz int) vadResult {
 	return res
 }
 
-// getNoiseLevels updates the per-band noise level estimate
-// (silk_VAD_GetNoiseLevels).
 func (v *silkVADState) getNoiseLevels(pX []int32) {
 	var minCoef int32
 	if v.counter < 1000 {
@@ -319,8 +291,6 @@ func (v *silkVADState) getNoiseLevels(pX []int32) {
 	}
 }
 
-// silkBiquadAltStride1 is the second-order ARMA filter in transposed direct
-// form II (silk_biquad_alt_stride1). S is the 2-element Q12 state.
 func silkBiquadAltStride1(in []int16, bQ28 []int32, aQ28 []int32, S []int32, out []int16, length int) {
 	a0LQ28 := (-aQ28[0]) & 0x00003FFF
 	a0UQ28 := silkRSHIFT(-aQ28[0], 14)
@@ -342,25 +312,21 @@ func silkBiquadAltStride1(in []int16, bQ28 []int32, aQ28 []int32, S []int32, out
 	}
 }
 
-// Bandwidth-transition filter constants (silk/define.h).
 const (
 	transitionTimeMS   = 5120
 	transitionNB       = 3
 	transitionNA       = 2
 	transitionIntNum   = 5
-	transitionFrames   = transitionTimeMS / 20 // MAX_FRAME_LENGTH_MS
+	transitionFrames   = transitionTimeMS / 20
 	transitionIntSteps = transitionFrames / (transitionIntNum - 1)
 )
 
-// silkLPState is the low-pass transition filter state (silk_LP_state).
 type silkLPState struct {
 	inLPState         [2]int32
 	transitionFrameNo int32
 	mode              int32
 }
 
-// interpolateFilterTaps interpolates between the transition filter tables
-// (silk_LP_interpolate_filter_taps).
 func silkLPInterpolateFilterTaps(bQ28 []int32, aQ28 []int32, ind int, facQ16 int32) {
 	if ind < transitionIntNum-1 {
 		if facQ16 > 0 {
@@ -393,8 +359,6 @@ func silkLPInterpolateFilterTaps(bQ28 []int32, aQ28 []int32, ind int, facQ16 int
 	}
 }
 
-// variableCutoff low-pass filters the frame in place during bandwidth
-// transitions (silk_LP_variable_cutoff). Inactive while mode == 0.
 func (lp *silkLPState) variableCutoff(frame []int16, frameLength int) {
 	if lp.mode == 0 {
 		return
@@ -412,9 +376,6 @@ func (lp *silkLPState) variableCutoff(frame []int16, frameLength int) {
 	silkBiquadAltStride1(frame, bQ28[:], aQ28[:], lp.inLPState[:], frame, frameLength)
 }
 
-// silkHPVariableCutoff adapts the high-pass cutoff frequency from pitch lag
-// statistics (silk_HP_variable_cutoff) and returns the updated
-// variable_HP_smth1_Q15 smoother state.
 func silkHPVariableCutoff(smth1Q15 int32, prevSignalType int, prevLag, fsKHz int, qualityBand0Q15, speechActivityQ8 int32) int32 {
 	if prevSignalType != typeVoiced {
 		return smth1Q15

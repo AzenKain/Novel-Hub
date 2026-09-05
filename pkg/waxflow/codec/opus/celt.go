@@ -1,21 +1,15 @@
 package opus
 
-// CELT decode main loop (RFC 6716 section 4.3). Ported from libopus
-// celt_decoder.c and celt.c. Ties the entropy, energy,
-// allocation, and band-shape stages together, runs the inverse MDCT with
-// overlap-add through a sliding history buffer, applies the pitch post-filter
-// and de-emphasis, and carries the inter-frame energy/post-filter state a
-// packet's prediction needs.
+// CELT decode main loop (RFC 6716 section 4.3).
 
 const (
-	celtDecodeBufferSize = 2048 // DECODE_BUFFER_SIZE
-	combMinPeriod        = 15   // COMBFILTER_MINPERIOD
-	combMaxPeriod        = 1024 // COMBFILTER_MAXPERIOD
+	celtDecodeBufferSize = 2048
+	combMinPeriod        = 15
+	combMaxPeriod        = 1024
 	celtSigScale         = 32768.0
-	celtPreemph          = 0.85000610 // mode->preemph[0] for the 48 kHz mode
+	celtPreemph          = 0.85000610
 )
 
-// tfSelectTable picks the per-band time-frequency resolution (libopus celt.c).
 var tfSelectTable = [4][8]int8{
 	{0, -1, 0, -1, 0, -1, 0, -1},
 	{0, -1, 0, -2, 1, 0, 1, -1},
@@ -23,20 +17,17 @@ var tfSelectTable = [4][8]int8{
 	{0, -2, 0, -3, 3, 0, 1, -1},
 }
 
-// combGains are the 3-tap post-filter gains per tapset (libopus celt.c).
 var combGains = [3][3]float32{
 	{0.3066406250, 0.2170410156, 0.1296386719},
 	{0.4638671875, 0.2680664062, 0.0},
 	{0.7998046875, 0.1000976562, 0.0},
 }
 
-// celtDecoder holds the persistent CELT decode state for one stream.
 type celtDecoder struct {
-	channels int // output channel count (CC)
+	channels int
 	overlap  int
 
-	decodeMem [][]float32 // per channel, celtDecodeBufferSize+overlap
-	// Energy history, each 2*nbEBands: current, previous, two-ago, background.
+	decodeMem                                   [][]float32
 	oldBandE, oldLogE, oldLogE2, backgroundLogE []float32
 
 	postPeriod, postPeriodOld int
@@ -46,16 +37,11 @@ type celtDecoder struct {
 	rng                       uint32
 	prefilterAndFold          bool
 
-	// Per-frame scratch. Only the large buffers are pooled here; the small
-	// per-frame temporaries (band vectors sized celtNBands, SILK frame
-	// buffers) deliberately still allocate, ~20-30 allocs/packet measured as
-	// immaterial next to decode cost. The full scratch sweep is deferred to
-	// the performance pass alongside the MDCT FFT.
 	window  []float64
 	mdctScr *mdctScratch
 	mdctPlanCache
 	freq  []float32
-	freq2 []float32 // second channel for the stereo->mono downmix
+	freq2 []float32
 	xnorm []float32
 	iy    []int
 	u     []uint32
@@ -90,9 +76,7 @@ func newCELTDecoder(channels int) *celtDecoder {
 
 const celtMaxPulses = 128
 
-// Reset clears the inter-frame state after a seek or mode switch
-// (OPUS_RESET_STATE: everything zeroed, then oldLogE/oldLogE2 to -28;
-// backgroundLogE stays 0, matching the reference).
+// Reset clears the inter-frame state after a seek or mode switch (OPUS_RESET_STATE: everything zeroed, then oldLogE/oldLogE2 to -28; backgroundLogE stays 0, matching the reference).
 func (d *celtDecoder) Reset() {
 	for c := range d.decodeMem {
 		clear(d.decodeMem[c])
@@ -110,7 +94,6 @@ func (d *celtDecoder) Reset() {
 	d.prefilterAndFold = false
 }
 
-// tfDecode reads the per-band time-frequency change flags (libopus).
 func tfDecode(start, end, isTransient int, tfRes []int, LM int, dec *rangeDecoder) {
 	budget := dec.storage * 8
 	tell := dec.tell()
@@ -147,18 +130,10 @@ func tfDecode(start, end, isTransient int, tfRes []int, LM int, dec *rangeDecode
 	}
 }
 
-// celtDecode decodes one CELT-only frame from data into the CC output channels
-// out[0..CC-1], each of length N = shortMdctSize<<LM. C is the number of coded
-// channels (1 or 2); start/end are the coded band range.
 func (d *celtDecoder) celtDecode(data []byte, LM, C, start, end int, out [][]float32) error {
 	return d.celtDecodeInner(newRangeDecoder(data), data, LM, C, start, end, out)
 }
 
-// celtDecodeInner is the CELT decode body. dec is the entropy decoder (its own
-// for CELT-only, or the frame's shared decoder positioned past the SILK data
-// for hybrid); data is the whole frame's bytes (for the bit budget). out is
-// always overwritten; in a hybrid frame the caller sums the SILK low band on
-// top afterward (the float build's opus_decode_frame order).
 func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, start, end int, out [][]float32) error {
 	CC := d.channels
 	M := 1 << LM
@@ -168,7 +143,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 	effEnd := min(end, celtNBands)
 
 	if len(data) <= 1 {
-		// Treat as silence (a minimal loss concealment).
 		d.combShiftSilence(N, CC, out)
 		return nil
 	}
@@ -192,7 +166,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 		dec.nbits += tell - dec.tell()
 	}
 
-	// Post-filter (pitch) parameters.
 	postGain := float32(0)
 	postPitch := 0
 	postTapset := 0
@@ -283,8 +256,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 
 	unquantFineEnergy(d.oldBandE, nb, start, end, fineQuant, dec, C)
 
-	// Slide the decode history left by N so the new frame's synthesis region
-	// keeps the previous frame's overlap tail.
 	keep := celtDecodeBufferSize - N + overlap
 	for c := 0; c < CC; c++ {
 		copy(d.decodeMem[c][:keep], d.decodeMem[c][N:N+keep])
@@ -297,9 +268,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 	if C == 2 {
 		Y = X[N:]
 	}
-	// The noise-fill/folding PRNG seed is decoder state: it persists across
-	// frames and is refreshed from the range coder's final register below
-	// (libopus st->rng), so a primed state reproduces the reference noise.
 	disableInv := 0
 	if CC == 1 {
 		disableInv = 1
@@ -324,7 +292,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 
 	d.synthesis(X, LM, C, CC, isTransient, start, effEnd, N, silence != 0)
 
-	// Post-filter each output channel across the frame.
 	for c := 0; c < CC; c++ {
 		base := celtDecodeBufferSize - N
 		d.postPeriod = max(d.postPeriod, combMinPeriod)
@@ -355,9 +322,6 @@ func (d *celtDecoder) celtDecodeInner(dec *rangeDecoder, data []byte, LM, C, sta
 	return nil
 }
 
-// deemphasis runs the de-emphasis filter over the freshly synthesized region
-// of the decode buffer into out, planar and scaled to [-1,1] (libopus
-// deemphasis, the 48 kHz float case).
 func (d *celtDecoder) deemphasis(out [][]float32, CC, N int) {
 	base := celtDecodeBufferSize - N
 	for c := 0; c < CC; c++ {
@@ -373,9 +337,6 @@ func (d *celtDecoder) deemphasis(out [][]float32, CC, N int) {
 	}
 }
 
-// synthesis denormalizes the bands and runs the inverse MDCT with overlap-add
-// into the decode buffer's synthesis region (libopus celt_synthesis; the mono,
-// stereo, and mono→stereo cases).
 func (d *celtDecoder) synthesis(X []float32, LM, C, CC, isTransient, start, effEnd, N int, silence bool) {
 	M := 1 << LM
 	var B, NB, mdctN int
@@ -403,8 +364,6 @@ func (d *celtDecoder) synthesis(X []float32, LM, C, CC, isTransient, start, effE
 		do(0, 0)
 		do(0, 1)
 	} else if CC == 1 && C == 2 {
-		// Downmixing a stereo stream to mono: average the two coded channels
-		// in the signal (denormalised) domain, then one inverse MDCT.
 		base := celtDecodeBufferSize - N
 		denormaliseBands(X, d.freq, d.oldBandE, start, effEnd, M, 1, silence)
 		denormaliseBands(X[N:], d.freq2, d.oldBandE[celtNBands:], start, effEnd, M, 1, silence)
@@ -421,8 +380,6 @@ func (d *celtDecoder) synthesis(X []float32, LM, C, CC, isTransient, start, effE
 	}
 }
 
-// updateEnergyState carries the log-energy history forward for the next frame's
-// prediction and anti-collapse (libopus celt_decoder.c).
 func (d *celtDecoder) updateEnergyState(C, isTransient, M, start, end int) {
 	nb := celtNBands
 	if C == 1 {
@@ -454,11 +411,7 @@ func (d *celtDecoder) updateEnergyState(C, isTransient, M, start, end int) {
 	}
 }
 
-// combShiftSilence advances the decode buffer and emits silence for an empty
-// packet (a minimal concealment; full PLC is out of scope, RFC 6716 file
-// mode). The PRNG seed and post-filter state deliberately stay put: the
-// reference would run PLC here and the next frame diverges from it wholesale
-// either way, so there is no reference state to track through this path.
+// combShiftSilence advances the decode buffer and emits silence for an empty packet (a minimal concealment; full PLC is out of scope, RFC 6716 file mode).
 func (d *celtDecoder) combShiftSilence(N, CC int, out [][]float32) {
 	keep := celtDecodeBufferSize - N + d.overlap
 	for c := 0; c < CC; c++ {

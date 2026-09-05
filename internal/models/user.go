@@ -84,7 +84,7 @@ func (u *UserEntity) FromSqlc(row sqlc.User) *UserEntity {
 	u.AvatarUrl = convert.NullStringToString(row.AvatarUrl)
 	u.AuthProvider = row.AuthProvider
 	u.Oauth2ID = convert.NullStringToString(row.Oauth2ID)
-	u.TokenVersion = int32(row.TokenVersion) // #nosec G115
+	u.TokenVersion = int32(row.TokenVersion)
 	u.RefreshToken = convert.NullStringToString(row.RefreshToken)
 	u.IsDeleted = row.IsDeleted != 0
 	u.CreatedAt = row.CreatedAt

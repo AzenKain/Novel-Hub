@@ -1,6 +1,11 @@
 import { bookService, featureService } from "@/services";
 import type { Book, SearchBookParams } from "@/types";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 export function useBooksQuery(params: SearchBookParams, enabled = true) {
   return useInfiniteQuery({
@@ -13,7 +18,9 @@ export function useBooksQuery(params: SearchBookParams, enabled = true) {
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
     refetchInterval: (query) =>
-      query.state.data?.pages.some((page) => page.data?.some((book) => book.status === "processing"))
+      query.state.data?.pages.some((page) =>
+        page.data?.some((book) => book.status === "processing"),
+      )
         ? 3000
         : false,
     enabled,
@@ -26,7 +33,8 @@ export function useBookmarkedBooksQuery(enabled = true) {
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const res = await featureService.getBookmarkedBooks(pageParam, 60);
-      if (!res.status) throw new Error(res.message || "Failed to fetch bookmarked books");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch bookmarked books");
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
@@ -34,7 +42,10 @@ export function useBookmarkedBooksQuery(enabled = true) {
   });
 }
 
-export function useGuestBookmarkedBooksQuery(bookIds: string[], enabled = true) {
+export function useGuestBookmarkedBooksQuery(
+  bookIds: string[],
+  enabled = true,
+) {
   return useQuery<Book[]>({
     queryKey: ["books", "guest-bookmarked", bookIds],
     queryFn: async () => {
@@ -52,10 +63,11 @@ export function useHotBooksQuery(limit = 6) {
     queryKey: ["books", "hot", limit],
     queryFn: async () => {
       const res = await bookService.getBooks({ nav: "hot", limit });
-      if (!res.status) throw new Error(res.message || "Failed to fetch hot books");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch hot books");
       return res.data || [];
     },
-    staleTime: 1000 * 60, 
+    staleTime: 1000 * 60,
   });
 }
 
@@ -64,7 +76,8 @@ export function useRandomBooksQuery(limit = 8) {
     queryKey: ["books", "random", limit],
     queryFn: async () => {
       const res = await bookService.getBooks({ nav: "random", limit });
-      if (!res.status) throw new Error(res.message || "Failed to fetch random books");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch random books");
       return res.data || [];
     },
     refetchOnWindowFocus: false,
@@ -75,7 +88,13 @@ export function useRandomBooksQuery(limit = 8) {
 export function useSendBookToEmailMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ book_id, recipientEmail }: { book_id: string; recipientEmail: string }) => {
+    mutationFn: async ({
+      book_id,
+      recipientEmail,
+    }: {
+      book_id: string;
+      recipientEmail: string;
+    }) => {
       const res = await bookService.sendToEmail(book_id, recipientEmail);
       if (!res.status) throw new Error(res.message || "Failed to send email");
       return res;
@@ -102,7 +121,13 @@ export function useBulkDeleteBooksMutation() {
 export function useBulkMoveBooksMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ bookIds, targetLibraryId }: { bookIds: string[]; targetLibraryId: string }) => {
+    mutationFn: async ({
+      bookIds,
+      targetLibraryId,
+    }: {
+      bookIds: string[];
+      targetLibraryId: string;
+    }) => {
       const res = await bookService.bulkMoveBooks(bookIds, targetLibraryId);
       if (!res.status) throw new Error(res.message || "Failed to move books");
       return res.data;
@@ -116,9 +141,19 @@ export function useBulkMoveBooksMutation() {
 export function useBulkAssignCollectionsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ bookIds, collectionIds }: { bookIds: string[]; collectionIds: string[] }) => {
-      const res = await bookService.bulkAssignCollections(bookIds, collectionIds);
-      if (!res.status) throw new Error(res.message || "Failed to assign collections");
+    mutationFn: async ({
+      bookIds,
+      collectionIds,
+    }: {
+      bookIds: string[];
+      collectionIds: string[];
+    }) => {
+      const res = await bookService.bulkAssignCollections(
+        bookIds,
+        collectionIds,
+      );
+      if (!res.status)
+        throw new Error(res.message || "Failed to assign collections");
       return res.data;
     },
     onSuccess: () => {
@@ -130,7 +165,13 @@ export function useBulkAssignCollectionsMutation() {
 export function useBulkAddTagsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ bookIds, tagNames }: { bookIds: string[]; tagNames: string[] }) => {
+    mutationFn: async ({
+      bookIds,
+      tagNames,
+    }: {
+      bookIds: string[];
+      tagNames: string[];
+    }) => {
       const res = await bookService.bulkAddTags(bookIds, tagNames);
       if (!res.status) throw new Error(res.message || "Failed to add tags");
       return res.data;
@@ -144,9 +185,12 @@ export function useBulkAddTagsMutation() {
 export function useBulkUpdateMetadataMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: import("@/types").BulkUpdateMetadataRequest) => {
+    mutationFn: async (
+      payload: import("@/types").BulkUpdateMetadataRequest,
+    ) => {
       const res = await bookService.bulkUpdateMetadata(payload);
-      if (!res.status) throw new Error(res.message || "Failed to update metadata");
+      if (!res.status)
+        throw new Error(res.message || "Failed to update metadata");
       return res.data;
     },
     onSuccess: () => {
@@ -154,7 +198,6 @@ export function useBulkUpdateMetadataMutation() {
     },
   });
 }
-
 
 export function useBookQuery(book_id: string) {
   return useQuery({
@@ -187,14 +230,19 @@ export function useSeriesBooksQuery(seriesId: string, enabled = true) {
     queryKey: ["books", "series", seriesId],
     queryFn: async () => {
       if (!seriesId) return [];
-      const res = await bookService.getBooks({ facet: "series", facet_id: seriesId, sort: "series_order", limit: 50 });
-      if (!res.status) throw new Error(res.message || "Failed to fetch books in series");
+      const res = await bookService.getBooks({
+        facet: "series",
+        facet_id: seriesId,
+        sort: "series_order",
+        limit: 50,
+      });
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch books in series");
       return res.data || [];
     },
     enabled: !!seriesId && enabled,
   });
 }
-
 
 export function useBookUserStateQuery(book_id: string, enabled = true) {
   return useQuery({
@@ -202,7 +250,8 @@ export function useBookUserStateQuery(book_id: string, enabled = true) {
     queryFn: async () => {
       if (!book_id) throw new Error("No book ID");
       const res = await featureService.getBookUserState(book_id);
-      if (!res.status) throw new Error(res.message || "Failed to fetch user state");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch user state");
       return res.data;
     },
     enabled: !!book_id && enabled,
@@ -231,7 +280,8 @@ export function useToggleBookmarkMutation(book_id: string) {
     mutationFn: async (bookmarked: boolean) => {
       if (!book_id) throw new Error("No book ID");
       const res = await featureService.setBookmark(book_id, bookmarked);
-      if (!res.status) throw new Error(res.message || "Failed to toggle bookmark");
+      if (!res.status)
+        throw new Error(res.message || "Failed to toggle bookmark");
       return res.data;
     },
     onSuccess: () => {

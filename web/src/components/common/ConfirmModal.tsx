@@ -1,4 +1,10 @@
-import { AlertCircle, HelpCircle, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  HelpCircle,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -62,7 +68,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </h3>
         <div className="py-4 text-sm opacity-80">{message}</div>
         <div className="modal-action">
-          <button onClick={onClose} disabled={loading} className="btn btn-ghost">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="btn btn-ghost"
+          >
             {cancelText || t("common.cancel", "Cancel")}
           </button>
           <button
@@ -78,7 +88,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose} disabled={loading}>close</button>
+        <button onClick={onClose} disabled={loading}>
+          close
+        </button>
       </form>
     </dialog>
   );

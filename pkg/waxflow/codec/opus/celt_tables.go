@@ -1,33 +1,22 @@
 package opus
 
-// CELT constant tables for the standard Opus mode (48 kHz, 2.5 ms short MDCT of
-// 120 samples, up to 20 ms frames). These are the functional interoperability
-// constants defined by RFC 6716; they are ported verbatim from libopus
-// (modes.c, static_modes_float.h, quant_bands.c, celt.h, bands.c) because a
-// decoder cannot interoperate without the exact values.
+// CELT constant tables for the standard Opus mode (48 kHz, 2.5 ms short MDCT of 120 samples, up to 20 ms frames).
 
-// Standard mode geometry.
 const (
-	celtNBands        = 21  // number of coded energy bands
-	celtOverlap       = 120 // MDCT overlap / window length
-	celtShortMDCTSize = 120 // 2.5 ms short-block MDCT bin count
-	celtMaxLM         = 3   // largest frame is 2^3 short blocks (20 ms)
+	celtNBands        = 21
+	celtOverlap       = 120
+	celtShortMDCTSize = 120
+	celtMaxLM         = 3
 )
 
-// eBands are the band boundaries in short-block (2.5 ms) MDCT bins; band i spans
-// [eBands[i], eBands[i+1]). Scaled by 2^LM for longer frames (libopus eband5ms).
 var celtEBands = [celtNBands + 1]int16{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 34, 40, 48, 60, 78, 100,
 }
 
-// logN is 2^BITRES·log2(N) per band, the base cost the allocator charges for a
-// band's shape (libopus logN400, BITRES=3).
 var celtLogN = [celtNBands]int16{
 	0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 16, 16, 16, 21, 21, 24, 29, 34, 36,
 }
 
-// band_allocation: 11 rows (allocation "quality" levels) of per-band bit
-// allocations in 1/32 bit/sample, interpolated by the allocator (libopus).
 const celtAllocRows = 11
 
 var celtBandAllocation = [celtAllocRows * celtNBands]byte{
@@ -44,10 +33,6 @@ var celtBandAllocation = [celtAllocRows * celtNBands]byte{
 	200, 200, 200, 200, 200, 200, 200, 200, 198, 193, 188, 183, 178, 173, 168, 163, 158, 153, 148, 129, 104,
 }
 
-// Pulse-allocation cache: for each (LM, band) the number of pulses that fit in a
-// given bit budget (libopus static_modes_float.h). cache_index50 indexes into
-// cache_bits50; cache_caps50 bounds per-band allocation.
-// celtCacheIndex is indexed by [(LM+1)·celtNBands + band]; 5 rows (LM -1..3).
 var celtCacheIndex = [5 * celtNBands]int16{
 	-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 41, 41, 41,
 	82, 82, 123, 164, 200, 222, 0, 0, 0, 0, 0, 0, 0, 0, 41,
@@ -103,8 +88,6 @@ var celtCacheCaps = [168]byte{
 	140, 66, 40,
 }
 
-// eMeans is the mean log-energy per band (Q4 in libopus, here float), added
-// back after coarse-energy prediction.
 var celtEMeans = [25]float32{
 	6.437500, 6.250000, 5.750000, 5.312500, 5.062500,
 	4.812500, 4.500000, 4.375000, 4.875000, 4.687500,
@@ -113,18 +96,14 @@ var celtEMeans = [25]float32{
 	3.750000, 3.750000, 3.750000, 3.750000, 3.750000,
 }
 
-// Coarse-energy prediction coefficients and update rates (libopus): 0.9/0.8/
-// 0.65/0.5 by frame size, with the matching leak coefficients.
 var (
 	celtPredCoef  = [4]float32{29440.0 / 32768, 26112.0 / 32768, 21248.0 / 32768, 16384.0 / 32768}
 	celtBetaCoef  = [4]float32{30147.0 / 32768, 22282.0 / 32768, 12124.0 / 32768, 6554.0 / 32768}
 	celtBetaIntra = float32(4915.0 / 32768)
 )
 
-// e_prob_model: Laplace parameters (probability-of-zero, decay; both Q8) for the
-// coarse energy, indexed [LM][intra][2·band+{p,decay}] (libopus).
 var celtEProbModel = [4][2][42]byte{
-	{ // 120-sample frames
+	{
 		{72, 127, 65, 129, 66, 128, 65, 128, 64, 128, 62, 128, 64, 128,
 			64, 128, 92, 78, 92, 79, 92, 78, 90, 79, 116, 41, 115, 40,
 			114, 40, 132, 26, 132, 26, 145, 17, 161, 12, 176, 10, 177, 11},
@@ -132,7 +111,7 @@ var celtEProbModel = [4][2][42]byte{
 			55, 132, 61, 114, 70, 96, 74, 88, 75, 88, 87, 74, 89, 66,
 			91, 67, 100, 59, 108, 50, 120, 40, 122, 37, 97, 43, 78, 50},
 	},
-	{ // 240-sample frames
+	{
 		{83, 78, 84, 81, 88, 75, 86, 74, 87, 71, 90, 73, 93, 74,
 			93, 74, 109, 40, 114, 36, 117, 34, 117, 34, 143, 17, 145, 18,
 			146, 19, 162, 12, 165, 10, 178, 7, 189, 6, 190, 8, 177, 9},
@@ -140,7 +119,7 @@ var celtEProbModel = [4][2][42]byte{
 			73, 91, 78, 89, 86, 80, 92, 66, 93, 64, 102, 59, 103, 60,
 			104, 60, 117, 52, 123, 44, 138, 35, 133, 31, 97, 38, 77, 45},
 	},
-	{ // 480-sample frames
+	{
 		{61, 90, 93, 60, 105, 42, 107, 41, 110, 45, 116, 38, 113, 38,
 			112, 38, 124, 26, 132, 27, 136, 19, 140, 20, 155, 14, 159, 16,
 			158, 18, 170, 13, 177, 10, 187, 8, 192, 6, 175, 9, 159, 10},
@@ -148,7 +127,7 @@ var celtEProbModel = [4][2][42]byte{
 			87, 72, 92, 75, 98, 72, 105, 58, 107, 54, 115, 52, 114, 55,
 			112, 56, 129, 51, 132, 40, 150, 33, 140, 29, 98, 35, 77, 42},
 	},
-	{ // 960-sample frames
+	{
 		{42, 121, 96, 66, 108, 43, 111, 40, 117, 44, 123, 32, 120, 36,
 			119, 33, 127, 33, 134, 34, 139, 21, 147, 23, 152, 20, 158, 25,
 			154, 26, 166, 21, 173, 16, 184, 13, 184, 10, 150, 13, 139, 15},
@@ -158,8 +137,6 @@ var celtEProbModel = [4][2][42]byte{
 	},
 }
 
-// Small inverse-CDF tables for range-coded side info (libopus). ICDFs are
-// non-increasing and end in 0.
 var (
 	celtSmallEnergyICDF = []byte{2, 1, 0}
 	celtTrimICDF        = []byte{126, 124, 119, 109, 87, 41, 19, 9, 4, 2, 0}
@@ -167,11 +144,8 @@ var (
 	celtTapsetICDF      = []byte{2, 1, 0}
 )
 
-// exp2_table8 is 2^(x/8)·2^14 for x in [0,8): the quantized-band count qn uses
-// it to pick a power-of-two-ish split resolution (libopus compute_qn).
 var celtExp2Table8 = [8]int16{16384, 17866, 19483, 21247, 23170, 25267, 27554, 30048}
 
-// Spread modes (libopus bands.h).
 const (
 	spreadNone   = 0
 	spreadLight  = 1
@@ -179,14 +153,9 @@ const (
 	spreadAggr   = 3
 )
 
-// Intensity-stereo thresholds/hysteresis (in kb/s) indexed by band count: the
-// encoder starts intensity coding from band hysteresisDecision(equiv_rate/1000)
-// (libopus celt_encoder.c). Higher rates push the boundary to higher bands.
 var (
 	celtIntensityThresholds = []float32{1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 36, 44, 50, 56, 62, 67, 72, 79, 88, 106, 134}
 	celtIntensityHysteresis = []float32{1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 4, 5, 6, 8, 8}
 )
 
-// BITRES is the allocator's bit-resolution shift: budgets are tracked in
-// 1/8-bit units (libopus).
 const bitRes = 3

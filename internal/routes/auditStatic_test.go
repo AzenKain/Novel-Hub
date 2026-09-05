@@ -19,8 +19,7 @@ func readAuditRouteFile(t *testing.T, name string) string {
 	return string(src)
 }
 
-// TestAuditMagicCodeActivateNoRateLimit verifies /auth/magic-code/activate
-// is mounted with the auth rate limiter.
+// TestAuditMagicCodeActivateNoRateLimit verifies /auth/magic-code/activate is mounted with the auth rate limiter.
 func TestAuditMagicCodeActivateNoRateLimit(t *testing.T) {
 	src := readAuditRouteFile(t, "authRoute.go")
 
@@ -39,8 +38,7 @@ func TestAuditMagicCodeActivateNoRateLimit(t *testing.T) {
 	}
 }
 
-// TestAuditAgeRatingRouteMissingLibraryScope verifies PUT /books/:id/age-rating
-// scopes the book to a library with BookLibraryAttr.
+// TestAuditAgeRatingRouteMissingLibraryScope verifies PUT /books/:id/age-rating scopes the book to a library with BookLibraryAttr.
 func TestAuditAgeRatingRouteMissingLibraryScope(t *testing.T) {
 	src := readAuditRouteFile(t, "ageRatingRoutes.go")
 
@@ -69,13 +67,7 @@ func TestAuditAgeRatingRouteMissingLibraryScope(t *testing.T) {
 	}
 }
 
-// TestAuditSmartFilterServiceDoubleV1Prefix proves task T0.2: the frontend
-// service calls baseURL("/api/v1") + "/v1/smart-filters" = /api/v1/v1/smart-filters,
-// while the backend mounts the group at /smart-filters under /api/v1. Every
-// smart-filter request 404s, which is why the whole EPIC-5 feature is dead on
-// the frontend.
-//
-// PASSING = bug confirmed. Fixing the service paths must fail this assertion.
+// TestAuditSmartFilterServiceDoubleV1Prefix proves task T0.2: the frontend service calls baseURL("/api/v1") + "/v1/smart-filters" = /api/v1/v1/smart-filters, while the backend mounts the group at /smart-filters under /api/v1.
 func TestAuditSmartFilterServiceDoubleV1Prefix(t *testing.T) {
 	feSrc, err := os.ReadFile(filepath.Join("..", "..", "web", "src", "services", "smartFilterService.ts"))
 	if err != nil {
@@ -86,13 +78,10 @@ func TestAuditSmartFilterServiceDoubleV1Prefix(t *testing.T) {
 	}
 	beSrc := readAuditRouteFile(t, "smartFilterRoutes.go")
 
-	// Backend mount: "/smart-filters" (under the /api/v1 group).
 	if !strings.Contains(beSrc, `"/smart-filters"`) {
 		t.Fatal("setup broken: backend smart-filter group not found")
 	}
 
-	// Every api.get/post/put/delete path in the FE service must start with
-	// "/smart-filters"; the shipped code uses "/v1/smart-filters".
 	bad := 0
 	for _, line := range strings.Split(string(feSrc), "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -111,7 +100,6 @@ func TestAuditSmartFilterServiceDoubleV1Prefix(t *testing.T) {
 			bad++
 		}
 	}
-	// BUG FIXED: no request path should double-prefix /v1.
 	if bad > 0 {
 		t.Fatalf("found %d request paths with double-prefixed /v1 in smartFilterService.ts", bad)
 	}

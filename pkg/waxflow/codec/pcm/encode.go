@@ -12,19 +12,15 @@ import (
 
 var _ codec.Encoder = (*Encoder)(nil)
 
-// Encoder packs planar buffers into interleaved wire PCM. It implements
-// codec.Encoder. Integer input samples must be in range for the format's
-// bit depth (the pipeline guarantees this); out-of-range values wrap.
+// Encoder packs planar buffers into interleaved wire PCM.
 type Encoder struct {
 	cfg Config
 	fmt audio.Format
-	out []byte // reusable packet backing, borrowed by emit callbacks
-	pos int64  // running sample count, feeds PTS and the Trailer
+	out []byte
+	pos int64
 }
 
-// NewEncoder returns an Encoder producing the given wire configuration
-// from pipeline buffers in format f (which must be cfg.PCMFormat for the
-// track's rate and layout).
+// NewEncoder returns an Encoder producing the given wire configuration from pipeline buffers in format f (which must be cfg.PCMFormat for the track's rate and layout).
 func NewEncoder(cfg Config, f audio.Format) (*Encoder, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -49,14 +45,12 @@ func (e *Encoder) FrameSize() int { return 0 }
 func (e *Encoder) CodecConfig() []byte {
 	b, err := e.cfg.MarshalBinary()
 	if err != nil {
-		// NewEncoder validated the config; this cannot happen.
 		panic(err)
 	}
 	return b
 }
 
-// Encode interleaves src into one packet. The packet is borrowed: Data is
-// valid only during the callback.
+// Encode interleaves src into one packet.
 func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error {
 	if src.Fmt != e.fmt {
 		return waxerr.New(waxerr.CodeUnsupportedFormat,
@@ -76,7 +70,7 @@ func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error
 	return emit(pkt)
 }
 
-// Finish reports the stream total. PCM has no encoder delay or padding.
+// Finish reports the stream total.
 func (e *Encoder) Finish(func(codec.Packet) error) (codec.Trailer, error) {
 	return codec.Trailer{Samples: e.pos}, nil
 }
@@ -118,7 +112,7 @@ func (e *Encoder) pack(src *audio.Buffer) {
 			for i, v := range s {
 				e.put24(e.out[off+i*step:], uint32(v<<shift))
 			}
-		default: // 32
+		default:
 			s := src.ChanI(c)
 			for i, v := range s {
 				e.put32(e.out[off+i*step:], uint32(v<<shift))

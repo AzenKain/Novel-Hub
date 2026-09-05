@@ -1,4 +1,3 @@
--- Table for authors
 CREATE TABLE IF NOT EXISTS authors (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -7,14 +6,12 @@ CREATE TABLE IF NOT EXISTS authors (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table for tags (genres/categories)
 CREATE TABLE IF NOT EXISTS tags (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table for books (EPUBs)
 CREATE TABLE IF NOT EXISTS books (
     id TEXT PRIMARY KEY,
     library_id TEXT NOT NULL,
@@ -39,7 +36,6 @@ CREATE TABLE IF NOT EXISTS books (
     FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE SET NULL
 );
 
--- Table to link books and tags (Many-to-Many)
 CREATE TABLE IF NOT EXISTS book_tags (
     book_id TEXT NOT NULL,
     tag_id TEXT NOT NULL,
@@ -48,7 +44,6 @@ CREATE TABLE IF NOT EXISTS book_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Table for book chapters
 CREATE TABLE IF NOT EXISTS chapters (
     id TEXT PRIMARY KEY,
     book_id TEXT NOT NULL,

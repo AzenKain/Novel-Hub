@@ -12,13 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// GET /books/:id/rating and /books/:id/reviews carried no middleware and no handler check while
-// every sibling route carried two guards. Reviews name their author and quote free text, so an
-// unauthenticated caller who guessed a book id read the reviewers of a library closed to them.
-//
-// Scoped in the handler rather than with RequirePermission: the middleware checks the book.read
-// grant, which GUEST holds by default, but not the guest_access setting that actually closes the
-// library. PolicyAllowsBook checks both, and is what the book routes already use.
+// GET /books/:id/rating and /books/:id/reviews carried no middleware and no handler check while every sibling route carried two guards.
 func TestReviewRoutesAreScopedToTheBook(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "review-scope.db"))
 	db, err := database.NewSQLiteDB()
@@ -40,7 +34,6 @@ func TestReviewRoutesAreScopedToTheBook(t *testing.T) {
 	seed(`INSERT INTO books (id, library_id, title, status) VALUES
 		('bk-open', 'lib-open', 'Public', 'published'),
 		('bk-closed', 'lib-closed', 'Secret', 'published')`)
-	// Guests see only the libraries listed here, so lib-closed is off limits to them.
 	seed(`INSERT INTO app_settings (key, value_json) VALUES ('guest_access.mode', '"selected_libraries"')
 	      ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json`)
 	seed(`INSERT INTO app_settings (key, value_json) VALUES ('guest_access.library_ids', '["lib-open"]')
@@ -55,7 +48,6 @@ func TestReviewRoutesAreScopedToTheBook(t *testing.T) {
 	}{
 		{"/api/v1/books/bk-closed/rating", http.StatusForbidden},
 		{"/api/v1/books/bk-closed/reviews", http.StatusForbidden},
-		// The open library still works: a guard that denied everything would pass the two above.
 		{"/api/v1/books/bk-open/rating", http.StatusOK},
 		{"/api/v1/books/bk-open/reviews", http.StatusOK},
 	} {

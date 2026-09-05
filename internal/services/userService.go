@@ -516,11 +516,6 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*response
 	return res, nil
 }
 
-// The frontend evaluates permissions locally, so the payload has to carry what each role grants.
-// GetUserRoles projects only id and name, which left hasPermission() returning false for every
-// custom role — the name === "ADMIN" shortcut in permission.ts was all that still worked.
-// Read from the permission cache rather than the database: it is the same snapshot the server's
-// own checks use, so the two cannot disagree, and no query lands on the auth path.
 func (u *userService) describeRoles(users ...*response.UserResponse) {
 	if u.permissions == nil {
 		return
@@ -625,7 +620,6 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 			cursorTime := convert.CursorTimeString(parts[0])
 			searchParams.CursorCreatedAt = convert.StrPtrToNullStringNonEmpty(&cursorTime)
 			if parts[1] != "" {
-				// UUIDv7 is lexicographically time-ordered, so `id > cursor` still pages correctly.
 				searchParams.CursorID = sql.NullString{String: parts[1], Valid: true}
 			}
 		}
@@ -651,9 +645,6 @@ func (u *userService) SearchUser(ctx context.Context, dto *request.SearchUserDto
 	}
 
 	var nextCursor string
-	// Only a full page can have anything after it. Emitting a cursor for a short page — as this
-	// did for every non-empty result — renders one more page in the admin list that is always
-	// empty. Every sibling list guards the same way (auditService, metadataService, opdsService).
 	if len(users) > 0 && len(users) == dto.Limit {
 		lastUser := users[len(users)-1]
 		nextCursor = convert.EncodeCursor(lastUser.CreatedAt, lastUser.ID)
@@ -695,7 +686,6 @@ func (s *userService) UploadAvatar(ctx context.Context, userID string, fileHeade
 		return "", apperrors.New(apperrors.ErrInternalError, "Failed to create public directory")
 	}
 
-	// Always overwrite the same file to prevent accumulation of old user avatars (junk files)
 	outFilename := fmt.Sprintf("avatar_%s%s", userID, ext)
 	destPath, err := localfs.SafeJoin(publicDir, outFilename)
 	if err != nil {
@@ -710,7 +700,6 @@ func (s *userService) UploadAvatar(ctx context.Context, userID string, fileHeade
 	if ferr == nil {
 		if oldUser, err := s.userRepo.GetByID(ctx, id); err == nil && oldUser != nil && oldUser.AvatarUrl != "" {
 			newAvatarURL := "/public/" + outFilename
-			// If extension has changed, delete the old file with the old extension
 			if oldUser.AvatarUrl != newAvatarURL && strings.HasPrefix(oldUser.AvatarUrl, "/public/avatar_") {
 				oldFilename := filepath.Base(oldUser.AvatarUrl)
 				oldPath, err := localfs.SafeJoin(publicDir, oldFilename)

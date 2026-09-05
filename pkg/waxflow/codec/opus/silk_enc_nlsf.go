@@ -1,20 +1,12 @@
 package opus
 
-// SILK NLSF quantization, ported from libopus silk/process_NLSFs.c,
-// NLSF_encode.c, NLSF_VQ.c, NLSF_del_dec_quant.c, NLSF_VQ_weights_laroia.c,
-// interpolate.c, and sort.c. The decode direction lives in silk_nlsf.go;
-// silk_NLSF_encode ends by running that decoder so the encoder continues
-// from the exact quantized NLSFs the decoder will see.
-
 const (
-	nlsfQuantMaxAmpExt        = 10 // NLSF_QUANT_MAX_AMPLITUDE_EXT
+	nlsfQuantMaxAmpExt        = 10
 	nlsfQuantDelDecStatesLog2 = 2
 	nlsfQuantDelDecStates     = 1 << nlsfQuantDelDecStatesLog2
-	nlsfWQ                    = 2 // NLSF_W_Q
+	nlsfWQ                    = 2
 )
 
-// silkInsertionSortIncreasing sorts a increasing, tracking source indices;
-// only the first K positions are guaranteed sorted (silk_insertion_sort_increasing).
 func silkInsertionSortIncreasing(a []int32, idx []int, L, K int) {
 	for i := 0; i < K; i++ {
 		idx[i] = i
@@ -43,8 +35,6 @@ func silkInsertionSortIncreasing(a []int32, idx []int, L, K int) {
 	}
 }
 
-// silkNLSFVQ computes the weighted quantization error of the input against
-// every first-stage codebook vector (silk_NLSF_VQ).
 func silkNLSFVQ(errQ24 []int32, inQ15 []int16, cbQ8 []uint8, wghtQ9 []int16, K, order int) {
 	for i := 0; i < K; i++ {
 		cb := cbQ8[i*order:]
@@ -65,8 +55,6 @@ func silkNLSFVQ(errQ24 []int32, inQ15 []int16, cbQ8 []uint8, wghtQ9 []int16, K, 
 	}
 }
 
-// silkNLSFVQWeightsLaroia computes the Laroia low-complexity NLSF weights
-// (silk_NLSF_VQ_weights_laroia), output in Q(nlsfWQ).
 func silkNLSFVQWeightsLaroia(w []int16, nlsfQ15 []int16, D int) {
 	tmp1 := silkMaxInt(int32(nlsfQ15[0]), 1)
 	tmp1 = silkDIV32_16(1<<(15+nlsfWQ), tmp1)
@@ -86,16 +74,12 @@ func silkNLSFVQWeightsLaroia(w []int16, nlsfQ15 []int16, D int) {
 	w[D-1] = int16(silkMinInt(tmp1+tmp2, silkInt16Max))
 }
 
-// silkInterpolate interpolates two vectors with weight ifactQ2/4 on the
-// second (silk_interpolate).
 func silkInterpolate(xi, x0, x1 []int16, ifactQ2 int, d int) {
 	for i := 0; i < d; i++ {
 		xi[i] = int16(int32(x0[i]) + silkSMULBB(int32(x1[i])-int32(x0[i]), int32(ifactQ2))>>2)
 	}
 }
 
-// silkNLSFDelDecQuant is the delayed-decision trellis quantizer for the NLSF
-// residuals (silk_NLSF_del_dec_quant). Returns the winning RD value in Q25.
 func silkNLSFDelDecQuant(indices []int8, xQ10, wQ5 []int16, predCoefQ8 []uint8, ecIx []int16,
 	ecRatesQ5 []uint8, quantStepSizeQ16 int32, invQuantStepSizeQ6 int32, muQ20 int32, order int) int32 {
 
@@ -241,9 +225,6 @@ func silkNLSFDelDecQuant(indices []int8, xQ10, wQ5 []int16, predCoefQ8 []uint8, 
 	return minQ25
 }
 
-// silkNLSFEncode quantizes an NLSF vector: first-stage VQ with nSurvivors,
-// trellis second stage, RD winner (silk_NLSF_encode). pNLSFQ15 is replaced by
-// the quantized vector.
 func silkNLSFEncode(nlsfIndices []int8, pNLSFQ15 []int16, cb *nlsfCB, pWQ2 []int16,
 	nlsfMuQ20 int32, nSurvivors int, signalType int8) int32 {
 
@@ -295,13 +276,10 @@ func silkNLSFEncode(nlsfIndices []int8, pNLSFQ15 []int16, cb *nlsfCB, pWQ2 []int
 	return rdQ25[0]
 }
 
-// processNLSFs limits, stabilizes, and quantizes the frame's NLSFs, producing
-// the quantized prediction coefficients (silk_process_NLSFs).
 func (ch *silkEncoderChannel) processNLSFs(predCoefQ12 *[2][silkMaxLPCOrder]int16, pNLSFQ15 []int16, prevNLSFqQ15 []int16) {
 	var pNLSF0TempQ15 [silkMaxLPCOrder]int16
 	var pNLSFWQW, pNLSFW0TempQW [silkMaxLPCOrder]int16
 
-	// NLSF_mu = 0.003 - 0.0015 * speech_activity.
 	nlsfMuQ20 := silkSMLAWB(silkFixConst(0.003, 20), silkFixConst(-0.001, 28), ch.speechActivityQ8)
 	if ch.nbSubfr == 2 {
 		nlsfMuQ20 += nlsfMuQ20 >> 1

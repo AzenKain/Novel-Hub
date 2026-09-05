@@ -40,8 +40,8 @@ export function PasswordStrength({ password = "" }: PasswordStrengthProps) {
             validReqCount <= 2
               ? "text-error"
               : validReqCount <= 4
-              ? "text-warning"
-              : "text-success"
+                ? "text-warning"
+                : "text-success"
           }
         >
           {getStrengthLabel()}
@@ -60,9 +60,7 @@ export function PasswordStrength({ password = "" }: PasswordStrengthProps) {
               req.valid ? "text-success font-medium" : "text-base-content/50"
             }`}
           >
-            <span className="w-3 inline-block">
-              {req.valid ? "✓" : "○"}
-            </span>
+            <span className="w-3 inline-block">{req.valid ? "✓" : "○"}</span>
             {req.label}
           </div>
         ))}

@@ -2,19 +2,27 @@ import type { User } from "@/types";
 
 export function isAdminUser(user: User | null | undefined): boolean {
   if (!user || !Array.isArray(user.roles)) return false;
-  return user.roles.some((role) => Boolean(role?.is_admin) || (typeof role?.name === "string" && role.name.toUpperCase() === "ADMIN"));
+  return user.roles.some(
+    (role) =>
+      Boolean(role?.is_admin) ||
+      (typeof role?.name === "string" && role.name.toUpperCase() === "ADMIN"),
+  );
 }
 
 export function isBannedUser(user: User | null | undefined): boolean {
   if (!user || !Array.isArray(user.roles)) return false;
-  return user.roles.some((role) => Boolean(role?.is_banned) || (typeof role?.name === "string" && role.name.toUpperCase() === "BANNED"));
+  return user.roles.some(
+    (role) =>
+      Boolean(role?.is_banned) ||
+      (typeof role?.name === "string" && role.name.toUpperCase() === "BANNED"),
+  );
 }
 
 export function hasPermission(
   user: User | null | undefined,
   permissionKey: string,
   library_id?: string,
-  guestPermissions?: string[]
+  guestPermissions?: string[],
 ): boolean {
   if (typeof permissionKey !== "string" || !permissionKey) return false;
 
@@ -48,13 +56,26 @@ export function hasPermission(
 
         const conditions = p.conditions;
         if (conditions !== undefined) {
-          if (!conditions || typeof conditions !== "object" || Array.isArray(conditions)) return false;
+          if (
+            !conditions ||
+            typeof conditions !== "object" ||
+            Array.isArray(conditions)
+          )
+            return false;
           const keys = Object.keys(conditions);
           if (keys.some((key) => key !== "library_ids")) return false;
           if ("library_ids" in conditions) {
             const libraryIds = conditions.library_ids;
-            if (!Array.isArray(libraryIds) || libraryIds.some((id) => typeof id !== "string")) return false;
-            if (libraryIds.length > 0 && (!library_id || !libraryIds.includes(library_id))) continue;
+            if (
+              !Array.isArray(libraryIds) ||
+              libraryIds.some((id) => typeof id !== "string")
+            )
+              return false;
+            if (
+              libraryIds.length > 0 &&
+              (!library_id || !libraryIds.includes(library_id))
+            )
+              continue;
           }
         }
 

@@ -5,30 +5,14 @@ import (
 	"sync"
 )
 
-// The inverse MDCT is the same fast, single-FFT factorization the AAC decoder
-// uses (cross-checked there against the O(N^2) transform): for
-//
-//	y[n] = (2/N) Σ_{k=0}^{N/2-1} X[k] cos((2π/N)(n+n0)(k+1/2)), n0 = (N/2+1)/2
-//
-// the sum becomes y[n] = (2/N) Re{B·P[n]·FFT(X·A)[n]}. Vorbis defines the same
-// TDAC MDCT, so the transform and phase match; the overall amplitude is fixed
-// by vorbisNorm, calibrated so a decoded tone matches libvorbis.
-//
-// vorbisScale is the IMDCT output scale. Unlike AAC, Vorbis's backward MDCT
-// (libvorbis mdct.c) carries no 1/N normalization: the encoder's forward
-// transform holds it, so the decoder is the raw inverse cosine sum. That makes
-// the scale the constant 1 (the sign matches libvorbis's/ffmpeg's phase
-// convention), not the AAC decoder's 2/N. Calibrated in decode_test.go.
 const vorbisScale = 1.0
 
-// imdctPlan holds read-only rotation factors, FFT twiddles, and the synthesis
-// window for one block size, shared across concurrent sessions.
 type imdctPlan struct {
 	n          int
 	aRe, aIm   []float64
 	bpRe, bpIm []float64
 	twRe, twIm []float64
-	window     []float32 // length n/2, the rising half of the Vorbis window
+	window     []float32
 }
 
 var (
@@ -74,7 +58,6 @@ func newIMDCTPlan(n int) *imdctPlan {
 			p.twIm = append(p.twIm, math.Sin(a))
 		}
 	}
-	// Vorbis window (spec 1.3.2): the rising half, indexed [0, n/2).
 	p.window = make([]float32, n/2)
 	for i := range p.window {
 		s := math.Sin((float64(i) + 0.5) / float64(n) * math.Pi)
@@ -83,8 +66,6 @@ func newIMDCTPlan(n int) *imdctPlan {
 	return p
 }
 
-// imdct computes the inverse MDCT of spec (length n/2) into out (length n),
-// using caller scratch (cr, ci each length n).
 func (p *imdctPlan) imdct(spec []float32, out, cr, ci []float64) {
 	n := p.n
 	cr, ci = cr[:n], ci[:n]
@@ -133,10 +114,6 @@ func (p *imdctPlan) fft(re, im []float64) {
 	}
 }
 
-// applyWindow multiplies the time-domain block buf (length n) in place by the
-// Vorbis window, using neighbour block sizes to size the left and right
-// overlap ramps (spec 1.3.2). ln and rn are the left- and right-neighbour
-// block sizes; leftWin and rightWin are their window tables (rising halves).
 func applyWindow(buf []float64, n, ln, rn int, leftWin, rightWin []float32) {
 	leftBegin := n/4 - ln/4
 	leftEnd := leftBegin + ln/2
@@ -148,7 +125,6 @@ func applyWindow(buf []float64, n, ln, rn int, leftWin, rightWin []float32) {
 	for i := leftBegin; i < leftEnd; i++ {
 		buf[i] *= float64(leftWin[i-leftBegin])
 	}
-	// [leftEnd, rightBegin): flat 1.0, unchanged.
 	for i := rightBegin; i < rightEnd; i++ {
 		buf[i] *= float64(rightWin[rightEnd-1-i])
 	}

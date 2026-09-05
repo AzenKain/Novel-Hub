@@ -18,7 +18,6 @@ var (
 	_ container.Warner  = (*Demuxer)(nil)
 )
 
-// Hostile-input caps (ADR-0005 invariants).
 const (
 	maxChunks      = 1024
 	maxCommPayload = 512
@@ -26,7 +25,6 @@ const (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
@@ -43,9 +41,7 @@ type Demuxer struct {
 	readBuf    []byte
 }
 
-// NewDemuxer parses the headers of an AIFF source. The returned Demuxer
-// implements container.Seeker (PCM seeks are trivially sample-exact) and
-// container.Warner.
+// NewDemuxer parses the headers of an AIFF source.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src}
 	if opts != nil {
@@ -151,7 +147,7 @@ func (d *Demuxer) parse() error {
 			if err := container.ReadFull(d.src, ssnd[:], off+8); err != nil {
 				return waxerr.Wrap(waxerr.CodeSourceUnreadable, "aiff: reading SSND header", err)
 			}
-			dataStart := int64(be.Uint32(ssnd[:])) // alignment offset
+			dataStart := int64(be.Uint32(ssnd[:]))
 			d.dataOff = off + 8 + 8 + dataStart
 			dataBytes = chunkSize - 8 - dataStart
 			if dataBytes < 0 {
@@ -224,15 +220,12 @@ func (d *Demuxer) parse() error {
 		Samples:     samples,
 		Default:     true,
 	}
-	// FL64 decodes to float32 like every other float source, so the file's
-	// own depth has nowhere in audio.Format to live; see the riff demuxer.
 	if cfg.Encoding == pcm.Float && cfg.Bits != f.BitDepth {
 		d.track.SourceBitDepth = cfg.Bits
 	}
 	return nil
 }
 
-// parseCOMM maps a COMM payload onto a wire config and stream parameters.
 func (d *Demuxer) parseCOMM(b []byte, aifc bool, off int64) (cfg pcm.Config, rate, channels int, frames int64, err error) {
 	channels = int(int16(be.Uint16(b)))
 	frames = int64(be.Uint32(b[2:]))
@@ -299,8 +292,7 @@ func (d *Demuxer) Tracks() []container.Track { return []container.Track{d.track}
 // Warnings returns damage tolerated during parsing.
 func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 
-// ReadPacket yields up to audio.StandardChunk frames of raw interleaved
-// PCM. Packet data is reused across calls.
+// ReadPacket yields up to audio.StandardChunk frames of raw interleaved PCM.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	remaining := d.track.Samples - d.pos
 	if remaining <= 0 {

@@ -1,7 +1,3 @@
-/**
- * Copies the given text to the clipboard.
- * Falls back to document.execCommand('copy') if navigator.clipboard is not available (e.g. insecure HTTP contexts).
- */
 export async function copyText(text: string): Promise<boolean> {
   if (navigator.clipboard && window.isSecureContext) {
     try {
@@ -12,11 +8,9 @@ export async function copyText(text: string): Promise<boolean> {
     }
   }
 
-  // Fallback method
   const textArea = document.createElement("textarea");
   textArea.value = text;
-  
-  // Avoid scrolling to bottom
+
   textArea.style.top = "0";
   textArea.style.left = "0";
   textArea.style.position = "fixed";
@@ -37,9 +31,6 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/**
- * Copies an image (from a URL/src) directly to the system clipboard as a PNG image.
- */
 export async function copyImageToClipboard(src: string): Promise<boolean> {
   try {
     const res = await fetch(src);

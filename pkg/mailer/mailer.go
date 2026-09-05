@@ -140,7 +140,6 @@ func TestConnection(config SMTPConfig) error {
 	return client.Quit()
 }
 
-// Dials resolved IPs, not the hostname, so IsPrivateIP screens what is actually connected to.
 func connect(config SMTPConfig) (*smtp.Client, error) {
 	if config.Host == "" || config.Port == 0 {
 		return nil, fmt.Errorf("SMTP configuration incomplete")

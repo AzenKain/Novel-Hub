@@ -13,10 +13,7 @@ import (
 
 var _ container.Muxer = (*Muxer)(nil)
 
-// Muxer writes one PCM track as AIFF (big-endian integers) or AIFF-C
-// (floats). NeedsSeek reports true: AIFF has no streaming form, so the
-// FORM size, COMM frame count, and SSND size are back-patched at End and
-// the writer must be an io.WriteSeeker.
+// Muxer writes one PCM track as AIFF (big-endian integers) or AIFF-C (floats).
 type Muxer struct {
 	w  io.Writer
 	ws io.WriteSeeker
@@ -27,18 +24,16 @@ type Muxer struct {
 	aifc       bool
 
 	off       int64
-	formOff   int64 // offset of the FORM size field
-	framesOff int64 // offset of COMM numSampleFrames
-	ssndOff   int64 // offset of the SSND chunk header
+	formOff   int64
+	framesOff int64
+	ssndOff   int64
 
 	frames int64
 	began  bool
 	ended  bool
 }
 
-// NewMuxer returns an AIFF muxer writing to w. Begin fails unless w
-// implements io.WriteSeeker; callers should check NeedsSeek and provide a
-// file.
+// NewMuxer returns an AIFF muxer writing to w.
 func NewMuxer(w io.Writer) *Muxer {
 	m := &Muxer{w: w}
 	if ws, ok := w.(io.WriteSeeker); ok {
@@ -86,10 +81,6 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	return m.writeHeaders()
 }
 
-// checkWireConfig rejects wire encodings this muxer does not emit: plain
-// AIFF holds big-endian signed integers (endianness is moot for 8-bit),
-// AIFF-C adds big-endian floats. Little-endian and unsigned wires exist
-// only on the read side (sowt, raw).
 func (m *Muxer) checkWireConfig(cfg pcm.Config) error {
 	bad := func(msg string) error {
 		return waxerr.New(waxerr.CodeUnsupportedFormat, "aiff: "+msg)
@@ -106,10 +97,6 @@ func (m *Muxer) checkWireConfig(cfg pcm.Config) error {
 	default:
 		return bad(fmt.Sprintf("no AIFF output for %v PCM", cfg.Encoding))
 	}
-	// COMM sampleSize is AIFF's only width field: readers derive storage
-	// as ceil(sampleSize/8) bytes. A container word wider than that (for
-	// example 24 valid bits in 32-bit words) cannot be represented; the
-	// payload would misalign against the declared width.
 	valid := cfg.ValidBits
 	if valid == 0 {
 		valid = cfg.Bits
@@ -136,15 +123,13 @@ func (m *Muxer) writeHeaders() error {
 		}
 	}
 
-	// COMM. Valid bits go in sampleSize; the container packs them in
-	// whole bytes, matching the wire config by construction.
 	bits := m.cfg.Bits
 	if m.cfg.ValidBits != 0 {
 		bits = m.cfg.ValidBits
 	}
 	commSize := uint32(18)
 	if m.aifc {
-		commSize = 18 + 4 + 2 // compression type + empty pascal string
+		commSize = 18 + 4 + 2
 	}
 	rate := toExt80(float64(m.fmt.Rate))
 	if err := m.write([]byte(idCOMM), u32be(commSize), u16be(uint16(m.fmt.Channels))); err != nil {
@@ -159,14 +144,13 @@ func (m *Muxer) writeHeaders() error {
 		if m.cfg.Bits == 64 {
 			comp = compFl64
 		}
-		// An empty pascal string is one count byte padded to even length.
 		if err := m.write([]byte(comp), []byte{0, 0}); err != nil {
 			return err
 		}
 	}
 
 	m.ssndOff = m.off
-	return m.write([]byte(idSSND), u32be(0), u32be(0), u32be(0)) // size, offset, blockSize
+	return m.write([]byte(idSSND), u32be(0), u32be(0), u32be(0))
 }
 
 // WritePacket appends raw interleaved PCM bytes.
@@ -180,8 +164,6 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	if len(pkt.Data)%m.frameBytes != 0 {
 		return waxerr.New(waxerr.CodeInternal, "aiff: packet is not whole frames")
 	}
-	// Fail before writing terabytes that End would reject anyway: the
-	// FORM size field cannot represent output past 4 GiB.
 	if m.off+int64(len(pkt.Data))-8 > size32Max {
 		return waxerr.New(waxerr.CodeUnsupportedFormat,
 			"aiff: output would exceed AIFF's 4 GiB limit (use WAV, which upgrades to RF64)")

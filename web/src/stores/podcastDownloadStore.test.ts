@@ -30,15 +30,23 @@ describe("podcastDownloadStore", () => {
     store.startDownload("pod-1", "ep-1", "Episode 1");
     store.startDownload("pod-1", "ep-2", "Episode 2");
 
-    expect(usePodcastDownloadStore.getState().getActiveDownloads()).toHaveLength(2);
+    expect(
+      usePodcastDownloadStore.getState().getActiveDownloads(),
+    ).toHaveLength(2);
 
     usePodcastDownloadStore.getState().finishDownload("ep-1");
-    expect(usePodcastDownloadStore.getState().isDownloading("ep-1")).toBe(false);
+    expect(usePodcastDownloadStore.getState().isDownloading("ep-1")).toBe(
+      false,
+    );
     expect(usePodcastDownloadStore.getState().isDownloading("ep-2")).toBe(true);
-    expect(usePodcastDownloadStore.getState().hasActiveDownloads("pod-1")).toBe(true);
+    expect(usePodcastDownloadStore.getState().hasActiveDownloads("pod-1")).toBe(
+      true,
+    );
 
     usePodcastDownloadStore.getState().cancelDownload("ep-2");
-    expect(usePodcastDownloadStore.getState().isDownloading("ep-2")).toBe(false);
+    expect(usePodcastDownloadStore.getState().isDownloading("ep-2")).toBe(
+      false,
+    );
     expect(usePodcastDownloadStore.getState().hasActiveDownloads()).toBe(false);
   });
 });

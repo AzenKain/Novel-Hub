@@ -1,10 +1,38 @@
 import type { TFunction } from "i18next";
-import { ChevronLeft, Menu, Settings, Play, Pause, Square, ArrowDown, Volume2, Search, Headphones, MoreHorizontal, BookmarkPlus, Copy, Check, Loader2, Sparkles, MessageSquarePlus, X, Maximize, Minimize } from "lucide-react";
+import {
+  ChevronLeft,
+  Menu,
+  Settings,
+  Play,
+  Pause,
+  Square,
+  ArrowDown,
+  Volume2,
+  Search,
+  Headphones,
+  MoreHorizontal,
+  BookmarkPlus,
+  Copy,
+  Check,
+  Loader2,
+  Sparkles,
+  MessageSquarePlus,
+  X,
+  Maximize,
+  Minimize,
+} from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { copyImageToClipboard } from "@/utils/clipboard";
 import { LanguageSwitcher } from "@/components/ui";
-import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode, TextAlignment } from "@/stores";
+import type {
+  PageAnimation,
+  PageFit,
+  ReaderTheme,
+  ReadingDirection,
+  ReadingMode,
+  TextAlignment,
+} from "@/stores";
 import { useSoundscapeStore } from "@/stores/soundscapeStore";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderTtsSettingsPanel } from "./ReaderTtsSettingsPanel";
@@ -66,7 +94,9 @@ type ReaderTopBarProps = {
   onComicPageJump?: (page: number) => void;
 
   activeImageTarget?: ActiveImageTarget | null;
-  onSaveImageBookmark?: (bookmark: Omit<ImageBookmark, "id" | "created_at">) => void;
+  onSaveImageBookmark?: (
+    bookmark: Omit<ImageBookmark, "id" | "created_at">,
+  ) => void;
   onOpenQuoteCard?: (text?: string, imageUrl?: string) => void;
   onCloseImageTarget?: () => void;
 };
@@ -135,7 +165,9 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   const [imageNote, setImageNote] = useState("");
   const [copyingImage, setCopyingImage] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
-  const [pageInputValue, setPageInputValue] = useState<string>(String(comicCurrentPage + 1));
+  const [pageInputValue, setPageInputValue] = useState<string>(
+    String(comicCurrentPage + 1),
+  );
   const { isPlaying: isSoundscapePlaying, activeTracks } = useSoundscapeStore();
   const activeSoundscapeCount = Object.keys(activeTracks).length;
 
@@ -146,7 +178,8 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const toggleFullscreen = async () => {
@@ -156,9 +189,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
       } else {
         await document.exitFullscreen();
       }
-    } catch {
-      // Ignore fullscreen errors
-    }
+    } catch {}
   };
 
   React.useEffect(() => {
@@ -171,13 +202,24 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
     }
   }, [activeImageTarget]);
 
+  const isAnyMenuOpen =
+    settingsOpen ||
+    ttsSettingsOpen ||
+    soundscapeOpen ||
+    moreMenuOpen ||
+    imageDropdownOpen;
+
   return (
     <header
       data-reader-toolbar="true"
+      data-menu-open={isAnyMenuOpen ? "true" : undefined}
       className={`relative z-50 flex h-14 w-full flex-none items-center justify-between border-b px-3 sm:px-4 ${headerBg} backdrop-blur-md`}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.toc", "Contents")}>
+        <div
+          className="tooltip tooltip-bottom"
+          data-tip={t("reader.toc", "Contents")}
+        >
           <label
             htmlFor="reader-drawer"
             className="reader-control-btn btn btn-square btn-sm cursor-pointer"
@@ -192,7 +234,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
       </div>
 
       <div className="relative flex items-center gap-1 shrink-0">
-        <div className="tooltip tooltip-bottom" data-tip={t("reader.prev_chapter", "Previous Chapter")}>
+        <div
+          className="tooltip tooltip-bottom"
+          data-tip={t("reader.prev_chapter", "Previous Chapter")}
+        >
           <button
             onClick={onPrev}
             disabled={!canGoPrev}
@@ -202,7 +247,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             <ChevronLeft className="h-5 w-5" />
           </button>
         </div>
-        <div className="tooltip tooltip-bottom" data-tip={nextTooltip || t("reader.next_chapter", "Next Chapter")}>
+        <div
+          className="tooltip tooltip-bottom"
+          data-tip={nextTooltip || t("reader.next_chapter", "Next Chapter")}
+        >
           <button
             onClick={onNext}
             disabled={!canGoNext}
@@ -251,7 +299,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         )}
 
         {onOpenSearch && !isAudio && !isComic && (
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.in_book_search", "Search")}>
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={t("reader.in_book_search", "Search")}
+          >
             <button
               onClick={onOpenSearch}
               className="reader-control-btn btn btn-square btn-sm animate-none"
@@ -265,7 +316,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         {/* Active Image Actions Button & Dropdown */}
         {activeImageTarget && (
           <div className="relative">
-            <div className="tooltip tooltip-bottom" data-tip={t("reader.bookmark_image", "Bookmark image")}>
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip={t("reader.bookmark_image", "Bookmark image")}
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -276,7 +330,9 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   if (moreMenuOpen) setMoreMenuOpen(false);
                 }}
                 className={`reader-control-btn btn btn-square btn-sm animate-none relative ${
-                  imageDropdownOpen ? "text-amber-400 reader-control-btn-active" : "text-amber-400"
+                  imageDropdownOpen
+                    ? "text-amber-400 reader-control-btn-active"
+                    : "text-amber-400"
                 }`}
                 aria-label={t("reader.bookmark_image", "Bookmark image")}
               >
@@ -303,11 +359,15 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   />
                   <div className="flex-1 min-w-0 text-xs">
                     <p className="font-semibold text-(--reader-ui-text) truncate">
-                      {activeImageTarget.chapter_title || title || t("reader.image_action", "Illustration image")}
+                      {activeImageTarget.chapter_title ||
+                        title ||
+                        t("reader.image_action", "Illustration image")}
                     </p>
                     {activeImageTarget.page_index !== undefined && (
                       <p className="text-[11px] text-(--reader-ui-muted) opacity-80 mt-0.5">
-                        {t("reader.page_number", "Trang {{page}}", { page: activeImageTarget.page_index + 1 })}
+                        {t("reader.page_number", "Trang {{page}}", {
+                          page: activeImageTarget.page_index + 1,
+                        })}
                       </p>
                     )}
                   </div>
@@ -341,7 +401,9 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                     className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] font-medium transition-colors"
                   >
                     <BookmarkPlus className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="truncate">{t("reader.bookmark", "Bookmark")}</span>
+                    <span className="truncate">
+                      {t("reader.bookmark", "Bookmark")}
+                    </span>
                   </button>
 
                   <button
@@ -350,14 +412,23 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                       e.stopPropagation();
                       e.preventDefault();
                       setCopyingImage(true);
-                      const success = await copyImageToClipboard(activeImageTarget.image_url);
+                      const success = await copyImageToClipboard(
+                        activeImageTarget.image_url,
+                      );
                       setCopyingImage(false);
                       if (success) {
                         setCopiedImage(true);
-                        toast.success(t("reader.image_copied", "Image copied to clipboard!"));
+                        toast.success(
+                          t(
+                            "reader.image_copied",
+                            "Image copied to clipboard!",
+                          ),
+                        );
                         setTimeout(() => setCopiedImage(false), 2000);
                       } else {
-                        toast.error(t("reader.image_copy_failed", "Failed to copy image"));
+                        toast.error(
+                          t("reader.image_copy_failed", "Failed to copy image"),
+                        );
                       }
                     }}
                     disabled={copyingImage}
@@ -370,20 +441,29 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                     ) : (
                       <Copy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                     )}
-                    <span className="truncate">{copiedImage ? t("common.copied", "Copied") : t("common.copy", "Copy")}</span>
+                    <span className="truncate">
+                      {copiedImage
+                        ? t("common.copied", "Copied")
+                        : t("common.copy", "Copy")}
+                    </span>
                   </button>
 
                   {onOpenQuoteCard && (
                     <button
                       type="button"
                       onClick={() => {
-                        onOpenQuoteCard(imageNote.trim() || undefined, activeImageTarget.image_url);
+                        onOpenQuoteCard(
+                          imageNote.trim() || undefined,
+                          activeImageTarget.image_url,
+                        );
                         setImageDropdownOpen(false);
                       }}
                       className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] font-medium transition-colors"
                     >
                       <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                      <span className="truncate">{t("reader.quote", "Quote")}</span>
+                      <span className="truncate">
+                        {t("reader.quote", "Quote")}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -395,7 +475,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                     type="text"
                     value={imageNote}
                     onChange={(e) => setImageNote(e.target.value)}
-                    placeholder={t("reader.add_image_note_placeholder", "Note for this image...")}
+                    placeholder={t(
+                      "reader.add_image_note_placeholder",
+                      "Note for this image...",
+                    )}
                     className="w-full bg-transparent text-xs text-(--reader-ui-text) placeholder:text-(--reader-ui-muted)/60 focus:outline-hidden py-0.5"
                   />
                 </div>
@@ -427,11 +510,18 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                       : t("reader.tts_play", "Read Aloud")
                   }
                 >
-                  {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  {ttsPlaying ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               {(ttsPlaying || ttsPaused) && (
-                <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_stop", "Stop")}>
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip={t("reader.tts_stop", "Stop")}
+                >
                   <button
                     onClick={onTtsStop}
                     className="reader-control-btn btn btn-square btn-sm animate-none text-error"
@@ -441,7 +531,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   </button>
                 </div>
               )}
-              <div className="tooltip tooltip-bottom" data-tip={t("reader.tts_settings", "Voice & Speed")}>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t("reader.tts_settings", "Voice & Speed")}
+              >
                 <button
                   onClick={() => {
                     setTtsSettingsOpen(!ttsSettingsOpen);
@@ -449,7 +542,9 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                     if (moreMenuOpen) setMoreMenuOpen(false);
                   }}
                   className={`reader-control-btn btn btn-square btn-sm animate-none ${
-                    ttsSettingsOpen ? "reader-control-btn-active text-primary" : ""
+                    ttsSettingsOpen
+                      ? "reader-control-btn-active text-primary"
+                      : ""
                   }`}
                   aria-label={t("reader.tts_settings", "Voice & Speed")}
                 >
@@ -459,22 +554,30 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             </div>
           )}
 
-          {!isAudio && (effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon") && (
-            <div className="tooltip tooltip-bottom" data-tip={t("reader.auto_scroll", "Auto Scroll")}>
-              <button
-                onClick={onToggleAutoScroll}
-                className={`reader-control-btn btn btn-square btn-sm animate-none ${
-                  autoScrollActive ? "text-primary" : ""
-                }`}
-                aria-label={t("reader.auto_scroll", "Auto Scroll")}
+          {!isAudio &&
+            (effectiveReadingMode === "scroll" ||
+              effectiveReadingMode === "webtoon") && (
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t("reader.auto_scroll", "Auto Scroll")}
               >
-                <ArrowDown className="h-5 w-5" />
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={onToggleAutoScroll}
+                  className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                    autoScrollActive ? "text-primary" : ""
+                  }`}
+                  aria-label={t("reader.auto_scroll", "Auto Scroll")}
+                >
+                  <ArrowDown className="h-5 w-5" />
+                </button>
+              </div>
+            )}
 
           {/* Ambient Soundscapes Mixer Button */}
-          <div className="tooltip tooltip-bottom" data-tip={t("soundscape.ambient_sounds", "Ambient Sounds")}>
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={t("soundscape.ambient_sounds", "Ambient Sounds")}
+          >
             <button
               onClick={() => {
                 setSoundscapeOpen(!soundscapeOpen);
@@ -499,7 +602,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             </button>
           </div>
 
-          <div className="tooltip tooltip-bottom" data-tip={t("common.language", "Language")}>
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={t("common.language", "Language")}
+          >
             <LanguageSwitcher
               className="dropdown-end"
               buttonClassName="reader-control-btn btn btn-sm gap-1 animate-none px-2"
@@ -521,7 +627,11 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   : t("reader.tts_play", "Read Aloud")
               }
             >
-              {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              {ttsPlaying ? (
+                <Pause className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
             </button>
             {(ttsPlaying || ttsPaused) && (
               <button
@@ -537,7 +647,10 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
 
         {/* Mobile More Tools Menu Button (Hidden on md+) */}
         <div className="relative md:hidden">
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.more_tools", "Tools")}>
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={t("reader.more_tools", "Tools")}
+          >
             <button
               onClick={() => {
                 setMoreMenuOpen(!moreMenuOpen);
@@ -580,9 +693,13 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   {t("soundscape.ambient_sounds", "Ambient Sounds")}
                 </span>
                 {activeSoundscapeCount > 0 ? (
-                  <span className="badge badge-primary badge-xs">{activeSoundscapeCount}</span>
+                  <span className="badge badge-primary badge-xs">
+                    {activeSoundscapeCount}
+                  </span>
                 ) : (
-                  <span className="text-xs opacity-50">{t("common.off", "Off")}</span>
+                  <span className="text-xs opacity-50">
+                    {t("common.off", "Off")}
+                  </span>
                 )}
               </button>
 
@@ -602,7 +719,11 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                       className={`btn btn-circle btn-xs ${ttsPlaying ? "btn-primary" : "btn-ghost"}`}
                       aria-label={t("reader.tts_play_pause")}
                     >
-                      {ttsPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                      {ttsPlaying ? (
+                        <Pause className="h-3.5 w-3.5" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5" />
+                      )}
                     </button>
                     {(ttsPlaying || ttsPaused) && (
                       <button
@@ -630,24 +751,30 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
               )}
 
               {/* Auto Scroll Item */}
-              {!isAudio && (effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onToggleAutoScroll?.();
-                    setMoreMenuOpen(false);
-                  }}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm hover:bg-current/10 transition-colors"
-                >
-                  <span className="flex items-center gap-2.5 font-medium">
-                    <ArrowDown className="h-4 w-4" />
-                    {t("reader.auto_scroll", "Auto Scroll")}
-                  </span>
-                  <span className={`text-xs font-medium ${autoScrollActive ? "text-primary font-bold" : "opacity-50"}`}>
-                    {autoScrollActive ? t("common.on", "On") : t("common.off", "Off")}
-                  </span>
-                </button>
-              )}
+              {!isAudio &&
+                (effectiveReadingMode === "scroll" ||
+                  effectiveReadingMode === "webtoon") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleAutoScroll?.();
+                      setMoreMenuOpen(false);
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm hover:bg-current/10 transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5 font-medium">
+                      <ArrowDown className="h-4 w-4" />
+                      {t("reader.auto_scroll", "Auto Scroll")}
+                    </span>
+                    <span
+                      className={`text-xs font-medium ${autoScrollActive ? "text-primary font-bold" : "opacity-50"}`}
+                    >
+                      {autoScrollActive
+                        ? t("common.on", "On")
+                        : t("common.off", "Off")}
+                    </span>
+                  </button>
+                )}
 
               {/* Fullscreen Toggle Item */}
               <button
@@ -659,10 +786,18 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                 className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm hover:bg-current/10 transition-colors"
               >
                 <span className="flex items-center gap-2.5 font-medium">
-                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                  {isFullscreen ? t("reader.exit_fullscreen", "Exit Fullscreen") : t("reader.enter_fullscreen", "Fullscreen")}
+                  {isFullscreen ? (
+                    <Minimize className="h-4 w-4" />
+                  ) : (
+                    <Maximize className="h-4 w-4" />
+                  )}
+                  {isFullscreen
+                    ? t("reader.exit_fullscreen", "Exit Fullscreen")
+                    : t("reader.enter_fullscreen", "Fullscreen")}
                 </span>
-                <span className={`text-xs font-medium ${isFullscreen ? "text-primary font-bold" : "opacity-50"}`}>
+                <span
+                  className={`text-xs font-medium ${isFullscreen ? "text-primary font-bold" : "opacity-50"}`}
+                >
                   {isFullscreen ? t("common.on", "On") : t("common.off", "Off")}
                 </span>
               </button>
@@ -700,7 +835,11 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         {/* Fullscreen Toggle Button */}
         <div
           className="tooltip tooltip-bottom"
-          data-tip={isFullscreen ? t("reader.exit_fullscreen", "Exit Fullscreen") : t("reader.enter_fullscreen", "Fullscreen")}
+          data-tip={
+            isFullscreen
+              ? t("reader.exit_fullscreen", "Exit Fullscreen")
+              : t("reader.enter_fullscreen", "Fullscreen")
+          }
         >
           <button
             type="button"
@@ -708,14 +847,25 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
             className={`reader-control-btn btn btn-square btn-sm animate-none ${
               isFullscreen ? "text-primary reader-control-btn-active" : ""
             }`}
-            aria-label={isFullscreen ? t("reader.exit_fullscreen", "Exit Fullscreen") : t("reader.enter_fullscreen", "Fullscreen")}
+            aria-label={
+              isFullscreen
+                ? t("reader.exit_fullscreen", "Exit Fullscreen")
+                : t("reader.enter_fullscreen", "Fullscreen")
+            }
           >
-            {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+            {isFullscreen ? (
+              <Minimize className="h-5 w-5" />
+            ) : (
+              <Maximize className="h-5 w-5" />
+            )}
           </button>
         </div>
 
         {!isAudio && (
-          <div className="tooltip tooltip-bottom" data-tip={t("reader.open_settings", "Settings")}>
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={t("reader.open_settings", "Settings")}
+          >
             <button
               onClick={() => {
                 setSettingsOpen(!settingsOpen);

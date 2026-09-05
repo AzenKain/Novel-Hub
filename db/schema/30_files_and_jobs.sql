@@ -1,4 +1,3 @@
--- Table for book_files (physical files belonging to a book)
 CREATE TABLE IF NOT EXISTS book_files (
     id TEXT PRIMARY KEY,
     book_id TEXT NOT NULL,
@@ -14,7 +13,6 @@ CREATE TABLE IF NOT EXISTS book_files (
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 
--- Table for background jobs
 CREATE TABLE IF NOT EXISTS jobs (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL, -- e.g. scan, metadata
@@ -32,7 +30,4 @@ CREATE INDEX IF NOT EXISTS idx_book_files_hash ON book_files(hash);
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type);
 
--- Job listing sorts created_at DESC with LIMIT; the `('' = ? OR col = ?)` filter guards
--- stop the planner using a status index, so this lets it stop at LIMIT (53ms -> 0.001ms
--- at 500k rows). ponytail: no (status, created_at) composite, measured unused.
 CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);

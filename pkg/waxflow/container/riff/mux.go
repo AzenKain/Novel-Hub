@@ -16,34 +16,25 @@ var _ container.Muxer = (*Muxer)(nil)
 
 // MuxerOptions configures writing.
 type MuxerOptions struct {
-	// SizeLimit overrides RIFF's 32-bit size ceiling (default
-	// 0xFFFFFFFF). Above it the muxer writes RF64. Tests shrink it to
-	// exercise the RF64 path without 4 GiB files.
 	SizeLimit int64
 }
 
-// Muxer writes one PCM track as a WAV file. NeedsSeek reports false: a
-// plain io.Writer receives a compliant stream (RIFF with streaming-size
-// placeholders when the length is unknown, RF64 when a known length
-// projects past the RIFF limit). An io.WriteSeeker upgrades the result:
-// headers are back-patched with exact sizes at End, including a
-// RIFF-to-RF64 rewrite when the output turned out to cross the limit
-// (the 28-byte JUNK reservation becomes the ds64 chunk).
+// Muxer writes one PCM track as a WAV file.
 type Muxer struct {
 	w     io.Writer
-	ws    io.WriteSeeker // nil when w cannot seek
+	ws    io.WriteSeeker
 	limit int64
 
 	cfg        pcm.Config
 	fmt        audio.Format
 	frameBytes int
-	projected  int64 // projected data bytes from Track.Samples, -1 unknown
+	projected  int64
 
 	rf64    bool
-	off     int64 // bytes written so far
-	junkOff int64 // offset of the JUNK/ds64 chunk header, 0 if absent
-	factOff int64 // offset of the fact chunk payload, 0 if absent
-	dataOff int64 // offset of the data chunk header
+	off     int64
+	junkOff int64
+	factOff int64
+	dataOff int64
 
 	frames int64
 	began  bool
@@ -99,19 +90,12 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 
 	m.projected = -1
 	if t.Samples >= 0 {
-		// The projection arithmetic below must not overflow int64: our
-		// demuxers cap Samples at the source file size, but Track is
-		// public API, so a nonsense length fails closed instead of
-		// wrapping negative and skipping the RF64 upgrade. 4096 covers
-		// every header shape plus the pad byte with room to spare.
 		if t.Samples > (math.MaxInt64-4096)/int64(m.frameBytes) {
 			return waxerr.New(waxerr.CodeUnsupportedFormat,
 				fmt.Sprintf("riff: track length %d samples overflows the size projection", t.Samples))
 		}
 		m.projected = t.Samples * int64(m.frameBytes)
 	}
-	// Auto-select RF64 when a known length projects past the RIFF limit.
-	// The projection includes the ds64 region, the worst-case header.
 	if m.projected >= 0 {
 		projRiff := m.projected + m.projected&1 + m.headerOverhead(true) - 8
 		m.rf64 = projRiff > m.limit || m.projected > m.limit
@@ -121,7 +105,6 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	return m.writeHeaders()
 }
 
-// checkWireConfig rejects wire encodings WAV cannot hold.
 func (m *Muxer) checkWireConfig(cfg pcm.Config) error {
 	bad := func(msg string) error {
 		return waxerr.New(waxerr.CodeUnsupportedFormat, "riff: "+msg)
@@ -148,9 +131,6 @@ func (m *Muxer) writeHeaders() error {
 	if m.rf64 {
 		hdrID = idRF64
 	}
-	// Seekable output gets patched at End; unseekable output with a known
-	// length carries exact sizes up front (verified at End), and unknown
-	// lengths use the streaming placeholder convention.
 	riffSize := uint32(size32Unknown)
 	if !m.rf64 && m.projected >= 0 {
 		riffSize = clamp32(m.projected + m.projected&1 + m.headerOverhead(m.hasDS64Region()) - 8)
@@ -159,9 +139,6 @@ func (m *Muxer) writeHeaders() error {
 		return err
 	}
 
-	// The 28-byte region after the header is the ds64 chunk in RF64
-	// output, and a JUNK reservation when a seekable RIFF might still
-	// need rewriting to RF64 at End.
 	if m.rf64 {
 		m.junkOff = m.off
 		proj := uint64(0)
@@ -206,16 +183,10 @@ func (m *Muxer) writeHeaders() error {
 	return m.write([]byte(idData), u32(dataSize))
 }
 
-// hasDS64Region reports whether the output carries the 28-byte ds64/JUNK
-// region: always for RF64, and on seekable writers as the reservation for
-// a possible RIFF-to-RF64 rewrite.
 func (m *Muxer) hasDS64Region() bool { return m.rf64 || m.ws != nil }
 
-// headerOverhead is the byte count of everything before the data payload
-// plus the data chunk header. It only depends on the wire config and the
-// ds64 region decision, so Begin can use it before writing.
 func (m *Muxer) headerOverhead(withDS64 bool) int64 {
-	n := int64(12 + 8) // RIFF header + data chunk header
+	n := int64(12 + 8)
 	if withDS64 {
 		n += 8 + ds64Payload
 	}
@@ -226,9 +197,6 @@ func (m *Muxer) headerOverhead(withDS64 bool) int64 {
 	return n
 }
 
-// extensible reports whether the fmt chunk needs WAVE_FORMAT_EXTENSIBLE:
-// more than two channels, partial valid bits, or a layout that is not the
-// conventional guess for the channel count.
 func (m *Muxer) extensible() bool {
 	return m.fmt.Channels > 2 ||
 		m.cfg.ValidBits != 0 ||
@@ -294,10 +262,7 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	return nil
 }
 
-// End finalizes sizes. With a seekable writer the headers are back-patched
-// exactly, upgrading RIFF to RF64 if the output crossed the limit; with a
-// plain writer the streaming placeholders stand, and a known-length
-// projection that the actual stream missed is an error.
+// End finalizes sizes.
 func (m *Muxer) End(trailer codec.Trailer) error {
 	if !m.began || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "riff: End outside Begin")
@@ -331,8 +296,6 @@ func (m *Muxer) End(trailer codec.Trailer) error {
 
 	needRF64 := riffBytes > m.limit || dataBytes > m.limit
 	if needRF64 && !m.rf64 {
-		// Rewrite in place: RIFF becomes RF64 and the JUNK reservation
-		// becomes the ds64 chunk.
 		m.rf64 = true
 		if err := m.patch(0, []byte(idRF64)); err != nil {
 			return err
@@ -364,7 +327,6 @@ func (m *Muxer) End(trailer codec.Trailer) error {
 			return err
 		}
 	}
-	// Leave the writer positioned at the end of the file.
 	if _, err := m.ws.Seek(m.off, io.SeekStart); err != nil {
 		return waxerr.Wrap(waxerr.CodeOutputUnwritable, "riff: seeking to end", err)
 	}
@@ -382,7 +344,6 @@ func (m *Muxer) write(parts ...[]byte) error {
 	return nil
 }
 
-// patch rewrites bytes at an absolute offset on the seekable writer.
 func (m *Muxer) patch(off int64, parts ...[]byte) error {
 	if _, err := m.ws.Seek(off, io.SeekStart); err != nil {
 		return waxerr.Wrap(waxerr.CodeOutputUnwritable, "riff: seek for patch", err)

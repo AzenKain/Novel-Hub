@@ -56,7 +56,6 @@ func TestWebDAVController_OptionsAndPropfind(t *testing.T) {
 	app.Add([]string{"OPTIONS"}, "/webdav*", ctrl.HandleOptions)
 	app.Add([]string{"PROPFIND"}, "/webdav*", ctrl.HandlePropfind)
 
-	// 1. Test OPTIONS
 	optReq := httptest.NewRequest("OPTIONS", "/webdav", nil)
 	optResp, err := app.Test(optReq)
 	if err != nil {
@@ -72,7 +71,6 @@ func TestWebDAVController_OptionsAndPropfind(t *testing.T) {
 		t.Fatalf("expected Allow header with PROPFIND, got %q", optResp.Header.Get("Allow"))
 	}
 
-	// 2. Test PROPFIND
 	propReq := httptest.NewRequest("PROPFIND", "/webdav", nil)
 	propReq.Header.Set("Depth", "1")
 	propResp, err := app.Test(propReq)

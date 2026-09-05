@@ -48,7 +48,7 @@ func (h *WebDAVController) HandlePropfind(c fiber.Ctx) error {
 	}
 
 	c.Set("Content-Type", "application/xml; charset=utf-8")
-	c.Status(207) // Multi-Status
+	c.Status(207)
 	return c.Send(xmlData)
 }
 
@@ -62,7 +62,6 @@ func (h *WebDAVController) HandleGet(c fiber.Ctx) error {
 
 	filePath, mimeType, downloadName, err := h.service.GetBookFile(ctx, reqPath, claims)
 	if err != nil {
-		// If it's a directory, return PROPFIND multi-status or OK
 		nodes, resolveErr := h.service.ResolvePath(ctx, reqPath, claims, 1)
 		if resolveErr == nil && len(nodes) > 0 {
 			xmlData, _ := webdav.BuildMultiStatusXML(nodes)

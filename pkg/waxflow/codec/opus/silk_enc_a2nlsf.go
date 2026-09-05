@@ -1,18 +1,11 @@
 package opus
 
-// LPC-to-NLSF conversion, ported from libopus silk/A2NLSF.c. The exact
-// inverse pair of silkNLSF2A in silk_nlsf.go: a piecewise linear
-// approximation maps LSF <-> cos(LSF), so the values are not accurate NLSFs
-// but the two functions invert each other accurately.
-
 const (
 	binDivStepsA2NLSF   = 3
 	maxIterationsA2NLSF = 16
-	lsfCosTabSz         = 128 // LSF_COS_TAB_SZ_FIX
+	lsfCosTabSz         = 128
 )
 
-// a2nlsfTransPoly transforms polynomials from cos(n*f) to cos(f)^n
-// (silk_A2NLSF_trans_poly).
 func a2nlsfTransPoly(p []int32, dd int) {
 	for k := 2; k <= dd; k++ {
 		for n := dd; n > k; n-- {
@@ -22,8 +15,6 @@ func a2nlsfTransPoly(p []int32, dd int) {
 	}
 }
 
-// a2nlsfEvalPoly evaluates the polynomial at x (Q12), returning Q16
-// (silk_A2NLSF_eval_poly).
 func a2nlsfEvalPoly(p []int32, x int32, dd int) int32 {
 	y32 := p[dd]
 	xQ16 := silkLSHIFT(x, 4)
@@ -33,8 +24,6 @@ func a2nlsfEvalPoly(p []int32, x int32, dd int) int32 {
 	return y32
 }
 
-// a2nlsfInit converts filter coefficients to the even/odd polynomial pair
-// (silk_A2NLSF_init).
 func a2nlsfInit(aQ16 []int32, P, Q []int32, dd int) {
 	P[dd] = 1 << 16
 	Q[dd] = 1 << 16
@@ -50,9 +39,6 @@ func a2nlsfInit(aQ16 []int32, P, Q []int32, dd int) {
 	a2nlsfTransPoly(Q, dd)
 }
 
-// silkA2NLSF computes NLSFs from whitening filter coefficients, bandwidth
-// expanding until all roots are found (silk_A2NLSF). aQ16 is modified when
-// expansion is applied.
 func silkA2NLSF(nlsf []int16, aQ16 []int32, d int) {
 	var P, Q [silkMaxOrderLPC/2 + 1]int32
 	PQ := [2][]int32{P[:], Q[:]}
@@ -122,7 +108,6 @@ func silkA2NLSF(nlsf []int16, aQ16 []int32, d int) {
 			if k > lsfCosTabSz {
 				i++
 				if i > maxIterationsA2NLSF {
-					// Set NLSFs to white spectrum and exit.
 					nlsf[0] = int16(silkDIV32_16(1<<15, int32(d+1)))
 					for k := 1; k < d; k++ {
 						nlsf[k] = nlsf[k-1] + nlsf[0]

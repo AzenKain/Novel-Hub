@@ -13,20 +13,11 @@ import {
 import { generateCfiRange } from "@/lib/epubCfi";
 import { copyText } from "@/utils/clipboard";
 
-type ToolbarRect = Pick<DOMRect, "left" | "width" | "top"> & { height?: number; bottom?: number };
+type ToolbarRect = Pick<DOMRect, "left" | "width" | "top"> & {
+  height?: number;
+  bottom?: number;
+};
 
-/**
- * In CSS multi-column layouts (reader-mode-single / reader-mode-double), a
- * full-page text selection spans *all* columns—including those hidden by
- * `overflow: hidden`.  `range.getBoundingClientRect()` returns the union of
- * every column rect, which can be thousands of pixels wide and whose center
- * is far off-screen.
- *
- * This helper calls `range.getClientRects()` and keeps only the rects that
- * actually intersect the current viewport, then returns a tight bounding box
- * around them.  If no client rect is visible (edge-case), it falls back to
- * `getBoundingClientRect()`.
- */
 export function getVisibleSelectionRect(range: Range): ToolbarRect {
   const rects = range.getClientRects();
   const vw = window.innerWidth;
@@ -40,9 +31,7 @@ export function getVisibleSelectionRect(range: Range): ToolbarRect {
 
   for (let i = 0; i < rects.length; i++) {
     const r = rects[i];
-    // Skip rects entirely outside the viewport
     if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) continue;
-    // Skip zero-size rects (collapsed whitespace, etc.)
     if (r.width === 0 && r.height === 0) continue;
     found = true;
     minTop = Math.min(minTop, r.top);
@@ -52,12 +41,17 @@ export function getVisibleSelectionRect(range: Range): ToolbarRect {
   }
 
   if (!found) {
-    // Fallback: no client rect intersects the viewport
     const br = range.getBoundingClientRect();
-    return { left: br.left, width: br.width, top: br.top, height: br.height, bottom: br.bottom };
+    return {
+      left: br.left,
+      width: br.width,
+      top: br.top,
+      height: br.height,
+      bottom: br.bottom,
+    };
   }
 
-  // Clamp to viewport edges so the toolbar never anchors off-screen
+  // Clamp to viewport edges so toolbar remains on-screen.
   const clampedTop = Math.max(0, minTop);
   const clampedBottom = Math.min(vh, maxBottom);
   const clampedLeft = Math.max(0, minLeft);
@@ -75,7 +69,7 @@ export function getVisibleSelectionRect(range: Range): ToolbarRect {
 export function getToolbarPosition(
   rect: ToolbarRect,
   viewportWidth: number,
-  viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800
+  viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800,
 ): { top: number; left: number; placement: "above" | "below" } {
   const margin = 8;
   const topBarHeight = 56;
@@ -83,26 +77,25 @@ export function getToolbarPosition(
   const availableWidth = Math.min(380, Math.max(0, viewportWidth - margin * 2));
   const center = rect.left + rect.width / 2;
   const maxLeft = Math.max(margin, viewportWidth - margin - availableWidth);
-  const left = Math.min(
-    Math.max(center - availableWidth / 2, margin),
-    maxLeft
-  );
+  const left = Math.min(Math.max(center - availableWidth / 2, margin), maxLeft);
 
   const spaceAbove = rect.top - topBarHeight;
-  const spaceBelow = viewportHeight - (rect.bottom ?? (rect.top + (rect.height ?? 24)));
+  const spaceBelow =
+    viewportHeight - (rect.bottom ?? rect.top + (rect.height ?? 24));
 
-  // 1. If there's enough space above selection, position toolbar directly above selection
   if (spaceAbove >= toolbarEstimatedHeight + margin) {
     return {
-      top: Math.max(topBarHeight + margin, rect.top - toolbarEstimatedHeight - 8),
+      top: Math.max(
+        topBarHeight + margin,
+        rect.top - toolbarEstimatedHeight - 8,
+      ),
       left,
       placement: "above",
     };
   }
 
-  // 2. If there's enough space below selection, position toolbar below selection
   if (spaceBelow >= toolbarEstimatedHeight + margin) {
-    const bottom = rect.bottom ?? (rect.top + (rect.height ?? 24));
+    const bottom = rect.bottom ?? rect.top + (rect.height ?? 24);
     return {
       top: bottom + 8,
       left,
@@ -110,7 +103,6 @@ export function getToolbarPosition(
     };
   }
 
-  // 3. For large selections covering whole page (select-all), position right under top header bar
   return {
     top: topBarHeight + margin + 8,
     left,
@@ -123,17 +115,21 @@ type UseReaderSelectionArgs = {
   contentRef: RefObject<HTMLDivElement | null>;
   savedSelectionRef: RefObject<SavedSelection | null>;
   ttsStartPointRef: RefObject<TtsStartPoint | null>;
-  addHighlight: (text: string, start: number, end: number, color: string, cfi_range?: string, note?: string) => Promise<unknown>;
+  addHighlight: (
+    text: string,
+    start: number,
+    end: number,
+    color: string,
+    cfi_range?: string,
+    note?: string,
+  ) => Promise<unknown>;
   speak: (text: string) => void;
   stop: () => void;
   chapterIndex?: number;
   chapterId?: string;
 };
 
-/**
- * Tracks the user's text selection inside the reader: where the toolbar should
- * float, and the highlight / copy / speak actions that act on it.
- */
+/** Tracks text selection and toolbar positioning. */
 export function useReaderSelection({
   columnsRef,
   contentRef,
@@ -146,7 +142,11 @@ export function useReaderSelection({
   chapterId,
 }: UseReaderSelectionArgs) {
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
-  const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number; placement: "above" | "below" }>({
+  const [toolbarPos, setToolbarPos] = useState<{
+    top: number;
+    left: number;
+    placement: "above" | "below";
+  }>({
     top: 0,
     left: 0,
     placement: "above",
@@ -155,7 +155,11 @@ export function useReaderSelection({
   useEffect(() => {
     const container = columnsRef.current || contentRef.current;
     if (selectionRange) {
-      setActiveSelectionHighlight(selectionRange, container, savedSelectionRef.current);
+      setActiveSelectionHighlight(
+        selectionRange,
+        container,
+        savedSelectionRef.current,
+      );
     } else {
       clearActiveSelectionHighlight();
     }
@@ -169,14 +173,14 @@ export function useReaderSelection({
 
     const handleSelection = (e: Event) => {
       const targetNode = e.target as Node | null;
-      const targetElem = targetNode?.nodeType === Node.ELEMENT_NODE
-        ? (targetNode as HTMLElement)
-        : targetNode?.parentElement;
+      const targetElem =
+        targetNode?.nodeType === Node.ELEMENT_NODE
+          ? (targetNode as HTMLElement)
+          : targetNode?.parentElement;
       const isToolbarOrModal = !!targetElem?.closest?.(
-        '[data-reader-toolbar="true"], [data-reader-modal="true"], .modal, [role="dialog"]'
+        '[data-reader-toolbar="true"], [data-reader-modal="true"], .modal, [role="dialog"]',
       );
 
-      // If the user interacted inside the toolbar or modal, do not dismiss
       if (isToolbarOrModal) {
         return;
       }
@@ -190,9 +194,10 @@ export function useReaderSelection({
           const container = columnsRef.current || contentRef.current;
           if (!container) return;
 
-          const commonNode = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-            ? range.commonAncestorContainer.parentNode
-            : range.commonAncestorContainer;
+          const commonNode =
+            range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+              ? range.commonAncestorContainer.parentNode
+              : range.commonAncestorContainer;
 
           const isValidSelection =
             commonNode &&
@@ -207,7 +212,9 @@ export function useReaderSelection({
             const cloned = range.cloneRange();
             setSelectionRange(cloned);
             const rect = getVisibleSelectionRect(range);
-            setToolbarPos(getToolbarPosition(rect, window.innerWidth, window.innerHeight));
+            setToolbarPos(
+              getToolbarPosition(rect, window.innerWidth, window.innerHeight),
+            );
             return;
           }
         }
@@ -237,7 +244,11 @@ export function useReaderSelection({
     let start: number;
     let end: number;
 
-    if (saved && saved.endIndex > saved.startIndex && saved.selectedText.trim()) {
+    if (
+      saved &&
+      saved.endIndex > saved.startIndex &&
+      saved.selectedText.trim()
+    ) {
       selectedText = saved.selectedText;
       start = saved.startIndex;
       end = saved.endIndex;
@@ -246,7 +257,9 @@ export function useReaderSelection({
         return;
       }
       const rangeText = selectionRange.toString();
-      const offset = container ? getCharacterOffsetOfRange(container, selectionRange) : null;
+      const offset = container
+        ? getCharacterOffsetOfRange(container, selectionRange)
+        : null;
       if (!rangeText.trim() || !offset || offset.end <= offset.start) {
         if (import.meta.env.DEV) {
           console.warn("[reader] highlight dropped", {
@@ -264,13 +277,26 @@ export function useReaderSelection({
     let cfiRange: string | undefined = undefined;
     if (container && chapterId) {
       let range: Range | null = null;
-      if (saved && saved.endIndex > saved.startIndex && saved.selectedText.trim()) {
-        range = createRangeFromCharOffset(container, saved.startIndex, saved.endIndex);
+      if (
+        saved &&
+        saved.endIndex > saved.startIndex &&
+        saved.selectedText.trim()
+      ) {
+        range = createRangeFromCharOffset(
+          container,
+          saved.startIndex,
+          saved.endIndex,
+        );
       } else if (selectionRange) {
         range = selectionRange;
       }
       if (range) {
-        cfiRange = generateCfiRange(container, range, chapterIndex || 0, chapterId);
+        cfiRange = generateCfiRange(
+          container,
+          range,
+          chapterIndex || 0,
+          chapterId,
+        );
       }
     }
 
@@ -288,7 +314,10 @@ export function useReaderSelection({
     const textToRead = saved?.selectedText || selectionRange?.toString();
     if (container && textToRead && textToRead.trim()) {
       if (saved) {
-        ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+        ttsStartPointRef.current = {
+          textNodeIndex: saved.textNodeIndex,
+          offset: saved.offset,
+        };
       }
       stop();
       speak(textToRead.trim());
@@ -304,7 +333,10 @@ export function useReaderSelection({
     if (container && saved) {
       const textFromHere = getTextFromHereFromSaved(container, saved);
       if (textFromHere) {
-        ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+        ttsStartPointRef.current = {
+          textNodeIndex: saved.textNodeIndex,
+          offset: saved.offset,
+        };
         stop();
         speak(textFromHere);
       }

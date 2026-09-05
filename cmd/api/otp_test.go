@@ -57,8 +57,7 @@ func TestRegisterOverHTTPRefusesWithoutOTPWhenRequired(t *testing.T) {
 		"smtp.from_email":             `"library@example.com"`,
 		"smtp.tls_mode":               `"none"`,
 		"smtp.allow_private_networks": "true",
-		// Spends more than the default 5 auth requests; the limiter has its own test.
-		"limits.rate_limit_auth": "50",
+		"limits.rate_limit_auth":      "50",
 	}
 	for key, value := range seed {
 		if _, err := db.Exec(`

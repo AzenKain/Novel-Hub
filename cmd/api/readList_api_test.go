@@ -17,8 +17,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Plain USER, not seedAdmin: ADMIN holds every permission, so an admin round trip would pass even
-// if the route group were gated on the wrong key. USER holds book.collection and nothing extra.
 func seedReadListUser(t *testing.T, db *sql.DB, email string) string {
 	t.Helper()
 	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
@@ -101,8 +99,7 @@ func seedReadListBooks(t *testing.T, db *sql.DB, count int) {
 	}
 }
 
-// The whole promise of the feature in one request chain: create a list, stack issues into it, drag
-// them into story order, and have /next walk that order back out.
+// The whole promise of the feature in one request chain: create a list, stack issues into it, drag them into story order, and have /next walk that order back out.
 func TestReadListRoundTripOverHTTP(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -218,8 +215,7 @@ func TestReadListRoundTripOverHTTP(t *testing.T) {
 	}
 }
 
-// Ownership is enforced in the service, so it has to survive the trip through the router: bob is a
-// legitimate signed-in user holding book.collection, and that must still not open alice's list.
+// Ownership is enforced in the service, so it has to survive the trip through the router: bob is a legitimate signed-in user holding book.collection, and that must still not open alice's list.
 func TestReadListIsPrivateToItsOwnerOverHTTP(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -279,8 +275,7 @@ func TestReadListIsPrivateToItsOwnerOverHTTP(t *testing.T) {
 	}
 }
 
-// The import is the reason .cbl support exists, and it only counts if it works as an upload: a
-// multipart file, matched against the seeded library, coming back with the gap reported.
+// The import is the reason .cbl support exists, and it only counts if it works as an upload: a multipart file, matched against the seeded library, coming back with the gap reported.
 func TestImportCBLOverHTTP(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")

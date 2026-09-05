@@ -7,7 +7,6 @@ type Props = {
   pending?: boolean;
 };
 
-// Accepts a recovery code as well as a 6-digit one, which is why the input is not numeric-only.
 export function TOTPCodeStep({ onSubmit, pending }: Props) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
@@ -17,11 +16,16 @@ export function TOTPCodeStep({ onSubmit, pending }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-base-content/60">
-        {t("auth.totp_prompt", "Enter the 6-digit code from your authenticator app, or a recovery code.")}
+        {t(
+          "auth.totp_prompt",
+          "Enter the 6-digit code from your authenticator app, or a recovery code.",
+        )}
       </p>
       <div className="form-control">
         <label className="label">
-          <span className="label-text font-semibold">{t("auth.totp_code", "Authentication code")}</span>
+          <span className="label-text font-semibold">
+            {t("auth.totp_code", "Authentication code")}
+          </span>
         </label>
         <input
           type="text"
@@ -41,7 +45,11 @@ export function TOTPCodeStep({ onSubmit, pending }: Props) {
         disabled={trimmed.length < 6 || pending}
         onClick={() => onSubmit(trimmed)}
       >
-        {pending ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+        {pending ? (
+          <Loader2 className="animate-spin" size={18} />
+        ) : (
+          <ShieldCheck size={18} />
+        )}
         {t("auth.totp_verify", "Verify and sign in")}
       </button>
     </div>

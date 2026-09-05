@@ -151,4 +151,3 @@ func TestFormatValidationError(t *testing.T) {
 	assert.Equal(t, "server_url", errList[0].Tag)
 	assert.Equal(t, "server.url must be a valid http or https URL", errList[0].Message)
 }
-

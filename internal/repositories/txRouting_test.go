@@ -12,14 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// sqlc.Prepare is never called in this codebase, so every generated query runs with
-// stmt == nil and lands on the `default:` branch of exec/query/queryRow — which uses
-// q.db. That is only correct because WithTx sets db and tx to the same *sql.Tx. This
-// test pins that invariant: if WithTx ever stops assigning db, writes would silently
-// escape to the connection pool and commit even when the caller rolls back.
-//
-// BulkDeleteBooks is the case worth pinning: it is a sqlc.slice query (dynamic SQL,
-// never preparable) and it is called through WithTx from bookService_bulk.go.
+// sqlc.Prepare is never called in this codebase, so every generated query runs with stmt == nil and lands on the `default:` branch of exec/query/queryRow — which uses q.db.
 func TestWithTxRoutesSliceQueriesThroughTransaction(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -81,7 +74,6 @@ func TestWithTxRoutesSliceQueriesThroughTransaction(t *testing.T) {
 		if err := tx.Rollback(); err != nil {
 			t.Fatal(err)
 		}
-		// A delete that leaked onto the pool would have committed on its own.
 		if n := countBooks(); n != 2 {
 			t.Errorf("%d books remain after rollback, want 2 — the delete escaped the transaction", n)
 		}

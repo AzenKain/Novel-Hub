@@ -22,7 +22,7 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
   const { t } = useTranslation();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
-  
+
   const toggleMutation = useToggleKidsModeMutation();
 
   if (!isOpen) return null;
@@ -30,7 +30,9 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-      setError(t("kids_mode.pin_must_be_6_digits", "PIN must be exactly 6 digits"));
+      setError(
+        t("kids_mode.pin_must_be_6_digits", "PIN must be exactly 6 digits"),
+      );
       return;
     }
 
@@ -44,10 +46,17 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
         onSuccess();
         onClose();
       } else {
-        setError(data?.message || t("kids_mode.incorrect_pin", "Incorrect 6-digit PIN"));
+        setError(
+          data?.message ||
+            t("kids_mode.incorrect_pin", "Incorrect 6-digit PIN"),
+        );
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || t("kids_mode.incorrect_pin", "Incorrect 6-digit PIN"));
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          t("kids_mode.incorrect_pin", "Incorrect 6-digit PIN"),
+      );
     }
   };
 
@@ -70,7 +79,11 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
         </h3>
 
         <p className="text-xs text-base-content/70 mt-1">
-          {description || t("kids_mode.enter_pin_desc", "Enter your 6-digit PIN to exit Kids Mode and access restricted content.")}
+          {description ||
+            t(
+              "kids_mode.enter_pin_desc",
+              "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
+            )}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -78,7 +91,9 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
             <input
               type="password"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
               placeholder="••••••"
               maxLength={6}
               className="input input-bordered w-full text-center font-mono text-2xl tracking-[0.5em] font-bold"

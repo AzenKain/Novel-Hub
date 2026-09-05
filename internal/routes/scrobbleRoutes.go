@@ -17,6 +17,5 @@ func ScrobbleRoutes(app fiber.Router, scrobbleController *controllers.ScrobbleCo
 	group.Post("/connect", scrobbleController.ConnectHardcover)
 	group.Post("/sync", scrobbleController.SyncHardcoverProgress)
 
-	// The OAuth callback is a browser redirect with no JWT — the state param is the auth.
 	app.Get("/scrobble/hardcover/callback", scrobbleController.HardcoverCallback)
 }

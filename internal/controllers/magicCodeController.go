@@ -14,13 +14,13 @@ import (
 )
 
 type MagicCodeController struct {
-	service          services.MagicCodeService
+	service         services.MagicCodeService
 	settingsService services.SettingsService
 }
 
 func NewMagicCodeController(service services.MagicCodeService, settingsService services.SettingsService) *MagicCodeController {
 	return &MagicCodeController{
-		service:          service,
+		service:         service,
 		settingsService: settingsService,
 	}
 }
@@ -30,7 +30,7 @@ func (h *MagicCodeController) RequestCode(c fiber.Ctx) error {
 	defer cancel()
 
 	dto := &request.RequestMagicCodeDto{}
-	_ = validator.ValidateBodyDto(c, dto) // optional body
+	_ = validator.ValidateBodyDto(c, dto)
 
 	baseURL := getBaseURL(c, h.settingsService)
 	res, err := h.service.RequestMagicCode(ctx, dto, baseURL)

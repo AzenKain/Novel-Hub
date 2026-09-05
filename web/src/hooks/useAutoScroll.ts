@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
-export const useAutoScroll = (contentRef: React.RefObject<HTMLElement | null>) => {
+export const useAutoScroll = (
+  contentRef: React.RefObject<HTMLElement | null>,
+) => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(50);
   const animationFrameRef = useRef<number | null>(null);
@@ -54,7 +56,7 @@ export const useAutoScroll = (contentRef: React.RefObject<HTMLElement | null>) =
         setIsScrolling(false);
       }
     };
-    
+
     const handleTouch = () => {
       if (isScrolling) {
         setIsScrolling(false);
@@ -63,17 +65,23 @@ export const useAutoScroll = (contentRef: React.RefObject<HTMLElement | null>) =
 
     const node = contentRef.current;
     if (node) {
-      node.addEventListener('wheel', handleWheel, { passive: true });
-      node.addEventListener('touchmove', handleTouch, { passive: true });
+      node.addEventListener("wheel", handleWheel, { passive: true });
+      node.addEventListener("touchmove", handleTouch, { passive: true });
     }
-    
+
     return () => {
       if (node) {
-        node.removeEventListener('wheel', handleWheel);
-        node.removeEventListener('touchmove', handleTouch);
+        node.removeEventListener("wheel", handleWheel);
+        node.removeEventListener("touchmove", handleTouch);
       }
     };
   }, [isScrolling, contentRef]);
 
-  return { isScrolling, scrollSpeed, toggleScroll, updateSpeed, setIsScrolling };
+  return {
+    isScrolling,
+    scrollSpeed,
+    toggleScroll,
+    updateSpeed,
+    setIsScrolling,
+  };
 };

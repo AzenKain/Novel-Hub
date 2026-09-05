@@ -17,7 +17,7 @@ export function ProtectedRoute({
       user: state.user,
       booted: state.booted,
       bootstrap: state.bootstrap,
-    }))
+    })),
   );
 
   const { t } = useTranslation();
@@ -40,13 +40,21 @@ export function ProtectedRoute({
     return <Navigate to={redirectPath} replace />;
   }
 
-  const hasRequiredRole = !requiredRoles?.length || isAdminUser(user) || user.roles.some(
-    (role) => typeof role?.name === "string" && requiredRoles.includes(role.name.toUpperCase()),
-  );
-  const hasRequiredPermission = !requiredPermission || hasPermission(user, requiredPermission);
-  const hasAnyRequiredPermission = !requiredAnyPermissions?.length || requiredAnyPermissions.some(
-    (permission) => hasPermission(user, permission),
-  );
+  const hasRequiredRole =
+    !requiredRoles?.length ||
+    isAdminUser(user) ||
+    user.roles.some(
+      (role) =>
+        typeof role?.name === "string" &&
+        requiredRoles.includes(role.name.toUpperCase()),
+    );
+  const hasRequiredPermission =
+    !requiredPermission || hasPermission(user, requiredPermission);
+  const hasAnyRequiredPermission =
+    !requiredAnyPermissions?.length ||
+    requiredAnyPermissions.some((permission) =>
+      hasPermission(user, permission),
+    );
 
   if (!hasRequiredRole || !hasRequiredPermission || !hasAnyRequiredPermission) {
     return <Navigate to="/" replace />;

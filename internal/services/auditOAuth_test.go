@@ -34,7 +34,6 @@ func TestAuditOAuthOpenRedirect(t *testing.T) {
 		t.Fatal("expected authURL and stateUUID")
 	}
 
-	// Decode the state back out and check what redirect the callback will use.
 	decoded, err := base64.URLEncoding.DecodeString(mustExtractState(t, authURL))
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +42,6 @@ func TestAuditOAuthOpenRedirect(t *testing.T) {
 	if err := jsonx.Unmarshal(decoded, &state); err != nil {
 		t.Fatal(err)
 	}
-	// SECURITY CHECK: external redirect host must be sanitized to "/"
 	if state.RedirectURL != "/" {
 		t.Fatalf("expected RedirectURL to be sanitized to '/', got %q", state.RedirectURL)
 	}
@@ -62,8 +60,7 @@ func mustExtractState(t *testing.T, authURL string) string {
 	return st
 }
 
-// TestAuditOAuthEmailMatchTakeover verifies that an account registered with one provider
-// cannot be taken over by signing in with a different provider using the same email address.
+// TestAuditOAuthEmailMatchTakeover verifies that an account registered with one provider cannot be taken over by signing in with a different provider using the same email address.
 func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 	svc, settings, userRepo, _ := newOAuthTestAuthService(t)
 	ctx := context.Background()
@@ -75,7 +72,6 @@ func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Victim registers via Google.
 	victimTokens, err := svc.SigninOrRegisterOAuth(ctx, "GOOGLE", "victim@example.com", "Victim", "", "google-sub-victim")
 	if err != nil {
 		t.Fatalf("victim Google registration failed: %v", err)
@@ -84,9 +80,7 @@ func TestAuditOAuthEmailMatchTakeover(t *testing.T) {
 		t.Fatal("expected victim tokens")
 	}
 
-	// Attacker attempts to log in via GitHub with the same email.
 	attackerTokens, err := svc.SigninOrRegisterOAuth(ctx, "GITHUB", "victim@example.com", "Attacker", "", "github-sub-attacker")
-	// SECURITY CHECK: Must fail with error to prevent account takeover.
 	if err == nil || attackerTokens != nil {
 		t.Fatalf("expected GitHub login with victim email to be rejected; takeover was possible")
 	}

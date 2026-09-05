@@ -52,22 +52,18 @@ func GenerateSVG(title, author string) []byte {
 	colorIdx := int(h.Sum32()) % len(coverGradients)
 	bgGrad := coverGradients[colorIdx]
 
-	// Wrap title: font size 36, max chars 24, limit to 4 lines
 	titleLines := wrapText(title, 24)
 	if len(titleLines) > 4 {
 		titleLines = titleLines[:4]
 		titleLines[3] += "..."
 	}
 
-	// Wrap author: font size 22, max chars 38, limit to 2 lines
 	authorLines := wrapText(author, 38)
 	if len(authorLines) > 2 {
 		authorLines = authorLines[:2]
 		authorLines[1] += "..."
 	}
 
-	// Dynamic Layout:
-	// Title centered around y = 420
 	titleLineHeight := 48
 	titleStartY := 420 - (len(titleLines)-1)*titleLineHeight/2
 	titleSVG := ""
@@ -77,7 +73,6 @@ func GenerateSVG(title, author string) []byte {
 `, y, html.EscapeString(line))
 	}
 
-	// Author starts exactly 40px below the title block bottom
 	authorStartY := titleStartY + len(titleLines)*titleLineHeight + 40
 	authorLineHeight := 30
 	authorSVG := ""

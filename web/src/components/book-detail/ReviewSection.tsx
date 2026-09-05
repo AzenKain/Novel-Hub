@@ -1,5 +1,9 @@
 import React, { useState, useRef } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Star,
   MessageSquare,
@@ -30,21 +34,30 @@ interface ReviewSectionProps {
   userReview?: BookReview;
 }
 
-export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userReview }) => {
+export const ReviewSection: React.FC<ReviewSectionProps> = ({
+  book_id,
+  userReview,
+}) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
-  
+
   const [rating, setRating] = useState(userReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState(userReview?.review || "");
   const [isPreview, setIsPreview] = useState(false);
   const [isDeleteReviewOpen, setIsDeleteReviewOpen] = useState(false);
-  const [deleteReviewUserId, setDeleteReviewUserId] = useState<string | null>(null);
+  const [deleteReviewUserId, setDeleteReviewUserId] = useState<string | null>(
+    null,
+  );
   const [deleteLoading, setDeleteLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const applyFormat = (prefix: string, suffix = prefix, placeholder = t("review.fmt_content")) => {
+  const applyFormat = (
+    prefix: string,
+    suffix = prefix,
+    placeholder = t("review.fmt_content"),
+  ) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -81,7 +94,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
       queryClient.invalidateQueries({ queryKey: ["bookUserState", book_id] });
       setIsDeleteReviewOpen(false);
     } catch (error: any) {
-      toast.error(error.message || t("error.unknown", "Failed to delete review"));
+      toast.error(
+        error.message || t("error.unknown", "Failed to delete review"),
+      );
     } finally {
       setDeleteLoading(false);
       setDeleteReviewUserId(null);
@@ -99,18 +114,27 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const res = await featureService.listBookReviews(book_id, pageParam, 10);
-      if (!res.status) throw new Error(res.message || "Failed to fetch reviews");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch reviews");
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
   });
 
-  const reviewsData = React.useMemo(() => reviewsDataRaw?.pages.flatMap(p => p.data) || [], [reviewsDataRaw]);
+  const reviewsData = React.useMemo(
+    () => reviewsDataRaw?.pages.flatMap((p) => p.data) || [],
+    [reviewsDataRaw],
+  );
 
   const upsertMutation = useMutation({
     mutationFn: async () => {
-      const res = await featureService.upsertBookReview(book_id, rating, reviewText);
-      if (!res.status) throw new Error(res.message || "Failed to submit review");
+      const res = await featureService.upsertBookReview(
+        book_id,
+        rating,
+        reviewText,
+      );
+      if (!res.status)
+        throw new Error(res.message || "Failed to submit review");
       return res.data;
     },
     onSuccess: () => {
@@ -123,13 +147,14 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
     },
     onError: (err: any) => {
       toast.error(err.message || t("error.unknown", "Failed to submit review"));
-    }
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const res = await featureService.deleteBookReview(book_id);
-      if (!res.status) throw new Error(res.message || "Failed to delete review");
+      if (!res.status)
+        throw new Error(res.message || "Failed to delete review");
       return res.data;
     },
     onSuccess: () => {
@@ -144,7 +169,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
     },
     onError: (err: any) => {
       toast.error(err.message || t("error.unknown", "Failed to delete review"));
-    }
+    },
   });
 
   const handleSubmit = (e: React.SyntheticEvent) => {
@@ -169,7 +194,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
       {user ? (
         <div className="mb-8 mt-2">
           <h4 className="text-sm font-bold mb-3 opacity-80 uppercase tracking-wide">
-            {userReview ? t("review.edit_yours", "Edit your review") : t("review.write_yours", "Write a review")}
+            {userReview
+              ? t("review.edit_yours", "Edit your review")
+              : t("review.write_yours", "Write a review")}
           </h4>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex items-center">
@@ -188,7 +215,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 </button>
               ))}
             </div>
-            
+
             {/* Markdown Toolbar & Preview Toggle */}
             <div className="rounded-2xl border border-base-300 bg-base-100 overflow-hidden shadow-xs focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
               {/* Toolbar */}
@@ -196,7 +223,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 <div className="flex items-center gap-0.5 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => applyFormat("**", "**", t("review.fmt_bold"))}
+                    onClick={() =>
+                      applyFormat("**", "**", t("review.fmt_bold"))
+                    }
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 font-bold hover:bg-base-300 rounded"
                     title={t("review.fmt_bold_title")}
                   >
@@ -204,7 +233,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("*", "*", t("review.fmt_italic"))}
+                    onClick={() =>
+                      applyFormat("*", "*", t("review.fmt_italic"))
+                    }
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 italic hover:bg-base-300 rounded"
                     title={t("review.fmt_italic_title")}
                   >
@@ -212,7 +243,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("__", "__", t("review.fmt_underline"))}
+                    onClick={() =>
+                      applyFormat("__", "__", t("review.fmt_underline"))
+                    }
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 underline hover:bg-base-300 rounded"
                     title={t("review.fmt_underline_title")}
                   >
@@ -220,7 +253,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyFormat("~~", "~~", t("review.fmt_strikethrough"))}
+                    onClick={() =>
+                      applyFormat("~~", "~~", t("review.fmt_strikethrough"))
+                    }
                     className="btn btn-ghost btn-xs h-7 min-h-0 px-2 line-through hover:bg-base-300 rounded"
                     title={t("review.fmt_strikethrough_title")}
                   >
@@ -245,7 +280,9 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                   <div className="h-4 w-px bg-base-300 mx-1" />
                   <button
                     type="button"
-                    onClick={() => applyFormat("||", "||", t("review.fmt_spoiler"))}
+                    onClick={() =>
+                      applyFormat("||", "||", t("review.fmt_spoiler"))
+                    }
                     className="btn btn-xs bg-neutral-800 text-white hover:bg-neutral-700 h-7 min-h-0 px-2 gap-1 rounded font-semibold text-[11px] shadow-xs"
                     title={t("review.fmt_spoiler_title")}
                   >
@@ -289,7 +326,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                       <div className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">
                         {t("review.preview_hint", "Preview format:")}
                       </div>
-                      <DiscordMarkdown content={reviewText} className="text-sm text-base-content" />
+                      <DiscordMarkdown
+                        content={reviewText}
+                        className="text-sm text-base-content"
+                      />
                     </div>
                   ) : (
                     <div className="py-8 text-center text-sm text-base-content/40 italic">
@@ -301,7 +341,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 <textarea
                   ref={textareaRef}
                   className="textarea bg-transparent border-0 w-full resize-none h-32 text-sm focus:outline-hidden p-3 font-normal"
-                  placeholder={t("review.placeholder", "What did you think about this book?")}
+                  placeholder={t(
+                    "review.placeholder",
+                    "What did you think about this book?",
+                  )}
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
                   disabled={upsertMutation.isPending}
@@ -311,27 +354,38 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
               {/* Bottom bar */}
               <div className="flex items-center justify-between border-t border-base-200/60 bg-base-200/20 px-3 py-2">
                 <span className="text-[11px] text-base-content/50">
-                  💡 {t("review.spoiler_tip", "Use ||content|| to hide spoilers")}
+                  💡{" "}
+                  {t("review.spoiler_tip", "Use ||content|| to hide spoilers")}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {userReview && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-xs btn-ghost hover:bg-error/10 text-error/70 hover:text-error"
                       onClick={() => deleteMutation.mutate()}
-                      disabled={deleteMutation.isPending || upsertMutation.isPending}
+                      disabled={
+                        deleteMutation.isPending || upsertMutation.isPending
+                      }
                       title={t("common.delete", "Delete")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>{t("common.delete", "Delete")}</span>
                     </button>
                   )}
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-xs btn-primary gap-1 px-3 shadow-xs"
-                    disabled={upsertMutation.isPending || deleteMutation.isPending || !reviewText.trim()}
+                    disabled={
+                      upsertMutation.isPending ||
+                      deleteMutation.isPending ||
+                      !reviewText.trim()
+                    }
                   >
-                    {upsertMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    {upsertMutation.isPending ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
                     <span>{t("common.submit", "Submit")}</span>
                   </button>
                 </div>
@@ -355,16 +409,25 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
           <>
             <div className="flex flex-col gap-4">
               {reviews.map((rv, idx) => (
-                <div key={idx} className="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 hover:border-base-300 transition-colors">
+                <div
+                  key={idx}
+                  className="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 hover:border-base-300 transition-colors"
+                >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2.5">
                       <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs ring-2 ring-primary/20 shrink-0">
-                        {((rv as any).username || (rv as any).user_name || "U").charAt(0).toUpperCase()}
+                        {((rv as any).username || (rv as any).user_name || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-bold text-sm">{(rv as any).username || t("common.user", "User")}</div>
+                        <div className="font-bold text-sm">
+                          {(rv as any).username || t("common.user", "User")}
+                        </div>
                         <div className="text-xs text-base-content/50">
-                          {rv?.updated_at ? new Date(rv.updated_at).toLocaleDateString() : ""}
+                          {rv?.updated_at
+                            ? new Date(rv.updated_at).toLocaleDateString()
+                            : ""}
                         </div>
                       </div>
                     </div>
@@ -396,7 +459,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
                 </div>
               ))}
             </div>
-            
+
             {hasNextPage && (
               <div className="flex justify-center mt-6">
                 <button
@@ -415,7 +478,12 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
         ) : (
           <div className="text-center py-12 text-base-content/50 bg-base-100 rounded-2xl border border-dashed border-base-300 shadow-2xs">
             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p>{t("review.no_reviews", "No reviews yet. Be the first to review!")}</p>
+            <p>
+              {t(
+                "review.no_reviews",
+                "No reviews yet. Be the first to review!",
+              )}
+            </p>
           </div>
         )}
       </div>
@@ -423,7 +491,10 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({ book_id, userRevie
       <ConfirmModal
         open={isDeleteReviewOpen}
         title={t("review.confirm_delete_title", "Delete Review")}
-        message={t("review.confirm_delete", "Are you sure you want to delete this review?")}
+        message={t(
+          "review.confirm_delete",
+          "Are you sure you want to delete this review?",
+        )}
         onClose={() => {
           setIsDeleteReviewOpen(false);
           setDeleteReviewUserId(null);

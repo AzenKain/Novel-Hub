@@ -49,7 +49,6 @@ type FileAuditResult struct {
 	AssetSamples   []string `json:"asset_samples"`
 	TotalHTMLChars int      `json:"total_html_chars"`
 
-	// Typography & Styling features detected
 	HasBold         bool     `json:"has_bold"`
 	HasItalic       bool     `json:"has_italic"`
 	HasUnderline    bool     `json:"has_underline"`
@@ -102,11 +101,9 @@ func main() {
 			status, res.Path, res.Format, res.Title, res.Author, res.TotalChapters, res.TotalImages, res.AssetsValid, res.AssetsTested, res.ParseTimeMs)
 	}
 
-	// Write JSON results
 	jsonData, _ := json.MarshalIndent(results, "", "  ")
 	_ = os.WriteFile("parser_audit_results.json", jsonData, 0644)
 
-	// Generate Markdown Report
 	md := generateMarkdownReport(results)
 	_ = os.WriteFile("README_PARSER_VERIFICATION.md", []byte(md), 0644)
 	fmt.Println("\n=> Generated README_PARSER_VERIFICATION.md and parser_audit_results.json successfully!")
@@ -157,7 +154,6 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 		return res
 	}
 
-	// 1. Metadata & Cover
 	meta, err := parser.ParseMetadata(filePath)
 	if err != nil {
 		res.Errors = append(res.Errors, fmt.Sprintf("ParseMetadata: %v", err))
@@ -171,7 +167,6 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 		}
 	}
 
-	// 2. Spine / Chapters
 	spine, err := parser.ParseSpine(filePath)
 	if err != nil {
 		res.Errors = append(res.Errors, fmt.Sprintf("ParseSpine: %v", err))
@@ -184,7 +179,6 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 		}
 	}
 
-	// 3. Content Inspection
 	var combinedHTML strings.Builder
 	for i, ch := range spine {
 		if len(spine) > 50 {
@@ -211,7 +205,6 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 	htmlStr := combinedHTML.String()
 	res.TotalHTMLChars = len(htmlStr)
 
-	// Typography analysis
 	res.HasBold = regexp.MustCompile(`(?i)<(?:b|strong)\b`).MatchString(htmlStr) || strings.Contains(htmlStr, "font-weight:bold")
 	res.HasItalic = regexp.MustCompile(`(?i)<(?:i|em)\b`).MatchString(htmlStr) || strings.Contains(htmlStr, "font-style:italic")
 	res.HasUnderline = regexp.MustCompile(`(?i)<u\b`).MatchString(htmlStr) || strings.Contains(htmlStr, "text-decoration:underline")
@@ -229,10 +222,8 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 	res.HasImages = regexp.MustCompile(`(?i)<img\b`).MatchString(htmlStr)
 	res.HasAudioVideo = regexp.MustCompile(`(?i)<(?:video|audio|source|track)\b`).MatchString(htmlStr)
 
-	// Extract clean snippet
 	res.SampleSnippet = extractRepresentativeSnippet(htmlStr)
 
-	// 4. Assets & Images Test - Test 100% of all images
 	images, err := parser.ListImages(filePath)
 	if err == nil {
 		res.TotalImages = len(images)
@@ -250,7 +241,6 @@ func auditFile(registry bookparser.Registry, filePath string) FileAuditResult {
 		}
 	}
 
-	// Content validation (audio files can have empty HTML chars, readable docs must have > 0)
 	if res.Format != "mp3" && res.Format != "m4a" && res.Format != "m4b" && res.Format != "flac" {
 		if res.TotalHTMLChars == 0 {
 			res.Errors = append(res.Errors, "empty HTML content returned")
@@ -269,7 +259,6 @@ func extractRepresentativeSnippet(htmlStr string) string {
 	if len(clean) == 0 {
 		return "(no content)"
 	}
-	// Try to find a snippet with formatting
 	re := regexp.MustCompile(`(?s)(<(?:p|div|table|figure|h[1-6])[^>]*>.*?</(?:p|div|table|figure|h[1-6])>)`)
 	matches := re.FindAllString(clean, -1)
 	for _, m := range matches {

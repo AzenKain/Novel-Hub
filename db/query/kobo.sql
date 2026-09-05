@@ -12,7 +12,6 @@ SELECT token, user_id, created_at, last_used_at FROM kobo_auth_tokens
 WHERE user_id = ? LIMIT 1;
 
 -- name: GetKoboUserByToken :one
--- The hot path: every device request resolves its path token to a user.
 SELECT token, user_id, created_at, last_used_at FROM kobo_auth_tokens
 WHERE token = ? LIMIT 1;
 

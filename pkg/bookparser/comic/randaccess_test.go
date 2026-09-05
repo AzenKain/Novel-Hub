@@ -10,8 +10,6 @@ import (
 )
 
 // getRARAsset scans entries from the start every call, so a late page costs a full walk.
-// rardecode.List + File.Open gives random access instead. Solid archives are the catch: their
-// entries depend on preceding ones and Open refuses.
 func TestRarRandomAccessBeatsSequentialScan(t *testing.T) {
 	realCBR := realCBRPath(t)
 	parser := NewParser("cbr")
@@ -69,9 +67,7 @@ func TestRarRandomAccessBeatsSequentialScan(t *testing.T) {
 	}
 }
 
-// 17ms even with random access says the cost is decompression, not seeking. If the entries are
-// stored (already-JPEG pages usually are), that 17ms is pure I/O of a 1.4MB payload and the
-// only real lever is not re-reading it.
+// 17ms even with random access says the cost is decompression, not seeking.
 func TestRarEntryCompressionAndIOFloor(t *testing.T) {
 	realCBR := realCBRPath(t)
 	files, err := rardecode.List(realCBR)
@@ -97,7 +93,6 @@ func TestRarEntryCompressionAndIOFloor(t *testing.T) {
 		stored, packed, float64(packedBytes)/float64(unpackedBytes),
 		packedBytes/1024/1024, unpackedBytes/1024/1024)
 
-	// Second read of the same entry, with the OS page cache already warm.
 	f := files[len(files)/2]
 	for i := 0; i < 3; i++ {
 		start := time.Now()

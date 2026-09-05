@@ -21,7 +21,6 @@ func writeEPUBWithKobo(book *bookparser.BookData, images []Image, kobo bool) ([]
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 
-	// mimetype must be the first entry, uncompressed.
 	hdr := &zip.FileHeader{Name: "mimetype", Method: zip.Store}
 	mw, err := zw.CreateHeader(hdr)
 	if err != nil {
@@ -216,8 +215,6 @@ func chapterXHTML(book *bookparser.BookData, ch bookparser.ChapterData, body str
 		`</html>` + "\n"
 }
 
-// rebaseImages rewrites every <img src="..."> whose basename matches a source
-// image so it points at the output location under images/.
 func rebaseImages(content string, imgIndex map[string]int) string {
 	nodes := fragmentNodes(content)
 	if len(nodes) == 0 {

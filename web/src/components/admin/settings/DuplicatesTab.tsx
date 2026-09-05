@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Copy, CheckCircle, Trash2, ShieldCheck, HardDrive } from "lucide-react";
+import {
+  Loader2,
+  Copy,
+  CheckCircle,
+  Trash2,
+  ShieldCheck,
+  HardDrive,
+} from "lucide-react";
 import { useDuplicatesQuery, useDeleteBookFileMutation } from "@/hooks";
 import { getMediaUrl } from "@/config/api";
 import { toast } from "react-toastify";
@@ -13,7 +20,11 @@ type ConfirmState =
 
 export const DuplicatesTab: React.FC = () => {
   const { t } = useTranslation();
-  const { data: duplicateGroups = [], isLoading: loading, refetch } = useDuplicatesQuery();
+  const {
+    data: duplicateGroups = [],
+    isLoading: loading,
+    refetch,
+  } = useDuplicatesQuery();
   const deleteFileMutation = useDeleteBookFileMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
@@ -31,8 +42,13 @@ export const DuplicatesTab: React.FC = () => {
     setConfirmState({ type: "single", file_id, title });
   };
 
-  const openKeepOnlyOne = (keepFileId: string, groupFiles: { file_id: string }[]) => {
-    const toDelete = groupFiles.filter((f) => f.file_id !== keepFileId).map((f) => f.file_id);
+  const openKeepOnlyOne = (
+    keepFileId: string,
+    groupFiles: { file_id: string }[],
+  ) => {
+    const toDelete = groupFiles
+      .filter((f) => f.file_id !== keepFileId)
+      .map((f) => f.file_id);
     if (toDelete.length === 0) return;
     setConfirmState({ type: "keepOne", keepFileId, toDeleteFileIds: toDelete });
   };
@@ -72,7 +88,11 @@ export const DuplicatesTab: React.FC = () => {
         title: t("admin.confirm_delete_file_title", "Delete Duplicate File"),
         message: (
           <span>
-            {t("admin.confirm_delete_file_msg", "Are you sure you want to delete file for")} <strong>"{confirmState.title}"</strong>?
+            {t(
+              "admin.confirm_delete_file_msg",
+              "Are you sure you want to delete file for",
+            )}{" "}
+            <strong>"{confirmState.title}"</strong>?
           </span>
         ),
       };
@@ -81,7 +101,10 @@ export const DuplicatesTab: React.FC = () => {
       title: t("admin.confirm_keep_one_title", "Keep Only This Copy"),
       message: (
         <span>
-          {t("admin.confirm_keep_one_msg", `Are you sure you want to keep this copy and delete ${confirmState.toDeleteFileIds.length} duplicate copy(ies)?`)}
+          {t(
+            "admin.confirm_keep_one_msg",
+            `Are you sure you want to keep this copy and delete ${confirmState.toDeleteFileIds.length} duplicate copy(ies)?`,
+          )}
         </span>
       ),
     };
@@ -95,7 +118,10 @@ export const DuplicatesTab: React.FC = () => {
           {t("library.duplicate_files", "Duplicate Files Management")}
         </h2>
         <p className="text-xs text-base-content/60">
-          {t("library.manage_duplicates", "Manage identical files detected across the library by SHA-256 hash checksums.")}
+          {t(
+            "library.manage_duplicates",
+            "Manage identical files detected across the library by SHA-256 hash checksums.",
+          )}
         </p>
       </div>
 
@@ -107,17 +133,24 @@ export const DuplicatesTab: React.FC = () => {
         <div className="bg-base-200 border border-base-300 rounded-xl p-8 text-center flex flex-col items-center gap-2">
           <CheckCircle className="h-10 w-10 text-success/60" />
           <div className="font-semibold text-sm">
-            {t("library.no_duplicates", "No duplicate files found. Your library is clean!")}
+            {t(
+              "library.no_duplicates",
+              "No duplicate files found. Your library is clean!",
+            )}
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           {duplicateGroups.map((group) => (
-            <div key={group.hash} className="bg-base-200/50 border border-base-300 p-4 rounded-xl flex flex-col gap-3">
+            <div
+              key={group.hash}
+              className="bg-base-200/50 border border-base-300 p-4 rounded-xl flex flex-col gap-3"
+            >
               <div className="flex justify-between items-center flex-wrap gap-2 pb-2 border-b border-base-300">
                 <div className="flex items-center gap-2">
                   <span className="badge badge-warning font-bold text-xs">
-                    {group.files?.length || 0} {t("library.identical_files", "Identical Files")}
+                    {group.files?.length || 0}{" "}
+                    {t("library.identical_files", "Identical Files")}
                   </span>
                   <code className="text-xs font-mono text-base-content/70 truncate max-w-md">
                     SHA-256: {group.hash}
@@ -145,7 +178,9 @@ export const DuplicatesTab: React.FC = () => {
                       )}
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm truncate">{file.book_title}</span>
+                          <span className="font-semibold text-sm truncate">
+                            {file.book_title}
+                          </span>
                           {idx === 0 && (
                             <span className="badge badge-success badge-xs font-bold text-[10px]">
                               {t("admin.primary_copy", "Primary Copy")}
@@ -153,7 +188,9 @@ export const DuplicatesTab: React.FC = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-base-content/60 flex-wrap font-mono">
-                          <span className="badge badge-outline text-[10px]">{file.format}</span>
+                          <span className="badge badge-outline text-[10px]">
+                            {file.format}
+                          </span>
                           <span>{formatSize(file.size_bytes)}</span>
                         </div>
                       </div>
@@ -161,17 +198,25 @@ export const DuplicatesTab: React.FC = () => {
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <button
-                        onClick={() => openKeepOnlyOne(file.file_id, group.files)}
+                        onClick={() =>
+                          openKeepOnlyOne(file.file_id, group.files)
+                        }
                         className="btn btn-ghost btn-xs text-primary"
                       >
                         {t("admin.keep_this_only", "Keep Only This")}
                       </button>
                       <button
-                        onClick={() => openDeleteSingle(file.file_id, file.book_title)}
+                        onClick={() =>
+                          openDeleteSingle(file.file_id, file.book_title)
+                        }
                         disabled={deletingId === file.file_id || isDeleting}
                         className="btn btn-ghost btn-square btn-xs text-error"
                       >
-                        {deletingId === file.file_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        {deletingId === file.file_id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
                   </div>

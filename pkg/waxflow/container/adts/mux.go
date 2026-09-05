@@ -11,12 +11,7 @@ import (
 
 var _ container.Muxer = (*Muxer)(nil)
 
-// Muxer writes one AAC-LC track as an ADTS elementary stream: each
-// access unit gets the fixed 7-byte header (no CRC) and nothing else.
-// ADTS has no gapless signaling, so the trailer is accepted and
-// discarded; streams decode from the first sample including encoder
-// priming. This container is the format=aac legacy opt-out; progressive
-// fMP4 is the default for exactly this reason.
+// Muxer writes one AAC-LC track as an ADTS elementary stream: each access unit gets the fixed 7-byte header (no CRC) and nothing else.
 type Muxer struct {
 	w            io.Writer
 	rateIdx      int
@@ -30,8 +25,7 @@ func NewMuxer(w io.Writer) *Muxer { return &Muxer{w: w} }
 // NeedsSeek reports false: ADTS is pure streaming framing.
 func (m *Muxer) NeedsSeek() bool { return false }
 
-// Begin validates the track and derives the header fields from the
-// AudioSpecificConfig (the inverse of the demuxer's header.asc).
+// Begin validates the track and derives the header fields from the AudioSpecificConfig (the inverse of the demuxer's header.asc).
 func (m *Muxer) Begin(tracks []container.Track) error {
 	if m.began {
 		return waxerr.New(waxerr.CodeInternal, "adts: Begin called twice")
@@ -74,8 +68,6 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	if frameLen > 1<<13-1 {
 		return waxerr.New(waxerr.CodeInternal, fmt.Sprintf("adts: %d-byte frame exceeds the 13-bit length field", frameLen))
 	}
-	// Fixed header: syncword, MPEG-4, layer 0, no CRC; profile is
-	// AOT-1; buffer fullness 0x7FF signals VBR; one raw_data_block.
 	var h [headerLen]byte
 	h[0] = 0xFF
 	h[1] = 0xF1
@@ -93,9 +85,7 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	return nil
 }
 
-// End completes the stream. ADTS carries no gapless trailer, so the
-// trims are dropped here by design (the capability matrix's "none"
-// cell); callers wanting gapless AAC use the fMP4 path.
+// End completes the stream.
 func (m *Muxer) End(codec.Trailer) error {
 	if !m.began || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "adts: End outside Begin")

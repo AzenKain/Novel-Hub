@@ -103,7 +103,6 @@ func main() {
 
 	if config.GetBoolConfigWithDefault("ENABLE_PPROF", false) {
 		go func() {
-			// Debug endpoint on loopback only; opt-in via ENABLE_PPROF=1.
 			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
 				log.Warn().Err(err).Msg("pprof server stopped")
 			}

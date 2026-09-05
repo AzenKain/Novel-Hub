@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -291,8 +292,7 @@ func (s *settingsService) Limits() models.RuntimeLimits {
 	return limits
 }
 
-// Read straight off the raw map rather than through Admin(), which composes every section:
-// this runs on every OPDS and Kobo request.
+// Read straight off the raw map rather than through Admin(), which composes every section: this runs on every OPDS and Kobo request.
 func (s *settingsService) ServerURL() string {
 	s.mu.RLock()
 	raw := s.raw
@@ -304,9 +304,6 @@ func serverURLFromRaw(raw map[string]any) string {
 	return strings.TrimSuffix(strings.TrimSpace(rawString(raw, "server.url", "")), "/")
 }
 
-// This value is concatenated into OPDS XML and the Kobo endpoint the user pastes into a device,
-// so it is validated here and not only in the request DTO: the setup wizard and any future
-// caller reach UpdateSettings without passing through pkg/validator.
 func validateServerURLRaw(raw map[string]any) error {
 	value, ok := raw["server.url"]
 	if !ok {
@@ -552,9 +549,6 @@ func strictInteger(value any) (int64, bool) {
 	}
 }
 
-// dereferenceSettingValue unwraps pointer values. UpdateSettings is exported and
-// takes map[string]any, so a nil pointer can arrive from any caller; unwrapping it
-// blindly would panic and take the process down from an HTTP handler.
 func dereferenceSettingValue(value any) any {
 	switch typed := value.(type) {
 	case *string:
@@ -674,9 +668,6 @@ func filterKnown(items []string, known []string) []string {
 	return out
 }
 
-// A secret setting is one the admin UI itself will not read back. Only these are withheld from
-// the audit trail, because every other key is already visible via GET /settings, so redacting
-// them would cost the trail its usefulness without protecting anything.
 func secretSettingKey(key string) bool {
 	return key == "smtp.password" ||
 		key == "oauth.google.client_secret" ||
@@ -686,8 +677,6 @@ func secretSettingKey(key string) bool {
 		key == "hardcover.client_secret"
 }
 
-// A slice rather than a switch so a test can walk it and check every entry against
-// UpdateSettingsDto.UnknownKeys — the two lists are maintained by hand and drifted once.
 var allowedSettingKeys = []string{
 	"site.title",
 	"site.description",
@@ -840,7 +829,12 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid image")
 		}
-		outFilename := target + ext
+		if oldFiles, _ := filepath.Glob(filepath.Join(publicDir, target+"*")); len(oldFiles) > 0 {
+			for _, f := range oldFiles {
+				_ = os.Remove(f)
+			}
+		}
+		outFilename := fmt.Sprintf("%s_%d%s", target, time.Now().Unix(), ext)
 		destPath, err := localfs.SafeJoin(publicDir, outFilename)
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset filename")
@@ -874,7 +868,12 @@ func (s *settingsService) SaveAsset(ctx context.Context, target string, fileData
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Downloaded asset is not a valid image")
 		}
-		outFilename := target + ext
+		if oldFiles, _ := filepath.Glob(filepath.Join(publicDir, target+"*")); len(oldFiles) > 0 {
+			for _, f := range oldFiles {
+				_ = os.Remove(f)
+			}
+		}
+		outFilename := fmt.Sprintf("%s_%d%s", target, time.Now().Unix(), ext)
 		destPath, err := localfs.SafeJoin(publicDir, outFilename)
 		if err != nil {
 			return "", apperrors.New(apperrors.ErrBadRequest, "Invalid asset filename")

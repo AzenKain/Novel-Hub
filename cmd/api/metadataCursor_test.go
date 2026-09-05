@@ -12,10 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Author pagination dead-ended on any name containing a comma: EncodeCursor joined the sort value
-// and the id with ",", DecodeCursor split on the first one, and a decode of anything other than
-// two parts was read as "no cursor" — so page 2 returned page 1 and infinite scroll looped.
-// "Surname, Given" is the standard dc:creator form, so this was the common case.
+// Author pagination dead-ended on any name containing a comma: EncodeCursor joined the sort value and the id with ",", DecodeCursor split on the first one, and a decode of anything other than two parts was read as "no cursor" — so page 2 returned page 1 and infinite scroll looped.
 func TestAuthorPaginationWalksPastCommaNames(t *testing.T) {
 	app, db, err := setupTestAppWithDB(t)
 	if err != nil {
@@ -25,7 +22,6 @@ func TestAuthorPaginationWalksPastCommaNames(t *testing.T) {
 		t.Fatalf("seed library: %v", err)
 	}
 
-	// Alphabetical order matters: the comma name must land on a page boundary to strand the walk.
 	names := []string{
 		"Adams, Douglas", "Bradbury, Ray", "Clarke, Arthur C.",
 		"Dick, Philip K.", "Ellison, Harlan", "Frank Herbert",

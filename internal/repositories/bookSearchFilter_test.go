@@ -34,8 +34,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// u1 has reading progress for b1 (50%) and b2 (100%).
-	// u2 has reading progress for b3 (100%).
 	if _, err := db.ExecContext(ctx, `
 		INSERT INTO reading_progress (user_id, book_id, chapter_ref, progress_percent) VALUES
 		('u1', 'b1', 'c1', 50.0),
@@ -47,7 +45,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 
 	repo := NewBookDBRepository(db, cache.NewRamCache())
 
-	// Test 1: u1 queries "read" -> should return b1 & b2 (progress > 0), NOT b3
 	readBooksU1, err := repo.SearchBooks(ctx, nil, nil, "read", "", "", "", "", "", "", 20, "u1")
 	if err != nil {
 		t.Fatalf("SearchBooks read u1 failed: %v", err)
@@ -56,7 +53,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 		t.Fatalf("Expected 2 read books for u1, got %d", len(readBooksU1))
 	}
 
-	// Test 2: u2 queries "read" -> should return ONLY b3
 	readBooksU2, err := repo.SearchBooks(ctx, nil, nil, "read", "", "", "", "", "", "", 20, "u2")
 	if err != nil {
 		t.Fatalf("SearchBooks read u2 failed: %v", err)
@@ -65,7 +61,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 		t.Fatalf("Expected 1 read book (b3) for u2, got %v", readBooksU2)
 	}
 
-	// Test 3: Guest (userID = "") queries "read" -> should return 0 books
 	readBooksGuest, err := repo.SearchBooks(ctx, nil, nil, "read", "", "", "", "", "", "", 20, "")
 	if err != nil {
 		t.Fatalf("SearchBooks read guest failed: %v", err)
@@ -74,7 +69,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 		t.Fatalf("Expected 0 read books for guest, got %d", len(readBooksGuest))
 	}
 
-	// Test 4: u1 queries "unread" -> should return b3 only
 	unreadBooksU1, err := repo.SearchBooks(ctx, nil, nil, "unread", "", "", "", "", "", "", 20, "u1")
 	if err != nil {
 		t.Fatalf("SearchBooks unread u1 failed: %v", err)
@@ -83,7 +77,6 @@ func TestSearchBooksUserReadingFilters(t *testing.T) {
 		t.Fatalf("Expected 1 unread book (b3) for u1, got %v", unreadBooksU1)
 	}
 
-	// Test 5: u1 queries "reading" -> should return b1 only (50%)
 	readingBooksU1, err := repo.SearchBooks(ctx, nil, nil, "reading", "", "", "", "", "", "", 20, "u1")
 	if err != nil {
 		t.Fatalf("SearchBooks reading u1 failed: %v", err)
@@ -120,7 +113,6 @@ func TestRatingsFacetAndSearch(t *testing.T) {
 
 	repo := NewBookDBRepository(db, cache.NewRamCache())
 
-	// Test 1: ListRatingsWithCount -> should return 5 Stars (2 books) and 4 Stars (1 book)
 	ratings, err := repo.ListRatingsWithCount(ctx, MetadataFacetFilter{
 		LibraryIDs: []string{"lib-1"},
 		Limit:      20,
@@ -138,7 +130,6 @@ func TestRatingsFacetAndSearch(t *testing.T) {
 		t.Errorf("Expected 4 Stars with 1 book, got %v", ratings[1])
 	}
 
-	// Test 2: SearchBooks with facet="rating" and facetID="5" -> should return b1 and b2
 	star5Books, err := repo.SearchBooks(ctx, nil, nil, "ratings", "", "", "rating", "5", "", "", 20, "")
 	if err != nil {
 		t.Fatalf("SearchBooks 5 stars failed: %v", err)
@@ -147,7 +138,6 @@ func TestRatingsFacetAndSearch(t *testing.T) {
 		t.Fatalf("Expected 2 books with 5 stars, got %d: %v", len(star5Books), star5Books)
 	}
 
-	// Test 3: SearchBooks with facet="rating" and facetID="4" -> should return b3
 	star4Books, err := repo.SearchBooks(ctx, nil, nil, "ratings", "", "", "rating", "4", "", "", 20, "")
 	if err != nil {
 		t.Fatalf("SearchBooks 4 stars failed: %v", err)

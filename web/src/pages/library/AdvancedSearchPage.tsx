@@ -48,23 +48,35 @@ export const AdvancedSearchPage: React.FC = () => {
       setActiveFacet: state.setActiveFacet,
       activeCollection: state.activeCollection,
       setActiveCollection: state.setActiveCollection,
-    }))
+    })),
   );
 
-  // Form State initialized from URL search params
-  const [queryInput, setQueryInput] = useState(searchParams.get("q") || searchParams.get("search") || "");
+  const [queryInput, setQueryInput] = useState(
+    searchParams.get("q") || searchParams.get("search") || "",
+  );
   const debouncedQuery = useDebounce(queryInput, 400);
-  const [selectedFormat, setSelectedFormat] = useState(searchParams.get("format") || "");
-  const [selectedSeries, setSelectedSeries] = useState(searchParams.get("series") || "");
-  const [selectedAuthor, setSelectedAuthor] = useState(searchParams.get("author") || "");
-  const [selectedPublisher, setSelectedPublisher] = useState(searchParams.get("publisher") || "");
-  const [selectedLanguage, setSelectedLanguage] = useState(searchParams.get("language") || "");
+  const [selectedFormat, setSelectedFormat] = useState(
+    searchParams.get("format") || "",
+  );
+  const [selectedSeries, setSelectedSeries] = useState(
+    searchParams.get("series") || "",
+  );
+  const [selectedAuthor, setSelectedAuthor] = useState(
+    searchParams.get("author") || "",
+  );
+  const [selectedPublisher, setSelectedPublisher] = useState(
+    searchParams.get("publisher") || "",
+  );
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    searchParams.get("language") || "",
+  );
   const [selectedTag, setSelectedTag] = useState(searchParams.get("tag") || "");
-  const [selectedSort, setSelectedSort] = useState(searchParams.get("sort") || "title_asc");
+  const [selectedSort, setSelectedSort] = useState(
+    searchParams.get("sort") || "title_asc",
+  );
 
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
-  // Sync state when URL searchParams change
   useEffect(() => {
     setQueryInput(searchParams.get("q") || searchParams.get("search") || "");
     setSelectedFormat(searchParams.get("format") || "");
@@ -76,7 +88,6 @@ export const AdvancedSearchPage: React.FC = () => {
     setSelectedSort(searchParams.get("sort") || "title_asc");
   }, [searchParams]);
 
-  // Update URL helper
   const updateUrlParams = (updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, val]) => {
@@ -89,10 +100,9 @@ export const AdvancedSearchPage: React.FC = () => {
     setSearchParams(params, { replace: true });
   };
 
-  // Fetch facet metadata via extracted hook
-  const { formats, series, authors, publishers, languages } = useAdvancedSearchFacets();
+  const { formats, series, authors, publishers, languages } =
+    useAdvancedSearchFacets();
 
-  // Construct Search Query Params for API
   const apiQueryParams = useMemo(() => {
     const params: Record<string, unknown> = {
       limit: 24,
@@ -135,11 +145,11 @@ export const AdvancedSearchPage: React.FC = () => {
   } = useBooksQuery(apiQueryParams);
 
   const books = useMemo(() => {
-    let allBooks = searchResultsData?.pages.flatMap((page) => page.data || []) || [];
-    // Filter by format if selected
+    let allBooks =
+      searchResultsData?.pages.flatMap((page) => page.data || []) || [];
     if (selectedFormat) {
       allBooks = allBooks.filter((b) =>
-        b.file_path?.toLowerCase().endsWith(`.${selectedFormat.toLowerCase()}`)
+        b.file_path?.toLowerCase().endsWith(`.${selectedFormat.toLowerCase()}`),
       );
     }
     // Client-side sort options if needed
@@ -154,19 +164,47 @@ export const AdvancedSearchPage: React.FC = () => {
   const availableFormats = useMemo(() => {
     const fetchedFormats = formats.map((f) => f.name.toLowerCase());
     // Fallback list ensures chips always appear even before API responds
-    const defaultFormats = ["epub", "pdf", "mobi", "azw3", "fb2", "cbz", "cbr", "docx", "odt", "html", "txt", "rtf", "djvu", "chm", "mp3", "m4b", "flac", "zip", "rar", "csv", "tex", "pptx", "ppt", "odp", "xlsx", "xls", "ods"];
+    const defaultFormats = [
+      "epub",
+      "pdf",
+      "mobi",
+      "azw3",
+      "fb2",
+      "cbz",
+      "cbr",
+      "docx",
+      "odt",
+      "html",
+      "txt",
+      "rtf",
+      "djvu",
+      "chm",
+      "mp3",
+      "m4b",
+      "flac",
+      "zip",
+      "rar",
+      "csv",
+      "tex",
+      "pptx",
+      "ppt",
+      "odp",
+      "xlsx",
+      "xls",
+      "ods",
+    ];
     const set = new Set([...fetchedFormats, ...defaultFormats]);
     return Array.from(set);
   }, [formats]);
 
   const hasActiveFilters = Boolean(
     debouncedQuery.trim() ||
-      selectedFormat ||
-      selectedSeries ||
-      selectedAuthor ||
-      selectedPublisher ||
-      selectedLanguage ||
-      selectedTag
+    selectedFormat ||
+    selectedSeries ||
+    selectedAuthor ||
+    selectedPublisher ||
+    selectedLanguage ||
+    selectedTag,
   );
 
   const handleResetFilters = () => {
@@ -187,7 +225,11 @@ export const AdvancedSearchPage: React.FC = () => {
   };
 
   const primaryNavItems = [
-    { id: "", label: t("library.all_books", "All Books"), icon: <BookOpen className="w-4 h-4" /> },
+    {
+      id: "",
+      label: t("library.all_books", "All Books"),
+      icon: <BookOpen className="w-4 h-4" />,
+    },
   ];
 
   return (
@@ -226,7 +268,10 @@ export const AdvancedSearchPage: React.FC = () => {
                   {t("search.header_title", "Search Library")}
                 </h1>
                 <p className="text-xs sm:text-sm text-base-content/60">
-                  {t("search.header_subtitle", "Find any book by title, author, format, language, or series.")}
+                  {t(
+                    "search.header_subtitle",
+                    "Find any book by title, author, format, language, or series.",
+                  )}
                 </p>
               </div>
 
@@ -235,13 +280,17 @@ export const AdvancedSearchPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
                   className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all ${
-                    isFilterPanelOpen ? "btn-primary" : "btn-outline btn-neutral"
+                    isFilterPanelOpen
+                      ? "btn-primary"
+                      : "btn-outline btn-neutral"
                   }`}
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   <span>{t("search.filters", "Filters")}</span>
                   {hasActiveFilters && (
-                    <span className="badge badge-xs badge-secondary font-bold">!</span>
+                    <span className="badge badge-xs badge-secondary font-bold">
+                      !
+                    </span>
                   )}
                 </button>
                 {hasActiveFilters && (
@@ -252,7 +301,9 @@ export const AdvancedSearchPage: React.FC = () => {
                     title={t("search.reset_filters", "Reset Filters")}
                   >
                     <RotateCcw className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t("search.reset_filters", "Reset")}</span>
+                    <span className="hidden sm:inline">
+                      {t("search.reset_filters", "Reset")}
+                    </span>
                   </button>
                 )}
               </div>
@@ -266,7 +317,10 @@ export const AdvancedSearchPage: React.FC = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder={t("search.input_placeholder", "Enter title, author, description, or keyword...")}
+                  placeholder={t(
+                    "search.input_placeholder",
+                    "Enter title, author, description, or keyword...",
+                  )}
                   className="input input-bordered input-md sm:input-lg w-full pl-12 pr-28 rounded-2xl bg-base-200/40 focus:bg-base-100 font-medium text-sm sm:text-base transition-all"
                   value={queryInput}
                   onChange={(e) => setQueryInput(e.target.value)}
@@ -322,13 +376,17 @@ export const AdvancedSearchPage: React.FC = () => {
                       updateUrlParams({ format: "" });
                     }}
                     className={`btn btn-xs sm:btn-sm rounded-xl font-semibold transition-all ${
-                      !selectedFormat ? "btn-primary" : "btn-ghost bg-base-200/60"
+                      !selectedFormat
+                        ? "btn-primary"
+                        : "btn-ghost bg-base-200/60"
                     }`}
                   >
                     {t("common.all", "All Formats")}
                   </button>
                   {availableFormats.map((fmt) => {
-                    const facetItem = formats.find((f) => f.name.toLowerCase() === fmt.toLowerCase());
+                    const facetItem = formats.find(
+                      (f) => f.name.toLowerCase() === fmt.toLowerCase(),
+                    );
                     return (
                       <button
                         key={fmt}
@@ -367,7 +425,9 @@ export const AdvancedSearchPage: React.FC = () => {
                       updateUrlParams({ series: e.target.value });
                     }}
                   >
-                    <option value="">{t("search.all_series", "All Series")}</option>
+                    <option value="">
+                      {t("search.all_series", "All Series")}
+                    </option>
                     {series.map((item: MetadataCount) => (
                       <option key={item.name} value={item.name}>
                         {item.name} ({item.book_count})
@@ -390,7 +450,9 @@ export const AdvancedSearchPage: React.FC = () => {
                       updateUrlParams({ author: e.target.value });
                     }}
                   >
-                    <option value="">{t("search.all_authors", "All Authors")}</option>
+                    <option value="">
+                      {t("search.all_authors", "All Authors")}
+                    </option>
                     {authors.map((item: MetadataCount) => (
                       <option key={item.name} value={item.name}>
                         {item.name} ({item.book_count})
@@ -413,7 +475,9 @@ export const AdvancedSearchPage: React.FC = () => {
                       updateUrlParams({ publisher: e.target.value });
                     }}
                   >
-                    <option value="">{t("search.all_publishers", "All Publishers")}</option>
+                    <option value="">
+                      {t("search.all_publishers", "All Publishers")}
+                    </option>
                     {publishers.map((item: MetadataCount) => (
                       <option key={item.name} value={item.name}>
                         {item.name} ({item.book_count})
@@ -436,7 +500,9 @@ export const AdvancedSearchPage: React.FC = () => {
                       updateUrlParams({ language: e.target.value });
                     }}
                   >
-                    <option value="">{t("search.all_languages", "All Languages")}</option>
+                    <option value="">
+                      {t("search.all_languages", "All Languages")}
+                    </option>
                     {languages.map((item: MetadataCount) => (
                       <option key={item.name} value={item.name}>
                         {item.name} ({item.book_count})
@@ -502,7 +568,8 @@ export const AdvancedSearchPage: React.FC = () => {
                   )}
                   {selectedPublisher && (
                     <span className="badge badge-neutral badge-sm gap-1.5 py-2 px-3 rounded-lg font-medium">
-                      {t("library.facets.publishers", "Publisher")}: {selectedPublisher}
+                      {t("library.facets.publishers", "Publisher")}:{" "}
+                      {selectedPublisher}
                       <X
                         className="w-3 h-3 cursor-pointer hover:opacity-80"
                         onClick={() => {
@@ -514,7 +581,8 @@ export const AdvancedSearchPage: React.FC = () => {
                   )}
                   {selectedLanguage && (
                     <span className="badge badge-ghost badge-sm gap-1.5 py-2 px-3 rounded-lg font-medium">
-                      {t("library.facets.languages", "Language")}: {selectedLanguage}
+                      {t("library.facets.languages", "Language")}:{" "}
+                      {selectedLanguage}
                       <X
                         className="w-3 h-3 cursor-pointer hover:opacity-80"
                         onClick={() => {
@@ -536,8 +604,10 @@ export const AdvancedSearchPage: React.FC = () => {
                 {isLoading
                   ? t("common.loading", "Searching books...")
                   : books.length > 0
-                  ? t("search.found_books_count", "Found {{count}} books", { count: books.length })
-                  : t("search.no_books_found", "No books found")}
+                    ? t("search.found_books_count", "Found {{count}} books", {
+                        count: books.length,
+                      })
+                    : t("search.no_books_found", "No books found")}
               </div>
             </div>
 
@@ -550,7 +620,11 @@ export const AdvancedSearchPage: React.FC = () => {
               </div>
             ) : books.length > 0 ? (
               <>
-                <BookGrid books={books} onBookClick={(book) => navigate(`/books/${book.id}`)} compact />
+                <BookGrid
+                  books={books}
+                  onBookClick={(book) => navigate(`/books/${book.id}`)}
+                  compact
+                />
                 {hasNextPage && (
                   <div className="text-center pt-6">
                     <button
@@ -581,7 +655,10 @@ export const AdvancedSearchPage: React.FC = () => {
                     {t("search.no_results_title", "No matching books found")}
                   </h3>
                   <p className="text-xs text-base-content/60">
-                    {t("search.no_results_desc", "Try adjusting your search query, clearing filter options, or searching by a different term.")}
+                    {t(
+                      "search.no_results_desc",
+                      "Try adjusting your search query, clearing filter options, or searching by a different term.",
+                    )}
                   </p>
                 </div>
                 {hasActiveFilters && (

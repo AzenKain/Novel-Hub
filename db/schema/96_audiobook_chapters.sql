@@ -1,6 +1,3 @@
--- Audiobook chapter markers, one row per chapter of an audiobook. Chapters
--- are either hand-edited, imported from Audnexus (by ASIN), or auto-written
--- by the merge_audio job (one chapter per merged source track).
 CREATE TABLE IF NOT EXISTS audiobook_chapters (
     id TEXT PRIMARY KEY,
     book_id TEXT NOT NULL,

@@ -7,8 +7,7 @@ import (
 
 type auditActorKey struct{}
 
-// On the context, not a parameter: eleven audited methods never receive JWT claims, and the
-// IP is only known to the fiber handler. Mirrors WithPermissionContext in accessCache.go.
+// On the context, not a parameter: eleven audited methods never receive JWT claims, and the IP is only known to the fiber handler.
 type AuditActor struct {
 	UserID string
 	Email  string

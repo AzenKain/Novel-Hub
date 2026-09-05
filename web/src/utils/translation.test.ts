@@ -36,7 +36,11 @@ describe("translation utility", () => {
   });
 
   it("should successfully translate text using mock fetch", async () => {
-    const mockResponse = [[["Bonjour le monde", "Hello world", null, null]], null, "en"];
+    const mockResponse = [
+      [["Bonjour le monde", "Hello world", null, null]],
+      null,
+      "en",
+    ];
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       json: async () => mockResponse,

@@ -8,16 +8,12 @@ import (
 	"novelhub/pkg/waxflow/container"
 )
 
-// opusMapping decodes the Ogg-Opus mapping (RFC 7845). Opus always runs at
-// 48 kHz; the OpusHead pre-skip trims decoder priming from the front, and the
-// final page granule bounds the end. Timing accumulates from per-packet TOC
-// durations, so seeks anchor to page granules and land an 80 ms pre-roll early
-// (RFC 7845 section 4.2).
+// opusMapping decodes the Ogg-Opus mapping (RFC 7845).
 type opusMapping struct {
 	channels int
 	preSkip  int64
 	family   int
-	head     []byte // the full OpusHead, carried to the Track as CodecConfig
+	head     []byte
 }
 
 func (m *opusMapping) codecID() codec.ID { return codec.Opus }
@@ -35,8 +31,6 @@ func (m *opusMapping) parseID(pkt []byte) (int, error) {
 		return 0, malformed("OpusHead channel count %d", m.channels)
 	}
 	m.preSkip = int64(binary.LittleEndian.Uint16(pkt[10:]))
-	// The output gain (pkt[16:18]) rides along in head -> Track.CodecConfig, so
-	// the decoder applies it; the mapping needs no separate copy.
 	m.family = int(pkt[18])
 	switch m.family {
 	case 0:
@@ -44,8 +38,7 @@ func (m *opusMapping) parseID(pkt []byte) (int, error) {
 			return 0, malformed("OpusHead family 0 with %d channels", m.channels)
 		}
 	case 1:
-		// Family 1 carries a channel-mapping table: stream count, coupled
-		// count, then one index per channel (RFC 7845 section 5.1.1).
+		// Family 1 carries a channel-mapping table: stream count, coupled count, then one index per channel (RFC 7845 section 5.1.1).
 		if len(pkt) < 21+m.channels {
 			return 0, malformed("OpusHead family 1 truncated (%d bytes, %d channels)", len(pkt), m.channels)
 		}
@@ -58,12 +51,6 @@ func (m *opusMapping) parseID(pkt []byte) (int, error) {
 				return 0, malformed("OpusHead family 1 channel maps to stream %d of %d", v, streams+coupled)
 			}
 		}
-		// The decoder handles one elementary stream (mono or stereo), so a
-		// family-1 layout is decodable only when it is the family-0 shape in
-		// disguise: a single stream whose channels map onto its outputs in
-		// order. Several streams need multistream de-framing (each packet
-		// carries self-delimited sub-packets), a permuted or 255 (silent)
-		// table entry needs output routing; neither is implemented.
 		if streams != 1 || coupled != m.channels-1 {
 			return 0, malformed("OpusHead family 1 with %d streams (%d coupled) for %d channels is multistream; mono and stereo single-stream only", streams, coupled, m.channels)
 		}
@@ -76,10 +63,9 @@ func (m *opusMapping) parseID(pkt []byte) (int, error) {
 		return 0, malformed("OpusHead channel mapping family %d unsupported", m.family)
 	}
 	m.head = append([]byte(nil), pkt...)
-	return 1, nil // OpusTags comment header follows
+	return 1, nil
 }
 
-// parseHeader validates the OpusTags comment header; its content is metadata.
 func (m *opusMapping) parseHeader(pkt []byte) error {
 	if len(pkt) < 8 || string(pkt[:8]) != "OpusTags" {
 		return malformed("second Opus header is not OpusTags")
@@ -87,7 +73,6 @@ func (m *opusMapping) parseHeader(pkt []byte) error {
 	return nil
 }
 
-// isAudio reports an audio packet: anything that is not an Opus header magic.
 func (m *opusMapping) isAudio(pkt []byte) bool {
 	if len(pkt) >= 8 && (string(pkt[:8]) == "OpusHead" || string(pkt[:8]) == "OpusTags") {
 		return false
@@ -124,25 +109,20 @@ func (m *opusMapping) finalizeTrack(lastGranule func() int64) (container.Track, 
 	}, nil
 }
 
-// opusFrameSamples is the frame length in 48 kHz samples for each TOC config
-// (RFC 6716 Table 2): SILK 10/20/40/60 ms, Hybrid 10/20 ms, CELT 2.5/5/10/20 ms.
-// It is kept here rather than shared with codec/opus.PacketSamples because
-// opus's own end-to-end test imports this package, and importing opus back
-// would form a cycle.
+// opusFrameSamples is the frame length in 48 kHz samples for each TOC config (RFC 6716 Table 2): SILK 10/20/40/60 ms, Hybrid 10/20 ms, CELT 2.5/5/10/20 ms.
 var opusFrameSamples = [32]int64{
-	480, 960, 1920, 2880, // 0-3   SILK NB
-	480, 960, 1920, 2880, // 4-7   SILK MB
-	480, 960, 1920, 2880, // 8-11  SILK WB
-	480, 960, // 12-13 Hybrid SWB
-	480, 960, // 14-15 Hybrid FB
-	120, 240, 480, 960, // 16-19 CELT NB
-	120, 240, 480, 960, // 20-23 CELT WB
-	120, 240, 480, 960, // 24-27 CELT SWB
-	120, 240, 480, 960, // 28-31 CELT FB
+	480, 960, 1920, 2880,
+	480, 960, 1920, 2880,
+	480, 960, 1920, 2880,
+	480, 960,
+	480, 960,
+	120, 240, 480, 960,
+	120, 240, 480, 960,
+	120, 240, 480, 960,
+	120, 240, 480, 960,
 }
 
-// packetTiming derives an Opus packet's duration from its TOC byte and frame
-// count (RFC 6716 section 3.1). Every Opus packet is independently decodable.
+// packetTiming derives an Opus packet's duration from its TOC byte and frame count (RFC 6716 section 3.1).
 func (m *opusMapping) packetTiming(pkt []byte, running int64) (pts, dur int64, sync, ok bool) {
 	if len(pkt) == 0 {
 		return 0, 0, false, false
@@ -172,8 +152,7 @@ func (m *opusMapping) packetTiming(pkt []byte, running int64) (pts, dur int64, s
 
 func (m *opusMapping) selfTiming() bool { return false }
 
-// preroll is 80 ms at 48 kHz (RFC 7845 section 4.2): enough for the decoder's
-// SILK/CELT state to reconverge after a seek.
+// preroll is 80 ms at 48 kHz (RFC 7845 section 4.2): enough for the decoder's SILK/CELT state to reconverge after a seek.
 func (m *opusMapping) preroll() int64 { return 3840 }
 
 func (m *opusMapping) resetTiming() {}

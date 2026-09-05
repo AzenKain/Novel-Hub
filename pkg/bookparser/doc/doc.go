@@ -124,9 +124,6 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	return appendDocImages(formatsToHTML(pieces, formats, paraFormats), imageAssets), nil
 }
 
-// appendDocImages adds extracted embedded images as a figure block. Binary DOC
-// stores pictures in the Escher drawing layer with no cheap CP mapping, so an
-// appendix placement is used instead of inline positions.
 func appendDocImages(htmlOut string, assets []bookparser.EmbeddedImageAsset) string {
 	if len(assets) == 0 {
 		return htmlOut

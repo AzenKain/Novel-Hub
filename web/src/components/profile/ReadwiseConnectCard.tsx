@@ -13,8 +13,12 @@ export const ReadwiseConnectCard: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
 
   const canUse = hasPermission(user, "tracker.sync");
-  const { data: connections = [], isLoading } = useTrackerConnectionsQuery(!!user && canUse);
-  const connected = connections.some((c) => c.provider === "readwise" && c.connected);
+  const { data: connections = [], isLoading } = useTrackerConnectionsQuery(
+    !!user && canUse,
+  );
+  const connected = connections.some(
+    (c) => c.provider === "readwise" && c.connected,
+  );
 
   const connectMutation = useConnectTrackerMutation();
 
@@ -24,7 +28,9 @@ export const ReadwiseConnectCard: React.FC = () => {
     e.preventDefault();
     const trimmed = token.trim();
     if (!trimmed) {
-      toast.error(t("highlights_export.enter_token", "Enter your Readwise API token"));
+      toast.error(
+        t("highlights_export.enter_token", "Enter your Readwise API token"),
+      );
       return;
     }
     connectMutation.mutate(
@@ -39,9 +45,12 @@ export const ReadwiseConnectCard: React.FC = () => {
           toast.error(
             err instanceof Error && err.message
               ? err.message
-              : t("highlights_export.connect_failed", "Failed to connect Readwise")
+              : t(
+                  "highlights_export.connect_failed",
+                  "Failed to connect Readwise",
+                ),
           ),
-      }
+      },
     );
   };
 
@@ -49,7 +58,11 @@ export const ReadwiseConnectCard: React.FC = () => {
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
       <div className="flex items-start gap-3 border-b border-base-200 pb-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary/10 text-secondary mt-0.5">
-          {connected ? <Check className="h-5 w-5" /> : <BookOpenCheck className="h-5 w-5" />}
+          {connected ? (
+            <Check className="h-5 w-5" />
+          ) : (
+            <BookOpenCheck className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -65,7 +78,7 @@ export const ReadwiseConnectCard: React.FC = () => {
           <p className="text-xs text-base-content/60 leading-relaxed">
             {t(
               "highlights_export.profile_subtitle",
-              "Export your reading highlights to Readwise. The token is stored encrypted."
+              "Export your reading highlights to Readwise. The token is stored encrypted.",
             )}
           </p>
         </div>
@@ -100,7 +113,10 @@ export const ReadwiseConnectCard: React.FC = () => {
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder={t("highlights_export.token_placeholder", "Paste your Readwise token")}
+                placeholder={t(
+                  "highlights_export.token_placeholder",
+                  "Paste your Readwise token",
+                )}
                 className="input input-bordered w-full font-mono text-xs pr-10"
                 required
               />
@@ -114,7 +130,10 @@ export const ReadwiseConnectCard: React.FC = () => {
               rel="noopener noreferrer"
               className="text-xs text-primary hover:underline flex items-center gap-1"
             >
-              {t("highlights_export.get_token_link", "Get Readwise Access Token ↗")}
+              {t(
+                "highlights_export.get_token_link",
+                "Get Readwise Access Token ↗",
+              )}
             </a>
             <button
               type="submit"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface UseTTSOptions {
   onEnd?: () => void;
@@ -6,19 +6,22 @@ export interface UseTTSOptions {
   onBoundary?: (event: any) => void;
 }
 
-
-
 export interface TextChunk {
   text: string;
   charOffset: number;
   cleanToRawMap: number[];
 }
 
-export function getNextWordOffset(text: string, currentWordStart: number): number {
-  if (currentWordStart < 0 || currentWordStart >= text.length) return currentWordStart;
+export function getNextWordOffset(
+  text: string,
+  currentWordStart: number,
+): number {
+  if (currentWordStart < 0 || currentWordStart >= text.length)
+    return currentWordStart;
   const rest = text.slice(currentWordStart);
-  // Match word characters (letters, digits, marks) plus trailing spaces and punctuation
-  const match = rest.match(/^[\p{L}\p{N}\u0300-\u036f_—–-]+[\s,.;:!?"“”'»«)\]]*/u);
+  const match = rest.match(
+    /^[\p{L}\p{N}\u0300-\u036f_—–-]+[\s,.;:!?"“”'»«)\]]*/u,
+  );
   if (match && match[0].length > 0) {
     return currentWordStart + match[0].length;
   }
@@ -40,39 +43,40 @@ export function cleanTextForTTS(text: string): string {
 export function detectLanguage(text: string): string {
   if (!text) return "en-US";
 
-  // Vietnamese: Latin with specific tone marks / horn / hook
-  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/i.test(text)) {
+  if (
+    /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/i.test(
+      text,
+    )
+  ) {
     return "vi-VN";
   }
 
-  // Japanese: Hiragana or Katakana
   if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) {
     return "ja-JP";
   }
 
-  // Korean: Hangul syllables or Jamo
   if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(text)) {
     return "ko-KR";
   }
 
-  // Chinese: Hanzi
   if (/[\u4E00-\u9FFF]/.test(text)) {
     return "zh-CN";
   }
 
-  // Cyrillic (Russian, etc.)
   if (/[\u0400-\u04FF]/.test(text)) {
     return "ru-RU";
   }
 
-  // Arabic
   if (/[\u0600-\u06FF]/.test(text)) {
     return "ar-SA";
   }
 
-  // Fallback to browser or document locale
-  const docLang = typeof document !== "undefined" ? document.documentElement.lang : "";
-  const navLang = typeof navigator !== "undefined" ? (navigator.language || (navigator as any).userLanguage) : "";
+  const docLang =
+    typeof document !== "undefined" ? document.documentElement.lang : "";
+  const navLang =
+    typeof navigator !== "undefined"
+      ? navigator.language || (navigator as any).userLanguage
+      : "";
   const rawLang = (docLang || navLang || "en-US").toLowerCase();
 
   if (rawLang.startsWith("vi")) return "vi-VN";
@@ -103,7 +107,9 @@ export function cleanTextForTTSWithMap(text: string): TextChunk {
       replacement = '"';
     } else if (ch === "‘" || ch === "’") {
       replacement = "'";
-    } else if (/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/u.test(ch)) {
+    } else if (
+      /[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/u.test(ch)
+    ) {
       replacement = " ";
     } else if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u.test(ch)) {
       replacement = " ";
@@ -123,7 +129,12 @@ export function cleanTextForTTSWithMap(text: string): TextChunk {
   return { text: cleaned, charOffset: 0, cleanToRawMap };
 }
 
-function subSplitLongChunk(fullText: string, start: number, end: number, maxChunkLen = 380): TextChunk[] {
+function subSplitLongChunk(
+  fullText: string,
+  start: number,
+  end: number,
+  maxChunkLen = 380,
+): TextChunk[] {
   const result: TextChunk[] = [];
   let curStart = start;
 
@@ -137,7 +148,10 @@ function subSplitLongChunk(fullText: string, start: number, end: number, maxChun
       break;
     }
 
-    const windowText = fullText.slice(curStart, Math.min(end, curStart + maxChunkLen));
+    const windowText = fullText.slice(
+      curStart,
+      Math.min(end, curStart + maxChunkLen),
+    );
     const match = windowText.slice(150).search(/[,，、؛\u060C;:\-]\s*|\s+/u);
     let splitPos = end;
     if (match !== -1) {
@@ -163,9 +177,10 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
 
   const rawSegments: { text: string; index: number }[] = [];
 
-  // Universal text segmentation using Unicode Standard Annex #29
   if (typeof Intl !== "undefined" && Intl.Segmenter) {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "sentence" });
+    const segmenter = new Intl.Segmenter(undefined, {
+      granularity: "sentence",
+    });
     for (const seg of segmenter.segment(fullText)) {
       rawSegments.push({
         text: seg.segment,
@@ -173,8 +188,8 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
       });
     }
   } else {
-    // Universal multilingual regex fallback (Latin, CJK, Arabic, Cyrillic, Indic, etc.)
-    const regex = /([^.!?…;:\u061F\u061B\u0964\u0965\n]+[.!?…;:\u061F\u061B\u0964\u0965]*|\s*\n+\s*|[^.!?…;:\u061F\u061B\u0964\u0965\n]+$)/gu;
+    const regex =
+      /([^.!?…;:\u061F\u061B\u0964\u0965\n]+[.!?…;:\u061F\u061B\u0964\u0965]*|\s*\n+\s*|[^.!?…;:\u061F\u061B\u0964\u0965\n]+$)/gu;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(fullText)) !== null) {
       if (match[0].trim()) {
@@ -183,7 +198,6 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
     }
   }
 
-  // Merge sentences into optimal natural chunks (target: 250 - 400 characters)
   let currentStart = -1;
   let currentEnd = -1;
 
@@ -193,7 +207,6 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
     const segStart = seg.index;
     const segEnd = segStart + segText.length;
 
-    // Skip empty whitespace-only segments before a chunk starts
     if (!segText.trim() && currentStart === -1) {
       continue;
     }
@@ -203,7 +216,9 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
       currentEnd = segEnd;
     } else {
       const prospectiveLength = segEnd - currentStart;
-      const isParagraphBreak = segText.includes("\n\n") || (fullText.slice(currentEnd, segStart).includes("\n\n"));
+      const isParagraphBreak =
+        segText.includes("\n\n") ||
+        fullText.slice(currentEnd, segStart).includes("\n\n");
 
       if (prospectiveLength <= 350 && !isParagraphBreak) {
         currentEnd = segEnd;
@@ -253,7 +268,8 @@ export function useTTS(options?: UseTTSOptions) {
     );
   });
   const [hasVoices, setHasVoices] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+    if (typeof window === "undefined" || !("speechSynthesis" in window))
+      return false;
     try {
       localStorage.removeItem("novelhub_tts_has_voices");
     } catch {}
@@ -261,7 +277,8 @@ export function useTTS(options?: UseTTSOptions) {
     return syncVoices.length > 0;
   });
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [selectedVoice, setSelectedVoice] =
+    useState<SpeechSynthesisVoice | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [rate, setRate] = useState(1);
@@ -319,7 +336,9 @@ export function useTTS(options?: UseTTSOptions) {
         if (availableVoices.length > 0) {
           setHasVoices(true);
           if (!selectedVoiceRef.current) {
-            setSelectedVoice(availableVoices.find((v) => v.default) || availableVoices[0]);
+            setSelectedVoice(
+              availableVoices.find((v) => v.default) || availableVoices[0],
+            );
           }
         } else {
           setHasVoices(false);
@@ -332,7 +351,6 @@ export function useTTS(options?: UseTTSOptions) {
     updateVoices();
     window.speechSynthesis.onvoiceschanged = updateVoices;
 
-    // Mobile browsers (e.g. Android Chrome, Safari) load voices asynchronously or require warm-up.
     const t1 = setTimeout(updateVoices, 100);
     const t2 = setTimeout(updateVoices, 300);
     const t3 = setTimeout(updateVoices, 600);
@@ -363,13 +381,15 @@ export function useTTS(options?: UseTTSOptions) {
     };
   }, []);
 
-  // Mobile browsers require an initial user gesture to unlock Web Speech API audio output
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     const unlockSpeech = () => {
       try {
-        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        if (
+          !window.speechSynthesis.speaking &&
+          !window.speechSynthesis.pending
+        ) {
           const silentUtterance = new SpeechSynthesisUtterance("");
           silentUtterance.volume = 0;
           silentUtterance.rate = 2;
@@ -392,9 +412,18 @@ export function useTTS(options?: UseTTSOptions) {
       window.removeEventListener("click", handleUserGesture, true);
     };
 
-    window.addEventListener("touchstart", handleUserGesture, { capture: true, once: true });
-    window.addEventListener("touchend", handleUserGesture, { capture: true, once: true });
-    window.addEventListener("click", handleUserGesture, { capture: true, once: true });
+    window.addEventListener("touchstart", handleUserGesture, {
+      capture: true,
+      once: true,
+    });
+    window.addEventListener("touchend", handleUserGesture, {
+      capture: true,
+      once: true,
+    });
+    window.addEventListener("click", handleUserGesture, {
+      capture: true,
+      once: true,
+    });
 
     return () => {
       window.removeEventListener("touchstart", handleUserGesture, true);
@@ -407,7 +436,7 @@ export function useTTS(options?: UseTTSOptions) {
     return () => {
       isCanceledRef.current = true;
       isPausedRef.current = false;
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
         try {
           (window as any).__novelhub_active_utterance = null;
           window.speechSynthesis.cancel();
@@ -416,202 +445,261 @@ export function useTTS(options?: UseTTSOptions) {
     };
   }, []);
 
-  const playChunkDirect = useCallback((textToSpeak: string, baseOffset: number, chunkIndex: number, cleanToRawMap?: number[]) => {
-    if (isCanceledRef.current || isPausedRef.current || typeof window === 'undefined' || !window.speechSynthesis) {
-      return;
-    }
-
-    currentChunkTextRef.current = textToSpeak;
-    currentBaseOffsetRef.current = baseOffset;
-    currentCleanToRawMapRef.current = cleanToRawMap || [];
-    lastBoundaryLocalIndexRef.current = 0;
-    lastBoundaryWordLenRef.current = 0;
-    hasBoundaryFiredRef.current = false;
-
-    if (activeUtteranceRef.current) {
-      activeUtteranceRef.current.onstart = null;
-      activeUtteranceRef.current.onend = null;
-      activeUtteranceRef.current.onerror = null;
-      activeUtteranceRef.current.onpause = null;
-      activeUtteranceRef.current.onresume = null;
-      activeUtteranceRef.current.onboundary = null;
-      activeUtteranceRef.current = null;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    activeUtteranceRef.current = utterance;
-    (window as any).__novelhub_active_utterance = utterance;
-
-    const detectedLang = detectLanguage(textToSpeak);
-    utterance.lang = detectedLang;
-
-    const langPrefix = detectedLang.split("-")[0].toLowerCase();
-    let voiceToUse = selectedVoiceRef.current;
-
-    if (voiceToUse && !voiceToUse.lang.toLowerCase().startsWith(langPrefix)) {
-      const allVoices = voicesRef.current.length > 0 ? voicesRef.current : (window.speechSynthesis.getVoices() || []);
-      const match = allVoices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
-      voiceToUse = match || null;
-    } else if (!voiceToUse) {
-      const allVoices = voicesRef.current.length > 0 ? voicesRef.current : (window.speechSynthesis.getVoices() || []);
-      const match = allVoices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
-      if (match) {
-        voiceToUse = match;
-      }
-    }
-
-    if (voiceToUse) {
-      utterance.voice = voiceToUse;
-    }
-    utterance.rate = rateRef.current;
-    utterance.pitch = pitchRef.current;
-    utterance.volume = volumeRef.current;
-
-    utterance.onstart = () => {
-      if (isCanceledRef.current || isPausedRef.current) return;
-      setIsPlaying(true);
-      setIsPaused(false);
-    };
-
-    utterance.onend = () => {
-      if (isCanceledRef.current || isPausedRef.current) return;
-      savedRemainingTextRef.current = null;
-      playChunkAtIndex(chunkIndex + 1);
-    };
-
-    utterance.onerror = (e) => {
-      if (isCanceledRef.current || isPausedRef.current) return;
-
-      // If interrupted mid-sentence (e.g. user clicked on DOM), continue seamlessly from the next unread word
-      if (e.error === "interrupted" || e.error === "canceled") {
-        const lastIdx = lastBoundaryLocalIndexRef.current;
-        // If no boundary has fired yet for this utterance, nothing was read yet:
-        // resume the current utterance from its start instead of skipping its first word.
-        const nextWordPos = hasBoundaryFiredRef.current ? getNextWordOffset(textToSpeak, lastIdx) : 0;
-
-        const sliceFrom = textToSpeak.slice(nextWordPos);
-        const remainingText = sliceFrom.trim();
-        if (remainingText.length > 2) {
-          // index of the first non-space char (leading trim only; trailing trim must not shift the map)
-          const cleanStart = nextWordPos + (sliceFrom.length - sliceFrom.trimStart().length);
-          const rawStart = currentCleanToRawMapRef.current[cleanStart] ?? cleanStart;
-          const remainingMap = currentCleanToRawMapRef.current
-            .slice(cleanStart)
-            .map((rawIndex) => Math.max(0, rawIndex - rawStart));
-          const newOffset = baseOffset + rawStart;
-          setTimeout(() => {
-            if (!isCanceledRef.current && !isPausedRef.current) {
-              playChunkDirect(remainingText, newOffset, chunkIndex, remainingMap);
-            }
-          }, 40);
-          return;
-        }
-      }
-
-      if (e.error === "synthesis-unavailable" || e.error === "voice-unavailable" || e.error === "language-unavailable") {
-        console.warn("[TTS] Voice synthesis error:", e.error);
-        isCanceledRef.current = true;
-        setIsPlaying(false);
-        setIsPaused(false);
-        optionsRef.current?.onError?.(e);
+  const playChunkDirect = useCallback(
+    (
+      textToSpeak: string,
+      baseOffset: number,
+      chunkIndex: number,
+      cleanToRawMap?: number[],
+    ) => {
+      if (
+        isCanceledRef.current ||
+        isPausedRef.current ||
+        typeof window === "undefined" ||
+        !window.speechSynthesis
+      ) {
         return;
       }
 
+      currentChunkTextRef.current = textToSpeak;
+      currentBaseOffsetRef.current = baseOffset;
+      currentCleanToRawMapRef.current = cleanToRawMap || [];
+      lastBoundaryLocalIndexRef.current = 0;
+      lastBoundaryWordLenRef.current = 0;
+      hasBoundaryFiredRef.current = false;
+
+      if (activeUtteranceRef.current) {
+        activeUtteranceRef.current.onstart = null;
+        activeUtteranceRef.current.onend = null;
+        activeUtteranceRef.current.onerror = null;
+        activeUtteranceRef.current.onpause = null;
+        activeUtteranceRef.current.onresume = null;
+        activeUtteranceRef.current.onboundary = null;
+        activeUtteranceRef.current = null;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      activeUtteranceRef.current = utterance;
+      (window as any).__novelhub_active_utterance = utterance;
+
+      const detectedLang = detectLanguage(textToSpeak);
+      utterance.lang = detectedLang;
+
+      const langPrefix = detectedLang.split("-")[0].toLowerCase();
+      let voiceToUse = selectedVoiceRef.current;
+
+      if (voiceToUse && !voiceToUse.lang.toLowerCase().startsWith(langPrefix)) {
+        const allVoices =
+          voicesRef.current.length > 0
+            ? voicesRef.current
+            : window.speechSynthesis.getVoices() || [];
+        const match = allVoices.find((v) =>
+          v.lang.toLowerCase().startsWith(langPrefix),
+        );
+        voiceToUse = match || null;
+      } else if (!voiceToUse) {
+        const allVoices =
+          voicesRef.current.length > 0
+            ? voicesRef.current
+            : window.speechSynthesis.getVoices() || [];
+        const match = allVoices.find((v) =>
+          v.lang.toLowerCase().startsWith(langPrefix),
+        );
+        if (match) {
+          voiceToUse = match;
+        }
+      }
+
+      if (voiceToUse) {
+        utterance.voice = voiceToUse;
+      }
+      utterance.rate = rateRef.current;
+      utterance.pitch = pitchRef.current;
+      utterance.volume = volumeRef.current;
+
+      utterance.onstart = () => {
+        if (isCanceledRef.current || isPausedRef.current) return;
+        setIsPlaying(true);
+        setIsPaused(false);
+      };
+
+      utterance.onend = () => {
+        if (isCanceledRef.current || isPausedRef.current) return;
+        savedRemainingTextRef.current = null;
+        playChunkAtIndex(chunkIndex + 1);
+      };
+
+      utterance.onerror = (e) => {
+        if (isCanceledRef.current || isPausedRef.current) return;
+
+        // Resume from next word when interrupted mid-sentence.
+        if (e.error === "interrupted" || e.error === "canceled") {
+          const lastIdx = lastBoundaryLocalIndexRef.current;
+          const nextWordPos = hasBoundaryFiredRef.current
+            ? getNextWordOffset(textToSpeak, lastIdx)
+            : 0;
+
+          const sliceFrom = textToSpeak.slice(nextWordPos);
+          const remainingText = sliceFrom.trim();
+          if (remainingText.length > 2) {
+            const cleanStart =
+              nextWordPos + (sliceFrom.length - sliceFrom.trimStart().length);
+            const rawStart =
+              currentCleanToRawMapRef.current[cleanStart] ?? cleanStart;
+            const remainingMap = currentCleanToRawMapRef.current
+              .slice(cleanStart)
+              .map((rawIndex) => Math.max(0, rawIndex - rawStart));
+            const newOffset = baseOffset + rawStart;
+            setTimeout(() => {
+              if (!isCanceledRef.current && !isPausedRef.current) {
+                playChunkDirect(
+                  remainingText,
+                  newOffset,
+                  chunkIndex,
+                  remainingMap,
+                );
+              }
+            }, 40);
+            return;
+          }
+        }
+
+        if (
+          e.error === "synthesis-unavailable" ||
+          e.error === "voice-unavailable" ||
+          e.error === "language-unavailable"
+        ) {
+          console.warn("[TTS] Voice synthesis error:", e.error);
+          isCanceledRef.current = true;
+          setIsPlaying(false);
+          setIsPaused(false);
+          optionsRef.current?.onError?.(e);
+          return;
+        }
+
+        savedRemainingTextRef.current = null;
+        playChunkAtIndex(chunkIndex + 1);
+      };
+
+      utterance.onboundary = (e) => {
+        if (isCanceledRef.current || isPausedRef.current) return;
+        const rawLocalIdx = e.charIndex || 0;
+        lastBoundaryLocalIndexRef.current = rawLocalIdx;
+        hasBoundaryFiredRef.current = true;
+
+        let wordStart = rawLocalIdx;
+        while (
+          wordStart < textToSpeak.length &&
+          /[\s"“«'‘(\[<{]/.test(textToSpeak[wordStart])
+        ) {
+          wordStart++;
+        }
+
+        let wordLen = e.charLength || 0;
+        if (wordLen <= 1 && wordStart < textToSpeak.length) {
+          const slice = textToSpeak.slice(wordStart);
+          const match = slice.match(/^[\p{L}\p{M}\p{N}_—–-]+/u);
+          wordLen = match?.[0]?.length || 1;
+        } else if (wordLen <= 1) {
+          wordLen = 1;
+        }
+        lastBoundaryWordLenRef.current = wordLen;
+
+        const map = currentCleanToRawMapRef.current;
+        const rawWordStart = map[wordStart] ?? wordStart;
+        const rawWordEnd =
+          map[Math.min(textToSpeak.length - 1, wordStart + wordLen - 1)];
+        const globalCharIndex = baseOffset + rawWordStart;
+        optionsRef.current?.onBoundary?.({
+          ...e,
+          charIndex: globalCharIndex,
+          charLength:
+            rawWordEnd !== undefined
+              ? Math.max(1, rawWordEnd - rawWordStart + 1)
+              : wordLen,
+          utterance,
+        });
+      };
+
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utterance);
+        setIsPlaying(true);
+        setIsPaused(false);
+      } catch (err) {
+        console.error(`[TTS] speak(chunk ${chunkIndex + 1}) threw:`, err);
+        playChunkAtIndex(chunkIndex + 1);
+      }
+    },
+    [],
+  );
+
+  const playChunkAtIndex = useCallback(
+    (index: number) => {
+      if (
+        isCanceledRef.current ||
+        isPausedRef.current ||
+        typeof window === "undefined" ||
+        !window.speechSynthesis
+      ) {
+        return;
+      }
+
+      const chunks = chunksRef.current;
+      if (index >= chunks.length) {
+        activeUtteranceRef.current = null;
+        (window as any).__novelhub_active_utterance = null;
+        savedRemainingTextRef.current = null;
+        setIsPlaying(false);
+        setIsPaused(false);
+        optionsRef.current?.onEnd?.();
+        return;
+      }
+
+      currentChunkIndexRef.current = index;
+      const chunk = chunks[index];
+
+      playChunkDirect(chunk.text, chunk.charOffset, index, chunk.cleanToRawMap);
+    },
+    [playChunkDirect],
+  );
+
+  const speak = useCallback(
+    (text: string) => {
+      if (
+        typeof window === "undefined" ||
+        !text.trim() ||
+        !window.speechSynthesis
+      )
+        return;
+
+      try {
+        if (
+          window.speechSynthesis.speaking ||
+          window.speechSynthesis.pending ||
+          window.speechSynthesis.paused
+        ) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {}
+
+      const chunks = splitTextIntoChunks(text);
+      if (chunks.length === 0) return;
+
+      isCanceledRef.current = false;
+      isPausedRef.current = false;
+      chunksRef.current = chunks;
+      currentChunkIndexRef.current = 0;
+      savedChunkIndexRef.current = 0;
       savedRemainingTextRef.current = null;
-      playChunkAtIndex(chunkIndex + 1);
-    };
+      savedRemainingMapRef.current = [];
 
-    utterance.onboundary = (e) => {
-      if (isCanceledRef.current || isPausedRef.current) return;
-      const rawLocalIdx = e.charIndex || 0;
-      lastBoundaryLocalIndexRef.current = rawLocalIdx;
-      hasBoundaryFiredRef.current = true;
-
-      // Extract accurate word boundary even when browser does not provide charLength
-      let wordStart = rawLocalIdx;
-      while (wordStart < textToSpeak.length && /[\s"“«'‘(\[<{]/.test(textToSpeak[wordStart])) {
-        wordStart++;
-      }
-
-      let wordLen = e.charLength || 0;
-      if (wordLen <= 1 && wordStart < textToSpeak.length) {
-        const slice = textToSpeak.slice(wordStart);
-        const match = slice.match(/^[\p{L}\p{M}\p{N}_—–-]+/u);
-        wordLen = match?.[0]?.length || 1;
-      } else if (wordLen <= 1) {
-        wordLen = 1;
-      }
-      lastBoundaryWordLenRef.current = wordLen;
-
-      const map = currentCleanToRawMapRef.current;
-      const rawWordStart = map[wordStart] ?? wordStart;
-      const rawWordEnd = map[Math.min(textToSpeak.length - 1, wordStart + wordLen - 1)];
-      const globalCharIndex = baseOffset + rawWordStart;
-      optionsRef.current?.onBoundary?.({
-        ...e,
-        charIndex: globalCharIndex,
-        charLength: rawWordEnd !== undefined ? Math.max(1, rawWordEnd - rawWordStart + 1) : wordLen,
-        utterance,
-      });
-    };
-
-    try {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      window.speechSynthesis.speak(utterance);
-      setIsPlaying(true);
-      setIsPaused(false);
-    } catch (err) {
-      console.error(`[TTS] speak(chunk ${chunkIndex + 1}) threw:`, err);
-      playChunkAtIndex(chunkIndex + 1);
-    }
-  }, []);
-
-  const playChunkAtIndex = useCallback((index: number) => {
-    if (isCanceledRef.current || isPausedRef.current || typeof window === 'undefined' || !window.speechSynthesis) {
-      return;
-    }
-
-    const chunks = chunksRef.current;
-    if (index >= chunks.length) {
-      activeUtteranceRef.current = null;
-      (window as any).__novelhub_active_utterance = null;
-      savedRemainingTextRef.current = null;
-      setIsPlaying(false);
-      setIsPaused(false);
-      optionsRef.current?.onEnd?.();
-      return;
-    }
-
-    currentChunkIndexRef.current = index;
-    const chunk = chunks[index];
-
-    playChunkDirect(chunk.text, chunk.charOffset, index, chunk.cleanToRawMap);
-  }, [playChunkDirect]);
-
-  const speak = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !text.trim() || !window.speechSynthesis) return;
-
-    try {
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending || window.speechSynthesis.paused) {
-        window.speechSynthesis.cancel();
-      }
-    } catch {}
-
-    const chunks = splitTextIntoChunks(text);
-    if (chunks.length === 0) return;
-
-    isCanceledRef.current = false;
-    isPausedRef.current = false;
-    chunksRef.current = chunks;
-    currentChunkIndexRef.current = 0;
-    savedChunkIndexRef.current = 0;
-    savedRemainingTextRef.current = null;
-    savedRemainingMapRef.current = [];
-
-    playChunkAtIndex(0);
-  }, [playChunkAtIndex]);
+      playChunkAtIndex(0);
+    },
+    [playChunkAtIndex],
+  );
 
   const pause = useCallback(() => {
     isPausedRef.current = true;
@@ -635,9 +723,12 @@ export function useTTS(options?: UseTTSOptions) {
           if (remaining.length > 2) {
             savedRemainingTextRef.current = remaining;
             // index of the first non-space char (leading trim only; trailing trim must not shift the map)
-            const cleanStart = nextWordPos + (sliceFrom.length - sliceFrom.trimStart().length);
-            const rawStart = currentCleanToRawMapRef.current[cleanStart] ?? cleanStart;
-            savedRemainingOffsetRef.current = currentBaseOffsetRef.current + rawStart;
+            const cleanStart =
+              nextWordPos + (sliceFrom.length - sliceFrom.trimStart().length);
+            const rawStart =
+              currentCleanToRawMapRef.current[cleanStart] ?? cleanStart;
+            savedRemainingOffsetRef.current =
+              currentBaseOffsetRef.current + rawStart;
             savedRemainingMapRef.current = currentCleanToRawMapRef.current
               .slice(cleanStart)
               .map((rawIndex) => Math.max(0, rawIndex - rawStart));
@@ -646,7 +737,7 @@ export function useTTS(options?: UseTTSOptions) {
       }
     }
 
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
     } catch {}
@@ -663,7 +754,7 @@ export function useTTS(options?: UseTTSOptions) {
   }, []);
 
   const resume = useCallback(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     isPausedRef.current = false;
     isCanceledRef.current = false;
     const resumeIndex = savedChunkIndexRef.current;
@@ -693,7 +784,7 @@ export function useTTS(options?: UseTTSOptions) {
     savedRemainingTextRef.current = null;
     savedRemainingOffsetRef.current = 0;
     savedRemainingMapRef.current = [];
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
     } catch {}

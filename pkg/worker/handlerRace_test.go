@@ -7,8 +7,7 @@ import (
 	"testing"
 )
 
-// Only -race catches this: the worker reads q.handler and q.lifecycle from its own goroutine while
-// RegisterHandler/SetLifecycle write them, and nothing in the API forces registration before Start.
+// Only -race catches this: the worker reads q.handler and q.lifecycle from its own goroutine while RegisterHandler/SetLifecycle write them, and nothing in the API forces registration before Start.
 func TestRegisterHandlerConcurrentWithWorker(t *testing.T) {
 	q := NewQueue(2)
 	q.RegisterHandler("a", func(ctx context.Context, jobID, payload string) error { return nil })

@@ -73,9 +73,7 @@ func TestKomgaJSONEachAcceptsStringArg(t *testing.T) {
 	}
 }
 
-// Cache-by-ids: the list key holds only ids, and each series is cached per id, so a second
-// listing that overlaps reuses the entity rows. The library scope is part of the entity key
-// because book_count is computed over visible books only.
+// Cache-by-ids: the list key holds only ids, and each series is cached per id, so a second listing that overlaps reuses the entity rows.
 func TestKomgaSeriesCacheIsScopedByLibrary(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "t.db"))
 	if err != nil {
@@ -110,7 +108,6 @@ func TestKomgaSeriesCacheIsScopedByLibrary(t *testing.T) {
 		t.Errorf("libraryId = %q, want lib-1", narrow[0].LibraryID)
 	}
 
-	// Same series id, wider scope. A cache keyed on id alone would serve the stale count of 1.
 	wide, err := repo.ListSeries(ctx, []string{"lib-1", "lib-2"}, "", 20, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +116,6 @@ func TestKomgaSeriesCacheIsScopedByLibrary(t *testing.T) {
 		t.Fatalf("two-library scope = %+v, want 1 series with 2 books", wide[0])
 	}
 
-	// Served from the per-id cache this time; the values must not drift.
 	again, err := repo.ListSeries(ctx, []string{"lib-1"}, "", 20, 0)
 	if err != nil {
 		t.Fatal(err)

@@ -23,12 +23,12 @@ func NewParser() *Parser {
 }
 
 var (
-	titleRegex       = regexp.MustCompile(`\\title\{([^}]+)\}`)
-	authorRegex      = regexp.MustCompile(`\\author\{([^}]+)\}`)
-	dateRegex        = regexp.MustCompile(`\\date\{([^}]+)\}`)
-	abstractRegex    = regexp.MustCompile(`(?s)\\begin\{abstract\}(.*?)\\end\{abstract\}`)
-	commentRegex     = regexp.MustCompile(`(?m)(^|[^\\])%.*$`)
-	chapterSecRegex  = regexp.MustCompile(`(?m)^\s*\\(chapter|section)\*?\{([^}]+)\}`)
+	titleRegex      = regexp.MustCompile(`\\title\{([^}]+)\}`)
+	authorRegex     = regexp.MustCompile(`\\author\{([^}]+)\}`)
+	dateRegex       = regexp.MustCompile(`\\date\{([^}]+)\}`)
+	abstractRegex   = regexp.MustCompile(`(?s)\\begin\{abstract\}(.*?)\\end\{abstract\}`)
+	commentRegex    = regexp.MustCompile(`(?m)(^|[^\\])%.*$`)
+	chapterSecRegex = regexp.MustCompile(`(?m)^\s*\\(chapter|section)\*?\{([^}]+)\}`)
 )
 
 type texSection struct {
@@ -179,10 +179,8 @@ func (p *Parser) extractSections(filePath string) ([]texSection, string, error) 
 	}
 	raw := string(data)
 
-	// Strip comments
 	raw = commentRegex.ReplaceAllString(raw, "$1")
 
-	// Extract body inside \begin{document}...\end{document} if present
 	body := raw
 	if start := strings.Index(body, `\begin{document}`); start >= 0 {
 		body = body[start+len(`\begin{document}`):]
@@ -198,7 +196,6 @@ func (p *Parser) extractSections(filePath string) ([]texSection, string, error) 
 	}
 
 	var sections []texSection
-	// Pre-section intro (if any)
 	if matches[0][0] > 0 {
 		pre := strings.TrimSpace(body[:matches[0][0]])
 		if len(pre) > 30 {
@@ -244,7 +241,6 @@ func cleanLatexInline(s string) string {
 }
 
 func latexBodyToHTML(s string) string {
-	// Headings — resolve nested inline commands in heading text
 	cmdRe := regexp.MustCompile(`\\([a-zA-Z]+)\*?(?:\[[^\]]*\])?\{([^{}]*)\}`)
 	resolveNested := func(text string) string {
 		for {
@@ -264,7 +260,7 @@ func latexBodyToHTML(s string) string {
 	}
 	headings := []struct {
 		pattern string
-		tag    string
+		tag     string
 	}{
 		{`(?m)^\s*\\chapter\*?\{([^}]+)\}`, "h1"},
 		{`(?m)^\s*\\section\*?\{([^}]+)\}`, "h2"},
@@ -282,19 +278,16 @@ func latexBodyToHTML(s string) string {
 		})
 	}
 
-	// Alignment environments
 	s = regexp.MustCompile(`(?s)\\begin\{center\}(.*?)\\end\{center\}`).ReplaceAllString(s, `<div align="center">$1</div>`)
 	s = regexp.MustCompile(`(?s)\\begin\{flushright\}(.*?)\\end\{flushright\}`).ReplaceAllString(s, `<div align="right">$1</div>`)
 	s = regexp.MustCompile(`(?s)\\begin\{flushleft\}(.*?)\\end\{flushleft\}`).ReplaceAllString(s, `<div align="left">$1</div>`)
 	s = regexp.MustCompile(`(?s)\\begin\{quote\}(.*?)\\end\{quote\}`).ReplaceAllString(s, `<blockquote>$1</blockquote>`)
 	s = regexp.MustCompile(`(?s)\\begin\{quotation\}(.*?)\\end\{quotation\}`).ReplaceAllString(s, `<blockquote>$1</blockquote>`)
 
-	// Lists
 	s = regexp.MustCompile(`(?s)\\begin\{itemize\}(.*?)\\end\{itemize\}`).ReplaceAllString(s, `<ul>$1</ul>`)
 	s = regexp.MustCompile(`(?s)\\begin\{enumerate\}(.*?)\\end\{enumerate\}`).ReplaceAllString(s, `<ol>$1</ol>`)
 	s = regexp.MustCompile(`(?m)^\s*\\item\s*`).ReplaceAllString(s, "<li>")
 
-	// Figures and Images (before inline formatting so \includegraphics/\caption survive)
 	s = regexp.MustCompile(`(?s)\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}`).ReplaceAllStringFunc(s, func(figBlock string) string {
 		imgMatch := regexp.MustCompile(`\\includegraphics\*?(?:\[[^\]]*\])?\{([^}]+)\}`).FindStringSubmatch(figBlock)
 		capMatch := regexp.MustCompile(`\\caption\*?\{([^}]+)\}`).FindStringSubmatch(figBlock)
@@ -312,7 +305,6 @@ func latexBodyToHTML(s string) string {
 		return figBlock
 	})
 
-	// Standalone \includegraphics
 	s = regexp.MustCompile(`\\includegraphics\*?(?:\[[^\]]*\])?\{([^}]+)\}`).ReplaceAllStringFunc(s, func(match string) string {
 		sub := regexp.MustCompile(`\{([^}]+)\}`).FindStringSubmatch(match)
 		if len(sub) > 1 {
@@ -322,7 +314,6 @@ func latexBodyToHTML(s string) string {
 		return ""
 	})
 
-	// Inline formatting (innermost-first loop to handle nested braces)
 	s = latexCmdToHTML(s, map[string]string{
 		`textbf`: "b", `textit`: "i", `emph`: "i",
 		`underline`: "u", `sout`: "s",
@@ -330,16 +321,12 @@ func latexBodyToHTML(s string) string {
 		`texttt`: "code",
 	})
 
-	// Math inline: $...$ -> <code>...</code>
 	s = regexp.MustCompile(`\$([^$]+)\$`).ReplaceAllString(s, "<code>$1</code>")
 
-	// Line breaks
 	s = strings.ReplaceAll(s, `\\`, "<br/>")
 
-	// Remove unhandled commands e.g. \maketitle, \tableofcontents, \vspace{...}
 	s = regexp.MustCompile(`\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?`).ReplaceAllString(s, "")
 
-	// Wrap standalone paragraphs into <p>...</p>
 	lines := strings.Split(s, "\n\n")
 	var out strings.Builder
 	for _, block := range lines {
@@ -374,7 +361,6 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 		return nil, fmt.Errorf("resolve tex asset: %w", err)
 	}
 
-	// If file doesn't have an extension, try common image extensions
 	if filepath.Ext(fullPath) == "" {
 		for _, ext := range []string{".png", ".jpg", ".jpeg", ".webp", ".svg", ".pdf"} {
 			if _, err := os.Stat(fullPath + ext); err == nil {

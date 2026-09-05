@@ -7,8 +7,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 )
 
-// RuleJson stays an opaque string here; the service owns marshalling it to and
-// from the validated rule DTO. Nothing reads it as a raw string past that.
+// RuleJson stays an opaque string here; the service owns marshalling it to and from the validated rule DTO.
 type SmartCollectionEntity struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`

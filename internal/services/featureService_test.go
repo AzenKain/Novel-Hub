@@ -96,15 +96,15 @@ var _ repositories.FeatureRepository = (*sessionFeatureRepo)(nil)
 
 type statsFeatureRepo struct {
 	repositories.FeatureRepository
-	heatmap       []*models.ReadingHeatmapEntity
-	goal          *models.ReadingGoalEntity
-	goalErr       error
-	byBook        *models.ReadingStatsByBookEntity
-	since         *models.ReadingStatsSinceEntity
-	progress      *models.ReadingProgressEntity
-	progressErr   error
-	breakdown     *models.LibraryBreakdownEntity
-	listening     []*models.ListeningHistoryEntity
+	heatmap        []*models.ReadingHeatmapEntity
+	goal           *models.ReadingGoalEntity
+	goalErr        error
+	byBook         *models.ReadingStatsByBookEntity
+	since          *models.ReadingStatsSinceEntity
+	progress       *models.ReadingProgressEntity
+	progressErr    error
+	breakdown      *models.LibraryBreakdownEntity
+	listening      []*models.ListeningHistoryEntity
 	listeningStats *models.ListeningStatsEntity
 }
 
@@ -252,7 +252,7 @@ func TestGetReaderETAForbiddenWithoutAccess(t *testing.T) {
 
 func TestGetLibraryBreakdownAvgSpeed(t *testing.T) {
 	r := &statsFeatureRepo{
-		breakdown:     &models.LibraryBreakdownEntity{},
+		breakdown:      &models.LibraryBreakdownEntity{},
 		listeningStats: &models.ListeningStatsEntity{TotalWords: 3000, TotalDuration: 3600},
 	}
 	svc := newSessionService(r, nil, nil, true)
@@ -287,20 +287,22 @@ type libraryStatsSettingsStub struct {
 	err                error
 }
 
-func (s libraryStatsSettingsStub) Reload(context.Context) error                { return nil }
+func (s libraryStatsSettingsStub) Reload(context.Context) error { return nil }
 func (s libraryStatsSettingsStub) Public(context.Context) (*models.PublicSettings, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
 	return &models.PublicSettings{GuestLoginRequired: s.guestLoginRequired}, nil
 }
-func (s libraryStatsSettingsStub) Admin(context.Context) (*models.AdminSettings, error) { return nil, nil }
-func (s libraryStatsSettingsStub) Limits() models.RuntimeLimits                         { return models.RuntimeLimits{} }
-func (s libraryStatsSettingsStub) ServerURL() string                                    { return "" }
+func (s libraryStatsSettingsStub) Admin(context.Context) (*models.AdminSettings, error) {
+	return nil, nil
+}
+func (s libraryStatsSettingsStub) Limits() models.RuntimeLimits { return models.RuntimeLimits{} }
+func (s libraryStatsSettingsStub) ServerURL() string            { return "" }
 func (s libraryStatsSettingsStub) UpdateSettings(context.Context, map[string]any) (*models.AdminSettings, error) {
 	return nil, nil
 }
-func (s libraryStatsSettingsStub) GuestAllows(string) bool       { return !s.guestLoginRequired }
+func (s libraryStatsSettingsStub) GuestAllows(string) bool            { return !s.guestLoginRequired }
 func (s libraryStatsSettingsStub) SetupRequired(context.Context) bool { return false }
 func (s libraryStatsSettingsStub) SaveAsset(context.Context, string, []byte, string, string) (string, error) {
 	return "", nil
@@ -386,7 +388,6 @@ func TestReorderRolesCommitsAtomically(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// First ID in the payload gets the highest position (total*10, descending).
 	want := []int64{30, 20, 10}
 	for i, id := range ids {
 		role, err := roleRepo.GetByID(context.Background(), id)

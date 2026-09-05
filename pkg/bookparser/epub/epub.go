@@ -775,10 +775,6 @@ func (p *Parser) ListImages(filePath string) ([]string, error) {
 	return images, nil
 }
 
-// isImageManifestItem reports whether a manifest item is an image. A declared
-// image/* media-type wins; some producers ship empty media-type="" items, so
-// those are sniffed from their bytes (the real-book shape that used to drop
-// every image during conversion).
 func isImageManifestItem(r *zip.ReadCloser, baseDir string, item Item) bool {
 	if strings.HasPrefix(item.MediaType, "image/") {
 		return true

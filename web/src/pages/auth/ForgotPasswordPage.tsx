@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
     e.preventDefault();
     resetMutation.mutate(
       { email, otp_ticket: ticket, new_password: password },
-      { onSuccess: () => navigate("/login", { replace: true }) }
+      { onSuccess: () => navigate("/login", { replace: true }) },
     );
   };
 
@@ -29,11 +29,18 @@ export function ForgotPasswordPage() {
         <div className="card w-full max-w-md bg-base-100 shadow-xl text-center">
           <div className="card-body items-center gap-4">
             <BookOpen size={40} className="text-base-content/30" />
-            <h2 className="text-xl font-bold">{t("auth.reset_disabled", "Password Reset Disabled")}</h2>
+            <h2 className="text-xl font-bold">
+              {t("auth.reset_disabled", "Password Reset Disabled")}
+            </h2>
             <p className="text-sm text-base-content/60">
-              {t("auth.reset_disabled_desc", "Password reset by email is currently disabled. Ask an administrator to reset your password.")}
+              {t(
+                "auth.reset_disabled_desc",
+                "Password reset by email is currently disabled. Ask an administrator to reset your password.",
+              )}
             </p>
-            <Link to="/login" className="btn btn-primary btn-sm">{t("auth.login", "Sign in")}</Link>
+            <Link to="/login" className="btn btn-primary btn-sm">
+              {t("auth.login", "Sign in")}
+            </Link>
           </div>
         </div>
       </div>
@@ -48,15 +55,24 @@ export function ForgotPasswordPage() {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
               <KeyRound size={28} className="text-primary" />
             </div>
-            <h2 className="text-2xl font-bold">{t("auth.reset_title", "Reset Password")}</h2>
+            <h2 className="text-2xl font-bold">
+              {t("auth.reset_title", "Reset Password")}
+            </h2>
             <p className="text-sm text-base-content/60">
-              {t("auth.reset_desc", "We'll email you a code to confirm it's your account.")}
+              {t(
+                "auth.reset_desc",
+                "We'll email you a code to confirm it's your account.",
+              )}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="form-control">
-              <label className="label"><span className="label-text font-semibold">{t("auth.email", "Email")}</span></label>
+              <label className="label">
+                <span className="label-text font-semibold">
+                  {t("auth.email", "Email")}
+                </span>
+              </label>
               <input
                 type="email"
                 placeholder="account@example.com"
@@ -72,7 +88,11 @@ export function ForgotPasswordPage() {
             </div>
 
             {!ticket ? (
-              <OTPCodeStep email={email} purpose="password_reset" onVerified={setTicket} />
+              <OTPCodeStep
+                email={email}
+                purpose="password_reset"
+                onVerified={setTicket}
+              />
             ) : (
               <>
                 <div className="alert alert-success py-2 text-sm rounded-lg">
@@ -80,7 +100,9 @@ export function ForgotPasswordPage() {
                 </div>
                 <div className="form-control">
                   <label className="label">
-                    <span className="label-text font-semibold">{t("auth.new_password", "New password")}</span>
+                    <span className="label-text font-semibold">
+                      {t("auth.new_password", "New password")}
+                    </span>
                   </label>
                   <input
                     type="password"
@@ -92,7 +114,9 @@ export function ForgotPasswordPage() {
                     minLength={8}
                     autoComplete="new-password"
                   />
-                  {password.length > 0 && <PasswordStrength password={password} />}
+                  {password.length > 0 && (
+                    <PasswordStrength password={password} />
+                  )}
                 </div>
 
                 {resetMutation.error && (
@@ -103,8 +127,13 @@ export function ForgotPasswordPage() {
                   </div>
                 )}
 
-                <button className="btn btn-primary mt-2" disabled={resetMutation.isPending}>
-                  {resetMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : null}
+                <button
+                  className="btn btn-primary mt-2"
+                  disabled={resetMutation.isPending}
+                >
+                  {resetMutation.isPending ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : null}
                   {t("auth.reset_submit", "Set new password")}
                 </button>
               </>
@@ -112,7 +141,9 @@ export function ForgotPasswordPage() {
           </form>
 
           <div className="text-center mt-2">
-            <Link to="/login" className="text-sm link link-hover">{t("auth.back_to_login", "Back to sign in")}</Link>
+            <Link to="/login" className="text-sm link link-hover">
+              {t("auth.back_to_login", "Back to sign in")}
+            </Link>
           </div>
         </div>
       </div>

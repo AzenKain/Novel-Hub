@@ -2,7 +2,6 @@ package aac
 
 import "math"
 
-// pulseInfo carries the optional pulse escape (long windows only).
 type pulseInfo struct {
 	numPulse int
 	startSfb int
@@ -10,10 +9,8 @@ type pulseInfo struct {
 	amp      [4]int
 }
 
-// parseICSInfo reads ics_info (ISO 14496-3 4.4.6), resolving the window
-// grouping and the scalefactor-band table for the window type.
 func (d *Decoder) parseICSInfo(r *bitReader, info *icsInfo) bool {
-	r.bit() // ics_reserved_bit
+	r.bit()
 	seq := int(r.read(2))
 	shape := int(r.bit())
 	*info = icsInfo{windowSequence: seq, windowShape: shape}
@@ -36,7 +33,7 @@ func (d *Decoder) parseICSInfo(r *bitReader, info *icsInfo) bool {
 	} else {
 		info.maxSfb = int(r.read(6))
 		if r.bit() != 0 {
-			return false // predictor_data_present: not valid in AAC-LC
+			return false
 		}
 		info.numWindows = 1
 		info.numWindowGroups = 1
@@ -47,9 +44,6 @@ func (d *Decoder) parseICSInfo(r *bitReader, info *icsInfo) bool {
 	return info.maxSfb <= info.numSwb && info.maxSfb <= maxSFBCount
 }
 
-// decodeChannelData reads an individual_channel_stream (ISO 14496-3 4.4.6):
-// global_gain, then ics_info unless the window is shared (CPE common
-// window), then section, scalefactor, pulse, TNS, and spectral data into cd.
 func (d *Decoder) decodeChannelData(r *bitReader, cd *channelData, common bool) error {
 	cd.globalGain = int(r.read(8))
 	if !common {
@@ -81,7 +75,6 @@ func (d *Decoder) decodeChannelData(r *bitReader, cd *channelData, common bool) 
 	return nil
 }
 
-// groupStarts returns the first window index of each window group.
 func groupStarts(info *icsInfo) [maxWindowGroups]int {
 	var gs [maxWindowGroups]int
 	acc := 0
@@ -92,7 +85,6 @@ func groupStarts(info *icsInfo) [maxWindowGroups]int {
 	return gs
 }
 
-// sectionData assigns a Huffman codebook to every scalefactor band.
 func (d *Decoder) sectionData(r *bitReader, cd *channelData) bool {
 	info := &cd.info
 	lenBits := uint(5)
@@ -108,8 +100,7 @@ func (d *Decoder) sectionData(r *bitReader, cd *channelData) bool {
 			}
 			cb := uint8(r.read(4))
 			if cb == reservedHCB {
-				return false // codebook 12 is reserved; reject rather than
-				// read a phantom scalefactor that skew later bands
+				return false
 			}
 			length := 0
 			for {
@@ -120,7 +111,7 @@ func (d *Decoder) sectionData(r *bitReader, cd *channelData) bool {
 				}
 			}
 			if length == 0 {
-				return false // a zero-length section makes no progress
+				return false
 			}
 			for i := 0; i < length; i++ {
 				if k >= info.maxSfb {
@@ -134,8 +125,6 @@ func (d *Decoder) sectionData(r *bitReader, cd *channelData) bool {
 	return true
 }
 
-// scaleFactorData DPCM-decodes the scalefactors, intensity positions, and
-// noise energies (ISO 14496-3 4.6.2.3).
 func (d *Decoder) scaleFactorData(r *bitReader, cd *channelData) bool {
 	info := &cd.info
 	scale := cd.globalGain
@@ -182,7 +171,6 @@ func (d *Decoder) scaleFactorData(r *bitReader, cd *channelData) bool {
 	return true
 }
 
-// parsePulse reads pulse_data (ISO 14496-3 4.4.6).
 func parsePulse(r *bitReader, cd *channelData) {
 	p := &cd.pulse
 	p.numPulse = int(r.read(2)) + 1
@@ -193,8 +181,6 @@ func parsePulse(r *bitReader, cd *channelData) {
 	}
 }
 
-// spectralData Huffman-decodes the quantized coefficients section by
-// section into the grouped spectrum (ISO 14496-3 4.6.3).
 func (d *Decoder) spectralData(r *bitReader, cd *channelData) bool {
 	info := &cd.info
 	gs := groupStarts(info)
@@ -213,8 +199,6 @@ func (d *Decoder) spectralData(r *bitReader, cd *channelData) bool {
 				sfb = end
 				continue
 			}
-			// Ordered spec indices for this section: sfb-major, then window,
-			// then coefficient (the grouping layout).
 			n := 0
 			for s := sfb; s < end; s++ {
 				width := int(info.swb[s+1]) - int(info.swb[s])
@@ -241,8 +225,6 @@ func (d *Decoder) spectralData(r *bitReader, cd *channelData) bool {
 	return true
 }
 
-// dequant applies pulses, inverse quantization, and scalefactor gains,
-// leaving cd.spec holding dequantized coefficients.
 func (d *Decoder) dequant(cd *channelData) {
 	info := &cd.info
 	if cd.hasPulse && info.windowSequence != eightShort {
@@ -267,7 +249,6 @@ func (d *Decoder) dequant(cd *channelData) {
 	}
 }
 
-// applyPulse adds the pulse escape to the raw quantized coefficients.
 func applyPulse(cd *channelData) {
 	p := &cd.pulse
 	info := &cd.info
@@ -288,9 +269,6 @@ func applyPulse(cd *channelData) {
 	}
 }
 
-// iqTable caches |q|^(4/3) for the common range of quantized magnitudes so
-// the inverse quantizer avoids a cube root per spectral coefficient. Values
-// past the table (codebook-11 escapes) fall back to the direct computation.
 var iqTable [8192]float64
 
 func init() {
@@ -299,8 +277,6 @@ func init() {
 	}
 }
 
-// iquant is the AAC inverse quantizer: sign(q) * |q|^(4/3). q is always
-// integer-valued (a decoded quantizer level), so the table index is exact.
 func iquant(q float64) float64 {
 	a := q
 	if a < 0 {

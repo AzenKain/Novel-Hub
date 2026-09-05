@@ -14,10 +14,6 @@ import (
 	"novelhub/pkg/database"
 )
 
-// The FTS tables address rows by rowid, aligned with the source table's rowid. Nothing enforces
-// that alignment -- a trigger that writes the wrong rowid, or an INSERT whose source row does
-// not exist yet, silently produces an index that is wrong rather than an error. These assert the
-// alignment holds through the operations that move rows around.
 func ftsTestDB(tb testing.TB) *sql.DB {
 	tb.Helper()
 	db, err := sql.Open("sqlite", filepath.Join(tb.TempDir(), "fts.db")+"?_pragma=foreign_keys(ON)&_pragma=trusted_schema(OFF)")
@@ -130,9 +126,7 @@ func TestFTSMetadataStaysAlignedThroughLifecycle(t *testing.T) {
 	assertFTSAligned(t, db, "after refilling from empty")
 }
 
-// InsertFTSChapter resolves the rowid from chapters. If it ever runs before the chapter row
-// exists the subquery yields NULL, fts5 assigns an arbitrary rowid, and DeleteFTSBook can no
-// longer find the row -- a leak that no error surfaces.
+// InsertFTSChapter resolves the rowid from chapters.
 func TestFTSChaptersAlignToChapterRowid(t *testing.T) {
 	db := ftsTestDB(t)
 	ctx := context.Background()
@@ -148,10 +142,6 @@ func TestFTSChaptersAlignToChapterRowid(t *testing.T) {
 	mustExec(`INSERT INTO books (id,library_id,title,status) VALUES ('bk-1','lib-1','T','active')`)
 	mustExec(`INSERT INTO books (id,library_id,title,status) VALUES ('bk-2','lib-1','T','active')`)
 
-	// All chapters first, then a gap punched in the middle, and only then the FTS rows. If the
-	// insert ever stopped resolving the real chapter rowid, fts5 would assign 1,2,3... which no
-	// longer lines up with the surviving chapter rowids -- whereas indexing as we go would make
-	// the two sequences match by accident and hide the bug.
 	chapterIDs := make([]string, 0, 8)
 	for i := 0; i < 4; i++ {
 		for _, bookID := range []string{"bk-1", "bk-2"} {
@@ -208,9 +198,7 @@ func TestFTSChaptersAlignToChapterRowid(t *testing.T) {
 	}
 }
 
-// The regression this whole change exists to prevent: addressing FTS rows by an UNINDEXED
-// column makes every write a full table scan, so per-write cost grows with table size. Assert
-// it stays flat when the table grows 4x.
+// The regression this whole change exists to prevent: addressing FTS rows by an UNINDEXED column makes every write a full table scan, so per-write cost grows with table size.
 func TestFTSWriteCostDoesNotGrowWithTableSize(t *testing.T) {
 	if testing.Short() {
 		t.Skip("seeds 32k books")
@@ -275,9 +263,7 @@ func TestFTSWriteCostDoesNotGrowWithTableSize(t *testing.T) {
 	}
 }
 
-// SQLite prints "SCAN <table> VIRTUAL TABLE INDEX 0:" for an fts5 write either way; the tell is
-// the trailing "=", which means fts5 accepted a rowid constraint and will seek instead of walk.
-// Without it the write is a full scan, which is the O(n) behaviour this change removed.
+// SQLite prints "SCAN <table> VIRTUAL TABLE INDEX 0:" for an fts5 write either way; the tell is the trailing "=", which means fts5 accepted a rowid constraint and will seek instead of walk.
 func TestFTSWritesAreRowidConstrained(t *testing.T) {
 	db := ftsTestDB(t)
 	cases := []struct{ name, query string }{

@@ -118,8 +118,7 @@ func (s *readListService) GetReadList(ctx context.Context, id string, userID str
 	return lists[0].ToResponse(lists[0].BookCount), nil
 }
 
-// Position is the index in the stored order rather than the raw position column, so removing an
-// entry never leaves the list numbered 1, 2, 4 in the UI.
+// Position is the index in the stored order rather than the raw position column, so removing an entry never leaves the list numbered 1, 2, 4 in the UI.
 func (s *readListService) GetReadListBooks(ctx context.Context, id string, userID string, claims *response.JWTClaims) ([]*response.ReadListBookResponse, error) {
 	if err := s.requireOwnership(ctx, id, userID); err != nil {
 		return nil, err
@@ -178,8 +177,7 @@ func (s *readListService) RemoveBook(ctx context.Context, id string, userID stri
 	return s.repo.RemoveBookFromReadList(ctx, id, bookID)
 }
 
-// The submitted ids must be the stored set exactly: a short array would otherwise renumber the
-// entries it does contain and silently leave the rest stacked at their old positions.
+// The submitted ids must be the stored set exactly: a short array would otherwise renumber the entries it does contain and silently leave the rest stacked at their old positions.
 func (s *readListService) Reorder(ctx context.Context, id string, userID string, bookIDs []string) error {
 	if err := s.requireOwnership(ctx, id, userID); err != nil {
 		return err
@@ -217,8 +215,7 @@ func (s *readListService) Reorder(ctx context.Context, id string, userID string,
 	return nil
 }
 
-// A dead end is not an error: running past the last entry, or hitting a book the reader may not
-// open, both mean "nothing more to read here" and the reader hides the button.
+// A dead end is not an error: running past the last entry, or hitting a book the reader may not open, both mean "nothing more to read here" and the reader hides the button.
 func (s *readListService) NextInOrder(ctx context.Context, id string, userID string, afterBookID string, claims *response.JWTClaims) (*response.ReadListNextResponse, error) {
 	if err := s.requireOwnership(ctx, id, userID); err != nil {
 		return nil, err
@@ -349,8 +346,6 @@ func (s *readListService) ImportCBL(ctx context.Context, userID string, r io.Rea
 	}, nil
 }
 
-// "1", "01" and "1.0" are the same issue to every human and to none of them is it the same string,
-// so numeric comparison comes first and the literal match is only the fallback for "1A"-style runs.
 func pickIssue(candidates []repositories.SeriesIndexMatch, number string) string {
 	wanted := strings.TrimSpace(number)
 	if wanted == "" {

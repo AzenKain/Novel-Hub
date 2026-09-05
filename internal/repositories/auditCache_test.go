@@ -35,9 +35,7 @@ func auditDB(tb testing.TB) *sql.DB {
 	return db
 }
 
-// filepath.Match treats '/' as a path separator that '*' will not cross. Every DelByPattern
-// in the codebase is a "prefix*" glob, so any key whose variable tail contains a '/' is
-// unreachable by the sweep that is supposed to invalidate it.
+// filepath.Match treats '/' as a path separator that '*' will not cross.
 func TestAuditDelByPatternNeverMatchesSlashKeys(t *testing.T) {
 	ctx := context.Background()
 
@@ -47,9 +45,6 @@ func TestAuditDelByPatternNeverMatchesSlashKeys(t *testing.T) {
 		pattern string
 	}{
 		{
-			// MetadataFacetFilter.cacheKey puts the raw Search term in the key, and
-			// MetadataFacetDto validates it with max=200 only -- no charset restriction. So
-			// ?search=sci-fi/fantasy is enough to mint a key no metadata:* sweep can reach.
 			name:    "metadata facet key holding a '/' search term",
 			key:     MetadataFacetFilter{Limit: 20, Search: "sci-fi/fantasy", LibraryIDs: []string{"lib-1"}}.cacheKey("authors"),
 			pattern: constants.CacheKeyMetadataPattern,
@@ -81,9 +76,7 @@ func TestAuditDelByPatternNeverMatchesSlashKeys(t *testing.T) {
 	}
 }
 
-// The metadata facet cache key is built from MetadataFacetFilter, whose LibraryIDs field carries
-// the caller's permission scope. cacheKey() joins LibraryIDs with "," -- so the scope IS in the
-// key. Assert that, because if it ever stops being true one user's facet list leaks to another.
+// The metadata facet cache key is built from MetadataFacetFilter, whose LibraryIDs field carries the caller's permission scope.
 func TestAuditMetadataFacetKeyIncludesLibraryScope(t *testing.T) {
 	admin := MetadataFacetFilter{Limit: 20, LibraryIDs: []string{"lib-open", "lib-secret"}}
 	guest := MetadataFacetFilter{Limit: 20, LibraryIDs: []string{"lib-open"}}
@@ -94,7 +87,6 @@ func TestAuditMetadataFacetKeyIncludesLibraryScope(t *testing.T) {
 	t.Logf("admin key = %q", admin.cacheKey("authors"))
 	t.Logf("guest key = %q", guest.cacheKey("authors"))
 
-	// The per-entity layer underneath holds the counts, and it must be scoped too.
 	adminEntity := cache.QueryKeyParts(admin.scopeKey(), "metadata_count", "author", "id", "au-1")
 	guestEntity := cache.QueryKeyParts(guest.scopeKey(), "metadata_count", "author", "id", "au-1")
 	if adminEntity == guestEntity {
@@ -102,9 +94,7 @@ func TestAuditMetadataFacetKeyIncludesLibraryScope(t *testing.T) {
 	}
 }
 
-// A metadata facet list's per-entity book_count is computed under the caller's library scope
-// and then cached at metadata_count:<type>:id:<id> with NO scope in the key. A caller who can
-// read fewer libraries reads back the wider caller's count for the same author.
+// A metadata facet list's per-entity book_count is computed under the caller's library scope and then cached at metadata_count:<type>:id:<id> with NO scope in the key.
 func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 	ctx := context.Background()
 	db := auditDB(t)
@@ -119,7 +109,6 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 	}
 	mustExec(`INSERT INTO libraries (id,name) VALUES ('lib-open','Open'),('lib-secret','Secret')`)
 	mustExec(`INSERT INTO authors (id,name) VALUES ('au-1','Frank Herbert')`)
-	// 1 book visible to everyone, 3 more only in the restricted library.
 	mustExec(`INSERT INTO books (id,library_id,title,author_id,status) VALUES ('bk-1','lib-open','Dune','au-1','active')`)
 	for _, id := range []string{"bk-2", "bk-3", "bk-4"} {
 		mustExec(`INSERT INTO books (id,library_id,title,author_id,status) VALUES (?,'lib-secret','Secret Vol','au-1','active')`, id)
@@ -128,8 +117,6 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 	adminFilter := MetadataFacetFilter{Limit: 20, LibraryIDs: []string{"lib-open", "lib-secret"}}
 	guestFilter := MetadataFacetFilter{Limit: 20, LibraryIDs: []string{"lib-open"}}
 
-	// 1. Guest browses first. Their facet-list key (scope IS in it) and the shared entity key
-	//    metadata_count:author:id:au-1 are both warmed with the correct scoped count of 1.
 	guestFirst, err := repo.ListAuthorsWithCount(ctx, guestFilter)
 	if err != nil {
 		t.Fatal(err)
@@ -139,8 +126,6 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 	}
 	t.Logf("1. guest reads: book_count=%d (correct -- only lib-open is readable)", guestFirst[0].BookCount)
 
-	// 2. Admin browses. Their facet-list key differs so the ID list is fetched fresh, but
-	//    cacheMetadataCountEntities then OVERWRITES the scope-free entity key with count=4.
 	adminRows, err := repo.ListAuthorsWithCount(ctx, adminFilter)
 	if err != nil {
 		t.Fatal(err)
@@ -152,8 +137,6 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 		"overwrote the shared entity key %q", adminRows[0].BookCount,
 		cache.QueryKeyParts(guestFilter.scopeKey(), "metadata_count", "author", "id", "au-1"))
 
-	// 3. Guest browses again. Their ID list is a cache HIT, so getMetadataCountByIDs serves the
-	//    entity straight from the scope-free key -- now holding the admin's count.
 	guestSecond, err := repo.ListAuthorsWithCount(ctx, guestFilter)
 	if err != nil {
 		t.Fatal(err)
@@ -172,8 +155,6 @@ func TestAuditMetadataCountEntityIgnoresLibraryScope(t *testing.T) {
 }
 
 // GetFilesByBookId caches an EMPTY id list for ListCacheDuration when a book has no files yet.
-// The scanner creates the book row first and attaches the file afterwards, so a reader who hits
-// the book in that window pins "no files" for 10 minutes.
 func TestAuditEmptyFileListIsNegativeCached(t *testing.T) {
 	ctx := context.Background()
 	db := auditDB(t)
@@ -197,7 +178,6 @@ func TestAuditEmptyFileListIsNegativeCached(t *testing.T) {
 	}
 	t.Logf("cached empty list under %q", cache.BuildKey("book_file", "book", "bk-1"))
 
-	// Insert the file the way the scanner does -- through the repo, so invalidation runs.
 	if err := repo.CreateBookFile(ctx, sqlc.CreateBookFileParams{
 		ID: "f-1", BookID: "bk-1", Path: "/nas/library/dune.epub",
 		Format: "epub", SizeBytes: 1024, ModTime: time.Now(),
@@ -217,8 +197,7 @@ func TestAuditEmptyFileListIsNegativeCached(t *testing.T) {
 	}
 }
 
-// Author / tag / series / publisher / language entities are cached by NAME with no invalidation
-// anywhere. Prove no mutation path clears them: the key is written on read and never deleted.
+// Author / tag / series / publisher / language entities are cached by NAME with no invalidation anywhere.
 func TestAuditMetadataNameKeysHaveNoInvalidation(t *testing.T) {
 	ctx := context.Background()
 	db := auditDB(t)
@@ -236,8 +215,6 @@ func TestAuditMetadataNameKeysHaveNoInvalidation(t *testing.T) {
 		t.Skip("author:name not cached in this environment")
 	}
 
-	// Rename the author directly: there is no repository Update/Delete for authors at all,
-	// so this is the only way the row changes -- and nothing invalidates the cache.
 	if _, err := db.Exec(`UPDATE authors SET name='Herbert, Frank' WHERE id='au-1'`); err != nil {
 		t.Fatal(err)
 	}
@@ -249,8 +226,7 @@ func TestAuditMetadataNameKeysHaveNoInvalidation(t *testing.T) {
 	}
 }
 
-// The byte cache documents that GetOrLoad returns the shared buffer. Prove that a caller
-// mutating the returned slice corrupts every subsequent reader.
+// The byte cache documents that GetOrLoad returns the shared buffer.
 func TestAuditByteCacheSharedBufferIsMutable(t *testing.T) {
 	bc, err := cache.NewByteCache(8<<20, time.Hour)
 	if err != nil {
@@ -264,8 +240,6 @@ func TestAuditByteCacheSharedBufferIsMutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A caller that transforms in place -- e.g. the text/css branch in bookService.GetAsset if
-	// it ever wrote back through the slice instead of allocating.
 	copy(first, []byte("CORRUPTED"))
 
 	second, err := bc.GetOrLoad("asset:f-1:page1.jpg", load)
@@ -281,11 +255,8 @@ func TestAuditByteCacheSharedBufferIsMutable(t *testing.T) {
 	}
 }
 
-// Only raster images go through the byte cache; the css/html branch of GetAsset rebuilds a new
-// slice. Assert the property the code relies on: scoping CSS must not write through the input.
+// Only raster images go through the byte cache; the css/html branch of GetAsset rebuilds a new slice.
 func TestAuditAssetCacheOnlyHoldsImages(t *testing.T) {
-	// contentType gate in bookService.GetAsset is strings.HasPrefix(contentType, "image/").
-	// text/css is the one content type mutated after retrieval; it must not be cached.
 	for _, ct := range []string{"text/css", "application/xhtml+xml", "audio/mpeg"} {
 		if len(ct) >= 6 && ct[:6] == "image/" {
 			t.Fatalf("%q would enter the byte cache", ct)

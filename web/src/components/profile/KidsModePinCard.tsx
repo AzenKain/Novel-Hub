@@ -22,7 +22,9 @@ export const KidsModePinCard: React.FC = () => {
   const handleSetPin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-      setError(t("kids_mode.pin_must_be_6_digits", "PIN must be exactly 6 digits"));
+      setError(
+        t("kids_mode.pin_must_be_6_digits", "PIN must be exactly 6 digits"),
+      );
       return;
     }
 
@@ -36,15 +38,27 @@ export const KidsModePinCard: React.FC = () => {
     try {
       const data = await setPinMutation.mutateAsync(pin);
       if (data?.status) {
-        toast.success(t("kids_mode.pin_saved", "6-digit Kids Mode PIN updated successfully!"));
+        toast.success(
+          t(
+            "kids_mode.pin_saved",
+            "6-digit Kids Mode PIN updated successfully!",
+          ),
+        );
         setPin("");
         setConfirmPin("");
         setHasPin(true);
       } else {
-        setError(data?.message || t("kids_mode.pin_save_failed", "Failed to update PIN"));
+        setError(
+          data?.message ||
+            t("kids_mode.pin_save_failed", "Failed to update PIN"),
+        );
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || t("kids_mode.pin_save_failed", "Failed to update PIN"));
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          t("kids_mode.pin_save_failed", "Failed to update PIN"),
+      );
     }
   };
 
@@ -57,12 +71,15 @@ export const KidsModePinCard: React.FC = () => {
           </div>
           <div>
             <h3 className="card-title text-base">
-              {t("kids_mode.parental_control_title", "Parental Control & Kids Mode PIN")}
+              {t(
+                "kids_mode.parental_control_title",
+                "Parental Control & Kids Mode PIN",
+              )}
             </h3>
             <p className="text-xs text-base-content/70">
               {t(
                 "kids_mode.parental_control_desc",
-                "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content."
+                "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
               )}
             </p>
           </div>
@@ -72,12 +89,16 @@ export const KidsModePinCard: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label text-xs font-semibold text-base-content/70">
-                {hasPin ? t("kids_mode.new_6_digit_pin", "New 6-Digit PIN") : t("kids_mode.enter_6_digit_pin_label", "Set 6-Digit PIN")}
+                {hasPin
+                  ? t("kids_mode.new_6_digit_pin", "New 6-Digit PIN")
+                  : t("kids_mode.enter_6_digit_pin_label", "Set 6-Digit PIN")}
               </label>
               <input
                 type="password"
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="••••••"
                 maxLength={6}
                 className="input input-bordered input-sm font-mono text-center text-lg tracking-widest w-full"
@@ -91,7 +112,9 @@ export const KidsModePinCard: React.FC = () => {
               <input
                 type="password"
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="••••••"
                 maxLength={6}
                 className="input input-bordered input-sm font-mono text-center text-lg tracking-widest w-full"
@@ -115,7 +138,11 @@ export const KidsModePinCard: React.FC = () => {
 
             <button
               type="submit"
-              disabled={setPinMutation.isPending || pin.length !== 6 || confirmPin.length !== 6}
+              disabled={
+                setPinMutation.isPending ||
+                pin.length !== 6 ||
+                confirmPin.length !== 6
+              }
               className="btn btn-emerald btn-sm gap-1 text-white bg-emerald-600 hover:bg-emerald-700 border-none"
             >
               {setPinMutation.isPending ? (
@@ -123,7 +150,9 @@ export const KidsModePinCard: React.FC = () => {
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  {hasPin ? t("kids_mode.update_pin", "Update PIN") : t("kids_mode.save_pin", "Save 6-Digit PIN")}
+                  {hasPin
+                    ? t("kids_mode.update_pin", "Update PIN")
+                    : t("kids_mode.save_pin", "Save 6-Digit PIN")}
                 </>
               )}
             </button>

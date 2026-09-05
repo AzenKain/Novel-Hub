@@ -26,8 +26,6 @@ func (r *bookDBRepository) CreateBookFile(ctx context.Context, params sqlc.Creat
 		)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileAllPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFileDupesPattern)
-		// Format facets (ListFormatsWithCount) read book_files exclusively, and
-		// SearchBookIDs filters on it via filter_has_files/filter_has_formats/file_format.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
@@ -95,8 +93,6 @@ func (r *bookDBRepository) GetFilesByBookId(ctx context.Context, bookID string) 
 			fileMap[entity.ID] = entity
 		}
 
-		// ponytail: append instead of indexing by idRows position — a file deleted
-		// between ListFileIDsByBookId and GetBookFilesByIDs makes out shorter than idRows
 		ordered := make([]*models.BookFileEntity, 0, len(idRows))
 		ids := make([]string, 0, len(idRows))
 		for _, id := range idRows {
@@ -226,8 +222,7 @@ func (r *bookDBRepository) cacheBookFileEntities(ctx context.Context, entities [
 	_ = r.c.MSet(ctx, toCache, constants.NormalCacheDuration)
 }
 
-// Not cached by path: the column holds the path as imported, while entities carry the resolved one
-// (models.BookFileEntity.FromSqlc), so a path-keyed entry can never be invalidated by id.
+// Not cached by path: the column holds the path as imported, while entities carry the resolved one (models.BookFileEntity.FromSqlc), so a path-keyed entry can never be invalidated by id.
 func (r *bookDBRepository) GetBookFileByPath(ctx context.Context, path string) (*models.BookFileEntity, error) {
 	v, err, _ := r.sfg.Do(cache.BuildKey("book_file", "path", path), func() (any, error) {
 		file, err := r.queries.GetBookFileByPath(ctx, path)

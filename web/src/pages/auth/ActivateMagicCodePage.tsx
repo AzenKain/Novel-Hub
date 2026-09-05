@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { QrCode, Smartphone, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
+import {
+  QrCode,
+  Smartphone,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+} from "lucide-react";
 import { useActivateMagicCodeMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
 
@@ -37,10 +43,23 @@ export const ActivateMagicCodePage: React.FC = () => {
       if (data?.status) {
         setSuccess(true);
       } else {
-        setError(data?.message || t("profile.ereader_activate_failed", "Failed to activate eReader code"));
+        setError(
+          data?.message ||
+            t(
+              "profile.ereader_activate_failed",
+              "Failed to activate eReader code",
+            ),
+        );
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || t("profile.ereader_activate_failed", "Failed to activate eReader code"));
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          t(
+            "profile.ereader_activate_failed",
+            "Failed to activate eReader code",
+          ),
+      );
     }
   };
 
@@ -59,7 +78,7 @@ export const ActivateMagicCodePage: React.FC = () => {
           <p className="text-sm text-base-content/70">
             {t(
               "profile.ereader_login_desc",
-              "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password."
+              "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
             )}
           </p>
 
@@ -67,10 +86,21 @@ export const ActivateMagicCodePage: React.FC = () => {
             <div className="alert alert-warning text-xs mt-4 text-left flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">{t("auth.login_required", "Login Required")}</p>
-                <p>{t("auth.login_to_activate_ereader", "Please log in to your NovelHub account first to activate this eReader.")}</p>
+                <p className="font-semibold">
+                  {t("auth.login_required", "Login Required")}
+                </p>
+                <p>
+                  {t(
+                    "auth.login_to_activate_ereader",
+                    "Please log in to your NovelHub account first to activate this eReader.",
+                  )}
+                </p>
                 <button
-                  onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                  onClick={() =>
+                    navigate(
+                      `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+                    )
+                  }
                   className="btn btn-primary btn-xs mt-2"
                 >
                   {t("auth.login_now", "Log In Now")}
@@ -86,18 +116,30 @@ export const ActivateMagicCodePage: React.FC = () => {
                 {t("profile.device_activated_heading", "Device Activated!")}
               </h3>
               <p className="text-sm text-base-content/80">
-                {t("profile.device_activated_desc", "Your eReader device is now authenticated and logged in. You can close this window.")}
+                {t(
+                  "profile.device_activated_desc",
+                  "Your eReader device is now authenticated and logged in. You can close this window.",
+                )}
               </p>
-              <button onClick={() => navigate("/library")} className="btn btn-outline btn-sm gap-2 mt-4">
+              <button
+                onClick={() => navigate("/library")}
+                className="btn btn-outline btn-sm gap-2 mt-4"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 {t("common.back_to_library", "Back to Library")}
               </button>
             </div>
           ) : (
-            <form onSubmit={handleActivate} className="mt-4 space-y-4 text-left">
+            <form
+              onSubmit={handleActivate}
+              className="mt-4 space-y-4 text-left"
+            >
               <div>
                 <label className="label text-xs font-semibold text-base-content/70">
-                  {t("profile.enter_6_digit_code", "Enter 6-Digit Code displayed on eReader")}
+                  {t(
+                    "profile.enter_6_digit_code",
+                    "Enter 6-Digit Code displayed on eReader",
+                  )}
                 </label>
                 <input
                   type="text"
@@ -127,7 +169,10 @@ export const ActivateMagicCodePage: React.FC = () => {
                 ) : (
                   <>
                     <Smartphone className="w-4 h-4" />
-                    {t("profile.confirm_activation", "Confirm & Connect eReader")}
+                    {t(
+                      "profile.confirm_activation",
+                      "Confirm & Connect eReader",
+                    )}
                   </>
                 )}
               </button>

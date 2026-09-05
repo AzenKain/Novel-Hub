@@ -42,12 +42,21 @@ export function useLoginMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ email, password, totpCode }: { email: string; password: string; totpCode?: string }) => {
+    mutationFn: async ({
+      email,
+      password,
+      totpCode,
+    }: {
+      email: string;
+      password: string;
+      totpCode?: string;
+    }) => {
       const res = await authService.signin(email, password, totpCode);
       if (!res.status) throw new Error(res.message || "Invalid credentials");
       if (res.data?.totp_required) return null;
       const me = await authService.me();
-      if (!me.status) throw new Error(me.message || "Failed to load user profile");
+      if (!me.status)
+        throw new Error(me.message || "Failed to load user profile");
       return me.data || null;
     },
     onSuccess: async (user) => {
@@ -96,7 +105,6 @@ export function useLogoutMutation() {
   });
 }
 
-// Đổi mật khẩu bump token_version ở BE nên mọi session bị thu hồi -> phải đăng nhập lại.
 export function useChangePasswordMutation() {
   const setUser = useAuthStore((state) => state.setUser);
   const queryClient = useQueryClient();
@@ -104,7 +112,8 @@ export function useChangePasswordMutation() {
   return useMutation({
     mutationFn: async (data: ChangePasswordRequest) => {
       const res = await authService.changePassword(data);
-      if (!res.status) throw new Error(res.message || "Failed to change password");
+      if (!res.status)
+        throw new Error(res.message || "Failed to change password");
       return res;
     },
     onSuccess: () => {
@@ -121,7 +130,8 @@ export function useUpdateProfileMutation() {
   return useMutation({
     mutationFn: async (data: UpdateProfileRequest) => {
       const res = await authService.updateProfile(data);
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to update profile");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to update profile");
       return res.data;
     },
     onSuccess: (updatedUser) => {
@@ -135,7 +145,8 @@ export function useUploadAvatarMutation() {
   return useMutation({
     mutationFn: async (file: File | Blob) => {
       const res = await authService.uploadAvatar(file);
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to upload avatar");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to upload avatar");
       return res.data.url;
     },
   });
@@ -143,9 +154,16 @@ export function useUploadAvatarMutation() {
 
 export function useRequestOTPMutation() {
   return useMutation({
-    mutationFn: async ({ email, purpose }: { email: string; purpose: OTPPurpose }) => {
+    mutationFn: async ({
+      email,
+      purpose,
+    }: {
+      email: string;
+      purpose: OTPPurpose;
+    }) => {
       const res = await settingsService.requestOTP(email, purpose);
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to send the code");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to send the code");
       return res.data;
     },
   });
@@ -153,9 +171,18 @@ export function useRequestOTPMutation() {
 
 export function useVerifyOTPMutation() {
   return useMutation({
-    mutationFn: async ({ email, purpose, code }: { email: string; purpose: OTPPurpose; code: string }) => {
+    mutationFn: async ({
+      email,
+      purpose,
+      code,
+    }: {
+      email: string;
+      purpose: OTPPurpose;
+      code: string;
+    }) => {
       const res = await settingsService.verifyOTP(email, purpose, code);
-      if (!res.status || !res.data) throw new Error(res.message || "The code is invalid or has expired");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "The code is invalid or has expired");
       return res.data;
     },
   });
@@ -175,7 +202,8 @@ export function useResetPasswordWithOTPMutation() {
   return useMutation({
     mutationFn: async (data: ResetPasswordWithOTPRequest) => {
       const res = await settingsService.resetPasswordWithOTP(data);
-      if (!res.status) throw new Error(res.message || "Failed to reset the password");
+      if (!res.status)
+        throw new Error(res.message || "Failed to reset the password");
       return res;
     },
   });
@@ -186,7 +214,8 @@ export function useTOTPStatusQuery(enabled = true) {
     queryKey: ["auth", "totp"],
     queryFn: async () => {
       const res = await authService.totpStatus();
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to load two-factor status");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to load two-factor status");
       return res.data;
     },
     enabled,
@@ -198,7 +227,8 @@ export function useTOTPEnrollMutation() {
   return useMutation({
     mutationFn: async () => {
       const res = await authService.totpEnroll();
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to start the setup");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to start the setup");
       return res.data;
     },
   });
@@ -209,10 +239,12 @@ export function useTOTPConfirmMutation() {
   return useMutation({
     mutationFn: async (code: string) => {
       const res = await authService.totpConfirm(code);
-      if (!res.status || !res.data) throw new Error(res.message || "The code is invalid or has expired");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "The code is invalid or has expired");
       return res.data;
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
   });
 }
 
@@ -221,10 +253,12 @@ export function useTOTPDisableMutation() {
   return useMutation({
     mutationFn: async (code: string) => {
       const res = await authService.totpDisable(code);
-      if (!res.status) throw new Error(res.message || "The code is invalid or has expired");
+      if (!res.status)
+        throw new Error(res.message || "The code is invalid or has expired");
       return res;
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
   });
 }
 
@@ -233,10 +267,12 @@ export function useTOTPRecoveryCodesMutation() {
   return useMutation({
     mutationFn: async (code: string) => {
       const res = await authService.totpRecoveryCodes(code);
-      if (!res.status || !res.data) throw new Error(res.message || "The code is invalid or has expired");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "The code is invalid or has expired");
       return res.data;
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] }),
   });
 }
 

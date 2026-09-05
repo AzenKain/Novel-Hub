@@ -266,7 +266,6 @@ func (r *customizationRepository) DeleteSoundscape(ctx context.Context, id strin
 	return nil
 }
 
-
 func (r *customizationRepository) GetCustomFontByID(ctx context.Context, id string) (*models.CustomFontEntity, error) {
 	key := cache.BuildKey("custom_font", "id", id)
 	if r.c != nil && !r.inTx {

@@ -533,10 +533,6 @@ func (s *komgaService) coverPath(ctx context.Context, bookID string) (string, er
 	return resolved, nil
 }
 
-// Reading a page reopens the archive to map its 1-based number onto a name. That mapping never
-// changes for a file, but re-listing costs 38ms on a 248MB CBR — 56% of the request, since RAR
-// has no usable central directory (pkg/bookparser/comic/realcbr_bench_test.go). Cache the names,
-// never the bytes.
 func (s *komgaService) pageNames(ctx context.Context, bookID string) ([]string, error) {
 	file, err := s.bookService.GetBookFile(ctx, bookID, "")
 	if err != nil {

@@ -34,9 +34,6 @@ func NewMetadataService(bookRepo repositories.BookDBRepository, libraries Librar
 	}
 }
 
-// Facets are an index of the catalog: an author list names every author in every library, so an
-// unscoped query told an unauthenticated visitor what a closed library holds. Scoped in the query
-// rather than filtered afterwards, or the LIMIT would page over rows the caller cannot see.
 func (s *metadataService) listFacet(
 	ctx context.Context,
 	q *request.MetadataFacetDto,

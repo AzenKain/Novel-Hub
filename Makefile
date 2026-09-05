@@ -1,4 +1,4 @@
-.PHONY: run dev sqlc tidy test build web-install web-dev web-build check docker-up docker-down docker-build-multi
+.PHONY: run dev sqlc tidy test build web-install web-dev web-build check docker-up docker-down docker-build-multi format
 
 ifeq ($(OS),Windows_NT)
 BUN ?= bun
@@ -33,6 +33,10 @@ web-build:
 	cd web && $(BUN) run build
 
 check: sqlc test web-build build
+ 
+format:
+	gofmt -w -s internal cmd pkg db
+	cd web && $(BUN)x prettier --write "src/**/*.{ts,tsx,css,json}"
 
 docker-up:
 	docker compose up -d --build

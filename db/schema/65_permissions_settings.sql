@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS permissions (
 );
 
 CREATE TABLE IF NOT EXISTS role_permissions (
-    -- Default generates a valid UUID for SQL seed rows (90/95); app inserts pass an explicit UUIDv7.
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
     role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     permission_key TEXT NOT NULL REFERENCES permissions(key) ON DELETE CASCADE,
@@ -132,17 +131,14 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('limits.cover_bytes', '33554432'),
     ('limits.site_asset_bytes', '10485760'),
 
-    -- Metadata enrichment settings
     ('metadata.auto_enrich_enabled', 'false'),
     ('metadata.webp_cover_enabled', 'false'),
 
-    -- Reverse proxy header authentication settings
     ('auth.proxy_auth_enabled', 'false'),
     ('auth.proxy_auth_headers', '["X-Forwarded-User", "Remote-User", "X-Forwarded-Email"]'),
     ('auth.proxy_auth_trusted_proxies', '["127.0.0.1", "::1"]'),
     ('auth.proxy_auth_auto_create', 'false'),
 
-    -- OAuth/OIDC settings
     ('oauth.google.enabled', 'false'),
     ('oauth.google.client_id', '""'),
     ('oauth.google.client_secret', '""'),
@@ -166,7 +162,6 @@ INSERT INTO app_settings (key, value_json) VALUES
     ('oauth.oidc.redirect_uri', '""'),
     ('oauth.oidc.scopes', '["openid", "profile", "email"]'),
 
-    -- Hardcover scrobbling settings
     ('hardcover.enabled', 'false'),
     ('hardcover.client_id', '""'),
     ('hardcover.client_secret', '""')

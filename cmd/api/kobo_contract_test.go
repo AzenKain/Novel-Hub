@@ -19,17 +19,6 @@ import (
 	"novelhub/pkg/database"
 )
 
-// Kobo contract tests.
-//
-// There is no Kobo device in CI, so these do not prove the integration works on hardware —
-// nothing available here can. What they do prove is that the bytes we put on the wire match
-// the shape calibre-web puts on the wire, and that the auth and permission gates hold. Every
-// expected value traces back to calibre-web's cps/kobo.py, the implementation that has been
-// validated against real devices.
-//
-// The requests are built the way a device builds them: token in the path (no Authorization
-// header), sync cursor in the x-kobo-synctoken header, PascalCase JSON bodies.
-
 type koboFixture struct {
 	app    *fiber.App
 	db     *sql.DB
@@ -39,11 +28,6 @@ type koboFixture struct {
 	libID  string
 }
 
-// setupKoboFixture seeds the database and only then builds the app.
-//
-// The order matters: SetupServer calls permissionCache.Reload() once at startup, so a role or
-// permission changed afterwards is invisible to the running app. Tests that revoke a permission
-// therefore pass a seed hook rather than mutating the DB after the fact.
 func setupKoboFixture(t *testing.T, seed ...func(*testing.T, *sql.DB, koboSeed)) koboFixture {
 	t.Helper()
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "novelhub-kobo-test.db"))
@@ -89,7 +73,6 @@ func seedKoboData(t *testing.T, db *sql.DB) koboSeed {
 	`, userID, string(hash)); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	// USER carries kobo.sync by default (pkg/constants/role.go), which is what the routes gate on.
 	if _, err := db.Exec(`
 		INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = 'USER'
 	`, userID); err != nil {
@@ -101,7 +84,6 @@ func seedKoboData(t *testing.T, db *sql.DB) koboSeed {
 		t.Fatalf("seed library: %v", err)
 	}
 
-	// Book UUIDs are what the device uses as EntitlementId, so they must be real UUIDs.
 	bookID := uuid.Must(uuid.NewV7()).String()
 	if _, err := db.Exec(`
 		INSERT INTO books (id, library_id, title, description, status, metadata_json, cover_url)
@@ -111,7 +93,6 @@ func seedKoboData(t *testing.T, db *sql.DB) koboSeed {
 	`, bookID, libID, bookID); err != nil {
 		t.Fatalf("seed book: %v", err)
 	}
-	// Without a downloadable EPUB the sync deliberately skips the book, so the fixture needs one.
 	if _, err := db.Exec(`
 		INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time)
 		VALUES (?, ?, ?, 'EPUB', 4096, CURRENT_TIMESTAMP)
@@ -152,8 +133,6 @@ func decodeJSON(t *testing.T, resp *http.Response, into any) {
 }
 
 // A Kobo reader sends no Authorization header — it has one configurable setting, api_endpoint.
-// If the routes ever go back to JwtAccess this test fails, which is the whole point: that
-// regression is invisible without a device.
 func TestKoboAuthenticatesFromPathTokenWithoutHeaders(t *testing.T) {
 	f := setupKoboFixture(t)
 	resp := f.get(t, "/v1/initialization", nil)
@@ -186,8 +165,7 @@ func TestKoboRejectsTokenOfDeletedUser(t *testing.T) {
 	}
 }
 
-// The device derives every URL it calls from this map, so a short map silently disables
-// features (covers above all). 147 is calibre-web's NATIVE_KOBO_RESOURCES() count.
+// The device derives every URL it calls from this map, so a short map silently disables features (covers above all).
 func TestKoboInitializationReturnsFullResourceMap(t *testing.T) {
 	f := setupKoboFixture(t)
 	resp := f.get(t, "/v1/initialization", nil)
@@ -200,7 +178,6 @@ func TestKoboInitializationReturnsFullResourceMap(t *testing.T) {
 	if len(payload.Resources) != 147 {
 		t.Errorf("Resources has %d keys, want 147", len(payload.Resources))
 	}
-	// The four self-hosted keys must point back at this server, carrying the same token.
 	sync, _ := payload.Resources["library_sync"].(string)
 	if want := "/kobo/" + f.token + "/v1/library/sync"; !bytes.Contains([]byte(sync), []byte(want)) {
 		t.Errorf("library_sync = %q, want it to contain %q", sync, want)
@@ -211,7 +188,6 @@ func TestKoboInitializationReturnsFullResourceMap(t *testing.T) {
 			t.Errorf("image_url_template = %q, missing %s", tmpl, ph)
 		}
 	}
-	// Everything else stays aimed at the real store.
 	if got, _ := payload.Resources["account_page"].(string); got != "https://www.kobo.com/account/settings" {
 		t.Errorf("account_page = %q, want the upstream URL", got)
 	}
@@ -221,7 +197,6 @@ func TestKoboInitializationReturnsFullResourceMap(t *testing.T) {
 }
 
 // calibre-web returns a throwaway response here purely so the device's login step succeeds.
-// Nothing in it is verified afterwards, but the five fields must be present and UserKey echoed.
 func TestKoboAuthDeviceReturnsDummyShape(t *testing.T) {
 	f := setupKoboFixture(t)
 	body := []byte(`{"UserKey":"device-user-key","AffiliateName":"Kobo","DeviceId":"abc"}`)
@@ -249,7 +224,6 @@ func TestKoboAuthDeviceReturnsDummyShape(t *testing.T) {
 	if got["UserKey"] != "device-user-key" {
 		t.Errorf("UserKey = %v, want it echoed from the request", got["UserKey"])
 	}
-	// Fresh randomness per call: two logins must not produce the same access token.
 	req2 := httptest.NewRequest(http.MethodPost, "/kobo/"+f.token+"/v1/auth/refresh", bytes.NewReader(body))
 	req2.Header.Set("Content-Type", "application/json")
 	resp2, err := f.app.Test(req2)
@@ -263,8 +237,7 @@ func TestKoboAuthDeviceReturnsDummyShape(t *testing.T) {
 	}
 }
 
-// The sync body is a bare JSON array, not an object and never null: the device aborts parsing
-// otherwise. First sync must return the whole library regardless of any token it sends.
+// The sync body is a bare JSON array, not an object and never null: the device aborts parsing otherwise.
 func TestKoboSyncReturnsNewEntitlements(t *testing.T) {
 	f := setupKoboFixture(t)
 	resp := f.get(t, "/v1/library/sync", nil)
@@ -291,7 +264,6 @@ func TestKoboSyncReturnsNewEntitlements(t *testing.T) {
 		t.Fatalf("decode entitlement: %v", err)
 	}
 
-	// Field set from calibre-web's create_book_entitlement().
 	for _, key := range []string{
 		"Accessibility", "ActivePeriod", "Created", "CrossRevisionId", "Id", "IsRemoved",
 		"IsHiddenFromArchive", "IsLocked", "LastModified", "OriginCategory", "RevisionId", "Status",
@@ -304,7 +276,6 @@ func TestKoboSyncReturnsNewEntitlements(t *testing.T) {
 		t.Errorf("BookEntitlement.Id = %v, want the book UUID %s", entitlement.BookEntitlement["Id"], f.bookID)
 	}
 
-	// Metadata the device renders, plus the download URL without which the book cannot open.
 	for _, key := range []string{
 		"CoverImageId", "CurrentDisplayPrice", "Description", "DownloadUrls", "EntitlementId",
 		"Language", "Publisher", "Title", "WorkId",
@@ -322,7 +293,6 @@ func TestKoboSyncReturnsNewEntitlements(t *testing.T) {
 	if !bytes.Contains([]byte(url), []byte("/kobo/"+f.token+"/download/"+f.bookID)) {
 		t.Errorf("download URL = %q, want it token-scoped for this book", url)
 	}
-	// Metadata read from metadata_json, not invented.
 	if entitlement.BookMetadata["Language"] != "vi" {
 		t.Errorf("Language = %v, want vi from metadata_json", entitlement.BookMetadata["Language"])
 	}
@@ -331,18 +301,15 @@ func TestKoboSyncReturnsNewEntitlements(t *testing.T) {
 		t.Errorf("Series = %#v, want the series from metadata_json", series)
 	}
 
-	// The response must carry a sync token so the next request is incremental.
 	if resp.Header.Get("x-kobo-synctoken") == "" {
 		t.Error("x-kobo-synctoken missing; the device would re-sync everything forever")
 	}
-	// One page only, so no continue header.
 	if got := resp.Header.Get("x-kobo-sync"); got == "continue" {
 		t.Error("x-kobo-sync: continue set for a single-book library")
 	}
 }
 
-// Second sync must not resend a book the device already has, otherwise every sync re-downloads
-// the library.
+// Second sync must not resend a book the device already has, otherwise every sync re-downloads the library.
 func TestKoboSyncIsIncremental(t *testing.T) {
 	f := setupKoboFixture(t)
 
@@ -384,10 +351,7 @@ func TestKoboSyncEmptyResultIsArrayNotNull(t *testing.T) {
 	}
 }
 
-// An unopened book must arrive with no ReadingState at all. When the repository answered
-// "no row" with (nil, nil) instead of an error, every book in the library came back carrying an
-// empty ReadingState, which tells the device the server has a position for a book it has never
-// been opened on.
+// An unopened book must arrive with no ReadingState at all.
 func TestKoboSyncOmitsReadingStateForUnopenedBook(t *testing.T) {
 	f := setupKoboFixture(t)
 
@@ -405,8 +369,7 @@ func TestKoboSyncOmitsReadingStateForUnopenedBook(t *testing.T) {
 	}
 }
 
-// The mirror of the test above: once the book has been opened, the state must be there. A fix
-// that simply dropped ReadingState from sync would pass the previous test and break the device.
+// The mirror of the test above: once the book has been opened, the state must be there.
 func TestKoboSyncCarriesReadingStateForOpenedBook(t *testing.T) {
 	f := setupKoboFixture(t)
 	if _, err := f.db.Exec(`
@@ -441,7 +404,6 @@ func TestKoboBookMetadataEndpoint(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("metadata = %d, want 200: %s", resp.StatusCode, body)
 	}
-	// The device expects an array even for one book.
 	var got []map[string]any
 	decodeJSON(t, resp, &got)
 	if len(got) != 1 {
@@ -460,8 +422,7 @@ func TestKoboMetadataForUnknownBookIs404(t *testing.T) {
 	}
 }
 
-// GET state must answer for a book that has never been opened; calibre-web creates an empty
-// row rather than 404ing, and a device that gets an error here stops syncing that book.
+// GET state must answer for a book that has never been opened; calibre-web creates an empty row rather than 404ing, and a device that gets an error here stops syncing that book.
 func TestKoboReadingStateForUnreadBook(t *testing.T) {
 	f := setupKoboFixture(t)
 	resp := f.get(t, "/v1/library/"+f.bookID+"/state", nil)
@@ -485,15 +446,12 @@ func TestKoboReadingStateForUnreadBook(t *testing.T) {
 	if status["Status"] != "ReadyToRead" {
 		t.Errorf("Status = %v, want ReadyToRead for an unopened book", status["Status"])
 	}
-	// PriorityTimestamp always equals LastModified (calibre-web says so explicitly).
 	if state["PriorityTimestamp"] != state["LastModified"] {
 		t.Errorf("PriorityTimestamp %v != LastModified %v", state["PriorityTimestamp"], state["LastModified"])
 	}
 }
 
-// The body below is the shape a device PUTs. The round trip must both acknowledge each block
-// it contained and actually persist the position — a device that gets "Success" and then reads
-// its progress back as 0 loses the reader's place.
+// The body below is the shape a device PUTs.
 func TestKoboPutReadingStatePersistsProgress(t *testing.T) {
 	f := setupKoboFixture(t)
 
@@ -555,7 +513,6 @@ func TestKoboPutReadingStatePersistsProgress(t *testing.T) {
 		t.Error("LastModified/PriorityTimestamp must be set in the PUT response")
 	}
 
-	// Read it back: the position must survive, not just be acknowledged.
 	getResp := f.get(t, "/v1/library/"+f.bookID+"/state", nil)
 	var states []map[string]any
 	decodeJSON(t, getResp, &states)
@@ -589,9 +546,7 @@ func TestKoboPutReadingStateRejectsMalformedBody(t *testing.T) {
 	}
 }
 
-// Both cover URL shapes the device builds from the two templates must route. A 404 is the
-// correct answer here (no cover file on disk in the fixture); a 404 from routing and a 404 from
-// a missing file are distinguished by the earlier metadata test passing.
+// Both cover URL shapes the device builds from the two templates must route.
 func TestKoboCoverRoutesBothTemplateVariants(t *testing.T) {
 	f := setupKoboFixture(t)
 	for _, path := range []string{
@@ -605,8 +560,7 @@ func TestKoboCoverRoutesBothTemplateVariants(t *testing.T) {
 	}
 }
 
-// A token grants only its own user's access. Revoking the kobo.sync permission must lock the
-// device out even though the token is still valid — the token is not a permission bypass.
+// A token grants only its own user's access.
 func TestKoboRequiresKoboSyncPermission(t *testing.T) {
 	f := setupKoboFixture(t, func(t *testing.T, db *sql.DB, ids koboSeed) {
 		if _, err := db.Exec(`
@@ -626,10 +580,6 @@ func TestKoboRequiresKoboSyncPermission(t *testing.T) {
 }
 
 // A banned user's device stops syncing, same as the JWT path.
-//
-// Banning in this codebase means holding the BANNED role, not setting roles.is_banned — the
-// latter exists but GetUserRoles never selects it, so a check against that flag silently never
-// fires. Seeded the way the app actually bans people.
 func TestKoboRejectsBannedUser(t *testing.T) {
 	f := setupKoboFixture(t, func(t *testing.T, db *sql.DB, ids koboSeed) {
 		if _, err := db.Exec(`
@@ -644,8 +594,7 @@ func TestKoboRejectsBannedUser(t *testing.T) {
 	}
 }
 
-// Touching the token updates last_used_at, which is the only signal the settings UI has for
-// "is this device still in use".
+// Touching the token updates last_used_at, which is the only signal the settings UI has for "is this device still in use".
 func TestKoboTouchesTokenLastUsed(t *testing.T) {
 	f := setupKoboFixture(t)
 	f.get(t, "/v1/initialization", nil)
@@ -660,18 +609,9 @@ func TestKoboTouchesTokenLastUsed(t *testing.T) {
 }
 
 // A library larger than one sync page must still sync completely.
-//
-// This is the regression test for the worst kind of bug in this integration: the sync used to
-// fetch exactly SyncItemLimit books in a single query with no cursor, then skip the ones already
-// synced. Once the first page was synced, every later request found nothing new, returned an
-// empty array, and left out the continue header — so books past the first page were unreachable
-// and the device had no way to know anything was missing.
 func TestKoboSyncPagesBeyondFirstPage(t *testing.T) {
 	const total = 150
 	f := setupKoboFixture(t, func(t *testing.T, db *sql.DB, ids koboSeed) {
-		// The fixture seeds one book; top up to `total`. Distinct created_at values because the
-		// sync cursor orders on (created_at, id) and identical timestamps would make paging
-		// depend on the id tiebreak alone.
 		for i := 1; i < total; i++ {
 			bookID := uuid.Must(uuid.NewV7()).String()
 			if _, err := db.Exec(`
@@ -691,7 +631,6 @@ func TestKoboSyncPagesBeyondFirstPage(t *testing.T) {
 
 	seen := 0
 	token := ""
-	// Bounded so a bug that always reports "continue" fails here instead of hanging CI.
 	for round := 1; round <= 5; round++ {
 		headers := map[string]string{}
 		if token != "" {
@@ -722,17 +661,12 @@ func TestKoboSyncPagesBeyondFirstPage(t *testing.T) {
 	}
 }
 
-// The browser-facing setup endpoint. Unlike everything above it uses the normal envelope, and
-// its snake_case keys are consumed by web/src/types/kobo.ts — renaming one breaks the settings
-// card silently, so the wire names are pinned here.
+// The browser-facing setup endpoint.
 func TestKoboSetupEndpointShape(t *testing.T) {
-	// The device routes authenticate with a path token and need no secret; the setup routes are
-	// JWT-authenticated, so signing in requires both secrets.
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
 	f := setupKoboFixture(t)
 
-	// Signing in is the only way to get a session for the JWT-authenticated setup routes.
 	signinBody := []byte(`{"email":"kobo-test@example.com","password":"password123"}`)
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/signin", bytes.NewReader(signinBody))
 	signinReq.Header.Set("Content-Type", "application/json")
@@ -773,20 +707,15 @@ func TestKoboSetupEndpointShape(t *testing.T) {
 	if !payload.Status {
 		t.Error("status must be true on success")
 	}
-	// The existing token, not a fresh one: regenerating on view would unpair a working device.
 	if !bytes.Contains([]byte(payload.Data.EndpointURL), []byte("/kobo/"+f.token)) {
 		t.Errorf("endpoint_url = %q, want it to carry the existing token %s", payload.Data.EndpointURL, f.token)
 	}
-	// app.Test uses example.com as the host, so this is not loopback.
 	if payload.Data.IsLocalAddress {
 		t.Errorf("is_local_address = true for %q", payload.Data.EndpointURL)
 	}
 }
 
-// server.url replaces the old SERVER_URL env var. A Kobo follows this endpoint to sync and
-// download, so a value taken from the request host is wrong behind a path-rewriting proxy —
-// the catalog appears to work and every transfer fails. Both branches are pinned because a
-// change that always used the configured value would break every install that has none.
+// server.url replaces the old SERVER_URL env var.
 func TestKoboSetupEndpointUsesConfiguredServerURL(t *testing.T) {
 	const configured = "https://books.example.org"
 

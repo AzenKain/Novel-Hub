@@ -2,15 +2,6 @@ package opus
 
 import "math"
 
-// CELT encoder analysis stages: transient detection, time-frequency resolution,
-// spreading, allocation trim, dynamic allocation, and the stereo decisions.
-// Clean-room ports of libopus celt_encoder.c (float build), which drive the
-// side-information the decoder reads back. The tone-detection inputs come from
-// toneDetect (celt_encpitch.go); the weak-transient refinement is a hybrid
-// low-rate feature out of scope for CELT music mode, so its input stays at the
-// neutral value that disables it.
-
-// transientInvTable is 6*64/x, trained to minimize average error (libopus).
 var transientInvTable = [128]byte{
 	255, 255, 156, 110, 86, 70, 59, 51, 45, 40, 37, 33, 31, 28, 26, 25,
 	23, 22, 21, 20, 19, 18, 17, 16, 16, 15, 15, 14, 13, 13, 12, 12,
@@ -22,16 +13,8 @@ var transientInvTable = [128]byte{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2,
 }
 
-// transientAnalysis decides whether a frame uses short blocks (returns 1) and
-// reports tfEstimate (VBR/tf_analysis input) and the channel that drove the
-// decision. in holds the pre-emphasized signal per channel, each length n. The
-// metric is scale-invariant. Clean-room port of libopus transient_analysis.
-// toneFreq/toneishness (tone_detect) keep the partial cycle of a very low
-// frequency tone from reading as a transient.
 func transientAnalysis(in [][]float32, n, C int, tfEstimate *float32, tfChan *int,
 	allowWeakTransients bool, weakTransient *int, toneFreq, toneishness float32) int {
-	// For lower bitrates (hybrid), a slower forward masking decay avoids
-	// having to code transients that could destabilize energy.
 	forwardDecay := float32(0.0625)
 	*weakTransient = 0
 	if allowWeakTransients {
@@ -43,7 +26,6 @@ func transientAnalysis(in [][]float32, n, C int, tfEstimate *float32, tfChan *in
 	*tfChan = 0
 	for c := 0; c < C; c++ {
 		var mem0, mem1 float32
-		// High-pass filter: (1 - 2z^-1 + z^-2) / (1 - z^-1 + .5z^-2).
 		for i := 0; i < n; i++ {
 			x := in[c][i]
 			y := mem0 + x
@@ -52,13 +34,11 @@ func transientAnalysis(in [][]float32, n, C int, tfEstimate *float32, tfChan *in
 			mem1 = x - mem00
 			tmp[i] = y
 		}
-		// The first few samples are unreliable without propagated memory.
 		for i := 0; i < 12 && i < n; i++ {
 			tmp[i] = 0
 		}
 		var mean float32
 		mem0 = 0
-		// Forward pass: post-echo threshold, grouped by two.
 		for i := 0; i < len2; i++ {
 			x2 := tmp[2*i]*tmp[2*i] + tmp[2*i+1]*tmp[2*i+1]
 			mean += x2
@@ -67,17 +47,14 @@ func transientAnalysis(in [][]float32, n, C int, tfEstimate *float32, tfChan *in
 		}
 		mem0 = 0
 		var maxE float32
-		// Backward pass: pre-echo threshold (13.9 dB/ms).
 		for i := len2 - 1; i >= 0; i-- {
 			mem0 = tmp[i] + 0.875*mem0
 			tmp[i] = 0.125 * mem0
 			maxE = max(maxE, 0.125*mem0)
 		}
-		// Frame energy is the geometric mean of the energy and half the max.
 		mean = float32(math.Sqrt(float64(mean) * float64(maxE) * 0.5 * float64(len2)))
 		norm := float32(len2) / (1e-15 + mean)
 		unmask := 0
-		// Harmonic mean over 1/4 of the samples, discarding the boundaries.
 		for i := 12; i < len2-5; i += 4 {
 			id := int(math.Floor(64 * float64(norm) * float64(tmp[i]+1e-15)))
 			if id < 0 {
@@ -99,19 +76,14 @@ func transientAnalysis(in [][]float32, n, C int, tfEstimate *float32, tfChan *in
 	if maskMetric > 200 {
 		isTransient = 1
 	}
-	// Prevent the transient detector from confusing the partial cycle of a
-	// very low frequency tone with a transient.
 	if toneishness > 0.98 && toneFreq < 0.026 {
 		isTransient = 0
 		maskMetric = 0
 	}
-	// A weak transient doesn't get short blocks; the hybrid tf override
-	// handles it instead.
 	if allowWeakTransients && isTransient != 0 && maskMetric < 600 {
 		isTransient = 0
 		*weakTransient = 1
 	}
-	// Arbitrary metric for VBR boost / tf_analysis.
 	tfMax := float32(math.Sqrt(27*float64(maskMetric))) - 42
 	if tfMax < 0 {
 		tfMax = 0
@@ -131,11 +103,6 @@ func absf(x float32) float32 {
 	return x
 }
 
-// patchTransientDecision is the encoder's last chance to catch a transient the
-// time-domain analysis missed: it aggressively spreads the previous frame's
-// quantized energy (-6 dB/Bark, both directions) and reports whether the mean
-// energy increase over it exceeds 1 dB. Clean-room port of libopus
-// patch_transient_decision (float build).
 func patchTransientDecision(newE, oldE []float32, start, end, C int) bool {
 	nb := celtNBands
 	spreadOld := make([]float32, 26)
@@ -166,9 +133,6 @@ func patchTransientDecision(newE, oldE []float32, start, end, C int) bool {
 	return meanDiff > 1.0
 }
 
-// l1Metric is the L1 norm of a band, biased toward good frequency resolution
-// (libopus l1_metric, float build). The bias grows with LM so the Viterbi in
-// tfAnalysis prefers coarser time resolution when in doubt.
 func l1Metric(tmp []float32, N, LM int, bias float32) float32 {
 	var L1 float32
 	for i := 0; i < N; i++ {
@@ -177,11 +141,6 @@ func l1Metric(tmp []float32, N, LM int, bias float32) float32 {
 	return L1 + (float32(LM)*bias)*L1
 }
 
-// tfAnalysis chooses each band's time-frequency resolution and the tf_select
-// index by minimising an L1-metric Viterbi cost weighted by importance[].
-// Clean-room port of libopus tf_analysis (float build); X is the normalised MDCT
-// (channel tfChan of N0 samples), effEnd the last analysed band. It writes tfRes
-// (per band) and returns tf_select, both consumed by tfEncode.
 func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N0, LM int, tfEstimate float32, tfChan int, importance []int) int {
 	length := effEnd
 	metric := make([]int, length)
@@ -203,7 +162,6 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 		L1 := l1Metric(tmp[:N], N, lm0, bias)
 		bestL1 := L1
 		bestLevel := 0
-		// Check the -1 (extra split) case for transients.
 		if isTransient != 0 && !narrow {
 			copy(tmp1[:N], tmp[:N])
 			haar1(tmp1[:N], N>>LM, 1<<LM)
@@ -231,7 +189,6 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 				bestLevel = k + 1
 			}
 		}
-		// metric is in Q1 so narrow bands can pick the -0.5 mid-point.
 		if isTransient != 0 {
 			metric[i] = 2 * bestLevel
 		} else {
@@ -242,7 +199,6 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 		}
 	}
 
-	// Search for the optimal tf resolution, including tf_select.
 	sc := func(sel, j int) int { return 2 * int(tfSelectTable[LM][4*isTransient+2*sel+j]) }
 	var selcost [2]int
 	transientLambda := func() int {
@@ -262,14 +218,12 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 		}
 		selcost[sel] = min(cost0, cost1)
 	}
-	// Conservatively only allow tf_select=1 for transients.
 	tfSelect := 0
 	if selcost[1] < selcost[0] && isTransient != 0 {
 		tfSelect = 1
 	}
 	cost0 := importance[0] * iabs(metric[0]-sc(tfSelect, 0))
 	cost1 := importance[0]*iabs(metric[0]-sc(tfSelect, 1)) + transientLambda()
-	// Viterbi forward pass.
 	for i := 1; i < length; i++ {
 		from0 := cost0
 		from1 := cost1 + lambda
@@ -299,7 +253,6 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 	} else {
 		tfRes[length-1] = 1
 	}
-	// Viterbi backward pass to confirm the decisions.
 	for i := length - 2; i >= 0; i-- {
 		if tfRes[i+1] == 1 {
 			tfRes[i] = path1[i+1]
@@ -310,12 +263,6 @@ func tfAnalysis(effEnd, isTransient int, tfRes []int, lambda int, X []float32, N
 	return tfSelect
 }
 
-// allocTrimAnalysis picks the allocation trim (0..10), which tilts the bit
-// allocation toward low or high frequencies. Clean-room port of libopus
-// alloc_trim_analysis (float build): the base level tracks equiv_rate, then the
-// spectral tilt, transient estimate, tonality slope, and (stereo) inter-channel
-// correlation nudge it. The stereo-saving output feeds VBR only and is not
-// tracked here; surround trim is out of scope.
 func allocTrimAnalysis(X, bandLogE []float32, end, LM, C, N0 int, tfEstimate float32, intensity, equivRate int, stereoSaving *float32, analysis *analysisInfo) int {
 	trim := float32(5.0)
 	if equivRate < 64000 {
@@ -338,14 +285,11 @@ func allocTrimAnalysis(X, bandLogE []float32, end, LM, C, N0 int, tfEstimate flo
 			minXC = min(minXC, absf(innerProd(X[lo:], X[N0+lo:], w)))
 		}
 		minXC = min(1.0, absf(minXC))
-		// mid-side savings estimates: logXC from the LF average, logXC2 from the
-		// minimum correlation. stereoSaving persists as the VBR rate-control input.
 		logXC := float32(math.Log2(float64(1.001 - sum*sum)))
 		logXC2 := max(0.5*logXC, float32(math.Log2(float64(1.001-minXC*minXC))))
 		trim += max(-4.0, 0.75*logXC)
 		*stereoSaving = min(*stereoSaving+0.25, -0.5*logXC2)
 	}
-	// Spectral tilt.
 	var diff float32
 	for c := 0; c < C; c++ {
 		for i := 0; i < end-1; i++ {
@@ -355,8 +299,6 @@ func allocTrimAnalysis(X, bandLogE []float32, end, LM, C, N0 int, tfEstimate flo
 	diff /= float32(C * (end - 1))
 	trim -= max(-2.0, min(2.0, (diff+1.0)/6.0))
 	trim -= 2 * tfEstimate
-	// A rising tonality slope means the tonal energy sits high in the spectrum,
-	// so tilt the allocation that way.
 	if analysis.valid {
 		trim -= max(-2.0, min(2.0, 2.0*(analysis.tonalitySlope+0.05)))
 	}
@@ -422,10 +364,6 @@ func median5(x []float32) float32 {
 	return min(t2, t4)
 }
 
-// hysteresisDecision maps a value to a threshold bucket, biased toward the
-// previous decision by the per-bucket hysteresis so borderline frames don't
-// toggle every packet (libopus hysteresis_decision). Used for the intensity and
-// (disabled here) tapset decisions.
 func hysteresisDecision(val float32, thresholds, hysteresis []float32, N, prev int) int {
 	i := 0
 	for ; i < N; i++ {
@@ -442,12 +380,6 @@ func hysteresisDecision(val float32, thresholds, hysteresis []float32, N, prev i
 	return i
 }
 
-// spreadingDecision picks the PVQ rotation (spreading) amount for the frame from
-// a rough CDF of the normalised coefficients, weighted by the masking-derived
-// spreadWeight and smoothed with a running average plus hysteresis. Clean-room
-// port of libopus spreading_decision (float build). updateHF (pf_on &&
-// !shortBlocks) would also drive the tapset decision, but it is always false
-// here since the pitch pre-filter is disabled.
 func spreadingDecision(X []float32, average *int, lastDecision int, hfAverage, tapsetDecision *int, updateHF bool, end, C, M int, spreadWeight []int) int {
 	N0 := M * celtShortMDCTSize
 	if M*(int(celtEBands[end])-int(celtEBands[end-1])) <= 8 {
@@ -474,7 +406,6 @@ func spreadingDecision(X []float32, average *int, lastDecision int, hfAverage, t
 					tcount[2]++
 				}
 			}
-			// Only include the four last bands (8 kHz and up) for the HF sum.
 			if i > celtNBands-4 {
 				hfSum += 32 * (tcount[1] + tcount[0]) / N
 			}
@@ -503,7 +434,6 @@ func spreadingDecision(X []float32, average *int, lastDecision int, hfAverage, t
 		}
 	}
 	sum = (sum << 8) / nbBands
-	// Recursive averaging, then hysteresis around the previous decision.
 	sum = (sum + *average) >> 1
 	*average = sum
 	sum = (3*sum + (((3 - lastDecision) << 7) + 64) + 2) >> 2
@@ -519,10 +449,6 @@ func spreadingDecision(X []float32, average *int, lastDecision int, hfAverage, t
 	}
 }
 
-// stereoAnalysis decides whether the frame codes bands as dual (independent
-// L/R) stereo rather than mid/side, by comparing the L1 norm (an entropy proxy)
-// of the L/R signal against the M/S signal over the low bands. Clean-room port
-// of libopus stereo_analysis (float build). Returns 1 for dual stereo.
 func stereoAnalysis(X []float32, LM, N0 int) int {
 	sumLR := float32(1e-15)
 	sumMS := float32(1e-15)
@@ -538,7 +464,6 @@ func stereoAnalysis(X []float32, LM, N0 int) int {
 	}
 	sumMS *= 0.707107
 	thetas := 13
-	// We don't need thetas for the lower bands with LM<=1.
 	if LM <= 1 {
 		thetas -= 8
 	}
@@ -547,19 +472,6 @@ func stereoAnalysis(X []float32, LM, N0 int) int {
 	return b2i(lhs > rhs)
 }
 
-// dynallocOffsets computes the per-band dynamic-allocation boosts (extra bits
-// for spectral peaks the flat allocation under-serves, especially tones) plus
-// the two side products the later analysis stages consume: importance[] (how
-// much each band matters, feeding tf_analysis's Viterbi weights) and
-// spreadWeight[] (a rough masking model feeding spreading_decision). It returns
-// maxDepth (the peak band energy above the noise floor, feeding compute_vbr's
-// floor) and writes tot_boost into *totBoost in 1/8-bit units. Clean-room port
-// of libopus dynalloc_analysis (float build); the leak/surround/LFE inputs
-// stay at the neutral values that disable them, while toneFreq/toneishness
-// (toneDetect) compensate for the under-allocation on tones. bandLogE2 is the per-frame log
-// energy (a copy of bandLogE unless the complexity>=8 second MDCT ran); offsets
-// are consumed by the dynalloc coding loop, so a suboptimal value only costs
-// quality, never a decodable stream.
 func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM, effectiveBytes, isTransient int, vbr, constrainedVBR bool, offsets, importance, spreadWeight []int, totBoost *int, toneFreq, toneishness float32, analysis *analysisInfo) float32 {
 	nb := celtNBands
 	for i := 0; i < end; i++ {
@@ -577,8 +489,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 			maxDepth = max(maxDepth, bandLogE[c*nb+i]-noiseFloor[i])
 		}
 	}
-	// A simple masking model so the spreading decision can ignore bands that are
-	// fully masked. spreadWeight is computed even below the dynalloc threshold.
 	mask := make([]float32, end)
 	sig := make([]float32, end)
 	for i := 0; i < end; i++ {
@@ -597,7 +507,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 		mask[i] = max(mask[i], mask[i+1]-3.0)
 	}
 	for i := 0; i < end; i++ {
-		// SMR: never more than 72 dB below the peak, never below the noise floor.
 		smr := sig[i] - max(max(0, maxDepth-12.0), mask[i])
 		shift := int(-math.Floor(float64(0.5 + smr)))
 		if shift < 0 {
@@ -662,12 +571,9 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 			follower[i] = max(0, bandLogE[i]-follower[i])
 		}
 	}
-	// (surround_dynalloc is zero here.) importance is read from the SMR-domain
-	// follower before the CBR halving and band weighting below.
 	for i := start; i < end; i++ {
 		importance[i] = int(math.Floor(float64(0.5 + 13*float32(math.Exp2(float64(min(follower[i], 4.0)))))))
 	}
-	// For non-transient CBR/constrained-VBR frames, halve the dynalloc contribution.
 	if (!vbr || constrainedVBR) && isTransient == 0 {
 		for i := start; i < end; i++ {
 			follower[i] *= 0.5
@@ -681,7 +587,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 			follower[i] *= 0.5
 		}
 	}
-	// Compensate for Opus' under-allocation on tones.
 	if toneishness > 0.98 {
 		freqBin := int(math.Floor(0.5 + float64(toneFreq)*120/math.Pi))
 		for i := start; i < end; i++ {
@@ -703,8 +608,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 			follower[end-2] += 1
 		}
 	}
-	// Boost the low bands the analyser flagged as leaking through the MDCT
-	// (leak_boost is in 1/64 dB-ish units per band).
 	if analysis.valid {
 		for i := start; i < min(leakBands, end); i++ {
 			follower[i] += float32(analysis.leakBoost[i]) * (1.0 / 64)
@@ -726,7 +629,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 			boost = int(follower[i] * float32(width) / 6)
 			boostBits = boost * 6 << bitRes
 		}
-		// For CBR and non-transient constrained VBR, limit dynalloc to 2/3 of the bits.
 		if (!vbr || (constrainedVBR && isTransient == 0)) &&
 			(boostTotal+boostBits)>>bitRes>>3 > 2*effectiveBytes/3 {
 			cap := (2 * effectiveBytes / 3) << bitRes << 3
@@ -741,12 +643,6 @@ func dynallocOffsets(bandLogE, bandLogE2, oldBandE []float32, start, end, C, LM,
 	return maxDepth
 }
 
-// computeVBR derives the VBR target rate (in 1/8-bit units per frame) from the
-// base target and the frame's analysis: the analyser's activity and tonality,
-// stereo savings, dynalloc boost, the transient estimate, an energy floor
-// (maxDepth), and a temporal-VBR nudge. Clean-room port of libopus compute_vbr
-// (float build); the surround terms depend on the energy mask, which is out of
-// scope, so their neutral (disabled) values apply.
 func computeVBR(baseTarget, LM, bitrate, lastCodedBands, C, intensity int, constrainedVBR bool,
 	stereoSaving float32, totBoost int, tfEstimate float32, maxDepth, temporalVBR float32,
 	analysis *analysisInfo, pitchChange bool) int {
@@ -760,11 +656,9 @@ func computeVBR(baseTarget, LM, bitrate, lastCodedBands, C, intensity int, const
 		codedBins += int(celtEBands[min(intensity, codedBands)]) << LM
 	}
 	target := baseTarget
-	// Mostly-inactive frames (silence, speech pauses) need fewer bits.
 	if analysis.valid && analysis.activity < 0.4 {
 		target -= int(float32(codedBins<<bitRes) * (0.4 - analysis.activity))
 	}
-	// Stereo savings: fewer bits when the channels are correlated.
 	if C == 2 {
 		codedStereoBands := min(intensity, codedBands)
 		codedStereoDof := (int(celtEBands[codedStereoBands]) << LM) - codedStereoBands
@@ -773,13 +667,9 @@ func computeVBR(baseTarget, LM, bitrate, lastCodedBands, C, intensity int, const
 		sub := min(maxFrac*float32(target), (ss-0.1)*float32(codedStereoDof<<bitRes))
 		target -= int(sub)
 	}
-	// Boost per dynalloc (minus the average, for calibration).
 	target += totBoost - (19 << LM)
-	// Transient boost (compensating for the average). SHL32 is a float no-op.
 	const tfCalibration = 0.044
 	target += int((tfEstimate - tfCalibration) * float32(target))
-	// Tonality boost (compensating for the average): tonal content masks
-	// quantization noise poorly, and a pitch change costs prediction.
 	if analysis.valid {
 		tonal := max(0.0, analysis.tonality-0.15) - 0.12
 		tonalTarget := target + int(float32(codedBins<<bitRes)*1.2*tonal)
@@ -788,21 +678,17 @@ func computeVBR(baseTarget, LM, bitrate, lastCodedBands, C, intensity int, const
 		}
 		target = tonalTarget
 	}
-	// Energy floor so we never starve a loud frame.
 	bins := int(celtEBands[nb-2]) << LM
 	floorDepth := int(float32(C*bins<<bitRes) * maxDepth)
 	floorDepth = max(floorDepth, target>>2)
 	target = min(target, floorDepth)
-	// Constrained VBR can't hold a higher rate for long, so damp the excursion.
 	if constrainedVBR {
 		target = baseTarget + int(0.67*float32(target-baseTarget))
 	}
-	// Temporal VBR (only when not surround-masked).
 	if tfEstimate < 0.2 {
 		amount := 0.0000031 * float32(max(0, min(32000, 96000-bitrate)))
 		tvbrFactor := temporalVBR * amount
 		target += int(tvbrFactor * float32(target))
 	}
-	// Never more than double the base target.
 	return min(2*baseTarget, target)
 }

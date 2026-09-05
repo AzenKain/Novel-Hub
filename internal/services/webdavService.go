@@ -81,7 +81,6 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 
 	cleanPath := webdav.SanitizeWebDAVPath(relativePath)
 
-	// 1. Root Collection: "/webdav/"
 	if cleanPath == "/" || cleanPath == "" {
 		rootNode := webdav.WebDAVNode{
 			Href:        "/webdav/",
@@ -115,11 +114,9 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 		return nodes, nil
 	}
 
-	// Split path parts: /<LibraryName>[/<FileName>]
 	parts := strings.Split(strings.Trim(cleanPath, "/"), "/")
 	libraryName := parts[0]
 
-	// Find the requested library
 	libraries, err := s.libraryService.ListLibraries(ctx, claims)
 	if err != nil {
 		return nil, err
@@ -137,7 +134,6 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 		return nil, apperrors.New(apperrors.ErrNotFound, "Library not found")
 	}
 
-	// 2. Library Collection Level: "/webdav/<LibraryName>/"
 	if len(parts) == 1 {
 		libHref := fmt.Sprintf("/webdav/%s/", targetLib.Name)
 		libraryNode := webdav.WebDAVNode{
@@ -151,7 +147,6 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 			return []webdav.WebDAVNode{libraryNode}, nil
 		}
 
-		// Retrieve all books in this library
 		userID := ""
 		if claims != nil {
 			userID = claims.UId
@@ -202,7 +197,6 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 		return nodes, nil
 	}
 
-	// 3. Book File Resource Level: "/webdav/<LibraryName>/<FileName>"
 	fileName := parts[1]
 	userID := ""
 	if claims != nil {

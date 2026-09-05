@@ -27,20 +27,6 @@ import (
 	"novelhub/pkg/database"
 )
 
-// Komga contract tests.
-//
-// The Mihon Komga extension is not runnable in CI, so these do not prove the integration works
-// on a phone. What they prove is that the JSON on the wire carries every field the two Kotlin
-// clients require, since a single missing non-nullable field makes kotlinx.serialization throw
-// at decode time and the extension silently shows an empty library.
-//
-// Expected field names come from the sources, not from memory:
-//   - keiyoushi/extensions-source .../komga/dto/{Dto,PageWrapperDto}.kt
-//   - mihonapp/mihon .../data/track/komga/KomgaModels.kt
-//
-// Requests are built the way the extension builds them: it appends /api/v1 to the address the
-// user typed, and its OkHttp authenticator only attaches Basic credentials after a 401.
-
 type komgaFixture struct {
 	app      *fiber.App
 	db       *sql.DB
@@ -78,7 +64,6 @@ func setupKomgaFixture(t *testing.T) komgaFixture {
 	`, userID, komgaTestEmail, string(hash)); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	// USER carries komga.sync by default (pkg/constants/role.go), which the routes gate on.
 	if _, err := db.Exec(`
 		INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = 'USER'
 	`, userID); err != nil {
@@ -102,8 +87,6 @@ func setupKomgaFixture(t *testing.T) komgaFixture {
 	`, bookID, libID); err != nil {
 		t.Fatalf("seed book: %v", err)
 	}
-	// 2.5 rather than an integer: numberSort must survive as a float, or chapter ordering
-	// collapses for half-volumes.
 	if _, err := db.Exec(`
 		INSERT INTO book_series (book_id, series_id, series_index) VALUES (?, ?, '2.5')
 	`, bookID, seriesID); err != nil {
@@ -126,8 +109,6 @@ func setupKomgaFixture(t *testing.T) komgaFixture {
 	return komgaFixture{app: server.App, db: db, cache: ramCache, seriesID: seriesID, bookID: bookID, libID: libID, pages: pages}
 }
 
-// writeTestCBZ builds a real comic archive: the page endpoints go through the actual zip
-// reader, so a stub file would only prove the handler returns something.
 func writeTestCBZ(t *testing.T, path string, count int) int {
 	t.Helper()
 	buf := new(bytes.Buffer)
@@ -180,8 +161,7 @@ func (f komgaFixture) get(t *testing.T, path string) *http.Response {
 	return f.request(t, http.MethodGet, path, nil, true)
 }
 
-// The extension's OkHttp authenticator is challenge-driven: it attaches credentials only after
-// a 401. A 403 or a redirect here means it never authenticates and the library reads as empty.
+// The extension's OkHttp authenticator is challenge-driven: it attaches credentials only after a 401.
 func TestKomgaChallengesUnauthenticatedRequestWith401(t *testing.T) {
 	f := setupKomgaFixture(t)
 	resp := f.request(t, http.MethodGet, "/api/v1/series", nil, false)
@@ -206,8 +186,7 @@ func TestKomgaRejectsWrongPassword(t *testing.T) {
 	}
 }
 
-// PageWrapperDto has no defaults in Kotlin, so every one of these keys must be present or the
-// series list fails to decode.
+// PageWrapperDto has no defaults in Kotlin, so every one of these keys must be present or the series list fails to decode.
 func TestKomgaSeriesListCarriesEveryPageWrapperField(t *testing.T) {
 	f := setupKomgaFixture(t)
 	resp := f.get(t, "/api/v1/series")
@@ -231,7 +210,6 @@ func TestKomgaSeriesListCarriesEveryPageWrapperField(t *testing.T) {
 		t.Fatalf("content has %d series, want 1", len(content))
 	}
 	series, _ := content[0].(map[string]any)
-	// Union of the extension's SeriesDto and the tracker's: the tracker adds the three counts.
 	for _, key := range []string{
 		"id", "libraryId", "name", "fileLastModified", "booksCount",
 		"booksReadCount", "booksUnreadCount", "booksInProgressCount",
@@ -256,7 +234,6 @@ func TestKomgaSeriesListCarriesEveryPageWrapperField(t *testing.T) {
 			t.Errorf("SeriesMetadataDto.%s missing", key)
 		}
 	}
-	// The extension maps status onto SManga; an unknown value silently becomes UNKNOWN.
 	switch metadata["status"] {
 	case "ONGOING", "ENDED", "ABANDONED", "HIATUS":
 	default:
@@ -295,7 +272,6 @@ func TestKomgaSeriesBooksCarryMediaAndNumberSort(t *testing.T) {
 	}
 
 	media, _ := book["media"].(map[string]any)
-	// A profile of EPUB makes the extension skip the book unless epubDivinaCompatible is true.
 	if media["mediaProfile"] != "DIVINA" {
 		t.Errorf("media.mediaProfile = %v, want DIVINA", media["mediaProfile"])
 	}
@@ -350,8 +326,7 @@ func TestKomgaPagesAreOneBasedAndServeImageBytes(t *testing.T) {
 	}
 }
 
-// The tracker reads progress from /api/v2 and writes it back with lastBookNumberSortRead,
-// then immediately re-reads to confirm. Both halves must line up.
+// The tracker reads progress from /api/v2 and writes it back with lastBookNumberSortRead, then immediately re-reads to confirm.
 func TestKomgaReadProgressRoundTrips(t *testing.T) {
 	f := setupKomgaFixture(t)
 
@@ -391,9 +366,7 @@ func TestKomgaReadProgressRoundTrips(t *testing.T) {
 	}
 }
 
-// A library the user cannot sync must not leak through any endpoint. Revoking the permission
-// after startup would be invisible (permissionCache.Reload runs once), so this drops the role
-// membership instead, which is read per request.
+// A library the user cannot sync must not leak through any endpoint.
 func TestKomgaHidesLibrariesWithoutPermission(t *testing.T) {
 	f := setupKomgaFixture(t)
 	if _, err := f.db.Exec(`DELETE FROM user_roles`); err != nil {
@@ -441,7 +414,6 @@ func TestKomgaSingleSeriesAndBookFetch(t *testing.T) {
 		t.Errorf("series id = %v, want %s", series["id"], f.seriesID)
 	}
 
-	// The tracker fetches a book directly and needs its series named on the response.
 	book := f.get(t, "/api/v1/books/"+f.bookID)
 	if book.StatusCode != http.StatusOK {
 		t.Fatalf("GET book = %d, want 200", book.StatusCode)
@@ -470,8 +442,7 @@ func TestKomgaUnknownIDsReturn404(t *testing.T) {
 	}
 }
 
-// pageNames caches the archive's page list under the file's mod_time. A replaced file must not
-// keep serving the old mapping, or page N points at the wrong image.
+// pageNames caches the archive's page list under the file's mod_time.
 func TestKomgaPageNameCacheFollowsModTime(t *testing.T) {
 	f := setupKomgaFixture(t)
 
@@ -487,8 +458,6 @@ func TestKomgaPageNameCacheFollowsModTime(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeTestCBZ(t, path, f.pages+2)
-	// Through the repository, not raw SQL: UpsertBookFile is what a library rescan calls, and it
-	// evicts the book_file entity whose mod_time keys the page-name cache.
 	repo := repositories.NewBookDBRepository(f.db, f.cache)
 	if err := repo.UpsertBookFile(context.Background(), sqlc.UpsertBookFileParams{
 		ID:        uuid.Must(uuid.NewV7()).String(),

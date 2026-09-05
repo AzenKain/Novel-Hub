@@ -13,7 +13,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.ico", "logo.svg", "pwa-192x192.png", "pwa-512x512.png"],
+      includeAssets: [
+        "favicon.ico",
+        "logo.svg",
+        "pwa-192x192.png",
+        "pwa-512x512.png",
+      ],
       manifest: {
         name: "NovelHub",
         short_name: "NovelHub",
@@ -25,14 +30,25 @@ export default defineConfig({
         icons: [
           { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
           { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         // Never cache /api: cookie auth, no per-user cache key — user A would get user B's library.
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//, /^\/covers\//, /^\/storage\//, /^\/public\//],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/uploads\//,
+          /^\/covers\//,
+          /^\/storage\//,
+          /^\/public\//,
+        ],
         runtimeCaching: [
           {
             urlPattern: /^\/locales\/.*\.json$/,
@@ -118,5 +134,5 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-  }
+  },
 });

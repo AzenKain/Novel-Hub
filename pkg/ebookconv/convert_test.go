@@ -27,8 +27,6 @@ func testRegistry(t *testing.T) bookparser.Registry {
 	return reg
 }
 
-// --- fixtures ---------------------------------------------------------------
-
 func writeZip(t *testing.T, name string, entries map[string][]byte) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), name)
@@ -61,9 +59,9 @@ func writeSourceEPUB(t *testing.T, withImage bool) string {
 	}
 	chn1 += `</body></html>`
 	entries := map[string][]byte{
-		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Source Title</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/><item id="c1" href="Text/chapter_1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/chapter_2.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cover.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/></spine></package>`),
-		"OEBPS/toc.ncx": []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>Chapter One</text></navLabel><content src="Text/chapter_1.xhtml"/></navPoint><navPoint id="n2" playOrder="2"><navLabel><text>Chapter Two</text></navLabel><content src="Text/chapter_2.xhtml"/></navPoint></navMap></ncx>`),
+		"META-INF/container.xml":     []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
+		"OEBPS/content.opf":          []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Source Title</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/><item id="c1" href="Text/chapter_1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/chapter_2.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cover.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/></spine></package>`),
+		"OEBPS/toc.ncx":              []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>Chapter One</text></navLabel><content src="Text/chapter_1.xhtml"/></navPoint><navPoint id="n2" playOrder="2"><navLabel><text>Chapter Two</text></navLabel><content src="Text/chapter_2.xhtml"/></navPoint></navMap></ncx>`),
 		"OEBPS/Text/chapter_1.xhtml": []byte(chn1),
 		"OEBPS/Text/chapter_2.xhtml": []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter Two</title></head><body><h1>Chapter Two</h1><p>Second chapter standalone prose.</p></body></html>`),
 	}
@@ -124,8 +122,6 @@ func writeSourceCBR(t *testing.T) string {
 	}
 	return path
 }
-
-// --- zip helpers ------------------------------------------------------------
 
 func zipEntries(t *testing.T, data []byte) map[string][]byte {
 	t.Helper()
@@ -195,7 +191,6 @@ func TestTXTtoEPUB(t *testing.T) {
 	if !strings.Contains(opf, "<dc:title>plain</dc:title>") {
 		t.Errorf("opf title wrong: %s", opf)
 	}
-	// A .txt source is one chapter holding the whole document.
 	chapter := string(entries["OEBPS/chapter_1.xhtml"])
 	if !strings.Contains(chapter, "This is the first chapter text.") {
 		t.Errorf("chapter text missing: %s", chapter)
@@ -257,7 +252,6 @@ func TestEPUBtoFB2(t *testing.T) {
 	if doc.Sections[0].Title != "Chapter One" {
 		t.Errorf("section[0].title = %q", doc.Sections[0].Title)
 	}
-	// Cover + the manifest image → prose must be present in the sections.
 	body := string(out)
 	for _, want := range []string{"First prose paragraph.", "<strong>bold</strong>", "Second chapter standalone prose."} {
 		if !strings.Contains(body, want) {

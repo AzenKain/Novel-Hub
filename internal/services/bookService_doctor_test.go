@@ -81,7 +81,6 @@ func TestBookService_ValidateAndRepairBookEPUB(t *testing.T) {
 
 	epubPath := filepath.Join(tmpDir, "book.epub")
 
-	// Create test EPUB with compressed mimetype and missing dc:language
 	f, err := os.Create(epubPath)
 	if err != nil {
 		t.Fatalf("failed to create test epub: %v", err)
@@ -128,7 +127,6 @@ func TestBookService_ValidateAndRepairBookEPUB(t *testing.T) {
 		settings:    settings,
 	}
 
-	// 1. Test Validate
 	report, err := s.ValidateBookEPUB(context.Background(), "book-doctor-1", "file-1", nil)
 	if err != nil {
 		t.Fatalf("ValidateBookEPUB failed: %v", err)
@@ -138,7 +136,6 @@ func TestBookService_ValidateAndRepairBookEPUB(t *testing.T) {
 		t.Fatal("expected issues to be detected in broken EPUB")
 	}
 
-	// 2. Test Repair
 	res, err := s.RepairBookEPUB(context.Background(), "book-doctor-1", "file-1", nil, nil)
 	if err != nil {
 		t.Fatalf("RepairBookEPUB failed: %v", err)
@@ -152,17 +149,14 @@ func TestBookService_ValidateAndRepairBookEPUB(t *testing.T) {
 		t.Fatal("expected fixes to be applied")
 	}
 
-	// Post-repair report should be valid
 	if !res.Report.Valid {
 		t.Fatalf("expected post-repair to be valid, got errors: %d", res.Report.Errors)
 	}
 
-	// 3. Test Batch Repair Job
 	if err := s.ExecuteBatchRepairBooksJob(context.Background(), `{"library_id":"lib-1"}`); err != nil {
 		t.Fatalf("ExecuteBatchRepairBooksJob failed: %v", err)
 	}
 
-	// 4. Test Permission Denial
 	perms.allow = false
 	if _, err := s.RepairBookEPUB(context.Background(), "book-doctor-1", "file-1", nil, nil); err == nil {
 		t.Fatal("expected permission error when user is not allowed")

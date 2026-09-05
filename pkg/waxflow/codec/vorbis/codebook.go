@@ -5,9 +5,6 @@ import (
 	"math/bits"
 )
 
-// codebook is one Vorbis codebook: a Huffman prefix code over entry numbers,
-// optionally paired with a vector-quantization lookup that turns an entry
-// into a vector of floats (used by residues and floor 0).
 type codebook struct {
 	dimensions int
 	entries    int
@@ -17,12 +14,10 @@ type codebook struct {
 	minimum       float32
 	delta         float32
 	sequenceP     bool
-	multiplicands []float32 // unpacked, length depends on lookupType
-	lookupValues  int       // type 1 only
+	multiplicands []float32
+	lookupValues  int
 }
 
-// ilog returns the number of bits needed to represent x (spec 9.2.1):
-// ilog(0)==0, ilog(1)==1, ilog(7)==3.
 func ilog(x int) int {
 	if x <= 0 {
 		return 0
@@ -30,7 +25,6 @@ func ilog(x int) int {
 	return bits.Len(uint(x))
 }
 
-// float32Unpack decodes Vorbis's packed float representation (spec 9.2.2).
 func float32Unpack(x uint32) float64 {
 	mantissa := float64(x & 0x1fffff)
 	exponent := int((x & 0x7fe00000) >> 21)
@@ -40,8 +34,6 @@ func float32Unpack(x uint32) float64 {
 	return mantissa * math.Ldexp(1, exponent-788)
 }
 
-// lookup1Values returns the greatest integer v with v^dimensions <= entries
-// (spec 9.2.3).
 func lookup1Values(entries, dimensions int) int {
 	v := 0
 	for {
@@ -57,13 +49,12 @@ func lookup1Values(entries, dimensions int) int {
 			return v
 		}
 		v = next
-		if v > entries { // safety; unreachable for valid input
+		if v > entries {
 			return v
 		}
 	}
 }
 
-// parseCodebook reads one codebook from the setup header (spec 3.2.1).
 func parseCodebook(r *bitReader) (codebook, error) {
 	var c codebook
 	if sync := r.read(24); sync != 0x564342 {
@@ -77,8 +68,6 @@ func parseCodebook(r *bitReader) (codebook, error) {
 	if c.entries == 0 {
 		return c, malformed("codebook has zero entries")
 	}
-	// A zero-dimension codebook is never valid and would divide by zero in the
-	// residue type-0 layout (partSize / dimensions); reject it at parse.
 	if c.dimensions == 0 {
 		return c, malformed("codebook has zero dimensions")
 	}
@@ -107,7 +96,7 @@ func parseCodebook(r *bitReader) (codebook, error) {
 		sparse := r.bit() == 1
 		for i := 0; i < c.entries; i++ {
 			if sparse && r.bit() == 0 {
-				lengths[i] = 0 // unused entry
+				lengths[i] = 0
 				continue
 			}
 			lengths[i] = uint8(r.read(5)) + 1
@@ -123,7 +112,6 @@ func parseCodebook(r *bitReader) (codebook, error) {
 	c.lookupType = int(r.read(4))
 	switch c.lookupType {
 	case 0:
-		// No lookup; scalar codebook.
 	case 1, 2:
 		c.minimum = float32(float32Unpack(r.read(32)))
 		c.delta = float32(float32Unpack(r.read(32)))
@@ -152,14 +140,10 @@ func parseCodebook(r *bitReader) (codebook, error) {
 	return c, nil
 }
 
-// decodeScalar reads one Huffman codeword and returns its entry number.
 func (c *codebook) decodeScalar(r *bitReader) (int, error) {
 	return c.tree.decode(r)
 }
 
-// decodeVector reads one codeword and writes its VQ value vector into out
-// (length c.dimensions), applying the type-1 or type-2 lookup. Used by
-// residue value decode; sequence_p accumulation runs per vector.
 func (c *codebook) decodeVector(r *bitReader, out []float32) error {
 	entry, err := c.tree.decode(r)
 	if err != nil {
@@ -169,8 +153,6 @@ func (c *codebook) decodeVector(r *bitReader, out []float32) error {
 	return nil
 }
 
-// valueVector fills out with the VQ vector for an entry (spec 3.2.1 value
-// decode). out must have length c.dimensions.
 func (c *codebook) valueVector(entry int, out []float32) {
 	switch c.lookupType {
 	case 1:
@@ -200,16 +182,10 @@ func (c *codebook) valueVector(entry int, out []float32) {
 	}
 }
 
-// huffTree is a binary decode tree over codebook entries. child holds two
-// slots per node (2*node, 2*node+1): a positive value is an internal node
-// index, a negative value is -(entry+1) for a leaf, and zero is unassigned.
 type huffTree struct {
 	child []int32
 }
 
-// build constructs the tree from per-entry codeword lengths using Vorbis's
-// codeword assignment (spec 3.2.1): entries are assigned the lowest available
-// leaf in entry order.
 func (t *huffTree) build(lengths []uint8) error {
 	codes, ok := assignCodewords(lengths)
 	if !ok {
@@ -247,8 +223,6 @@ func (t *huffTree) build(lengths []uint8) error {
 			node = t.child[slot]
 		}
 	}
-	// A single-entry codebook is legal (spec): its lone entry decodes with no
-	// meaningful branch. Point both root slots at it so any bit lands there.
 	if used == 1 {
 		leaf := -(int32(single) + 1)
 		t.child = []int32{leaf, leaf}
@@ -256,7 +230,6 @@ func (t *huffTree) build(lengths []uint8) error {
 	return nil
 }
 
-// decode walks the tree one bit at a time and returns the entry at the leaf.
 func (t *huffTree) decode(r *bitReader) (int, error) {
 	node := int32(0)
 	for {
@@ -276,12 +249,6 @@ func (t *huffTree) decode(r *bitReader) (int, error) {
 	}
 }
 
-// assignCodewords produces, for each entry, a 32-bit value whose top
-// lengths[i] bits are the entry's Huffman codeword (MSB first). Unused entries
-// get zero. ok is false when the lengths over-subscribe the code space. The
-// algorithm mirrors stb_vorbis's compute_codewords (public domain): assign the
-// first used entry code 0, seed the available-leaf table, then give each
-// following entry the lowest available leaf and split the tree above it.
 func assignCodewords(lengths []uint8) (codes []uint32, ok bool) {
 	n := len(lengths)
 	codes = make([]uint32, n)
@@ -291,7 +258,7 @@ func assignCodewords(lengths []uint8) (codes []uint32, ok bool) {
 		k++
 	}
 	if k == n {
-		return codes, true // no used entries
+		return codes, true
 	}
 	l0 := int(lengths[k])
 	codes[k] = 0
@@ -308,7 +275,7 @@ func assignCodewords(lengths []uint8) (codes []uint32, ok bool) {
 			z--
 		}
 		if z == 0 {
-			return codes, false // over-subscribed
+			return codes, false
 		}
 		res := available[z]
 		available[z] = 0

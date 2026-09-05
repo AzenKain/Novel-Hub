@@ -60,9 +60,6 @@ func NewReadListRepository(db *sql.DB, c cache.Cache) ReadListRepository {
 }
 
 // Both halves matter: the transactional copy needs its own singleflight group AND inTx set.
-// Sharing the parent's group lets a plain reader join a call already in flight inside the
-// transaction and take back a row that is not committed yet — one that vanishes on rollback
-// while the cache keeps serving it.
 func (r *readListRepository) WithTx(tx *sql.Tx) ReadListRepository {
 	if tx == nil {
 		return r
@@ -76,9 +73,7 @@ func (r *readListRepository) WithTx(tx *sql.Tx) ReadListRepository {
 	}
 }
 
-// InvalidateReadListCache drops every cached view of one list. Call it after tx.Commit() for
-// mutations made through WithTx, whose own invalidation is deferred for the reason above.
-// Pass "" for userID when the owner is not at hand — the list-scoped entries still go.
+// InvalidateReadListCache drops every cached view of one list.
 func (r *readListRepository) InvalidateReadListCache(ctx context.Context, readListID, userID string) {
 	if r.c == nil {
 		return
@@ -310,8 +305,7 @@ func (r *readListRepository) GetReadListBookIDs(ctx context.Context, readListID 
 	return v.([]string), nil
 }
 
-// One grouped count for the whole page instead of one COUNT per list — the list view renders a
-// book count on every card, and the per-list version was a query per row.
+// One grouped count for the whole page instead of one COUNT per list — the list view renders a book count on every card, and the per-list version was a query per row.
 func (r *readListRepository) CountBooksInReadLists(ctx context.Context, readListIDs []string) (map[string]int64, error) {
 	counts := make(map[string]int64, len(readListIDs))
 	if len(readListIDs) == 0 {
@@ -396,8 +390,7 @@ func (r *readListRepository) ReplaceReadListOrder(ctx context.Context, readListI
 	return nil
 }
 
-// Only the id comes back: the stored position has gaps after a removal, so it disagrees with the
-// index the list view renders and callers derive the display position from the ordered id list.
+// Only the id comes back: the stored position has gaps after a removal, so it disagrees with the index the list view renders and callers derive the display position from the ordered id list.
 func (r *readListRepository) GetNextInReadList(ctx context.Context, readListID, afterBookID string) (string, error) {
 	row, err := r.queries.GetNextInReadList(ctx, sqlc.GetNextInReadListParams{
 		ReadListID:  readListID,

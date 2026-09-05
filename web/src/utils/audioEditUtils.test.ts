@@ -1,9 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { formatTime, getActiveRange, getPeaks, FileRange } from "./audioEditUtils";
+import {
+  formatTime,
+  getActiveRange,
+  getPeaks,
+  FileRange,
+} from "./audioEditUtils";
 
-// Mock helper to create a mock AudioBuffer
-function createMockAudioBuffer(channels: number, length: number, sampleRate: number): AudioBuffer {
-  const channelData = Array.from({ length: channels }, () => new Float32Array(length));
+function createMockAudioBuffer(
+  channels: number,
+  length: number,
+  sampleRate: number,
+): AudioBuffer {
+  const channelData = Array.from(
+    { length: channels },
+    () => new Float32Array(length),
+  );
   return {
     numberOfChannels: channels,
     length,
@@ -12,7 +23,7 @@ function createMockAudioBuffer(channels: number, length: number, sampleRate: num
     getChannelData: (c: number) => channelData[c],
     copyToChannel: (src: Float32Array, c: number) => {
       channelData[c].set(src);
-    }
+    },
   } as unknown as AudioBuffer;
 }
 
@@ -35,7 +46,7 @@ describe("audioEditUtils tests", () => {
     const mockRanges: FileRange<string>[] = [
       { file: "track1.mp3", start: 0, end: 10, duration: 10 },
       { file: "track2.mp3", start: 10, end: 25, duration: 15 },
-      { file: "track3.mp3", start: 25, end: 30, duration: 5 }
+      { file: "track3.mp3", start: 25, end: 30, duration: 5 },
     ];
 
     it("returns track1 when time is at 0", () => {
@@ -68,14 +79,13 @@ describe("audioEditUtils tests", () => {
       const buffer = createMockAudioBuffer(1, 1000, 100);
       const channel = buffer.getChannelData(0);
 
-      // Seed peak data
       for (let i = 0; i < 1000; i++) {
         channel[i] = Math.sin(i / 10);
       }
 
       const peaks = getPeaks(buffer, 10);
       expect(peaks).toHaveLength(10);
-      peaks.forEach(p => {
+      peaks.forEach((p) => {
         expect(p).toBeGreaterThan(0);
         expect(p).toBeLessThanOrEqual(2.0);
       });

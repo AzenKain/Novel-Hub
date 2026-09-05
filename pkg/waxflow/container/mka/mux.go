@@ -13,9 +13,6 @@ import (
 
 var _ container.Muxer = (*Muxer)(nil)
 
-// Write-side element IDs, the header and track-entry elements the demuxer does
-// not itself parse (or parses only on read) but a valid file needs. The
-// read-side IDs live in mka.go.
 const (
 	idEBMLVersion        = 0x4286
 	idEBMLReadVersion    = 0x42F7
@@ -31,19 +28,11 @@ const (
 	idFlagLacing = 0x9C
 )
 
-// Deterministic identity, fixed so reproducible output is byte-identical the
-// way the Ogg muxer pins oggOpusSerial. Matroska's Info also carries DateUTC
-// and the app strings, which would otherwise leak wall-clock and build
-// identity; DateUTC is omitted and the app strings are constant.
 const (
 	muxTrackUID = 1
 	muxAppName  = "WaxFlow"
 )
 
-// Cluster bounds. Blocks carry a signed 16-bit cluster-relative timestamp in
-// milliseconds, so a cluster cannot span more than 32767 ms; a much smaller
-// span keeps clusters short and self-contained for simple players, and the
-// byte target keeps a single cluster's buffer bounded.
 const (
 	maxClusterMs       = 4000
 	clusterTargetBytes = 1 << 20
@@ -51,75 +40,43 @@ const (
 
 // MuxerOptions configures the Matroska/WebM muxer.
 type MuxerOptions struct {
-	// WebM selects the webm DocType and its strict codec subset (Opus and
-	// Vorbis only); false writes matroska. The build closure sets it from the
-	// requested container name, and Begin rejects a webm request for a codec
-	// webm does not carry.
 	WebM bool
-	// Tags are accepted so the wiring matches the other muxers, but the muxer
-	// does NOT emit Matroska Tags elements: metadata for .mka output is written
-	// by the CLI's post-pass (cli/label, via waxlabel), which the CLI reaches
-	// because Matroska is not in its embedsTags set. If this muxer is ever
-	// taught to write Tags at Begin, add the Matroska containers to that
-	// embedsTags check in cli/transcode.go so the tags are not written twice.
 	Tags []container.Tag
 }
 
-// Muxer writes one audio track as Matroska (.mka/.mkv) or WebM. NeedsSeek
-// reports false: a plain io.Writer gets a compliant stream with an unknown-size
-// Segment, a Duration from the projected length, and a SeekHead naming Info and
-// Tracks. An io.WriteSeeker also gets the Duration repatched to the trailer, a
-// Cues index with a SeekHead entry pointing at it, and a definite Segment size.
-// Output is deterministic (fixed TrackUID and app strings, no DateUTC).
-//
-// Cues are seekable-only because only the SeekHead pointer locates them, and on
-// a plain writer that pointer cannot be filled.
-//
-// One codec packet is one SimpleBlock (no lacing). The final packet is held
-// until End so its block can carry DiscardPadding (the trailing gapless trim),
-// which a SimpleBlock cannot hold and a BlockGroup+Block can; CodecDelay on the
-// track carries the front trim. These are the exact inverse of the demuxer's
-// gapless read path.
+// Muxer writes one audio track as Matroska (.mka/.mkv) or WebM.
 type Muxer struct {
 	w     io.Writer
-	ws    io.WriteSeeker // nil when w cannot seek
+	ws    io.WriteSeeker
 	opts  MuxerOptions
 	begun bool
 	ended bool
 
 	codecID codec.ID
 	rate    int
-	delay   int64 // track.Delay in samples, written as CodecDelay
+	delay   int64
 
-	off int64 // bytes written so far
+	off int64
 
-	// Back-patch anchors, absolute file offsets, -1 when absent.
 	segDataOff int64
 	segSizeOff int64
 	durOff     int64
 	cueSeekOff int64
 
-	// Seek index, recorded only for a seekable writer.
 	cues      []cuePoint
-	clusters  int64 // clusters written, against which cueStride is measured
-	cueStride int64 // record one cue every cueStride clusters
+	clusters  int64
+	cueStride int64
 
-	rawSamples int64 // summed packet durations, the fallback for a -1 trailer
+	rawSamples int64
 
-	// Cluster accumulator: the buffered child elements (Timestamp + blocks)
-	// and the cluster's base time in milliseconds.
 	cluster     []byte
 	clusterMs   int64
 	haveCluster bool
 
-	// The held packet, kept back one step so End can turn the last one into a
-	// BlockGroup carrying DiscardPadding.
 	pending     codec.Packet
 	havePending bool
 }
 
-// cuePoint is one cluster's timestamp and its position relative to the
-// segment's data start, which is what CueClusterPosition means.
 type cuePoint struct {
 	timeMs int64
 	pos    int64
@@ -136,10 +93,6 @@ func NewMuxer(w io.Writer, opts *MuxerOptions) *Muxer {
 		cueStride:  1,
 	}
 	if ws, ok := w.(io.WriteSeeker); ok {
-		// *os.File satisfies io.WriteSeeker for a pipe too, so probe rather
-		// than trust the method set: a pipe would fail at the first patch,
-		// after the Cues had already gone out. The probe also gives the
-		// writer's starting offset, which the absolute patch offsets need.
 		if at, err := ws.Seek(0, io.SeekCurrent); err == nil && at >= 0 {
 			m.ws, m.off = ws, at
 		}
@@ -150,13 +103,10 @@ func NewMuxer(w io.Writer, opts *MuxerOptions) *Muxer {
 	return m
 }
 
-// NeedsSeek is false: Matroska streams with an unknown-size Segment and
-// definite-size Clusters.
+// NeedsSeek is false: Matroska streams with an unknown-size Segment and definite-size Clusters.
 func (m *Muxer) NeedsSeek() bool { return false }
 
-// Begin validates the track and writes the EBML header, Segment header,
-// SeekHead, Info, and Tracks, reserving the slots End patches. The Segment is
-// opened with an unknown size (streaming); Clusters follow from WritePacket.
+// Begin validates the track and writes the EBML header, Segment header, SeekHead, Info, and Tracks, reserving the slots End patches.
 func (m *Muxer) Begin(tracks []container.Track) error {
 	if m.begun {
 		return waxerr.New(waxerr.CodeInternal, "mka: Begin called twice")
@@ -184,10 +134,6 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	m.rate = t.Fmt.Rate
 	m.delay = t.Delay
 	if t.Codec == codec.Opus {
-		// Opus signals its priming as the OpusHead pre-skip, not the track
-		// Delay (the encoder reports it there and in the trailer, not through
-		// a Delay method), so read it from the config for CodecDelay. This is
-		// the front trim the demuxer's finalizeTrack reads back.
 		m.delay = int64(binary.LittleEndian.Uint16(t.CodecConfig[10:12]))
 	}
 	m.begun = true
@@ -197,9 +143,7 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	return m.write(header)
 }
 
-// WritePacket appends one codec packet as a SimpleBlock. The newest packet is
-// held back one step (havePending) so End can emit the final one as a
-// BlockGroup with DiscardPadding; every earlier packet is a plain SimpleBlock.
+// WritePacket appends one codec packet as a SimpleBlock.
 func (m *Muxer) WritePacket(pkt container.Packet) error {
 	if !m.begun || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "mka: WritePacket outside Begin/End")
@@ -212,8 +156,6 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 			return err
 		}
 	}
-	// Copy the payload: the demuxer/engine may reuse pkt.Data after the call,
-	// and this packet is held until the next WritePacket or End.
 	m.pending = codec.Packet{
 		Data: append([]byte(nil), pkt.Data...),
 		PTS:  pkt.PTS,
@@ -226,8 +168,7 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	return nil
 }
 
-// End emits the held final packet (with DiscardPadding when the trailer carries
-// end padding), flushes the last cluster, and finishes the stream.
+// End emits the held final packet (with DiscardPadding when the trailer carries end padding), flushes the last cluster, and finishes the stream.
 func (m *Muxer) End(trailer codec.Trailer) error {
 	if !m.begun || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "mka: End outside Begin")
@@ -246,25 +187,18 @@ func (m *Muxer) End(trailer codec.Trailer) error {
 	return m.finish(trailer)
 }
 
-// finish appends the Cues index and back-patches the slots Begin reserved. A
-// plain io.Writer already has a complete stream and returns untouched.
 func (m *Muxer) finish(trailer codec.Trailer) error {
 	if m.ws == nil {
 		return nil
 	}
 	cuesPos := int64(-1)
 	if len(m.cues) > 0 {
-		// Gated on seekability because the SeekHead pointer that finds it is.
-		// An empty Cues element is not valid, so no cues means no element.
 		cuesPos = m.off - m.segDataOff
 		if err := m.write(m.cuesElement()); err != nil {
 			return err
 		}
 	}
 	if m.durOff >= 0 {
-		// The trailer wins over the projection Begin wrote. A projection that
-		// missed is not an error, unlike flacn and riff: a Matroska Duration is
-		// advisory, so failing the file over a drift would be the wrong trade.
 		if n := finalSamples(trailer, m.rawSamples); n > 0 {
 			if err := m.patch(m.durOff, appendFloat(nil, idDuration, durationTicks(n, m.rate))); err != nil {
 				return err
@@ -283,7 +217,6 @@ func (m *Muxer) finish(trailer codec.Trailer) error {
 		}
 	}
 	if size := m.off - m.segDataOff; m.segSizeOff >= 0 && size < (1<<56)-1 {
-		// Width-stable: both forms are 8-byte vints, so nothing after moves.
 		var v [8]byte
 		binary.BigEndian.PutUint64(v[:], uint64(size))
 		v[0] = 0x01
@@ -291,17 +224,12 @@ func (m *Muxer) finish(trailer codec.Trailer) error {
 			return err
 		}
 	}
-	// Leave the writer at EOF; the jobs runner reopens the output for
-	// post-passes.
 	if _, err := m.ws.Seek(m.off, io.SeekStart); err != nil {
 		return waxerr.Wrap(waxerr.CodeOutputUnwritable, "mka: seeking to end", err)
 	}
 	return nil
 }
 
-// finalSamples is the presentation length for Duration: the trailer when it
-// declares one, else the summed packet durations less the trims.
-// Trailer.Samples uses the -1-means-unknown sentinel, so zero means empty.
 func finalSamples(trailer codec.Trailer, raw int64) int64 {
 	if trailer.Samples >= 0 {
 		return trailer.Samples
@@ -309,7 +237,6 @@ func finalSamples(trailer codec.Trailer, raw int64) int64 {
 	return raw - trailer.Delay - trailer.Padding
 }
 
-// cuesElement renders the recorded cluster positions as a Cues element.
 func (m *Muxer) cuesElement() []byte {
 	var body []byte
 	for _, c := range m.cues {
@@ -324,10 +251,6 @@ func (m *Muxer) cuesElement() []byte {
 	return appendElement(nil, idCues, body)
 }
 
-// emitBlock places one packet into the current cluster, starting a fresh
-// cluster when the packet's timestamp would leave the current one (byte target
-// or the int16 millisecond span). discardNS > 0 wraps the block in a
-// BlockGroup so it can carry DiscardPadding; otherwise it is a SimpleBlock.
 func (m *Muxer) emitBlock(pkt codec.Packet, discardNS int64) error {
 	ptsMs := msAt(pkt.PTS, m.rate)
 	if !m.haveCluster || ptsMs-m.clusterMs > maxClusterMs || len(m.cluster) >= clusterTargetBytes {
@@ -340,20 +263,18 @@ func (m *Muxer) emitBlock(pkt codec.Packet, discardNS int64) error {
 	}
 	rel := int16(ptsMs - m.clusterMs)
 	if discardNS > 0 {
-		block := blockBody(rel, pkt.Data, 0x00) // Block: keyframe implied by BlockGroup
+		block := blockBody(rel, pkt.Data, 0x00)
 		var group []byte
 		group = appendElement(group, idBlock, block)
 		group = appendElement(group, idDiscardPadding, beIntBytes(discardNS))
 		m.cluster = appendElement(m.cluster, idBlockGroup, group)
 		return nil
 	}
-	block := blockBody(rel, pkt.Data, 0x80) // SimpleBlock: keyframe flag set (audio)
+	block := blockBody(rel, pkt.Data, 0x80)
 	m.cluster = appendElement(m.cluster, idSimpleBlock, block)
 	return nil
 }
 
-// flushCluster writes the buffered cluster as a definite-size element and
-// resets the accumulator. A cluster with no blocks is not written.
 func (m *Muxer) flushCluster() error {
 	if !m.haveCluster {
 		return nil
@@ -365,9 +286,6 @@ func (m *Muxer) flushCluster() error {
 	return m.write(out)
 }
 
-// recordCue notes where the cluster about to be written begins. At the cap it
-// drops every other entry and doubles the stride, so a long file gets a coarser
-// index rather than an unbounded slice.
 func (m *Muxer) recordCue() {
 	if m.ws == nil {
 		return
@@ -385,21 +303,14 @@ func (m *Muxer) recordCue() {
 	m.clusters++
 }
 
-// blockBody assembles a (Simple)Block payload: the track number as a vint, the
-// 2-byte signed cluster-relative timestamp, the flags byte, then the frame.
 func blockBody(rel int16, frame []byte, flags byte) []byte {
 	b := appendVint(nil, muxTrackNumber)
 	b = append(b, byte(uint16(rel)>>8), byte(uint16(rel)), flags)
 	return append(b, frame...)
 }
 
-// muxTrackNumber is the single audio track's number, referenced by every block.
 const muxTrackNumber = 1
 
-// msAt converts a sample position to a whole-millisecond timestamp (the
-// TimestampScale is 1 ms). Block timestamps are informational for the reader
-// (it derives sample positions by frame-counting), so rounding here does not
-// affect gapless accuracy.
 func msAt(sample int64, rate int) int64 {
 	if sample <= 0 || rate <= 0 {
 		return 0
@@ -410,8 +321,6 @@ func msAt(sample int64, rate int) int64 {
 	return sec*1000 + (rem*1000+r/2)/r
 }
 
-// ebmlHeader builds the EBML header declaring the DocType (matroska or webm)
-// and the version levels the DiscardPadding/CodecDelay features need.
 func (m *Muxer) ebmlHeader() []byte {
 	docType, docVersion := "matroska", uint64(4)
 	if m.opts.WebM {
@@ -428,18 +337,12 @@ func (m *Muxer) ebmlHeader() []byte {
 	return appendElement(nil, idEBML, body)
 }
 
-// appendSegmentHeader appends the Segment element opened with an unknown size,
-// followed by its SeekHead, Info, and Tracks children. Recorded offsets are
-// absolute: m.off is where the writer started, dst is what has been built since.
 func (m *Muxer) appendSegmentHeader(dst []byte, t container.Track, codecID string, priv []byte) []byte {
 	dst = appendID(dst, idSegment)
 	m.segSizeOff = m.off + int64(len(dst))
 	dst = append(dst, unknownSizeVint...)
 	m.segDataOff = m.off + int64(len(dst))
 
-	// Info and Tracks first, so the SeekHead can name their positions. No
-	// circularity: entries are fixed-width, so the SeekHead's length does not
-	// depend on the values in it.
 	info, durSlot := m.infoElement(t)
 	entry := appendElement(nil, idTrackEntry, m.trackEntry(t, codecID, priv))
 	tracks := appendElement(nil, idTracks, entry)
@@ -456,32 +359,19 @@ func (m *Muxer) appendSegmentHeader(dst []byte, t container.Track, codecID strin
 	return append(dst, tracks...)
 }
 
-// unknownSizeVint is the 8-byte all-ones EBML size marking an element as
-// running to the end of the stream. End patches it to a definite size, which is
-// width-stable because that form is eight bytes too.
 var unknownSizeVint = []byte{0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
 const (
-	// seekEntryLen is one Seek entry: 2 (ID) + 1 (size) + 7 (SeekID) + 11
-	// (SeekPosition). Uniform, since every target has a 4-byte ID, which lets
-	// an unused entry degrade to a Void of the same width.
-	seekEntryLen = 21
-	// seekPosValueOff is the SeekPosition value's offset within a Seek entry.
+	seekEntryLen    = 21
 	seekPosValueOff = 13
-	// durationLen is a Duration element: 2 (ID) + 1 (size) + 8 (the double).
-	durationLen = 11
+	durationLen     = 11
 )
 
-// seekHead builds the index: entries for Info and Tracks, plus a reserved one
-// for Cues when the writer is seekable. cueSlot is that entry's index in the
-// returned bytes, or -1. Positions are relative to the segment's data start.
 func (m *Muxer) seekHead(infoLen int64) (elem []byte, cueSlot int) {
 	n := 2
 	if m.ws != nil {
 		n = 3
 	}
-	// Measure from an empty body of the right size, rather than assuming the
-	// size vint's width.
 	shLen := int64(len(appendElement(nil, idSeekHead, make([]byte, n*seekEntryLen))))
 	var body []byte
 	body = appendSeekEntry(body, idInfo, uint64(shLen))
@@ -498,8 +388,6 @@ func (m *Muxer) seekHead(infoLen int64) (elem []byte, cueSlot int) {
 	return elem, cueSlot
 }
 
-// appendSeekEntry appends one SeekHead child. The position is a fixed-width
-// 8-byte integer so a reserved slot can be patched without changing length.
 func appendSeekEntry(dst []byte, target uint32, pos uint64) []byte {
 	var body []byte
 	body = appendElement(body, idSeekID, appendID(nil, target))
@@ -507,12 +395,6 @@ func appendSeekEntry(dst []byte, target uint32, pos uint64) []byte {
 	return appendElement(dst, idSeek, body)
 }
 
-// infoElement builds the Info element and reports the index of its Duration
-// slot, or -1 when there is none. DateUTC is omitted for reproducibility.
-//
-// Duration is the presentation length, after the gapless trims, which is what
-// Track.Samples and Trailer.Samples carry. Samples <= 0 is unknown: the engine
-// projects -1, and a zero-valued Track declares nothing.
 func (m *Muxer) infoElement(t container.Track) (elem []byte, durSlot int) {
 	var body []byte
 	body = appendUint(body, idTimestampScale, defaultTimestampScale)
@@ -521,8 +403,6 @@ func (m *Muxer) infoElement(t container.Track) (elem []byte, durSlot int) {
 	durSlot = -1
 	switch {
 	case t.Samples > 0:
-		// From the projection, so a plain io.Writer carries a duration too. The
-		// slot is still recorded, since End repatches it from the trailer.
 		durSlot = len(body)
 		body = appendFloat(body, idDuration, durationTicks(t.Samples, m.rate))
 	case m.ws != nil:
@@ -536,10 +416,6 @@ func (m *Muxer) infoElement(t container.Track) (elem []byte, durSlot int) {
 	return elem, durSlot
 }
 
-// durationTicks converts a sample count to Info Duration units, samples*1000/rate
-// at this muxer's fixed 1-ms scale. It is not rounded: the read path's
-// nsToSamples then recovers the exact sample count, which a whole-millisecond
-// Duration would lose by up to 47 samples at 48 kHz.
 func durationTicks(samples int64, rate int) float64 {
 	if samples <= 0 || rate <= 0 {
 		return 0
@@ -548,22 +424,19 @@ func durationTicks(samples int64, rate int) float64 {
 	return float64(samples) * ticksPerSecond / float64(rate)
 }
 
-// trackEntry builds the single audio TrackEntry: number, UID, type, codec,
-// CodecPrivate, the gapless CodecDelay/SeekPreRoll, and the Audio settings.
 func (m *Muxer) trackEntry(t container.Track, codecID string, priv []byte) []byte {
 	var e []byte
 	e = appendUint(e, idTrackNumber, muxTrackNumber)
 	e = appendUint(e, idTrackUID, muxTrackUID)
 	e = appendUint(e, idTrackType, trackTypeAudio)
-	e = appendUint(e, idFlagLacing, 0) // one frame per block, never laced
+	e = appendUint(e, idFlagLacing, 0)
 	e = appendString(e, idCodecID, codecID)
 	if len(priv) > 0 {
 		e = appendElement(e, idCodecPrivate, priv)
 	}
 	if m.delay > 0 {
 		e = appendUint(e, idCodecDelay, uint64(samplesToNs(m.delay, m.rate)))
-		// Opus carries an 80 ms seek pre-roll (RFC 7845); the demuxer reads it
-		// to land a seek far enough ahead for the decoder to reconverge.
+		// Opus carries an 80 ms seek pre-roll (RFC 7845); the demuxer reads it to land a seek far enough ahead for the decoder to reconverge.
 		if t.Codec == codec.Opus {
 			e = appendUint(e, idSeekPreRoll, uint64(samplesToNs(3840, m.rate)))
 		}
@@ -572,9 +445,6 @@ func (m *Muxer) trackEntry(t container.Track, codecID string, priv []byte) []byt
 	return e
 }
 
-// audioBody builds the Audio element: sampling frequency and channel count for
-// every codec, plus bit depth for PCM (where the Audio element is the only
-// place the sample width is declared).
 func (m *Muxer) audioBody(t container.Track) []byte {
 	var a []byte
 	a = appendFloat(a, idSamplingFreq, float64(t.Fmt.Rate))
@@ -585,9 +455,6 @@ func (m *Muxer) audioBody(t container.Track) []byte {
 	return a
 }
 
-// write appends to the stream and advances m.off. The count is added before the
-// error is checked: a short write would otherwise leave every later offset out
-// by the shortfall.
 func (m *Muxer) write(b []byte) error {
 	n, err := m.w.Write(b)
 	m.off += int64(n)
@@ -597,8 +464,6 @@ func (m *Muxer) write(b []byte) error {
 	return nil
 }
 
-// patch rewrites bytes at an absolute offset. It leaves m.off alone; finish
-// restores the stream position.
 func (m *Muxer) patch(off int64, b []byte) error {
 	if _, err := m.ws.Seek(off, io.SeekStart); err != nil {
 		return waxerr.Wrap(waxerr.CodeOutputUnwritable, "mka: seek for patch", err)
@@ -609,8 +474,6 @@ func (m *Muxer) patch(off int64, b []byte) error {
 	return nil
 }
 
-// matroskaCodecID maps a waxflow codec to its Matroska CodecID string, the
-// inverse of mkvCodecID. PCM resolves by the track's sample type.
 func matroskaCodecID(id codec.ID, f audio.Format) (string, error) {
 	switch id {
 	case codec.Opus:
@@ -631,10 +494,6 @@ func matroskaCodecID(id codec.ID, f audio.Format) (string, error) {
 		"mka: cannot mux codec "+string(id)+" (opus, vorbis, flac, aac-lc, pcm)")
 }
 
-// codecPrivate builds the CodecPrivate blob for the codec from the encoder's
-// codec config, the inverse of the demuxer's setup* functions. Opus, Vorbis,
-// and AAC pass their config through unchanged; FLAC wraps STREAMINFO in the
-// native "fLaC" magic plus a STREAMINFO metadata block; PCM has none.
 func codecPrivate(id codec.ID, cfg []byte) ([]byte, error) {
 	switch id {
 	case codec.Opus:
@@ -664,14 +523,9 @@ func codecPrivate(id codec.ID, cfg []byte) ([]byte, error) {
 	return nil, waxerr.New(waxerr.CodeUnsupportedFormat, "mka: no CodecPrivate for codec "+string(id))
 }
 
-// pcmContainerBits is the Matroska BitDepth for a PCM track: the container word
-// width in bits (bytes per sample times eight), which is what the demuxer's
-// setupPCM reads back to size each frame.
 func pcmContainerBits(f audio.Format) int {
 	if f.Type == audio.Float {
 		return 32
 	}
-	// Round the pipeline depth up to a whole-byte container word (8/16/24/32),
-	// the width the PCM encoder actually packs.
 	return (f.BitDepth + 7) / 8 * 8
 }

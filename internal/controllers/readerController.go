@@ -140,9 +140,6 @@ func (h *ReaderController) GetAsset(c fiber.Ctx) error {
 	c.Set("X-Content-Type-Options", "nosniff")
 	c.Set("Content-Security-Policy", "default-src 'none'")
 
-	// A comic chapter is one <img> per page, so a 200-page volume means 200 hits
-	// here. "private" because access is per-user and a shared proxy must not serve
-	// one reader's asset to another; etag.New() handles revalidation after expiry.
 	c.Set(fiber.HeaderCacheControl, "private, max-age=3600")
 	return c.Send(asset.Data)
 }
@@ -193,7 +190,6 @@ func (h *ReaderController) UpdateCover(c fiber.Ctx) error {
 	if err == nil && file != nil {
 		f, err := file.Open()
 		if err != nil {
-			// The client's part parsed fine; failing to open the spooled copy is our side.
 			return apperrors.HandleError(c, apperrors.New(apperrors.ErrInternalError, "Failed to open uploaded file"))
 		}
 		defer f.Close()

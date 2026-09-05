@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-// ChannelMask assigns speaker positions to channels using
-// WAVE_FORMAT_EXTENSIBLE bit numbering, which maps 1:1 onto WAV, MP4, and
-// Matroska channel masks. Channels are ordered by ascending bit position.
+// ChannelMask assigns speaker positions to channels using WAVE_FORMAT_EXTENSIBLE bit numbering, which maps 1:1 onto WAV, MP4, and Matroska channel masks.
 type ChannelMask uint32
 
 const (
@@ -41,8 +39,7 @@ func (m ChannelMask) Count() int {
 	return bits.OnesCount32(uint32(m))
 }
 
-// String renders the mask as position abbreviations in channel order,
-// for example "FL|FR|FC|LFE|BL|BR".
+// String renders the mask as position abbreviations in channel order, for example "FL|FR|FC|LFE|BL|BR".
 func (m ChannelMask) String() string {
 	if m == 0 {
 		return "unknown"
@@ -64,9 +61,7 @@ func (m ChannelMask) String() string {
 	return b.String()
 }
 
-// DefaultLayout returns the conventional layout for a channel count
-// (mono, stereo, quad, 5.0, 5.1, 6.1, 7.1), or zero when there is no
-// convention.
+// DefaultLayout returns the conventional layout for a channel count (mono, stereo, quad, 5.0, 5.1, 6.1, 7.1), or zero when there is no convention.
 func DefaultLayout(channels int) ChannelMask {
 	switch channels {
 	case 1:

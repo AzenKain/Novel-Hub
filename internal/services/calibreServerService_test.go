@@ -401,7 +401,6 @@ func TestCalibreServerService_GetBookFile(t *testing.T) {
 		t.Errorf("expected non-empty path")
 	}
 
-	// Missing format
 	_, _, err = svc.GetBookFile(ctx, bookID, "pdf", nil)
 	if err == nil {
 		t.Fatalf("expected error for missing format 'pdf', got nil")

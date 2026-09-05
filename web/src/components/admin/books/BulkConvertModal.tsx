@@ -13,7 +13,17 @@ type BulkConvertModalProps = {
   onClose: () => void;
 };
 
-const CONVERT_TARGETS = ["epub", "fb2", "txt", "docx", "cbz", "kepub.epub", "mobi", "azw", "pdf"];
+const CONVERT_TARGETS = [
+  "epub",
+  "fb2",
+  "txt",
+  "docx",
+  "cbz",
+  "kepub.epub",
+  "mobi",
+  "azw",
+  "pdf",
+];
 
 const formatBytes = (n: number) => {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
@@ -27,7 +37,11 @@ interface BookConvertState {
   overwriteChecked: boolean;
 }
 
-export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books, onClose }) => {
+export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
+  open,
+  books,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const bulkConvertMutation = useBulkConvertBookMutation();
 
@@ -44,7 +58,10 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
     return initial;
   });
 
-  const updateBookState = (bookId: string, updates: Partial<BookConvertState>) => {
+  const updateBookState = (
+    bookId: string,
+    updates: Partial<BookConvertState>,
+  ) => {
     setStates((prev) => ({
       ...prev,
       [bookId]: {
@@ -74,7 +91,10 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
       if (!state) return false;
       const hasFiles = book.files && book.files.length > 0;
       if (!hasFiles) return false;
-      const hasDuplicate = book.files?.some((f) => f.format.toLowerCase() === state.targetFormat.toLowerCase()) || false;
+      const hasDuplicate =
+        book.files?.some(
+          (f) => f.format.toLowerCase() === state.targetFormat.toLowerCase(),
+        ) || false;
       return hasDuplicate && !state.overwriteChecked;
     });
   }, [books, states]);
@@ -91,7 +111,11 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
           target_format: state.targetFormat,
         };
       })
-      .filter(Boolean) as { book_id: string; file_id: string; target_format: string; }[];
+      .filter(Boolean) as {
+      book_id: string;
+      file_id: string;
+      target_format: string;
+    }[];
 
     if (items.length === 0) {
       toast.error(t("book.no_files_convert", "No files available to convert"));
@@ -104,14 +128,25 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
         onSuccess: (res) => {
           const count = res?.job_ids?.length || items.length;
           toast.success(
-            t("book.bulk_convert_success", "Enqueued {{count}} conversion jobs successfully", { count })
+            t(
+              "book.bulk_convert_success",
+              "Enqueued {{count}} conversion jobs successfully",
+              { count },
+            ),
           );
           onClose();
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : t("book.bulk_convert_failed", "Failed to start bulk conversion"));
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t(
+                  "book.bulk_convert_failed",
+                  "Failed to start bulk conversion",
+                ),
+          );
         },
-      }
+      },
     );
   };
 
@@ -125,7 +160,11 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
             <FileText className="w-5 h-5 text-primary" />
             {t("book.bulk_convert_title", "Bulk Convert Books")}
           </h3>
-          <button className="btn btn-square btn-sm btn-ghost" onClick={onClose} aria-label={t("common.close")}>
+          <button
+            className="btn btn-square btn-sm btn-ghost"
+            onClick={onClose}
+            aria-label={t("common.close")}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -134,7 +173,10 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
           {/* Global Target Format Selection */}
           <div className="p-3 bg-base-200/50 rounded-2xl border border-base-300">
             <label className="text-xs font-bold text-base-content/80 block mb-2">
-              {t("book.bulk_convert_global_format", "Set target format for all selected books:")}
+              {t(
+                "book.bulk_convert_global_format",
+                "Set target format for all selected books:",
+              )}
             </label>
             <div className="flex flex-wrap gap-2">
               {CONVERT_TARGETS.map((target) => (
@@ -157,10 +199,19 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
               if (!state) return null;
 
               const hasFiles = book.files && book.files.length > 0;
-              const hasDuplicate = hasFiles && (book.files?.some((f) => f.format.toLowerCase() === state.targetFormat.toLowerCase()) || false);
+              const hasDuplicate =
+                hasFiles &&
+                (book.files?.some(
+                  (f) =>
+                    f.format.toLowerCase() === state.targetFormat.toLowerCase(),
+                ) ||
+                  false);
 
               return (
-                <div key={book.id} className="p-3 border border-base-200 bg-base-100/50 rounded-xl flex flex-col gap-2 shadow-xs">
+                <div
+                  key={book.id}
+                  className="p-3 border border-base-200 bg-base-100/50 rounded-xl flex flex-col gap-2 shadow-xs"
+                >
                   <div className="flex items-center justify-between gap-3">
                     {/* Book Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -176,11 +227,15 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                         </div>
                       )}
                       <div className="min-w-0">
-                        <h4 className="text-sm font-bold truncate text-base-content" title={book.title}>
+                        <h4
+                          className="text-sm font-bold truncate text-base-content"
+                          title={book.title}
+                        >
                           {book.title}
                         </h4>
                         <p className="text-xs text-base-content/60 truncate">
-                          {book.author_name || t("library.unknown_author", "Unknown")}
+                          {book.author_name ||
+                            t("library.unknown_author", "Unknown")}
                         </p>
                       </div>
                     </div>
@@ -191,15 +246,22 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                         <>
                           {/* Source File */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">{t("book.select_source_file")}</label>
+                            <label className="text-[9px] font-bold uppercase opacity-50">
+                              {t("book.select_source_file")}
+                            </label>
                             <select
                               value={state.selectedFileId}
-                              onChange={(e) => updateBookState(book.id, { selectedFileId: e.target.value })}
+                              onChange={(e) =>
+                                updateBookState(book.id, {
+                                  selectedFileId: e.target.value,
+                                })
+                              }
                               className="select select-bordered select-xs max-w-30"
                             >
                               {book.files?.map((f) => (
                                 <option key={f.id} value={f.id}>
-                                  {f.format.toUpperCase()} ({formatBytes(f.size_bytes)})
+                                  {f.format.toUpperCase()} (
+                                  {formatBytes(f.size_bytes)})
                                 </option>
                               ))}
                             </select>
@@ -207,10 +269,17 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
 
                           {/* Target Format */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">{t("book.select_target_format")}</label>
+                            <label className="text-[9px] font-bold uppercase opacity-50">
+                              {t("book.select_target_format")}
+                            </label>
                             <select
                               value={state.targetFormat}
-                              onChange={(e) => updateBookState(book.id, { targetFormat: e.target.value, overwriteChecked: false })}
+                              onChange={(e) =>
+                                updateBookState(book.id, {
+                                  targetFormat: e.target.value,
+                                  overwriteChecked: false,
+                                })
+                              }
                               className="select select-bordered select-xs uppercase font-bold text-primary"
                             >
                               {CONVERT_TARGETS.map((t) => (
@@ -222,7 +291,9 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                           </div>
                         </>
                       ) : (
-                        <span className="text-xs text-error font-medium">{t("book.no_files_convert", "No files to convert")}</span>
+                        <span className="text-xs text-error font-medium">
+                          {t("book.no_files_convert", "No files to convert")}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -233,7 +304,11 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                       <div className="flex items-center gap-1.5 text-base-content">
                         <span className="font-bold text-warning">⚠️</span>
                         <span>
-                          {t("book.convert_replace_warning", "This book already has a {{format}} file.", { format: state.targetFormat.toUpperCase() })}
+                          {t(
+                            "book.convert_replace_warning",
+                            "This book already has a {{format}} file.",
+                            { format: state.targetFormat.toUpperCase() },
+                          )}
                         </span>
                       </div>
                       <label className="flex items-center gap-1.5 cursor-pointer font-semibold select-none text-base-content shrink-0">
@@ -241,9 +316,15 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
                           type="checkbox"
                           className="checkbox checkbox-xs checkbox-warning"
                           checked={state.overwriteChecked}
-                          onChange={(e) => updateBookState(book.id, { overwriteChecked: e.target.checked })}
+                          onChange={(e) =>
+                            updateBookState(book.id, {
+                              overwriteChecked: e.target.checked,
+                            })
+                          }
                         />
-                        <span>{t("book.convert_confirm_replace", "Yes, replace")}</span>
+                        <span>
+                          {t("book.convert_confirm_replace", "Yes, replace")}
+                        </span>
                       </label>
                     </div>
                   )}
@@ -253,10 +334,19 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({ open, books,
           </div>
 
           <div className="modal-action">
-            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={bulkConvertMutation.isPending}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={onClose}
+              disabled={bulkConvertMutation.isPending}
+            >
               {t("common.cancel")}
             </button>
-            <button type="submit" className="btn btn-primary min-w-30" disabled={bulkConvertMutation.isPending || needsConfirmation}>
+            <button
+              type="submit"
+              className="btn btn-primary min-w-30"
+              disabled={bulkConvertMutation.isPending || needsConfirmation}
+            >
               {bulkConvertMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-1.5" />

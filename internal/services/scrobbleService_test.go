@@ -52,11 +52,11 @@ type stubScrobbleTrackerRepo struct {
 	tracker *models.UserTrackerEntity
 	err     error
 
-	upsertedUserID     string
-	upsertedProvider   string
-	upsertedAccess     string
-	upsertedRefresh    *string
-	upsertedExpiresAt  *time.Time
+	upsertedUserID    string
+	upsertedProvider  string
+	upsertedAccess    string
+	upsertedRefresh   *string
+	upsertedExpiresAt *time.Time
 }
 
 func (s *stubScrobbleTrackerRepo) GetUserTracker(ctx context.Context, _ string, _ string) (*models.UserTrackerEntity, error) {
@@ -161,7 +161,6 @@ func TestHandleHardcoverCallback(t *testing.T) {
 		t.Errorf("upserted expires_at = %v, want ~1h in future", trackerRepo.upsertedExpiresAt)
 	}
 
-	// state must be consumed
 	var userID string
 	_ = c.Get(context.Background(), cache.BuildKey("hardcover_oauth", "state", state), &userID)
 	if userID != "" {

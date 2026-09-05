@@ -80,9 +80,7 @@ func HighlightEntitiesToResponse(entities []*HighlightEntity) []*response.Highli
 	return out
 }
 
-// HighlightBookEntity decorates a highlight with its book title + author, from the
-// export JOINs. Kept as a separate type so the chapter-scoped path never pays for
-// the join.
+// HighlightBookEntity decorates a highlight with its book title + author, from the export JOINs.
 type HighlightBookEntity struct {
 	HighlightEntity
 	BookTitle  string

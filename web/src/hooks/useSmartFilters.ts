@@ -1,7 +1,17 @@
 import { smartFilterService } from "@/services";
 import { useAuthStore } from "@/stores";
-import type { SmartFilter, UpsertSmartFilterPayload, ReorderHomeShelfItem, Book } from "@/types";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  SmartFilter,
+  UpsertSmartFilterPayload,
+  ReorderHomeShelfItem,
+  Book,
+} from "@/types";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import i18n from "@/i18n";
 
@@ -11,14 +21,20 @@ export function useSmartFiltersQuery(enabled = true) {
     queryKey: ["smart-filters"],
     queryFn: async () => {
       const res = await smartFilterService.list();
-      if (!res.status) throw new Error(res.message || "Failed to fetch smart filters");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch smart filters");
       return res.data || [];
     },
     enabled: enabled && !!user,
   });
 }
 
-export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string, limit = 60, enabled = true) {
+export function useSmartFilterBooksInfiniteQuery(
+  id: string,
+  libraryId?: string,
+  limit = 60,
+  enabled = true,
+) {
   const user = useAuthStore((state) => state.user);
   return useInfiniteQuery({
     queryKey: ["smart-filters", id, "books", { libraryId, limit }],
@@ -29,7 +45,8 @@ export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string,
         cursor: pageParam,
         limit,
       });
-      if (!res.status) throw new Error("Failed to fetch books for smart filter");
+      if (!res.status)
+        throw new Error("Failed to fetch books for smart filter");
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
@@ -37,7 +54,12 @@ export function useSmartFilterBooksInfiniteQuery(id: string, libraryId?: string,
   });
 }
 
-export function useSmartFilterBooksQuery(id: string, libraryId?: string, limit = 8, enabled = true) {
+export function useSmartFilterBooksQuery(
+  id: string,
+  libraryId?: string,
+  limit = 8,
+  enabled = true,
+) {
   const user = useAuthStore((state) => state.user);
   return useQuery<Book[]>({
     queryKey: ["smart-filters", id, "books", "fixed", { libraryId, limit }],
@@ -46,7 +68,8 @@ export function useSmartFilterBooksQuery(id: string, libraryId?: string, limit =
         library_id: libraryId,
         limit,
       });
-      if (!res.status) throw new Error("Failed to fetch books for smart filter");
+      if (!res.status)
+        throw new Error("Failed to fetch books for smart filter");
       return res.data || [];
     },
     enabled: enabled && !!id && !!user,
@@ -58,15 +81,28 @@ export function useCreateSmartFilterMutation() {
   return useMutation({
     mutationFn: async (payload: UpsertSmartFilterPayload) => {
       const res = await smartFilterService.create(payload);
-      if (!res.status) throw new Error(res.message || "Failed to create smart filter");
+      if (!res.status)
+        throw new Error(res.message || "Failed to create smart filter");
       return res.data!;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["smart-filters"] });
-      toast.success(i18n.t("library.smart_filter_created", "Smart filter created successfully"));
+      toast.success(
+        i18n.t(
+          "library.smart_filter_created",
+          "Smart filter created successfully",
+        ),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_filter_create_failed", "Failed to create smart filter"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.smart_filter_create_failed",
+              "Failed to create smart filter",
+            ),
+      );
     },
   });
 }
@@ -74,18 +110,39 @@ export function useCreateSmartFilterMutation() {
 export function useUpdateSmartFilterMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: UpsertSmartFilterPayload }) => {
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpsertSmartFilterPayload;
+    }) => {
       const res = await smartFilterService.update(id, payload);
-      if (!res.status) throw new Error(res.message || "Failed to update smart filter");
+      if (!res.status)
+        throw new Error(res.message || "Failed to update smart filter");
       return res.data!;
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["smart-filters"] });
-      void queryClient.invalidateQueries({ queryKey: ["smart-filters", data.id] });
-      toast.success(i18n.t("library.smart_filter_updated", "Smart filter updated successfully"));
+      void queryClient.invalidateQueries({
+        queryKey: ["smart-filters", data.id],
+      });
+      toast.success(
+        i18n.t(
+          "library.smart_filter_updated",
+          "Smart filter updated successfully",
+        ),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_filter_update_failed", "Failed to update smart filter"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.smart_filter_update_failed",
+              "Failed to update smart filter",
+            ),
+      );
     },
   });
 }
@@ -95,16 +152,29 @@ export function useDeleteSmartFilterMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await smartFilterService.delete(id);
-      if (!res.status) throw new Error(res.message || "Failed to delete smart filter");
+      if (!res.status)
+        throw new Error(res.message || "Failed to delete smart filter");
       return res;
     },
     onSuccess: (_, id) => {
       void queryClient.invalidateQueries({ queryKey: ["smart-filters"] });
       void queryClient.invalidateQueries({ queryKey: ["smart-filters", id] });
-      toast.success(i18n.t("library.smart_filter_deleted", "Smart filter deleted successfully"));
+      toast.success(
+        i18n.t(
+          "library.smart_filter_deleted",
+          "Smart filter deleted successfully",
+        ),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.smart_filter_delete_failed", "Failed to delete smart filter"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.smart_filter_delete_failed",
+              "Failed to delete smart filter",
+            ),
+      );
     },
   });
 }
@@ -114,7 +184,8 @@ export function usePinSmartFilterSidebarMutation() {
   return useMutation({
     mutationFn: async ({ id, isPinned }: { id: string; isPinned: boolean }) => {
       const res = await smartFilterService.pinSidebar(id, isPinned);
-      if (!res.status) throw new Error(res.message || "Failed to pin smart filter to sidebar");
+      if (!res.status)
+        throw new Error(res.message || "Failed to pin smart filter to sidebar");
       return res.data!;
     },
     onSuccess: () => {
@@ -128,7 +199,10 @@ export function usePinSmartFilterHomeMutation() {
   return useMutation({
     mutationFn: async ({ id, isPinned }: { id: string; isPinned: boolean }) => {
       const res = await smartFilterService.pinHome(id, isPinned);
-      if (!res.status) throw new Error(res.message || "Failed to pin smart filter to homepage");
+      if (!res.status)
+        throw new Error(
+          res.message || "Failed to pin smart filter to homepage",
+        );
       return res.data!;
     },
     onSuccess: () => {
@@ -142,7 +216,8 @@ export function useReorderSmartFiltersHomeMutation() {
   return useMutation({
     mutationFn: async (shelves: ReorderHomeShelfItem[]) => {
       const res = await smartFilterService.reorderHome(shelves);
-      if (!res.status) throw new Error(res.message || "Failed to reorder homepage shelves");
+      if (!res.status)
+        throw new Error(res.message || "Failed to reorder homepage shelves");
       return res;
     },
     onSuccess: () => {

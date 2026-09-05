@@ -18,8 +18,6 @@ type ReadingList struct {
 }
 
 // ComicRack publishes no XSD, so every attribute is optional and unknown ones are ignored.
-// Volume usually holds the series start year rather than a sequence number, so it is not a
-// fallback for Number the way ComicInfo treats it.
 type ReadingListBook struct {
 	Series string `xml:"Series,attr"`
 	Number string `xml:"Number,attr"`

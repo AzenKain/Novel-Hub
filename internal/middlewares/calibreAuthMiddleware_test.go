@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gofiber/fiber/v3"
+	jwt "github.com/golang-jwt/jwt/v5"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -181,7 +181,6 @@ func TestCalibreAuthMiddleware_TokenAuth(t *testing.T) {
 		return c.SendString("ok:" + claims.UId)
 	})
 
-	// 1. Bearer Header
 	reqBearer := httptest.NewRequest("GET", "/test", nil)
 	reqBearer.Header.Set("Authorization", "Bearer "+validToken)
 	respBearer, err := app.Test(reqBearer)
@@ -189,7 +188,6 @@ func TestCalibreAuthMiddleware_TokenAuth(t *testing.T) {
 		t.Fatalf("expected 200 for Bearer token, got status %d, err %v", respBearer.StatusCode, err)
 	}
 
-	// 2. Query param ?token=
 	reqQuery := httptest.NewRequest("GET", "/test?token="+validToken, nil)
 	respQuery, err := app.Test(reqQuery)
 	if err != nil || respQuery.StatusCode != 200 {

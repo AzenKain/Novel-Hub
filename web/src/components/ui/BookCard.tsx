@@ -1,9 +1,9 @@
 import type { Book, BookCardProps } from "@/types";
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { parseMetadata } from '@/lib/bookDetail';
-import { getMediaUrl } from '@/config/api';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { parseMetadata } from "@/lib/bookDetail";
+import { getMediaUrl } from "@/config/api";
 
 const GRADIENTS = [
   "from-[#e85d83] via-[#4657b8] to-[#182033]",
@@ -11,110 +11,166 @@ const GRADIENTS = [
   "from-[#c38a28] via-[#e85d83] to-[#4e4a95]",
   "from-[#7f8bd9] via-[#f08ca7] to-[#213255]",
   "from-[#182033] via-[#4657b8] to-[#1f9a94]",
-  "from-[#df6071] via-[#c38a28] to-[#35418d]"
+  "from-[#df6071] via-[#c38a28] to-[#35418d]",
 ];
 
-export const BookCard: React.FC<BookCardProps> = React.memo(({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const charCode = book.id ? book.id.charCodeAt(0) : 0;
-  const gradientClass = GRADIENTS[charCode % 6];
-  const format = (book.files?.[0]?.format || "BOOK").toUpperCase();
-  
-  const meta = book.metadata_json ? parseMetadata(book.metadata_json) : {};
-  const series = meta.series;
-  const author_name = book.author_name || book.author_id || t('library.unknown_author', 'Unknown');
+export const BookCard: React.FC<BookCardProps> = React.memo(
+  ({ book, onClick, compact, selected, selectionIndex, onSelectToggle }) => {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const [imageLoaded, setImageLoaded] = React.useState(false);
+    const charCode = book.id ? book.id.charCodeAt(0) : 0;
+    const gradientClass = GRADIENTS[charCode % 6];
+    const format = (book.files?.[0]?.format || "BOOK").toUpperCase();
 
-  return (
-    <article 
-      className={`group card card-compact bg-base-100 shadow-xs cursor-pointer rounded-xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between ${
-        selected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border border-base-200/80 hover:border-primary/30"
-      }`}
-      onClick={() => onClick(book)}
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick(book);
-        }
-      }}
-    >
-      <figure className={`relative ${compact ? 'aspect-3/4' : 'aspect-[3/4.12]'} w-full text-white flex flex-col justify-between ${compact ? 'p-2.5' : 'p-4'} bg-linear-to-br ${gradientClass} shrink-0 overflow-hidden`}>
-        {onSelectToggle && (
-          <div 
-            className="absolute top-2 left-2 z-20"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectToggle(book);
-            }}
-          >
-            <div className={`h-6 min-w-6 rounded-full flex items-center justify-center border-2 shadow-md transition-all select-none ${
-              selected 
-                ? `bg-primary border-primary text-primary-content scale-100 ${
-                    selectionIndex && selectionIndex >= 100 ? "px-1.5" : "px-0.5"
-                  }` 
-                : "bg-base-100/80 backdrop-blur-xs border-base-content/20 text-transparent hover:border-base-content/40 hover:scale-105 w-6"
-            }`}>
-              {selected && typeof selectionIndex === 'number' && selectionIndex > 0 ? (
-                <span className={`font-black leading-none tabular-nums text-center flex items-center justify-center tracking-tight ${
-                  selectionIndex >= 100 ? "text-[10px]" : selectionIndex >= 10 ? "text-[11px]" : "text-xs"
-                }`}>{selectionIndex}</span>
-              ) : (
-                <svg className="w-3.5 h-3.5 stroke-[3.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-              )}
-            </div>
-          </div>
-        )}
-        {book.cover_url ? (
-          <>
-            <img 
-              src={getMediaUrl(book.cover_url, book.id, book.updated_at)} 
-              alt={book.title} 
-              loading="lazy" 
-              decoding="async"
-              draggable={false} 
-              onLoad={() => setImageLoaded(true)}
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none group-hover:scale-[1.04] group-hover:brightness-105 select-none pointer-events-none ${imageLoaded ? "opacity-100" : "opacity-0"}`} 
-            />
-            <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/5" />
-          </>
-        ) : (
-          <>
-            <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90`}>{t('book.novel_label')}</small>
-            <strong className={`z-10 ${compact ? 'text-sm' : 'text-lg'} leading-tight line-clamp-3 font-bold`} style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{book.title}</strong>
-            <small className={`z-10 font-black ${compact ? 'text-[8px]' : 'text-[10px]'} tracking-wider opacity-90 self-end`}>{format}</small>
-          </>
-        )}
-      </figure>
-      <div className={`card-body ${compact ? 'p-1.5 gap-0.5' : 'p-2 gap-1'} flex-1 flex flex-col justify-start`}>
-        <strong className={`${compact ? 'text-xs' : 'text-base'} line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary`} title={book.title}>{book.title}</strong>
-        <p 
-          className={`${compact ? 'text-[11px]' : 'text-sm'} text-base-content/70 truncate hover:text-primary hover:underline cursor-pointer`}
-          title={author_name}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/?nav=authors&facet=author&name=${encodeURIComponent(author_name)}`);
-          }}
+    const meta = book.metadata_json ? parseMetadata(book.metadata_json) : {};
+    const series = meta.series;
+    const author_name =
+      book.author_name ||
+      book.author_id ||
+      t("library.unknown_author", "Unknown");
+
+    return (
+      <article
+        className={`group card card-compact bg-base-100 shadow-xs cursor-pointer rounded-xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 h-full flex flex-col justify-between ${
+          selected
+            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+            : "border border-base-200/80 hover:border-primary/30"
+        }`}
+        onClick={() => onClick(book)}
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onClick(book);
+          }
+        }}
+      >
+        <figure
+          className={`relative ${compact ? "aspect-3/4" : "aspect-[3/4.12]"} w-full text-white flex flex-col justify-between ${compact ? "p-2.5" : "p-4"} bg-linear-to-br ${gradientClass} shrink-0 overflow-hidden`}
         >
-          {author_name}
-        </p>
-        {series && (
-          <p 
-            className={`${compact ? 'text-[11px]' : 'text-sm'} text-secondary/80 font-medium truncate hover:text-secondary hover:underline cursor-pointer`}
-            title={series}
+          {onSelectToggle && (
+            <div
+              className="absolute top-2 left-2 z-20"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectToggle(book);
+              }}
+            >
+              <div
+                className={`h-6 min-w-6 rounded-full flex items-center justify-center border-2 shadow-md transition-all select-none ${
+                  selected
+                    ? `bg-primary border-primary text-primary-content scale-100 ${
+                        selectionIndex && selectionIndex >= 100
+                          ? "px-1.5"
+                          : "px-0.5"
+                      }`
+                    : "bg-base-100/80 backdrop-blur-xs border-base-content/20 text-transparent hover:border-base-content/40 hover:scale-105 w-6"
+                }`}
+              >
+                {selected &&
+                typeof selectionIndex === "number" &&
+                selectionIndex > 0 ? (
+                  <span
+                    className={`font-black leading-none tabular-nums text-center flex items-center justify-center tracking-tight ${
+                      selectionIndex >= 100
+                        ? "text-[10px]"
+                        : selectionIndex >= 10
+                          ? "text-[11px]"
+                          : "text-xs"
+                    }`}
+                  >
+                    {selectionIndex}
+                  </span>
+                ) : (
+                  <svg
+                    className="w-3.5 h-3.5 stroke-[3.5]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
+                  </svg>
+                )}
+              </div>
+            </div>
+          )}
+          {book.cover_url ? (
+            <>
+              <img
+                src={getMediaUrl(book.cover_url, book.id, book.updated_at)}
+                alt={book.title}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                onLoad={() => setImageLoaded(true)}
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none group-hover:scale-[1.04] group-hover:brightness-105 select-none pointer-events-none ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+              />
+              <span className="absolute inset-0 bg-primary/0 transition-colors duration-200 ease-out group-hover:bg-primary/5" />
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+              <small
+                className={`z-10 font-black ${compact ? "text-[8px]" : "text-[10px]"} tracking-wider opacity-90`}
+              >
+                {t("book.novel_label")}
+              </small>
+              <strong
+                className={`z-10 ${compact ? "text-sm" : "text-lg"} leading-tight line-clamp-3 font-bold`}
+                style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}
+              >
+                {book.title}
+              </strong>
+              <small
+                className={`z-10 font-black ${compact ? "text-[8px]" : "text-[10px]"} tracking-wider opacity-90 self-end`}
+              >
+                {format}
+              </small>
+            </>
+          )}
+        </figure>
+        <div
+          className={`card-body ${compact ? "p-1.5 gap-0.5" : "p-2 gap-1"} flex-1 flex flex-col justify-start`}
+        >
+          <strong
+            className={`${compact ? "text-xs" : "text-base"} line-clamp-2 leading-tight transition-colors duration-150 group-hover:text-primary`}
+            title={book.title}
+          >
+            {book.title}
+          </strong>
+          <p
+            className={`${compact ? "text-[11px]" : "text-sm"} text-base-content/70 truncate hover:text-primary hover:underline cursor-pointer`}
+            title={author_name}
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/?nav=series&facet=series&name=${encodeURIComponent(series)}`);
+              navigate(
+                `/?nav=authors&facet=author&name=${encodeURIComponent(author_name)}`,
+              );
             }}
           >
-            {series}
+            {author_name}
           </p>
-        )}
-      </div>
-    </article>
-  );
-});
+          {series && (
+            <p
+              className={`${compact ? "text-[11px]" : "text-sm"} text-secondary/80 font-medium truncate hover:text-secondary hover:underline cursor-pointer`}
+              title={series}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(
+                  `/?nav=series&facet=series&name=${encodeURIComponent(series)}`,
+                );
+              }}
+            >
+              {series}
+            </p>
+          )}
+        </div>
+      </article>
+    );
+  },
+);

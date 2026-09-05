@@ -15,17 +15,14 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// Decoder unpacks interleaved wire PCM into planar buffers. It implements
-// codec.Decoder.
+// Decoder unpacks interleaved wire PCM into planar buffers.
 type Decoder struct {
 	cfg Config
 	fmt audio.Format
-	buf *audio.Buffer // reusable scratch, borrowed by emit callbacks
+	buf *audio.Buffer
 }
 
-// NewDecoder returns a Decoder for the given wire configuration and track
-// format. The track format must be what cfg.PCMFormat produces; demuxers
-// construct both from the same header, so a mismatch is a wiring bug.
+// NewDecoder returns a Decoder for the given wire configuration and track format.
 func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -40,10 +37,7 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	return &Decoder{cfg: cfg, fmt: f}, nil
 }
 
-// Decode unpacks one packet of interleaved frames and emits planar
-// buffers of at most audio.StandardChunk frames. Emitted buffers are
-// borrowed: valid only during the callback. A packet that does not hold a
-// whole number of frames is malformed.
+// Decode unpacks one packet of interleaved frames and emits planar buffers of at most audio.StandardChunk frames.
 func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	fb := d.cfg.BytesPerFrame(d.fmt.Channels)
 	if len(pkt)%fb != 0 {
@@ -75,15 +69,12 @@ func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 // Reset is a no-op: PCM decoding is stateless across packets.
 func (d *Decoder) Reset() {}
 
-// Release returns the scratch buffer to the pool (codec.Releaser). The
-// decoder must not be used afterward.
+// Release returns the scratch buffer to the pool (codec.Releaser).
 func (d *Decoder) Release() {
 	audio.Put(d.buf)
 	d.buf = nil
 }
 
-// unpack de-interleaves data (a whole number of frames) into d.buf,
-// which already has N set.
 func (d *Decoder) unpack(data []byte) {
 	ch := d.fmt.Channels
 	step := d.cfg.Bits / 8 * ch
@@ -121,7 +112,7 @@ func (d *Decoder) unpack(data []byte) {
 			for i := range dst {
 				dst[i] = d.s24(data[off+i*step:]) >> shift
 			}
-		default: // 32
+		default:
 			dst := d.buf.ChanI(c)
 			for i := range dst {
 				dst[i] = int32(d.u32(data[off+i*step:])) >> shift
@@ -151,7 +142,6 @@ func (d *Decoder) u64(b []byte) uint64 {
 	return binary.LittleEndian.Uint64(b)
 }
 
-// s24 assembles a sign-extended 24-bit sample.
 func (d *Decoder) s24(b []byte) int32 {
 	var v uint32
 	if d.cfg.BigEndian {

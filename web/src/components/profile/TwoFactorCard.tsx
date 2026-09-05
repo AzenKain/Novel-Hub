@@ -7,7 +7,13 @@ import {
   useTOTPRecoveryCodesMutation,
   useTOTPStatusQuery,
 } from "@/hooks";
-import { AlertTriangle, Check, Copy, KeyRound, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Copy,
+  KeyRound,
+  ShieldCheck,
+} from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -52,7 +58,9 @@ export const TwoFactorCard: React.FC = () => {
       onSuccess: (data) => {
         setRecoveryCodes(data.codes);
         reset();
-        toast.success(t("totp.enabled_toast", "Two-factor authentication is on."));
+        toast.success(
+          t("totp.enabled_toast", "Two-factor authentication is on."),
+        );
       },
       onError: (err) => toast.error(err.message),
     });
@@ -68,7 +76,9 @@ export const TwoFactorCard: React.FC = () => {
       onSuccess: () => {
         setRecoveryCodes([]);
         reset();
-        toast.success(t("totp.disabled_toast", "Two-factor authentication is off."));
+        toast.success(
+          t("totp.disabled_toast", "Two-factor authentication is off."),
+        );
       },
       onError: (err) => toast.error(err.message),
     });
@@ -79,7 +89,12 @@ export const TwoFactorCard: React.FC = () => {
       onSuccess: (data) => {
         setRecoveryCodes(data.codes);
         setCode("");
-        toast.success(t("totp.recovery_regenerated", "New recovery codes generated. The old ones no longer work."));
+        toast.success(
+          t(
+            "totp.recovery_regenerated",
+            "New recovery codes generated. The old ones no longer work.",
+          ),
+        );
       },
       onError: (err) => toast.error(err.message),
     });
@@ -106,13 +121,20 @@ export const TwoFactorCard: React.FC = () => {
             <h3 className="text-base font-bold flex items-center gap-2">
               {t("totp.title", "Two-Factor Authentication")}
               {enabled ? (
-                <span className="badge badge-success badge-sm">{t("totp.on", "On")}</span>
+                <span className="badge badge-success badge-sm">
+                  {t("totp.on", "On")}
+                </span>
               ) : (
-                <span className="badge badge-ghost badge-sm">{t("totp.off", "Off")}</span>
+                <span className="badge badge-ghost badge-sm">
+                  {t("totp.off", "Off")}
+                </span>
               )}
             </h3>
             <p className="text-xs text-base-content/60">
-              {t("totp.subtitle", "Require a code from your authenticator app when signing in.")}
+              {t(
+                "totp.subtitle",
+                "Require a code from your authenticator app when signing in.",
+              )}
             </p>
           </div>
         </div>
@@ -127,7 +149,7 @@ export const TwoFactorCard: React.FC = () => {
             <p className="text-xs">
               {t(
                 "totp.recovery_warning",
-                "Save these recovery codes now. Each works once and they are the only way in if you lose your phone. They are not shown again."
+                "Save these recovery codes now. Each works once and they are the only way in if you lose your phone. They are not shown again.",
               )}
             </p>
           </div>
@@ -136,16 +158,31 @@ export const TwoFactorCard: React.FC = () => {
               <span key={entry}>{entry}</span>
             ))}
           </div>
-          <button className="btn btn-xs btn-outline gap-1" onClick={copyRecoveryCodes}>
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          <button
+            className="btn btn-xs btn-outline gap-1"
+            onClick={copyRecoveryCodes}
+          >
+            {copied ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
             {t("totp.copy_codes", "Copy codes")}
           </button>
         </div>
       )}
 
       {!enabled && !uri && !isLoading && (
-        <button className="btn btn-primary btn-sm gap-2" onClick={handleEnroll} disabled={enroll.isPending}>
-          {enroll.isPending ? <span className="loading loading-spinner loading-xs" /> : <KeyRound className="h-4 w-4" />}
+        <button
+          className="btn btn-primary btn-sm gap-2"
+          onClick={handleEnroll}
+          disabled={enroll.isPending}
+        >
+          {enroll.isPending ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <KeyRound className="h-4 w-4" />
+          )}
           {t("totp.begin", "Set up two-factor authentication")}
         </button>
       )}
@@ -153,11 +190,16 @@ export const TwoFactorCard: React.FC = () => {
       {!enabled && uri && (
         <div className="space-y-3">
           <p className="text-xs text-base-content/70">
-            {t("totp.scan_instructions", "Scan this with your authenticator app, then enter the code it shows.")}
+            {t(
+              "totp.scan_instructions",
+              "Scan this with your authenticator app, then enter the code it shows.",
+            )}
           </p>
           <CustomQRCode value={uri} size={180} />
           <div className="text-xs">
-            <span className="text-base-content/60">{t("totp.manual_entry", "Or enter this key manually:")}</span>
+            <span className="text-base-content/60">
+              {t("totp.manual_entry", "Or enter this key manually:")}
+            </span>
             <code className="ml-2 font-mono break-all">{secret}</code>
           </div>
           <div className="flex gap-2">
@@ -169,8 +211,14 @@ export const TwoFactorCard: React.FC = () => {
               placeholder="000000"
               className="input input-bordered input-sm font-mono tracking-[0.3em] text-center w-36"
             />
-            <button className="btn btn-primary btn-sm" onClick={handleConfirm} disabled={code.trim().length !== 6 || confirm.isPending}>
-              {confirm.isPending ? <span className="loading loading-spinner loading-xs" /> : null}
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleConfirm}
+              disabled={code.trim().length !== 6 || confirm.isPending}
+            >
+              {confirm.isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : null}
               {t("totp.confirm", "Confirm")}
             </button>
             <button className="btn btn-ghost btn-sm" onClick={reset}>
@@ -216,7 +264,10 @@ export const TwoFactorCard: React.FC = () => {
       <ConfirmModal
         open={isDisableConfirmOpen}
         title={t("totp.disable", "Turn off")}
-        message={t("totp.disable_confirm", "Turn off two-factor authentication for your account?")}
+        message={t(
+          "totp.disable_confirm",
+          "Turn off two-factor authentication for your account?",
+        )}
         onClose={() => setIsDisableConfirmOpen(false)}
         onConfirm={handleConfirmDisable}
         variant="danger"

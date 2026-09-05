@@ -19,30 +19,17 @@ var (
 	_ container.Warner  = (*Demuxer)(nil)
 )
 
-// Hostile-input caps (ADR-0005 invariants).
 const (
-	// maxResync bounds the scan for the next frame sync after damage.
-	maxResync = 1 << 20
-	// minFrameLen is the smallest compliant frame (8 kbit/s at 24 kHz),
-	// the hostile-input bound on index entry counts.
-	minFrameLen = 24
-	// maxID3Tags bounds leading tag skipping (tags stack).
-	maxID3Tags = 8
-	// trailerScan is how far back trailing tag recognition looks.
-	trailerScan = 64 << 10
-	// reservoirCover is the main-data backlog a seek backoff must
-	// accumulate before the target region: the reservoir's 511-byte
-	// reach plus a margin.
+	maxResync      = 1 << 20
+	minFrameLen    = 24
+	maxID3Tags     = 8
+	trailerScan    = 64 << 10
 	reservoirCover = 511 + 64
-	// stateFrames is how many frames before the target must decode from
-	// a satisfied reservoir for the filterbank history (IMDCT overlap
-	// plus synthesis window) to converge exactly.
-	stateFrames = 3
+	stateFrames    = 3
 )
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
@@ -51,32 +38,23 @@ type Demuxer struct {
 	src  container.Source
 	opts DemuxerOptions
 
-	hdr      mp3.Header // reference header: the first audio frame's
-	spf      int64      // samples per frame
+	hdr      mp3.Header
+	spf      int64
 	track    container.Track
 	warnings []container.Warning
 
-	firstFrame int64 // offset of the first audio frame (tags skipped)
+	firstFrame int64
 
-	// idx is the lazy exact frame index: idx[i] is the absolute byte
-	// offset of audio frame i. It grows as the walk advances and is
-	// complete once done is set; sizes come from neighboring entries.
-	// grew marks growth since open or RestoreIndex, so snapshots are
-	// taken only when there is something new to keep.
 	idx  []int64
 	done bool
 	grew bool
 
-	cur int64 // next frame number ReadPacket delivers
+	cur int64
 
-	// w is the shared read-ahead window; its data end is the logical end
-	// of frame data and its sticky error surfaces on the packet path.
 	w srcwin.Window
 }
 
-// NewDemuxer parses the stream head (tags, the VBR metadata frame) and
-// positions on the first audio frame. The returned Demuxer implements
-// container.Seeker and container.Warner.
+// NewDemuxer parses the stream head (tags, the VBR metadata frame) and positions on the first audio frame.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src, w: srcwin.New(src, src.Size(), "mpa: reading frame data")}
 	if opts != nil {
@@ -88,7 +66,6 @@ func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	return d, nil
 }
 
-// warn records tolerated damage, or fails in strict mode.
 func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if d.opts.Strict {
@@ -100,7 +77,6 @@ func (d *Demuxer) warn(off int64, format string, args ...any) error {
 }
 
 func (d *Demuxer) parse() error {
-	// Skip leading ID3v2 tags (stacked ones included).
 	off := int64(0)
 	for range maxID3Tags {
 		head := d.w.BytesAt(off, 10)
@@ -111,15 +87,10 @@ func (d *Demuxer) parse() error {
 		off += n
 	}
 
-	// Free-format streams fix the frame size by convention, not by
-	// header; nothing ships them anymore and supporting them would
-	// weaken every sync heuristic here. Diagnose the head directly
-	// (the candidate scan below treats unsized frames as junk).
 	if fh, err := mp3.ParseHeader(d.w.BytesAt(off, mp3.HeaderLen)); err == nil && fh.Size() == 0 {
 		return waxerr.New(waxerr.CodeUnsupportedFormat, "mpa: free-format stream")
 	}
 
-	// Find the first frame: parse at off, else bounded junk scan.
 	first, h, ok := d.nextCandidate(off, off+maxResync)
 	if !ok {
 		if d.w.Err() != nil {
@@ -133,7 +104,6 @@ func (d *Demuxer) parse() error {
 		}
 	}
 
-	// A Xing, Info, or VBRI frame is metadata, not audio: consume it.
 	tag, hasTag := vbrTag{delay: -1, padding: -1}, false
 	if frame := d.w.BytesAt(first, h.Size()); len(frame) == h.Size() {
 		if t, ok := parseVBRTag(h, frame); ok {
@@ -141,7 +111,6 @@ func (d *Demuxer) parse() error {
 			first += int64(h.Size())
 			fh, err := mp3.ParseHeader(d.w.BytesAt(first, mp3.HeaderLen))
 			if err != nil || !h.Kin(fh) {
-				// Tag frame with no audio behind it (or damage): scan.
 				var ok bool
 				first, fh, ok = d.nextCandidate(first, first+maxResync)
 				if !ok {
@@ -174,11 +143,6 @@ func (d *Demuxer) parse() error {
 
 	samples, delay, padding := int64(-1), int64(0), int64(0)
 	if hasTag && tag.delay >= 0 && tag.frames > 0 {
-		// LAME gapless: the decoder's fixed latency joins the encoder
-		// delay at the front and comes off the padding at the back. The
-		// trims and the length are adopted together or not at all: the
-		// back trim is only expressible through a known length, and a
-		// front-trim-only stream would be neither raw nor gapless.
 		delay = tag.delay + decoderDelay
 		padding = max(tag.padding-decoderDelay, 0)
 		samples = max(tag.frames*d.spf-delay-padding, 0)
@@ -202,9 +166,6 @@ func (d *Demuxer) Tracks() []container.Track { return []container.Track{d.track}
 // Warnings returns damage tolerated during parsing.
 func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 
-// nextCandidate scans [from, limit) for a parsable, sized frame header;
-// when a reference header exists it must also be kin, and candidates are
-// confirmed by the header their size points at (end of data counts).
 func (d *Demuxer) nextCandidate(from, limit int64) (int64, mp3.Header, bool) {
 	limit = min(limit, d.w.DataEnd())
 	ref := d.hdr
@@ -227,7 +188,7 @@ func (d *Demuxer) nextCandidate(from, limit int64) (int64, mp3.Header, bool) {
 		if err == nil && h.Size() != 0 && (!haveRef || ref.Kin(h)) {
 			next := cand + int64(h.Size())
 			if next >= d.w.DataEnd() {
-				return cand, h, true // runs to the end: nothing to confirm against
+				return cand, h, true
 			}
 			nh, nerr := mp3.ParseHeader(d.w.BytesAt(next, mp3.HeaderLen))
 			if nerr == nil && h.Kin(nh) {
@@ -239,7 +200,6 @@ func (d *Demuxer) nextCandidate(from, limit int64) (int64, mp3.Header, bool) {
 	return 0, mp3.Header{}, false
 }
 
-// frameAt parses and validates the frame header at the exact offset.
 func (d *Demuxer) frameAt(off int64) (mp3.Header, bool) {
 	h, err := mp3.ParseHeader(d.w.BytesAt(off, mp3.HeaderLen))
 	if err != nil || !d.hdr.Kin(h) || h.Size() == 0 {
@@ -248,11 +208,6 @@ func (d *Demuxer) frameAt(off int64) (mp3.Header, bool) {
 	return h, true
 }
 
-// extend grows the frame index by one frame and reports whether it did.
-// Only whole frames enter the index (ReadPacket trusts it), so a final
-// frame cut off by the end of data is dropped with a warning. Once the
-// walk cannot continue (clean end, trailing tags, or damage), done
-// latches and the index is complete.
 func (d *Demuxer) extend() (bool, error) {
 	if d.done {
 		return false, nil
@@ -267,20 +222,17 @@ func (d *Demuxer) extend() (bool, error) {
 	last := d.idx[len(d.idx)-1]
 	h, ok := d.frameAt(last)
 	if !ok {
-		// The indexed frame itself went unreadable (shrinking source);
-		// treat as end.
 		d.done = true
 		return false, d.w.Err()
 	}
 	next := last + int64(h.Size())
 	if next >= d.w.DataEnd() {
 		d.done = true
-		return false, nil // the last frame ends exactly at (or is clamped by) dataEnd
+		return false, nil
 	}
 	cand := next
 	nh, ok := d.frameAt(next)
 	if !ok {
-		// Damage: resync within bounds, or recognize a trailer and end.
 		cand, nh, ok = d.nextCandidate(next, next+maxResync)
 		if !ok {
 			if d.w.Err() != nil {
@@ -305,9 +257,6 @@ func (d *Demuxer) extend() (bool, error) {
 	return true, nil
 }
 
-// recognizedTrailer reports whether the region from off to the end of
-// data is plain tag baggage: ID3v1, APEv2, an appended ID3v2, Lyrics3,
-// or NUL padding, possibly stacked.
 func (d *Demuxer) recognizedTrailer(off int64) bool {
 	if d.w.DataEnd()-off > trailerScan {
 		return false
@@ -318,11 +267,11 @@ func (d *Demuxer) recognizedTrailer(off int64) bool {
 		case len(b) >= 3 && string(b[:3]) == "TAG":
 			b = b[min(128, len(b)):]
 		case len(b) >= 8 && string(b[:8]) == "APETAGEX":
-			return true // size fields point forward; accept the rest
+			return true
 		case id3.Size(b) > 0:
 			n := id3.Size(b)
 			if n > int64(len(b)) {
-				return true // truncated tag is still a tag
+				return true
 			}
 			b = b[n:]
 		case len(b) >= 11 && string(b[:11]) == "LYRICSBEGIN":
@@ -340,8 +289,6 @@ func (d *Demuxer) recognizedTrailer(off int64) bool {
 	return true
 }
 
-// frameNo extends the index up to frame n and reports the highest frame
-// number available (which is n when the stream is long enough).
 func (d *Demuxer) frameNo(n int64) (int64, error) {
 	for int64(len(d.idx)) <= n {
 		grew, err := d.extend()
@@ -355,7 +302,7 @@ func (d *Demuxer) frameNo(n int64) (int64, error) {
 	return int64(len(d.idx)) - 1, nil
 }
 
-// ReadPacket yields one whole frame. Packet data is reused across calls.
+// ReadPacket yields one whole frame.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	lastNo, err := d.frameNo(d.cur)
 	if err != nil {
@@ -396,8 +343,6 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	return nil
 }
 
-// syncFrame reports whether a frame is decodable in isolation: its main
-// data reaches zero bytes back into the reservoir.
 func syncFrame(h mp3.Header, frame []byte) bool {
 	off := mp3.HeaderLen
 	if h.Protected {
@@ -407,16 +352,12 @@ func syncFrame(h mp3.Header, frame []byte) bool {
 		return false
 	}
 	if h.Version == mp3.MPEG1 {
-		return frame[off] == 0 && frame[off+1]&0x80 == 0 // 9 bits
+		return frame[off] == 0 && frame[off+1]&0x80 == 0
 	}
-	return frame[off] == 0 // 8 bits
+	return frame[off] == 0
 }
 
-// SeekSample repositions so the reader is far enough before the target
-// that decoder state converges: landings precede the target frame by
-// stateFrames plus however many frames the bit reservoir's reach needs.
-// format.Media decodes and discards from the landing, so the seek is
-// sample-exact regardless of the backoff depth.
+// SeekSample repositions so the reader is far enough before the target that decoder state converges: landings precede the target frame by stateFrames plus however many frames the bit reservoir's reach needs.
 func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	if track != 0 {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, fmt.Sprintf("mpa: no track %d", track))
@@ -430,14 +371,10 @@ func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 		return 0, err
 	}
 	if lastNo < 0 {
-		return 0, nil // nothing to land on; reads stay EOF
+		return 0, nil
 	}
 	target = min(target, lastNo)
 
-	// Back off: stateFrames for the filterbank, then keep going until
-	// the skipped frames carry enough main data to satisfy any reservoir
-	// reference at the state frames themselves. Only bytes past the
-	// header, the optional CRC, and the side info feed the reservoir.
 	overhead := int64(mp3.HeaderLen + d.hdr.SideInfoLen())
 	if d.hdr.Protected {
 		overhead += 2
@@ -452,7 +389,6 @@ func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	return land * d.spf, nil
 }
 
-// frameSize is the byte length of indexed frame n.
 func (d *Demuxer) frameSize(n int64) int64 {
 	if n+1 < int64(len(d.idx)) {
 		return d.idx[n+1] - d.idx[n]

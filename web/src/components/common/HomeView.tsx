@@ -7,11 +7,11 @@ export function HomeView() {
   const { t } = useTranslation();
   const settings = usePublicSettings();
   const title = settings?.site?.title || "NovelHub";
-  const description = settings?.site?.description || t("home.default_description");
+  const description =
+    settings?.site?.description || t("home.default_description");
 
   return (
     <div className="home-container">
-      {/* Decorative Top Line Grid */}
       <div className="decor-grid" aria-hidden="true">
         <div className="decor-line"></div>
         <div className="decor-line"></div>
@@ -71,17 +71,23 @@ export function HomeView() {
         <h3>{t("home.features_title")}</h3>
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon"><Library size={20} /></div>
+            <div className="feature-icon">
+              <Library size={20} />
+            </div>
             <h4>{t("home.feature_manage_title")}</h4>
             <p>{t("home.feature_manage_desc")}</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><BookMarked size={20} /></div>
+            <div className="feature-icon">
+              <BookMarked size={20} />
+            </div>
             <h4>{t("home.feature_reader_title")}</h4>
             <p>{t("home.feature_reader_desc")}</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Sparkles size={20} /></div>
+            <div className="feature-icon">
+              <Sparkles size={20} />
+            </div>
             <h4>{t("home.feature_jobs_title")}</h4>
             <p>{t("home.feature_jobs_desc")}</p>
           </div>

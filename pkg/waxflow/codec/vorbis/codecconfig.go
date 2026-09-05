@@ -1,16 +1,8 @@
 package vorbis
 
-// The container carries Vorbis's three header packets (identification, comment,
-// setup) out of band. They are packed with the standard Xiph lacing that
-// Matroska CodecPrivate and ffmpeg extradata use, so the same blob round-trips
-// through Ogg, Matroska, and our cache: a count byte (packet count minus one),
-// then each packet's length except the last as a run of 0xFF bytes plus a
-// remainder, then the packets concatenated.
-
-// PackHeaders serializes the three Vorbis header packets into one codec-config
-// blob (Xiph lacing).
+// PackHeaders serializes the three Vorbis header packets into one codec-config blob (Xiph lacing).
 func PackHeaders(id, comment, setup []byte) []byte {
-	out := []byte{2} // three packets: count minus one
+	out := []byte{2}
 	out = appendXiphLen(out, len(id))
 	out = appendXiphLen(out, len(comment))
 	out = append(out, id...)
@@ -27,15 +19,11 @@ func appendXiphLen(out []byte, n int) []byte {
 	return append(out, byte(n))
 }
 
-// SplitConfig reverses PackHeaders, returning the identification, comment, and
-// setup packets. The Ogg-Vorbis and Matroska muxers and the encoder-quality
-// harness split the codec-config blob back into its three Vorbis headers.
+// SplitConfig reverses PackHeaders, returning the identification, comment, and setup packets.
 func SplitConfig(blob []byte) (id, comment, setup []byte, err error) {
 	return splitHeaders(blob)
 }
 
-// splitHeaders reverses PackHeaders, returning the identification, comment, and
-// setup packets.
 func splitHeaders(blob []byte) (id, comment, setup []byte, err error) {
 	if len(blob) < 1 || blob[0] != 2 {
 		return nil, nil, nil, malformed("codec config: want 3 Vorbis headers, got count byte %d", firstByte(blob))

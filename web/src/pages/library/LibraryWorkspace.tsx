@@ -3,17 +3,34 @@ import { RecentlyReadPanel } from "@/components/book-detail";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { BookDetailPage } from "./BookDetailPage";
 import { TopNav } from "@/components/common";
-import { LibrarySidebar, MetadataIndexView, HorizontalBookShelf, SmartFilterShelf } from "@/components/library";
+import {
+  LibrarySidebar,
+  MetadataIndexView,
+  HorizontalBookShelf,
+  SmartFilterShelf,
+} from "@/components/library";
 import { BookCard, BookGrid, BookGridSkeleton } from "@/components/ui";
 import { UserProfile } from "@/pages/user";
 import { featureService } from "@/services";
-import type { Book, LibraryNavItem, MetadataCount, MetadataFacetSection, SmartCollectionRule, SmartFilter } from "@/types";
+import type {
+  Book,
+  LibraryNavItem,
+  MetadataCount,
+  MetadataFacetSection,
+  SmartCollectionRule,
+  SmartFilter,
+} from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
-import { useAuthStore, useLibraryStore, useGuestStore, useDownloadManagerStore } from "@/stores";
+import {
+  useAuthStore,
+  useLibraryStore,
+  useGuestStore,
+  useDownloadManagerStore,
+} from "@/stores";
 
 import { SmartFilterBuilderModal } from "@/components/library/SmartFilterBuilderModal";
 
@@ -66,9 +83,8 @@ import {
   Search,
   Shuffle,
   Star,
-  Users
+  Users,
 } from "lucide-react";
-
 
 function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
   if (!visibleKeys || visibleKeys.length === 0) return true;
@@ -83,7 +99,14 @@ export const LibraryWorkspace = () => {
   const location = useLocation();
   const { book_id } = useParams<{ book_id: string }>();
   const { t } = useTranslation();
-  const { user, setLoginModalOpen, setProfileModalOpen, logout } = useAuthStore(useShallow((state) => ({ user: state.user, setLoginModalOpen: state.setLoginModalOpen, setProfileModalOpen: state.setProfileModalOpen, logout: state.logout })));
+  const { user, setLoginModalOpen, setProfileModalOpen, logout } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      setLoginModalOpen: state.setLoginModalOpen,
+      setProfileModalOpen: state.setProfileModalOpen,
+      logout: state.logout,
+    })),
+  );
   const {
     books,
     setBooks,
@@ -128,52 +151,54 @@ export const LibraryWorkspace = () => {
     setActiveSmartFilterId,
     sort,
     setSort,
-  } = useLibraryStore(useShallow((state) => ({
-    books: state.books,
-    setBooks: state.setBooks,
-    loading: state.loading,
-    setLoading: state.setLoading,
-    search: state.search,
-    setSearch: state.setSearch,
-    selectedBook: state.selectedBook,
-    setSelectedBook: state.setSelectedBook,
-    activeNav: state.activeNav,
-    setActiveNav: state.setActiveNav,
-    activeCollection: state.activeCollection,
-    setActiveCollection: state.setActiveCollection,
-    activeChip: state.activeChip,
-    setActiveChip: state.setActiveChip,
-    activeFacet: state.activeFacet,
-    setActiveFacet: state.setActiveFacet,
-    stats: state.stats,
-    setStats: state.setStats,
-    metadataFacets: state.metadataFacets,
-    setMetadataFacets: state.setMetadataFacets,
-    collections: state.collections,
-    setCollections: state.setCollections,
-    addCollection: state.addCollection,
-    recentHistory: state.recentHistory,
-    setRecentHistory: state.setRecentHistory,
-    showNewCollectionModal: state.showNewCollectionModal,
-    setShowNewCollectionModal: state.setShowNewCollectionModal,
-    newCollectionName: state.newCollectionName,
-    setNewCollectionName: state.setNewCollectionName,
-    collectionError: state.collectionError,
-    setCollectionError: state.setCollectionError,
-    randomSeed: state.randomSeed,
-    setRandomSeed: state.setRandomSeed,
-    metadataQuery: state.metadataQuery,
-    setMetadataQuery: state.setMetadataQuery,
-    metadataAlpha: state.metadataAlpha,
-    setMetadataAlpha: state.setMetadataAlpha,
-    metadataSort: state.metadataSort,
-    setMetadataSort: state.setMetadataSort,
-    activeSmartFilterId: state.activeSmartFilterId,
-    setActiveSmartFilterId: state.setActiveSmartFilterId,
-    sort: state.sort,
-    setSort: state.setSort,
-  })));
-  
+  } = useLibraryStore(
+    useShallow((state) => ({
+      books: state.books,
+      setBooks: state.setBooks,
+      loading: state.loading,
+      setLoading: state.setLoading,
+      search: state.search,
+      setSearch: state.setSearch,
+      selectedBook: state.selectedBook,
+      setSelectedBook: state.setSelectedBook,
+      activeNav: state.activeNav,
+      setActiveNav: state.setActiveNav,
+      activeCollection: state.activeCollection,
+      setActiveCollection: state.setActiveCollection,
+      activeChip: state.activeChip,
+      setActiveChip: state.setActiveChip,
+      activeFacet: state.activeFacet,
+      setActiveFacet: state.setActiveFacet,
+      stats: state.stats,
+      setStats: state.setStats,
+      metadataFacets: state.metadataFacets,
+      setMetadataFacets: state.setMetadataFacets,
+      collections: state.collections,
+      setCollections: state.setCollections,
+      addCollection: state.addCollection,
+      recentHistory: state.recentHistory,
+      setRecentHistory: state.setRecentHistory,
+      showNewCollectionModal: state.showNewCollectionModal,
+      setShowNewCollectionModal: state.setShowNewCollectionModal,
+      newCollectionName: state.newCollectionName,
+      setNewCollectionName: state.setNewCollectionName,
+      collectionError: state.collectionError,
+      setCollectionError: state.setCollectionError,
+      randomSeed: state.randomSeed,
+      setRandomSeed: state.setRandomSeed,
+      metadataQuery: state.metadataQuery,
+      setMetadataQuery: state.setMetadataQuery,
+      metadataAlpha: state.metadataAlpha,
+      setMetadataAlpha: state.setMetadataAlpha,
+      metadataSort: state.metadataSort,
+      setMetadataSort: state.setMetadataSort,
+      activeSmartFilterId: state.activeSmartFilterId,
+      setActiveSmartFilterId: state.setActiveSmartFilterId,
+      sort: state.sort,
+      setSort: state.setSort,
+    })),
+  );
+
   const publicSettings = usePublicSettings();
   const debouncedSearch = useDebounce(search, 500);
 
@@ -198,12 +223,14 @@ export const LibraryWorkspace = () => {
     setActiveChip("All");
     setMetadataQuery("");
     setMetadataAlpha("All");
-    
+
     const params = new URLSearchParams();
     if (nav && nav !== "books") params.set("nav", nav);
     if (search) params.set("search", search);
     if (sort && sort !== "recently_added") params.set("sort", sort);
-    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, {
+      replace: true,
+    });
   };
 
   const handleCollectionClick = (collection: string) => {
@@ -219,17 +246,22 @@ export const LibraryWorkspace = () => {
     if (collection) params.set("collection", collection);
     if (search) params.set("search", search);
     if (sort && sort !== "recently_added") params.set("sort", sort);
-    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, {
+      replace: true,
+    });
   };
 
-  // Filters live in the Zustand store and sync with URL search params for SEO & shareable links.
   const handleSmartCollectionClick = (rule: SmartCollectionRule) => {
     setActiveSmartFilterId(null);
     setSearch(rule.search || "");
     setActiveNav(rule.nav || "");
     setActiveCollection(rule.collection || "");
     setActiveChip(rule.chip || "All");
-    setActiveFacet(rule.facet && rule.facet_id ? { type: rule.facet, id: rule.facet_id, name: rule.facet_id } : null);
+    setActiveFacet(
+      rule.facet && rule.facet_id
+        ? { type: rule.facet, id: rule.facet_id, name: rule.facet_id }
+        : null,
+    );
     setMetadataQuery("");
     setMetadataAlpha("All");
     if (book_id) navigate("/");
@@ -252,8 +284,9 @@ export const LibraryWorkspace = () => {
     setActiveCollection("");
     setActiveFacet({ type, id: item.id, name: item.name });
     setActiveChip("All");
-    
-    const singularFacet = type.endsWith("s") && type !== "series" ? type.slice(0, -1) : type;
+
+    const singularFacet =
+      type.endsWith("s") && type !== "series" ? type.slice(0, -1) : type;
     const params = new URLSearchParams();
     params.set("nav", nav);
     params.set("facet", singularFacet);
@@ -262,7 +295,9 @@ export const LibraryWorkspace = () => {
     if (search) params.set("search", search);
     if (sort && sort !== "recently_added") params.set("sort", sort);
 
-    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, {
+      replace: true,
+    });
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -298,7 +333,9 @@ export const LibraryWorkspace = () => {
 
     reorderHomeMutation.mutate(reorderPayload, {
       onSuccess: () => {
-        toast.success(t("library.shelves_reordered", "Homepage shelves reordered"));
+        toast.success(
+          t("library.shelves_reordered", "Homepage shelves reordered"),
+        );
       },
     });
 
@@ -307,7 +344,10 @@ export const LibraryWorkspace = () => {
 
   const queryClient = useQueryClient();
 
-  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const urlParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  );
   const urlNav = urlParams.get("nav") || "";
   const urlFacet = urlParams.get("facet") || "";
   const urlFacetId = urlParams.get("facet_id") || "";
@@ -316,14 +356,28 @@ export const LibraryWorkspace = () => {
   const urlChip = urlParams.get("chip") || "";
   const urlSort = urlParams.get("sort") || "";
 
-  const effectiveNav = urlNav || (urlFacet ? (urlFacet.endsWith("s") || urlFacet === "series" ? urlFacet : `${urlFacet}s`) : activeNav);
-  const effectiveFacetType = urlFacet ? (urlFacet.endsWith("s") && urlFacet !== "series" ? urlFacet.slice(0, -1) : urlFacet) : activeFacet?.type;
+  const effectiveNav =
+    urlNav ||
+    (urlFacet
+      ? urlFacet.endsWith("s") || urlFacet === "series"
+        ? urlFacet
+        : `${urlFacet}s`
+      : activeNav);
+  const effectiveFacetType = urlFacet
+    ? urlFacet.endsWith("s") && urlFacet !== "series"
+      ? urlFacet.slice(0, -1)
+      : urlFacet
+    : activeFacet?.type;
   const effectiveFacetId = urlFacetId || (urlName ? urlName : activeFacet?.id);
-  const effectiveCollection = urlCollection || (urlNav || urlFacet ? "" : activeCollection);
+  const effectiveCollection =
+    urlCollection || (urlNav || urlFacet ? "" : activeCollection);
   const effectiveChip = urlChip || activeChip;
   const effectiveSort = (urlSort as any) || sort;
 
-  const isMetadataNav = metadataNavIds.includes(effectiveNav) && !effectiveFacetType && !effectiveFacetId;
+  const isMetadataNav =
+    metadataNavIds.includes(effectiveNav) &&
+    !effectiveFacetType &&
+    !effectiveFacetId;
 
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const [smartCollectionName, setSmartCollectionName] = useState("");
@@ -333,18 +387,25 @@ export const LibraryWorkspace = () => {
   const deleteSmartCollection = useDeleteSmartCollectionMutation();
 
   const [showSmartFilterModal, setShowSmartFilterModal] = useState(false);
-  const [editingSmartFilter, setEditingSmartFilter] = useState<SmartFilter | null>(null);
+  const [editingSmartFilter, setEditingSmartFilter] =
+    useState<SmartFilter | null>(null);
   const [draggedShelfId, setDraggedShelfId] = useState<string | null>(null);
 
   const { data: smartFilters = [] } = useSmartFiltersQuery(!!user);
   const deleteSmartFilter = useDeleteSmartFilterMutation();
   const reorderHomeMutation = useReorderSmartFiltersHomeMutation();
 
-  const { data: smartFilterBooksRaw, isLoading: sfLoading, fetchNextPage: fetchNextSfBooks, hasNextPage: hasMoreSfBooks, isFetchingNextPage: isFetchingMoreSfBooks } = useSmartFilterBooksInfiniteQuery(
+  const {
+    data: smartFilterBooksRaw,
+    isLoading: sfLoading,
+    fetchNextPage: fetchNextSfBooks,
+    hasNextPage: hasMoreSfBooks,
+    isFetchingNextPage: isFetchingMoreSfBooks,
+  } = useSmartFilterBooksInfiniteQuery(
     activeSmartFilterId || "",
     undefined,
     20,
-    !!activeSmartFilterId
+    !!activeSmartFilterId,
   );
 
   const smartFilterBooksData = useMemo(() => {
@@ -358,20 +419,37 @@ export const LibraryWorkspace = () => {
     });
   }, [smartFilterBooksRaw]);
 
-  const searchParams = useMemo(() => ({
-    search: debouncedSearch,
-    nav: effectiveNav,
-    collection: effectiveCollection,
-    chip: effectiveChip,
-    facet: effectiveFacetType,
-    facet_id: effectiveFacetId,
-    sort: effectiveSort,
-    limit: 60,
-  }), [debouncedSearch, effectiveNav, effectiveCollection, effectiveChip, effectiveFacetType, effectiveFacetId, effectiveSort]);
+  const searchParams = useMemo(
+    () => ({
+      search: debouncedSearch,
+      nav: effectiveNav,
+      collection: effectiveCollection,
+      chip: effectiveChip,
+      facet: effectiveFacetType,
+      facet_id: effectiveFacetId,
+      sort: effectiveSort,
+      limit: 60,
+    }),
+    [
+      debouncedSearch,
+      effectiveNav,
+      effectiveCollection,
+      effectiveChip,
+      effectiveFacetType,
+      effectiveFacetId,
+      effectiveSort,
+    ],
+  );
 
-  const { data: booksDataRaw, isLoading: normalLoading, fetchNextPage: fetchNextBooks, hasNextPage: hasMoreBooks, isFetchingNextPage: isFetchingMoreBooks } = useBooksQuery(
+  const {
+    data: booksDataRaw,
+    isLoading: normalLoading,
+    fetchNextPage: fetchNextBooks,
+    hasNextPage: hasMoreBooks,
+    isFetchingNextPage: isFetchingMoreBooks,
+  } = useBooksQuery(
     searchParams,
-    !isMetadataNav && effectiveNav !== "bookmarks" && !activeSmartFilterId
+    !isMetadataNav && effectiveNav !== "bookmarks" && !activeSmartFilterId,
   );
   const booksData = useMemo(() => {
     if (!booksDataRaw) return EMPTY_ARRAY;
@@ -384,9 +462,13 @@ export const LibraryWorkspace = () => {
     });
   }, [booksDataRaw]);
 
-  const { data: bookmarkedBooksRaw, isLoading: bookmarksLoading, fetchNextPage: fetchNextBookmarks, hasNextPage: hasMoreBookmarks, isFetchingNextPage: isFetchingMoreBookmarks } = useBookmarkedBooksQuery(
-    activeNav === "bookmarks" && !!user
-  );
+  const {
+    data: bookmarkedBooksRaw,
+    isLoading: bookmarksLoading,
+    fetchNextPage: fetchNextBookmarks,
+    hasNextPage: hasMoreBookmarks,
+    isFetchingNextPage: isFetchingMoreBookmarks,
+  } = useBookmarkedBooksQuery(activeNav === "bookmarks" && !!user);
   const bookmarkedBooksData = useMemo(() => {
     if (!bookmarkedBooksRaw) return EMPTY_ARRAY;
     const all = bookmarkedBooksRaw.pages.flatMap((p) => p.data || []);
@@ -399,22 +481,38 @@ export const LibraryWorkspace = () => {
   }, [bookmarkedBooksRaw]);
 
   const { data: statsData } = useLibraryStatsQuery();
-  const { data: collectionsData, fetchNextPage: fetchNextCollections, hasNextPage: hasMoreCollections, isFetchingNextPage: isFetchingMoreCollections } = useCollectionsQuery(!!user);
-  const { data: historyRaw, fetchNextPage: fetchNextHistory, hasNextPage: hasMoreHistory, isFetchingNextPage: isFetchingMoreHistory } = useReadingHistoryQuery(!!user);
+  const {
+    data: collectionsData,
+    fetchNextPage: fetchNextCollections,
+    hasNextPage: hasMoreCollections,
+    isFetchingNextPage: isFetchingMoreCollections,
+  } = useCollectionsQuery(!!user);
+  const {
+    data: historyRaw,
+    fetchNextPage: fetchNextHistory,
+    hasNextPage: hasMoreHistory,
+    isFetchingNextPage: isFetchingMoreHistory,
+  } = useReadingHistoryQuery(!!user);
   const guestProgressMap = useGuestStore((state) => state.progressMap);
   const guestBookmarks = useGuestStore((state) => state.bookmarks);
-  const guestBookmarkIds = useMemo(() => guestBookmarks.map((b) => b.book_id), [guestBookmarks]);
-  const { data: guestBookmarkedBooks, isLoading: guestBookmarksLoading } = useGuestBookmarkedBooksQuery(
-    guestBookmarkIds,
-    effectiveNav === "bookmarks" && !user
+  const guestBookmarkIds = useMemo(
+    () => guestBookmarks.map((b) => b.book_id),
+    [guestBookmarks],
   );
+  const { data: guestBookmarkedBooks, isLoading: guestBookmarksLoading } =
+    useGuestBookmarkedBooksQuery(
+      guestBookmarkIds,
+      effectiveNav === "bookmarks" && !user,
+    );
 
   const historyData = useMemo(() => {
     if (user) {
-      return (historyRaw?.pages.flatMap(p => p.data || []) || EMPTY_ARRAY) as import("@/types").ReadingHistory[];
+      return (historyRaw?.pages.flatMap((p) => p.data || []) ||
+        EMPTY_ARRAY) as import("@/types").ReadingHistory[];
     }
     const guestList = Object.values(guestProgressMap).sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
     return guestList.map((g) => ({
       user_id: "guest",
@@ -430,8 +528,17 @@ export const LibraryWorkspace = () => {
     })) as import("@/types").ReadingHistory[];
   }, [user, historyRaw, guestProgressMap]);
 
-  const activeFacetNav = (["authors", "series", "tags", "publishers", "languages", "formats", "ratings"] as const)
-    .find((nav) => nav === effectiveNav);
+  const activeFacetNav = (
+    [
+      "authors",
+      "series",
+      "tags",
+      "publishers",
+      "languages",
+      "formats",
+      "ratings",
+    ] as const
+  ).find((nav) => nav === effectiveNav);
   const debouncedMetadataQuery = useDebounce(metadataQuery, 300);
   const {
     items: activeFacetItems,
@@ -479,7 +586,18 @@ export const LibraryWorkspace = () => {
         }
       }
     }
-  }, [isMetadataNav, effectiveNav, activeSmartFilterId, booksData, bookmarkedBooksData, smartFilterBooksData, guestBookmarkedBooks, guestBookmarkIds, setBooks, setSelectedBook]);
+  }, [
+    isMetadataNav,
+    effectiveNav,
+    activeSmartFilterId,
+    booksData,
+    bookmarkedBooksData,
+    smartFilterBooksData,
+    guestBookmarkedBooks,
+    guestBookmarkIds,
+    setBooks,
+    setSelectedBook,
+  ]);
 
   useEffect(() => {
     if (effectiveNav === "bookmarks") {
@@ -489,7 +607,14 @@ export const LibraryWorkspace = () => {
     } else {
       setLoading(normalLoading);
     }
-  }, [effectiveNav, bookmarksLoading, guestBookmarksLoading, user, normalLoading, setLoading]);
+  }, [
+    effectiveNav,
+    bookmarksLoading,
+    guestBookmarksLoading,
+    user,
+    normalLoading,
+    setLoading,
+  ]);
 
   useEffect(() => {
     if (statsData) setStats(statsData);
@@ -497,7 +622,9 @@ export const LibraryWorkspace = () => {
 
   useEffect(() => {
     if (collectionsData) {
-      const allCollections = collectionsData.pages.flatMap((page) => page.data || []);
+      const allCollections = collectionsData.pages.flatMap(
+        (page) => page.data || [],
+      );
       setCollections(allCollections);
     }
   }, [collectionsData, setCollections]);
@@ -523,16 +650,20 @@ export const LibraryWorkspace = () => {
         addCollection(res.data);
         setNewCollectionName("");
         setShowNewCollectionModal(false);
-        toast.success(t("library.collection_created", "Collection created successfully"));
+        toast.success(
+          t("library.collection_created", "Collection created successfully"),
+        );
         await queryClient.invalidateQueries({ queryKey: ["collections"] });
       } else {
         setCollectionError(
-          res.message || t("library.fail_create_collection", "Failed to create collection"),
+          res.message ||
+            t("library.fail_create_collection", "Failed to create collection"),
         );
       }
     } catch (err: any) {
       setCollectionError(
-        err?.message || t("library.fail_create_collection", "Failed to create collection"),
+        err?.message ||
+          t("library.fail_create_collection", "Failed to create collection"),
       );
     }
   };
@@ -577,7 +708,9 @@ export const LibraryWorkspace = () => {
         icon: <EyeOff className="w-4 h-4 opacity-70" />,
       },
     ];
-    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
+    return visibleItems
+      ? all.filter((item) => isItemVisible(visibleItems, item.id))
+      : all;
   }, [visibleItems, t]);
 
   const facetSections: MetadataFacetSection[] = useMemo(() => {
@@ -632,7 +765,9 @@ export const LibraryWorkspace = () => {
         items: metadataFacets.ratings,
       },
     ];
-    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.nav)) : all;
+    return visibleItems
+      ? all.filter((item) => isItemVisible(visibleItems, item.nav))
+      : all;
   }, [visibleItems, metadataFacets, t]);
 
   const secondaryNavItems: LibraryNavItem[] = useMemo(() => {
@@ -643,19 +778,27 @@ export const LibraryWorkspace = () => {
         icon: <Archive className="w-4 h-4 opacity-70" />,
       },
     ];
-    return visibleItems ? all.filter((item) => isItemVisible(visibleItems, item.id)) : all;
+    return visibleItems
+      ? all.filter((item) => isItemVisible(visibleItems, item.id))
+      : all;
   }, [visibleItems, t]);
 
   const currentFacetSection = facetSections.find(
     (section) => section.nav === effectiveNav,
   );
-  const isMetadataIndex = !!currentFacetSection && !effectiveFacetType && !effectiveFacetId;
-  const isCatalogPage = !!currentFacetSection || !!activeSmartFilterId || effectiveNav === "bookmarks";
+  const isMetadataIndex =
+    !!currentFacetSection && !effectiveFacetType && !effectiveFacetId;
+  const isCatalogPage =
+    !!currentFacetSection ||
+    !!activeSmartFilterId ||
+    effectiveNav === "bookmarks";
   const activeNavLabel =
     primaryNavItems.find((item) => item.id === effectiveNav)?.label ||
     currentFacetSection?.label ||
     secondaryNavItems.find((item) => item.id === effectiveNav)?.label;
-  const activeSmartFilter = smartFilters.find((sf) => sf.id === activeSmartFilterId);
+  const activeSmartFilter = smartFilters.find(
+    (sf) => sf.id === activeSmartFilterId,
+  );
   const facetDisplayName = activeFacet?.name || urlName || urlFacetId;
   const bookListTitle = activeSmartFilter
     ? activeSmartFilter.name
@@ -710,8 +853,11 @@ export const LibraryWorkspace = () => {
       return;
     }
 
-    // Support both singular and plural facet types (e.g. "publisher" -> "publishers", "author" -> "authors")
-    const facetType = rawFacet ? (rawFacet.endsWith("s") || rawFacet === "series" ? rawFacet : `${rawFacet}s`) : nav;
+    const facetType = rawFacet
+      ? rawFacet.endsWith("s") || rawFacet === "series"
+        ? rawFacet
+        : `${rawFacet}s`
+      : nav;
     const targetNav = nav || facetType;
 
     if (!metadataNavIds.includes(targetNav)) {
@@ -725,23 +871,38 @@ export const LibraryWorkspace = () => {
     }
 
     const section = facetSections.find(
-      (item) => item.nav === targetNav || item.type === facetType || item.type === rawFacet,
+      (item) =>
+        item.nav === targetNav ||
+        item.type === facetType ||
+        item.type === rawFacet,
     );
 
     const normalizedName = name.trim().toLowerCase();
     const matched = section?.items.find(
-      (item) => item.id === facetId || item.name.trim().toLowerCase() === normalizedName,
+      (item) =>
+        item.id === facetId ||
+        item.name.trim().toLowerCase() === normalizedName,
     );
 
     if (rawFacet || name || facetId) {
-      const targetFacetType = section?.type || (rawFacet ? (rawFacet.endsWith("s") && rawFacet !== "series" ? rawFacet.slice(0, -1) : rawFacet) : (targetNav.endsWith("s") && targetNav !== "series" ? targetNav.slice(0, -1) : targetNav));
+      const targetFacetType =
+        section?.type ||
+        (rawFacet
+          ? rawFacet.endsWith("s") && rawFacet !== "series"
+            ? rawFacet.slice(0, -1)
+            : rawFacet
+          : targetNav.endsWith("s") && targetNav !== "series"
+            ? targetNav.slice(0, -1)
+            : targetNav);
       const targetFacetId = matched?.id || facetId || name;
       const targetFacetName = matched?.name || name || facetId;
 
       const isAlreadyActive =
         activeFacet &&
         activeFacet.type === targetFacetType &&
-        (activeFacet.id === targetFacetId || (activeFacet.name && activeFacet.name.trim().toLowerCase() === normalizedName)) &&
+        (activeFacet.id === targetFacetId ||
+          (activeFacet.name &&
+            activeFacet.name.trim().toLowerCase() === normalizedName)) &&
         activeNav === targetNav;
 
       if (isAlreadyActive) {
@@ -769,10 +930,7 @@ export const LibraryWorkspace = () => {
         setActiveFacet(null);
       }
     }
-  }, [
-    location.search,
-    facetSections,
-  ]);
+  }, [location.search, facetSections]);
 
   const metadataControls = (
     <div className="flex flex-col gap-3">
@@ -912,7 +1070,8 @@ export const LibraryWorkspace = () => {
             </div>
           </section>
 
-          {(!publicSettings || publicSettings.home_sections.random_books !== false) && (
+          {(!publicSettings ||
+            publicSettings.home_sections.random_books !== false) && (
             <HorizontalBookShelf
               title={t("library.random_books", "Random books")}
               subtitle={t(
@@ -926,14 +1085,21 @@ export const LibraryWorkspace = () => {
               }
               books={randomBooks}
               onBookClick={openBookDetail}
-              emptyMessage={t("library.no_random_books", "Add books to get random suggestions.")}
+              emptyMessage={t(
+                "library.no_random_books",
+                "Add books to get random suggestions.",
+              )}
             />
           )}
 
-          {(!publicSettings || publicSettings.home_sections.top_books !== false) && (
+          {(!publicSettings ||
+            publicSettings.home_sections.top_books !== false) && (
             <HorizontalBookShelf
               title={t("library.top_books", "Top books")}
-              subtitle={t("library.top_books_hint", "Most read books in your library.")}
+              subtitle={t(
+                "library.top_books_hint",
+                "Most read books in your library.",
+              )}
               icon={
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                   <Flame className="h-5 w-5" />
@@ -943,7 +1109,10 @@ export const LibraryWorkspace = () => {
               viewAllText={t("common.view_all", "View All")}
               books={topBooks}
               onBookClick={openBookDetail}
-              emptyMessage={t("library.no_top_books", "Books will appear here once they start getting reads.")}
+              emptyMessage={t(
+                "library.no_top_books",
+                "Books will appear here once they start getting reads.",
+              )}
             />
           )}
           {smartFilters
@@ -986,13 +1155,17 @@ export const LibraryWorkspace = () => {
               type="button"
               className="btn btn-sm btn-outline gap-1 shrink-0"
               onClick={() => {
-                setSmartCollectionName(search || activeCollection || activeNav || "");
+                setSmartCollectionName(
+                  search || activeCollection || activeNav || "",
+                );
                 setShowSaveSearchModal(true);
               }}
               title={t("library.save_search", "Save current search")}
             >
               <BookmarkPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("library.save_search", "Save current search")}</span>
+              <span className="hidden sm:inline">
+                {t("library.save_search", "Save current search")}
+              </span>
             </button>
           )}
           <select
@@ -1007,12 +1180,20 @@ export const LibraryWorkspace = () => {
               } else {
                 params.delete("sort");
               }
-              navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+              navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, {
+                replace: true,
+              });
             }}
           >
-            <option value="recently_added">{t("library.recently_added", "Recently added")}</option>
-            <option value="title_az">{t("library.title_az", "Title A-Z")}</option>
-            <option value="series_order">{t("library.series_order", "Series order")}</option>
+            <option value="recently_added">
+              {t("library.recently_added", "Recently added")}
+            </option>
+            <option value="title_az">
+              {t("library.title_az", "Title A-Z")}
+            </option>
+            <option value="series_order">
+              {t("library.series_order", "Series order")}
+            </option>
           </select>
         </div>
       </div>
@@ -1040,14 +1221,19 @@ export const LibraryWorkspace = () => {
         ) : books.length > 0 ? (
           <>
             <BookGrid books={books} onBookClick={openBookDetail} />
-            {((activeNav === "bookmarks" && hasMoreBookmarks) || (activeNav !== "bookmarks" && hasMoreBooks)) && (
+            {((activeNav === "bookmarks" && hasMoreBookmarks) ||
+              (activeNav !== "bookmarks" && hasMoreBooks)) && (
               <div className="mt-8 flex justify-center">
                 <button
                   className="btn btn-primary btn-outline"
-                  onClick={() => activeNav === "bookmarks" ? fetchNextBookmarks() : fetchNextBooks()}
+                  onClick={() =>
+                    activeNav === "bookmarks"
+                      ? fetchNextBookmarks()
+                      : fetchNextBooks()
+                  }
                   disabled={isFetchingMoreBookmarks || isFetchingMoreBooks}
                 >
-                  {(isFetchingMoreBookmarks || isFetchingMoreBooks) ? (
+                  {isFetchingMoreBookmarks || isFetchingMoreBooks ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
                     t("common.load_more", "Load more")
@@ -1078,11 +1264,9 @@ export const LibraryWorkspace = () => {
     <div className="drawer lg:drawer-open bg-base-100 min-h-screen font-sans">
       <input id="main-drawer" type="checkbox" className="drawer-toggle" />
 
-      {/* Main Content */}
       <div className="drawer-content flex flex-col h-screen overflow-hidden">
         <TopNav showSidebarToggle={true} />
 
-        {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           <div
             className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || book_id ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
@@ -1090,8 +1274,10 @@ export const LibraryWorkspace = () => {
             <main className="min-w-0 flex flex-col gap-5 animate-page-enter">
               {book_id ? (
                 <BookDetailPage />
+              ) : isMetadataIndex ? (
+                renderMetadataIndex()
               ) : (
-                isMetadataIndex ? renderMetadataIndex() : renderBookList()
+                renderBookList()
               )}
             </main>
 
@@ -1129,7 +1315,6 @@ export const LibraryWorkspace = () => {
           </div>
         </div>
       </div>
-      {/* End Main Content */}
 
       <LibrarySidebar
         t={t}
@@ -1154,7 +1339,8 @@ export const LibraryWorkspace = () => {
         onSmartCollectionClick={handleSmartCollectionClick}
         onRenameSmartCollection={(id, name) => {
           const target = smartCollections.find((sc) => sc.id === id);
-          if (target) renameSmartCollection.mutate({ id, name, rule: target.rule });
+          if (target)
+            renameSmartCollection.mutate({ id, name, rule: target.rule });
         }}
         onDeleteSmartCollection={(id) => deleteSmartCollection.mutate(id)}
         smartFilters={smartFilters}
@@ -1183,119 +1369,127 @@ export const LibraryWorkspace = () => {
       )}
 
       <UserProfile />
-      {/* New Collection Modal */}
       {showNewCollectionModal && (
-      <dialog className="modal modal-open">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
-            {t("library.new_collection", "New Collection")}
-          </h3>
-          {collectionError && (
-            <div className="alert alert-error mb-4 py-2 rounded-lg text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              {collectionError}
-            </div>
-          )}
-          <form
-            onSubmit={handleCreateCollection}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex flex-col gap-1.5 w-full">
-              <label className="text-sm font-medium pl-1">
-                {t("library.enter_collection_name", "Enter collection name")}
-              </label>
-              <input
-                type="text"
-                placeholder={t(
-                  "library.collection_name_placeholder",
-                  "Collection name...",
-                )}
-                className="input input-bordered w-full"
-                value={newCollectionName}
-                onChange={(e) => setNewCollectionName(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-            <div className="modal-action">
-              <button
-                type="button"
-                onClick={() => setShowNewCollectionModal(false)}
-                className="btn btn-ghost"
-              >
-                {t("common.cancel", "Cancel")}
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={!newCollectionName.trim()}
-              >
-                {t("common.create", "Create")}
-              </button>
-            </div>
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
+              {t("library.new_collection", "New Collection")}
+            </h3>
+            {collectionError && (
+              <div className="alert alert-error mb-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {collectionError}
+              </div>
+            )}
+            <form
+              onSubmit={handleCreateCollection}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-sm font-medium pl-1">
+                  {t("library.enter_collection_name", "Enter collection name")}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t(
+                    "library.collection_name_placeholder",
+                    "Collection name...",
+                  )}
+                  className="input input-bordered w-full"
+                  value={newCollectionName}
+                  onChange={(e) => setNewCollectionName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  onClick={() => setShowNewCollectionModal(false)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!newCollectionName.trim()}
+                >
+                  {t("common.create", "Create")}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setShowNewCollectionModal(false)}>
+              close
+            </button>
           </form>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setShowNewCollectionModal(false)}>
-            close
-          </button>
-        </form>
-      </dialog>
+        </dialog>
       )}
 
-      {/* Save current search as a smart collection */}
       {showSaveSearchModal && (
-      <dialog className="modal modal-open">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
-            {t("library.save_search", "Save current search")}
-          </h3>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const name = smartCollectionName.trim();
-              if (!name) return;
-              createSmartCollection.mutate(
-                { name, rule: searchParams as SmartCollectionRule },
-                { onSuccess: () => setShowSaveSearchModal(false) },
-              );
-            }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex flex-col gap-1.5 w-full">
-              <label className="text-sm font-medium pl-1">
-                {t("library.smart_collection_name", "Smart collection name")}
-              </label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                value={smartCollectionName}
-                onChange={(e) => setSmartCollectionName(e.target.value)}
-                required
-                autoFocus
-              />
-              <span className="text-xs text-base-content/50 pl-1">
-                {t("library.save_search_desc", "Saves the current filters so you can reopen this exact view later.")}
-              </span>
-            </div>
-            <div className="modal-action">
-              <button type="button" onClick={() => setShowSaveSearchModal(false)} className="btn btn-ghost">
-                {t("common.cancel", "Cancel")}
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={!smartCollectionName.trim() || createSmartCollection.isPending}
-              >
-                {t("common.save", "Save")}
-              </button>
-            </div>
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
+              {t("library.save_search", "Save current search")}
+            </h3>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const name = smartCollectionName.trim();
+                if (!name) return;
+                createSmartCollection.mutate(
+                  { name, rule: searchParams as SmartCollectionRule },
+                  { onSuccess: () => setShowSaveSearchModal(false) },
+                );
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-sm font-medium pl-1">
+                  {t("library.smart_collection_name", "Smart collection name")}
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={smartCollectionName}
+                  onChange={(e) => setSmartCollectionName(e.target.value)}
+                  required
+                  autoFocus
+                />
+                <span className="text-xs text-base-content/50 pl-1">
+                  {t(
+                    "library.save_search_desc",
+                    "Saves the current filters so you can reopen this exact view later.",
+                  )}
+                </span>
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveSearchModal(false)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    !smartCollectionName.trim() ||
+                    createSmartCollection.isPending
+                  }
+                >
+                  {t("common.save", "Save")}
+                </button>
+              </div>
+            </form>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setShowSaveSearchModal(false)}>close</button>
           </form>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setShowSaveSearchModal(false)}>close</button>
-        </form>
-      </dialog>
+        </dialog>
       )}
     </div>
   );

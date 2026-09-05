@@ -186,8 +186,6 @@ func (s *bookService) DeleteBookFile(ctx context.Context, fileID string) error {
 		}
 		return nil
 	}
-	// ponytail: reading_progress.file_id and highlights.chapter_id ("<file_id>:<index>") have no
-	// FK, so a plain delete orphans them instead of cascading. Repoint them onto the survivor.
 	if err := txBookRepo.RepointFileUserData(ctx, fileID, keep.ID); err != nil {
 		return err
 	}

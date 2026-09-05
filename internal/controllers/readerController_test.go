@@ -11,11 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/etag"
 )
 
-// GetAsset serves comic pages — one request per page, so a 200-page volume hits
-// it 200 times and re-opens the archive each time. It relies on etag.New() being
-// mounted in SetupReaderRoutes to turn a re-read into a 304. This pins the two
-// assumptions that wiring rests on: that the middleware produces an ETag for a
-// c.Send() body, and that it leaves the handler's own Cache-Control alone.
+// GetAsset serves comic pages — one request per page, so a 200-page volume hits it 200 times and re-opens the archive each time.
 func TestAssetResponseIsRevalidatable(t *testing.T) {
 	app := fiber.New()
 	app.Get("/asset", etag.New(), func(c fiber.Ctx) error {
@@ -51,19 +47,10 @@ func TestAssetResponseIsRevalidatable(t *testing.T) {
 }
 
 // The auth cookie's Secure flag is derived from the request instead of an env var.
-// Getting it wrong locks people out either way: Secure over plain HTTP means the
-// browser silently drops the cookie, and no Secure over HTTPS puts the session on
-// the wire in clear. TRUST_PROXY has to be on for a proxy's X-Forwarded-Proto to
-// count, so the untrusted case is pinned here too — that header is otherwise
-// attacker-controlled.
 func TestAuthCookieSecureFollowsRequestScheme(t *testing.T) {
 	newApp := func(trustProxy bool) *fiber.App {
 		cfg := fiber.Config{TrustProxy: trustProxy}
 		if trustProxy {
-			// app.Test() dials from 0.0.0.0, which is in none of fiber's
-			// loopback/private/link-local ranges, so name it explicitly. Production
-			// uses those ranges (see TRUST_PROXY in NewHTTPServer); what this pins is
-			// the behaviour once a proxy *is* trusted, not the range list itself.
 			cfg.TrustProxyConfig = fiber.TrustProxyConfig{Proxies: []string{"0.0.0.0"}}
 		}
 		app := fiber.New(cfg)
@@ -91,22 +78,18 @@ func TestAuthCookieSecureFollowsRequestScheme(t *testing.T) {
 		return strings.ToLower(header)
 	}
 
-	// Plain HTTP, no proxy: Secure would make the browser discard the cookie.
 	if got := cookieFor(t, newApp(false), ""); strings.Contains(got, "secure") {
 		t.Errorf("plain HTTP cookie must not be Secure: %s", got)
 	}
 
-	// Behind a trusted proxy terminating TLS: the session must not travel in clear.
 	if got := cookieFor(t, newApp(true), "https"); !strings.Contains(got, "secure") {
 		t.Errorf("cookie behind an HTTPS proxy must be Secure: %s", got)
 	}
 
-	// Untrusted proxy: the header is attacker-controlled, so it must be ignored.
 	if got := cookieFor(t, newApp(false), "https"); strings.Contains(got, "secure") {
 		t.Errorf("X-Forwarded-Proto from an untrusted source must not set Secure: %s", got)
 	}
 
-	// Cookies stay host-scoped; a Domain would only matter for subdomain sharing.
 	if got := cookieFor(t, newApp(false), ""); strings.Contains(got, "domain=") {
 		t.Errorf("cookie must stay host-scoped, got a Domain: %s", got)
 	}

@@ -12,7 +12,15 @@ function setup(addHighlight: ReturnType<typeof vi.fn>) {
   const ref = { current: content };
   let api: ReturnType<typeof useReaderSelection>;
   function Harness() {
-    api = useReaderSelection({ columnsRef: ref, contentRef: ref, savedSelectionRef: { current: null }, ttsStartPointRef: { current: null }, addHighlight, speak: vi.fn(), stop: vi.fn() });
+    api = useReaderSelection({
+      columnsRef: ref,
+      contentRef: ref,
+      savedSelectionRef: { current: null },
+      ttsStartPointRef: { current: null },
+      addHighlight,
+      speak: vi.fn(),
+      stop: vi.fn(),
+    });
     return null;
   }
   const root = createRoot(container);
@@ -41,7 +49,14 @@ describe("useReaderSelection highlight validation", () => {
     range.setEnd(content.firstChild!, 6);
     act(() => getApi().setSelectionRange(range));
     await act(async () => getApi().handleHighlight("blue", "my note"));
-    expect(add).toHaveBeenCalledWith("ello ", 1, 6, "blue", undefined, "my note");
+    expect(add).toHaveBeenCalledWith(
+      "ello ",
+      1,
+      6,
+      "blue",
+      undefined,
+      "my note",
+    );
     root.unmount();
   });
 });

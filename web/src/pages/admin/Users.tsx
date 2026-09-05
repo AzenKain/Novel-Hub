@@ -13,16 +13,11 @@ import {
 import { adminService } from "@/services";
 import { useUserAdminStore, useAuthStore } from "@/stores";
 import type { CreateUserRequest, User } from "@/types";
-import {
-  AlertCircle,
-  RefreshCw,
-  Search,
-  UserPlus
-} from "lucide-react";
+import { AlertCircle, RefreshCw, Search, UserPlus } from "lucide-react";
 import { SyntheticEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDebounce } from "@/hooks/useDebounce";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 
@@ -31,7 +26,7 @@ const emptyCreate: CreateUserRequest = {
   password: "",
   full_name: "",
   avatar_url: "",
-  role_ids: []
+  role_ids: [],
 };
 
 export function Users() {
@@ -40,26 +35,46 @@ export function Users() {
   const currentUser = useAuthStore((state) => state.user);
 
   const {
-    selectedUser: selected, setSelectedUser: setSelected,
-    query, setQuery,
-    showDeleted, setShowDeleted,
-    error, setError,
-    modal, setModal,
-    form, setForm,
-    newPassword, setNewPassword,
-    roleIDs, setRoleIDs,
-    userToDelete, setUserToDelete,
-  } = useUserAdminStore(useShallow((state) => ({
-    selectedUser: state.selectedUser, setSelectedUser: state.setSelectedUser,
-    query: state.query, setQuery: state.setQuery,
-    showDeleted: state.showDeleted, setShowDeleted: state.setShowDeleted,
-    error: state.error, setError: state.setError,
-    modal: state.modal, setModal: state.setModal,
-    form: state.form, setForm: state.setForm,
-    newPassword: state.newPassword, setNewPassword: state.setNewPassword,
-    roleIDs: state.roleIDs, setRoleIDs: state.setRoleIDs,
-    userToDelete: state.userToDelete, setUserToDelete: state.setUserToDelete,
-  })));
+    selectedUser: selected,
+    setSelectedUser: setSelected,
+    query,
+    setQuery,
+    showDeleted,
+    setShowDeleted,
+    error,
+    setError,
+    modal,
+    setModal,
+    form,
+    setForm,
+    newPassword,
+    setNewPassword,
+    roleIDs,
+    setRoleIDs,
+    userToDelete,
+    setUserToDelete,
+  } = useUserAdminStore(
+    useShallow((state) => ({
+      selectedUser: state.selectedUser,
+      setSelectedUser: state.setSelectedUser,
+      query: state.query,
+      setQuery: state.setQuery,
+      showDeleted: state.showDeleted,
+      setShowDeleted: state.setShowDeleted,
+      error: state.error,
+      setError: state.setError,
+      modal: state.modal,
+      setModal: state.setModal,
+      form: state.form,
+      setForm: state.setForm,
+      newPassword: state.newPassword,
+      setNewPassword: state.setNewPassword,
+      roleIDs: state.roleIDs,
+      setRoleIDs: state.setRoleIDs,
+      userToDelete: state.userToDelete,
+      setUserToDelete: state.setUserToDelete,
+    })),
+  );
   const debouncedSearch = useDebounce(query || "", 400);
 
   const [cursor, setCursor] = useState("");
@@ -68,16 +83,26 @@ export function Users() {
     setCursor("");
     setCursorHistory([]);
   };
-  const { data: usersData, isLoading: usersLoading, isFetching: usersFetching, refetch: refetchUsers } = useUsersQuery({
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isFetching: usersFetching,
+    refetch: refetchUsers,
+  } = useUsersQuery({
     cursor: cursor || undefined,
     limit: 50,
     search: debouncedSearch || undefined,
     is_deleted: showDeleted ? undefined : false,
     sort: "created_at",
-    order: "desc"
+    order: "desc",
   });
 
-  const { data: roles = [], isLoading: rolesLoading, isFetching: rolesFetching, refetch: refetchRoles } = useRolesQuery();
+  const {
+    data: roles = [],
+    isLoading: rolesLoading,
+    isFetching: rolesFetching,
+    refetch: refetchRoles,
+  } = useRolesQuery();
 
   const createUserMutation = useCreateUserMutation();
   const updateUserMutation = useUpdateUserMutation();
@@ -96,11 +121,17 @@ export function Users() {
     deleteUserMutation.isPending ||
     sendEmailMutation.isPending;
 
-  const activeUsers = useMemo(() => users.filter((item) => !item.is_deleted).length, [users]);
+  const activeUsers = useMemo(
+    () => users.filter((item) => !item.is_deleted).length,
+    [users],
+  );
   const [emailForm, setEmailForm] = useState({ subject: "", body: "" });
 
   function openCreate() {
-    setForm({ ...emptyCreate, role_ids: roles.filter((role) => role.auto_assign).map((role) => role.id) });
+    setForm({
+      ...emptyCreate,
+      role_ids: roles.filter((role) => role.auto_assign).map((role) => role.id),
+    });
     setModal("create");
     setError("");
   }
@@ -112,7 +143,7 @@ export function Users() {
       password: "",
       full_name: target.full_name,
       avatar_url: target.avatar_url,
-      role_ids: target.roles.map((role) => role.id)
+      role_ids: target.roles.map((role) => role.id),
     });
     setModal("edit");
     setError("");
@@ -147,11 +178,12 @@ export function Users() {
       { id: selected.id, data: emailForm },
       {
         onSuccess: () => {
-          toast.success(t('admin.email_sent', 'Email sent'));
+          toast.success(t("admin.email_sent", "Email sent"));
           setModal(null);
         },
-        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
-      }
+        onError: (err) =>
+          setError(err instanceof Error ? err.message : String(err)),
+      },
     );
   }
 
@@ -160,10 +192,11 @@ export function Users() {
     setError("");
     createUserMutation.mutate(form, {
       onSuccess: () => {
-        toast.success(t('common.success', 'Success'));
+        toast.success(t("common.success", "Success"));
         setModal(null);
       },
-      onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      onError: (err) =>
+        setError(err instanceof Error ? err.message : String(err)),
     });
   }
 
@@ -174,15 +207,19 @@ export function Users() {
     updateUserMutation.mutate(
       {
         id: selected.id,
-        data: { full_name: form.full_name, avatar_url: form.avatar_url || undefined },
+        data: {
+          full_name: form.full_name,
+          avatar_url: form.avatar_url || undefined,
+        },
       },
       {
         onSuccess: () => {
-          toast.success(t('common.success', 'Success'));
+          toast.success(t("common.success", "Success"));
           setModal(null);
         },
-        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
-      }
+        onError: (err) =>
+          setError(err instanceof Error ? err.message : String(err)),
+      },
     );
   }
 
@@ -194,11 +231,12 @@ export function Users() {
       { id: selected.id, password: newPassword },
       {
         onSuccess: () => {
-          toast.success(t('common.success', 'Success'));
+          toast.success(t("common.success", "Success"));
           setModal(null);
         },
-        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
-      }
+        onError: (err) =>
+          setError(err instanceof Error ? err.message : String(err)),
+      },
     );
   }
 
@@ -210,11 +248,12 @@ export function Users() {
       { id: selected.id, roleIDs },
       {
         onSuccess: () => {
-          toast.success(t('common.success', 'Success'));
+          toast.success(t("common.success", "Success"));
           setModal(null);
         },
-        onError: (err) => setError(err instanceof Error ? err.message : String(err)),
-      }
+        onError: (err) =>
+          setError(err instanceof Error ? err.message : String(err)),
+      },
     );
   }
 
@@ -223,10 +262,11 @@ export function Users() {
     setError("");
     deleteUserMutation.mutate(userToDelete.id, {
       onSuccess: () => {
-        toast.success(t('common.success', 'Success'));
+        toast.success(t("common.success", "Success"));
         setUserToDelete(null);
       },
-      onError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      onError: (err) =>
+        setError(err instanceof Error ? err.message : String(err)),
     });
   }
 
@@ -234,7 +274,7 @@ export function Users() {
     setError("");
     try {
       await adminService.restoreUser(target.id);
-      toast.success(t('common.success', 'Success'));
+      toast.success(t("common.success", "Success"));
       void refetchUsers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -243,19 +283,27 @@ export function Users() {
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t('admin.user_management', 'User Management')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("admin.user_management", "User Management")}
+          </h1>
           <p className="text-sm text-base-content/60 mt-1">
-            {t('admin.user_subtitle', 'Manage accounts, roles, access levels, and security credentials.')}
+            {t(
+              "admin.user_subtitle",
+              "Manage accounts, roles, access levels, and security credentials.",
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={async () => {
-              await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-              await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+              await queryClient.invalidateQueries({
+                queryKey: ["admin", "users"],
+              });
+              await queryClient.invalidateQueries({
+                queryKey: ["admin", "roles"],
+              });
               await Promise.all([refetchUsers(), refetchRoles()]);
               toast.info(t("common.refreshed", "Data refreshed"));
             }}
@@ -263,11 +311,16 @@ export function Users() {
             title={t("common.refresh")}
             disabled={usersFetching || rolesFetching}
           >
-            <RefreshCw className={`h-5 w-5 ${(usersFetching || rolesFetching) ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-5 w-5 ${usersFetching || rolesFetching ? "animate-spin" : ""}`}
+            />
           </button>
-          <button onClick={openCreate} className="btn btn-primary btn-sm sm:btn-md gap-2">
+          <button
+            onClick={openCreate}
+            className="btn btn-primary btn-sm sm:btn-md gap-2"
+          >
             <UserPlus className="w-4 h-4" />
-            {t('admin.add_user', 'Add User')}
+            {t("admin.add_user", "Add User")}
           </button>
         </div>
       </header>
@@ -280,8 +333,14 @@ export function Users() {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
-                placeholder={t('admin.search_users_placeholder', 'Search users by name or email...')}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  resetPaging();
+                }}
+                placeholder={t(
+                  "admin.search_users_placeholder",
+                  "Search users by name or email...",
+                )}
                 className="input input-bordered w-full pl-10 focus:input-primary h-10 text-sm rounded-xl bg-base-100"
               />
             </div>
@@ -289,22 +348,35 @@ export function Users() {
               <input
                 type="checkbox"
                 checked={showDeleted}
-                onChange={(e) => { setShowDeleted(e.target.checked); resetPaging(); }}
+                onChange={(e) => {
+                  setShowDeleted(e.target.checked);
+                  resetPaging();
+                }}
                 className="checkbox checkbox-primary checkbox-xs rounded"
               />
-              <span className="text-xs font-medium select-none text-base-content/80">{t('admin.show_deleted', 'Show Deleted')}</span>
+              <span className="text-xs font-medium select-none text-base-content/80">
+                {t("admin.show_deleted", "Show Deleted")}
+              </span>
             </label>
           </div>
 
           {/* Right: Stats Counters */}
           <div className="flex items-center gap-2 shrink-0 sm:border-l sm:border-base-200/80 sm:pl-3">
             <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-base-100 border border-base-200 text-xs">
-              <span className="text-base-content/60 font-medium">{t('admin.total_loaded', 'Loaded Users')}:</span>
-              <span className="font-bold text-primary text-sm">{users.length}</span>
+              <span className="text-base-content/60 font-medium">
+                {t("admin.total_loaded", "Loaded Users")}:
+              </span>
+              <span className="font-bold text-primary text-sm">
+                {users.length}
+              </span>
             </div>
             <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-base-100 border border-base-200 text-xs">
-              <span className="text-base-content/60 font-medium">{t('admin.active_users', 'Active')}:</span>
-              <span className="font-bold text-success text-sm">{activeUsers}</span>
+              <span className="text-base-content/60 font-medium">
+                {t("admin.active_users", "Active")}:
+              </span>
+              <span className="font-bold text-success text-sm">
+                {activeUsers}
+              </span>
             </div>
           </div>
         </div>
@@ -356,7 +428,9 @@ export function Users() {
       {modal === "create" && (
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-4">{t('admin.create_user_title', 'Create New User')}</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {t("admin.create_user_title", "Create New User")}
+            </h3>
             {error && (
               <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -366,7 +440,9 @@ export function Users() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('auth.email', 'Email Address')}</span>
+                  <span className="label-text font-semibold">
+                    {t("auth.email", "Email Address")}
+                  </span>
                 </label>
                 <input
                   type="email"
@@ -380,13 +456,17 @@ export function Users() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('user.full_name', 'Full Name')}</span>
+                  <span className="label-text font-semibold">
+                    {t("user.full_name", "Full Name")}
+                  </span>
                 </label>
                 <input
                   type="text"
                   required
                   value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
                   placeholder="John Doe"
                   className="input input-bordered w-full focus:input-primary"
                 />
@@ -394,13 +474,17 @@ export function Users() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('auth.password', 'Initial Password')}</span>
+                  <span className="label-text font-semibold">
+                    {t("auth.password", "Initial Password")}
+                  </span>
                 </label>
                 <input
                   type="password"
                   required
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
                   placeholder="••••••••"
                   className="input input-bordered w-full focus:input-primary"
                 />
@@ -409,11 +493,16 @@ export function Users() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('admin.assign_roles', 'Assign Roles')}</span>
+                  <span className="label-text font-semibold">
+                    {t("admin.assign_roles", "Assign Roles")}
+                  </span>
                 </label>
                 <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
                   {roles.map((role) => (
-                    <label key={role.id} className="label cursor-pointer justify-start gap-3 py-1">
+                    <label
+                      key={role.id}
+                      className="label cursor-pointer justify-start gap-3 py-1"
+                    >
                       <input
                         type="checkbox"
                         checked={(form.role_ids || []).includes(role.id)}
@@ -424,15 +513,19 @@ export function Users() {
                             ...prev,
                             role_ids: checked
                               ? [...currentIds, role.id]
-                              : currentIds.filter((id) => id !== role.id)
+                              : currentIds.filter((id) => id !== role.id),
                           }));
                         }}
                         className="checkbox checkbox-primary checkbox-sm"
                       />
                       <div>
-                        <span className="font-semibold text-sm">{role.name}</span>
+                        <span className="font-semibold text-sm">
+                          {role.name}
+                        </span>
                         {role.description && (
-                          <p className="text-xs text-base-content/60">{role.description}</p>
+                          <p className="text-xs text-base-content/60">
+                            {role.description}
+                          </p>
                         )}
                       </div>
                     </label>
@@ -441,11 +534,23 @@ export function Users() {
               </div>
 
               <div className="modal-action">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
-                  {t('common.cancel', 'Cancel')}
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : t('common.create', 'Create User')}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("common.create", "Create User")
+                  )}
                 </button>
               </div>
             </form>
@@ -459,7 +564,9 @@ export function Users() {
       {modal === "edit" && selected && (
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-4">{t('admin.edit_user_title', 'Edit Profile')}</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {t("admin.edit_user_title", "Edit Profile")}
+            </h3>
             {error && (
               <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -469,7 +576,9 @@ export function Users() {
             <form onSubmit={handleEdit} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('auth.email', 'Email Address')}</span>
+                  <span className="label-text font-semibold">
+                    {t("auth.email", "Email Address")}
+                  </span>
                 </label>
                 <input
                   type="email"
@@ -481,36 +590,56 @@ export function Users() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('user.full_name', 'Full Name')}</span>
+                  <span className="label-text font-semibold">
+                    {t("user.full_name", "Full Name")}
+                  </span>
                 </label>
                 <input
                   type="text"
                   required
                   value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
                   className="input input-bordered w-full focus:input-primary"
                 />
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('user.avatar_url', 'Avatar URL')}</span>
+                  <span className="label-text font-semibold">
+                    {t("user.avatar_url", "Avatar URL")}
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={form.avatar_url || ""}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, avatar_url: e.target.value })
+                  }
                   placeholder="https://example.com/avatar.jpg"
                   className="input input-bordered w-full focus:input-primary"
                 />
               </div>
 
               <div className="modal-action">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
-                  {t('common.cancel', 'Cancel')}
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : t('common.save', 'Save Changes')}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("common.save", "Save Changes")
+                  )}
                 </button>
               </div>
             </form>
@@ -524,9 +653,14 @@ export function Users() {
       {modal === "password" && selected && (
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-2">{t('admin.reset_password_title', 'Reset Password')}</h3>
+            <h3 className="font-bold text-lg mb-2">
+              {t("admin.reset_password_title", "Reset Password")}
+            </h3>
             <p className="text-xs text-base-content/60 mb-4">
-              {t('admin.reset_password_desc', 'Set a new password for user:')} <span className="font-bold text-base-content">{selected.email}</span>
+              {t("admin.reset_password_desc", "Set a new password for user:")}{" "}
+              <span className="font-bold text-base-content">
+                {selected.email}
+              </span>
             </p>
             {error && (
               <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
@@ -537,7 +671,9 @@ export function Users() {
             <form onSubmit={handlePassword} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('auth.new_password', 'New Password')}</span>
+                  <span className="label-text font-semibold">
+                    {t("auth.new_password", "New Password")}
+                  </span>
                 </label>
                 <input
                   type="password"
@@ -551,11 +687,23 @@ export function Users() {
               </div>
 
               <div className="modal-action">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
-                  {t('common.cancel', 'Cancel')}
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" disabled={saving || !newPassword} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : t('admin.update_password', 'Update Password')}
+                <button
+                  type="submit"
+                  disabled={saving || !newPassword}
+                  className="btn btn-primary"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("admin.update_password", "Update Password")
+                  )}
                 </button>
               </div>
             </form>
@@ -569,9 +717,17 @@ export function Users() {
       {modal === "roles" && selected && (
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-2">{t('admin.manage_user_roles', 'Manage User Roles')}</h3>
+            <h3 className="font-bold text-lg mb-2">
+              {t("admin.manage_user_roles", "Manage User Roles")}
+            </h3>
             <p className="text-xs text-base-content/60 mb-4">
-              {t('admin.manage_user_roles_desc', 'Select active security roles for:')} <span className="font-bold text-base-content">{selected.email}</span>
+              {t(
+                "admin.manage_user_roles_desc",
+                "Select active security roles for:",
+              )}{" "}
+              <span className="font-bold text-base-content">
+                {selected.email}
+              </span>
             </p>
             {error && (
               <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
@@ -582,14 +738,19 @@ export function Users() {
             <form onSubmit={handleRoles} className="space-y-4">
               <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
                 {roles.map((role) => (
-                  <label key={role.id} className="label cursor-pointer justify-start gap-3 py-1">
+                  <label
+                    key={role.id}
+                    className="label cursor-pointer justify-start gap-3 py-1"
+                  >
                     <input
                       type="checkbox"
                       checked={roleIDs.includes(role.id)}
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setRoleIDs((prev) =>
-                          checked ? [...prev, role.id] : prev.filter((id) => id !== role.id)
+                          checked
+                            ? [...prev, role.id]
+                            : prev.filter((id) => id !== role.id),
                         );
                       }}
                       className="checkbox checkbox-primary checkbox-sm"
@@ -597,7 +758,9 @@ export function Users() {
                     <div>
                       <span className="font-semibold text-sm">{role.name}</span>
                       {role.description && (
-                        <p className="text-xs text-base-content/60">{role.description}</p>
+                        <p className="text-xs text-base-content/60">
+                          {role.description}
+                        </p>
                       )}
                     </div>
                   </label>
@@ -605,11 +768,23 @@ export function Users() {
               </div>
 
               <div className="modal-action">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
-                  {t('common.cancel', 'Cancel')}
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? <span className="loading loading-spinner"></span> : t('common.save', 'Save Roles')}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("common.save", "Save Roles")
+                  )}
                 </button>
               </div>
             </form>
@@ -623,10 +798,17 @@ export function Users() {
       {modal === "email" && selected && (
         <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-2">{t('admin.send_email_title', 'Send Email')}</h3>
+            <h3 className="font-bold text-lg mb-2">
+              {t("admin.send_email_title", "Send Email")}
+            </h3>
             <p className="text-xs text-base-content/60 mb-4">
-              {t('admin.send_email_desc', 'This message goes to the address on file:')}{" "}
-              <span className="font-bold text-base-content">{selected.email}</span>
+              {t(
+                "admin.send_email_desc",
+                "This message goes to the address on file:",
+              )}{" "}
+              <span className="font-bold text-base-content">
+                {selected.email}
+              </span>
             </p>
             {error && (
               <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
@@ -637,42 +819,62 @@ export function Users() {
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('admin.email_subject', 'Subject')}</span>
+                  <span className="label-text font-semibold">
+                    {t("admin.email_subject", "Subject")}
+                  </span>
                 </label>
                 <input
                   type="text"
                   required
                   maxLength={200}
                   value={emailForm.subject}
-                  onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, subject: e.target.value })
+                  }
                   className="input input-bordered w-full focus:input-primary"
                 />
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">{t('admin.email_body', 'Message')}</span>
+                  <span className="label-text font-semibold">
+                    {t("admin.email_body", "Message")}
+                  </span>
                 </label>
                 <textarea
                   required
                   rows={6}
                   maxLength={10000}
                   value={emailForm.body}
-                  onChange={(e) => setEmailForm({ ...emailForm, body: e.target.value })}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, body: e.target.value })
+                  }
                   className="textarea textarea-bordered w-full focus:textarea-primary"
                 />
               </div>
 
               <div className="modal-action">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost">
-                  {t('common.cancel', 'Cancel')}
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="btn btn-ghost"
+                >
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !emailForm.subject.trim() || !emailForm.body.trim()}
+                  disabled={
+                    saving ||
+                    !emailForm.subject.trim() ||
+                    !emailForm.body.trim()
+                  }
                   className="btn btn-primary"
                 >
-                  {saving ? <span className="loading loading-spinner"></span> : t('admin.send_email', 'Send')}
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("admin.send_email", "Send")
+                  )}
                 </button>
               </div>
             </form>
@@ -690,16 +892,32 @@ export function Users() {
             <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-lg">{t('admin.delete_user_confirm', 'Delete User Account?')}</h3>
+            <h3 className="font-bold text-lg">
+              {t("admin.delete_user_confirm", "Delete User Account?")}
+            </h3>
             <p className="text-xs text-base-content/60 mt-1 mb-6">
-              {t('admin.delete_user_desc', 'This user account will be soft-deleted. They will immediately lose access to NovelHub.')}
+              {t(
+                "admin.delete_user_desc",
+                "This user account will be soft-deleted. They will immediately lose access to NovelHub.",
+              )}
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setUserToDelete(null)} className="btn btn-ghost flex-1">
-                {t('common.cancel', 'Cancel')}
+              <button
+                onClick={() => setUserToDelete(null)}
+                className="btn btn-ghost flex-1"
+              >
+                {t("common.cancel", "Cancel")}
               </button>
-              <button onClick={confirmDeleteUser} disabled={saving} className="btn btn-error text-white flex-1">
-                {saving ? <span className="loading loading-spinner"></span> : t('common.delete', 'Delete')}
+              <button
+                onClick={confirmDeleteUser}
+                disabled={saving}
+                className="btn btn-error text-white flex-1"
+              >
+                {saving ? (
+                  <span className="loading loading-spinner"></span>
+                ) : (
+                  t("common.delete", "Delete")
+                )}
               </button>
             </div>
           </div>

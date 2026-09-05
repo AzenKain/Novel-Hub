@@ -60,8 +60,7 @@ func NewQueue(workers int, bufferSize ...int) *Queue {
 	}
 }
 
-// Registration is documented as before-Start, but nothing enforces it and the worker reads both
-// from another goroutine, so q.mu guards them the same way it already guards stopped.
+// Registration is documented as before-Start, but nothing enforces it and the worker reads both from another goroutine, so q.mu guards them the same way it already guards stopped.
 func (q *Queue) RegisterHandler(jobType string, handler JobFunc) {
 	q.mu.Lock()
 	q.handler[jobType] = handler
@@ -87,8 +86,7 @@ func (q *Queue) handlerFor(jobType string) (JobFunc, bool) {
 	return h, ok
 }
 
-// The channel is the only bound: pond.NewPool defaults to an unbounded submit queue, so handing
-// overflow to the pool would accept every job forever instead of applying backpressure.
+// The channel is the only bound: pond.NewPool defaults to an unbounded submit queue, so handing overflow to the pool would accept every job forever instead of applying backpressure.
 func (q *Queue) Enqueue(ctx context.Context, job Job) error {
 	return q.enqueue(ctx, job, true)
 }

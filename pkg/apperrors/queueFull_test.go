@@ -11,8 +11,7 @@ import (
 	"novelhub/pkg/worker"
 )
 
-// A full queue is transient. Without a case for it the switch falls through to 500, which tells the
-// client the server is broken rather than busy, and 500 is the one status no client retries.
+// A full queue is transient.
 func TestQueueFullIsRetryable(t *testing.T) {
 	app := fiber.New()
 	app.Get("/x", func(c fiber.Ctx) error {

@@ -9,18 +9,10 @@ import (
 
 var _ container.Indexer = (*Demuxer)(nil)
 
-// Index snapshot format, versioned independently of anything else:
-// magic, a completeness flag, the entry count, then the frame offsets
-// as unsigned varint deltas (the first entry is absolute).
 const idxMagic = "WXMPAIDX1\x00"
 
-// idxMinFrames is the snapshot threshold: below this, rebuilding the
-// index costs less than a disk round trip (a header-hop walk covers
-// thousands of frames per millisecond).
 const idxMinFrames = 4096
 
-// idxProbes is how many restored offsets get header-verified beyond the
-// endpoints.
 const idxProbes = 8
 
 // IndexSnapshot implements container.Indexer for the lazy frame index.
@@ -44,17 +36,10 @@ func (d *Demuxer) IndexSnapshot() []byte {
 	return buf
 }
 
-// RestoreIndex implements container.Indexer. The blob is untrusted data:
-// beyond shape checks (monotonic, in bounds, count plausible for the
-// source size), the first offset must equal the parsed stream head and a
-// spread of sampled offsets (endpoints included) must parse as kin frame
-// headers, so a blob for a different or changed file is rejected and the
-// demuxer just walks. The completeness flag is verified, not adopted: a
-// blob claiming done while a frame continues past its last entry only
-// downgrades to an extendable index, never to a truncated stream.
+// RestoreIndex implements container.Indexer.
 func (d *Demuxer) RestoreIndex(blob []byte) bool {
 	if len(d.idx) > 1 || d.cur != 0 {
-		return false // restoring over a progressed walk would move delivered frames
+		return false
 	}
 	if len(blob) < len(idxMagic)+2 || string(blob[:len(idxMagic)]) != idxMagic {
 		return false
@@ -67,10 +52,6 @@ func (d *Demuxer) RestoreIndex(blob []byte) bool {
 		return false
 	}
 	rest = rest[n:]
-	// The claimed count is bounded loosely by the source size, which for
-	// a large source would let a tiny poisoned blob force a huge
-	// allocation; cap the pre-size and let append grow against the
-	// blob's actual content (one varint per entry bounds it naturally).
 	idx := make([]int64, 0, min(count, 4096))
 	prev := int64(-1)
 	pos := int64(0)
@@ -80,8 +61,6 @@ func (d *Demuxer) RestoreIndex(blob []byte) bool {
 			return false
 		}
 		rest = rest[n:]
-		// pos stayed at or below dataEnd last iteration and the delta is
-		// bounded by it, so the sum cannot overflow int64.
 		pos += int64(delta)
 		if pos <= prev || pos > d.w.DataEnd()-mp3.HeaderLen {
 			return false
@@ -92,9 +71,6 @@ func (d *Demuxer) RestoreIndex(blob []byte) bool {
 	if idx[0] != d.firstFrame {
 		return false
 	}
-	// Sample interior offsets as well as the endpoints: full validation
-	// would cost the walk the sidecar exists to avoid, but eight header
-	// probes catch gross interior corruption.
 	for i := 0; i <= idxProbes; i++ {
 		probe := idx[i*(len(idx)-1)/idxProbes]
 		if _, ok := d.frameAt(probe); !ok {
@@ -102,8 +78,6 @@ func (d *Demuxer) RestoreIndex(blob []byte) bool {
 		}
 	}
 	if done {
-		// Trust but verify: if a kin frame parses right after the last
-		// indexed frame, the stream continues and done is a lie.
 		last := idx[len(idx)-1]
 		if h, ok := d.frameAt(last); ok {
 			if next := last + int64(h.Size()); next <= d.w.DataEnd()-mp3.HeaderLen {

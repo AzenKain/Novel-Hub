@@ -40,26 +40,22 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 	svc, _, bookRepo, db := newTestFeatureService(t)
 	ctx := context.Background()
 
-	// 1. Seed user and books
 	if _, err := db.Exec(`INSERT INTO users (id, email, full_name, password_hash) VALUES ('user-1', 'test@example.com', 'Test User', 'hash')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES ('lib-1', 'Main Lib')`); err != nil {
 		t.Fatal(err)
 	}
-	// Seed two books
 	if _, err := db.Exec(`INSERT INTO books (id, library_id, title, author_id, average_rating, created_at, updated_at) VALUES
 		('book-1', 'lib-1', 'Book One', NULL, 4.5, '2026-08-11 00:00:00', '2026-08-11 00:00:00'),
 		('book-2', 'lib-1', 'Book Two', NULL, 3.2, '2026-08-11 00:00:00', '2026-08-11 00:00:00')`); err != nil {
 		t.Fatal(err)
 	}
-	// Seed a file for book-1 to test format EPUB
 	if _, err := db.Exec(`INSERT INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES
 		('file-1', 'book-1', '/path/book1.epub', 'epub', 1000, '2026-08-11 00:00:00')`); err != nil {
 		t.Fatal(err)
 	}
 
-	// 2. Create smart filter
 	rules := []request.SmartFilterRuleItemDto{
 		{Field: "format", Operator: "eq", Value: "epub"},
 		{Field: "rating_gte", Operator: "gte", Value: "4.0"},
@@ -79,7 +75,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("Unexpected smart filter content: %+v", sf)
 	}
 
-	// 3. Get smart filter
 	sfGet, err := svc.GetSmartFilter(ctx, sf.ID, "user-1")
 	if err != nil {
 		t.Fatalf("GetSmartFilter failed: %v", err)
@@ -88,7 +83,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("Expected ID %s, got %s", sf.ID, sfGet.ID)
 	}
 
-	// 4. Update smart filter
 	dtoUpdate := request.UpsertSmartFilterDto{
 		Name:            "Updated Name",
 		Rules:           []request.SmartFilterRuleItemDto{{Field: "format", Operator: "eq", Value: "epub"}},
@@ -103,7 +97,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("Unexpected updated smart filter: %+v", sfUpd)
 	}
 
-	// 5. Pin sidebar & home
 	sfPinS, err := svc.UpdateSmartFilterPinSidebar(ctx, sf.ID, "user-1", true)
 	if err != nil || !sfPinS.IsPinnedSidebar {
 		t.Fatalf("UpdateSmartFilterPinSidebar failed: %v", err)
@@ -113,7 +106,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("UpdateSmartFilterPinHome failed: %v", err)
 	}
 
-	// 6. Test Book Query via Smart Filter rules
 	books, err := bookRepo.SearchSmartFilterBooks(ctx, nil, rules, nil, "", 20, "user-1")
 	if err != nil {
 		t.Fatalf("SearchSmartFilterBooks failed: %v", err)
@@ -125,7 +117,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("Expected book-1, got %s", books[0].ID)
 	}
 
-	// 7. Reorder home shelves
 	sf2, err := svc.CreateSmartFilter(ctx, "user-1", request.UpsertSmartFilterDto{
 		Name:  "Second Filter",
 		Rules: []request.SmartFilterRuleItemDto{},
@@ -145,7 +136,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("ReorderSmartFiltersHome failed: %v", err)
 	}
 
-	// Check new positions
 	filters, err := svc.ListSmartFilters(ctx, "user-1")
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +147,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatalf("Unexpected sort order: first=%s, second=%s", filters[0].Name, filters[1].Name)
 	}
 
-	// 8. Test SearchSmartFilterBooksByFilter before deleting
 	bookSvc := newTestBookService(t, db)
 	dtoSearch := &request.SearchBookDto{}
 	dtoSearch.Limit = 10
@@ -169,7 +158,6 @@ func TestSmartFilterLifecycleAndBooks(t *testing.T) {
 		t.Fatal("Expected non-nil successful paginated response")
 	}
 
-	// 9. Delete smart filter
 	err = svc.DeleteSmartFilter(ctx, sf.ID, "user-1")
 	if err != nil {
 		t.Fatalf("DeleteSmartFilter failed: %v", err)

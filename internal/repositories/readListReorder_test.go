@@ -9,9 +9,7 @@ import (
 	"novelhub/pkg/cache"
 )
 
-// Swapping two neighbours is the one case a UNIQUE(read_list_id, position) index would break: the
-// first UPDATE has to park a row on a number the other row still holds. Do it through the real
-// repository so the schema, not a comment, is what proves the constraint was left off on purpose.
+// Swapping two neighbours is the one case a UNIQUE(read_list_id, position) index would break: the first UPDATE has to park a row on a number the other row still holds.
 func TestReorderSwapsAdjacentEntries(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Monogatari", ""); err != nil {
@@ -46,8 +44,7 @@ func TestReorderSwapsAdjacentEntries(t *testing.T) {
 	}
 }
 
-// A drag that reverses the whole list writes every position at once. Doing it in one pass through
-// SetReadListBookPosition means no intermediate state is ever readable as a valid order.
+// A drag that reverses the whole list writes every position at once.
 func TestReorderHandlesFullReversal(t *testing.T) {
 	repo, _, ctx := readListProbe(t, nil)
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Reverse", ""); err != nil {
@@ -77,10 +74,7 @@ func TestReorderHandlesFullReversal(t *testing.T) {
 	}
 }
 
-// SQLite CURRENT_TIMESTAMP has one-second resolution, so read lists created in the same batch share
-// a created_at. A cursor carrying only that timestamp cannot break the tie and the walk stalls after
-// one page — the reason the API emits "<created_at>|<id>" and the frontend must echo it back rather
-// than rebuilding a cursor from the last row's created_at.
+// SQLite CURRENT_TIMESTAMP has one-second resolution, so read lists created in the same batch share a created_at.
 func TestReadListCursorNeedsTheIDHalf(t *testing.T) {
 	repo, _, ctx := readListProbe(t, nil)
 	const total = 12
@@ -123,9 +117,7 @@ func TestReadListCursorNeedsTheIDHalf(t *testing.T) {
 	}
 }
 
-// The first page is cached under a key that carries the limit. Deleting a bare "read_list:user:<id>"
-// would miss it — the exact defect the collections repository still has — so a list created after
-// the page was cached has to show up anyway.
+// The first page is cached under a key that carries the limit.
 func TestUserReadListsFirstPageIsNotStaleAfterWrite(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	for i := 0; i < 3; i++ {
@@ -162,8 +154,7 @@ func TestUserReadListsFirstPageIsNotStaleAfterWrite(t *testing.T) {
 	}
 }
 
-// Ownership is cached per (user, list) and gates every read in the service. A list deleted while its
-// "yes" answer sits in the cache must not stay reachable for the rest of the TTL.
+// Ownership is cached per (user, list) and gates every read in the service.
 func TestOwnershipCacheDropsWithTheList(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Owned", ""); err != nil {

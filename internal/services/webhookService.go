@@ -414,16 +414,16 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 			titleText = fmt.Sprintf("📚 NovelHub Notification: %s", eventType)
 		}
 
-		color := 3447003 // Blue for created
+		color := 3447003
 		switch eventType {
 		case "book.deleted":
-			color = 15158332 // Red
+			color = 15158332
 		case "reading.completed":
-			color = 3066993 // Green
+			color = 3066993
 		case "metadata.updated":
-			color = 15844367 // Gold
+			color = 15844367
 		case "job.failed":
-			color = 15158332 // Red
+			color = 15158332
 		}
 
 		if customHex, ok := rawData["_embed_color"].(string); ok && strings.TrimSpace(customHex) != "" {
@@ -594,7 +594,7 @@ func (s *webhookService) formatBodyByTemplate(templateType, eventType string, ra
 		b, _ := jsonx.Marshal(slackMsg)
 		return b, "application/json"
 
-	default: // generic
+	default:
 		genericEnvelope := map[string]any{
 			"event":     eventType,
 			"timestamp": time.Now().Unix(),

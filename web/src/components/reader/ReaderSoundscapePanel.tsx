@@ -21,7 +21,11 @@ import {
   Radio,
   Gamepad2,
 } from "lucide-react";
-import { useSoundscapeStore, BUILTIN_AMBIENT_PRESETS, type ActiveTrack } from "@/stores/soundscapeStore";
+import {
+  useSoundscapeStore,
+  BUILTIN_AMBIENT_PRESETS,
+  type ActiveTrack,
+} from "@/stores/soundscapeStore";
 import { useSoundscapesQuery } from "@/hooks/useCustomization";
 import { Link } from "react-router-dom";
 
@@ -65,7 +69,9 @@ const getCategoryIcon = (category: string, iconName?: string) => {
   }
 };
 
-export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ onClose }) => {
+export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({
+  onClose,
+}) => {
   const { t } = useTranslation();
   const {
     isPlaying,
@@ -97,7 +103,6 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
 
   return (
     <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-80 md:w-96 overflow-y-auto rounded-2xl border p-4 shadow-2xl backdrop-blur-md transition-colors duration-300">
-      {/* Header */}
       <div className="flex items-center justify-between mb-3 border-b border-(--reader-ui-border) pb-2.5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-(--reader-ui-accent-soft) text-(--reader-ui-accent)">
@@ -109,7 +114,9 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
             </h3>
             <p className="text-[11px] opacity-60">
               {activeCount > 0
-                ? t("soundscape.active_tracks", "{{count}} active layers", { count: activeCount })
+                ? t("soundscape.active_tracks", "{{count}} active layers", {
+                    count: activeCount,
+                  })
                 : t("soundscape.no_active", "No ambient sounds playing")}
             </p>
           </div>
@@ -137,7 +144,6 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
         </div>
       </div>
 
-      {/* Master Volume & Play/Pause Control Bar */}
       <div className="mb-4 p-3 rounded-xl bg-(--reader-ui-soft) border border-(--reader-ui-border) flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -145,9 +151,17 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
               type="button"
               onClick={togglePlaying}
               className={`btn btn-circle btn-sm ${isPlaying && activeCount > 0 ? "reader-action-btn" : "reader-outline-btn"}`}
-              title={isPlaying && activeCount > 0 ? t("common.pause", "Pause") : t("common.play", "Play")}
+              title={
+                isPlaying && activeCount > 0
+                  ? t("common.pause", "Pause")
+                  : t("common.play", "Play")
+              }
             >
-              {isPlaying && activeCount > 0 ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+              {isPlaying && activeCount > 0 ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              )}
             </button>
             <span className="text-xs font-bold">
               {activeCount === 0
@@ -233,7 +247,9 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
                     {getCategoryIcon(track.category, track.icon)}
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-xs font-bold truncate ${isActive ? "text-(--reader-ui-accent)" : "text-(--reader-ui-text)"}`}>
+                    <p
+                      className={`text-xs font-bold truncate ${isActive ? "text-(--reader-ui-accent)" : "text-(--reader-ui-text)"}`}
+                    >
                       {track.name}
                     </p>
                     <span className="badge badge-ghost badge-xs text-[10px] opacity-60 uppercase border border-(--reader-ui-border)">
@@ -247,7 +263,11 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
                   onClick={() => toggleTrack(track)}
                   className={`btn btn-circle btn-xs ${isActive ? "reader-action-btn" : "reader-control-btn"}`}
                 >
-                  {isActive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                  {isActive ? (
+                    <Pause className="w-3 h-3" />
+                  ) : (
+                    <Play className="w-3 h-3 fill-current ml-0.5" />
+                  )}
                 </button>
               </div>
 
@@ -260,7 +280,9 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({ on
                     max="1"
                     step="0.05"
                     value={currentVol}
-                    onChange={(e) => setTrackVolume(track.id, parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      setTrackVolume(track.id, parseFloat(e.target.value))
+                    }
                     className="range range-xs flex-1"
                   />
                   <span className="font-mono text-[10px] opacity-60 w-7 text-right">

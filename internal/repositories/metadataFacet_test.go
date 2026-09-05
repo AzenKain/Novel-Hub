@@ -12,15 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// The browse pages used to fetch one page of authors and then apply the A-Z strip and the
-// search box in the browser, so on a large library picking "Z" showed nothing even when Z
-// authors existed past the first page. Both filters now run in SQL; these cases pin that,
-// including the one that is easy to get wrong.
-//
-// SQLite's UPPER() is ASCII-only, so it will NOT fold Vietnamese d-with-stroke. If the alpha
-// bucket were implemented with a plain UPPER() comparison, the lowercase form would silently
-// land in the "#" bucket instead of its own, and lowercase-initial names would be
-// unreachable from the strip.
+// The browse pages used to fetch one page of authors and then apply the A-Z strip and the search box in the browser, so on a large library picking "Z" showed nothing even when Z authors existed past the first page.
 func TestMetadataFacetFiltersRunInSQL(t *testing.T) {
 	repo, db := newFacetTestRepo(t)
 	ctx := context.Background()
@@ -50,12 +42,9 @@ func TestMetadataFacetFiltersRunInSQL(t *testing.T) {
 		{"alpha A", scoped(MetadataFacetFilter{Limit: 50, Alpha: "A"}), []string{"Alice"}},
 		{"alpha Z", scoped(MetadataFacetFilter{Limit: 50, Alpha: "Z"}), []string{"Zoe"}},
 		{"alpha B matches lowercase initial", scoped(MetadataFacetFilter{Limit: 50, Alpha: "B"}), []string{"bob"}},
-		// "Ong" starts with a plain ASCII O, so it belongs to bucket O — not to "#".
 		{"alpha O", scoped(MetadataFacetFilter{Limit: 50, Alpha: "O"}), []string{"Ong Ba"}},
-		// Both cases of d-with-stroke belong to the same bucket, and neither may leak into "#".
 		{"alpha D-stroke", scoped(MetadataFacetFilter{Limit: 50, Alpha: "Đ"}), []string{"Đặng Thu", "đỏ nam"}},
 		{"alpha # is non-letter only", scoped(MetadataFacetFilter{Limit: 50, Alpha: "#"}), []string{"9 Lives"}},
-		// Plain substring match, same as the client's includes(): "đỏ" does not contain "o".
 		{"search is a substring match", scoped(MetadataFacetFilter{Limit: 50, Search: "o"}), []string{"bob", "Ong Ba", "Zoe"}},
 		{"search and alpha combine", scoped(MetadataFacetFilter{Limit: 50, Search: "o", Alpha: "Z"}), []string{"Zoe"}},
 		{"no filter returns everything in scope", scoped(MetadataFacetFilter{Limit: 50}), names},
@@ -87,8 +76,7 @@ func TestMetadataFacetFiltersRunInSQL(t *testing.T) {
 	}
 }
 
-// Two filters must not share one cache entry, otherwise the second one served from cache
-// returns the first one's rows.
+// Two filters must not share one cache entry, otherwise the second one served from cache returns the first one's rows.
 func TestMetadataFacetCacheKeyVariesWithFilter(t *testing.T) {
 	base := MetadataFacetFilter{Cursor: "c", Limit: 20}
 	seen := map[string]string{}

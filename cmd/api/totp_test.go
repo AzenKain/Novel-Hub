@@ -327,9 +327,6 @@ func codeFor(t *testing.T, secret string) string {
 	return codeInWindow(t, secret, 0)
 }
 
-// A used code burns its step counter, so a test that needs a second code cannot wait 30s for
-// the window to roll. Shifting by one period is inside the accepted skew — it is exactly what
-// a phone running slightly fast sends — and lands on a different counter.
 func codeInWindow(t *testing.T, secret string, periods int) string {
 	t.Helper()
 	code, err := totp.Generate(secret, time.Now().Add(time.Duration(periods)*totp.Period))

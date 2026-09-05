@@ -38,7 +38,9 @@ export const FontsCard: React.FC = () => {
   const [fontUrl, setFontUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const canManage = hasPermission(user, "user.font.manage") || hasPermission(user, "admin.font.manage");
+  const canManage =
+    hasPermission(user, "user.font.manage") ||
+    hasPermission(user, "admin.font.manage");
 
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
@@ -90,17 +92,24 @@ export const FontsCard: React.FC = () => {
       setFontUrl("");
       setSelectedFile(null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("font.upload_failed", "Failed to add font"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("font.upload_failed", "Failed to add font"),
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t("font.delete_confirm", "Delete this custom font?"))) return;
+    if (!window.confirm(t("font.delete_confirm", "Delete this custom font?")))
+      return;
     try {
       await deleteCustomFont(id);
       toast.success(t("font.delete_success", "Font deleted"));
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("font.delete_failed", "Failed to delete font"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("font.delete_failed", "Failed to delete font"),
+      );
     }
   };
 
@@ -117,7 +126,10 @@ export const FontsCard: React.FC = () => {
                 {t("font.personal_fonts", "Personal Reader Fonts")}
               </h2>
               <p className="text-xs opacity-60">
-                {t("font.personal_desc", "Upload custom typography files (WOFF2, TTF, OTF) or import Google Fonts.")}
+                {t(
+                  "font.personal_desc",
+                  "Upload custom typography files (WOFF2, TTF, OTF) or import Google Fonts.",
+                )}
               </p>
             </div>
           </div>
@@ -126,9 +138,11 @@ export const FontsCard: React.FC = () => {
           </span>
         </div>
 
-        {/* Upload Form */}
         {canManage ? (
-          <form onSubmit={handleUpload} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3">
+          <form
+            onSubmit={handleUpload}
+            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("font.add_font", "Add Custom Font")}
@@ -155,7 +169,9 @@ export const FontsCard: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="label label-text text-xs p-1">{t("font.display_name", "Display Name")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("font.display_name", "Display Name")}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Bookerly, Literata"
@@ -169,7 +185,9 @@ export const FontsCard: React.FC = () => {
               <div>
                 <label className="label label-text text-xs p-1 flex justify-between">
                   <span>{t("font.css_family", "Font Family (CSS)")}</span>
-                  <span className="text-[10px] text-base-content/50">{t("common.optional_auto", "Auto-detected")}</span>
+                  <span className="text-[10px] text-base-content/50">
+                    {t("common.optional_auto", "Auto-detected")}
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -189,7 +207,9 @@ export const FontsCard: React.FC = () => {
                 <input
                   type="file"
                   accept=".woff2,.woff,.ttf,.otf"
-                  onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    handleFileSelect(e.target.files?.[0] || null)
+                  }
                   className="file-input file-input-bordered file-input-sm w-full"
                   required
                 />
@@ -197,7 +217,10 @@ export const FontsCard: React.FC = () => {
             ) : (
               <div>
                 <label className="label label-text text-xs p-1">
-                  {t("font.stylesheet_url", "Google Fonts / CSS Stylesheet URL")}
+                  {t(
+                    "font.stylesheet_url",
+                    "Google Fonts / CSS Stylesheet URL",
+                  )}
                 </label>
                 <input
                   type="url"
@@ -227,7 +250,10 @@ export const FontsCard: React.FC = () => {
           </form>
         ) : (
           <div className="alert alert-warning text-xs mt-3">
-            {t("font.no_permission", "You do not have permission to upload personal fonts.")}
+            {t(
+              "font.no_permission",
+              "You do not have permission to upload personal fonts.",
+            )}
           </div>
         )}
 
@@ -262,12 +288,17 @@ export const FontsCard: React.FC = () => {
                           {f.font_family}
                         </code>
                         {f.is_system && (
-                          <span className="badge badge-info badge-xs text-[9px]">{t("common.system", "System")}</span>
+                          <span className="badge badge-info badge-xs text-[9px]">
+                            {t("common.system", "System")}
+                          </span>
                         )}
-                        <span className="badge badge-ghost badge-xs text-[9px] uppercase">{f.source_type}</span>
+                        <span className="badge badge-ghost badge-xs text-[9px] uppercase">
+                          {f.source_type}
+                        </span>
                       </div>
 
-                      {(isOwner || hasPermission(user, "admin.font.manage")) && (
+                      {(isOwner ||
+                        hasPermission(user, "admin.font.manage")) && (
                         <button
                           type="button"
                           onClick={() => handleDelete(f.id)}
@@ -286,13 +317,16 @@ export const FontsCard: React.FC = () => {
                     >
                       <div className="flex items-center gap-1.5 text-[11px] opacity-50 mb-1">
                         <Eye className="w-3 h-3" />
-                        <span>{t("font.preview", "Sample Typography Preview")}:</span>
+                        <span>
+                          {t("font.preview", "Sample Typography Preview")}:
+                        </span>
                       </div>
                       <p className="text-base line-clamp-1">
                         The quick brown fox jumps over the lazy dog. 0123456789
                       </p>
                       <p className="text-sm opacity-80 line-clamp-1 mt-0.5">
-                        Trăm năm trong cõi người ta, chữ tài chữ mệnh khéo là ghét nhau.
+                        Trăm năm trong cõi người ta, chữ tài chữ mệnh khéo là
+                        ghét nhau.
                       </p>
                     </div>
                   </div>

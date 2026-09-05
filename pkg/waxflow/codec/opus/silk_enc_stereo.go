@@ -1,17 +1,10 @@
 package opus
 
-// SILK stereo encoding, ported from libopus silk/stereo_LR_to_MS.c,
-// stereo_find_predictor.c, stereo_quant_pred.c, stereo_encode_pred.c,
-// sum_sqr_shift.c, and inner_prod_aligned.c. The decode direction
-// (MS to LR) lives with the decoder.
-
 const (
 	stereoRatioSmoothCoef = 0.01
 	stereoQuantTabSize    = 16
 )
 
-// silkSumSqrShift computes the energy of x and the right-shift applied to
-// make it fit an int32 with headroom (silk_sum_sqr_shift).
 func silkSumSqrShift(x []int16, length int) (energy int32, shift int) {
 	shft := 31 - int(silkCLZ32(int32(length)))
 	nrg := int32(length)
@@ -39,8 +32,6 @@ func silkSumSqrShift(x []int16, length int) (energy int32, shift int) {
 	return nrg, shft
 }
 
-// silkInnerProdAlignedScale computes a scaled inner product
-// (silk_inner_prod_aligned_scale).
 func silkInnerProdAlignedScale(v1, v2 []int16, scale, length int) int32 {
 	var sum int32
 	for i := 0; i < length; i++ {
@@ -49,8 +40,6 @@ func silkInnerProdAlignedScale(v1, v2 []int16, scale, length int) int32 {
 	return sum
 }
 
-// silkStereoFindPredictor finds and smooths the least-squares predictor of y
-// from x (silk_stereo_find_predictor). Returns the predictor in Q13.
 func silkStereoFindPredictor(ratioQ14 *int32, x, y []int16, midResAmpQ0 []int32, length int, smoothCoefQ16 int32) int32 {
 	nrgx, scale1 := silkSumSqrShift(x, length)
 	nrgy, scale2 := silkSumSqrShift(y, length)
@@ -80,7 +69,6 @@ func silkStereoFindPredictor(ratioQ14 *int32, x, y []int16, midResAmpQ0 []int32,
 	return predQ13
 }
 
-// silkStereoQuantPred quantizes the mid/side predictors (silk_stereo_quant_pred).
 func silkStereoQuantPred(predQ13 []int32, ix *[2][3]int8) {
 	for n := 0; n < 2; n++ {
 		errMinQ13 := int32(silkInt32Max)
@@ -99,7 +87,6 @@ func silkStereoQuantPred(predQ13 []int32, ix *[2][3]int8) {
 					ix[n][0] = int8(i)
 					ix[n][1] = int8(j)
 				} else {
-					// Error increasing: past the optimum.
 					break search
 				}
 			}
@@ -111,8 +98,6 @@ func silkStereoQuantPred(predQ13 []int32, ix *[2][3]int8) {
 	predQ13[0] -= predQ13[1]
 }
 
-// silkStereoEncodePred entropy codes the predictor indices
-// (silk_stereo_encode_pred).
 func silkStereoEncodePred(enc *rangeEncoder, ix *[2][3]int8) {
 	n := 5*int(ix[0][2]) + int(ix[1][2])
 	enc.encodeICDF(n, silk_stereo_pred_joint_iCDF, 8)
@@ -122,22 +107,15 @@ func silkStereoEncodePred(enc *rangeEncoder, ix *[2][3]int8) {
 	}
 }
 
-// silkStereoEncodeMidOnly entropy codes the mid-only flag
-// (silk_stereo_encode_mid_only).
 func silkStereoEncodeMidOnly(enc *rangeEncoder, midOnlyFlag int8) {
 	enc.encodeICDF(int(midOnlyFlag), silk_stereo_only_code_mid_iCDF, 8)
 }
 
-// lrToMS converts a Left/Right frame to adaptive Mid/Side
-// (silk_stereo_LR_to_MS). x1 and x2 are the full channel buffers including
-// the two history samples at the front (the reference's &x1[-2]); on return
-// x1 holds the mid signal and x2 the side residual.
 func (state *stereoEncState) lrToMS(x1, x2 []int16, ix *[2][3]int8, midOnlyFlag *int8,
 	midSideRatesBps []int32, totalRateBps int32, prevSpeechActQ8 int32, toMono bool, fsKHz, frameLength int) {
 
 	side := make([]int16, frameLength+2)
 	mid := x1
-	// Convert to basic mid/side signals.
 	for n := 0; n < frameLength+2; n++ {
 		sum := int32(x1[n]) + int32(x2[n])
 		diff := int32(x1[n]) - int32(x2[n])
@@ -145,13 +123,11 @@ func (state *stereoEncState) lrToMS(x1, x2 []int16, ix *[2][3]int8, midOnlyFlag 
 		side[n] = int16(silkSAT16(silkRSHIFTROUND(diff, 1)))
 	}
 
-	// Buffering.
 	copy(mid[:2], state.sMid[:])
 	copy(side[:2], state.sSide[:])
 	copy(state.sMid[:], mid[frameLength:frameLength+2])
 	copy(state.sSide[:], side[frameLength:frameLength+2])
 
-	// LP and HP filter mid and side signals.
 	lpMid := make([]int16, frameLength)
 	hpMid := make([]int16, frameLength)
 	for n := 0; n < frameLength; n++ {
@@ -245,7 +221,6 @@ func (state *stereoEncState) lrToMS(x1, x2 []int16, ix *[2][3]int8, midOnlyFlag 
 		widthQ14 = int32(state.smthWidthQ14)
 	}
 
-	// Keep encoding the side until the tapered output has been transmitted.
 	if *midOnlyFlag == 1 {
 		state.silentSideLen += int16(frameLength - stereoInterpLenMS*fsKHz)
 		if state.silentSideLen < int16(laShapeMS*fsKHz) {
@@ -262,7 +237,6 @@ func (state *stereoEncState) lrToMS(x1, x2 []int16, ix *[2][3]int8, midOnlyFlag 
 		midSideRatesBps[0] = silkMaxInt(1, totalRateBps-midSideRatesBps[1])
 	}
 
-	// Interpolate predictors and subtract prediction from side channel.
 	pred0Q13 := -int32(state.predPrevQ13[0])
 	pred1Q13 := -int32(state.predPrevQ13[1])
 	wQ24 := silkLSHIFT(int32(state.widthPrevQ14), 10)

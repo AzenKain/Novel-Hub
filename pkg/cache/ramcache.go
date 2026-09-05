@@ -41,10 +41,6 @@ type Cache interface {
 	Exists(ctx context.Context, key string) (bool, error)
 	GetOrFetch(ctx context.Context, key string, dest any, ttl time.Duration, fetcher func() (any, error)) error
 	Stats() CacheStats
-	// Object variants store the value pointer directly in RAM, skipping the JSON
-	// round-trip of Set/Get. Use only for read-mostly hot entities whose writers
-	// invalidate via the same keys; readers must treat returned values as shared
-	// and copy before mutating.
 	SetObject(ctx context.Context, key string, value any, ttl time.Duration) error
 	GetObject(key string) (any, bool)
 	MSetObjects(ctx context.Context, pairs map[string]any, ttl time.Duration) error
@@ -73,8 +69,6 @@ func NewTheineCache(maxCost int64) Cache {
 				}
 				return int64(len(b))
 			}
-			// Rough per-entity budget for cached domain objects; byte-exact sizing
-			// would require marshalling, which is what this path exists to avoid.
 			return objectCacheCost
 		}).
 		Build()
@@ -87,8 +81,6 @@ func NewTheineCache(maxCost int64) Cache {
 	}
 }
 
-// objectCacheCost approximates a mid-sized enriched entity (title, description,
-// series, tags) so object entries compete for the same budget as JSON bytes.
 const objectCacheCost int64 = 2048
 
 func autoMaxCost() int64 {
@@ -143,8 +135,6 @@ func (r *RamCache) Get(ctx context.Context, key string, dest any) error {
 	}
 	b, ok := data.([]byte)
 	if !ok {
-		// Object entries are only read via GetObject/MGetObjects; a bytes-style
-		// read must not deserialize a live pointer into dest.
 		return ErrCacheMiss
 	}
 	return jsonx.Unmarshal(b, dest)
@@ -157,8 +147,7 @@ func (r *RamCache) Del(ctx context.Context, keys ...string) error {
 	return nil
 }
 
-// Prefix match, not filepath.Match: '*' there does not cross '/', so any key holding a
-// filesystem path or a raw search term was unreachable by the "prefix*" sweeps we use.
+// Prefix match, not filepath.Match: '*' there does not cross '/', so any key holding a filesystem path or a raw search term was unreachable by the "prefix*" sweeps we use.
 func (r *RamCache) DelByPattern(ctx context.Context, pattern string) error {
 	prefix, ok := strings.CutSuffix(pattern, "*")
 	if !ok {

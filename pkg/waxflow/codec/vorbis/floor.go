@@ -1,27 +1,16 @@
 package vorbis
 
-// floor is the spectral envelope for one submap. Vorbis defines two floor
-// types; both decode per-frame data for a channel, then synthesize a curve
-// that scales the residue. Decoding is separated from synthesis because the
-// spec decodes all channels' floors, then all residues, then applies.
 type floor interface {
-	// decode reads one channel's per-frame floor data into st. unused is true
-	// when the channel has no floor this frame (the output is silence).
 	decode(r *bitReader, books []codebook, st *floorState) (unused bool, err error)
-	// apply synthesizes the curve and multiplies it into spec[:n2].
 	apply(st *floorState, spec []float32, n2 int)
 }
 
-// floorState is per-channel scratch retained between a floor's decode and
-// apply (floor 1 posts and the synthesized curve).
 type floorState struct {
-	y     []int     // floor1 decoded posts
-	final []int     // floor1 synthesized posts
-	step2 []bool    // floor1 post activity
-	curve []float32 // scratch curve, length n2
+	y     []int
+	final []int
+	step2 []bool
+	curve []float32
 }
-
-// --- Floor type 1: piecewise linear (spec 7.2) ---
 
 type floor1 struct {
 	partitionClass  []int
@@ -100,12 +89,8 @@ func parseFloor1(r *bitReader, numBooks int) (floor, error) {
 	return f, nil
 }
 
-// computeNeighbors precomputes the X-sorted order and, for each post >= 2, its
-// low and high neighbors (spec 9.2.4/9.2.5).
 func (f *floor1) computeNeighbors() error {
 	count := len(f.xs)
-	// Reject duplicate X values (the spec forbids them; neighbors assume a
-	// strict ordering).
 	seen := make(map[int]bool, count)
 	for _, x := range f.xs {
 		if seen[x] {
@@ -117,7 +102,6 @@ func (f *floor1) computeNeighbors() error {
 	for i := range f.sortOrder {
 		f.sortOrder[i] = i
 	}
-	// Insertion sort by X (count <= 65, so it is trivial and stable).
 	for i := 1; i < count; i++ {
 		for j := i; j > 0 && f.xs[f.sortOrder[j-1]] > f.xs[f.sortOrder[j]]; j-- {
 			f.sortOrder[j-1], f.sortOrder[j] = f.sortOrder[j], f.sortOrder[j-1]
@@ -154,7 +138,7 @@ func highNeighbor(v []int, x int) int {
 
 func (f *floor1) decode(r *bitReader, books []codebook, st *floorState) (bool, error) {
 	if r.bit() == 0 {
-		return true, nil // no floor => silent channel
+		return true, nil
 	}
 	ilr := ilog(f.rangeVal - 1)
 	st.y = st.y[:0]
@@ -193,7 +177,7 @@ func (f *floor1) decode(r *bitReader, books []codebook, st *floorState) (bool, e
 		}
 	}
 	if r.eof {
-		return true, nil // ran out of packet => silence, per spec
+		return true, nil
 	}
 	return false, nil
 }
@@ -214,11 +198,6 @@ func (f *floor1) apply(st *floorState, spec []float32, n2 int) {
 	}
 }
 
-// curve synthesizes the floor-1 amplitude curve from decoded posts y into
-// curve[:n2] (spec 7.2.4). final and step2 are caller scratch of length >=
-// len(xs). It is the amplitude the residue multiplies; the encoder calls it
-// with the posts it will emit so its residue normalization divides by exactly
-// the curve the decoder reconstructs.
 func (f *floor1) curve(y []int, curve []float32, final []int, step2 []bool, n2 int) {
 	count := len(f.xs)
 	final[0] = y[0]
@@ -272,8 +251,6 @@ func (f *floor1) curve(y []int, curve []float32, final []int, step2 []bool, n2 i
 	}
 }
 
-// renderPoint interpolates y at X on the line through (x0,y0)-(x1,y1), using
-// integer arithmetic (spec 9.2.6).
 func renderPoint(x0, y0, x1, y1, X int) int {
 	dy := y1 - y0
 	adx := x1 - x0
@@ -288,8 +265,6 @@ func renderPoint(x0, y0, x1, y1, X int) int {
 	return y0 + off
 }
 
-// renderLine draws the line (x0,y0)-(x1,y1) into out, writing the dB-table
-// amplitude for each integer x in [x0, min(x1, len(out))) (spec 9.2.7).
 func renderLine(x0, y0, x1, y1 int, out []float32) {
 	dy := y1 - y0
 	adx := x1 - x0
@@ -340,14 +315,6 @@ func clampDB(y int) int {
 	return y
 }
 
-// --- Floor type 0: LSP (spec 6.1) ---
-
-// parseFloor0 rejects the LSP floor. Floor 0 is legacy: libvorbis has not
-// emitted it in two decades (every ffmpeg/libvorbis stream uses floor 1), so
-// there is no differential oracle to verify an LSP synthesis against, and an
-// unverified implementation would silently corrupt the rare stream that uses
-// it. Rejecting with a clear error is the honest, safe posture; a correct
-// floor 0 plus a synthetic conformance vector is a clean follow-up.
 func parseFloor0(*bitReader, []codebook) (floor, error) {
 	return nil, malformed("floor 0 (LSP) is not supported")
 }

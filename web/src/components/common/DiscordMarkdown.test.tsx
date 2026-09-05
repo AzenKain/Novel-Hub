@@ -19,8 +19,10 @@ describe("DiscordMarkdown", () => {
     act(() => {
       root.render(
         <DiscordMarkdown
-          content={"**Bold Text** and *Italic Text* and __Underline__ and ~~Strike~~ and `code block` and https://example.com"}
-        />
+          content={
+            "**Bold Text** and *Italic Text* and __Underline__ and ~~Strike~~ and `code block` and https://example.com"
+          }
+        />,
       );
     });
 
@@ -47,14 +49,17 @@ describe("DiscordMarkdown", () => {
     const container = document.createElement("div");
     const root = createRoot(container);
     act(() => {
-      root.render(<DiscordMarkdown content="The killer is ||John Doe|| at the end." />);
+      root.render(
+        <DiscordMarkdown content="The killer is ||John Doe|| at the end." />,
+      );
     });
 
-    const spoilerBtn = container.querySelector('[role="button"]') as HTMLElement;
+    const spoilerBtn = container.querySelector(
+      '[role="button"]',
+    ) as HTMLElement;
     expect(spoilerBtn).not.toBeNull();
     expect(spoilerBtn.title).toBe("Click to reveal spoiler");
 
-    // Click to reveal
     act(() => {
       spoilerBtn.click();
     });
@@ -62,7 +67,6 @@ describe("DiscordMarkdown", () => {
     expect(spoilerBtn.title).toBe("Click to hide spoiler");
     expect(spoilerBtn.textContent).toContain("John Doe");
 
-    // Click again to hide
     act(() => {
       spoilerBtn.click();
     });

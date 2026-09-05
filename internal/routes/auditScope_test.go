@@ -9,7 +9,6 @@ import (
 
 func readRepoFile(t *testing.T, rel string) string {
 	t.Helper()
-	// Try from the routes package dir outward.
 	for _, prefix := range []string{"../..", "../../..", "../../../.."} {
 		p := filepath.Join(prefix, rel)
 		if b, err := os.ReadFile(p); err == nil {
@@ -20,14 +19,10 @@ func readRepoFile(t *testing.T, rel string) string {
 	return ""
 }
 
-// TestAuditScopeNewFeaturesHaveNoPermissionKeys proves task T3.1: none of the
-// new features (age rating, kids mode, smart filters, magic code, OAuth) has a
-// permission key seeded in the RBAC schema, so there is nothing to enforce
-// them with.
+// TestAuditScopeNewFeaturesHaveNoPermissionKeys proves task T3.1: none of the new features (age rating, kids mode, smart filters, magic code, OAuth) has a permission key seeded in the RBAC schema, so there is nothing to enforce them with.
 func TestAuditScopeNewFeaturesHaveNoPermissionKeys(t *testing.T) {
 	src := readRepoFile(t, "db/schema/65_permissions_settings.sql") +
 		"\n" + readRepoFile(t, "db/schema/91_rbac_restructure.sql")
-	// Only scan the permissions insertion block, not the settings seeding
 	if parts := strings.Split(src, "INSERT INTO app_settings"); len(parts) > 0 {
 		src = parts[0]
 	}
@@ -38,8 +33,7 @@ func TestAuditScopeNewFeaturesHaveNoPermissionKeys(t *testing.T) {
 	}
 }
 
-// TestAuditScopeGoFuncBypassesWorker verifies that background tasks in bookController
-// no longer spawn unmanaged go func() and instead go through the worker queue.
+// TestAuditScopeGoFuncBypassesWorker verifies that background tasks in bookController no longer spawn unmanaged go func() and instead go through the worker queue.
 func TestAuditScopeGoFuncBypassesWorker(t *testing.T) {
 	src := readRepoFile(t, "internal/controllers/bookController.go")
 	if strings.Contains(src, "go func()") {
@@ -47,8 +41,7 @@ func TestAuditScopeGoFuncBypassesWorker(t *testing.T) {
 	}
 }
 
-// TestAuditScopeGenTokenIsOneLineWrapper proves task T5.2: GenToken is a
-// trivial 1-line wrapper around genToken, which AGENTS.md forbids.
+// TestAuditScopeGenTokenIsOneLineWrapper proves task T5.2: GenToken is a trivial 1-line wrapper around genToken, which AGENTS.md forbids.
 func TestAuditScopeGenTokenIsOneLineWrapper(t *testing.T) {
 	src := readRepoFile(t, "internal/services/authService.go")
 	idx := strings.Index(src, "func (a *authService) GenToken(")
@@ -70,8 +63,7 @@ func TestAuditScopeGenTokenIsOneLineWrapper(t *testing.T) {
 	}
 }
 
-// TestAuditScopeSmartFilterRawBind verifies that smart filter controller
-// uses validator.ValidateBodyDto instead of raw c.Bind().Body.
+// TestAuditScopeSmartFilterRawBind verifies that smart filter controller uses validator.ValidateBodyDto instead of raw c.Bind().Body.
 func TestAuditScopeSmartFilterRawBind(t *testing.T) {
 	src := readRepoFile(t, "internal/controllers/smartFilterController.go")
 	rawBinds := strings.Count(src, "c.Bind().Body")
@@ -79,4 +71,3 @@ func TestAuditScopeSmartFilterRawBind(t *testing.T) {
 		t.Fatalf("unexpected: found %d raw c.Bind().Body calls in smartFilterController.go", rawBinds)
 	}
 }
-

@@ -166,9 +166,7 @@ func (p *BookmarkedBooksPage) ToResponse() *response.BookmarkedBooksPageResponse
 	}
 }
 
-// BookTitleAuthorEntity is the raw id/title/author dump used by the fuzzy
-// duplicate detector. It intentionally carries no files or stats — the scan
-// is O(n²) over the whole library, so it must stay narrow.
+// BookTitleAuthorEntity is the raw id/title/author dump used by the fuzzy duplicate detector.
 type BookTitleAuthorEntity struct {
 	ID         string `json:"id"`
 	Title      string `json:"title"`

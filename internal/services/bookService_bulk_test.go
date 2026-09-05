@@ -55,7 +55,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 		Roles: []constants.RoleType{constants.RoleTypeAdmin},
 	}
 
-	// 1. Test batch update with common fields and auto-indexing
 	commonAuthor := "Brandon Sanderson"
 	commonSeries := "Cosmere"
 	commonPublisher := "Tor Books"
@@ -93,7 +92,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 		t.Errorf("expected 2 successes, got %d (errors: %v)", res.SuccessCount, res.Errors)
 	}
 
-	// Verify books updated in DB
 	var title1, title2 string
 	if err := db.QueryRow(`SELECT title FROM books WHERE id = 'book-1'`).Scan(&title1); err != nil {
 		t.Fatal(err)
@@ -109,7 +107,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 		t.Errorf("book-2 title want %q, got %q", newTitle2, title2)
 	}
 
-	// Verify Author
 	var authorName string
 	if err := db.QueryRow(`SELECT a.name FROM books b JOIN authors a ON b.author_id = a.id WHERE b.id = 'book-1'`).Scan(&authorName); err != nil {
 		t.Fatal(err)
@@ -118,7 +115,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 		t.Errorf("author want %q, got %q", commonAuthor, authorName)
 	}
 
-	// Verify Series & auto-indices (1, 2)
 	var sIdx1, sIdx2 string
 	if err := db.QueryRow(`SELECT bs.series_index FROM book_series bs JOIN series s ON bs.series_id = s.id WHERE bs.book_id = 'book-1'`).Scan(&sIdx1); err != nil {
 		t.Fatal(err)
@@ -134,7 +130,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 		t.Errorf("book-2 series index want '2', got %q", sIdx2)
 	}
 
-	// Verify Tags: 'To Remove' removed, 'Epic Fantasy' and 'Magic' added
 	var tagCount int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM book_tags bt JOIN tags t ON bt.tag_id = t.id WHERE bt.book_id = 'book-1' AND t.name = 'To Remove'`).Scan(&tagCount); err != nil {
 		t.Fatal(err)
@@ -154,7 +149,6 @@ func TestBulkUpdateMetadata(t *testing.T) {
 func TestBulkUpdateMetadata_ValidationErrors(t *testing.T) {
 	bookService := NewBookService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-	// Empty book IDs
 	_, err := bookService.BulkUpdateMetadata(context.Background(), &request.BulkUpdateMetadataDto{
 		BookIDs: []string{},
 	}, nil)
@@ -162,7 +156,6 @@ func TestBulkUpdateMetadata_ValidationErrors(t *testing.T) {
 		t.Error("expected error for empty book IDs, got nil")
 	}
 
-	// Nil DTO
 	_, err = bookService.BulkUpdateMetadata(context.Background(), nil, nil)
 	if err == nil {
 		t.Error("expected error for nil DTO, got nil")

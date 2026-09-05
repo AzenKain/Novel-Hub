@@ -6,7 +6,15 @@ import { featureService } from "@/services";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
 import { usePublicSettings } from "@/hooks/useSettings";
-import type { Collection, LibraryNavItem, MetadataFacetSection, SmartCollection, SmartCollectionRule, User, SmartFilter } from "@/types";
+import type {
+  Collection,
+  LibraryNavItem,
+  MetadataFacetSection,
+  SmartCollection,
+  SmartCollectionRule,
+  User,
+  SmartFilter,
+} from "@/types";
 
 type LibrarySidebarProps = {
   t: (key: string, fallback: string) => string;
@@ -76,7 +84,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
     useShallow((state) => ({
       setSearch: state.setSearch,
       setActiveFacet: state.setActiveFacet,
-    }))
+    })),
   );
 
   const renderNavButton = (item: LibraryNavItem) => (
@@ -90,15 +98,25 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
     </li>
   );
 
-  const [editingCollection, setEditingCollection] = useState<{id: string, name: string} | null>(null);
+  const [editingCollection, setEditingCollection] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingSmartId, setEditingSmartId] = useState<string | null>(null);
   const [editingSmartName, setEditingSmartName] = useState("");
-  const [deletingCollectionTarget, setDeletingCollectionTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deletingCollectionTarget, setDeletingCollectionTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  
+
   const handleEditSmartCollection = () => {
-    if (!editingSmartId || !editingSmartName.trim() || !onRenameSmartCollection) {
+    if (
+      !editingSmartId ||
+      !editingSmartName.trim() ||
+      !onRenameSmartCollection
+    ) {
       setEditingSmartId(null);
       return;
     }
@@ -109,7 +127,10 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   const handleEditCollection = async () => {
     if (!editingCollection || !editingName.trim()) return;
     try {
-      const res = await featureService.updateCollection(editingCollection.id, editingName);
+      const res = await featureService.updateCollection(
+        editingCollection.id,
+        editingName,
+      );
       if (res.status) {
         await queryClient.invalidateQueries({ queryKey: ["collections"] });
         if (activeCollection === editingCollection.name) {
@@ -134,7 +155,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         if (activeCollection === name) {
           onCollectionClick("");
         }
-        toast.success(t("library.collection_deleted", "Collection deleted successfully"));
+        toast.success(
+          t("library.collection_deleted", "Collection deleted successfully"),
+        );
       }
     } catch (e) {
       console.error(e);
@@ -163,7 +186,11 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           className="mt-2 mb-3 flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"
         >
           {siteLogo ? (
-            <img src={siteLogo} alt={t("common.alt_logo", "Logo")} className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm" />
+            <img
+              src={siteLogo}
+              alt={t("common.alt_logo", "Logo")}
+              className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm"
+            />
           ) : (
             <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-md shadow-primary/20 shrink-0">
               NH
@@ -205,7 +232,10 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               {t("library.collections", "Collections")}
             </span>
             {user && (
-              <div className="tooltip tooltip-left" data-tip={t("library.new_collection", "New Collection")}>
+              <div
+                className="tooltip tooltip-left"
+                data-tip={t("library.new_collection", "New Collection")}
+              >
                 <button
                   onClick={onNewCollection}
                   className="btn btn-ghost btn-circle btn-xs text-base-content/50 hover:text-primary"
@@ -221,7 +251,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
             {collections.length > 0 ? (
               collections.map((collection) => (
                 <li key={collection.id}>
-                  <div className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}>
+                  <div
+                    className={`group flex items-center justify-between !p-0 ${activeCollection === collection.name ? "active bg-primary/10 text-primary font-bold rounded-lg" : ""}`}
+                  >
                     <button
                       className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none min-w-0"
                       onClick={() => onCollectionClick(collection.name)}
@@ -236,7 +268,10 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                         <button
                           tabIndex={0}
                           className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mr-1"
-                          aria-label={t("library.collection_options", "Collection options")}
+                          aria-label={t(
+                            "library.collection_options",
+                            "Collection options",
+                          )}
                         >
                           {isDeleting === collection.id ? (
                             <span className="loading loading-spinner loading-xs"></span>
@@ -254,7 +289,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                               onClick={() => {
                                 setEditingCollection(collection);
                                 setEditingName(collection.name);
-                                if (document.activeElement instanceof HTMLElement) {
+                                if (
+                                  document.activeElement instanceof HTMLElement
+                                ) {
                                   document.activeElement.blur();
                                 }
                               }}
@@ -269,8 +306,13 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                               type="button"
                               className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-error hover:bg-error/10"
                               onClick={() => {
-                                setDeletingCollectionTarget({ id: collection.id, name: collection.name });
-                                if (document.activeElement instanceof HTMLElement) {
+                                setDeletingCollectionTarget({
+                                  id: collection.id,
+                                  name: collection.name,
+                                });
+                                if (
+                                  document.activeElement instanceof HTMLElement
+                                ) {
                                   document.activeElement.blur();
                                 }
                               }}
@@ -289,11 +331,14 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               <div className="px-2 py-3 text-xs font-medium text-base-content/40">
                 {user
                   ? t("library.no_collections", "No collections yet")
-                  : t("library.login_collections", "Login to create collections")}
+                  : t(
+                      "library.login_collections",
+                      "Login to create collections",
+                    )}
               </div>
             )}
           </ul>
-          
+
           {hasMoreCollections && (
             <div className="px-2 mt-2">
               <button
@@ -301,7 +346,11 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 onClick={onLoadMoreCollections}
                 disabled={isFetchingMoreCollections}
               >
-                {isFetchingMoreCollections ? <span className="loading loading-spinner loading-xs"></span> : t("common.load_more", "Load more")}
+                {isFetchingMoreCollections ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  t("common.load_more", "Load more")
+                )}
               </button>
             </div>
           )}
@@ -329,7 +378,10 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                           if (e.key === "Enter") handleEditSmartCollection();
                           if (e.key === "Escape") setEditingSmartId(null);
                         }}
-                        aria-label={t("library.rename_smart_collection", "Rename smart collection")}
+                        aria-label={t(
+                          "library.rename_smart_collection",
+                          "Rename smart collection",
+                        )}
                       />
                       <button
                         className="btn btn-ghost btn-xs btn-square text-success"
@@ -340,35 +392,38 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                       </button>
                     </div>
                   ) : (
-                  <div className="group flex items-center justify-between !p-0">
-                    <button
-                      className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
-                      onClick={() => onSmartCollectionClick?.(smart.rule)}
-                    >
-                      <span className="truncate">{smart.name}</span>
-                    </button>
-                    {onRenameSmartCollection && (
+                    <div className="group flex items-center justify-between !p-0">
                       <button
-                        className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-base-content/60 mr-0.5"
-                        onClick={() => {
-                          setEditingSmartId(smart.id);
-                          setEditingSmartName(smart.name);
-                        }}
-                        title={t("library.rename_smart_collection", "Rename smart collection")}
+                        className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
+                        onClick={() => onSmartCollectionClick?.(smart.rule)}
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <span className="truncate">{smart.name}</span>
                       </button>
-                    )}
-                    {onDeleteSmartCollection && (
-                      <button
-                        className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-error mr-1"
-                        onClick={() => onDeleteSmartCollection(smart.id)}
-                        title={t("common.delete", "Delete")}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+                      {onRenameSmartCollection && (
+                        <button
+                          className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-base-content/60 mr-0.5"
+                          onClick={() => {
+                            setEditingSmartId(smart.id);
+                            setEditingSmartName(smart.name);
+                          }}
+                          title={t(
+                            "library.rename_smart_collection",
+                            "Rename smart collection",
+                          )}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {onDeleteSmartCollection && (
+                        <button
+                          className="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity text-error mr-1"
+                          onClick={() => onDeleteSmartCollection(smart.id)}
+                          title={t("common.delete", "Delete")}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </li>
               ))}
@@ -400,7 +455,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 .filter((sf) => sf.is_pinned_sidebar)
                 .map((sf) => (
                   <li key={sf.id}>
-                    <div className={`group flex items-center justify-between !p-0 ${activeSmartFilterId === sf.id ? "bg-primary/10 text-primary font-semibold" : ""}`}>
+                    <div
+                      className={`group flex items-center justify-between !p-0 ${activeSmartFilterId === sf.id ? "bg-primary/10 text-primary font-semibold" : ""}`}
+                    >
                       <button
                         className="flex-1 flex items-center gap-2 p-2 px-3 text-left bg-transparent border-none"
                         onClick={() => onSmartFilterClick?.(sf.id)}
@@ -430,7 +487,8 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                     </div>
                   </li>
                 ))}
-              {smartFilters.filter((sf) => sf.is_pinned_sidebar).length === 0 && (
+              {smartFilters.filter((sf) => sf.is_pinned_sidebar).length ===
+                0 && (
                 <li className="px-3 py-1.5 text-xs text-base-content/40 italic">
                   {t("library.no_pinned_filters", "No pinned filters")}
                 </li>
@@ -493,7 +551,10 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         <DeleteConfirmModal
           open={!!deletingCollectionTarget}
           title={t("library.delete_collection", "Delete Collection")}
-          message={t("library.confirm_delete_collection", "Are you sure you want to delete this collection?")}
+          message={t(
+            "library.confirm_delete_collection",
+            "Are you sure you want to delete this collection?",
+          )}
           onClose={() => setDeletingCollectionTarget(null)}
           onConfirm={confirmDeleteCollection}
           loading={isDeleting === deletingCollectionTarget.id}

@@ -10,7 +10,6 @@ function toCommonResponse<T>(error: unknown): CommonResponse<T> {
 }
 
 export const koboService = {
-  /** Reads the device endpoint URL, creating a token on first call. */
   async getSetup(): Promise<CommonResponse<KoboSetup>> {
     try {
       const res = await api.get("/kobo/setup");
@@ -20,7 +19,6 @@ export const koboService = {
     }
   },
 
-  /** Replaces the token. This is how a lost or sold reader is revoked. */
   async regenerate(): Promise<CommonResponse<KoboSetup>> {
     try {
       const res = await api.post("/kobo/setup/regenerate");

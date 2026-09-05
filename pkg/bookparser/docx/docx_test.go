@@ -116,7 +116,7 @@ func TestDOCXParserWithImagesAndStyling(t *testing.T) {
 	defer file.Close()
 
 	zw := zip.NewWriter(file)
-	
+
 	files := map[string]string{
 		"word/_rels/document.xml.rels": `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -179,17 +179,14 @@ func TestDOCXParserWithImagesAndStyling(t *testing.T) {
 		t.Fatalf("GetChapterContent: %v", err)
 	}
 
-	// Heading tag check
 	if !strings.Contains(html, "<h1><b>Header Text</b></h1>") {
 		t.Errorf("expected Heading1 structure in HTML, got %q", html)
 	}
 
-	// Italic and underline check
 	if !strings.Contains(html, "<i>Italic run</i>") || !strings.Contains(html, "<u>Underline run</u>") {
 		t.Errorf("expected formatted text runs, got %q", html)
 	}
 
-	// Image extraction check
 	if !strings.Contains(html, `<img src="media/image1.png" />`) {
 		t.Errorf("expected img tag with relative path in HTML, got %q", html)
 	}

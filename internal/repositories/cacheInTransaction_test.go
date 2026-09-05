@@ -23,9 +23,7 @@ func progressAt(chapter int64) *models.ReadingProgressEntity {
 	}
 }
 
-// Reads inside a transaction used to populate the shared cache, so a rollback left the cache
-// serving a row the database no longer had. The singleflight half of the same leak is covered
-// by the concurrency test below; this one pins the cache gating on its own.
+// Reads inside a transaction used to populate the shared cache, so a rollback left the cache serving a row the database no longer had.
 func TestRolledBackTransactionLeavesNothingInCache(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "cache-tx.db"))
 	db, err := database.NewSQLiteDB()
@@ -51,7 +49,6 @@ func TestRolledBackTransactionLeavesNothingInCache(t *testing.T) {
 	repo := NewFeatureRepository(db, ramCache)
 	ctx := context.Background()
 
-	// Commit a known-good baseline so the cache has something legitimate to hold.
 	if _, err := repo.UpsertReadingProgress(ctx, progressAt(5)); err != nil {
 		t.Fatalf("baseline write: %v", err)
 	}
@@ -59,8 +56,6 @@ func TestRolledBackTransactionLeavesNothingInCache(t *testing.T) {
 		t.Fatalf("baseline read: %v", err)
 	}
 
-	// Write a different value inside a transaction, read it back (the read is what used to
-	// poison the cache), then roll the whole thing back.
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatalf("begin: %v", err)
@@ -94,16 +89,7 @@ func TestRolledBackTransactionLeavesNothingInCache(t *testing.T) {
 	}
 }
 
-// The shared singleflight group is the second, independent path to the same leak: a plain reader
-// joining a call already in flight inside the transaction receives that call's result directly,
-// without the cache being involved at all.
-//
-// Two details decide whether this measures anything. The cache must be cold before each round —
-// a warm key returns before sfg.Do is ever reached, which is how an earlier version of this test
-// passed in both states while measuring nothing. And the goroutines must be released together,
-// or they serialise and never share a flight. With both, reverting WithTx to the parent group
-// yields ~450 uncommitted reads per 200 rounds while the cache-gating test stays green; with the
-// fix, zero. That separation is the point: each half of the leak has its own test.
+// The shared singleflight group is the second, independent path to the same leak: a plain reader joining a call already in flight inside the transaction receives that call's result directly, without the cache being involved at all.
 func TestConcurrentReadersNeverJoinATransactionsFlight(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "cache-tx-flight.db"))
 	db, err := database.NewSQLiteDB()

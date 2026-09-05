@@ -7,15 +7,21 @@ import { toast } from "react-toastify";
 
 export function usePodcastDownloadWatcher() {
   const queryClient = useQueryClient();
-  const activeDownloads = usePodcastDownloadStore((state) => state.activeDownloads);
-  const finishDownload = usePodcastDownloadStore((state) => state.finishDownload);
+  const activeDownloads = usePodcastDownloadStore(
+    (state) => state.activeDownloads,
+  );
+  const finishDownload = usePodcastDownloadStore(
+    (state) => state.finishDownload,
+  );
   const isCheckingRef = useRef(false);
 
   useEffect(() => {
     const downloadEntries = Object.values(activeDownloads);
     if (downloadEntries.length === 0) return;
 
-    const uniquePodcastIds = Array.from(new Set(downloadEntries.map((d) => d.podcastId)));
+    const uniquePodcastIds = Array.from(
+      new Set(downloadEntries.map((d) => d.podcastId)),
+    );
 
     const checkDownloads = async () => {
       if (isCheckingRef.current) return;
@@ -25,16 +31,23 @@ export function usePodcastDownloadWatcher() {
         for (const podcastId of uniquePodcastIds) {
           const res = await podcastService.listEpisodes(podcastId);
           if (res.status && res.data) {
-            const currentDownloads = usePodcastDownloadStore.getState().activeDownloads;
+            const currentDownloads =
+              usePodcastDownloadStore.getState().activeDownloads;
             for (const ep of res.data) {
               if (ep.downloaded && currentDownloads[ep.id]) {
                 const title = currentDownloads[ep.id].episodeTitle || ep.title;
                 finishDownload(ep.id);
                 toast.success(
-                  i18n.t("podcasts.download_completed", 'Episode "{{title}}" downloaded successfully', { title }),
-                  { toastId: `podcast-download-${ep.id}` }
+                  i18n.t(
+                    "podcasts.download_completed",
+                    'Episode "{{title}}" downloaded successfully',
+                    { title },
+                  ),
+                  { toastId: `podcast-download-${ep.id}` },
                 );
-                void queryClient.invalidateQueries({ queryKey: ["podcastEpisodes", podcastId] });
+                void queryClient.invalidateQueries({
+                  queryKey: ["podcastEpisodes", podcastId],
+                });
                 void queryClient.invalidateQueries({ queryKey: ["podcasts"] });
                 void queryClient.invalidateQueries({ queryKey: ["books"] });
               }

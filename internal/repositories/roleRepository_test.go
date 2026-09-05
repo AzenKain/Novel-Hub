@@ -13,11 +13,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// CountActiveAdminUsers is the guard that stops the last admin from being removed. It
-// joined roles without filtering is_deleted, so an admin whose only admin role was
-// soft-deleted still counted. roleService.DeleteRole refuses is_admin roles today, so
-// this is reachable only by a caller that goes straight to the repository — the guard
-// query should not depend on that check living one layer up.
+// CountActiveAdminUsers is the guard that stops the last admin from being removed.
 func TestCountActiveAdminUsersIgnoresDeletedRoles(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "t.db"))
 	if err != nil {
@@ -74,7 +70,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 	repo := NewRoleRepository(db, ramCache)
 	ctx := context.Background()
 
-	// 1. Create a custom role
 	if _, err := db.Exec(`
 		INSERT OR IGNORE INTO permissions (key, description) VALUES 
 		('book.read', 'Permission to read books'),
@@ -84,7 +79,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 	`); err != nil {
 		t.Fatal(err)
 	}
-	// Add initial permission: book.read
 	if err := repo.ReplaceRolePermissions(ctx, "r_test", []*models.RolePermissionEntity{
 		{
 			PermissionKey:  "book.read",
@@ -95,7 +89,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 2. Fetch role via GetByID (should load and cache composite entity with permissions)
 	role1, err := repo.GetByID(ctx, "r_test")
 	if err != nil {
 		t.Fatalf("GetByID failed: %v", err)
@@ -104,7 +97,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatalf("expected 1 permission (book.read), got %v", role1.Permissions)
 	}
 
-	// 3. Fetch role via GetByIDs (should hit cache and have book.read)
 	roles, err := repo.GetByIDs(ctx, []string{"r_test"})
 	if err != nil {
 		t.Fatalf("GetByIDs failed: %v", err)
@@ -113,7 +105,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatalf("expected cached role with book.read, got %v", roles[0].Permissions)
 	}
 
-	// 4. Update role permissions to: book.write and book.delete
 	if err := repo.ReplaceRolePermissions(ctx, "r_test", []*models.RolePermissionEntity{
 		{
 			PermissionKey:  "book.write",
@@ -129,7 +120,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatalf("ReplaceRolePermissions failed: %v", err)
 	}
 
-	// 5. Fetch role again (must NOT serve stale book.read; must reflect new permissions)
 	role2, err := repo.GetByID(ctx, "r_test")
 	if err != nil {
 		t.Fatalf("GetByID after update failed: %v", err)
@@ -145,7 +135,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatalf("expected permissions [book.write, book.delete], got %v", role2.Permissions)
 	}
 
-	// 6. Verify GetByIDs also reflects the updated permissions
 	rolesUpdated, err := repo.GetByIDs(ctx, []string{"r_test"})
 	if err != nil {
 		t.Fatalf("GetByIDs after update failed: %v", err)
@@ -154,7 +143,6 @@ func TestRoleEntityCompositeCachingAndPermissionInvalidation(t *testing.T) {
 		t.Fatalf("expected 2 permissions from GetByIDs, got %d", len(rolesUpdated[0].Permissions))
 	}
 
-	// 7. Verify GetByName also reflects updated permissions
 	roleByName, err := repo.GetByName(ctx, "TEST_ROLE")
 	if err != nil {
 		t.Fatalf("GetByName failed: %v", err)

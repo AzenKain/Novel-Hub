@@ -36,8 +36,7 @@ export const MetadataIndexView: React.FC<MetadataIndexViewProps> = ({
             {section.label}
           </h2>
           <p className="mt-1 text-sm text-base-content/50">
-            {/* Filtering now happens server-side, so loaded == matching. Showing "x / x"
-                would read as if something were filtered out. */}
+            {/* Server-side filtering matches loaded results. */}
             {filteredItems.length}
             {hasMore ? "+" : ""} {t("library.entries", "entries")}
           </p>

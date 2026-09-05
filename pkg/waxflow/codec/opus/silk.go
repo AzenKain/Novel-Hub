@@ -1,17 +1,5 @@
 package opus
 
-// SILK decoder, ported from libopus silk/dec_API.c, decode_frame.c,
-// decode_indices.c, decode_parameters.c, decode_core.c, decode_pulses.c,
-// shell_coder.c, code_signs.c, decode_pitch.c, gain_quant.c, decoder_set_fs.c,
-// stereo_decode_pred.c, stereo_MS_to_LR.c, and LPC_analysis_filter.c.
-// Integer-only, matching the reference bit-for-bit.
-//
-// The Opus decoder drives this at the internal 8/12/16 kHz rate (NB/MB/WB) and
-// the resampler brings each SILK frame up to 48 kHz. Loss concealment (PLC),
-// comfort noise (CNG), and the neural OSCE enhancer are out of scope (file
-// decode, not RTC), so this ports the FLAG_DECODE_NORMAL path only.
-
-// silkIndices holds one SILK frame's decoded quantization indices.
 type silkIndices struct {
 	signalType       int8
 	quantOffsetType  int8
@@ -26,7 +14,6 @@ type silkIndices struct {
 	LTPScaleIndex    int8
 }
 
-// silkDecoderControl holds the per-frame parameters derived from the indices.
 type silkDecoderControl struct {
 	pitchL      [silkMaxNBSubfr]int
 	GainsQ16    [silkMaxNBSubfr]int32
@@ -35,7 +22,6 @@ type silkDecoderControl struct {
 	LTPScaleQ14 int32
 }
 
-// silkChannelState is one internal channel's persistent decoder state.
 type silkChannelState struct {
 	prevGainQ16          int32
 	excQ14               [silkMaxFrameLen]int32
@@ -70,21 +56,18 @@ type silkChannelState struct {
 	resampler silkResampler
 }
 
-// reset clears the channel state (silk_reset_decoder).
 func (cs *silkChannelState) reset() {
 	*cs = silkChannelState{}
 	cs.firstFrameAfterReset = true
 	cs.prevGainQ16 = 65536
 }
 
-// stereoState carries the SILK stereo unmixing state (stereo_dec_state).
 type stereoState struct {
 	predPrevQ13 [2]int32
 	sMid        [2]int16
 	sSide       [2]int16
 }
 
-// silkDecoder is the top-level SILK decoder for a stream (silk_decoder).
 type silkDecoder struct {
 	channel              [2]silkChannelState
 	sStereo              stereoState
@@ -100,7 +83,6 @@ func newSILKDecoder() *silkDecoder {
 	return d
 }
 
-// setFS configures a channel for a sampling frequency (silk_decoder_set_fs).
 func (cs *silkChannelState) setFS(fsKHz int, fsAPIHz int) {
 	cs.subfrLength = silkSubFrameMS * fsKHz
 	frameLength := cs.nbSubfr * cs.subfrLength
@@ -150,7 +132,6 @@ func (cs *silkChannelState) setFS(fsKHz int, fsAPIHz int) {
 	}
 }
 
-// silkGainsDequant reconstructs the quantized gains (silk_gains_dequant).
 func silkGainsDequant(gainQ16 []int32, ind []int8, prevInd *int8, conditional bool, nbSubfr int) {
 	const offset = (minQGainDB*128)/6 + 16*128
 	const invScaleQ16 = (65536 * (((maxQGainDB - minQGainDB) * 128) / 6)) / (nLevelsQGain - 1)
@@ -171,7 +152,6 @@ func silkGainsDequant(gainQ16 []int32, ind []int8, prevInd *int8, conditional bo
 	}
 }
 
-// silkDecodePitch reconstructs the four subframe pitch lags (silk_decode_pitch).
 func silkDecodePitch(lagIndex int, contourIndex int8, pitchLags []int, fsKHz, nbSubfr int) {
 	var lagCB [][]int8
 	if fsKHz == 8 {
@@ -196,7 +176,6 @@ func silkDecodePitch(lagIndex int, contourIndex int8, pitchLags []int, fsKHz, nb
 	}
 }
 
-// silkLPCAnalysisFilter runs the whitening MA filter (silk_LPC_analysis_filter).
 func silkLPCAnalysisFilter(out, in []int16, B []int16, length, order int) {
 	for ix := order; ix < length; ix++ {
 		out32Q12 := silkSMULBB(int32(in[ix-1]), int32(B[0]))

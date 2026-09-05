@@ -9,9 +9,7 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// The device stores whatever token we send and returns it verbatim next time, so a token that
-// does not survive a round trip breaks incremental sync silently: every sync looks like a
-// first sync and the device re-downloads the whole library.
+// The device stores whatever token we send and returns it verbatim next time, so a token that does not survive a round trip breaks incremental sync silently: every sync looks like a first sync and the device re-downloads the whole library.
 func TestSyncTokenRoundTrip(t *testing.T) {
 	want := SyncToken{
 		BooksLastModified:        time.Unix(1_700_000_000, 0).UTC(),
@@ -43,9 +41,7 @@ func TestSyncTokenRoundTrip(t *testing.T) {
 	}
 }
 
-// Wire format is fixed by calibre-web compatibility, not preference: base64 of
-// {"version":"1-1-0","data":{...}} with timestamps as epoch-second STRINGS. If this drifts,
-// a token written by calibre-web (or by an older NovelHub) stops being readable.
+// Wire format is fixed by calibre-web compatibility, not preference: base64 of {"version":"1-1-0","data":{...}} with timestamps as epoch-second STRINGS.
 func TestSyncTokenWireFormatMatchesCalibreWeb(t *testing.T) {
 	encoded, err := SyncToken{BooksLastModified: time.Unix(1_700_000_000, 0).UTC()}.Encode()
 	if err != nil {
@@ -79,9 +75,7 @@ func TestSyncTokenWireFormatMatchesCalibreWeb(t *testing.T) {
 	}
 }
 
-// A device that also talks to the real Kobo store sends that store's token, which has the
-// form "<b64>.<b64>". Reinterpreting it would corrupt the upstream cursor, so it passes
-// through untouched.
+// A device that also talks to the real Kobo store sends that store's token, which has the form "<b64>.<b64>".
 func TestSyncTokenPassesThroughKoboStoreToken(t *testing.T) {
 	const storeToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrb2JvIn0"
 	got := ParseSyncToken(storeToken)
@@ -93,8 +87,7 @@ func TestSyncTokenPassesThroughKoboStoreToken(t *testing.T) {
 	}
 }
 
-// Anything unreadable must degrade to a full sync rather than an error: a device stuck on a
-// 500 can never recover, whereas a full sync is merely slow. calibre-web logs and continues.
+// Anything unreadable must degrade to a full sync rather than an error: a device stuck on a 500 can never recover, whereas a full sync is merely slow.
 func TestSyncTokenBadInputFallsBackToFullSync(t *testing.T) {
 	for _, tc := range []struct{ label, header string }{
 		{"empty", ""},
@@ -112,11 +105,8 @@ func TestSyncTokenBadInputFallsBackToFullSync(t *testing.T) {
 	}
 }
 
-// calibre-web pads on read because the padding can be stripped in transit. Build a payload
-// whose length forces padding, rather than skipping when the real token happens not to need
-// it — a skipped test verifies nothing.
+// calibre-web pads on read because the padding can be stripped in transit.
 func TestSyncTokenAcceptsUnpaddedBase64(t *testing.T) {
-	// One extra space makes the payload 64 bytes, which base64 pads with "==".
 	payload := []byte(`{"version":"1-1-0","data":{"books_last_modified":"1700000000" }}`)
 	encoded := base64.StdEncoding.EncodeToString(payload)
 	if !strings.HasSuffix(encoded, "=") {

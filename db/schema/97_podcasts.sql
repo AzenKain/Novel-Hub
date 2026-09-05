@@ -1,6 +1,3 @@
--- Podcast RSS subscriptions. Downloaded episodes become ordinary library
--- books (one book per episode) so they flow through the normal reader,
--- audiobook merger, and scrobbling paths.
 CREATE TABLE IF NOT EXISTS podcasts (
     id TEXT PRIMARY KEY,
     library_id TEXT NOT NULL,

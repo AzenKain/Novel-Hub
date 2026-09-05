@@ -42,9 +42,7 @@ func seedReviews(t *testing.T, db *sql.DB, users, books, reviews int) {
 	}
 }
 
-// Without idx_book_reviews_updated the admin review list is a full SCAN plus a temp b-tree per page:
-// 85ms at 32k rows against 248µs with it. The deferred join in the query is the other half — it keeps
-// the users/books lookups to one page instead of every row before the LIMIT throws them away.
+// Without idx_book_reviews_updated the admin review list is a full SCAN plus a temp b-tree per page: 85ms at 32k rows against 248µs with it.
 func TestListAllReviewsPlanStaysIndexed(t *testing.T) {
 	db := probeDB(t)
 	seedReviews(t, db, 500, 2000, 2000)

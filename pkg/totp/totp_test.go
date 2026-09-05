@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-// RFC 6238 Appendix B, SHA-1 rows. The published vectors use the ASCII secret
-// "12345678901234567890"; base32 of that is GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ.
+// RFC 6238 Appendix B, SHA-1 rows.
 func TestValidateMatchesRFC6238Vectors(t *testing.T) {
 	const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
 

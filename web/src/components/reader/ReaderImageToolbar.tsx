@@ -1,5 +1,13 @@
 import type { TFunction } from "i18next";
-import { BookmarkPlus, Check, Copy, Loader2, MessageSquarePlus, Sparkles, X } from "lucide-react";
+import {
+  BookmarkPlus,
+  Check,
+  Copy,
+  Loader2,
+  MessageSquarePlus,
+  Sparkles,
+  X,
+} from "lucide-react";
 import React, { useState, useLayoutEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { copyImageToClipboard } from "@/utils/clipboard";
@@ -24,7 +32,10 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const [adjustedPos, setAdjustedPos] = useState<{ top: number; left: number } | null>(null);
+  const [adjustedPos, setAdjustedPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   useLayoutEffect(() => {
     if (!target) return;
@@ -33,8 +44,8 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
     const height = el?.offsetHeight || 100;
     const pad = 12;
 
-    const targetX = target.x ?? (window.innerWidth / 2);
-    const targetY = target.y ?? (window.innerHeight / 2);
+    const targetX = target.x ?? window.innerWidth / 2;
+    const targetY = target.y ?? window.innerHeight / 2;
 
     let left = targetX - width / 2;
     let top = targetY - height - 12;
@@ -82,8 +93,8 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
     onClose();
   };
 
-  const targetX = target.x ?? (window.innerWidth / 2);
-  const targetY = target.y ?? (window.innerHeight / 2);
+  const targetX = target.x ?? window.innerWidth / 2;
+  const targetY = target.y ?? window.innerHeight / 2;
   const top = adjustedPos?.top ?? Math.max(70, targetY - 100);
   const left = adjustedPos?.left ?? Math.max(16, targetX - 140);
 
@@ -125,7 +136,9 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
           ) : (
             <Copy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
           )}
-          <span className="truncate">{copied ? t("common.copied", "Copied") : t("common.copy", "Copy")}</span>
+          <span className="truncate">
+            {copied ? t("common.copied", "Copied") : t("common.copy", "Copy")}
+          </span>
         </button>
 
         {/* Quote Card Button */}
@@ -173,7 +186,10 @@ export const ReaderImageToolbar: React.FC<ReaderImageToolbarProps> = ({
                 handleSave();
               }
             }}
-            placeholder={t("reader.image_note_placeholder", "Add a note for this image...")}
+            placeholder={t(
+              "reader.image_note_placeholder",
+              "Add a note for this image...",
+            )}
             className="reader-input w-full rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) pl-8 pr-12 py-1.5 text-xs text-(--reader-ui-text) placeholder:text-(--reader-ui-muted)/70 focus:border-(--reader-ui-accent) focus:outline-hidden transition-colors resize-none leading-relaxed"
           />
           {note.trim() && (

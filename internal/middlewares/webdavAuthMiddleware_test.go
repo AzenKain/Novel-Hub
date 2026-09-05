@@ -9,8 +9,8 @@ import (
 
 	"time"
 
-	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gofiber/fiber/v3"
+	jwt "github.com/golang-jwt/jwt/v5"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
@@ -67,7 +67,6 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 		return c.SendString("OK")
 	})
 
-	// 1. Test Missing Auth with Guest Required -> 401
 	req1 := httptest.NewRequest("GET", "/webdav", nil)
 	resp1, err := app.Test(req1)
 	if err != nil {
@@ -80,7 +79,6 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 		t.Fatalf("expected WWW-Authenticate header, got %q", resp1.Header.Get("WWW-Authenticate"))
 	}
 
-	// 2. Test Invalid Basic Auth -> 401
 	req2 := httptest.NewRequest("GET", "/webdav", nil)
 	req2.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("bad:pass")))
 	resp2, err := app.Test(req2)
@@ -91,7 +89,6 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 		t.Fatalf("expected 401, got %d", resp2.StatusCode)
 	}
 
-	// 3. Test Valid Basic Auth -> 200 OK
 	req3 := httptest.NewRequest("GET", "/webdav", nil)
 	req3.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("reader@novelhub.local:secret123")))
 	resp3, err := app.Test(req3)
@@ -162,7 +159,6 @@ func TestWebDAVAuthMiddleware_TokenAuth(t *testing.T) {
 		return c.SendString("OK")
 	})
 
-	// 1. Bearer Token in Authorization header -> 200 OK
 	reqBearer := httptest.NewRequest("GET", "/webdav", nil)
 	reqBearer.Header.Set("Authorization", "Bearer "+tokenString)
 	respBearer, err := app.Test(reqBearer)
@@ -173,7 +169,6 @@ func TestWebDAVAuthMiddleware_TokenAuth(t *testing.T) {
 		t.Fatalf("expected 200 OK for Bearer token, got %d", respBearer.StatusCode)
 	}
 
-	// 2. Query Token (?token=...) -> 200 OK
 	reqQuery := httptest.NewRequest("GET", "/webdav?token="+tokenString, nil)
 	respQuery, err := app.Test(reqQuery)
 	if err != nil {
@@ -183,7 +178,6 @@ func TestWebDAVAuthMiddleware_TokenAuth(t *testing.T) {
 		t.Fatalf("expected 200 OK for query token, got %d", respQuery.StatusCode)
 	}
 
-	// 3. Invalid token -> 401 Unauthorized
 	reqInvalid := httptest.NewRequest("GET", "/webdav?token=invalid.jwt.token", nil)
 	respInvalid, err := app.Test(reqInvalid)
 	if err != nil {
@@ -193,4 +187,3 @@ func TestWebDAVAuthMiddleware_TokenAuth(t *testing.T) {
 		t.Fatalf("expected 401 for invalid token, got %d", respInvalid.StatusCode)
 	}
 }
-

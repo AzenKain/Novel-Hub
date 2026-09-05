@@ -12,76 +12,36 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// SegmenterVersion identifies the segment and init-header box layout for
-// the ADR-0004 cache key: cached segments regenerate when this bumps, so
-// a box-layout fix can never serve stale segments next to fresh ones.
+// SegmenterVersion identifies the segment and init-header box layout for the ADR-0004 cache key: cached segments regenerate when this bumps, so a box-layout fix can never serve stale segments next to fresh ones.
 const SegmenterVersion = "mp4-seg-3"
 
-// maxSegmentPayload bounds one segment's mdat payload. A segment is a
-// single moof+mdat pair (see Segmenter), and the most extreme legal
-// configuration (8-channel 32-bit 192 kHz lossless at the 60 s segment
-// cap) stays around 370 MB, so a gigabyte is a wiring-bug backstop that
-// still keeps every box size far inside the 32-bit length field.
 const maxSegmentPayload = 1 << 30
 
-// Segment is one emitted media segment: an styp plus one moof+mdat
-// pair, self-contained and independently decodable.
+// Segment is one emitted media segment: an styp plus one moof+mdat pair, self-contained and independently decodable.
 type Segment struct {
-	// Index is the segment number, counting the whole stream's segments
-	// from zero (a segmenter started mid-stream begins at its
-	// StartSegment).
-	Index int64
-	// Data is the segment's bytes. Freshly allocated per segment; the
-	// caller owns it.
-	Data []byte
-	// Samples is the segment's decode duration in track samples.
+	Index   int64
+	Data    []byte
 	Samples int64
 }
 
 // SegmenterOptions configures a Segmenter.
 type SegmenterOptions struct {
-	// SegmentSamples is the decode duration of every segment but the last,
-	// in track samples. It must be a positive multiple of the codec frame
-	// so segment boundaries land exactly between packets.
 	SegmentSamples int
-	// StartSegment is the index of the first emitted segment; the base
-	// decode time follows as StartSegment * SegmentSamples. Zero is the
-	// stream's top.
-	StartSegment int64
+	StartSegment   int64
 }
 
-// Segmenter packs codec packets into numbered CMAF media segments for
-// HLS: each segment is styp plus exactly one moof+mdat pair whose tfdt
-// carries the decode time in track samples (the media timescale is the
-// sample rate). The matching init header comes from InitSegment.
-// Boundaries are sample-counted, so the packet stream must arrive
-// frame-aligned: every packet whole, segment length a frame multiple.
-//
-// One fragment per segment is load-bearing, not just simple: it makes the
-// mfhd sequence_number (index+1) and the tfdt (index*SegmentSamples) pure
-// functions of the segment index, so a worker restarted mid-stream
-// reproduces a continuous run's bytes exactly. Splitting large segments
-// into several fragments would decouple sequence numbers from segment
-// indexes and break that guarantee (and buys nothing here: a segment is
-// buffered whole before it is emitted either way).
-//
-// Codecs: Opus, FLAC, and ALAC (the fMP4-capable encoders). Every frame
-// of each is independently decodable, so every sample is a sync sample
-// and segments can begin anywhere on a frame boundary.
+// Segmenter packs codec packets into numbered CMAF media segments for HLS: each segment is styp plus exactly one moof+mdat pair whose tfdt carries the decode time in track samples (the media timescale is the sample rate).
 type Segmenter struct {
 	segTgt int
 	index  int64
 	ended  bool
 
-	// current segment accumulator.
 	data        []byte
 	durs, sizes []uint32
 	samples     int64
 }
 
 // NewSegmenter validates the track and options and returns a Segmenter.
-// The same track must produce the init header (InitSegment); validation
-// is shared so a track that plans here cannot fail there.
 func NewSegmenter(t container.Track, opts *SegmenterOptions) (*Segmenter, error) {
 	if opts == nil || opts.SegmentSamples <= 0 {
 		return nil, waxerr.New(waxerr.CodeInvalidRequest, "mp4: segmenter needs a positive SegmentSamples")
@@ -98,10 +58,7 @@ func NewSegmenter(t container.Track, opts *SegmenterOptions) (*Segmenter, error)
 	}, nil
 }
 
-// WritePacket appends one packet to the current segment, emitting the
-// segment once it reaches its target length. Packets must not straddle a
-// segment boundary (the caller feeds frame-aligned packets and the target
-// is a frame multiple); one that would is a wiring bug and errors.
+// WritePacket appends one packet to the current segment, emitting the segment once it reaches its target length.
 func (s *Segmenter) WritePacket(pkt codec.Packet, emit func(Segment) error) error {
 	if s.ended {
 		return waxerr.New(waxerr.CodeInternal, "mp4: WritePacket after End")
@@ -145,9 +102,6 @@ func (s *Segmenter) End(emit func(Segment) error) error {
 	return nil
 }
 
-// emitSegment closes the accumulated packets into the segment's single
-// moof+mdat pair, hands it to the caller, and resets for the next one.
-// Sequence number and base decode time derive from the index alone.
 func (s *Segmenter) emitSegment(emit func(Segment) error) error {
 	frag := fragmentBoxes(uint32(s.index)+1, s.index*int64(s.segTgt), s.durs, s.sizes, s.data)
 	data := make([]byte, 0, len(stypBox)+len(frag))
@@ -162,14 +116,7 @@ func (s *Segmenter) emitSegment(emit func(Segment) error) error {
 	return emit(seg)
 }
 
-// InitSegment builds the CMAF init header for the track: ftyp plus a moov
-// whose track carries the codec's sample entry, an empty sample table,
-// the movie-extends defaults, and, when the track declares an encoder
-// delay or a known length, an edit list mapping the decode timeline onto
-// the presentation one (the fMP4 gapless convention: the delay is known
-// up front and rides in the init header; end padding is trimmed by the
-// same edit when the length is known). Deterministic: equal tracks yield
-// identical bytes.
+// InitSegment builds the CMAF init header for the track: ftyp plus a moov whose track carries the codec's sample entry, an empty sample table, the movie-extends defaults, and, when the track declares an encoder delay or a known length, an edit list mapping the decode timeline onto the presentation one (the fMP4 gapless convention: the delay is known up front and rides in the init header; end padding is trimmed by the same edit when the length is known).
 func InitSegment(t container.Track) ([]byte, error) {
 	entry, err := sampleEntryFor(t)
 	if err != nil {
@@ -183,46 +130,26 @@ func InitSegment(t container.Track) ([]byte, error) {
 	return append(init, moovBox(t.Fmt.Rate, entry, edts, 0, nil)...), nil
 }
 
-// initFtypBox and stypBox are constants of the segment layout: an iso6
-// init header (64-bit tfdt, default-base-is-moof) with the CMAF brand,
-// and the msdh media-segment brand.
 var (
 	initFtypBox = makeBox("ftyp",
 		[]byte("iso6"), u32(0),
 		[]byte("iso6"), []byte("iso5"), []byte("cmfc"), []byte("mp41"))
-	// msdh alone: msix is DASH's Indexed Media Segment brand and requires a
-	// sidx per segment, which is not written and would be redundant if it
-	// were. One segment is served per URL, so there are no byte ranges to
-	// index. HLS players ignore brands, so claiming msix was invisible; a
-	// DASH conformance validator would not have ignored it.
 	stypBox = makeBox("styp",
 		[]byte("msdh"), u32(0),
 		[]byte("msdh"))
 )
 
-// elstBox is a version-1 edit list with one entry: presentation starts
-// media_time samples into the decode timeline (the encoder delay) and,
-// with a known length, lasts duration samples (trimming the tail padding
-// the last packet carries). Movie and media timescales are both the
-// sample rate, so both fields are sample counts.
 func elstBox(mediaTime, duration int64) []byte {
 	elst := makeFullBox("elst", 1, 0,
-		u32(1), // entry_count
+		u32(1),
 		u64(uint64(duration)),
 		u64(uint64(mediaTime)),
-		u16(1), u16(0)) // media_rate_integer, media_rate_fraction
+		u16(1), u16(0))
 	return makeBox("edts", elst)
 }
 
-// elstDurOffset is where the entry's 64-bit duration sits inside the
-// blob elstBox returns: the edts and elst headers (8 bytes each), the
-// elst version/flags (4), and entry_count (4). The progressive muxer's
-// End back-patch depends on it; TestElstDurOffset pins it against the
-// builder.
 const elstDurOffset = 8 + 8 + 4 + 4
 
-// sampleEntryFor builds the codec's AudioSampleEntry from the track's
-// codec config, validating config against format like Muxer.Begin does.
 func sampleEntryFor(t container.Track) ([]byte, error) {
 	if err := t.Fmt.Valid(); err != nil {
 		return nil, err
@@ -253,10 +180,6 @@ func sampleEntryFor(t container.Track) ([]byte, error) {
 		fmt.Sprintf("mp4: cannot segment codec %q (opus, flac, alac, aac-lc)", t.Codec))
 }
 
-// opusSampleEntry wraps the OpusHead fields in an 'Opus' entry with a
-// 'dOps' box (Opus-in-ISOBMFF). Only channel mapping family 0 (mono and
-// stereo single-stream) is produced, matching the encoder; note dOps is
-// big-endian where OpusHead is little-endian.
 func opusSampleEntry(t container.Track) ([]byte, error) {
 	head := t.CodecConfig
 	if len(head) != 19 || string(head[:8]) != "OpusHead" || head[8] != 1 {
@@ -279,18 +202,15 @@ func opusSampleEntry(t container.Track) ([]byte, error) {
 			fmt.Sprintf("mp4: track delay %d disagrees with OpusHead pre-skip %d", t.Delay, preSkip))
 	}
 	dops := makeBox("dOps",
-		[]byte{0},              // Version
-		[]byte{byte(channels)}, // OutputChannelCount
+		[]byte{0},
+		[]byte{byte(channels)},
 		u16(preSkip),
 		u32(inputRate),
 		u16(outputGain),
-		[]byte{0}) // ChannelMappingFamily
+		[]byte{0})
 	return audioSampleEntry("Opus", t.Fmt, dops), nil
 }
 
-// flacSampleEntry wraps the STREAMINFO block in an 'fLaC' entry with a
-// 'dfLa' box (FLAC-in-ISOBMFF): version+flags, then the STREAMINFO as a
-// complete metadata block, header included and marked last.
 func flacSampleEntry(t container.Track) ([]byte, error) {
 	si, err := flac.ParseStreamInfo(t.CodecConfig)
 	if err != nil {
@@ -305,25 +225,21 @@ func flacSampleEntry(t container.Track) ([]byte, error) {
 		return nil, waxerr.New(waxerr.CodeUnsupportedFormat, "mp4: FLAC signals no encoder delay")
 	}
 	dfla := makeFullBox("dfLa", 0, 0,
-		[]byte{0x80, 0, 0, flac.StreamInfoLen}, // last-block flag, type STREAMINFO, 24-bit length
+		[]byte{0x80, 0, 0, flac.StreamInfoLen},
 		t.CodecConfig)
 	return audioSampleEntry("fLaC", t.Fmt, dfla), nil
 }
 
-// audioSampleEntry assembles a generic AudioSampleEntry of the given type
-// around the codec-specific child box. samplesize stays the conventional
-// 16 and the legacy 16.16 rate field clamps like alacSampleEntry's: the
-// codec config box is authoritative for both.
 func audioSampleEntry(typ string, f audio.Format, child []byte) []byte {
 	sampleRate := uint32(f.Rate)
 	if sampleRate > 0xFFFF {
 		sampleRate = 0xFFFF
 	}
 	return makeBox(typ,
-		make([]byte, 6), u16(1), // reserved, data_reference_index
-		u16(0), u16(0), u32(0), // version, revision, vendor
-		u16(uint16(f.Channels)), u16(16), // channelcount, samplesize
-		u16(0), u16(0), // compressionID, packetsize
-		u32(sampleRate<<16), // samplerate 16.16
+		make([]byte, 6), u16(1),
+		u16(0), u16(0), u32(0),
+		u16(uint16(f.Channels)), u16(16),
+		u16(0), u16(0),
+		u32(sampleRate<<16),
 		child)
 }

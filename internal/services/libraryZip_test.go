@@ -94,9 +94,7 @@ func zipEntries(t *testing.T, buf *bytes.Buffer) []string {
 	return out
 }
 
-// StreamLibraryZip batches file lookups per 100-book page. The batch must return the same
-// entries the per-book loop did: every non-deleted file, the "/"-escaped title as the name,
-// and no book dropped because its files landed in a different map bucket.
+// StreamLibraryZip batches file lookups per 100-book page.
 func TestStreamLibraryZipCoversEveryFile(t *testing.T) {
 	svc, _ := zipSeed(t, 250, 3)
 	var buf bytes.Buffer

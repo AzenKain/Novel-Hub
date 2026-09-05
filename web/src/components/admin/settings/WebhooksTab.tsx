@@ -7,7 +7,17 @@ import {
 } from "@/hooks";
 import { useWebhookStore } from "@/stores";
 import type { CreateWebhookInput } from "@/types";
-import { CheckCircle2, Edit3, Globe, Plus, RefreshCw, Send, Shield, Trash2, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Edit3,
+  Globe,
+  Plus,
+  RefreshCw,
+  Send,
+  Shield,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -24,11 +34,16 @@ export const WebhooksTab: React.FC = () => {
   const pageSize = 10;
   const offset = (page - 1) * pageSize;
 
-  const { data, isLoading, isFetching, refetch } = useWebhooksQuery(pageSize, offset);
+  const { data, isLoading, isFetching, refetch } = useWebhooksQuery(
+    pageSize,
+    offset,
+  );
   const webhooks = data?.webhooks || [];
   const totalPages = data?.totalPages || 1;
 
-  const [deleteWebhookId, setDeleteWebhookId] = React.useState<string | null>(null);
+  const [deleteWebhookId, setDeleteWebhookId] = React.useState<string | null>(
+    null,
+  );
   const createWebhookMutation = useCreateWebhookMutation();
   const updateWebhookMutation = useUpdateWebhookMutation();
   const deleteWebhookMutation = useDeleteWebhookMutation();
@@ -47,7 +62,7 @@ export const WebhooksTab: React.FC = () => {
       openCreateModal: state.openCreateModal,
       openEditModal: state.openEditModal,
       closeModal: state.closeModal,
-    }))
+    })),
   );
 
   const handleSaveModal = (input: CreateWebhookInput) => {
@@ -60,9 +75,11 @@ export const WebhooksTab: React.FC = () => {
             closeModal();
           },
           onError: (err: any) => {
-            toast.error(err?.message || t("error.unknown", "Failed to save webhook"));
+            toast.error(
+              err?.message || t("error.unknown", "Failed to save webhook"),
+            );
           },
-        }
+        },
       );
     } else {
       createWebhookMutation.mutate(input, {
@@ -71,7 +88,9 @@ export const WebhooksTab: React.FC = () => {
           closeModal();
         },
         onError: (err: any) => {
-          toast.error(err?.message || t("error.unknown", "Failed to save webhook"));
+          toast.error(
+            err?.message || t("error.unknown", "Failed to save webhook"),
+          );
         },
       });
     }
@@ -89,28 +108,42 @@ export const WebhooksTab: React.FC = () => {
         setDeleteWebhookId(null);
       },
       onError: (err: any) => {
-        toast.error(err?.message || t("error.unknown", "Failed to delete webhook"));
+        toast.error(
+          err?.message || t("error.unknown", "Failed to delete webhook"),
+        );
       },
     });
   };
 
   const handleTestPing = (id: string) => {
     testWebhookMutation.mutate(id, {
-      onSuccess: () => toast.success(t("common.success", "Test ping sent successfully!")),
-      onError: (err: any) => toast.error(err?.message || t("error.unknown", "Webhook ping failed")),
+      onSuccess: () =>
+        toast.success(t("common.success", "Test ping sent successfully!")),
+      onError: (err: any) =>
+        toast.error(err?.message || t("error.unknown", "Webhook ping failed")),
     });
   };
 
   const getPlatformBadge = (type: string) => {
     switch (type) {
       case "discord":
-        return <span className="badge badge-primary gap-1 font-medium">Discord</span>;
+        return (
+          <span className="badge badge-primary gap-1 font-medium">Discord</span>
+        );
       case "telegram":
-        return <span className="badge badge-info gap-1 font-medium">Telegram</span>;
+        return (
+          <span className="badge badge-info gap-1 font-medium">Telegram</span>
+        );
       case "slack":
-        return <span className="badge badge-warning gap-1 font-medium">Slack</span>;
+        return (
+          <span className="badge badge-warning gap-1 font-medium">Slack</span>
+        );
       default:
-        return <span className="badge badge-neutral gap-1 font-medium">{t("settings.webhook_generic_json")}</span>;
+        return (
+          <span className="badge badge-neutral gap-1 font-medium">
+            {t("settings.webhook_generic_json")}
+          </span>
+        );
     }
   };
 
@@ -123,14 +156,19 @@ export const WebhooksTab: React.FC = () => {
             {t("admin.webhooks", "Webhooks & Outbound Integrations")}
           </h2>
           <p className="text-xs text-base-content/60">
-            {t("admin.webhooks_subtitle", "Configure real-time event notifications for Discord, Telegram, Slack, and automation webhooks.")}
+            {t(
+              "admin.webhooks_subtitle",
+              "Configure real-time event notifications for Discord, Telegram, Slack, and automation webhooks.",
+            )}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={async () => {
-              await queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+              await queryClient.invalidateQueries({
+                queryKey: ["admin", "webhooks"],
+              });
               await refetch();
               toast.info(t("common.refreshed", "Data refreshed"));
             }}
@@ -138,9 +176,14 @@ export const WebhooksTab: React.FC = () => {
             title={t("settings.refresh", "Refresh")}
             disabled={isFetching}
           >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+            />
           </button>
-          <button onClick={openCreateModal} className="btn btn-primary btn-sm gap-2">
+          <button
+            onClick={openCreateModal}
+            className="btn btn-primary btn-sm gap-2"
+          >
             <Plus className="h-4 w-4" />
             {t("admin.add_webhook", "Add Webhook")}
           </button>
@@ -154,12 +197,21 @@ export const WebhooksTab: React.FC = () => {
       ) : webhooks.length === 0 ? (
         <div className="bg-base-200 border border-base-300 rounded-xl p-8 text-center flex flex-col items-center gap-3">
           <Globe className="h-10 w-10 text-base-content/30" />
-          <div className="font-semibold text-sm">{t("admin.no_webhooks", "No webhooks configured")}</div>
+          <div className="font-semibold text-sm">
+            {t("admin.no_webhooks", "No webhooks configured")}
+          </div>
           <p className="text-xs text-base-content/60 max-w-sm">
-            {t("admin.no_webhooks_desc", "Connect your library to Discord channels or custom API endpoints to get notified about new book additions.")}
+            {t(
+              "admin.no_webhooks_desc",
+              "Connect your library to Discord channels or custom API endpoints to get notified about new book additions.",
+            )}
           </p>
-          <button onClick={openCreateModal} className="btn btn-primary btn-xs gap-1 mt-2">
-            <Plus className="h-3.5 w-3.5" /> {t("admin.add_webhook", "Add Webhook")}
+          <button
+            onClick={openCreateModal}
+            className="btn btn-primary btn-xs gap-1 mt-2"
+          >
+            <Plus className="h-3.5 w-3.5" />{" "}
+            {t("admin.add_webhook", "Add Webhook")}
           </button>
         </div>
       ) : (
@@ -183,22 +235,31 @@ export const WebhooksTab: React.FC = () => {
                     </span>
                   )}
                   {wh.secret && (
-                    <span className="badge badge-outline badge-xs gap-1 text-[10px] font-mono" title={t("settings.webhook_hmac_enabled")}>
+                    <span
+                      className="badge badge-outline badge-xs gap-1 text-[10px] font-mono"
+                      title={t("settings.webhook_hmac_enabled")}
+                    >
                       <Shield className="h-3 w-3" /> HMAC
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-base-content/70 font-mono truncate max-w-lg">{wh.url}</div>
+                <div className="text-xs text-base-content/70 font-mono truncate max-w-lg">
+                  {wh.url}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   type="button"
                   onClick={() => handleTestPing(wh.id)}
-                  disabled={testWebhookMutation.isPending && testWebhookMutation.variables === wh.id}
+                  disabled={
+                    testWebhookMutation.isPending &&
+                    testWebhookMutation.variables === wh.id
+                  }
                   className="btn btn-outline btn-xs gap-1"
                 >
-                  {testWebhookMutation.isPending && testWebhookMutation.variables === wh.id ? (
+                  {testWebhookMutation.isPending &&
+                  testWebhookMutation.variables === wh.id ? (
                     <RefreshCw className="h-3 w-3 animate-spin" />
                   ) : (
                     <Send className="h-3 w-3" />
@@ -232,7 +293,10 @@ export const WebhooksTab: React.FC = () => {
                 {t("common.previous", "Previous")}
               </button>
               <span className="text-xs font-semibold px-2 text-base-content/75">
-                {t("admin.page_of", "Page {{page}} of {{totalPages}}", { page, totalPages })}
+                {t("admin.page_of", "Page {{page}} of {{totalPages}}", {
+                  page,
+                  totalPages,
+                })}
               </span>
               <button
                 className="btn btn-sm btn-outline"
@@ -252,13 +316,18 @@ export const WebhooksTab: React.FC = () => {
         editingWebhook={editingWebhook}
         onClose={closeModal}
         onSave={handleSaveModal}
-        isSaving={createWebhookMutation.isPending || updateWebhookMutation.isPending}
+        isSaving={
+          createWebhookMutation.isPending || updateWebhookMutation.isPending
+        }
       />
 
       <ConfirmModal
         open={deleteWebhookId !== null}
         title={t("review.confirm_delete_title", "Delete Webhook")}
-        message={t("review.confirm_delete", "Are you sure you want to delete this webhook?")}
+        message={t(
+          "review.confirm_delete",
+          "Are you sure you want to delete this webhook?",
+        )}
         onClose={() => setDeleteWebhookId(null)}
         onConfirm={handleConfirmDelete}
         variant="danger"

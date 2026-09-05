@@ -48,7 +48,6 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 			return nil, apperrors.New(apperrors.ErrForbidden, "OAuth account ID mismatch")
 		}
 
-		// Update name, avatar or oauth2_id if they changed and are not empty
 		var newName *string
 		if name != "" && user.FullName != name {
 			newName = &name
@@ -98,7 +97,6 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 		return tokens, nil
 	}
 
-	// User does not exist, check if public registration is enabled
 	settings, err := a.settings.Public(ctx)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load settings")
@@ -107,7 +105,6 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 		return nil, apperrors.New(apperrors.ErrForbidden, "Public registration is disabled")
 	}
 
-	// Fetch default role assignment config
 	autoIDs, err := a.roleRepo.GetAutoAssignRoleIDs(ctx)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to get auto roles")
@@ -126,7 +123,6 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 		roles = []*models.RoleEntity{role}
 	}
 
-	// Execute within a database transaction
 	tx, err := a.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to start transaction")
@@ -175,7 +171,6 @@ func (a *authService) SigninOrRegisterOAuth(ctx context.Context, provider string
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to commit user registration")
 	}
 
-	// Generate and update authentication tokens
 	tokens, err := a.genToken(newUser)
 	if err != nil {
 		return nil, err
@@ -234,7 +229,6 @@ func (a *authService) BuildOAuthURL(ctx context.Context, provider string, redire
 		return "", "", apperrors.New(apperrors.ErrBadRequest, "Provider Client ID or Redirect URI is not configured")
 	}
 
-	// Prepare OAuth state
 	stateUUID = uuid.New().String()
 	redirect = sanitizeRedirectURL(redirect)
 
@@ -288,7 +282,6 @@ func (a *authService) BuildOAuthURL(ctx context.Context, provider string, redire
 		cfg = oauth.NewOidcProvider(config.ClientID, config.ClientSecret, config.RedirectURI, doc.AuthorizationEndpoint, doc.TokenEndpoint, config.Scopes)
 	}
 
-	// For Google, select_account forces account chooser screen to appear
 	var authOpts []oauth2.AuthCodeOption
 	if provider == "google" {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("prompt", "select_account"))
@@ -304,7 +297,6 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Unsupported OAuth provider")
 	}
 
-	// Retrieve state and verify
 	stateBytes, err := base64.URLEncoding.DecodeString(stateParam)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid state payload")
@@ -371,13 +363,11 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 		userinfoURL = doc.UserinfoEndpoint
 	}
 
-	// Exchange authorization code for token
 	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Failed to exchange authorization code: "+err.Error())
 	}
 
-	// Fetch user details from the userinfo API using token
 	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, userinfoURL, nil)
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to build user profile request")
@@ -435,7 +425,6 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 		avatarURL = githubProfile.AvatarURL
 		oauth2ID = strconv.FormatInt(githubProfile.ID, 10)
 
-		// If email is private, fetch the emails list
 		if email == "" {
 			emailsReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/user/emails", nil)
 			if err == nil {
@@ -457,7 +446,6 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 									break
 								}
 							}
-							// Fallback to any verified email if primary verified not found
 							if email == "" {
 								for _, gEmail := range githubEmails {
 									if gEmail.Verified {
@@ -525,7 +513,6 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Could not retrieve a verified email address from the OAuth provider")
 	}
 
-	// Login or register user in database
 	res, signinErr := a.SigninOrRegisterOAuth(ctx, strings.ToUpper(provider), email, name, avatarURL, oauth2ID)
 	if signinErr != nil {
 		return nil, signinErr
@@ -537,4 +524,3 @@ func (a *authService) HandleOAuthCallback(ctx context.Context, provider string, 
 		RedirectURL:  sanitizeRedirectURL(stateData.RedirectURL),
 	}, nil
 }
-

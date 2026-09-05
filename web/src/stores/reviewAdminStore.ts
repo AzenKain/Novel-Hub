@@ -9,7 +9,9 @@ interface ReviewAdminState {
   page: number;
   hasMore: boolean;
 
-  setReviews: (reviews: AdminReview[] | ((prev: AdminReview[]) => AdminReview[])) => void;
+  setReviews: (
+    reviews: AdminReview[] | ((prev: AdminReview[]) => AdminReview[]),
+  ) => void;
   setLoading: (loading: boolean) => void;
   setDeleting: (deleting: string | null) => void;
   setReviewToDelete: (review: AdminReview | null) => void;
@@ -31,7 +33,10 @@ const initialState = {
 export const useReviewAdminStore = create<ReviewAdminState>((set) => ({
   ...initialState,
 
-  setReviews: (reviews) => set((state) => ({ reviews: typeof reviews === "function" ? reviews(state.reviews) : reviews })),
+  setReviews: (reviews) =>
+    set((state) => ({
+      reviews: typeof reviews === "function" ? reviews(state.reviews) : reviews,
+    })),
   setLoading: (loading) => set({ loading }),
   setDeleting: (deleting) => set({ deleting }),
   setReviewToDelete: (reviewToDelete) => set({ reviewToDelete }),

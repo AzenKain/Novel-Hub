@@ -17,8 +17,6 @@ import (
 )
 
 // ConvertToWebP converts image data to WebP format if it results in a smaller file size.
-// It decodes the image, runs WebP encoder at quality 75, and returns the WebP data
-// along with a boolean indicating if WebP data is actually smaller.
 func ConvertToWebP(data []byte) ([]byte, bool, error) {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
@@ -150,6 +148,5 @@ func IsSuitablePDFCover(data []byte) bool {
 	if total == 0 {
 		return false
 	}
-	// If image is mostly white background (>85% white)
 	return float64(nearWhite)/float64(total) < 0.85
 }

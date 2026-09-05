@@ -757,10 +757,6 @@ func TestBooksNextCursorSurvivesFilteredOutBooks(t *testing.T) {
 }
 
 // A missing row used to reach the client as 500 with "sql: no rows in result set" as the message.
-// Repositories return sql.ErrNoRows raw by convention — no repository imports apperrors — and
-// HandleError only recognised its own AppError kinds, so every "book not found" was a 500 that
-// also put the storage engine's wording on the wire. Fixed in HandleError rather than in each
-// repository: one guard covers every caller, including the ones nobody has audited.
 func TestMissingRowIsNotFoundNotServerError(t *testing.T) {
 	app, _, err := setupTestAppWithDB(t)
 	if err != nil {
@@ -772,9 +768,6 @@ func TestMissingRowIsNotFoundNotServerError(t *testing.T) {
 		"/api/v1/books/" + missing,
 		"/api/v1/books/" + missing + "/download",
 		"/api/v1/libraries/" + missing,
-		// These four read the book then check permission. They used to collapse both into one
-		// 403 "You do not have access to this book", which is the wrong status and the wrong
-		// story: it implies the book exists. GetBootstrap always split them; these diverged.
 		"/api/v1/reader/" + missing + "/bootstrap",
 		"/api/v1/reader/" + missing + "/chapter/x",
 		"/api/v1/reader/" + missing + "/file",
@@ -797,7 +790,6 @@ func TestMissingRowIsNotFoundNotServerError(t *testing.T) {
 			if envelope.Status {
 				t.Error("status must be false on an error")
 			}
-			// The driver's wording names the storage engine and tells a client nothing actionable.
 			if strings.Contains(envelope.Message, "sql:") || strings.Contains(envelope.Message, "no rows") {
 				t.Errorf("message leaks driver text: %q", envelope.Message)
 			}

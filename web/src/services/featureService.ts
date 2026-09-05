@@ -187,9 +187,7 @@ export const featureService = {
     try {
       const params = new URLSearchParams({ limit: limit.toString() });
       if (cursor) params.append("cursor", cursor);
-      const res = await api.get(
-        `/bookmarks/books?${params.toString()}`,
-      );
+      const res = await api.get(`/bookmarks/books?${params.toString()}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -204,10 +202,13 @@ export const featureService = {
     review: string,
   ): Promise<CommonResponse<BookReview>> => {
     try {
-      const res = await api.put(`/books/${encodeURIComponent(book_id)}/review`, {
-        rating,
-        review,
-      });
+      const res = await api.put(
+        `/books/${encodeURIComponent(book_id)}/review`,
+        {
+          rating,
+          review,
+        },
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -285,7 +286,10 @@ export const featureService = {
     rule: SmartCollectionRule,
   ): Promise<CommonResponse<SmartCollection>> => {
     try {
-      const res = await api.put(`/smart-collections/${encodeURIComponent(id)}`, { name, rule });
+      const res = await api.put(
+        `/smart-collections/${encodeURIComponent(id)}`,
+        { name, rule },
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -296,7 +300,9 @@ export const featureService = {
 
   deleteSmartCollection: async (id: string): Promise<CommonResponse<null>> => {
     try {
-      const res = await api.delete(`/smart-collections/${encodeURIComponent(id)}`);
+      const res = await api.delete(
+        `/smart-collections/${encodeURIComponent(id)}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -310,9 +316,12 @@ export const featureService = {
     book_id: string,
   ): Promise<CommonResponse<void>> => {
     try {
-      const res = await api.post(`/collections/${encodeURIComponent(collectionId)}/books`, {
-        book_id,
-      });
+      const res = await api.post(
+        `/collections/${encodeURIComponent(collectionId)}/books`,
+        {
+          book_id,
+        },
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -339,7 +348,10 @@ export const featureService = {
 
   recordShare: async (bookId: string): Promise<CommonResponse<any>> => {
     try {
-      const res = await api.post(`/books/${encodeURIComponent(bookId)}/share`, {});
+      const res = await api.post(
+        `/books/${encodeURIComponent(bookId)}/share`,
+        {},
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -348,4 +360,3 @@ export const featureService = {
     }
   },
 };
-

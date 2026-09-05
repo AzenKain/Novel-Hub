@@ -33,8 +33,6 @@ func newAuditProxyTestDB(t *testing.T) (*sql.DB, error) {
 	return db, nil
 }
 
-// serveAuditApp boots the app on a real 127.0.0.1 listener so the TCP peer is a
-// loopback address.
 func serveAuditApp(t *testing.T, app *fiber.App) string {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -46,16 +44,7 @@ func serveAuditApp(t *testing.T, app *fiber.App) string {
 	return fmt.Sprintf("http://%s", ln.Addr().String())
 }
 
-// TestProxyAuthBlocksSpoofedXFF is the regression test for the ProxyAuth
-// IP-spoofing fix. The trust decision must be made on the raw TCP peer, never
-// on the X-Forwarded-For-resolved IP (c.IP()), which an attacker controls.
-//
-// The client connects over real loopback, so the raw peer is 127.0.0.1. We mark
-// a different address (10.99.99.99) as the only trusted proxy, then have the
-// client spoof X-Forwarded-For: 10.99.99.99. The pre-fix code resolved c.IP()
-// to the spoofed 10.99.99.99, treated the request as trusted, and minted a
-// session. The fixed code checks the raw peer (127.0.0.1), finds it untrusted,
-// and ignores the identity header.
+// TestProxyAuthBlocksSpoofedXFF is the regression test for the ProxyAuth IP-spoofing fix.
 func TestProxyAuthBlocksSpoofedXFF(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 	os.Setenv("JWT_REFRESH_SECRET", "test-refresh")
@@ -107,8 +96,6 @@ func TestProxyAuthBlocksSpoofedXFF(t *testing.T) {
 		return resp
 	}
 
-	// Attack: only 10.99.99.99 is trusted, but the raw peer is loopback. The
-	// spoofed X-Forwarded-For must NOT be honoured.
 	t.Run("spoofed XFF from untrusted raw peer is blocked", func(t *testing.T) {
 		baseURL := serveAuditApp(t, buildApp([]string{"10.99.99.99"}))
 		resp := doSpoofedRequest(baseURL)
@@ -124,8 +111,6 @@ func TestProxyAuthBlocksSpoofedXFF(t *testing.T) {
 		}
 	})
 
-	// Positive control: when the raw loopback peer is actually trusted, proxy
-	// auth still works end to end.
 	t.Run("genuine trusted loopback peer still authenticates", func(t *testing.T) {
 		baseURL := serveAuditApp(t, buildApp([]string{"127.0.0.1"}))
 		req, _ := http.NewRequest(http.MethodGet, baseURL+"/test", nil)

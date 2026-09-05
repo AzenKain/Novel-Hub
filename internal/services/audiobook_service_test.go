@@ -33,15 +33,14 @@ func writeWav(t *testing.T, path string, rate int, seconds float64, freq float64
 
 	n := int(float64(rate) * seconds)
 	dataLen := n * 2
-	// RIFF header + PCM fmt chunk + data chunk
 	header := make([]byte, 44)
 	copy(header[0:4], "RIFF")
 	binary.LittleEndian.PutUint32(header[4:8], uint32(36+dataLen))
 	copy(header[8:12], "WAVE")
 	copy(header[12:16], "fmt ")
 	binary.LittleEndian.PutUint32(header[16:20], 16)
-	binary.LittleEndian.PutUint16(header[20:22], 1) // PCM
-	binary.LittleEndian.PutUint16(header[22:24], 1) // mono
+	binary.LittleEndian.PutUint16(header[20:22], 1)
+	binary.LittleEndian.PutUint16(header[22:24], 1)
 	binary.LittleEndian.PutUint32(header[24:28], uint32(rate))
 	binary.LittleEndian.PutUint32(header[28:32], uint32(rate*2))
 	binary.LittleEndian.PutUint16(header[32:34], 2)
@@ -62,8 +61,6 @@ func writeWav(t *testing.T, path string, rate int, seconds float64, freq float64
 	}
 }
 
-// segForWav builds a timeline segment for a fixture file. An endSec past the
-// file's end is fine: openMergeSegment clamps both ends to the probed length.
 func segForWav(path string, start, end, gain float64) mergeSegment {
 	return mergeSegment{
 		path:     path,
@@ -74,7 +71,6 @@ func segForWav(path string, start, end, gain float64) mergeSegment {
 	}
 }
 
-// drainSamples reads a media to EOF, returning the mono int-domain samples.
 func drainSamples(t *testing.T, med format.Media) []int32 {
 	t.Helper()
 	def := med.Info().Default()
@@ -113,8 +109,8 @@ func TestMergeTracks(t *testing.T) {
 	dir := t.TempDir()
 	wav1 := filepath.Join(dir, "part1.wav")
 	wav2 := filepath.Join(dir, "part2.wav")
-	writeWav(t, wav1, 44100, 1.0, 440) // 1.0s @ 44.1k
-	writeWav(t, wav2, 22050, 0.5, 880) // 0.5s @ 22.05k — exercises auto-resample
+	writeWav(t, wav1, 44100, 1.0, 440)
+	writeWav(t, wav2, 22050, 0.5, 880)
 
 	out := filepath.Join(dir, "merged.m4b")
 	of, err := os.Create(out)
@@ -175,12 +171,6 @@ func TestMergeAudioRejectsFewerThanTwo(t *testing.T) {
 	}
 }
 
-// Real container fixtures vendored from waxflow's own test corpus — every format
-// the merger claims to accept, plus one mixed-format case (the auto-resample path).
-// ponytail: no OGG/Opus fixtures exist in the vendored corpus; those decode via
-// the same container sniffing path, add fixtures if a real OGG regression appears.
-// Raw ADTS .aac has no container duration, so openMergeSegment measures it with a
-// full decode pass before the timeline is planned.
 func probeDuration(t *testing.T, path string) time.Duration {
 	t.Helper()
 	f, err := os.Open(path)
@@ -277,14 +267,11 @@ func TestMergeTracksAllFormats(t *testing.T) {
 	}
 }
 
-// TestMergeTracksSplitAndGain exercises the slice + gain timeline path: two
-// halves of one file, the second doubled, concatenated back into the original
-// duration. The chunk stream is inspected directly (no AAC transcode), so the
-// amplitudes prove the split and gain are applied sample-exactly.
+// TestMergeTracksSplitAndGain exercises the slice + gain timeline path: two halves of one file, the second doubled, concatenated back into the original duration.
 func TestMergeTracksSplitAndGain(t *testing.T) {
 	dir := t.TempDir()
 	wav := filepath.Join(dir, "tone.wav")
-	writeWav(t, wav, 44100, 1.0, 440) // sine, amplitude 10000
+	writeWav(t, wav, 44100, 1.0, 440)
 
 	e := waxflow.New()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -319,9 +306,7 @@ func TestMergeTracksSplitAndGain(t *testing.T) {
 	}
 }
 
-// TestGainMediaClampsToIntDomain proves the gain wrapper clamps to the int16
-// domain instead of wrapping: 4x a 10000-amplitude tone would overflow int16
-// (40000) if the clamp were missing.
+// TestGainMediaClampsToIntDomain proves the gain wrapper clamps to the int16 domain instead of wrapping: 4x a 10000-amplitude tone would overflow int16 (40000) if the clamp were missing.
 func TestGainMediaClampsToIntDomain(t *testing.T) {
 	dir := t.TempDir()
 	wav := filepath.Join(dir, "loud.wav")

@@ -16,8 +16,6 @@ import (
 	"novelhub/pkg/database"
 )
 
-// Fixed UUIDv7 literals from db/schema/90_seed_roles.sql — roles are seeded by the
-// schema, so a fresh test DB already has ADMIN/USER/BANNED.
 const (
 	seedRoleUser   = "01920000-0000-7000-8000-000000000001"
 	seedRoleAdmin  = "01920000-0000-7000-8000-000000000002"
@@ -88,8 +86,7 @@ func seedOwner(t *testing.T, db *sql.DB) {
 	}
 }
 
-// The owner is seeded from setup_state.root_admin_id. Every privileged mutation must
-// refuse to strip or delete that account.
+// The owner is seeded from setup_state.root_admin_id.
 func TestOwnerCannotBeDeletedOrDemoted(t *testing.T) {
 	svc, db := newUserSvc(t)
 	seedOwner(t, db)
@@ -113,8 +110,7 @@ func TestOwnerCannotBeDeletedOrDemoted(t *testing.T) {
 	}
 }
 
-// ChangeRoleUser bumps token_version so the revoked JWT is rejected at the next
-// request — claims.Roles cannot be stale because the middleware re-checks the version.
+// ChangeRoleUser bumps token_version so the revoked JWT is rejected at the next request — claims.Roles cannot be stale because the middleware re-checks the version.
 func TestChangeRoleUserBumpsTokenVersion(t *testing.T) {
 	svc, db := newUserSvc(t)
 	seedOwner(t, db)
@@ -144,10 +140,7 @@ func TestChangeRoleUserBumpsTokenVersion(t *testing.T) {
 	}
 }
 
-// Deleting a user used to leave token_version and refresh_token untouched, so a later
-// Restore resurrected every credential captured before the deletion. DeleteUser must now
-// bump token_version and clear refresh_token; RestoreUser must bump again so a stale JWT
-// from before the restore is rejected.
+// Deleting a user used to leave token_version and refresh_token untouched, so a later Restore resurrected every credential captured before the deletion.
 func TestDeleteUserRevokesCredentials(t *testing.T) {
 	svc, db := newUserSvc(t)
 	seedOwner(t, db)
@@ -179,8 +172,7 @@ func TestDeleteUserRevokesCredentials(t *testing.T) {
 	}
 }
 
-// A captured refresh token from before the delete must not work after a restore: RestoreUser
-// bumps token_version and clears refresh_token again.
+// A captured refresh token from before the delete must not work after a restore: RestoreUser bumps token_version and clears refresh_token again.
 func TestRestoreUserDoesNotResurrectCredentials(t *testing.T) {
 	svc, db := newUserSvc(t)
 	seedOwner(t, db)
@@ -190,7 +182,6 @@ func TestRestoreUserDoesNotResurrectCredentials(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider, token_version, refresh_token, is_deleted) VALUES (?, 'v@n.h', 'LOCAL', 5, 'stolen-rt', 1)`, victim); err != nil {
 		t.Fatal(err)
 	}
-	// Pre-deletion refresh token an attacker captured.
 	if _, err := db.Exec(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`, victim, seedRoleUser); err != nil {
 		t.Fatal(err)
 	}

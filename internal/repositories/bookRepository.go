@@ -132,7 +132,6 @@ func NewBookDBRepository(db *sql.DB, c cache.Cache) BookDBRepository {
 }
 
 // The returned repository buffers its invalidations; FlushCache after Commit publishes them.
-// Inline sweeps would run a full-cache scan per mutated row while the write lock is held.
 func (r *bookDBRepository) WithTx(tx *sql.Tx) BookDBRepository {
 	var c cache.Cache
 	if r.c != nil {

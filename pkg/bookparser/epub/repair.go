@@ -20,7 +20,7 @@ import (
 
 // ValidationIssue represents a detected problem in an EPUB file conforming to EPUB-Forge standard.
 type ValidationIssue struct {
-	Severity string `json:"severity"` // "error", "warning", "info"
+	Severity string `json:"severity"`
 	Code     string `json:"code"`
 	File     string `json:"file,omitempty"`
 	Message  string `json:"message"`
@@ -39,19 +39,19 @@ type ValidationReport struct {
 
 // RepairOptions defines which automated fixes to apply to an EPUB file.
 type RepairOptions struct {
-	NormalizeMimetype bool     `json:"normalize_mimetype"` // PACKAGE_MIMETYPE
-	FixContainer      bool     `json:"fix_container"`      // Ensure META-INF/container.xml points to OPF
-	FixXHTML          bool     `json:"fix_xhtml"`          // FIX_XHTML: self-closing tags, XML entities, xmlns
-	ReconcileManifest bool     `json:"reconcile_manifest"` // REMOVE_MISSING_MANIFEST_ITEMS, FIX_MEDIA_TYPES, ADD_UNMANIFESTED_FILES
-	ReconcileSpine    bool     `json:"reconcile_spine"`    // Remove itemrefs pointing to missing manifest items
-	FixTOC            bool     `json:"fix_toc"`            // FIX_TOC_NCX: Rebuild/repair toc.ncx and nav.xhtml
-	CleanBrokenLinks  bool     `json:"clean_broken_links"`  // CLEAN_BROKEN_CONTENT_LINKS: Remove dangling local hrefs and missing img sources
-	UpgradeEPUB3      bool     `json:"upgrade_epub3"`      // UPGRADE_EPUB3: Upgrade package version to 3.0, dcterms:modified, nav.xhtml
-	BuildCoverPage    bool     `json:"build_cover_page"`   // BUILD_COVER_PAGE: Generate cover.xhtml from cover image
-	BuildTOCPage      bool     `json:"build_toc_page"`     // BUILD_TOC_PAGE: Generate visible toc.xhtml in spine
-	BuildTitles       bool     `json:"build_titles"`       // BUILD_CHAPTER_TITLES: Inject missing <h2> titles
-	FixMetadata       bool     `json:"fix_metadata"`       // Ensure dc:title, dc:language, dcterms:modified
-	FixList           []string `json:"fix_list,omitempty"` // Explicit list of Fix IDs
+	NormalizeMimetype bool     `json:"normalize_mimetype"`
+	FixContainer      bool     `json:"fix_container"`
+	FixXHTML          bool     `json:"fix_xhtml"`
+	ReconcileManifest bool     `json:"reconcile_manifest"`
+	ReconcileSpine    bool     `json:"reconcile_spine"`
+	FixTOC            bool     `json:"fix_toc"`
+	CleanBrokenLinks  bool     `json:"clean_broken_links"`
+	UpgradeEPUB3      bool     `json:"upgrade_epub3"`
+	BuildCoverPage    bool     `json:"build_cover_page"`
+	BuildTOCPage      bool     `json:"build_toc_page"`
+	BuildTitles       bool     `json:"build_titles"`
+	FixMetadata       bool     `json:"fix_metadata"`
+	FixList           []string `json:"fix_list,omitempty"`
 }
 
 // DefaultRepairOptions returns the recommended auto-repair options.
@@ -221,7 +221,6 @@ func (ctx *BookContext) readText(p string) (string, error) {
 	return string(data), nil
 }
 
-// Regex definitions identical to EPUB-Forge
 var (
 	manifestRe    = regexp.MustCompile(`(?is)(<manifest\b[^>]*>)(.*?)(</manifest>)`)
 	spineRe       = regexp.MustCompile(`(?is)(<spine\b[^>]*>)(.*?)(</spine>)`)
@@ -366,7 +365,7 @@ func isChapterTitleMissing(htmlStr string) bool {
 	reHeading := regexp.MustCompile(`(?i)<h[1-6]\b`)
 	headingLoc := reHeading.FindStringIndex(bodyContent)
 	if headingLoc == nil {
-		return true // No heading at all
+		return true
 	}
 
 	beforeHeading := bodyContent[:headingLoc[0]]
@@ -376,7 +375,7 @@ func isChapterTitleMissing(htmlStr string) bool {
 	unescaped = strings.ReplaceAll(unescaped, "\u200b", " ")
 
 	if strings.TrimSpace(unescaped) != "" {
-		return true // Text exists before heading
+		return true
 	}
 	return false
 }
@@ -550,7 +549,6 @@ func LoadBookContext(epubPath string) (*BookContext, error) {
 		ctx.Entries[f.Name] = f
 	}
 
-	// Read container.xml
 	if cFile := ctx.Entries["META-INF/container.xml"]; cFile != nil {
 		if cText, err := ctx.readText("META-INF/container.xml"); err == nil {
 			reRoot := regexp.MustCompile(`(?is)<rootfile\b[^>]*\bfull-path\s*=\s*["']([^"']+)["']`)
@@ -561,12 +559,10 @@ func LoadBookContext(epubPath string) (*BookContext, error) {
 		}
 	}
 
-	// Read OPF
 	if ctx.OPFPath != "" {
 		if opfText, err := ctx.readText(ctx.OPFPath); err == nil {
 			ctx.OPFXML = opfText
 
-			// Title, Creator, Language
 			if m := titleTextRe.FindStringSubmatch(opfText); len(m) == 2 {
 				ctx.Title = cleanText(stripTags(m[1]))
 				ctx.Metadata.Title = ctx.Title
@@ -579,7 +575,6 @@ func LoadBookContext(epubPath string) (*BookContext, error) {
 				ctx.Metadata.Language = strings.TrimSpace(m[1])
 			}
 
-			// Parse Manifest
 			reItem := regexp.MustCompile(`(?is)<item\b([^>]*)>`)
 			for _, m := range reItem.FindAllStringSubmatch(opfText, -1) {
 				attrs := parseAttrs(m[0])
@@ -610,7 +605,6 @@ func LoadBookContext(epubPath string) (*BookContext, error) {
 				}
 			}
 
-			// Parse Spine
 			reItemref := regexp.MustCompile(`(?is)<itemref\b([^>]*)>`)
 			for _, m := range reItemref.FindAllStringSubmatch(opfText, -1) {
 				attrs := parseAttrs(m[0])
@@ -638,7 +632,6 @@ func LoadBookContext(epubPath string) (*BookContext, error) {
 		}
 	}
 
-	// Parse TOC NCX
 	if ctx.NCX != nil {
 		if ncxText, err := ctx.readText(ctx.NCX.FullPath); err == nil {
 			ctx.TOC = parseNCX(ncxText, posixDir(ctx.NCX.FullPath))
@@ -834,7 +827,6 @@ func ValidateEPUB(epubPath string) (ValidationReport, error) {
 		}
 	}
 
-	// 1. Validate Package & Mimetype
 	if len(ctx.Reader.File) == 0 {
 		addIssue("error", "ZIP_EMPTY", "", "EPUB archive is empty")
 		report.Valid = false
@@ -868,7 +860,6 @@ func ValidateEPUB(epubPath string) (ValidationReport, error) {
 		addIssue("error", "OPF_FILE_MISSING", ctx.OPFPath, "OPF rootfile does not exist in the archive")
 	}
 
-	// 2. Validate OPF
 	if ctx.OPFXML != "" {
 		if err := validateXMLWellFormed(ctx.OPFXML); err != nil {
 			addIssue("error", "OPF_XML", ctx.OPFPath, fmt.Sprintf("OPF is not well-formed XML: %v", err))
@@ -899,7 +890,6 @@ func ValidateEPUB(epubPath string) (ValidationReport, error) {
 		}
 	}
 
-	// 3. Validate Manifest & Spine
 	ids := map[string]bool{}
 	paths := map[string]bool{}
 	for _, item := range ctx.Manifest {
@@ -959,7 +949,6 @@ func ValidateEPUB(epubPath string) (ValidationReport, error) {
 		addIssue("info", "ZIP_FILE_UNMANIFESTED", name, "file exists in ZIP but is not declared in the manifest")
 	}
 
-	// 4. Validate Navigation
 	if ctx.NCX != nil {
 		if ncxText, err := ctx.readText(ctx.NCX.FullPath); err == nil {
 			if err := validateXMLWellFormed(ncxText); err != nil {
@@ -984,7 +973,6 @@ func ValidateEPUB(epubPath string) (ValidationReport, error) {
 		}
 	}
 
-	// 5. Validate Content Documents
 	for _, item := range ctx.Manifest {
 		if !isHTMLDocument(item.FullPath) {
 			continue
@@ -1051,17 +1039,14 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 	correctedMediaTypes := make(map[string]string)
 	var addedManifestItems []ManifestItem
 
-	// Track duplicate manifest entries for dedup (same id appearing multiple times)
-	duplicateManifestIndices := make(map[int]bool) // Indices in ctx.Manifest to skip
+	duplicateManifestIndices := make(map[int]bool)
 	if selected.has("REMOVE_MISSING_MANIFEST_ITEMS") || selected.has("FIX_MEDIA_TYPES") || selected.has("ADD_UNMANIFESTED_FILES") {
-		seenIDs := make(map[string]bool) // id -> already seen
+		seenIDs := make(map[string]bool)
 		for i, item := range ctx.Manifest {
 			if item.ID == "" {
 				continue
 			}
 			if seenIDs[item.ID] {
-				// Duplicate ID detected — mark this index for removal
-				// Keep the first occurrence, remove subsequent ones
 				duplicateManifestIndices[i] = true
 				logs = append(logs, fmt.Sprintf("[Manifest] Đã loại bỏ mục trùng lặp trong manifest: %s (ID: %s)", item.Href, item.ID))
 			} else {
@@ -1070,10 +1055,9 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		}
 	}
 
-	// 1. Reconcile Manifest items
 	for i, item := range ctx.Manifest {
 		if duplicateManifestIndices[i] {
-			continue // Already handled as duplicate
+			continue
 		}
 		f, ok := ctx.Entries[item.FullPath]
 		if !ok || (f.FileInfo() != nil && f.FileInfo().IsDir()) {
@@ -1105,7 +1089,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		}
 	}
 
-	// 2. Discover Unmanifested Files
 	if selected.has("ADD_UNMANIFESTED_FILES") {
 		for p, f := range ctx.Entries {
 			if (f.FileInfo() != nil && f.FileInfo().IsDir()) || shouldIgnoreUnmanifested(p, ctx.OPFPath) {
@@ -1129,7 +1112,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		}
 	}
 
-	// 3. Reconcile Spine
 	validSpineRefs := make([]SpineRef, 0, len(ctx.Spine))
 	for _, ref := range ctx.Spine {
 		item, existsInManifest := ctx.ManifestByID[ref.IDRef]
@@ -1148,12 +1130,10 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		validSpineRefs = append(validSpineRefs, ref)
 	}
 
-	// 4. Content Documents (XML repair & Link cleaning)
 	if selected.has("FIX_XHTML") || selected.has("CLEAN_BROKEN_CONTENT_LINKS") {
 		repairContentDocuments(ctx, selected, editedFiles, removedManifestIDs, &logs)
 	}
 
-	// 5. NCX & Navigation Repair
 	ncxPath := ""
 	if ctx.NCX != nil {
 		ncxPath = ctx.NCX.FullPath
@@ -1167,7 +1147,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		}
 	}
 
-	// 6. OPF Upgrades & Rebuilding
 	opfContent := ctx.OPFXML
 	opfChanged := false
 
@@ -1306,7 +1285,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 		editedFiles[ctx.OPFPath] = []byte(opfContent)
 	}
 
-	// 7. Write Repaired Archive
 	normalizeMimetype := selected.has("PACKAGE_MIMETYPE")
 	tmpOutput := dstPath + ".repair.tmp"
 	out, err := os.Create(tmpOutput)
@@ -1318,7 +1296,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 	zw := zip.NewWriter(bufOut)
 	copyBuf := make([]byte, 1024*1024)
 
-	// Write Mimetype first
 	if normalizeMimetype {
 		header := &zip.FileHeader{Name: "mimetype", Method: zip.Store}
 		header.SetMode(0644)
@@ -1376,7 +1353,6 @@ func RepairEPUB(srcPath, dstPath string, opts RepairOptions) (RepairResult, erro
 	_ = bufOut.Flush()
 	_ = out.Close()
 
-	// Atomic replace
 	_ = os.Rename(tmpOutput, dstPath)
 
 	report, _ := ValidateEPUB(dstPath)
@@ -1812,7 +1788,6 @@ func ensureCoverPage(ctx *BookContext, editedFiles map[string][]byte, addedManif
 
 	editedFiles[coverPage.FullPath] = []byte(nextHTML)
 
-	// Ensure cover is first in spine
 	newSpine := make([]SpineRef, 0, len(*validSpineRefs)+1)
 	newSpine = append(newSpine, SpineRef{IDRef: coverPage.ID, Linear: true})
 	for _, ref := range *validSpineRefs {
@@ -1873,7 +1848,6 @@ func ensureVisibleTOCPage(ctx *BookContext, editedFiles map[string][]byte, added
 
 	editedFiles[tocItem.FullPath] = []byte(tocHTML)
 
-	// Ensure TOC is in spine (after cover if present, otherwise before first chapter)
 	tocInSpine := false
 	for _, ref := range *validSpineRefs {
 		if ref.IDRef == tocItem.ID {

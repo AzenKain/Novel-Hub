@@ -14,7 +14,17 @@ type ConvertBookModalProps = {
   onClose: () => void;
 };
 
-const CONVERT_TARGETS = ["epub", "fb2", "txt", "docx", "cbz", "kepub.epub", "mobi", "azw", "pdf"];
+const CONVERT_TARGETS = [
+  "epub",
+  "fb2",
+  "txt",
+  "docx",
+  "cbz",
+  "kepub.epub",
+  "mobi",
+  "azw",
+  "pdf",
+];
 
 export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
   open,
@@ -25,12 +35,14 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const convertMutation = useConvertBookMutation();
-  const [selectedFileId, setSelectedFileId] = useState(initialFileId || files[0]?.id || "");
+  const [selectedFileId, setSelectedFileId] = useState(
+    initialFileId || files[0]?.id || "",
+  );
   const [targetFormat, setTargetFormat] = useState(CONVERT_TARGETS[0]);
   const [overwriteChecked, setOverwriteChecked] = useState(false);
 
   const hasDuplicateFormat = files.some(
-    (file) => file.format.toLowerCase() === targetFormat.toLowerCase()
+    (file) => file.format.toLowerCase() === targetFormat.toLowerCase(),
   );
 
   const handleFormatChange = (format: string) => {
@@ -47,26 +59,40 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
       return;
     }
     if (hasDuplicateFormat && !overwriteChecked) {
-      toast.error(t("book.convert_no_overwrite_confirm", "Please confirm replacing the existing file"));
+      toast.error(
+        t(
+          "book.convert_no_overwrite_confirm",
+          "Please confirm replacing the existing file",
+        ),
+      );
       return;
     }
 
     convertMutation.mutate(
-      { id: bookId, payload: { file_id: selectedFileId, target_format: targetFormat } },
+      {
+        id: bookId,
+        payload: { file_id: selectedFileId, target_format: targetFormat },
+      },
       {
         onSuccess: (res) => {
           const jobId = res.data?.job_id;
           toast.success(
             jobId
-              ? t("book.convert_queued", "Conversion queued (job {{job_id}})", { job_id: jobId })
-              : t("book.convert_done", "Conversion finished")
+              ? t("book.convert_queued", "Conversion queued (job {{job_id}})", {
+                  job_id: jobId,
+                })
+              : t("book.convert_done", "Conversion finished"),
           );
           onClose();
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : t("book.convert_failed", "Conversion failed"));
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t("book.convert_failed", "Conversion failed"),
+          );
         },
-      }
+      },
     );
   };
 
@@ -89,7 +115,9 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="label label-text">{t("book.select_source_file", "Source file")}</label>
+            <label className="label label-text">
+              {t("book.select_source_file", "Source file")}
+            </label>
             <select
               className="select select-bordered w-full font-medium"
               value={selectedFileId}
@@ -104,7 +132,9 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
           </div>
 
           <div>
-            <label className="label label-text">{t("book.select_target_format", "Target format")}</label>
+            <label className="label label-text">
+              {t("book.select_target_format", "Target format")}
+            </label>
             <div className="grid grid-cols-3 gap-2">
               {CONVERT_TARGETS.map((target) => {
                 const isActive = targetFormat === target;
@@ -129,9 +159,15 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
           {hasDuplicateFormat && (
             <div className="alert bg-warning/10 border border-warning/30 text-xs p-3 flex flex-col items-start gap-2 rounded-lg">
               <div className="flex items-start gap-2 text-base-content">
-                <span className="font-bold text-warning">⚠️ {t("common.warning", "Warning")}</span>
+                <span className="font-bold text-warning">
+                  ⚠️ {t("common.warning", "Warning")}
+                </span>
                 <span>
-                  {t("book.convert_replace_warning", "This book already has a {{format}} file. Proceeding will replace the existing file.", { format: targetFormat.toUpperCase() })}
+                  {t(
+                    "book.convert_replace_warning",
+                    "This book already has a {{format}} file. Proceeding will replace the existing file.",
+                    { format: targetFormat.toUpperCase() },
+                  )}
                 </span>
               </div>
               <label className="flex items-center gap-2 cursor-pointer mt-1 font-semibold select-none text-base-content">
@@ -141,7 +177,12 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
                   checked={overwriteChecked}
                   onChange={(e) => setOverwriteChecked(e.target.checked)}
                 />
-                <span>{t("book.convert_confirm_replace", "Yes, replace the existing file")}</span>
+                <span>
+                  {t(
+                    "book.convert_confirm_replace",
+                    "Yes, replace the existing file",
+                  )}
+                </span>
               </label>
             </div>
           )}
@@ -153,7 +194,11 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
             <button
               type="submit"
               className="btn btn-primary min-w-[120px]"
-              disabled={convertMutation.isPending || !selectedFileId || (hasDuplicateFormat && !overwriteChecked)}
+              disabled={
+                convertMutation.isPending ||
+                !selectedFileId ||
+                (hasDuplicateFormat && !overwriteChecked)
+              }
             >
               {convertMutation.isPending ? (
                 <>

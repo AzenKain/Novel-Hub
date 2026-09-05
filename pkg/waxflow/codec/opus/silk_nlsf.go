@@ -1,17 +1,10 @@
 package opus
 
-// SILK NLSF decoding and NLSF->LPC conversion, ported from libopus
-// silk/NLSF_decode.c, NLSF_unpack.c, NLSF_stabilize.c, NLSF2A.c, LPC_fit.c,
-// bwexpander.c, bwexpander_32.c, and LPC_inv_pred_gain.c.
-
-// nlsf2AOrdering16/10 reorder cos(LSF) for the polynomial recurrence (NLSF2A.c).
 var nlsf2AOrdering16 = [16]uint8{0, 15, 8, 7, 4, 11, 12, 3, 2, 13, 10, 5, 6, 9, 14, 1}
 var nlsf2AOrdering10 = [10]uint8{0, 9, 6, 3, 4, 5, 8, 1, 2, 7}
 
-const nlsfQuantLevelAdj = 0.1 // NLSF_QUANT_LEVEL_ADJ
+const nlsfQuantLevelAdj = 0.1
 
-// silkNLSFResidualDequant reconstructs the NLSF residual (Q10) from the
-// second-stage indices and backward predictor (silk_NLSF_residual_dequant).
 func silkNLSFResidualDequant(xQ10 []int16, indices []int8, predCoefQ8 []uint8, quantStepSizeQ16 int32, order int) {
 	outQ10 := int32(0)
 	for i := order - 1; i >= 0; i-- {
@@ -27,8 +20,6 @@ func silkNLSFResidualDequant(xQ10 []int16, indices []int8, predCoefQ8 []uint8, q
 	}
 }
 
-// silkNLSFUnpack unpacks the entropy-table indices and backward predictor for
-// a first-stage codebook entry (silk_NLSF_unpack).
 func silkNLSFUnpack(ecIx []int16, predQ8 []uint8, cb *nlsfCB, cb1Index int) {
 	sel := cb.ecSel[cb1Index*cb.order/2:]
 	for i := 0; i < cb.order; i += 2 {
@@ -40,8 +31,6 @@ func silkNLSFUnpack(ecIx []int16, predQ8 []uint8, cb *nlsfCB, cb1Index int) {
 	}
 }
 
-// silkNLSFDecode decodes a quantized NLSF vector (Q15) from the codebook path
-// (silk_NLSF_decode).
 func silkNLSFDecode(pNLSFQ15 []int16, nlsfIndices []int8, cb *nlsfCB) {
 	var predQ8 [silkMaxLPCOrder]uint8
 	var ecIx [silkMaxLPCOrder]int16
@@ -57,7 +46,6 @@ func silkNLSFDecode(pNLSFQ15 []int16, nlsfIndices []int8, cb *nlsfCB) {
 	silkNLSFStabilize(pNLSFQ15, cb.deltaMinQ15, cb.order)
 }
 
-// silkNLSFStabilize enforces the minimum NLSF spacing (silk_NLSF_stabilize).
 func silkNLSFStabilize(nlsfQ15 []int16, ndeltaMinQ15 []int16, L int) {
 	const maxLoops = 20
 	var I, loops int
@@ -99,7 +87,6 @@ func silkNLSFStabilize(nlsfQ15 []int16, ndeltaMinQ15 []int16, L int) {
 			nlsfQ15[I] = int16(int32(nlsfQ15[I-1]) + int32(ndeltaMinQ15[I]))
 		}
 	}
-	// Fallback: sort ascending and enforce spacing (rarely reached).
 	for i := 1; i < L; i++ {
 		for j := i; j > 0 && nlsfQ15[j] < nlsfQ15[j-1]; j-- {
 			nlsfQ15[j], nlsfQ15[j-1] = nlsfQ15[j-1], nlsfQ15[j]
@@ -117,7 +104,6 @@ func silkNLSFStabilize(nlsfQ15 []int16, ndeltaMinQ15 []int16, L int) {
 
 const nlsf2AQA = 16
 
-// silkNLSF2AFindPoly builds one interleaved polynomial (silk_NLSF2A_find_poly).
 func silkNLSF2AFindPoly(out, cLSF []int32, dd int) {
 	out[0] = silkLSHIFT(1, nlsf2AQA)
 	out[1] = -cLSF[0]
@@ -131,7 +117,6 @@ func silkNLSF2AFindPoly(out, cLSF []int32, dd int) {
 	}
 }
 
-// silkNLSF2A converts NLSFs (Q15) to LPC coefficients (Q12) (silk_NLSF2A).
 func silkNLSF2A(aQ12 []int16, nlsf []int16, d int) {
 	var ordering []uint8
 	if d == 16 {
@@ -167,8 +152,6 @@ func silkNLSF2A(aQ12 []int16, nlsf []int16, d int) {
 	}
 }
 
-// silkLPCFit scales the QA+1 LPC coefficients down to Q12 with saturation
-// (silk_LPC_fit).
 func silkLPCFit(aQOut []int16, aQIn []int32, qOut, qIn, d int) {
 	var i, idx int
 	for i = 0; i < 10; i++ {
@@ -202,8 +185,6 @@ func silkLPCFit(aQOut []int16, aQIn []int32, qOut, qIn, d int) {
 	}
 }
 
-// silkBWExpander32 applies chirp (bandwidth expansion) to Q-domain int32 LPC
-// coefficients (silk_bwexpander_32).
 func silkBWExpander32(ar []int32, d int, chirpQ16 int32) {
 	chirpMinusOne := chirpQ16 - 65536
 	for i := 0; i < d-1; i++ {
@@ -213,7 +194,6 @@ func silkBWExpander32(ar []int32, d int, chirpQ16 int32) {
 	ar[d-1] = silkSMULWW(chirpQ16, ar[d-1])
 }
 
-// silkBWExpander applies chirp to Q12 int16 LPC coefficients (silk_bwexpander).
 func silkBWExpander(ar []int16, d int, chirpQ16 int32) {
 	chirpMinusOne := chirpQ16 - 65536
 	for i := 0; i < d-1; i++ {
@@ -225,8 +205,6 @@ func silkBWExpander(ar []int16, d int, chirpQ16 int32) {
 
 const invPredGainQA = 24
 
-// silkLPCInversePredGain returns the inverse prediction gain (Q30), or 0 if the
-// filter is unstable (silk_LPC_inverse_pred_gain_c).
 func silkLPCInversePredGain(aQ12 []int16, order int) int32 {
 	var atmpQA [silkMaxLPCOrder]int32
 	dcResp := int32(0)
@@ -255,7 +233,7 @@ func lpcInversePredGainQA(aQA []int32, order int) int32 {
 		rcQ31 := -silkLSHIFT(aQA[k], 31-invPredGainQA)
 		rcMult1Q30 := silkFixConst(1, 30) - silkSMMUL(rcQ31, rcQ31)
 		invGainQ30 = silkLSHIFT(silkSMMUL(invGainQ30, rcMult1Q30), 2)
-		if invGainQ30 < silkFixConst(1.0/10000.0, 30) { // 1/MAX_PREDICTION_POWER_GAIN
+		if invGainQ30 < silkFixConst(1.0/10000.0, 30) {
 			return 0
 		}
 		mult2Q := 32 - int(silkCLZ32(silkAbs32(rcMult1Q30)))

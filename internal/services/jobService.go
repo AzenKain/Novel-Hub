@@ -47,9 +47,9 @@ func NewJobService(repo repositories.JobRepository, queue *worker.Queue) *jobSer
 		repo:  repo,
 		queue: queue,
 		tasks: map[string]string{
-			"maintenance":          "Run full library maintenance",
-			"scan_library_inbox":   "Scan library inbox folders for new files",
-			"scan_metadata_enrich": "Scan and enrich metadata from online APIs (AniList, OpenLibrary, Google Books)",
+			"maintenance":           "Run full library maintenance",
+			"scan_library_inbox":    "Scan library inbox folders for new files",
+			"scan_metadata_enrich":  "Scan and enrich metadata from online APIs (AniList, OpenLibrary, Google Books)",
 			"repair_books":          "Auto-diagnose and repair corrupted EPUB book files in libraries",
 			"clean_empty_book_dirs": "Remove empty managed book directories",
 			"clean_orphan_uploads":  "Remove stale upload chunks",
@@ -85,8 +85,7 @@ func (s *jobService) ListJobs(ctx context.Context, status, jobType string, limit
 	return models.JobEntitiesToResponse(jobs), total, nil
 }
 
-// order is display order only; anything in tasks but missing here is appended, so a new task
-// can never be silently unreachable from the admin UI the way scan_library_inbox was.
+// order is display order only; anything in tasks but missing here is appended, so a new task can never be silently unreachable from the admin UI the way scan_library_inbox was.
 func (s *jobService) ListTasks() []*response.JobTaskResponse {
 	order := []string{
 		"maintenance",
@@ -198,8 +197,6 @@ func (s *jobService) Failed(ctx context.Context, job worker.Job, jobErr error) e
 		message = jobErr.Error()
 	}
 	_, err := s.repo.UpdateJobStatus(ctx, job.ID, "failed", message)
-	// A failing endpoint would otherwise self-feed: the dispatch job fails, job.failed fans out one
-	// new dispatch per subscribed webhook, each of which fails the same way.
 	if s.webhookService != nil && job.Type != "webhook.dispatch" {
 		s.webhookService.DispatchEvent(ctx, "job.failed", map[string]any{
 			"job_id":   job.ID,

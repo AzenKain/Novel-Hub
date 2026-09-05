@@ -331,7 +331,7 @@ func (r *komgaRepository) SeriesProgressByIDs(ctx context.Context, userID string
 		if err != nil {
 			return nil, err
 		}
-		
+
 		fetchedMap := make(map[string]*models.KomgaSeriesProgressEntity, len(rows))
 		for _, row := range rows {
 			entity := (&models.KomgaSeriesProgressEntity{}).FromSqlcList(row)

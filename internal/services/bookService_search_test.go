@@ -80,4 +80,3 @@ func TestNormalizeFTSQuery(t *testing.T) {
 		}
 	}
 }
-

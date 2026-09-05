@@ -13,49 +13,27 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// maxReservoir is the deepest backward reference main_data_begin can
-// encode (9 bits): the decoder never needs to keep more.
 const maxReservoir = 511
 
-// maxFrameLen bounds a packet: the largest compliant frame is 1441 bytes
-// (320 kbit/s at 32 kHz, padded); free-format frames may run longer but
-// the format caps a frame's slot count at this order of magnitude, and
-// container/mpa enforces its own scan bound first.
 const maxFrameLen = 8 << 10
 
-// Decoder decodes MP3 frames into planar float32 buffers. It implements
-// codec.Decoder: one packet is one whole frame (header included) and
-// always emits exactly SamplesPerFrame frames, silent when the frame is
-// undecodable. Silence instead of a hard error is the honest damage unit
-// for a lossy stream, and the constant emission keeps format.Media's
-// sample counting exact, which is what seeking and gapless trims stand
-// on. Structural misuse (a packet that is not a frame of this stream)
-// still errors: that is a wiring bug, not damage.
-//
-// The bit reservoir makes frames interdependent: after Reset (a seek),
-// frames whose main_data_begin reaches back into unseen bytes emit
-// silence while their own bytes prime the reservoir. container/mpa's
-// seek backoff covers the reservoir plus the filterbank history, so
-// output converges to the linear decode before the seek target.
+// Decoder decodes MP3 frames into planar float32 buffers.
 type Decoder struct {
 	f   audio.Format
-	buf *audio.Buffer // reusable output, borrowed by emit callbacks
+	buf *audio.Buffer
 
-	resv    []byte // rolling main-data reservoir, at most maxReservoir bytes
-	main    []byte // assembled main data for the current frame
-	silent  bool   // the current frame decodes to silence
+	resv    []byte
+	main    []byte
+	silent  bool
 	si      sideInfo
 	gran    granule
-	gr0Ist  [2][40]uint8 // granule 0 raw scalefactors for MPEG-1 scfsi copies
+	gr0Ist  [2][40]uint8
 	scratch [576]float32
-	store   [2][32][18]float32 // IMDCT overlap-add state
-	v       [2][1024]float32   // synthesis filterbank state
+	store   [2][32][18]float32
+	v       [2][1024]float32
 }
 
-// NewDecoder returns a Decoder for a track with the given format. The
-// format must be what Header.PCMFormat produces for the stream's frames;
-// containers build both from the same header, so a mismatch is a wiring
-// bug.
+// NewDecoder returns a Decoder for a track with the given format.
 func NewDecoder(f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -67,8 +45,7 @@ func NewDecoder(f audio.Format) (*Decoder, error) {
 	return &Decoder{f: f}, nil
 }
 
-// Decode decodes one frame and emits one buffer of SamplesPerFrame
-// frames. The buffer is borrowed: valid only during the callback.
+// Decode decodes one frame and emits one buffer of SamplesPerFrame frames.
 func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	h, err := ParseHeader(pkt)
 	if err != nil {
@@ -92,7 +69,7 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	d.silent = false
 	off := HeaderLen
 	if h.Protected {
-		off += 2 // CRC-16 over the side info; skipped, not verified
+		off += 2
 	}
 	silen := h.SideInfoLen()
 	var body []byte
@@ -106,10 +83,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	}
 
 	if !d.silent {
-		// Assemble main data: main_data_begin bytes of reservoir tail,
-		// then this frame's own bytes. An unsatisfiable reference (the
-		// first frames after a seek) is silence, but the frame's bytes
-		// still enter the reservoir below so later frames decode.
 		mdb := d.si.mainDataBegin
 		if mdb > len(d.resv) {
 			d.silent = true
@@ -128,7 +101,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		}
 	}
 
-	// Roll the reservoir forward with this frame's own main data.
 	d.resv = append(d.resv, body...)
 	if n := len(d.resv) - maxReservoir; n > 0 {
 		d.resv = append(d.resv[:0], d.resv[n:]...)
@@ -137,8 +109,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	return emit(d.buf)
 }
 
-// decodeFrame reconstructs PCM for all granules from the assembled main
-// data, or flags silence when the data is inconsistent.
 func (d *Decoder) decodeFrame(h Header) {
 	r := bitReader{data: d.main}
 	granules := 1
@@ -147,8 +117,6 @@ func (d *Decoder) decodeFrame(h Header) {
 	}
 	msActive := h.Mode == ModeJoint && h.ModeExt&2 != 0
 
-	// A frame whose granule budgets overrun the assembled bytes cannot
-	// carry what the side info promises.
 	total := 0
 	for gi := 0; gi < granules; gi++ {
 		for ch := 0; ch < h.Channels; ch++ {
@@ -167,10 +135,6 @@ func (d *Decoder) decodeFrame(h Header) {
 			b := bandsFor(h, gi)
 			part23End := r.bitPos() + gi.part23Len
 
-			// Scalefactor sharing needs both granules long: the spec
-			// requires encoders to clear scfsi around short blocks, and
-			// honoring it anyway would reinterpret short-window values
-			// as long-band ones.
 			var scfsi *[4]bool
 			if gri == 1 && gi.blockType != blockShort &&
 				d.si.gr[0][ch].blockType != blockShort {
@@ -178,7 +142,6 @@ func (d *Decoder) decodeFrame(h Header) {
 			}
 			readScalefactors(&r, h, gi, b, g, ch, scfsi, &d.gr0Ist)
 			if r.bitPos() > part23End {
-				// Scalefactors alone overran the granule budget.
 				for i := range g.raw[ch] {
 					g.raw[ch][i] = 0
 				}
@@ -186,21 +149,15 @@ func (d *Decoder) decodeFrame(h Header) {
 				r.err = false
 			} else {
 				readSpectrum(&r, gi, b, g, ch, part23End)
-				r.err = false // damage is contained per granule
+				r.err = false
 			}
 			requantize(gi, b, g, ch, msActive)
 		}
 		if gri == 0 && h.Version == MPEG1 {
-			// Granule 0's raw scalefactors (istPos is never touched by
-			// the gain folds) feed granule 1's scfsi sharing.
 			d.gr0Ist = g.istPos
 		}
 
 		if h.Channels == 2 && h.Mode == ModeJoint {
-			// Stereo walks the left granule info's band shape, as the
-			// reference decoders do; a hostile frame whose channels
-			// disagree on block type gets bounded garbage in the joint
-			// bands, nothing worse.
 			stereo(h, bandsFor(h, &d.si.gr[gri][0]), g, &d.si.gr[gri][1])
 		}
 
@@ -221,9 +178,7 @@ func (d *Decoder) decodeFrame(h Header) {
 	}
 }
 
-// Drain is a no-op: every packet emits its full frame, and the inherent
-// 529-sample codec latency is signaled through the container's gapless
-// trims, not buffered here.
+// Drain is a no-op: every packet emits its full frame, and the inherent 529-sample codec latency is signaled through the container's gapless trims, not buffered here.
 func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 
 // Reset discards the reservoir and filterbank state after a seek.

@@ -415,8 +415,6 @@ func (r *roleRepository) Create(ctx context.Context, params sqlc.CreateRoleParam
 }
 
 func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParams) (*models.RoleEntity, error) {
-	// Read the old name first: row.Name below is the NEW one, so role:name:<old> would
-	// otherwise survive and keep resolving to the stale entity.
 	old, oldErr := r.q.GetRoleByID(ctx, params.ID)
 	row, err := r.q.UpdateRole(ctx, params)
 	if err != nil {
@@ -426,8 +424,6 @@ func (r *roleRepository) Update(ctx context.Context, params sqlc.UpdateRoleParam
 		delKeys := []string{constants.CacheKeyRoleAll, cache.BuildKey("role", "id", params.ID), cache.BuildKey("role", "name", row.Name), constants.CacheKeyRoleAutoAssignIDs}
 		if oldErr == nil && old.Name != row.Name {
 			delKeys = append(delKeys, cache.BuildKey("role", "name", old.Name))
-			// Role name is an authorization input (IsAdmin matches r.Name == "ADMIN"),
-			// and hydrateRoles caches RoleSimple{ID, Name} per user.
 			_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserAllPattern)
 		}
 		_ = r.c.Del(ctx, delKeys...)
@@ -447,8 +443,6 @@ func (r *roleRepository) UpdateSystemRoleDescription(ctx context.Context, params
 }
 
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
-	// Pre-read for the name: GetRoleByName filters is_deleted = 0, so a surviving
-	// role:name:<name> key hands out a role that no longer exists.
 	old, oldErr := r.q.GetRoleByID(ctx, id)
 	if err := r.q.DeleteRole(ctx, id); err != nil {
 		return err
@@ -485,7 +479,6 @@ func (r *roleRepository) ReplaceRolePermissions(ctx context.Context, roleID stri
 		if effect == "" {
 			effect = "allow"
 		}
-		// Consumed only when the upsert inserts; the conflict branch keeps the existing id.
 		if err := r.q.UpsertRolePermission(ctx, sqlc.UpsertRolePermissionParams{
 			ID:             uuid.Must(uuid.NewV7()).String(),
 			RoleID:         roleID,

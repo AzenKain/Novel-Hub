@@ -39,14 +39,14 @@ func (e *PodcastEntity) FromSqlc(r sqlc.Podcast) *PodcastEntity {
 
 func (e *PodcastEntity) ToResponse() *response.PodcastResponse {
 	resp := &response.PodcastResponse{
-		ID:           e.ID,
-		LibraryID:    e.LibraryID,
-		FeedURL:      e.FeedURL,
-		Title:        e.Title,
-		Description:  e.Description,
-		CoverURL:     e.CoverURL,
-		Author:       e.Author,
-		AutoDownload: e.AutoDownload,
+		ID:            e.ID,
+		LibraryID:     e.LibraryID,
+		FeedURL:       e.FeedURL,
+		Title:         e.Title,
+		Description:   e.Description,
+		CoverURL:      e.CoverURL,
+		Author:        e.Author,
+		AutoDownload:  e.AutoDownload,
 		LastCheckedAt: e.LastCheckedAt,
 	}
 	if e.CreatedAt != nil {

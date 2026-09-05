@@ -139,14 +139,12 @@ func TestUploadRouteAuthorizationAndFormatValidation(t *testing.T) {
 	h := setupTestHarness(t)
 	ctx := context.Background()
 
-	// 1. Create a library in DB
 	libID := uuid.Must(uuid.NewV7()).String()
 	_, err := h.db.Exec(`INSERT INTO libraries (id, name) VALUES (?, 'Main Library')`, libID)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// 2. Create user with role that lacks PermBookUpload
 	readerID := uuid.Must(uuid.NewV7()).String()
 	_, err = h.db.Exec(`INSERT INTO users (id, email, password_hash, token_version) VALUES (?, 'read_only@example.com', 'hash', 1)`, readerID)
 	if err != nil {
@@ -160,14 +158,12 @@ func TestUploadRouteAuthorizationAndFormatValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Give role-reader only book.read
 	_, err = h.db.Exec(`INSERT INTO role_permissions (id, role_id, permission_key, effect) VALUES ('p1', 'role-reader', 'book.read', 'allow')`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_ = h.permissionCache.Reload(ctx)
 
-	// 3. Create user with role that has PermBookUpload
 	uploaderID := uuid.Must(uuid.NewV7()).String()
 	_, err = h.db.Exec(`INSERT INTO users (id, email, password_hash, token_version) VALUES (?, 'uploader@example.com', 'hash', 1)`, uploaderID)
 	if err != nil {
@@ -185,7 +181,6 @@ func TestUploadRouteAuthorizationAndFormatValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Clear RAM cache so roleRepo reads the newly inserted roles
 	_ = h.ramCache.DelByPattern(ctx, "*")
 	_ = h.permissionCache.Reload(ctx)
 
@@ -278,7 +273,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 	h := setupTestHarness(t)
 	ctx := context.Background()
 
-	// User 201: has PermUserSoundscapeManage only
 	soundUserID := uuid.Must(uuid.NewV7()).String()
 	_, err := h.db.Exec(`INSERT INTO users (id, email, password_hash, token_version) VALUES (?, 'sound_user@example.com', 'hash', 1)`, soundUserID)
 	if err != nil {
@@ -297,7 +291,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// User 202: restricted role with no permissions
 	plainUserID := uuid.Must(uuid.NewV7()).String()
 	_, err = h.db.Exec(`INSERT INTO users (id, email, password_hash, token_version) VALUES (?, 'plain_user@example.com', 'hash', 1)`, plainUserID)
 	if err != nil {
@@ -349,7 +342,7 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/fonts/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
-		req.Header.Set("Authorization", "Bearer "+soundToken) // has sound, not font
+		req.Header.Set("Authorization", "Bearer "+soundToken)
 
 		resp, err := h.app.Test(req)
 		if err != nil {
@@ -361,7 +354,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 	})
 
 	t.Run("Private soundscape is accessible to owner but forbidden to unauthenticated guest", func(t *testing.T) {
-		// 1. Create a dummy soundscape file on disk
 		soundFile := filepath.Join(os.Getenv("DATA_DIR"), "soundscapes", "test_private.mp3")
 		_ = os.WriteFile(soundFile, []byte("ID3_DUMMY_AUDIO_DATA"), 0644)
 
@@ -372,7 +364,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 		}
 		_ = h.ramCache.DelByPattern(ctx, "*")
 
-		// Guest request (no auth) -> 403 Forbidden
 		reqGuest := httptest.NewRequest(http.MethodGet, "/api/v1/soundscapes/"+soundID+"/stream", nil)
 		respGuest, err := h.app.Test(reqGuest)
 		if err != nil {
@@ -382,7 +373,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 			t.Fatalf("expected 403 for guest accessing private soundscape, got %d", respGuest.StatusCode)
 		}
 
-		// Other user request -> 403 Forbidden
 		reqOther := httptest.NewRequest(http.MethodGet, "/api/v1/soundscapes/"+soundID+"/stream", nil)
 		reqOther.Header.Set("Authorization", "Bearer "+plainToken)
 		respOther, err := h.app.Test(reqOther)
@@ -393,7 +383,6 @@ func TestCustomizationRoutesPermissions(t *testing.T) {
 			t.Fatalf("expected 403 for other user accessing private soundscape, got %d", respOther.StatusCode)
 		}
 
-		// Owner request -> 200 OK (or 206 Partial Content)
 		reqOwner := httptest.NewRequest(http.MethodGet, "/api/v1/soundscapes/"+soundID+"/stream", nil)
 		reqOwner.Header.Set("Authorization", "Bearer "+soundToken)
 		respOwner, err := h.app.Test(reqOwner)

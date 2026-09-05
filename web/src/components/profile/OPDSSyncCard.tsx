@@ -46,7 +46,10 @@ export const OPDSSyncCard: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-base-content/60 leading-relaxed">
-            {t("opds.subtitle", "Connect Moon+ Reader, KOReader, Mihon, Yomu, or any e-reader to download books & sync reading progress 2-way.")}
+            {t(
+              "opds.subtitle",
+              "Connect Moon+ Reader, KOReader, Mihon, Yomu, or any e-reader to download books & sync reading progress 2-way.",
+            )}
           </p>
         </div>
       </div>
@@ -57,7 +60,10 @@ export const OPDSSyncCard: React.FC = () => {
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-primary" />
-              {t("opds.v1_label", "OPDS 1.2 Catalog Feed (Moon+, KOReader, Yomu)")}
+              {t(
+                "opds.v1_label",
+                "OPDS 1.2 Catalog Feed (Moon+, KOReader, Yomu)",
+              )}
             </label>
           </div>
           <div className="flex items-center gap-2">
@@ -73,7 +79,11 @@ export const OPDSSyncCard: React.FC = () => {
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === opdsV1Url ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === opdsV1Url ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
             <button
               type="button"
@@ -107,7 +117,11 @@ export const OPDSSyncCard: React.FC = () => {
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === openSearchUrl ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === openSearchUrl ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
           </div>
         </div>
@@ -133,7 +147,11 @@ export const OPDSSyncCard: React.FC = () => {
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === opdsV2Url ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === opdsV2Url ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
           </div>
         </div>
@@ -143,7 +161,10 @@ export const OPDSSyncCard: React.FC = () => {
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5 text-info" />
-              {t("opds.koreader_sync_label", "KOReader 2-Way Progress Sync URL")}
+              {t(
+                "opds.koreader_sync_label",
+                "KOReader 2-Way Progress Sync URL",
+              )}
             </label>
           </div>
           <div className="flex items-center gap-2">
@@ -155,11 +176,17 @@ export const OPDSSyncCard: React.FC = () => {
             />
             <button
               type="button"
-              onClick={() => copyToClipboard(koreaderSyncUrl, "KOReader Sync URL")}
+              onClick={() =>
+                copyToClipboard(koreaderSyncUrl, "KOReader Sync URL")
+              }
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === koreaderSyncUrl ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === koreaderSyncUrl ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
             <button
               type="button"
@@ -177,11 +204,31 @@ export const OPDSSyncCard: React.FC = () => {
         )}
 
         <div className="rounded-xl bg-base-200/50 p-4 text-xs space-y-2">
-          <p className="font-bold text-base-content/80">{t("opds.guide_title", "How to connect Moon+ Reader / KOReader / Mihon:")}</p>
+          <p className="font-bold text-base-content/80">
+            {t(
+              "opds.guide_title",
+              "How to connect Moon+ Reader / KOReader / Mihon:",
+            )}
+          </p>
           <ul className="list-disc list-inside space-y-1 text-base-content/70">
-            <li>{t("opds.step1", "Moon+ Reader: Open Net Library -> Add new catalog -> Enter OPDS Feed URL.")}</li>
-            <li>{t("opds.step2", "KOReader: Open OPDS Catalog -> Add catalog URL or set Kosync Progress Server URL.")}</li>
-            <li>{t("opds.step3", "Authentication: Use your NovelHub account email and password for HTTP Basic Auth.")}</li>
+            <li>
+              {t(
+                "opds.step1",
+                "Moon+ Reader: Open Net Library -> Add new catalog -> Enter OPDS Feed URL.",
+              )}
+            </li>
+            <li>
+              {t(
+                "opds.step2",
+                "KOReader: Open OPDS Catalog -> Add catalog URL or set Kosync Progress Server URL.",
+              )}
+            </li>
+            <li>
+              {t(
+                "opds.step3",
+                "Authentication: Use your NovelHub account email and password for HTTP Basic Auth.",
+              )}
+            </li>
           </ul>
         </div>
       </div>

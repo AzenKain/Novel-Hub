@@ -12,15 +12,8 @@ import (
 )
 
 // KoboAuthService manages the path token a Kobo device authenticates with.
-//
-// baseURL is passed in rather than resolved here: the controller already applies the configured
-// server.url and falls back to the request's own scheme and host.
 type KoboAuthService interface {
-	// EnsureSetup returns the caller's endpoint URL, creating a token if absent. Called when
-	// the user opens the Kobo setup card, so it must be idempotent — regenerating on every
-	// view would silently unpair a working device.
 	EnsureSetup(ctx context.Context, userID, baseURL string) (*response.KoboSetupResponse, error)
-	// RegenerateSetup replaces the token, which is how a user revokes a lost reader.
 	RegenerateSetup(ctx context.Context, userID, baseURL string) (*response.KoboSetupResponse, error)
 	RevokeToken(ctx context.Context, userID string) error
 }
@@ -45,8 +38,6 @@ func (s *koboAuthService) EnsureSetup(ctx context.Context, userID, baseURL strin
 }
 
 func (s *koboAuthService) RegenerateSetup(ctx context.Context, userID, baseURL string) (*response.KoboSetupResponse, error) {
-	// Matches calibre-web's hexlify(urandom(16)): 128 bits, hex-encoded. The token travels in a
-	// URL path, so hex keeps it free of characters needing escaping.
 	buf := make([]byte, 16)
 	if _, err := rand.Read(buf); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "failed to generate Kobo token")
@@ -56,8 +47,6 @@ func (s *koboAuthService) RegenerateSetup(ctx context.Context, userID, baseURL s
 	if err != nil {
 		return nil, err
 	}
-	// A new token means the device must re-sync from scratch; clearing the synced-books
-	// record keeps "NewEntitlement vs ChangedEntitlement" honest for the replacement device.
 	if err := s.repo.ResetSyncedBooks(ctx, userID); err != nil {
 		return nil, err
 	}
@@ -71,12 +60,6 @@ func (s *koboAuthService) RevokeToken(ctx context.Context, userID string) error 
 	return s.repo.ResetSyncedBooks(ctx, userID)
 }
 
-// setupResponse builds the api_endpoint value the user pastes into the device, and flags the one
-// mistake that breaks this setup silently.
-//
-// The token segment comes before /v1/... because the device appends that itself. A Kobo cannot
-// resolve "localhost", so a loopback address is reported back rather than rejected — calibre-web
-// warns about exactly this case when the setup page is opened over loopback.
 func setupResponse(baseURL, token string) *response.KoboSetupResponse {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	endpoint := baseURL + "/kobo/" + token

@@ -129,8 +129,7 @@ func (r *audiobookRepository) UpsertChapter(ctx context.Context, id string, book
 	return result, nil
 }
 
-// ponytail: DeleteChapter nukes the whole chapters cache because the row delete
-// doesn't return book_id; per-book invalidation if cache pressure ever matters.
+// ponytail: DeleteChapter nukes the whole chapters cache because the row delete doesn't return book_id; per-book invalidation if cache pressure ever matters.
 func (r *audiobookRepository) DeleteChapter(ctx context.Context, id string) error {
 	if err := r.queries.DeleteAudiobookChapter(ctx, id); err != nil {
 		return err

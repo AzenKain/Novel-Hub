@@ -1,62 +1,36 @@
 package flac
 
-// Frame header parsing (RFC 9639 section 9.1). Exported because both
-// native-FLAC and Ogg-FLAC containers need it: frame headers carry their
-// own position (frame or sample number), which is what makes FLAC seeks
-// verifiable at the container layer.
+// Frame header parsing (RFC 9639 section 9.1).
 
-// Channel assignments (9.1.4). Values 0-7 are that many plus one
-// independent channels; 8-10 are the stereo decorrelation modes.
 const (
 	assignLeftSide  = 8
 	assignRightSide = 9
 	assignMidSide   = 10
 )
 
-// MaxFrameHeaderLen bounds a frame header: 4 fixed bytes, up to 7 coded
-// number bytes, up to 2 block size bytes, up to 2 sample rate bytes, and
-// the CRC-8. ParseFrameHeader never needs more input than this.
+// MaxFrameHeaderLen bounds a frame header: 4 fixed bytes, up to 7 coded number bytes, up to 2 block size bytes, up to 2 sample rate bytes, and the CRC-8.
 const MaxFrameHeaderLen = 16
 
 // FrameInfo is a parsed frame header.
 type FrameInfo struct {
-	// Variable is the blocking strategy: false means fixed block size
-	// (Coded is a frame number), true means variable (Coded is the frame's
-	// first sample number). It must not change within a stream.
-	Variable bool
-	// Coded is the frame number or sample number, per Variable.
-	Coded uint64
-	// BlockSize is the frame's sample count per channel.
+	Variable  bool
+	Coded     uint64
 	BlockSize int
-	// Rate is the frame's sample rate in Hz, 0 when the header defers to
-	// STREAMINFO.
-	Rate int
-	// Channels is the channel count implied by the assignment.
-	Channels int
-	// Bits is the frame's sample depth, 0 when deferred to STREAMINFO.
-	Bits int
+	Rate      int
+	Channels  int
+	Bits      int
 
-	assign int // raw channel assignment, decoder-internal
-	hdrLen int // header length in bytes including CRC-8
+	assign int
+	hdrLen int
 }
 
-// Numbering resolves frames' coded numbers to sample positions. The
-// decision is a stream-level property, not a per-frame one, so it lives
-// here rather than in each container: pre-1.0 "old format" streams
-// (Flake) code sample numbers with the variable-blocksize bit clear, and
-// unequal STREAMINFO block size bounds are how libFLAC detects them too.
-// Containers latch it once from STREAMINFO and the first frame.
+// Numbering resolves frames' coded numbers to sample positions.
 type Numbering struct {
-	// SampleCoded means coded numbers are sample positions; otherwise
-	// they are frame indexes at a constant block size.
 	SampleCoded bool
-	// ConstBlock is the fixed-strategy constant block size, from the
-	// first frame.
-	ConstBlock int
+	ConstBlock  int
 }
 
-// Numbering latches the stream's coded-number semantics from the first
-// frame.
+// Numbering latches the stream's coded-number semantics from the first frame.
 func (si StreamInfo) Numbering(first FrameInfo) Numbering {
 	return Numbering{
 		SampleCoded: first.Variable || si.MinBlock != si.MaxBlock,
@@ -72,8 +46,7 @@ func (n Numbering) Start(fi FrameInfo) int64 {
 	return int64(fi.Coded) * int64(n.ConstBlock)
 }
 
-// Next returns the coded number the frame following fi must carry, the
-// invariant container/flacn confirms packet boundaries with.
+// Next returns the coded number the frame following fi must carry, the invariant container/flacn confirms packet boundaries with.
 func (n Numbering) Next(fi FrameInfo) uint64 {
 	if n.SampleCoded {
 		return fi.Coded + uint64(fi.BlockSize)
@@ -81,34 +54,24 @@ func (n Numbering) Next(fi FrameInfo) uint64 {
 	return fi.Coded + 1
 }
 
-// blockSizes maps 4-bit codes to fixed block sizes; 0 marks codes that
-// are reserved (0) or read from the header end (6, 7).
 var blockSizes = [16]int{
 	0, 192, 576, 1152, 2304, 4608, 0, 0,
 	256, 512, 1024, 2048, 4096, 8192, 16384, 32768,
 }
 
-// sampleRates maps 4-bit codes to rates in Hz; 0 marks STREAMINFO (0),
-// header-supplied (12-14), and invalid (15) codes.
 var sampleRates = [16]int{
 	0, 88200, 176400, 192000, 8000, 16000, 22050, 24000,
 	32000, 44100, 48000, 96000, 0, 0, 0, 0,
 }
 
-// sampleBits maps 3-bit codes to depths; 0 marks STREAMINFO, -1 reserved.
 var sampleBits = [8]int{0, 8, 12, -1, 16, 20, 24, 32}
 
-// SyncOK reports whether b begins with a frame sync sequence: the 15-bit
-// code 0b111111111111100 followed by the blocking-strategy bit. It is the
-// cheap first test in container resync scans.
+// SyncOK reports whether b begins with a frame sync sequence: the 15-bit code 0b111111111111100 followed by the blocking-strategy bit.
 func SyncOK(b []byte) bool {
 	return len(b) >= 2 && b[0] == 0xFF && b[1]&0xFE == 0xF8
 }
 
-// ParseFrameHeader parses and CRC-checks the frame header at the start of
-// b. It needs at most MaxFrameHeaderLen bytes; short input where the
-// header is truncated is an error. Rate and Bits stay 0 when the header
-// defers to STREAMINFO; the caller resolves them.
+// ParseFrameHeader parses and CRC-checks the frame header at the start of b.
 func ParseFrameHeader(b []byte) (FrameInfo, error) {
 	var fi FrameInfo
 	if len(b) < 5 {
@@ -145,8 +108,6 @@ func ParseFrameHeader(b []byte) (FrameInfo, error) {
 		return fi, malformed("reserved sample size code")
 	}
 
-	// Coded number: a UTF-8-like variable-length integer, up to 36 bits
-	// in up to 7 bytes.
 	pos := 4
 	head := b[pos]
 	pos++
@@ -174,7 +135,6 @@ func ParseFrameHeader(b []byte) (FrameInfo, error) {
 		pos++
 	}
 
-	// Uncommon block size and sample rate follow the coded number.
 	need := 0
 	if bsCode == 6 {
 		need++

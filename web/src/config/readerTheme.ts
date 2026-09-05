@@ -72,7 +72,8 @@ export function getReaderThemeClasses(theme: ReaderTheme): ReaderThemeClasses {
   }
   if (theme === "custom") {
     return {
-      readerBg: "bg-[var(--custom-reader-bg,#1e1e2e)] text-[var(--custom-reader-text,#e5e7eb)]",
+      readerBg:
+        "bg-[var(--custom-reader-bg,#1e1e2e)] text-[var(--custom-reader-text,#e5e7eb)]",
       proseClass: "prose",
       sidebarBg: "bg-[var(--custom-reader-bg,#1e1e2e)] border-white/10",
       headerBg: "bg-[var(--custom-reader-bg,#1e1e2e)]/90 border-white/10",

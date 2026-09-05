@@ -6,27 +6,22 @@ import (
 	"novelhub/pkg/waxflow/container"
 )
 
-// vorbisMapping decodes the Ogg-Vorbis mapping (Vorbis I spec section A.2).
-// Vorbis accumulates: a packet's output length is (previous block size + this
-// block size)/4, so timing is stateful and seeks anchor to page granules.
 type vorbisMapping struct {
 	id, comment, setup []byte
 	cfg                vorbis.Config
 	haveCfg            bool
 	modeBits           int
-	prevBlock          int // previous packet's block size, 0 before the first
+	prevBlock          int
 }
 
 func (m *vorbisMapping) codecID() codec.ID { return codec.Vorbis }
 
-// parseID stashes and lightly validates the identification header; the full
-// parse happens once all three headers are in hand (finalizeTrack).
 func (m *vorbisMapping) parseID(pkt []byte) (int, error) {
 	if len(pkt) < 7 || pkt[0] != 0x01 || string(pkt[1:7]) != "vorbis" {
 		return 0, malformed("vorbis identification header malformed")
 	}
 	m.id = append([]byte(nil), pkt...)
-	return 2, nil // comment + setup headers follow
+	return 2, nil
 }
 
 func (m *vorbisMapping) parseHeader(pkt []byte) error {
@@ -48,8 +43,6 @@ func (m *vorbisMapping) parseHeader(pkt []byte) error {
 	return nil
 }
 
-// isAudio reports an audio packet: the packet type bit (LSB of the first byte)
-// is 0, whereas header packets are odd-typed (1, 3, 5).
 func (m *vorbisMapping) isAudio(pkt []byte) bool {
 	return len(pkt) > 0 && pkt[0]&1 == 0
 }
@@ -62,9 +55,6 @@ func (m *vorbisMapping) finalizeTrack(lastGranule func() int64) (container.Track
 	if err := f.Valid(); err != nil {
 		return container.Track{}, err
 	}
-	// A Vorbis page granule is the cumulative decoded output through that
-	// page's last completed packet (the priming packet emits nothing and
-	// advances it by 0), so the final granule is the playable length.
 	samples := int64(-1)
 	if lg := lastGranule(); lg >= 0 {
 		samples = lg
@@ -79,9 +69,6 @@ func (m *vorbisMapping) finalizeTrack(lastGranule func() int64) (container.Track
 	}, nil
 }
 
-// packetTiming returns the packet's output length from its block size. The
-// first packet primes the overlap and emits nothing (duration 0), matching the
-// decoder; from the second on, output is (prevBlock + block)/4.
 func (m *vorbisMapping) packetTiming(pkt []byte, running int64) (pts, dur int64, sync, ok bool) {
 	if !m.haveCfg || len(pkt) == 0 || pkt[0]&1 != 0 {
 		return 0, 0, false, false
@@ -99,9 +86,6 @@ func (m *vorbisMapping) packetTiming(pkt []byte, running int64) (pts, dur int64,
 
 func (m *vorbisMapping) selfTiming() bool { return false }
 
-// preroll lands a long block before the target so the decoder primes its
-// overlap before the first delivered sample.
 func (m *vorbisMapping) preroll() int64 { return int64(m.cfg.LongBlock()) }
 
-// resetTiming clears the block-size accumulator for a seek restart.
 func (m *vorbisMapping) resetTiming() { m.prevBlock = 0 }

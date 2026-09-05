@@ -10,29 +10,25 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// Decoder decodes a Vorbis I stream into planar float32 buffers. It holds the
-// per-channel overlap state (each packet's output depends on the previous
-// block), so the first packet after New or Reset primes the overlap and emits
-// nothing; format.Media pre-rolls one block on seeks.
+// Decoder decodes a Vorbis I stream into planar float32 buffers.
 type Decoder struct {
 	cfg     Config
 	fmt     audio.Format
-	chOrder []int // output (WAVE) channel -> Vorbis channel
+	chOrder []int
 
 	floors      []floorState
-	spec        [][]float32 // per Vorbis channel, length maxBlock/2
-	prev        [][]float64 // per Vorbis channel, previous windowed block
+	spec        [][]float32
+	prev        [][]float64
 	floorUnused []bool
 	doNotDecode []bool
 	prevN       int
 	havePrev    bool
 
-	// Hot-path scratch, hoisted off the per-frame path.
-	modeBits            int         // bits per mode number, from ModeBits(cfg)
-	planShort, planLong *imdctPlan  // both block sizes' transforms, warmed once
-	residueVec          []float32   // VQ decode scratch, sized to max codebook dim
-	resVecs             [][]float32 // per-submap channel views, reused
-	resSkip             []bool      // per-submap do-not-decode flags, reused
+	modeBits            int
+	planShort, planLong *imdctPlan
+	residueVec          []float32
+	resVecs             [][]float32
+	resSkip             []bool
 
 	timeBuf []float64
 	cr, ci  []float64
@@ -40,7 +36,6 @@ type Decoder struct {
 	maxN    int
 }
 
-// planFor returns the cached transform plan for a block size.
 func (d *Decoder) planFor(n int) *imdctPlan {
 	if n == d.cfg.blockSizes[1] {
 		return d.planLong
@@ -48,8 +43,7 @@ func (d *Decoder) planFor(n int) *imdctPlan {
 	return d.planShort
 }
 
-// NewDecoder returns a decoder for a parsed Config. The track format must be
-// what Config.Format produces.
+// NewDecoder returns a decoder for a parsed Config.
 func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -76,8 +70,6 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 		d.spec[c] = make([]float32, n/2)
 		d.prev[c] = make([]float64, n)
 	}
-	// Warm both plans once (window tables for either neighbour size) and cache
-	// them, so Decode never takes the plan-cache mutex.
 	d.planShort = getPlan(cfg.blockSizes[0])
 	d.planLong = getPlan(cfg.blockSizes[1])
 	d.modeBits = ModeBits(cfg)
@@ -85,11 +77,10 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	return d, nil
 }
 
-// Decode decodes one Vorbis audio packet, emitting one buffer of overlap-added
-// samples (or none for the priming packet after a reset).
+// Decode decodes one Vorbis audio packet, emitting one buffer of overlap-added samples (or none for the priming packet after a reset).
 func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	if len(pkt) == 0 {
-		return nil // Ogg can carry zero-length packets; nothing to decode.
+		return nil
 	}
 	r := newBitReader(pkt)
 	if r.bit() != 0 {
@@ -115,7 +106,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 
 	mp := &d.cfg.mappings[m.mapping]
 
-	// 1. Floors, and clear each channel's residue accumulator.
 	for ch := 0; ch < d.cfg.Channels; ch++ {
 		clear(d.spec[ch][:n2])
 		fl := d.cfg.floors[mp.submaps[mp.mux[ch]].floor]
@@ -127,7 +117,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		d.doNotDecode[ch] = unused
 	}
 
-	// 2. Propagate residue-decode need through coupling (spec 4.3.2).
 	for i := range mp.couplingMag {
 		mag, ang := mp.couplingMag[i], mp.couplingAng[i]
 		if !d.doNotDecode[mag] || !d.doNotDecode[ang] {
@@ -136,7 +125,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		}
 	}
 
-	// 3. Residues, one submap at a time over the channels routed to it.
 	for s := range mp.submaps {
 		vecs := d.resVecs[:0]
 		skip := d.resSkip[:0]
@@ -156,7 +144,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		}
 	}
 
-	// 4. Inverse channel coupling, in reverse order (spec 4.3.2).
 	for i := len(mp.couplingMag) - 1; i >= 0; i-- {
 		mag := d.spec[mp.couplingMag[i]]
 		ang := d.spec[mp.couplingAng[i]]
@@ -180,7 +167,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		}
 	}
 
-	// 5. Apply the floor curve (or silence channels with no floor).
 	for ch := 0; ch < d.cfg.Channels; ch++ {
 		if d.floorUnused[ch] {
 			clear(d.spec[ch][:n2])
@@ -190,8 +176,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		fl.apply(&d.floors[ch], d.spec[ch], n2)
 	}
 
-	// 6. Inverse MDCT, window, overlap-add. The output length depends on both
-	// this block and the previous one.
 	ln, rn := n, n
 	if long {
 		if !prevFlag {
@@ -206,7 +190,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	rightWin := d.planFor(rn).window
 
 	if !d.havePrev {
-		// Prime: transform this block, window it, keep it for the next packet.
 		for ch := 0; ch < d.cfg.Channels; ch++ {
 			plan.imdct(d.spec[ch], d.timeBuf, d.cr, d.ci)
 			applyWindow(d.timeBuf, n, ln, rn, leftWin, rightWin)
@@ -250,9 +233,7 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	return emit(d.out)
 }
 
-// Drain flushes decoder latency. Vorbis emits its final block's overlap on the
-// next packet; at end of stream that trailing half is encoder padding the
-// container trims via gapless, so there is nothing to flush.
+// Drain flushes decoder latency.
 func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 
 // Reset discards overlap state after a seek so the next packet primes.

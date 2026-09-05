@@ -192,8 +192,6 @@ func (s *deviceService) ExecutePushJob(ctx context.Context, payloadJSON string) 
 			return apperrors.New(apperrors.ErrInternalError, "SMTP settings not configured")
 		}
 
-		// ponytail: e-mail delivery is format-picky, KOReader is not — only this branch
-		// narrows the candidates.
 		emailFile, err := resolveEmailAttachment(files, smtpConfig.MaxAttachmentMB)
 		if err != nil {
 			return err

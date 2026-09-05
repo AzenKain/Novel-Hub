@@ -1,4 +1,3 @@
--- Performance indexes for FKs, filtering and sorting
 CREATE INDEX IF NOT EXISTS idx_books_library_id ON books(library_id);
 CREATE INDEX IF NOT EXISTS idx_books_library_created ON books(library_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_books_status_created ON books(status, created_at DESC);

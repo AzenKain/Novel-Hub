@@ -62,14 +62,14 @@ func (r *podcastRepository) WithTx(tx *sql.Tx) PodcastRepository {
 
 func (r *podcastRepository) CreatePodcast(ctx context.Context, id, libraryID, feedURL, title string, description, coverURL, author *string) (*models.PodcastEntity, error) {
 	row, err := r.queries.CreatePodcast(ctx, sqlc.CreatePodcastParams{
-		ID:          id,
-		LibraryID:   libraryID,
-		FeedUrl:     feedURL,
-		Title:       title,
-		Description: convert.StrPtrToNullString(description),
-		CoverUrl:    convert.StrPtrToNullString(coverURL),
-		Author:      convert.StrPtrToNullString(author),
-		AutoDownload: 0,
+		ID:            id,
+		LibraryID:     libraryID,
+		FeedUrl:       feedURL,
+		Title:         title,
+		Description:   convert.StrPtrToNullString(description),
+		CoverUrl:      convert.StrPtrToNullString(coverURL),
+		Author:        convert.StrPtrToNullString(author),
+		AutoDownload:  0,
 		LastCheckedAt: sql.NullTime{},
 	})
 	if err != nil {
@@ -326,8 +326,8 @@ func (r *podcastRepository) GetEpisode(ctx context.Context, id string) (*models.
 
 func (r *podcastRepository) MarkEpisodeDownloaded(ctx context.Context, episodeID string, bookID string) error {
 	if err := r.queries.UpdateEpisodeDownloaded(ctx, sqlc.UpdateEpisodeDownloadedParams{
-		BookID:    sql.NullString{String: bookID, Valid: true},
-		ID:        episodeID,
+		BookID: sql.NullString{String: bookID, Valid: true},
+		ID:     episodeID,
 	}); err != nil {
 		return err
 	}

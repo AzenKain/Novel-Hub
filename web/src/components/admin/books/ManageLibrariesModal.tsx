@@ -46,7 +46,10 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
   };
 
   const submitRename = (id: string) => {
-    if (renameValue.trim() && renameValue.trim() !== libraries.find((l) => l.id === id)?.name) {
+    if (
+      renameValue.trim() &&
+      renameValue.trim() !== libraries.find((l) => l.id === id)?.name
+    ) {
       onRename(id, renameValue.trim());
     }
     setRenaming(null);
@@ -68,7 +71,10 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
         <form onSubmit={onCreate} className="mb-6 flex gap-2">
           <input
             type="text"
-            placeholder={t("admin.library_name_placeholder", "New library name...")}
+            placeholder={t(
+              "admin.library_name_placeholder",
+              "New library name...",
+            )}
             className="input input-bordered flex-1"
             value={newLibraryName}
             onChange={(event) => onNameChange(event.target.value)}
@@ -109,7 +115,10 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium truncate">{library.name}</span>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-base-content/50">
-                      <span className="font-mono text-[10px] select-all truncate max-w-[150px] sm:max-w-[200px]" title={library.id}>
+                      <span
+                        className="font-mono text-[10px] select-all truncate max-w-[150px] sm:max-w-[200px]"
+                        title={library.id}
+                      >
                         {library.id}
                       </span>
                       <button

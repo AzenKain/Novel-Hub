@@ -165,11 +165,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	return v.(*models.UserEntity), nil
 }
 
-// GetAuthByEmail and GetAuthByID deliberately bypass the cache used by GetByEmail
-// and GetByID. The RAM cache serialises entities as JSON, and UserEntity tags
-// PasswordHash and RefreshToken as `json:"-"` so credentials never leak into a
-// response — which means a cached entity comes back with both fields empty. Any
-// caller that compares a password or a refresh token must read the row itself.
+// GetAuthByEmail and GetAuthByID deliberately bypass the cache used by GetByEmail and GetByID.
 func (r *userRepository) GetAuthByEmail(ctx context.Context, email string) (*models.UserEntity, error) {
 	row, err := r.q.GetUserByEmail(ctx, email)
 	if err != nil {
@@ -201,9 +197,6 @@ func (r *userRepository) UpsertUser(ctx context.Context, params sqlc.UpsertUserP
 	}
 	user := (&models.UserEntity{}).FromSqlc(row)
 	if r.c != nil {
-		// ON CONFLICT(email) updates full_name/avatar_url of an existing row, so the
-		// entity keys are stale too — not just the list keys. row.ID is the surviving
-		// row's id, which is not params.ID on the conflict path.
 		_ = r.c.Del(
 			ctx,
 			cache.BuildKey("user", "id", user.ID),
@@ -227,7 +220,6 @@ func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdatePr
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID))
-		// SearchUserIDs and CountUsers both match search_text against full_name.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -367,9 +359,6 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*models.
 		if r.c != nil && !r.inTx {
 			missingToCache := make(map[string]any)
 			for _, missingId := range missingIds {
-				// GetUsersByIDs has no is_deleted filter (admin listings need soft-deleted
-				// rows), but user:id:<id> is the key GetByID reads — caching a deleted row
-				// there resurrects the user for a full TTL. Return it, don't cache it.
 				if u, ok := missingMap[missingId]; ok && !u.IsDeleted {
 					missingToCache[cache.BuildKey("user", "id", missingId)] = u
 				}
@@ -515,9 +504,6 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id string, toke
 	if err := r.q.UpdateUserTokenVersion(ctx, sqlc.UpdateUserTokenVersionParams{ID: id, TokenVersion: tokenVersion}); err != nil {
 		return err
 	}
-	// Inside a transaction the row is not committed yet: a concurrent reader that misses
-	// would re-cache the OLD version and keep the revoked JWT valid for the full TTL.
-	// Callers must invalidate after Commit via InvalidateUserCache.
 	if r.c != nil && !r.inTx {
 		keys := []string{cache.BuildKey("user", "token", id), cache.BuildKey("user", "id", id)}
 		if user != nil && user.Email != "" {
@@ -528,14 +514,7 @@ func (r *userRepository) UpdateTokenVersion(ctx context.Context, id string, toke
 	return nil
 }
 
-// InvalidateUserCache drops every cached view of a user. Call it after tx.Commit() for
-// mutations made through WithTx, whose own invalidation is deferred to avoid re-caching
-// uncommitted state.
-//
-// email is passed in rather than looked up: every caller already holds the entity, a
-// read through GetByID would re-populate the very keys being dropped, and a post-commit
-// DB read would return the NEW email when the key that needs clearing is the old one.
-// Pass "" when unknown — the id-keyed entries still go.
+// InvalidateUserCache drops every cached view of a user.
 func (r *userRepository) InvalidateUserCache(ctx context.Context, id, email string) {
 	if r.c == nil {
 		return

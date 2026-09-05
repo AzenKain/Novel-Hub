@@ -2,13 +2,6 @@ package psy
 
 import "math"
 
-// fftPlan is an iterative radix-2 complex FFT with precomputed
-// bit-reversal and twiddle tables. The model runs one forward transform
-// per block per channel; at 2048 points that is far off any encoder's
-// critical path, so a plain kernel is fine here (dsp/fft holds the shared
-// transform kernels for anything that ever needs a faster one, at the
-// price of re-running the MP3/AAC quality gates, since its operation
-// order differs).
 type fftPlan struct {
 	n   int
 	rev []int
@@ -36,7 +29,6 @@ func newFFTPlan(n int) *fftPlan {
 	return p
 }
 
-// transform runs the forward DFT in place: X[k] = sum x[n] e^(-i2pikn/N).
 func (p *fftPlan) transform(re, im []float64) {
 	n := p.n
 	for i, r := range p.rev {

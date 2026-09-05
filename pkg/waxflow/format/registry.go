@@ -23,25 +23,15 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// driver is one row of the ordered sniff table.
 type driver struct {
-	name  string
-	match func(head []byte) bool
-	// need is how many leading bytes match requires. The sniff read is
-	// sized to the largest registered need (capped at sniffLen), so
-	// probing only ever reads what the current table can use.
-	need int
-	exts []string
-	// mediaType is the container's HTTP media type; direct play serves it
-	// from here so no handler maintains its own container-to-type switch.
+	name      string
+	match     func(head []byte) bool
+	need      int
+	exts      []string
 	mediaType string
 	open      func(src container.Source, opts *Options) (container.Demuxer, error)
 }
 
-// drivers is the explicit ordered magic table (no blank-import
-// registration). The full v1.0 order is: fLaC, RIFF, FORM, OggS, ftyp,
-// EBML, ADTS syncword, MPEG syncword last (it false-positives); entries
-// appear here as their containers land. flac, wav, aiff, and ogg are in.
 var drivers = []driver{
 	{
 		name:      "flac",
@@ -113,8 +103,6 @@ var drivers = []driver{
 			return adts.NewDemuxer(src, &adts.DemuxerOptions{Strict: opts != nil && opts.Strict})
 		},
 	},
-	// The MPEG sync word stays last: it is twelve set bits anywhere in a
-	// window, which false-positives on other formats' payloads.
 	{
 		name:      "mp3",
 		match:     mpa.Match,
@@ -127,10 +115,7 @@ var drivers = []driver{
 	},
 }
 
-// Inputs lists the registered container drivers in sniff order: the
-// read-side capability surface /caps advertises. Probe and /caps never
-// claim what does not work because this is the same table Probe resolves
-// against.
+// Inputs lists the registered container drivers in sniff order: the read-side capability surface /caps advertises.
 func Inputs() []string {
 	names := make([]string, len(drivers))
 	for i := range drivers {
@@ -139,8 +124,7 @@ func Inputs() []string {
 	return names
 }
 
-// MediaTypeFor returns the HTTP media type for a registered container
-// name, or application/octet-stream for anything unregistered.
+// MediaTypeFor returns the HTTP media type for a registered container name, or application/octet-stream for anything unregistered.
 func MediaTypeFor(name string) string {
 	for i := range drivers {
 		if drivers[i].name == name {
@@ -150,8 +134,6 @@ func MediaTypeFor(name string) string {
 	return "application/octet-stream"
 }
 
-// decoders is the codec registry: one table drives both wiring and the
-// Decoders capability list, so the two cannot drift.
 var decoders = []struct {
 	id    codec.ID
 	build func(t container.Track) (codec.Decoder, error)
@@ -212,8 +194,6 @@ func Decoders() []codec.ID {
 	return ids
 }
 
-// newDecoder builds a decoder for a track, capability-gated the same way
-// the driver table is.
 func newDecoder(t container.Track) (codec.Decoder, error) {
 	for i := range decoders {
 		if decoders[i].id == t.Codec {

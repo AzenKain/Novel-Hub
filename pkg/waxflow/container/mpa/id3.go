@@ -2,15 +2,6 @@ package mpa
 
 import "novelhub/pkg/waxflow/container"
 
-// Minimal ID3v2.4 writer for the muxer's leading tag. The mapped set is
-// the descriptive core; everything else (pictures, chapters, freeform
-// fields) belongs to the metadata post-pass a finished file gets, not to
-// a live stream's headers.
-
-// id3Text maps canonical tag keys onto ID3v2.4 text frames, in the fixed
-// order the frames are written. Multi-valued keys join with "; ": the
-// null-separated v2.4 multi-value form confuses enough real players that
-// the single joined string is the safer wire shape for a stream.
 var id3Text = []struct{ key, frame string }{
 	{"TITLE", "TIT2"},
 	{"ARTIST", "TPE1"},
@@ -21,12 +12,8 @@ var id3Text = []struct{ key, frame string }{
 	{"RECORDINGDATE", "TDRC"},
 }
 
-// maxID3Bytes bounds the whole tag; the engine passes a minimal set, and
-// anything past the cap is dropped rather than growing the pre-audio
-// headers without limit.
 const maxID3Bytes = 48 << 10
 
-// id3v2Tag renders tags as an ID3v2.4 tag block, nil when nothing maps.
 func id3v2Tag(tags []container.Tag) []byte {
 	vals := make(map[string][]string, len(tags))
 	for _, t := range tags {
@@ -41,8 +28,8 @@ func id3v2Tag(tags []container.Tag) []byte {
 		}
 		frames = append(frames, id...)
 		frames = appendSyncsafe(frames, uint32(1+len(text)))
-		frames = append(frames, 0, 0) // frame flags
-		frames = append(frames, 3)    // UTF-8 encoding
+		frames = append(frames, 0, 0)
+		frames = append(frames, 3)
 		frames = append(frames, text...)
 	}
 	for _, m := range id3Text {
@@ -57,7 +44,7 @@ func id3v2Tag(tags []container.Tag) []byte {
 	}
 	tag := make([]byte, 0, 10+len(frames))
 	tag = append(tag, "ID3"...)
-	tag = append(tag, 4, 0, 0) // v2.4.0, no flags
+	tag = append(tag, 4, 0, 0)
 	tag = appendSyncsafe(tag, uint32(len(frames)))
 	return append(tag, frames...)
 }
@@ -74,7 +61,6 @@ func joinValues(vs []string) string {
 	return out
 }
 
-// numberPair renders "n" or "n/total" from the first value of each list.
 func numberPair(nums, totals []string) string {
 	n := ""
 	if len(nums) > 0 {

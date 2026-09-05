@@ -16,8 +16,6 @@ import (
 	"novelhub/pkg/worker"
 )
 
-// --- stub PodcastRepository (in-memory) ---
-
 type stubPodcastRepo struct {
 	mu       sync.Mutex
 	podcasts map[string]*models.PodcastEntity
@@ -177,7 +175,7 @@ func TestParseFeed(t *testing.T) {
 	if pod.Title != "Tech Talk" || pod.Author != "Jane Doe" || pod.CoverURL != "https://example.com/cover.jpg" {
 		t.Fatalf("podcast meta = %+v", pod)
 	}
-	if len(pod.Episodes) != 2 { // ep-3 (no enclosure) and no-guid item skipped
+	if len(pod.Episodes) != 2 {
 		t.Fatalf("got %d episodes, want 2 (unusable items skipped)", len(pod.Episodes))
 	}
 	ep1, ep2 := pod.Episodes[0], pod.Episodes[1]
@@ -211,8 +209,6 @@ func TestParseFeedImageFallback(t *testing.T) {
 		t.Fatalf("cover = %q, want image>url fallback", pod.CoverURL)
 	}
 }
-
-// --- refresh: dedup by guid + auto-download enqueues only new episodes ---
 
 func feedHandler(_ *testing.T, body string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -272,7 +268,6 @@ func TestRefreshPodcastDedupByGuidAndAutoDownload(t *testing.T) {
 		t.Fatalf("first refresh enqueued %d downloads, want 2 (new episodes)", firstEnqueued)
 	}
 
-	// second refresh: same feed, no new guids -> 0 downloads, guids unchanged
 	if err := s.RefreshPodcast(context.Background(), "pod-1"); err != nil {
 		t.Fatalf("second refresh: %v", err)
 	}

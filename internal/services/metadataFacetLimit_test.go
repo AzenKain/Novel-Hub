@@ -12,10 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// The facet DTO is now passed straight through from the controller instead of being copied into
-// a service-local struct. The clamp has to stay in the service regardless: pkg/validator only
-// runs on the HTTP path, so a caller that constructs the DTO directly would otherwise ask the
-// database for an unbounded page.
+// The facet DTO is now passed straight through from the controller instead of being copied into a service-local struct.
 func TestListFacetClampsLimitEvenWhenTheValidatorNeverRan(t *testing.T) {
 	_, db := newActivityService(t)
 	c := cache.NewRamCache()

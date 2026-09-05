@@ -32,7 +32,9 @@ export const CustomQRCode: React.FC<CustomQRCodeProps> = ({
   const badgeSize = Math.max(36, Math.floor(size * 0.22));
 
   return (
-    <div className={`flex flex-col items-center justify-center p-4 bg-base-200/50 rounded-2xl border border-base-300 backdrop-blur-sm space-y-3 transition-all ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center p-4 bg-base-200/50 rounded-2xl border border-base-300 backdrop-blur-sm space-y-3 transition-all ${className}`}
+    >
       <div className="relative grid place-items-center rounded-2xl bg-white p-3 shadow-md border border-base-300/50">
         <QRCodeSVG
           value={value}
@@ -52,7 +54,9 @@ export const CustomQRCode: React.FC<CustomQRCodeProps> = ({
               className="w-full h-full object-contain p-0.5 bg-white rounded-lg"
             />
           ) : (
-            <span className="text-xs tracking-tighter uppercase">{getInitials(siteTitle)}</span>
+            <span className="text-xs tracking-tighter uppercase">
+              {getInitials(siteTitle)}
+            </span>
           )}
         </div>
       </div>

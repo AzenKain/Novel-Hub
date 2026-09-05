@@ -20,13 +20,16 @@ export function OTPCodeStep({ email, purpose, onVerified }: Props) {
   const sendCode = () => {
     requestMutation.mutate(
       { email, purpose },
-      { onSuccess: (data) => setCooldown(data.cooldown_seconds) }
+      { onSuccess: (data) => setCooldown(data.cooldown_seconds) },
     );
   };
 
   useEffect(() => {
     if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown((value) => (value <= 1 ? 0 : value - 1)), 1000);
+    const timer = setInterval(
+      () => setCooldown((value) => (value <= 1 ? 0 : value - 1)),
+      1000,
+    );
     return () => clearInterval(timer);
   }, [cooldown]);
 
@@ -42,17 +45,25 @@ export function OTPCodeStep({ email, purpose, onVerified }: Props) {
           onClick={sendCode}
           disabled={requestMutation.isPending || !email}
         >
-          {requestMutation.isPending ? <Loader2 className="animate-spin" size={18} /> : <MailCheck size={18} />}
+          {requestMutation.isPending ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <MailCheck size={18} />
+          )}
           {t("auth.otp_send", "Send verification code")}
         </button>
       ) : (
         <>
           <p className="text-xs text-base-content/60">
-            {t("auth.otp_sent_to", "We sent a 6-digit code to {{email}}.", { email })}
+            {t("auth.otp_sent_to", "We sent a 6-digit code to {{email}}.", {
+              email,
+            })}
           </p>
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">{t("auth.otp_code", "Verification code")}</span>
+              <span className="label-text font-semibold">
+                {t("auth.otp_code", "Verification code")}
+              </span>
             </label>
             <input
               type="text"
@@ -60,7 +71,9 @@ export function OTPCodeStep({ email, purpose, onVerified }: Props) {
               autoComplete="one-time-code"
               maxLength={6}
               value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+              onChange={(event) =>
+                setCode(event.target.value.replace(/\D/g, ""))
+              }
               placeholder="000000"
               className="input input-bordered w-full tracking-[0.5em] text-center font-mono"
             />
@@ -72,11 +85,13 @@ export function OTPCodeStep({ email, purpose, onVerified }: Props) {
             onClick={() =>
               verifyMutation.mutate(
                 { email, purpose, code },
-                { onSuccess: (data) => onVerified(data.otp_ticket) }
+                { onSuccess: (data) => onVerified(data.otp_ticket) },
               )
             }
           >
-            {verifyMutation.isPending ? <Loader2 className="animate-spin" size={18} /> : null}
+            {verifyMutation.isPending ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : null}
             {t("auth.otp_verify", "Verify code")}
           </button>
           <button
@@ -86,7 +101,9 @@ export function OTPCodeStep({ email, purpose, onVerified }: Props) {
             disabled={cooldown > 0 || requestMutation.isPending}
           >
             {cooldown > 0
-              ? t("auth.otp_resend_in", "Resend in {{seconds}}s", { seconds: cooldown })
+              ? t("auth.otp_resend_in", "Resend in {{seconds}}s", {
+                  seconds: cooldown,
+                })
               : t("auth.otp_resend", "Resend code")}
           </button>
         </>

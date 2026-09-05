@@ -45,7 +45,6 @@ RETURNING id, user_id, name, category, file_path, icon, volume, is_system, creat
 -- name: DeleteSoundscape :exec
 DELETE FROM soundscapes WHERE id = ?;
 
-
 -- name: ListCustomFontIDsAccessible :many
 SELECT id FROM custom_fonts
 WHERE (is_system = 1 OR user_id = sqlc.arg('user_id'))
@@ -86,7 +85,6 @@ RETURNING id, user_id, name, font_family, source_type, file_path, font_url, is_s
 
 -- name: DeleteCustomFont :exec
 DELETE FROM custom_fonts WHERE id = ?;
-
 
 -- name: ListCustomThemeIDsAccessible :many
 SELECT id FROM custom_themes

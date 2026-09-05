@@ -2,7 +2,14 @@ import { TopNav } from "@/components/common/TopNav";
 import { getMediaUrl } from "@/config/api";
 import { offlineStore, type OfflineBook } from "@/lib/offlineStore";
 import { useLibraryStore } from "@/stores";
-import { ArrowLeft, BookOpen, CloudDownload, CloudOff, Search, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CloudDownload,
+  CloudOff,
+  Search,
+  Trash2,
+} from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -18,29 +25,40 @@ export const OfflineBooksPage: React.FC = () => {
   const { t } = useTranslation();
   const [books, setBooks] = useState<OfflineBook[]>([]);
   const [coverMap, setCoverMap] = useState<Record<string, string>>({});
-  const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
+  const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(
+    null,
+  );
 
   const { search, setSearch } = useLibraryStore(
-    useShallow((state) => ({ search: state.search, setSearch: state.setSearch }))
+    useShallow((state) => ({
+      search: state.search,
+      setSearch: state.setSearch,
+    })),
   );
 
   const refresh = () => {
-    void offlineStore.listBooks().then(async (list) => {
-      setBooks(list);
-      const newMap: Record<string, string> = {};
-      for (const entry of list) {
-        try {
-          const blob = await offlineStore.getBlob(entry.book.id, "cover");
-          if (blob) {
-            newMap[entry.book.id] = URL.createObjectURL(blob);
+    void offlineStore
+      .listBooks()
+      .then(async (list) => {
+        setBooks(list);
+        const newMap: Record<string, string> = {};
+        for (const entry of list) {
+          try {
+            const blob = await offlineStore.getBlob(entry.book.id, "cover");
+            if (blob) {
+              newMap[entry.book.id] = URL.createObjectURL(blob);
+            }
+          } catch (e) {
+            // ignore
           }
-        } catch (e) {
-          // ignore
         }
-      }
-      setCoverMap(newMap);
-    }).catch(() => setBooks([]));
-    void offlineStore.usage().then(setUsage).catch(() => setUsage(null));
+        setCoverMap(newMap);
+      })
+      .catch(() => setBooks([]));
+    void offlineStore
+      .usage()
+      .then(setUsage)
+      .catch(() => setUsage(null));
   };
 
   useEffect(refresh, []);
@@ -60,9 +78,15 @@ export const OfflineBooksPage: React.FC = () => {
           metaMatch =
             Boolean(meta.series?.toLowerCase().includes(q)) ||
             Boolean(meta.publisher?.toLowerCase().includes(q)) ||
-            Boolean(meta.publishers?.some((p: string) => p.toLowerCase().includes(q))) ||
-            Boolean(meta.creators?.some((c: string) => c.toLowerCase().includes(q))) ||
-            Boolean(meta.subject?.some((s: string) => s.toLowerCase().includes(q)));
+            Boolean(
+              meta.publishers?.some((p: string) => p.toLowerCase().includes(q)),
+            ) ||
+            Boolean(
+              meta.creators?.some((c: string) => c.toLowerCase().includes(q)),
+            ) ||
+            Boolean(
+              meta.subject?.some((s: string) => s.toLowerCase().includes(q)),
+            );
         } catch {
           // ignore invalid json
         }
@@ -79,7 +103,10 @@ export const OfflineBooksPage: React.FC = () => {
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5">
+            <Link
+              to="/"
+              className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5"
+            >
               <ArrowLeft className="h-4 w-4" />
               {t("library.back_to_library", "Back to Library")}
             </Link>
@@ -91,10 +118,12 @@ export const OfflineBooksPage: React.FC = () => {
               </h1>
               {usage && (
                 <span className="text-xs text-base-content/60 font-medium">
-                  ({t("offline.usage", {
+                  (
+                  {t("offline.usage", {
                     used: formatBytes(usage.usage),
                     quota: formatBytes(usage.quota),
-                  })})
+                  })}
+                  )
                 </span>
               )}
             </div>
@@ -107,8 +136,15 @@ export const OfflineBooksPage: React.FC = () => {
               <CloudOff className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-bold text-base text-base-content/80">{t("offline.empty", "No offline books saved yet")}</p>
-              <p className="text-xs text-base-content/50 mt-1">{t("offline.empty_hint", "Books you save for offline reading will appear here.")}</p>
+              <p className="font-bold text-base text-base-content/80">
+                {t("offline.empty", "No offline books saved yet")}
+              </p>
+              <p className="text-xs text-base-content/50 mt-1">
+                {t(
+                  "offline.empty_hint",
+                  "Books you save for offline reading will appear here.",
+                )}
+              </p>
             </div>
           </div>
         ) : filteredBooks.length === 0 ? (
@@ -117,8 +153,15 @@ export const OfflineBooksPage: React.FC = () => {
               <Search className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-bold text-base text-base-content/80">{t("offline.no_match", "No matching offline books found")}</p>
-              <p className="text-xs text-base-content/50 mt-1">{t("offline.no_match_hint", "Try searching for a different title, author, or tag.")}</p>
+              <p className="font-bold text-base text-base-content/80">
+                {t("offline.no_match", "No matching offline books found")}
+              </p>
+              <p className="text-xs text-base-content/50 mt-1">
+                {t(
+                  "offline.no_match_hint",
+                  "Try searching for a different title, author, or tag.",
+                )}
+              </p>
               <button
                 type="button"
                 onClick={() => setSearch("")}
@@ -131,13 +174,20 @@ export const OfflineBooksPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
             {filteredBooks.map((entry) => {
-              const coverUrl = coverMap[entry.book.id] || (entry.book.cover_url ? getMediaUrl(entry.book.cover_url) : null);
+              const coverUrl =
+                coverMap[entry.book.id] ||
+                (entry.book.cover_url
+                  ? getMediaUrl(entry.book.cover_url)
+                  : null);
               return (
                 <div
                   key={entry.book.id}
                   className="group relative flex items-center justify-between gap-3.5 p-3 rounded-2xl border border-base-200 bg-base-100 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all"
                 >
-                  <Link to={`/offline/reader/${entry.book.id}`} className="min-w-0 flex items-center gap-3.5 flex-1">
+                  <Link
+                    to={`/offline/reader/${entry.book.id}`}
+                    className="min-w-0 flex items-center gap-3.5 flex-1"
+                  >
                     <div className="relative aspect-[3/4.2] w-14 shrink-0 rounded-xl overflow-hidden bg-base-200 border border-base-200 shadow-2xs">
                       {coverUrl ? (
                         <img
@@ -162,15 +212,21 @@ export const OfflineBooksPage: React.FC = () => {
                         </p>
                       )}
                       <p className="text-[11px] font-medium text-base-content/45 mt-1">
-                        {t("offline.saved_at", { date: new Date(entry.savedAt).toLocaleDateString() })}
+                        {t("offline.saved_at", {
+                          date: new Date(entry.savedAt).toLocaleDateString(),
+                        })}
                         {" · "}
-                        {t("offline.chapter_count", { count: entry.chapters.length })}
+                        {t("offline.chapter_count", {
+                          count: entry.chapters.length,
+                        })}
                       </p>
                     </div>
                   </Link>
                   <button
                     className="btn btn-sm btn-ghost btn-square text-error hover:bg-error/10 rounded-xl"
-                    onClick={() => void offlineStore.deleteBook(entry.book.id).then(refresh)}
+                    onClick={() =>
+                      void offlineStore.deleteBook(entry.book.id).then(refresh)
+                    }
                     aria-label={t("offline.remove")}
                     title={t("offline.remove", "Remove")}
                   >

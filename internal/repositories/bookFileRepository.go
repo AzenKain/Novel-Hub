@@ -354,9 +354,6 @@ func (r *localBookFileRepository) MoveBookFiles(ctx context.Context, sourceID, t
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	// Mirrors the SQL merge: a filename the target already owns is skipped (INSERT OR
-	// IGNORE dropped that row), target copy wins. meta.json is per-book state and must
-	// not overwrite the target's.
 	entries, err := os.ReadDir(filepath.Join(r.baseDir, sourceID))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -402,8 +399,6 @@ func (r *localBookFileRepository) RemoveBookDir(ctx context.Context, bookID stri
 		return err
 	}
 
-	// ponytail: FUSE may retain an open file briefly; remove only an empty directory
-	// so a newly imported book with the same ID can never be deleted by this callback.
 	time.AfterFunc(500*time.Millisecond, func() {
 		_ = r.withRoot(func(root *os.Root) error {
 			dir, err := root.Open(bookID)

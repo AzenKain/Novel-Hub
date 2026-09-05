@@ -7,8 +7,7 @@ import (
 	"time"
 )
 
-// What N concurrent readers actually cost: wall clock, peak heap, and GC pressure. Benchmarks
-// report per-op averages, which hide the ceiling that decides how many users a box holds.
+// What N concurrent readers actually cost: wall clock, peak heap, and GC pressure.
 func TestRealCBRConcurrentReaderLoad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("load simulation")

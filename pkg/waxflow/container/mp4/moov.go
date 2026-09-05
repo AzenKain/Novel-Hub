@@ -5,59 +5,32 @@ import (
 	"novelhub/pkg/waxflow/codec"
 )
 
-// track is one parsed trak: its handler, media timescale, sample entry
-// codec/config/format, flattened sample table, and edit list.
 type track struct {
-	id        int    // tkhd track_ID
-	handler   string // mdia/hdlr handler_type: "soun", "vide", "text", ...
-	timescale int64  // mdhd timescale (ticks per second)
-	duration  int64  // mdhd duration in timescale ticks
+	id        int
+	handler   string
+	timescale int64
+	duration  int64
 
 	codec       codec.ID
 	codecConfig []byte
 	fmt         audio.Format
 
-	// note is a decoder-limitation Warning for this track (an HE-AAC band
-	// limit), recorded at parse and emitted by selectAudio only if this track
-	// is the one chosen. Empty for a track with nothing to say.
 	note string
 
-	// stsdErr is why parseStsd failed on this track, deferred rather than
-	// propagated. Failing the open outright would reject a file that also
-	// carries a decodable audio track, which opens today; but the failure is
-	// exactly what would have set codec, so without this the track arrives at
-	// selectAudio indistinguishable from one with no sample description at
-	// all, and the codec layer's reason ("audio object type 1 is not
-	// AAC-LC") is lost behind "found: unknown". selectAudio surfaces it only
-	// when nothing at all was selectable.
 	stsdErr error
 
 	st sampleTable
 
-	// First edit-list entry: a nonzero media time is the encoder-delay
-	// priming for gapless (iTunes writes it), segment duration the playable
-	// length in movie ticks.
 	hasEdit    bool
-	editMedia  int64 // media_time in media timescale ticks (-1 = empty edit)
-	editSegDur int64 // segment_duration in movie timescale ticks
+	editMedia  int64
+	editSegDur int64
 
-	// emptyEdit is the blank presentation time the edit list inserts before
-	// the first sample, in movie ticks: the standard way a track states that
-	// it starts late. A chapter track's first chapter start rides here,
-	// because stts times its samples as deltas from zero and so cannot hold
-	// an absolute start; readTextChapters adds it back.
 	emptyEdit int64
 
-	// chapRefs are track_IDs referenced as chapter tracks ('chap' tref).
 	chapRefs []int
 }
 
-// parseMoov walks the movie box, returning the parsed tracks. It records
-// the movie timescale and Nero chapter list on the demuxer.
 func (d *Demuxer) parseMoov(moov []byte) ([]*track, error) {
-	// Pre-scan for mvex so parseStbl knows the movie is fragmented (its sample
-	// tables are empty by design) before it parses any trak; mvex trails the
-	// traks in the box order, so it cannot be discovered during the main walk.
 	_ = walkBoxes(moov, func(typ string, payload []byte) error {
 		if typ == "mvex" {
 			d.parseMvex(payload)
@@ -86,14 +59,11 @@ func (d *Demuxer) parseMoov(moov []byte) ([]*track, error) {
 	return tracks, err
 }
 
-// mvhdTimescale extracts the movie timescale from an mvhd box.
 func mvhdTimescale(payload []byte) int64 {
 	version, _, rest, ok := fullBox(payload)
 	if !ok {
 		return 0
 	}
-	// version 0: creation(4) modification(4) timescale(4) duration(4)
-	// version 1: creation(8) modification(8) timescale(4) duration(8)
 	off := 8
 	if version == 1 {
 		off = 16
@@ -128,14 +98,11 @@ func (d *Demuxer) parseTrak(t *track, body []byte, depth int) error {
 	})
 }
 
-// tkhdTrackID extracts the track_ID from a tkhd box.
 func tkhdTrackID(payload []byte) int {
 	version, _, rest, ok := fullBox(payload)
 	if !ok {
 		return 0
 	}
-	// version 0: creation(4) modification(4) track_ID(4)
-	// version 1: creation(8) modification(8) track_ID(4)
 	off := 8
 	if version == 1 {
 		off = 16
@@ -163,33 +130,28 @@ func (d *Demuxer) parseMdia(t *track, body []byte, depth int) error {
 	})
 }
 
-// mdhdTime extracts the media timescale and duration from an mdhd box.
 func mdhdTime(payload []byte) (timescale, duration int64) {
 	version, _, rest, ok := fullBox(payload)
 	if !ok {
 		return 0, 0
 	}
 	if version == 1 {
-		// creation(8) modification(8) timescale(4) duration(8)
 		if len(rest) < 28 {
 			return 0, 0
 		}
 		return int64(be32(rest[16:])), int64(be64(rest[20:]))
 	}
-	// creation(4) modification(4) timescale(4) duration(4)
 	if len(rest) < 16 {
 		return 0, 0
 	}
 	return int64(be32(rest[8:])), int64(be32(rest[12:]))
 }
 
-// hdlrType extracts the four-character handler type from an hdlr box.
 func hdlrType(payload []byte) string {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 8 {
 		return ""
 	}
-	// pre_defined(4) handler_type(4)
 	return trimBrand(rest[4:8])
 }
 
@@ -205,13 +167,6 @@ func (d *Demuxer) parseMinf(t *track, body []byte, depth int) error {
 	})
 }
 
-// parseElst reads the edit list. For gapless the meaningful values are the
-// first non-empty edit's media_time (the encoder-delay priming iTunes
-// writes) and the total played duration (sum of segment durations over
-// non-empty edits, in movie ticks). An empty edit (media_time -1) consumes no
-// media and so contributes no delay, but its segment duration is kept: it is
-// how a track states that its presentation starts late, which is the whole of
-// a chapter track's first start.
 func parseElst(t *track, payload []byte) {
 	version, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 4 {
@@ -239,31 +194,25 @@ func parseElst(t *track, payload []byte) {
 			mt = int64(int32(be32(e[4:])))
 		}
 		if mt < 0 {
-			// An empty edit: blank time, no media consumed. Only a leading run
-			// of them offsets the first sample, which is the offset wanted here;
-			// one between two real edits is a gap mid-track, and a sample table
-			// read straight through cannot express it anyway.
 			if mediaTime < 0 && segDur > 0 {
 				empty += segDur
 			}
 			continue
 		}
 		if mediaTime < 0 {
-			mediaTime = mt // first real edit's start offset
+			mediaTime = mt
 		}
 		totalSeg += segDur
 	}
 	t.emptyEdit = empty
 	if mediaTime < 0 {
-		return // only empty edits; nothing to trim
+		return
 	}
 	t.hasEdit = true
 	t.editMedia = mediaTime
 	t.editSegDur = totalSeg
 }
 
-// parseTref records chapter track references so a text chapter track can
-// be matched to its audio track.
 func parseTref(t *track, body []byte) {
 	_ = walkBoxes(body, func(typ string, payload []byte) error {
 		if typ == "chap" {

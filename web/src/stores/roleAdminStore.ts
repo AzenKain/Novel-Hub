@@ -16,12 +16,22 @@ interface RoleAdminState {
   form: { name: string; description: string; auto_assign: boolean };
   roleToDelete: Role | null;
 
-  setSelectedRole: (role: Role | null | ((prev: Role | null) => Role | null)) => void;
+  setSelectedRole: (
+    role: Role | null | ((prev: Role | null) => Role | null),
+  ) => void;
   setError: (error: string) => void;
-  setAssignments: (assignments: PermissionAssignment[] | ((prev: PermissionAssignment[]) => PermissionAssignment[])) => void;
+  setAssignments: (
+    assignments:
+      | PermissionAssignment[]
+      | ((prev: PermissionAssignment[]) => PermissionAssignment[]),
+  ) => void;
   setShowModal: (show: boolean) => void;
   setModalMode: (mode: "create" | "edit") => void;
-  setForm: (form: { name: string; description: string; auto_assign: boolean } | ((prev: any) => any)) => void;
+  setForm: (
+    form:
+      | { name: string; description: string; auto_assign: boolean }
+      | ((prev: any) => any),
+  ) => void;
   setRoleToDelete: (role: Role | null) => void;
 
   reset: () => void;
@@ -42,12 +52,27 @@ const initialState = {
 export const useRoleAdminStore = create<RoleAdminState>((set) => ({
   ...initialState,
 
-  setSelectedRole: (selectedRole) => set((state) => ({ selectedRole: typeof selectedRole === "function" ? selectedRole(state.selectedRole) : selectedRole })),
+  setSelectedRole: (selectedRole) =>
+    set((state) => ({
+      selectedRole:
+        typeof selectedRole === "function"
+          ? selectedRole(state.selectedRole)
+          : selectedRole,
+    })),
   setError: (error) => set({ error }),
-  setAssignments: (assignments) => set((state) => ({ assignments: typeof assignments === "function" ? assignments(state.assignments) : assignments })),
+  setAssignments: (assignments) =>
+    set((state) => ({
+      assignments:
+        typeof assignments === "function"
+          ? assignments(state.assignments)
+          : assignments,
+    })),
   setShowModal: (showModal) => set({ showModal }),
   setModalMode: (modalMode) => set({ modalMode }),
-  setForm: (form) => set((state) => ({ form: typeof form === "function" ? form(state.form) : form })),
+  setForm: (form) =>
+    set((state) => ({
+      form: typeof form === "function" ? form(state.form) : form,
+    })),
   setRoleToDelete: (roleToDelete) => set({ roleToDelete }),
 
   reset: () => set(initialState),

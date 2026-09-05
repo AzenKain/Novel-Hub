@@ -183,7 +183,7 @@ export interface HardcoverSettingsAdmin {
   client_secret_set: boolean;
 }
 
-export interface AdminSettings extends Omit<PublicSettings, 'oauth'> {
+export interface AdminSettings extends Omit<PublicSettings, "oauth"> {
   limits: RuntimeLimits;
   bounds: RuntimeLimitBounds;
   smtp: SmtpSettings;
@@ -326,4 +326,3 @@ export interface CacheStats {
   max_cost: number;
   entry_count: number;
 }
-

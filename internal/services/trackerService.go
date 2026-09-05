@@ -58,9 +58,6 @@ func (s *trackerService) SearchAniListMedia(ctx context.Context, title string) (
 		}
 	}
 
-	// ponytail: two sequential calls (manga + anime) instead of one aliased query;
-	// AniList has no combined "search across types" field, and this keeps each
-	// GraphQL query simple. Revisit if AniList adds a type-agnostic search.
 	results := make([]response.TrackerSearchResultResponse, 0, 10)
 	for _, mediaType := range []string{"MANGA", "ANIME"} {
 		found, err := s.fetchAniListMediaBySearch(ctx, cleanTitle, mediaType)
@@ -177,8 +174,6 @@ func (s *trackerService) fetchAniListMediaBySearch(ctx context.Context, cleanTit
 	return results, nil
 }
 
-// doAniListRequest posts a GraphQL payload to AniList and decodes the response into out.
-// Pass a non-empty bearerToken to authenticate a mutation.
 func (s *trackerService) doAniListRequest(ctx context.Context, payload map[string]any, bearerToken string, out any) error {
 	bodyBytes, err := jsonx.Marshal(payload)
 	if err != nil {
@@ -213,8 +208,7 @@ func (s *trackerService) doAniListRequest(ctx context.Context, payload map[strin
 	return jsonx.Unmarshal(respBody, out)
 }
 
-// The mapping is scoped to userID: the sync that follows writes to that user's own tracker
-// account, so which external series a book points at is per reader, not per instance.
+// The mapping is scoped to userID: the sync that follows writes to that user's own tracker account, so which external series a book points at is per reader, not per instance.
 func (s *trackerService) GetOrMapBookTrackerID(ctx context.Context, userID string, bookID string, title string, provider string) (string, error) {
 	mapping, err := s.repo.GetBookTrackerMapping(ctx, userID, bookID, provider)
 	if err == nil && mapping != nil && mapping.ExternalSeriesID != "" {
@@ -242,8 +236,6 @@ func (s *trackerService) SyncAniListProgress(ctx context.Context, userID string,
 		return apperrors.New(apperrors.ErrNotFound, "AniList integration not connected for user")
 	}
 
-	// AniList's GraphQL schema expects mediaId as Int; mediaID here is the string form
-	// stored in book_tracker_mappings, so it must be converted before building the payload.
 	mediaIDInt, err := strconv.Atoi(mediaID)
 	if err != nil {
 		return apperrors.New(apperrors.ErrBadRequest, "Invalid AniList media ID")
@@ -316,8 +308,6 @@ func (s *trackerService) SaveUserTracker(ctx context.Context, userID string, pro
 	return nil
 }
 
-// Known user-connectable trackers. Tokens are stored AES-encrypted by the
-// repository; this surface never returns them, only per-provider state.
 var trackerConnectionProviders = []string{"anilist", "readwise", "hardcover"}
 
 func (s *trackerService) GetUserTrackerConnections(ctx context.Context, userID string) ([]response.TrackerConnectionResponse, error) {

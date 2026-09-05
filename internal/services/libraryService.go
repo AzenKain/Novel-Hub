@@ -85,8 +85,6 @@ func (s *libraryService) GetLibrary(ctx context.Context, id string, claims *resp
 	return lib.ToResponse(), nil
 }
 
-// The library.read grant alone is not enough: GUEST holds it by default, and what actually closes
-// a library to visitors is the guest_access setting. Both are checked here, as CanReadBook does.
 func (s *libraryService) canReadLibrary(claims *response.JWTClaims, libraryID string) bool {
 	if isGuestClaims(claims) && !s.settings.GuestAllows(libraryID) {
 		return false
@@ -112,8 +110,7 @@ func (s *libraryService) ListLibraries(ctx context.Context, claims *response.JWT
 	return models.LibraryEntitiesToResponse(visible), nil
 }
 
-// Returns the ids the caller may read, for queries that scope by library rather than filter after
-// the fact. An empty slice means "nothing readable" and callers must render it as no rows.
+// Returns the ids the caller may read, for queries that scope by library rather than filter after the fact.
 func (s *libraryService) ReadableLibraryIDs(ctx context.Context, claims *response.JWTClaims) ([]string, error) {
 	libs, err := s.libraryRepo.ListLibraries(ctx)
 	if err != nil {
@@ -175,7 +172,6 @@ func (s *libraryService) DeleteLibrary(ctx context.Context, id string) error {
 func (s *libraryService) ProcessDeleteLibrary(ctx context.Context, id string) error {
 	log.Info().Str("library_id", id).Msg("starting deletion of library and associated book contents")
 
-	// Batch delete all books in the library to prevent long DB locks and timeouts
 	const batchSize = 500
 	for {
 		bookIDs, err := s.bookRepo.ListBookIDsByLibrary(ctx, id, batchSize)
@@ -187,7 +183,6 @@ func (s *libraryService) ProcessDeleteLibrary(ctx context.Context, id string) er
 			break
 		}
 
-		// Delete FTS and DB records for this batch
 		for _, bID := range bookIDs {
 			_ = s.bookRepo.DeleteFTSBook(ctx, bID)
 		}
@@ -195,18 +190,15 @@ func (s *libraryService) ProcessDeleteLibrary(ctx context.Context, id string) er
 			log.Error().Err(err).Str("library_id", id).Msg("failed to bulk delete books batch during library deletion")
 		}
 
-		// Remove physical files on disk for this batch
 		for _, bID := range bookIDs {
 			if err := s.fileRepo.RemoveBookDir(ctx, bID); err != nil {
 				log.Warn().Err(err).Str("book_id", bID).Msg("failed to remove book directory during library deletion")
 			}
 		}
 
-		// Flush cache for deleted batch
 		s.bookRepo.FlushCache(ctx)
 	}
 
-	// Delete the library record itself and purge RAM cache
 	if err := s.libraryRepo.DeleteLibrary(ctx, id); err != nil {
 		log.Error().Err(err).Str("library_id", id).Msg("failed to delete library record")
 		return err
@@ -216,7 +208,6 @@ func (s *libraryService) ProcessDeleteLibrary(ctx context.Context, id string) er
 	return nil
 }
 
-// ponytail: flat cap, not a per-user quota. Each file enqueues 2 bounded jobs plus a DB row.
 const maxUploadFiles = 200
 
 func (s *libraryService) UploadFiles(ctx context.Context, libraryID string, files []*multipart.FileHeader) (*response.LibraryUploadResultResponse, error) {

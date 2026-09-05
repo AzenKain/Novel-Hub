@@ -1,4 +1,3 @@
--- Reset podcast episode download state when the corresponding book is deleted.
 CREATE TRIGGER IF NOT EXISTS trg_books_deleted_update_podcast_episodes
 AFTER DELETE ON books
 FOR EACH ROW

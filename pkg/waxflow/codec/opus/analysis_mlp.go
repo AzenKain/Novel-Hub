@@ -1,11 +1,5 @@
 package opus
 
-// Tonality analyser MLP, ported from libopus src/mlp.c and src/mlp.h. The
-// int8 layer weights live in silk_enc_tables_gen.go (mechanically extracted
-// from src/mlp_data.c). The network is a 25-input dense layer, a 24-unit
-// GRU, and a 2-output sigmoid dense layer producing the music and activity
-// probabilities.
-
 const (
 	mlpWeightsScale = 1.0 / 128
 	mlpMaxNeurons   = 32
@@ -50,7 +44,6 @@ var analysisLayer2 = analysisDenseLayer{
 	sigmoid:      true,
 }
 
-// tansigApprox is the rational tanh approximation (mlp.c tansig_approx).
 func tansigApprox(x float32) float32 {
 	const (
 		n0 = 952.52801514
@@ -77,8 +70,6 @@ func sigmoidApprox(x float32) float32 {
 	return 0.5 + 0.5*tansigApprox(0.5*x)
 }
 
-// gemmAccum accumulates weights*x into out; weights are column-major with the
-// given stride (mlp.c gemm_accum).
 func gemmAccum(out []float32, weights []int8, rows, cols, colStride int, x []float32) {
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -87,7 +78,6 @@ func gemmAccum(out []float32, weights []int8, rows, cols, colStride int, x []flo
 	}
 }
 
-// computeDense evaluates a dense layer (analysis_compute_dense).
 func (l *analysisDenseLayer) compute(output, input []float32) {
 	N := l.nbNeurons
 	for i := 0; i < N; i++ {
@@ -108,14 +98,12 @@ func (l *analysisDenseLayer) compute(output, input []float32) {
 	}
 }
 
-// computeGRU evaluates one GRU step in place on state (analysis_compute_gru).
 func (g *analysisGRULayer) compute(state, input []float32) {
 	M := g.nbInputs
 	N := g.nbNeurons
 	stride := 3 * N
 	var tmp, z, r, h [mlpMaxNeurons]float32
 
-	// Update gate.
 	for i := 0; i < N; i++ {
 		z[i] = float32(g.bias[i])
 	}
@@ -125,7 +113,6 @@ func (g *analysisGRULayer) compute(state, input []float32) {
 		z[i] = sigmoidApprox(mlpWeightsScale * z[i])
 	}
 
-	// Reset gate.
 	for i := 0; i < N; i++ {
 		r[i] = float32(g.bias[N+i])
 	}
@@ -135,7 +122,6 @@ func (g *analysisGRULayer) compute(state, input []float32) {
 		r[i] = sigmoidApprox(mlpWeightsScale * r[i])
 	}
 
-	// Output.
 	for i := 0; i < N; i++ {
 		h[i] = float32(g.bias[2*N+i])
 	}

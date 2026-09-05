@@ -67,18 +67,18 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
             t(
               "doctor.repair_success",
               "Repaired {{count}} structural issues successfully!",
-              { count: res.fixed_count }
-            )
+              { count: res.fixed_count },
+            ),
           );
           refetch();
         },
         onError: (err: any) => {
           toast.error(
             err?.message ||
-              t("doctor.repair_failed", "Failed to repair EPUB structure")
+              t("doctor.repair_failed", "Failed to repair EPUB structure"),
           );
         },
-      }
+      },
     );
   };
 
@@ -95,7 +95,6 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-base-200">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
@@ -104,7 +103,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
             <div>
               <h3 className="font-bold text-lg flex items-center gap-2">
                 {t("doctor.modal_title", "Book Doctor")}
-                <span className="badge badge-sm badge-outline">EPUB Repair</span>
+                <span className="badge badge-sm badge-outline">
+                  EPUB Repair
+                </span>
               </h3>
               <p className="text-xs text-base-content/60 truncate max-w-md">
                 {bookTitle || bookId}
@@ -139,7 +140,10 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
             <div className="flex flex-col items-center justify-center py-12 space-y-3">
               <span className="loading loading-spinner loading-lg text-primary" />
               <p className="text-sm text-base-content/70">
-                {t("doctor.diagnosing", "Diagnosing EPUB structure and syntax...")}
+                {t(
+                  "doctor.diagnosing",
+                  "Diagnosing EPUB structure and syntax...",
+                )}
               </p>
             </div>
           ) : report ? (
@@ -155,7 +159,7 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                     <p className="text-xs text-base-content/70">
                       {t(
                         "doctor.status_healthy_desc",
-                        "No XML syntax errors, broken links, or missing manifest declarations found."
+                        "No XML syntax errors, broken links, or missing manifest declarations found.",
                       )}
                     </p>
                   </div>
@@ -165,13 +169,16 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                   <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
                   <div>
                     <h4 className="font-bold text-sm text-warning">
-                      {t("doctor.status_issues_found", "Structural Issues Detected")}
+                      {t(
+                        "doctor.status_issues_found",
+                        "Structural Issues Detected",
+                      )}
                     </h4>
                     <p className="text-xs text-base-content/70">
                       {t(
                         "doctor.status_issues_desc",
                         "Found {{errors}} errors and {{warnings}} warnings that may cause reader crashes or missing chapters.",
-                        { errors: report.errors, warnings: report.warnings }
+                        { errors: report.errors, warnings: report.warnings },
                       )}
                     </p>
                   </div>
@@ -184,7 +191,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                   <span className="text-xs text-base-content/60 block">
                     {t("doctor.errors", "Errors")}
                   </span>
-                  <span className={`text-xl font-bold ${report.errors > 0 ? "text-error" : "text-base-content"}`}>
+                  <span
+                    className={`text-xl font-bold ${report.errors > 0 ? "text-error" : "text-base-content"}`}
+                  >
                     {report.errors}
                   </span>
                 </div>
@@ -192,7 +201,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                   <span className="text-xs text-base-content/60 block">
                     {t("doctor.warnings", "Warnings")}
                   </span>
-                  <span className={`text-xl font-bold ${report.warnings > 0 ? "text-warning" : "text-base-content"}`}>
+                  <span
+                    className={`text-xl font-bold ${report.warnings > 0 ? "text-warning" : "text-base-content"}`}
+                  >
                     {report.warnings}
                   </span>
                 </div>
@@ -210,9 +221,13 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
               {report.issues.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
-                    {t("doctor.detected_issues", "Detected Issues ({{count}})", {
-                      count: report.issues.length,
-                    })}
+                    {t(
+                      "doctor.detected_issues",
+                      "Detected Issues ({{count}})",
+                      {
+                        count: report.issues.length,
+                      },
+                    )}
                   </h4>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {report.issues.map((issue, idx) => (
@@ -243,7 +258,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                               </span>
                             )}
                           </div>
-                          <p className="text-base-content/80">{issue.message}</p>
+                          <p className="text-base-content/80">
+                            {issue.message}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -264,7 +281,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       checked={!!options.fix_xhtml}
                       onChange={() => toggleOption("fix_xhtml")}
                     />
-                    <span>{t("doctor.opt_xhtml", "Fix XHTML & XML Entities")}</span>
+                    <span>
+                      {t("doctor.opt_xhtml", "Fix XHTML & XML Entities")}
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 p-2.5 rounded-lg bg-base-200/40 cursor-pointer hover:bg-base-200/70">
                     <input
@@ -273,7 +292,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       checked={!!options.normalize_mimetype}
                       onChange={() => toggleOption("normalize_mimetype")}
                     />
-                    <span>{t("doctor.opt_mimetype", "Normalize Mimetype Entry")}</span>
+                    <span>
+                      {t("doctor.opt_mimetype", "Normalize Mimetype Entry")}
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 p-2.5 rounded-lg bg-base-200/40 cursor-pointer hover:bg-base-200/70">
                     <input
@@ -282,7 +303,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       checked={!!options.reconcile_manifest}
                       onChange={() => toggleOption("reconcile_manifest")}
                     />
-                    <span>{t("doctor.opt_manifest", "Reconcile Manifest & Spine")}</span>
+                    <span>
+                      {t("doctor.opt_manifest", "Reconcile Manifest & Spine")}
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 p-2.5 rounded-lg bg-base-200/40 cursor-pointer hover:bg-base-200/70">
                     <input
@@ -291,7 +314,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       checked={!!options.fix_toc}
                       onChange={() => toggleOption("fix_toc")}
                     />
-                    <span>{t("doctor.opt_toc", "Fix NCX & Nav Navigation")}</span>
+                    <span>
+                      {t("doctor.opt_toc", "Fix NCX & Nav Navigation")}
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 p-2.5 rounded-lg bg-base-200/40 cursor-pointer hover:bg-base-200/70">
                     <input
@@ -309,7 +334,9 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       checked={!!options.fix_metadata}
                       onChange={() => toggleOption("fix_metadata")}
                     />
-                    <span>{t("doctor.opt_metadata", "Ensure EPUB3 Metadata")}</span>
+                    <span>
+                      {t("doctor.opt_metadata", "Ensure EPUB3 Metadata")}
+                    </span>
                   </label>
                 </div>
               </div>
@@ -324,11 +351,19 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                   >
                     <span className="flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4 text-success" />
-                      {t("doctor.last_repair_logs", "Last Repair Logs ({{count}} fixes)", {
-                        count: lastLogs.length,
-                      })}
+                      {t(
+                        "doctor.last_repair_logs",
+                        "Last Repair Logs ({{count}} fixes)",
+                        {
+                          count: lastLogs.length,
+                        },
+                      )}
                     </span>
-                    {showLogs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {showLogs ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </button>
                   {showLogs && (
                     <div className="p-3 bg-base-300/30 max-h-40 overflow-y-auto space-y-1 font-mono text-[11px] text-base-content/80">
@@ -370,6 +405,6 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

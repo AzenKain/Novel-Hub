@@ -73,7 +73,6 @@ func TestGenerateApkg_Success(t *testing.T) {
 		t.Fatal("GenerateApkg returned empty bytes")
 	}
 
-	// Validate zip archive
 	zipReader, err := zip.NewReader(bytes.NewReader(apkgBytes), int64(len(apkgBytes)))
 	if err != nil {
 		t.Fatalf("failed to read generated zip: %v", err)
@@ -107,7 +106,6 @@ func TestGenerateApkg_Success(t *testing.T) {
 		t.Fatal("media file not found in .apkg zip")
 	}
 
-	// Validate the extracted SQLite collection database
 	tmpDb, err := os.CreateTemp("", "test-anki-verify-*.db")
 	if err != nil {
 		t.Fatalf("failed to create temp verify db: %v", err)

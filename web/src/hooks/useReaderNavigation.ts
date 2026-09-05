@@ -10,7 +10,8 @@ type UseReaderNavigationArgs = {
   chapters: Chapter[];
   scrollLayout: boolean;
   loadChapter: (chapter: Chapter) => void | Promise<void>;
-  getPagedScrollMetrics: () => { container: Element; scrollStep: number; maxIndex: number } | undefined;
+  getPagedScrollMetrics: () =>
+    { container: Element; scrollStep: number; maxIndex: number } | undefined;
   scrollToPageIndex: (targetIndex: number, instant?: boolean) => void;
   onPagePrev?: () => void;
   onPageNext?: () => void;
@@ -19,16 +20,7 @@ type UseReaderNavigationArgs = {
   onImageClick?: (target: { image_url: string; x: number; y: number }) => void;
 };
 
-/**
- * Handles links inside chapter HTML: in-page `#fragment` anchors, `section:`
- * links, and the API `/chapter/` and `/asset/` URLs the backend rewrites hrefs
- * into. Also resolves a fragment to a scroll position or page.
- *
- * In paged mode (single/double), supports 1/3 click zones:
- * - Left 33%: Previous page
- * - Right 33%: Next page
- * - Center 33%: Center tap
- */
+/** Handles chapter HTML links and navigation. */
 export function useReaderNavigation({
   columnsRef,
   pendingFragmentRef,
@@ -48,13 +40,18 @@ export function useReaderNavigation({
     if (!normalized) return;
     const root = columnsRef.current;
     if (!root) return;
-    const escaped = typeof CSS !== "undefined" && typeof CSS.escape === "function"
-      ? CSS.escape(normalized)
-      : normalized.replace(/["\\.#:[\]>+~()]/g, "\\$&");
+    const escaped =
+      typeof CSS !== "undefined" && typeof CSS.escape === "function"
+        ? CSS.escape(normalized)
+        : normalized.replace(/["\\.#:[\]>+~()]/g, "\\$&");
     const target = root.querySelector<HTMLElement>(`#${escaped}`);
     if (!target) return;
     if (scrollLayout) {
-      target.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "start",
+      });
       return;
     }
     // paged: jump to the page containing the target element
@@ -84,7 +81,7 @@ export function useReaderNavigation({
         if (href.startsWith("section:")) {
           e.preventDefault();
           const [sectionPath, fragment = ""] = href.split("#");
-          const found = chapters.find(ch => ch.content_path === sectionPath);
+          const found = chapters.find((ch) => ch.content_path === sectionPath);
           if (found) {
             pendingFragmentRef.current = fragment || null;
             void loadChapter(found);
@@ -96,7 +93,7 @@ export function useReaderNavigation({
           const parts = href.split("/chapter/");
           if (parts.length > 1) {
             const chId = parts[1].split("#")[0];
-            const found = chapters.find(ch => ch.id === chId);
+            const found = chapters.find((ch) => ch.id === chId);
             if (found) {
               void loadChapter(found);
               return;
@@ -107,11 +104,17 @@ export function useReaderNavigation({
           e.preventDefault();
           const parts = href.split("/asset/");
           if (parts.length > 1) {
-            const resolvedPath = decodeURIComponent(parts[1].split("#")[0].split("?")[0]);
+            const resolvedPath = decodeURIComponent(
+              parts[1].split("#")[0].split("?")[0],
+            );
             const targetPath = resolvedPath.toLowerCase().replace(/^\/+/, "");
-            const found = chapters.find(ch => {
+            const found = chapters.find((ch) => {
               const chPath = ch.content_path?.toLowerCase().replace(/^\/+/, "");
-              return chPath === targetPath || (chPath && targetPath.endsWith(chPath)) || (chPath && chPath.endsWith(targetPath));
+              return (
+                chPath === targetPath ||
+                (chPath && targetPath.endsWith(chPath)) ||
+                (chPath && chPath.endsWith(targetPath))
+              );
             });
             if (found) {
               void loadChapter(found);
@@ -131,10 +134,14 @@ export function useReaderNavigation({
       if (selection) return;
 
       // Don't turn pages if clicking interactive buttons, inputs, or toolbars
-      if (target.closest("button, input, textarea, select, [data-reader-toolbar]")) return;
+      if (
+        target.closest("button, input, textarea, select, [data-reader-toolbar]")
+      )
+        return;
 
       const rect = e.currentTarget.getBoundingClientRect();
-      const screenWidth = typeof window !== "undefined" ? window.innerWidth : rect.width;
+      const screenWidth =
+        typeof window !== "undefined" ? window.innerWidth : rect.width;
       const sideRatio = getSideTapRatio(screenWidth);
 
       if (sideRatio > 0) {

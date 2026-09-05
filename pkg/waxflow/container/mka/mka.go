@@ -1,28 +1,4 @@
-// Package mka demuxes Matroska and WebM (ISO/IEC 14496 EBML) audio: the
-// .mka/.mkv/.webm family carrying Opus, Vorbis, FLAC, AAC-LC, or PCM. It
-// parses the Segment's SeekHead, Info, and Tracks, selects the audio track,
-// and streams block frames from the clusters as codec packets.
-//
-// Seeking uses a frame-counted cluster index rather than the container's
-// Cues: a block timestamp is millisecond-granular and cannot name a sample
-// position, whereas format.Media's pre-roll needs the exact decoder-output
-// position of the cluster it restarts on. That same walk yields the exact
-// total gapless needs. Cues bound how far the walk runs rather than supplying
-// a position, so a wrong index can only make a landing earlier, never wrong.
-//
-// Gapless trims come from the track's CodecDelay (front) and the last
-// block's DiscardPadding (end), mapped onto Track.Delay/Padding so
-// format.Media delivers the trimmed timeline. These are the Opus-in-WebM
-// gapless mechanism; other codecs rarely signal them.
-//
-// EBML is a nesting attack surface, so the parser holds to the hostile-input
-// invariants: a fixed, shallow descent that never recurses on attacker-chosen
-// depth (each master element is walked by a specific parser, and unknown
-// masters are treated as leaves, not descended), every element size validated
-// against remaining input before any allocation, table and frame-count caps,
-// and a progress guarantee on every parse loop. The Segment header (SeekHead,
-// Info, Tracks) is read into bounded buffers and parsed from memory; cluster
-// block data stays on disk and only the bytes a packet needs are read.
+// Package mka demuxes Matroska and WebM (ISO/IEC 14496 EBML) audio: the .mka/.mkv/.webm family carrying Opus, Vorbis, FLAC, AAC-LC, or PCM.
 package mka
 
 import (
@@ -32,47 +8,19 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// Hostile-input caps.
 const (
-	// maxHeaderElement bounds an in-memory master element (SeekHead, Info,
-	// Tracks, Cues). Cues for a day-long file are a few MiB (one entry per
-	// cluster); cover art does not live here, so this is generous.
-	maxHeaderElement = 64 << 20
-	// maxTracks bounds the track count parsed from one segment.
-	maxTracks = 1 << 10
-	// maxCodecPrivate bounds a CodecPrivate blob (setup headers, magic
-	// cookies): larger than any real one, smaller than a memory hazard.
-	maxCodecPrivate = 1 << 20
-	// maxLaceFrames is the hard ceiling on frames in one laced block: the
-	// lace count field is a byte, so a block never holds more than 256.
-	maxLaceFrames = 256
-	// maxBlockData bounds one block's payload before it is split into frames.
-	maxBlockData = 1 << 26
-	// maxTopLevelElements bounds the Segment-child scan that finds the first
-	// cluster, so a stream of tiny void elements cannot spin the header walk.
+	maxHeaderElement    = 64 << 20
+	maxTracks           = 1 << 10
+	maxCodecPrivate     = 1 << 20
+	maxLaceFrames       = 256
+	maxBlockData        = 1 << 26
 	maxTopLevelElements = 1 << 20
-	// maxClusters bounds the seek index so a file of many tiny clusters cannot
-	// grow it without limit. A real file clusters every few seconds, so this
-	// clears months of audio; past it, seeks land on the last indexed cluster
-	// and format.Media pre-rolls the rest.
-	maxClusters = 1 << 20
-	// maxFrames bounds the whole-stream frame walk (the seek index and gapless
-	// raw-total pass), the backstop behind the segment-size bound. It clears a
-	// day of the finest Opus frames (2.5 ms) with headroom.
-	maxFrames = 1 << 26
-	// maxCuePoints bounds the Cues index on both sides. One entry per cluster
-	// clears days of audio. Past it both sides halve the index and double their
-	// stride, giving a coarse index of the whole file rather than a fine index
-	// of its front.
-	maxCuePoints = 1 << 16
-	// maxCuesElement bounds the Cues element read, tighter than the header cap
-	// because Cues is read on a live seek rather than at open.
-	maxCuesElement = 8 << 20
+	maxClusters         = 1 << 20
+	maxFrames           = 1 << 26
+	maxCuePoints        = 1 << 16
+	maxCuesElement      = 8 << 20
 )
 
-// Matroska element IDs, as they appear on the wire (the length-descriptor
-// marker bits are part of the ID). IDs are 1 to 4 bytes, so they fit in a
-// uint32.
 const (
 	idEBML    = 0x1A45DFA3
 	idDocType = 0x4282
@@ -108,32 +56,23 @@ const (
 	idCueTrack           = 0xF7
 	idCueClusterPosition = 0xF1
 
-	// idVoid marks reserved or abandoned space; the muxer writes one where a
-	// value it reserved never arrived.
 	idVoid = 0xEC
 
 	idCluster        = 0x1F43B675
-	idTimestamp      = 0xE7 // Cluster Timestamp (a.k.a. Timecode)
+	idTimestamp      = 0xE7
 	idSimpleBlock    = 0xA3
 	idBlockGroup     = 0xA0
 	idBlock          = 0xA1
 	idDiscardPadding = 0x75A2
 )
 
-// trackTypeAudio is the TrackType value for an audio track.
 const trackTypeAudio = 2
 
-// defaultTimestampScale is the TimestampScale Matroska assumes when the Info
-// element omits it: one million nanoseconds (1 ms) per tick.
 const defaultTimestampScale = 1_000_000
 
-// ebmlMagic is the four-byte EBML signature every Matroska/WebM file opens
-// with; Match keys on it.
 var ebmlMagic = [4]byte{0x1A, 0x45, 0xDF, 0xA3}
 
-// Match reports whether head begins with the EBML signature. DocType
-// (matroska/webm) is validated at parse time; the four magic bytes are the
-// sniff-table gate.
+// Match reports whether head begins with the EBML signature.
 func Match(head []byte) bool {
 	return len(head) >= 4 &&
 		head[0] == ebmlMagic[0] && head[1] == ebmlMagic[1] &&
@@ -147,7 +86,6 @@ func malformed(format string, args ...any) error {
 	return waxerr.New(waxerr.CodeUnsupportedFormat, "mka: "+fmt.Sprintf(format, args...))
 }
 
-// beUint reads a big-endian unsigned integer from a 0-to-8-byte field.
 func beUint(b []byte) uint64 {
 	var v uint64
 	for _, x := range b {
@@ -156,8 +94,6 @@ func beUint(b []byte) uint64 {
 	return v
 }
 
-// beInt reads a big-endian two's-complement signed integer, sign-extended
-// from its width. DiscardPadding is signed.
 func beInt(b []byte) int64 {
 	if len(b) == 0 {
 		return 0
@@ -172,8 +108,6 @@ func beInt(b []byte) int64 {
 	return v
 }
 
-// beFloat reads an EBML float: a 4- or 8-byte IEEE 754 value, or 0 for the
-// empty (default) encoding. ok is false for any other width.
 func beFloat(b []byte) (v float64, ok bool) {
 	switch len(b) {
 	case 0:
@@ -187,16 +121,6 @@ func beFloat(b []byte) (v float64, ok bool) {
 	}
 }
 
-// nsToSamples converts a nanosecond duration to a sample count at rate,
-// rounded to nearest. Gapless trims (CodecDelay, DiscardPadding) round-trip
-// through nanoseconds, and round-to-nearest recovers the exact sample count
-// a muxer wrote (312 samples at 48 kHz is 6_500_000 ns exactly, and the
-// inverse rounds back to 312).
-//
-// It splits into whole seconds plus a sub-second remainder so a long duration
-// (or a crafted huge Duration or DiscardPadding) cannot overflow the ns*rate
-// product: a full day at 48 kHz already pushes a naive ns*rate near int64's
-// ceiling.
 func nsToSamples(ns int64, rate int) int64 {
 	if ns <= 0 || rate <= 0 {
 		return 0

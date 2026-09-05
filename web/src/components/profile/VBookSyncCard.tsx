@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, QrCode, BookOpen, Smartphone, Download, Headphones } from "lucide-react";
+import {
+  Copy,
+  Check,
+  QrCode,
+  BookOpen,
+  Smartphone,
+  Download,
+  Headphones,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
 import { copyText } from "@/utils/clipboard";
@@ -41,7 +49,10 @@ export const VBookSyncCard: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-base-content/60 leading-relaxed">
-            {t("vbook.subtitle", "Install the NovelHub plugin in VBook to browse & read your library from your phone.")}
+            {t(
+              "vbook.subtitle",
+              "Install the NovelHub plugin in VBook to browse & read your library from your phone.",
+            )}
           </p>
         </div>
       </div>
@@ -56,7 +67,9 @@ export const VBookSyncCard: React.FC = () => {
             title={t("vbook.download_novel_zip", "Download Novel Plugin")}
           >
             <Download className="h-4 w-4 shrink-0" />
-            <span className="font-semibold">{t("vbook.download_novel_zip", "Download Novel Plugin")}</span>
+            <span className="font-semibold">
+              {t("vbook.download_novel_zip", "Download Novel Plugin")}
+            </span>
           </a>
           <a
             href={pluginAudioZipUrl}
@@ -65,7 +78,9 @@ export const VBookSyncCard: React.FC = () => {
             title={t("vbook.download_audio_zip", "Download Audio Plugin")}
           >
             <Headphones className="h-4 w-4 shrink-0" />
-            <span className="font-semibold">{t("vbook.download_audio_zip", "Download Audio Plugin")}</span>
+            <span className="font-semibold">
+              {t("vbook.download_audio_zip", "Download Audio Plugin")}
+            </span>
           </a>
         </div>
 
@@ -88,7 +103,11 @@ export const VBookSyncCard: React.FC = () => {
               className="btn btn-outline btn-square"
               title={t("common.copy", "Copy URL")}
             >
-              {copiedUrl === pluginUrl ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl === pluginUrl ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
             <button
               type="button"
@@ -101,14 +120,28 @@ export const VBookSyncCard: React.FC = () => {
           </div>
         </div>
 
-        {showQr && <CustomQRCode value={pluginUrl} label={pluginUrl} size={180} />}
+        {showQr && (
+          <CustomQRCode value={pluginUrl} label={pluginUrl} size={180} />
+        )}
 
         {/* Guide steps */}
         <div className="rounded-xl bg-base-200/50 p-4 text-xs space-y-2">
-          <p className="font-bold text-base-content/80">{t("vbook.guide_title", "How to install in VBook:")}</p>
+          <p className="font-bold text-base-content/80">
+            {t("vbook.guide_title", "How to install in VBook:")}
+          </p>
           <ul className="list-disc list-inside space-y-1 text-base-content/70">
-            <li>{t("vbook.step1", "Click 'Download ZIP' above to save the plugin.zip file.")}</li>
-            <li>{t("vbook.step2", "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file.")}</li>
+            <li>
+              {t(
+                "vbook.step1",
+                "Click 'Download ZIP' above to save the plugin.zip file.",
+              )}
+            </li>
+            <li>
+              {t(
+                "vbook.step2",
+                "Open VBook → Tap vertical 3-dots menu (⋮) → Select 'Import Extension' → Choose the downloaded plugin.zip file.",
+              )}
+            </li>
           </ul>
         </div>
       </div>

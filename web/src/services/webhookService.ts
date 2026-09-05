@@ -1,9 +1,17 @@
 import { api } from "@/config/api";
-import type { CommonResponse, CreateWebhookInput, PaginatedResponse, Webhook } from "@/types";
+import type {
+  CommonResponse,
+  CreateWebhookInput,
+  PaginatedResponse,
+  Webhook,
+} from "@/types";
 import axios from "axios";
 
 export const webhookService = {
-  async listWebhooks(limit?: number, offset?: number): Promise<PaginatedResponse<Webhook>> {
+  async listWebhooks(
+    limit?: number,
+    offset?: number,
+  ): Promise<PaginatedResponse<Webhook>> {
     try {
       const res = await api.get("/admin/webhooks", {
         params: { limit, offset },
@@ -17,7 +25,9 @@ export const webhookService = {
     }
   },
 
-  async createWebhook(input: CreateWebhookInput): Promise<CommonResponse<Webhook>> {
+  async createWebhook(
+    input: CreateWebhookInput,
+  ): Promise<CommonResponse<Webhook>> {
     try {
       const res = await api.post("/admin/webhooks", input);
       return res.data;
@@ -29,7 +39,10 @@ export const webhookService = {
     }
   },
 
-  async updateWebhook(id: string, input: CreateWebhookInput): Promise<CommonResponse<Webhook>> {
+  async updateWebhook(
+    id: string,
+    input: CreateWebhookInput,
+  ): Promise<CommonResponse<Webhook>> {
     try {
       const res = await api.put(`/admin/webhooks/${id}`, input);
       return res.data;

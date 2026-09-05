@@ -7,9 +7,7 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// Position and Permissions exist because the frontend evaluates permissions locally
-// (web/src/utils/permission.ts): it sorts roles by position and walks each role's grants.
-// Omitting them made hasPermission() return false for every custom role.
+// Position and Permissions exist because the frontend evaluates permissions locally (web/src/utils/permission.ts): it sorts roles by position and walks each role's grants.
 type RoleSimple struct {
 	ID          string                  `json:"id"`
 	Name        string                  `json:"name"`

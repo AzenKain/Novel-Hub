@@ -26,9 +26,11 @@ function openDB(): Promise<IDBDatabase> {
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(BOOKS)) db.createObjectStore(BOOKS);
-      if (!db.objectStoreNames.contains(CHAPTERS)) db.createObjectStore(CHAPTERS);
+      if (!db.objectStoreNames.contains(CHAPTERS))
+        db.createObjectStore(CHAPTERS);
       if (!db.objectStoreNames.contains(BLOBS)) db.createObjectStore(BLOBS);
-      if (!db.objectStoreNames.contains(SYNC_QUEUE)) db.createObjectStore(SYNC_QUEUE);
+      if (!db.objectStoreNames.contains(SYNC_QUEUE))
+        db.createObjectStore(SYNC_QUEUE);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -61,40 +63,58 @@ const scopedKey = (bookId: string, suffix: string) => `${bookId}:${suffix}`;
 
 // Deleting by key range rather than by walking the book entry: a download interrupted before
 // the books row was written would otherwise leave its chapters and blobs behind forever.
-const bookRange = (bookId: string) => IDBKeyRange.bound(`${bookId}:`, `${bookId}:￿`);
+const bookRange = (bookId: string) =>
+  IDBKeyRange.bound(`${bookId}:`, `${bookId}:￿`);
 
 export const offlineStore = {
   async saveBook(entry: OfflineBook): Promise<void> {
-    await run(BOOKS, "readwrite", (tx) => tx.objectStore(BOOKS).put(entry, entry.book.id));
+    await run(BOOKS, "readwrite", (tx) =>
+      tx.objectStore(BOOKS).put(entry, entry.book.id),
+    );
   },
 
   async getBook(bookId: string): Promise<OfflineBook | undefined> {
-    return run<OfflineBook>(BOOKS, "readonly", (tx) => tx.objectStore(BOOKS).get(bookId));
+    return run<OfflineBook>(BOOKS, "readonly", (tx) =>
+      tx.objectStore(BOOKS).get(bookId),
+    );
   },
 
   async listBooks(): Promise<OfflineBook[]> {
-    const all = await run<OfflineBook[]>(BOOKS, "readonly", (tx) => tx.objectStore(BOOKS).getAll());
+    const all = await run<OfflineBook[]>(BOOKS, "readonly", (tx) =>
+      tx.objectStore(BOOKS).getAll(),
+    );
     return all || [];
   },
 
-  async saveChapter(bookId: string, chapterId: string, html: string): Promise<void> {
+  async saveChapter(
+    bookId: string,
+    chapterId: string,
+    html: string,
+  ): Promise<void> {
     await run(CHAPTERS, "readwrite", (tx) =>
       tx.objectStore(CHAPTERS).put(html, scopedKey(bookId, chapterId)),
     );
   },
 
-  async getChapter(bookId: string, chapterId: string): Promise<string | undefined> {
+  async getChapter(
+    bookId: string,
+    chapterId: string,
+  ): Promise<string | undefined> {
     return run<string>(CHAPTERS, "readonly", (tx) =>
       tx.objectStore(CHAPTERS).get(scopedKey(bookId, chapterId)),
     );
   },
 
   async saveBlob(bookId: string, path: string, blob: Blob): Promise<void> {
-    await run(BLOBS, "readwrite", (tx) => tx.objectStore(BLOBS).put(blob, scopedKey(bookId, path)));
+    await run(BLOBS, "readwrite", (tx) =>
+      tx.objectStore(BLOBS).put(blob, scopedKey(bookId, path)),
+    );
   },
 
   async getBlob(bookId: string, path: string): Promise<Blob | undefined> {
-    return run<Blob>(BLOBS, "readonly", (tx) => tx.objectStore(BLOBS).get(scopedKey(bookId, path)));
+    return run<Blob>(BLOBS, "readonly", (tx) =>
+      tx.objectStore(BLOBS).get(scopedKey(bookId, path)),
+    );
   },
 
   async deleteBook(bookId: string): Promise<void> {
@@ -116,7 +136,9 @@ export const offlineStore = {
     });
   },
 
-  async enqueueSyncItem(item: Omit<PendingSyncItem, "id" | "createdAt">): Promise<string> {
+  async enqueueSyncItem(
+    item: Omit<PendingSyncItem, "id" | "createdAt">,
+  ): Promise<string> {
     const id = `${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
     const fullItem: PendingSyncItem = {
       id,
@@ -124,7 +146,9 @@ export const offlineStore = {
       payload: item.payload,
       createdAt: Date.now(),
     };
-    await run(SYNC_QUEUE, "readwrite", (tx) => tx.objectStore(SYNC_QUEUE).put(fullItem, id));
+    await run(SYNC_QUEUE, "readwrite", (tx) =>
+      tx.objectStore(SYNC_QUEUE).put(fullItem, id),
+    );
     return id;
   },
 

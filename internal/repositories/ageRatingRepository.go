@@ -44,7 +44,6 @@ func (r *ageRatingRepository) WithTx(tx *sql.Tx) AgeRatingRepository {
 }
 
 func (r *ageRatingRepository) GetContentWarnings(ctx context.Context) ([]*models.ContentWarningEntity, error) {
-	// 1. Query IDs from DB
 	ids, err := r.q.ListContentWarningIDs(ctx)
 	if err != nil || len(ids) == 0 {
 		return []*models.ContentWarningEntity{}, err
@@ -58,7 +57,6 @@ func (r *ageRatingRepository) GetContentWarnings(ctx context.Context) ([]*models
 	resultMap := make(map[string]*models.ContentWarningEntity, len(ids))
 	missingIDs := make([]string, 0, len(ids))
 
-	// 2. Perform MGet from RAM Cache (Cache-by-IDs pattern)
 	if r.c != nil && !r.inTx {
 		cachedBytes := r.c.MGet(ctx, keys...)
 		for i, bytes := range cachedBytes {
@@ -75,7 +73,7 @@ func (r *ageRatingRepository) GetContentWarnings(ctx context.Context) ([]*models
 		missingIDs = ids
 	}
 
-	// 3. Singleflight DB query fallback for missing IDs
+	// 3.
 	if len(missingIDs) > 0 {
 		sfgKey := "content_warnings:ids:" + strings.Join(missingIDs, ",")
 		v, err, _ := r.sf.Do(sfgKey, func() (any, error) {
@@ -106,7 +104,6 @@ func (r *ageRatingRepository) GetContentWarnings(ctx context.Context) ([]*models
 		}
 	}
 
-	// 4. Construct ordered list
 	out := make([]*models.ContentWarningEntity, 0, len(ids))
 	for _, id := range ids {
 		if cw, ok := resultMap[id]; ok && cw != nil {

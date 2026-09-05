@@ -1,6 +1,13 @@
 import { useDeleteReviewMutation, useReviewsQuery } from "@/hooks";
 import { useReviewAdminStore } from "@/stores";
-import { AlertCircle, Loader2, MessageSquareText, RefreshCw, Star, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  MessageSquareText,
+  RefreshCw,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,24 +19,43 @@ export function Reviews() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const {
-    reviews, setReviews,
-    loading, setLoading,
-    deleting, setDeleting,
-    reviewToDelete, setReviewToDelete,
-    page, setPage,
-    hasMore, setHasMore,
-    reset
-  } = useReviewAdminStore(useShallow((state) => ({
-    reviews: state.reviews, setReviews: state.setReviews,
-    loading: state.loading, setLoading: state.setLoading,
-    deleting: state.deleting, setDeleting: state.setDeleting,
-    reviewToDelete: state.reviewToDelete, setReviewToDelete: state.setReviewToDelete,
-    page: state.page, setPage: state.setPage,
-    hasMore: state.hasMore, setHasMore: state.setHasMore,
-    reset: state.reset
-  })));
+    reviews,
+    setReviews,
+    loading,
+    setLoading,
+    deleting,
+    setDeleting,
+    reviewToDelete,
+    setReviewToDelete,
+    page,
+    setPage,
+    hasMore,
+    setHasMore,
+    reset,
+  } = useReviewAdminStore(
+    useShallow((state) => ({
+      reviews: state.reviews,
+      setReviews: state.setReviews,
+      loading: state.loading,
+      setLoading: state.setLoading,
+      deleting: state.deleting,
+      setDeleting: state.setDeleting,
+      reviewToDelete: state.reviewToDelete,
+      setReviewToDelete: state.setReviewToDelete,
+      page: state.page,
+      setPage: state.setPage,
+      hasMore: state.hasMore,
+      setHasMore: state.setHasMore,
+      reset: state.reset,
+    })),
+  );
 
-  const { data: pageData, isLoading, isFetching, refetch } = useReviewsQuery(page);
+  const {
+    data: pageData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useReviewsQuery(page);
   const deleteReviewMutation = useDeleteReviewMutation();
 
   useEffect(() => {
@@ -38,8 +64,12 @@ export function Reviews() {
         setReviews(pageData);
       } else {
         setReviews((prev) => {
-          const existingKeys = new Set(prev.map(r => `${r.book_id}-${r.user_id}`));
-          const uniqueNew = pageData.filter(r => !existingKeys.has(`${r.book_id}-${r.user_id}`));
+          const existingKeys = new Set(
+            prev.map((r) => `${r.book_id}-${r.user_id}`),
+          );
+          const uniqueNew = pageData.filter(
+            (r) => !existingKeys.has(`${r.book_id}-${r.user_id}`),
+          );
           return [...prev, ...uniqueNew];
         });
       }
@@ -68,8 +98,12 @@ export function Reviews() {
           toast.success(t("admin.review_deleted", "Review deleted"));
           setReviews((prev) =>
             prev.filter(
-              (r) => !(r.book_id === reviewToDelete.book_id && r.user_id === reviewToDelete.user_id)
-            )
+              (r) =>
+                !(
+                  r.book_id === reviewToDelete.book_id &&
+                  r.user_id === reviewToDelete.user_id
+                ),
+            ),
           );
           setReviewToDelete(null);
           setDeleting(null);
@@ -78,7 +112,7 @@ export function Reviews() {
           toast.error(err instanceof Error ? err.message : String(err));
           setDeleting(null);
         },
-      }
+      },
     );
   }
 
@@ -100,13 +134,22 @@ export function Reviews() {
       {/* Header */}
       <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("admin.review_moderation", "Review Moderation")}</h1>
-          <p className="text-sm text-base-content/60 mt-1">{t("admin.review_moderation_desc", "View and manage all user reviews")}</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("admin.review_moderation", "Review Moderation")}
+          </h1>
+          <p className="text-sm text-base-content/60 mt-1">
+            {t(
+              "admin.review_moderation_desc",
+              "View and manage all user reviews",
+            )}
+          </p>
         </div>
         <button
           onClick={async () => {
             setPage(0);
-            await queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "reviews"],
+            });
             await refetch();
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
@@ -114,7 +157,9 @@ export function Reviews() {
           title={t("admin.operations.refresh", "Refresh")}
           disabled={isFetching}
         >
-          <RefreshCw className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+          />
         </button>
       </header>
 
@@ -132,8 +177,15 @@ export function Reviews() {
                 <MessageSquareText className="h-7 w-7" />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-base-content">{t("admin.no_reviews", "No user reviews found")}</h3>
-                <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">{t("admin.no_reviews_hint", "User reviews submitted for library books will appear here.")}</p>
+                <h3 className="text-base sm:text-lg font-bold text-base-content">
+                  {t("admin.no_reviews", "No user reviews found")}
+                </h3>
+                <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">
+                  {t(
+                    "admin.no_reviews_hint",
+                    "User reviews submitted for library books will appear here.",
+                  )}
+                </p>
               </div>
             </div>
           ) : (
@@ -146,22 +198,34 @@ export function Reviews() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="font-bold text-base text-base-content truncate">{review.book_title || review.book_id}</h3>
+                        <h3 className="font-bold text-base text-base-content truncate">
+                          {review.book_title || review.book_id}
+                        </h3>
                         {renderStars(review.rating)}
-                        <span className="text-xs font-semibold text-base-content/70">{review.rating}/5</span>
+                        <span className="text-xs font-semibold text-base-content/70">
+                          {review.rating}/5
+                        </span>
                       </div>
                       {review.review ? (
                         <div className="text-sm text-base-content leading-relaxed">
                           <DiscordMarkdown content={review.review} />
                         </div>
                       ) : (
-                        <p className="text-sm italic text-base-content/60">{t("admin.rating_only")}</p>
+                        <p className="text-sm italic text-base-content/60">
+                          {t("admin.rating_only")}
+                        </p>
                       )}
                       <div className="flex items-center gap-2.5 mt-3 text-xs text-base-content/70 flex-wrap">
                         <span>
-                          by <strong className="font-semibold text-base-content">{review.user_name || "User"}</strong>
+                          by{" "}
+                          <strong className="font-semibold text-base-content">
+                            {review.user_name || "User"}
+                          </strong>
                           {review.user_email && (
-                            <span className="text-base-content/60"> ({review.user_email})</span>
+                            <span className="text-base-content/60">
+                              {" "}
+                              ({review.user_email})
+                            </span>
                           )}
                         </span>
                         <span className="text-base-content/40">•</span>
@@ -178,7 +242,9 @@ export function Reviews() {
                     </div>
                     <button
                       onClick={() => setReviewToDelete(review)}
-                      disabled={deleting === `${review.book_id}-${review.user_id}`}
+                      disabled={
+                        deleting === `${review.book_id}-${review.user_id}`
+                      }
                       className="btn btn-ghost btn-sm text-error hover:bg-error/10 shrink-0"
                       title={t("admin.review_delete", "Delete review")}
                     >
@@ -221,23 +287,40 @@ export function Reviews() {
           </h3>
           <div className="py-4">
             <p className="text-sm opacity-80 mb-3">
-              {t("admin.review_delete_confirm", "Are you sure you want to delete this review? This action cannot be undone.")}
+              {t(
+                "admin.review_delete_confirm",
+                "Are you sure you want to delete this review? This action cannot be undone.",
+              )}
             </p>
             <div className="bg-base-200/50 p-3 rounded-lg text-sm">
-              <p className="font-medium">{reviewToDelete?.book_title || reviewToDelete?.book_id}</p>
+              <p className="font-medium">
+                {reviewToDelete?.book_title || reviewToDelete?.book_id}
+              </p>
               <p className="text-xs opacity-60 mt-1">
-                {t("admin.review_by_rating", "by {{name}} · Rating: {{rating}}/5", {
-                  name: reviewToDelete?.user_name || reviewToDelete?.user_email || t("common.user", "User"),
-                  rating: reviewToDelete?.rating,
-                })}
+                {t(
+                  "admin.review_by_rating",
+                  "by {{name}} · Rating: {{rating}}/5",
+                  {
+                    name:
+                      reviewToDelete?.user_name ||
+                      reviewToDelete?.user_email ||
+                      t("common.user", "User"),
+                    rating: reviewToDelete?.rating,
+                  },
+                )}
               </p>
               {reviewToDelete?.review && (
-                <p className="text-xs opacity-70 mt-2 italic line-clamp-3">"{reviewToDelete.review}"</p>
+                <p className="text-xs opacity-70 mt-2 italic line-clamp-3">
+                  "{reviewToDelete.review}"
+                </p>
               )}
             </div>
           </div>
           <div className="modal-action">
-            <button onClick={() => setReviewToDelete(null)} className="btn btn-ghost">
+            <button
+              onClick={() => setReviewToDelete(null)}
+              className="btn btn-ghost"
+            >
               {t("common.cancel", "Cancel")}
             </button>
             <button

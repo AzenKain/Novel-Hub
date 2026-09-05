@@ -17,13 +17,13 @@ import type {
 } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-// Settings
 export function useAdminSettingsQuery() {
   return useQuery<AdminSettings>({
     queryKey: ["admin", "settings"],
     queryFn: async () => {
       const res = await adminService.getAdminSettings();
-      if (!res.status) throw new Error(res.message || "Failed to fetch admin settings");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch admin settings");
       return res.data!;
     },
   });
@@ -34,7 +34,8 @@ export function useUpdateAdminSettingsMutation() {
   return useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
       const res = await adminService.updateSettings(data);
-      if (!res.status) throw new Error(res.message || "Failed to update settings");
+      if (!res.status)
+        throw new Error(res.message || "Failed to update settings");
       return res;
     },
     onSuccess: () => {
@@ -58,19 +59,24 @@ export function useUploadAdminLogoMutation() {
   return useMutation({
     mutationFn: async (fd: FormData) => {
       const res = await adminService.uploadAdminLogo(fd);
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to upload logo/favicon");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to upload logo/favicon");
       return res.data.url;
     },
   });
 }
 
-// Calibre
 export function useCalibreImportMutation() {
   const queryClient = useQueryClient();
-  return useMutation<CalibreImportResult, Error, { path: string; library_id?: string }>({
+  return useMutation<
+    CalibreImportResult,
+    Error,
+    { path: string; library_id?: string }
+  >({
     mutationFn: async ({ path, library_id }) => {
       const res = await adminService.importCalibre(path, library_id);
-      if (!res.status) throw new Error(res.message || "Failed to import Calibre library");
+      if (!res.status)
+        throw new Error(res.message || "Failed to import Calibre library");
       return res.data ?? { imported_count: 0 };
     },
     onSuccess: () => {
@@ -80,7 +86,6 @@ export function useCalibreImportMutation() {
   });
 }
 
-// Users
 export function useUsersQuery(params: SearchUserParams) {
   return useQuery<{ users: User[]; total: number; nextCursor: string }>({
     queryKey: ["admin", "users", params],
@@ -113,7 +118,13 @@ export function useCreateUserMutation() {
 export function useUpdateUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { full_name: string; avatar_url?: string } }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { full_name: string; avatar_url?: string };
+    }) => {
       const res = await adminService.updateUser(id, data);
       if (!res.status) throw new Error(res.message || "Failed to update user");
       return res.data;
@@ -128,7 +139,8 @@ export function useResetUserPasswordMutation() {
   return useMutation({
     mutationFn: async ({ id, password }: { id: string; password: string }) => {
       const res = await adminService.resetPassword(id, password);
-      if (!res.status) throw new Error(res.message || "Failed to reset password");
+      if (!res.status)
+        throw new Error(res.message || "Failed to reset password");
       return res;
     },
   });
@@ -136,9 +148,16 @@ export function useResetUserPasswordMutation() {
 
 export function useSendUserEmailMutation() {
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: SendUserEmailRequest }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: SendUserEmailRequest;
+    }) => {
       const res = await adminService.sendUserEmail(id, data);
-      if (!res.status) throw new Error(res.message || "Failed to send the email");
+      if (!res.status)
+        throw new Error(res.message || "Failed to send the email");
       return res;
     },
   });
@@ -172,7 +191,6 @@ export function useDeleteUserMutation() {
   });
 }
 
-// Roles
 export function useRolesQuery() {
   return useQuery<Role[]>({
     queryKey: ["admin", "roles"],
@@ -201,7 +219,13 @@ export function useCreateRoleMutation() {
 export function useUpdateRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateRoleRequest }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateRoleRequest;
+    }) => {
       const res = await adminService.updateRole(id, data);
       if (!res.status) throw new Error(res.message || "Failed to update role");
       return res.data;
@@ -231,7 +255,8 @@ export function useReorderRolesMutation() {
   return useMutation({
     mutationFn: async (roleIDs: string[]) => {
       const res = await adminService.reorderRoles(roleIDs);
-      if (!res.status) throw new Error(res.message || "Failed to reorder roles");
+      if (!res.status)
+        throw new Error(res.message || "Failed to reorder roles");
       return res;
     },
     onSuccess: () => {
@@ -245,7 +270,8 @@ export function usePermissionsQuery() {
     queryKey: ["admin", "permissions"],
     queryFn: async () => {
       const res = await adminService.getPermissions();
-      if (!res.status) throw new Error(res.message || "Failed to fetch permissions");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch permissions");
       return res.data || [];
     },
   });
@@ -254,9 +280,18 @@ export function usePermissionsQuery() {
 export function useAssignRolePermissionsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ roleID, assignments }: { roleID: string; assignments: any[] }) => {
-      const res = await adminService.updateRolePermissions(roleID, { permissions: assignments });
-      if (!res.status) throw new Error(res.message || "Failed to update role permissions");
+    mutationFn: async ({
+      roleID,
+      assignments,
+    }: {
+      roleID: string;
+      assignments: any[];
+    }) => {
+      const res = await adminService.updateRolePermissions(roleID, {
+        permissions: assignments,
+      });
+      if (!res.status)
+        throw new Error(res.message || "Failed to update role permissions");
       return res;
     },
     onSuccess: () => {
@@ -265,13 +300,13 @@ export function useAssignRolePermissionsMutation() {
   });
 }
 
-// Reviews
 export function useReviewsQuery(page: number, limit = 20) {
   return useQuery<AdminReview[]>({
     queryKey: ["admin", "reviews", page, limit],
     queryFn: async () => {
       const res = await adminService.listAllReviews(limit, page * limit);
-      if (!res.status) throw new Error(res.message || "Failed to fetch reviews");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch reviews");
       return res.data || [];
     },
   });
@@ -280,9 +315,16 @@ export function useReviewsQuery(page: number, limit = 20) {
 export function useDeleteReviewMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ book_id, user_id }: { book_id: string; user_id: string }) => {
+    mutationFn: async ({
+      book_id,
+      user_id,
+    }: {
+      book_id: string;
+      user_id: string;
+    }) => {
       const res = await adminService.deleteReview(book_id, user_id);
-      if (!res.status) throw new Error(res.message || "Failed to delete review");
+      if (!res.status)
+        throw new Error(res.message || "Failed to delete review");
       return res;
     },
     onSuccess: () => {
@@ -291,13 +333,18 @@ export function useDeleteReviewMutation() {
   });
 }
 
-// Webhooks
 export function useWebhooksQuery(limit: number = 20, offset: number = 0) {
-  return useQuery<{ webhooks: Webhook[]; total: number; totalPages: number; currentPage: number }>({
+  return useQuery<{
+    webhooks: Webhook[];
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  }>({
     queryKey: ["admin", "webhooks", limit, offset],
     queryFn: async () => {
       const res = await webhookService.listWebhooks(limit, offset);
-      if (!res.status) throw new Error(res.message || "Failed to fetch webhooks");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch webhooks");
       return {
         webhooks: res.data || [],
         total: res.pagination?.total_records || 0,
@@ -314,7 +361,8 @@ export function useCreateWebhookMutation() {
   return useMutation({
     mutationFn: async (input: CreateWebhookInput) => {
       const res = await webhookService.createWebhook(input);
-      if (!res.status) throw new Error(res.message || "Failed to create webhook");
+      if (!res.status)
+        throw new Error(res.message || "Failed to create webhook");
       return res.data;
     },
     onSuccess: () => {
@@ -326,9 +374,16 @@ export function useCreateWebhookMutation() {
 export function useUpdateWebhookMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: CreateWebhookInput }) => {
+    mutationFn: async ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: CreateWebhookInput;
+    }) => {
       const res = await webhookService.updateWebhook(id, input);
-      if (!res.status) throw new Error(res.message || "Failed to update webhook");
+      if (!res.status)
+        throw new Error(res.message || "Failed to update webhook");
       return res.data;
     },
     onSuccess: () => {
@@ -342,7 +397,8 @@ export function useDeleteWebhookMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await webhookService.deleteWebhook(id);
-      if (!res.status) throw new Error(res.message || "Failed to delete webhook");
+      if (!res.status)
+        throw new Error(res.message || "Failed to delete webhook");
       return res;
     },
     onSuccess: () => {

@@ -23,6 +23,5 @@ func SmartFilterRoutes(app fiber.Router, controller *controllers.SmartFilterCont
 	group.Put("/:id/pin-sidebar", controller.PinSidebar)
 	group.Put("/:id/pin-home", controller.PinHome)
 
-	// Fetch books matching the filter
 	app.Get("/smart-filters/:id/books", middlewares.OptionalJwtAccess(userRepo), controller.GetSmartFilterBooks)
 }

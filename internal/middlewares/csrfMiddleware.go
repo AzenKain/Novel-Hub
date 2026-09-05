@@ -10,10 +10,7 @@ import (
 	"novelhub/internal/dtos/response"
 )
 
-// sameOrigin reports whether the request's Origin (or Referer) header points at
-// this host. Used to block login-CSRF on the auth endpoints, which are exempt
-// from the cookie/header token check because no session exists yet. Requests
-// with neither header (non-browser clients) are allowed through.
+// sameOrigin reports whether the request's Origin (or Referer) header points at this host.
 func sameOrigin(c fiber.Ctx) bool {
 	source := c.Get("Origin")
 	if source == "" {

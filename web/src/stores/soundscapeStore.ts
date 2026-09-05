@@ -7,7 +7,7 @@ export interface ActiveTrack {
   name: string;
   category: string;
   icon: string;
-  volume: number; // 0.0 to 1.0
+  volume: number;
   streamUrl: string;
   isSynthesized?: boolean;
   synthType?: "white_noise" | "pink_noise" | "brown_noise" | "rain" | "waves";
@@ -15,7 +15,7 @@ export interface ActiveTrack {
 
 interface SoundscapeState {
   isPlaying: boolean;
-  masterVolume: number; // 0.0 to 1.0
+  masterVolume: number;
   activeTracks: Record<string, ActiveTrack>;
   soundscapePanelOpen: boolean;
 
@@ -31,7 +31,6 @@ interface SoundscapeState {
   applyPreset: (presetName: string) => void;
 }
 
-// Built-in synthesized / web audio ambient presets
 export const BUILTIN_AMBIENT_PRESETS: ActiveTrack[] = [
   {
     id: "synth-white-noise",
@@ -85,14 +84,19 @@ export const BUILTIN_AMBIENT_PRESETS: ActiveTrack[] = [
   },
 ];
 
-// Audio element & Web Audio synth management outside Zustand state
 const audioElements = new Map<string, HTMLAudioElement>();
 let audioCtx: AudioContext | null = null;
-const synthNodes = new Map<string, { node: AudioBufferSourceNode; gain: GainNode }>();
+const synthNodes = new Map<
+  string,
+  { node: AudioBufferSourceNode; gain: GainNode }
+>();
 
 function getOrCreateAudioContext(): AudioContext {
   if (!audioCtx) {
-    const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtxClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
     audioCtx = new AudioCtxClass();
   }
   if (audioCtx.state === "suspended") {
@@ -101,15 +105,18 @@ function getOrCreateAudioContext(): AudioContext {
   return audioCtx;
 }
 
-function generateNoiseBuffer(ctx: AudioContext, type: ActiveTrack["synthType"]): AudioBuffer {
-  const duration = 5.0; // 5 seconds of audio
+function generateNoiseBuffer(
+  ctx: AudioContext,
+  type: ActiveTrack["synthType"],
+): AudioBuffer {
+  const duration = 5.0;
   const sampleRate = ctx.sampleRate;
   const bufferSize = Math.floor(sampleRate * duration);
   const buffer = ctx.createBuffer(2, bufferSize, sampleRate);
   const left = buffer.getChannelData(0);
   const right = buffer.getChannelData(1);
 
-  const crossfadeLen = Math.floor(sampleRate * 0.15); // 150ms crossfade
+  const crossfadeLen = Math.floor(sampleRate * 0.15);
 
   for (let ch = 0; ch < 2; ch++) {
     const data = ch === 0 ? left : right;
@@ -119,15 +126,21 @@ function generateNoiseBuffer(ctx: AudioContext, type: ActiveTrack["synthType"]):
         data[i] = (Math.random() * 2 - 1) * 0.35;
       }
     } else if (type === "pink_noise") {
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      let b0 = 0,
+        b1 = 0,
+        b2 = 0,
+        b3 = 0,
+        b4 = 0,
+        b5 = 0,
+        b6 = 0;
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
         b0 = 0.99886 * b0 + white * 0.0555179;
         b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
+        b2 = 0.969 * b2 + white * 0.153852;
+        b3 = 0.8665 * b3 + white * 0.3104856;
+        b4 = 0.55 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.016898;
         data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
         b6 = white * 0.115926;
       }
@@ -139,13 +152,16 @@ function generateNoiseBuffer(ctx: AudioContext, type: ActiveTrack["synthType"]):
         data[i] = lastOut * 1.5;
       }
     } else if (type === "rain") {
-      let b0 = 0, b1 = 0, b2 = 0;
+      let b0 = 0,
+        b1 = 0,
+        b2 = 0;
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
         b0 = 0.99 * b0 + white * 0.05;
         b1 = 0.95 * b1 + white * 0.08;
         b2 = 0.85 * b2 + white * 0.15;
-        const mod = 0.8 + 0.2 * Math.sin((2 * Math.PI * i) / (sampleRate * 1.8) + ch);
+        const mod =
+          0.8 + 0.2 * Math.sin((2 * Math.PI * i) / (sampleRate * 1.8) + ch);
         data[i] = (b0 + b1 + b2 + white * 0.1) * 0.12 * mod;
       }
     } else if (type === "waves") {
@@ -153,22 +169,28 @@ function generateNoiseBuffer(ctx: AudioContext, type: ActiveTrack["synthType"]):
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
         lastOut = (lastOut + 0.02 * white) / 1.01;
-        const waveMod = Math.pow(Math.sin((Math.PI * i) / bufferSize), 2) * 1.8 + 0.2;
+        const waveMod =
+          Math.pow(Math.sin((Math.PI * i) / bufferSize), 2) * 1.8 + 0.2;
         data[i] = lastOut * 1.2 * waveMod;
       }
     }
 
-    // Seamless loop crossfade at start and end
     for (let i = 0; i < crossfadeLen; i++) {
       const weight = i / crossfadeLen;
-      data[i] = data[i] * weight + data[bufferSize - crossfadeLen + i] * (1 - weight);
+      data[i] =
+        data[i] * weight + data[bufferSize - crossfadeLen + i] * (1 - weight);
     }
   }
 
   return buffer;
 }
 
-function startSynth(id: string, type: ActiveTrack["synthType"], volume: number, masterVolume: number) {
+function startSynth(
+  id: string,
+  type: ActiveTrack["synthType"],
+  volume: number,
+  masterVolume: number,
+) {
   try {
     const ctx = getOrCreateAudioContext();
     stopSynth(id);
@@ -204,9 +226,12 @@ function stopSynth(id: string) {
   }
 }
 
-function syncAudioTracks(activeTracks: Record<string, ActiveTrack>, isPlaying: boolean, masterVolume: number) {
+function syncAudioTracks(
+  activeTracks: Record<string, ActiveTrack>,
+  isPlaying: boolean,
+  masterVolume: number,
+) {
   if (!isPlaying) {
-    // Pause all audio
     audioElements.forEach((audio) => {
       audio.pause();
     });
@@ -216,12 +241,10 @@ function syncAudioTracks(activeTracks: Record<string, ActiveTrack>, isPlaying: b
     return;
   }
 
-  // Ensure audio context is running on play
   if (typeof window !== "undefined") {
     getOrCreateAudioContext();
   }
 
-  // Remove audio elements no longer active
   audioElements.forEach((audio, id) => {
     if (!activeTracks[id]) {
       audio.pause();
@@ -236,7 +259,6 @@ function syncAudioTracks(activeTracks: Record<string, ActiveTrack>, isPlaying: b
     }
   });
 
-  // Play and adjust active tracks
   Object.values(activeTracks).forEach((track) => {
     if (track.isSynthesized && track.synthType) {
       if (!synthNodes.has(track.id)) {
@@ -244,8 +266,15 @@ function syncAudioTracks(activeTracks: Record<string, ActiveTrack>, isPlaying: b
       } else {
         const entry = synthNodes.get(track.id);
         if (entry && audioCtx) {
-          const effectiveVol = Math.max(0, Math.min(1, track.volume * masterVolume));
-          entry.gain.gain.setTargetAtTime(effectiveVol, audioCtx.currentTime, 0.05);
+          const effectiveVol = Math.max(
+            0,
+            Math.min(1, track.volume * masterVolume),
+          );
+          entry.gain.gain.setTargetAtTime(
+            effectiveVol,
+            audioCtx.currentTime,
+            0.05,
+          );
         }
       }
     } else if (track.streamUrl) {
@@ -279,7 +308,9 @@ export const useSoundscapeStore = create<SoundscapeState>()(
         const { activeTracks, masterVolume } = get();
         const hasTracks = Object.keys(activeTracks).length > 0;
         if (!hasTracks && playing) {
-          const pink = BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-pink-noise") || BUILTIN_AMBIENT_PRESETS[0];
+          const pink =
+            BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-pink-noise") ||
+            BUILTIN_AMBIENT_PRESETS[0];
           const newTracks = { [pink.id]: pink };
           set({ isPlaying: true, activeTracks: newTracks });
           syncAudioTracks(newTracks, true, masterVolume);
@@ -294,7 +325,9 @@ export const useSoundscapeStore = create<SoundscapeState>()(
         const { isPlaying, activeTracks, masterVolume } = get();
         const hasTracks = Object.keys(activeTracks).length > 0;
         if (!hasTracks) {
-          const pink = BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-pink-noise") || BUILTIN_AMBIENT_PRESETS[0];
+          const pink =
+            BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-pink-noise") ||
+            BUILTIN_AMBIENT_PRESETS[0];
           const newTracks = { [pink.id]: pink };
           set({ isPlaying: true, activeTracks: newTracks });
           syncAudioTracks(newTracks, true, masterVolume);
@@ -329,7 +362,10 @@ export const useSoundscapeStore = create<SoundscapeState>()(
       setTrackVolume: (trackId, volume) => {
         const tracks = { ...get().activeTracks };
         if (tracks[trackId]) {
-          tracks[trackId] = { ...tracks[trackId], volume: Math.max(0, Math.min(1, volume)) };
+          tracks[trackId] = {
+            ...tracks[trackId],
+            volume: Math.max(0, Math.min(1, volume)),
+          };
           set({ activeTracks: tracks });
           syncAudioTracks(tracks, get().isPlaying, get().masterVolume);
         }
@@ -349,12 +385,16 @@ export const useSoundscapeStore = create<SoundscapeState>()(
 
       applyPreset: (presetName) => {
         if (presetName === "pink_focus") {
-          const pink = BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-pink-noise")!;
+          const pink = BUILTIN_AMBIENT_PRESETS.find(
+            (p) => p.id === "synth-pink-noise",
+          )!;
           const tracks = { [pink.id]: pink };
           set({ activeTracks: tracks, isPlaying: true });
           syncAudioTracks(tracks, true, get().masterVolume);
         } else if (presetName === "deep_brown") {
-          const brown = BUILTIN_AMBIENT_PRESETS.find((p) => p.id === "synth-brown-noise")!;
+          const brown = BUILTIN_AMBIENT_PRESETS.find(
+            (p) => p.id === "synth-brown-noise",
+          )!;
           const tracks = { [brown.id]: brown };
           set({ activeTracks: tracks, isPlaying: true });
           syncAudioTracks(tracks, true, get().masterVolume);
@@ -369,6 +409,6 @@ export const useSoundscapeStore = create<SoundscapeState>()(
         masterVolume: state.masterVolume,
         activeTracks: state.activeTracks,
       }),
-    }
-  )
+    },
+  ),
 );

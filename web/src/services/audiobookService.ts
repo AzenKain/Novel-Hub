@@ -1,9 +1,17 @@
 import { api } from "@/config/api";
-import type { AudiobookChapter, CommonResponse, LookupAudiobookChaptersInput, MergeAudioInput, UpsertAudiobookChapterInput } from "@/types";
+import type {
+  AudiobookChapter,
+  CommonResponse,
+  LookupAudiobookChaptersInput,
+  MergeAudioInput,
+  UpsertAudiobookChapterInput,
+} from "@/types";
 import axios from "axios";
 
 export const audiobookService = {
-  async listChapters(book_id: string): Promise<CommonResponse<AudiobookChapter[]>> {
+  async listChapters(
+    book_id: string,
+  ): Promise<CommonResponse<AudiobookChapter[]>> {
     try {
       const res = await api.get(`/books/${book_id}/audiobook/chapters`);
       return res.data;
@@ -18,7 +26,7 @@ export const audiobookService = {
   async upsertChapter(
     book_id: string,
     id: string | undefined,
-    input: UpsertAudiobookChapterInput
+    input: UpsertAudiobookChapterInput,
   ): Promise<CommonResponse<AudiobookChapter>> {
     try {
       const res = id
@@ -33,9 +41,14 @@ export const audiobookService = {
     }
   },
 
-  async deleteChapter(book_id: string, id: string): Promise<CommonResponse<void>> {
+  async deleteChapter(
+    book_id: string,
+    id: string,
+  ): Promise<CommonResponse<void>> {
     try {
-      const res = await api.delete(`/books/${book_id}/audiobook/chapters/${id}`);
+      const res = await api.delete(
+        `/books/${book_id}/audiobook/chapters/${id}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -47,10 +60,13 @@ export const audiobookService = {
 
   async lookupChapters(
     book_id: string,
-    input: LookupAudiobookChaptersInput
+    input: LookupAudiobookChaptersInput,
   ): Promise<CommonResponse<AudiobookChapter[]>> {
     try {
-      const res = await api.post(`/books/${book_id}/audiobook/chapters/lookup`, input);
+      const res = await api.post(
+        `/books/${book_id}/audiobook/chapters/lookup`,
+        input,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -60,7 +76,10 @@ export const audiobookService = {
     }
   },
 
-  async mergeAudio(book_id: string, input: MergeAudioInput): Promise<CommonResponse<{ job_id: string }>> {
+  async mergeAudio(
+    book_id: string,
+    input: MergeAudioInput,
+  ): Promise<CommonResponse<{ job_id: string }>> {
     try {
       const res = await api.post(`/books/${book_id}/merge-audio`, input);
       return res.data;

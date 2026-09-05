@@ -41,7 +41,7 @@ func (m *MockSettingsService) ServerURL() string            { return "" }
 func (m *MockSettingsService) UpdateSettings(ctx context.Context, settings map[string]any) (*models.AdminSettings, error) {
 	return nil, nil
 }
-func (m *MockSettingsService) GuestAllows(libraryID string) bool { return true }
+func (m *MockSettingsService) GuestAllows(libraryID string) bool      { return true }
 func (m *MockSettingsService) SetupRequired(ctx context.Context) bool { return false }
 func (m *MockSettingsService) SaveAsset(ctx context.Context, target string, fileData []byte, fileName string, urlStr string) (string, error) {
 	return "", nil
@@ -126,7 +126,6 @@ func TestProxyAuthMiddleware(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Insert a default user role
 	if _, err := db.Exec(`INSERT INTO roles (id, name, auto_assign) VALUES ('role-user', 'user', 1)`); err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +168,7 @@ func TestProxyAuthMiddleware(t *testing.T) {
 
 	t.Run("Untrusted proxy IP should ignore headers", func(t *testing.T) {
 		mockSettings.ProxyAuth.Enabled = true
-		mockSettings.ProxyAuth.TrustedProxies = []string{"127.0.0.1"} // 0.0.0.0 is not trusted
+		mockSettings.ProxyAuth.TrustedProxies = []string{"127.0.0.1"}
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("X-Forwarded-User", "test@example.com")
 		resp, _ := app.Test(req)
@@ -177,7 +176,6 @@ func TestProxyAuthMiddleware(t *testing.T) {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
 
-		// Verify user was NOT created in db
 		u, err := userRepo.GetByEmail(context.Background(), "test@example.com")
 		if err == nil && u != nil {
 			t.Fatal("User was created even though proxy IP was untrusted")
@@ -202,7 +200,6 @@ func TestProxyAuthMiddleware(t *testing.T) {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
 
-		// Verify user was created in db
 		u, err := userRepo.GetByEmail(context.Background(), "test-auto@example.com")
 		if err != nil || u == nil {
 			t.Fatal("User was not automatically created")

@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-// Synthetic archives compress and lay out nothing like a scanned volume, so these run against
-// a real file: set NOVELHUB_BENCH_CBR to one. Skipped otherwise.
 func realCBRPath(tb testing.TB) string {
 	tb.Helper()
 	path := os.Getenv("NOVELHUB_BENCH_CBR")
@@ -30,8 +28,7 @@ func BenchmarkRealCBRListImages(b *testing.B) {
 	}
 }
 
-// RAR has no central directory usable for random access here, so a late page costs a scan
-// from the start. First vs last page is the number that matters.
+// RAR has no central directory usable for random access here, so a late page costs a scan from the start.
 func BenchmarkRealCBRGetAssetFirstPage(b *testing.B) {
 	realCBR := realCBRPath(b)
 	parser := NewParser("cbr")
@@ -95,9 +92,7 @@ func BenchmarkRealCBRPageServe(b *testing.B) {
 	})
 }
 
-// Concurrency is where the per-page allocation actually bites: every reader in flight holds its
-// own decompressed page plus whatever the archive reader allocated to reach it. Run with
-// -benchtime and -cpu to see how it scales.
+// Concurrency is where the per-page allocation actually bites: every reader in flight holds its own decompressed page plus whatever the archive reader allocated to reach it.
 func BenchmarkRealCBRPageServeParallel(b *testing.B) {
 	realCBR := realCBRPath(b)
 	parser := NewParser("cbr")

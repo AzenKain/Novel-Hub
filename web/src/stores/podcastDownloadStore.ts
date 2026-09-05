@@ -10,7 +10,11 @@ export interface ActivePodcastDownload {
 
 interface PodcastDownloadState {
   activeDownloads: Record<string, ActivePodcastDownload>;
-  startDownload: (podcastId: string, episodeId: string, episodeTitle?: string) => void;
+  startDownload: (
+    podcastId: string,
+    episodeId: string,
+    episodeTitle?: string,
+  ) => void;
   finishDownload: (episodeId: string) => void;
   cancelDownload: (episodeId: string) => void;
   isDownloading: (episodeId: string) => boolean;
@@ -18,14 +22,18 @@ interface PodcastDownloadState {
   getActiveDownloads: () => ActivePodcastDownload[];
 }
 
-const DOWNLOAD_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes max before self-cleanup
+const DOWNLOAD_TIMEOUT_MS = 15 * 60 * 1000;
 
 export const usePodcastDownloadStore = create<PodcastDownloadState>()(
   persist(
     (set, get) => ({
       activeDownloads: {},
 
-      startDownload: (podcastId: string, episodeId: string, episodeTitle?: string) => {
+      startDownload: (
+        podcastId: string,
+        episodeId: string,
+        episodeTitle?: string,
+      ) => {
         set((state) => ({
           activeDownloads: {
             ...state.activeDownloads,
@@ -71,7 +79,9 @@ export const usePodcastDownloadStore = create<PodcastDownloadState>()(
         const downloads = Object.values(get().activeDownloads);
         if (downloads.length === 0) return false;
         const now = Date.now();
-        const valid = downloads.filter((d) => now - d.startedAt <= DOWNLOAD_TIMEOUT_MS);
+        const valid = downloads.filter(
+          (d) => now - d.startedAt <= DOWNLOAD_TIMEOUT_MS,
+        );
         if (podcastId) {
           return valid.some((d) => d.podcastId === podcastId);
         }
@@ -81,11 +91,13 @@ export const usePodcastDownloadStore = create<PodcastDownloadState>()(
       getActiveDownloads: () => {
         const downloads = Object.values(get().activeDownloads);
         const now = Date.now();
-        return downloads.filter((d) => now - d.startedAt <= DOWNLOAD_TIMEOUT_MS);
+        return downloads.filter(
+          (d) => now - d.startedAt <= DOWNLOAD_TIMEOUT_MS,
+        );
       },
     }),
     {
       name: "novelhub-podcast-downloads",
-    }
-  )
+    },
+  ),
 );

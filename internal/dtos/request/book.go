@@ -50,7 +50,7 @@ type BookFileQueryDto struct {
 }
 
 type UpdateBookAgeRatingDto struct {
-	AgeRating          string   `json:"age_rating" validate:"required,oneof=G PG PG-13 R17+ R18+"`
+	AgeRating         string   `json:"age_rating" validate:"required,oneof=G PG PG-13 R17+ R18+"`
 	ContentWarningIDs []string `json:"content_warning_ids,omitempty" validate:"omitempty,dive"`
 }
 
@@ -73,4 +73,3 @@ type BulkConvertItemDto struct {
 type BulkConvertDto struct {
 	Items []BulkConvertItemDto `json:"items" validate:"required,dive"`
 }
-

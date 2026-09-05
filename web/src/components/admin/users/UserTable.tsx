@@ -1,4 +1,11 @@
-import { KeyRound, Mail, RotateCcw, Shield, Trash2, UserCog } from "lucide-react";
+import {
+  KeyRound,
+  Mail,
+  RotateCcw,
+  Shield,
+  Trash2,
+  UserCog,
+} from "lucide-react";
 import React from "react";
 
 import { getMediaUrl } from "@/config/api";
@@ -56,7 +63,10 @@ export const UserTable: React.FC<UserTableProps> = ({
           {users.length === 0 ? (
             <tr>
               <td colSpan={5} className="py-12 text-center opacity-50">
-                {t("admin.no_users", "No users found. Try adjusting your search.")}
+                {t(
+                  "admin.no_users",
+                  "No users found. Try adjusting your search.",
+                )}
               </td>
             </tr>
           ) : (
@@ -65,8 +75,10 @@ export const UserTable: React.FC<UserTableProps> = ({
               const isSelf = item.id === currentUserId;
               const isAdmin = isAdminUser(item);
 
-              const canDelete = !isOwner && !isSelf && (!isAdmin || isCallerOwner);
-              const canManage = isCallerOwner || isSelf || (!isAdmin && !isOwner);
+              const canDelete =
+                !isOwner && !isSelf && (!isAdmin || isCallerOwner);
+              const canManage =
+                isCallerOwner || isSelf || (!isAdmin && !isOwner);
 
               return (
                 <tr
@@ -79,16 +91,22 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden ring-1 ring-base-content/10">
                           {item.avatar_url ? (
                             <img
-                              src={getMediaUrl(item.avatar_url, undefined, item.updated_at)}
+                              src={getMediaUrl(
+                                item.avatar_url,
+                                undefined,
+                                item.updated_at,
+                              )}
                               alt={item.full_name || item.email}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
+                                (e.target as HTMLElement).style.display =
+                                  "none";
                               }}
                             />
                           ) : (
                             <span className="text-sm font-bold uppercase">
-                              {item.full_name?.charAt(0) || item.email.charAt(0)}
+                              {item.full_name?.charAt(0) ||
+                                item.email.charAt(0)}
                             </span>
                           )}
                         </div>
@@ -112,7 +130,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </span>
                       ))}
                       {item.roles.length === 0 && (
-                        <span className="text-sm opacity-50">{t("admin.no_role", "No role")}</span>
+                        <span className="text-sm opacity-50">
+                          {t("admin.no_role", "No role")}
+                        </span>
                       )}
                     </div>
                   </td>
@@ -151,7 +171,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onPassword(item)}
                               className="btn btn-ghost join-item btn-sm text-warning hover:bg-warning/10"
-                              title={t("admin.action_change_password", "Change password")}
+                              title={t(
+                                "admin.action_change_password",
+                                "Change password",
+                              )}
                             >
                               <KeyRound className="h-4 w-4" />
                             </button>
@@ -160,7 +183,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onRoles(item)}
                               className="btn btn-ghost join-item btn-sm text-success hover:bg-success/10"
-                              title={t("admin.action_manage_roles", "Manage roles")}
+                              title={t(
+                                "admin.action_manage_roles",
+                                "Manage roles",
+                              )}
                             >
                               <Shield className="h-4 w-4" />
                             </button>
@@ -176,7 +202,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onDelete(item)}
                               className="btn btn-ghost join-item btn-sm text-error hover:bg-error/10"
-                              title={t("admin.action_delete_user", "Delete user")}
+                              title={t(
+                                "admin.action_delete_user",
+                                "Delete user",
+                              )}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -188,7 +217,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               onClick={() => onRestore(item)}
                               className="btn btn-ghost join-item btn-sm text-success hover:bg-success/10"
-                              title={t("admin.action_restore_user", "Restore user")}
+                              title={t(
+                                "admin.action_restore_user",
+                                "Restore user",
+                              )}
                             >
                               <RotateCcw className="h-4 w-4" />
                             </button>

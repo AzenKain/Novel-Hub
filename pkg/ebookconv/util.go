@@ -15,8 +15,6 @@ import (
 	"novelhub/pkg/bookparser"
 )
 
-// imageLookup maps an image's source basename (and output name) to its index
-// in the images slice, so writers can resolve <img src="..."> to a binary id.
 func imageLookup(images []Image) map[string]int {
 	m := make(map[string]int, len(images)*2)
 	for i, img := range images {

@@ -93,7 +93,13 @@ func docxDocRels(images []Image) string {
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	b.WriteString(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + "\n")
 	for i, img := range images {
-		b.WriteString(`<Relationship Id="rIdImg`);b.WriteString(strconv.Itoa(i + 1));b.WriteString(`" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image`);b.WriteString(strconv.Itoa(i + 1));b.WriteString(imageExt(img.Src));b.WriteString(`"/>`);b.WriteString("\n")
+		b.WriteString(`<Relationship Id="rIdImg`)
+		b.WriteString(strconv.Itoa(i + 1))
+		b.WriteString(`" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image`)
+		b.WriteString(strconv.Itoa(i + 1))
+		b.WriteString(imageExt(img.Src))
+		b.WriteString(`"/>`)
+		b.WriteString("\n")
 	}
 	b.WriteString(`</Relationships>` + "\n")
 	return b.String()
@@ -129,8 +135,6 @@ func docxDocument(book *bookparser.BookData, imgIndex map[string]int) string {
 	return b.String()
 }
 
-// renderToText flattens an inline HTML snippet to plain text (for empty
-// detection); the DOCX run builder walks the snippet for bold/italic.
 func renderToText(inner string) string {
 	var sb strings.Builder
 	for _, n := range fragmentNodes(inner) {
@@ -183,9 +187,6 @@ func writeRuns(nodes []*nethtml.Node, runs *strings.Builder, bold bool, italic b
 	}
 }
 
-// docxDrawing emits an inline image run bound to the image's relationship id.
-// Dimensions are a fixed 6x8 inch extent; decoding real sizes would need an
-// image decoder per format.
 func docxDrawing(imgIndex map[string]int, src string) string {
 	idx, ok := imgIndex[base(src)]
 	if !ok {

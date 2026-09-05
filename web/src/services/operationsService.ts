@@ -16,7 +16,11 @@ import type {
 import axios from "axios";
 
 export const operationsService = {
-  async listAuditLogs(params: { action?: string; cursor?: string; limit?: number }): Promise<PaginatedResponse<AuditLogEntry>> {
+  async listAuditLogs(params: {
+    action?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<PaginatedResponse<AuditLogEntry>> {
     try {
       const res = await api.get(`/admin/audit${toQuery(params)}`);
       return res.data;
@@ -38,7 +42,12 @@ export const operationsService = {
       throw error;
     }
   },
-  async listJobs(params: { status?: string; type?: string; limit?: number; offset?: number }): Promise<PaginatedResponse<BackgroundJob>> {
+  async listJobs(params: {
+    status?: string;
+    type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResponse<BackgroundJob>> {
     try {
       const res = await api.get(`/jobs${toQuery(params)}`);
       return res.data;
@@ -82,7 +91,9 @@ export const operationsService = {
       throw error;
     }
   },
-  async createSchedule(input: UpsertJobScheduleInput): Promise<CommonResponse<JobSchedule>> {
+  async createSchedule(
+    input: UpsertJobScheduleInput,
+  ): Promise<CommonResponse<JobSchedule>> {
     try {
       const res = await api.post("/jobs/schedules", input);
       return res.data;
@@ -93,9 +104,15 @@ export const operationsService = {
       throw error;
     }
   },
-  async updateSchedule(id: string, input: UpsertJobScheduleInput): Promise<CommonResponse<JobSchedule>> {
+  async updateSchedule(
+    id: string,
+    input: UpsertJobScheduleInput,
+  ): Promise<CommonResponse<JobSchedule>> {
     try {
-      const res = await api.put(`/jobs/schedules/${encodeURIComponent(id)}`, input);
+      const res = await api.put(
+        `/jobs/schedules/${encodeURIComponent(id)}`,
+        input,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -117,7 +134,9 @@ export const operationsService = {
   },
   async runSchedule(id: string): Promise<CommonResponse<BackgroundJob>> {
     try {
-      const res = await api.post(`/jobs/schedules/${encodeURIComponent(id)}/run`);
+      const res = await api.post(
+        `/jobs/schedules/${encodeURIComponent(id)}/run`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -137,7 +156,12 @@ export const operationsService = {
       throw error;
     }
   },
-  async tailLogs(params: { file: string; lines?: number; level?: string; search?: string }): Promise<CommonResponse<LogTail>> {
+  async tailLogs(params: {
+    file: string;
+    lines?: number;
+    level?: string;
+    search?: string;
+  }): Promise<CommonResponse<LogTail>> {
     try {
       const res = await api.get(`/system/logs/tail${toQuery(params)}`);
       return res.data;
@@ -162,9 +186,13 @@ export const operationsService = {
       throw error;
     }
   },
-  async createBackup(includeBooks: boolean): Promise<CommonResponse<BackupInfo>> {
+  async createBackup(
+    includeBooks: boolean,
+  ): Promise<CommonResponse<BackupInfo>> {
     try {
-      const res = await api.post("/system/backups", { include_books: includeBooks });
+      const res = await api.post("/system/backups", {
+        include_books: includeBooks,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -175,7 +203,9 @@ export const operationsService = {
   },
   async deleteBackup(name: string): Promise<CommonResponse<unknown>> {
     try {
-      const res = await api.delete(`/system/backups/${encodeURIComponent(name)}`);
+      const res = await api.delete(
+        `/system/backups/${encodeURIComponent(name)}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -186,7 +216,10 @@ export const operationsService = {
   },
   async restoreBackup(name: string): Promise<CommonResponse<RestoreResult>> {
     try {
-      const res = await api.post(`/system/backups/${encodeURIComponent(name)}/restore`, { confirmation: "RESTORE" });
+      const res = await api.post(
+        `/system/backups/${encodeURIComponent(name)}/restore`,
+        { confirmation: "RESTORE" },
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

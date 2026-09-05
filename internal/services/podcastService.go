@@ -110,13 +110,13 @@ type rssFeedLegacy struct {
 }
 
 type rssItem struct {
-	Title          string      `xml:"title"`
-	GUID           string      `xml:"guid"`
-	Description    string      `xml:"description"`
-	PubDate        string      `xml:"pubDate"`
+	Title          string       `xml:"title"`
+	GUID           string       `xml:"guid"`
+	Description    string       `xml:"description"`
+	PubDate        string       `xml:"pubDate"`
 	Enclosure      rssEnclosure `xml:"enclosure"`
-	ItunesTitle    string      `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd title"`
-	ItunesDuration string      `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd duration"`
+	ItunesTitle    string       `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd title"`
+	ItunesDuration string       `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd duration"`
 }
 
 type rssEnclosure struct {
@@ -151,7 +151,6 @@ func parseFeed(data []byte) (*parsedPodcast, error) {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "feed has no channel title")
 	}
 
-	// Validate parsed fields to detect uncompiled Jekyll/Liquid templates
 	if isTemplate(ch.Title) || isTemplate(ch.Author) || isTemplate(ch.ItunesAuthor) {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "this RSS feed is an uncompiled template (e.g. Jekyll source). Please subscribe to the compiled feed URL instead.")
 	}
@@ -238,8 +237,6 @@ func strPtrOrNil(s string) *string {
 	}
 	return &s
 }
-
-// --- service methods ---
 
 func (s *podcastService) fetchFeed(ctx context.Context, feedURL string) (*parsedPodcast, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)

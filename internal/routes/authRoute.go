@@ -22,7 +22,6 @@ func AuthRoutes(app fiber.Router, controller *controllers.AuthController, oauthC
 	route.Post("/refresh", middlewares.JwtRefresh(userRepo), controller.RefreshToken)
 	route.Post("/logout", middlewares.JwtAccess(userRepo), controller.Logout)
 
-	// OAuth2 and OIDC routes
 	route.Get("/oauth2/:provider/login", authLimiter, oauthController.OAuth2Login)
 	route.Get("/oauth2/:provider/callback", authLimiter, oauthController.OAuth2Callback)
 
@@ -38,4 +37,3 @@ func MagicCodeRoutes(app fiber.Router, controller *controllers.MagicCodeControll
 	route.Post("/poll", authLimiter, controller.PollCode)
 	route.Post("/activate", authLimiter, middlewares.JwtAccess(userRepo), controller.ActivateCode)
 }
-

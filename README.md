@@ -127,11 +127,11 @@ go run ./cmd/api
 
 ### Make Targets
 
-| Target | Description |
-| --- | --- |
-| `make run` | Build frontend with Bun and start Go server |
-| `make test` | Run all Go unit tests |
-| `make sqlc` | Regenerate SQLC database models |
+| Target       | Description                                                 |
+| ------------ | ----------------------------------------------------------- |
+| `make run`   | Build frontend with Bun and start Go server                 |
+| `make test`  | Run all Go unit tests                                       |
+| `make sqlc`  | Regenerate SQLC database models                             |
 | `make check` | Run full verification (sqlc + tests + web-build + go build) |
 
 ---
@@ -198,12 +198,12 @@ cp .env.example .env
 openssl rand -hex 32   # run three times, one per secret
 ```
 
-| Variable | Description |
-| --- | --- |
-| `JWT_SECRET` | **Required.** Signs access tokens |
-| `JWT_REFRESH_SECRET` | **Required.** Signs refresh tokens |
-| `DB_ENCRYPTION_KEY` | **Required.** Encrypts tracker tokens, TOTP secrets and the SMTP password stored in the database |
-| `TRUST_PROXY` | `false` when run directly, `true`, or a list of proxy IPs/CIDRs. Set when behind nginx/Caddy/Cloudflare. The Docker compose file defaults it to `true` |
+| Variable             | Description                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `JWT_SECRET`         | **Required.** Signs access tokens                                                                                                                      |
+| `JWT_REFRESH_SECRET` | **Required.** Signs refresh tokens                                                                                                                     |
+| `DB_ENCRYPTION_KEY`  | **Required.** Encrypts tracker tokens, TOTP secrets and the SMTP password stored in the database                                                       |
+| `TRUST_PROXY`        | `false` when run directly, `true`, or a list of proxy IPs/CIDRs. Set when behind nginx/Caddy/Cloudflare. The Docker compose file defaults it to `true` |
 
 Site identity, server URL, registration, guest access, permissions, SMTP,
 trackers, upload limits and rate limits are all set in the setup wizard and admin
@@ -222,24 +222,24 @@ Other languages: [Tiếng Việt](docs/vi/configuration.md) ·
 
 ## Supported Formats
 
-| Format | Extensions | Reader | Metadata | Typography & Formatting | Cover |
-| --- | --- | --- | --- | --- | --- |
-| **EPUB / KePub** | `.epub`, `.kepub.epub` | ✅ HTML | ✅ Full | Bold, Italic, Tables, Figures, Images, Audio/Video | ✅ Full |
-| **MOBI / AZW / AZW3** | `.mobi`, `.azw`, `.azw3`, `.amz` | ✅ HTML | ✅ EXTH | Bold, Italic, Caps, Tables, Images | ✅ EXTH |
-| **Microsoft Word** | `.docx`, `.doc` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment, Images | ✅ Full |
-| **OpenDocument Text** | `.odt` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment, Images | ✅ Full |
-| **Rich Text Format** | `.rtf` | ✅ HTML | ✅ Full | Bold, Italic, Underline, Alignment | ✅ Full |
-| **FictionBook** | `.fb2`, `.fbz` | ✅ HTML | ✅ Full | Bold, Italic, Figures, Images, TOC | ✅ Full |
-| **Presentations** | `.pptx`, `.ppt`, `.odp` | ✅ Slide Deck | ✅ Full | Multi-Slide, Bold, Alignment, Images, Media | ✅ Full |
-| **Spreadsheets** | `.xlsx`, `.xls`, `.ods` | ✅ Table View | ✅ Full | Responsive Tables, Sheet Tabs, ODS Thumbnails | ✅ Full |
-| **Tabular Data** | `.csv`, `.tsv` | ✅ Table View | ✅ Full | Responsive Tables, Delimiter Detection | ✅ Auto SVG |
-| **LaTeX / TeX** | `.tex`, `.latex`, `.ltx` | ✅ HTML | ✅ Full | Headings, Math, Figures, Images | ✅ Auto SVG |
-| **PDF** | `.pdf` | ✅ Native PDF | ⚠️ Basic | Vector PDF Render | ❌ |
-| **Audiobooks** | `.mp3`, `.m4a`, `.m4b`, `.flac` | ✅ Audio Stream | ✅ Full ID3 | Native Player, Chapters, Track Playback | ✅ Tag / SVG |
-| **Comics / Manga** | `.cbz`, `.cbr`, `.cbt`, `.cb7` | ✅ Comic Viewer | ⚠️ Basic | Double Page, RTL Manga Mode, Webtoon | ✅ First Page |
-| **HTML Documents** | `.html`, `.htm` | ✅ HTML | ⚠️ Basic | Full HTML/CSS formatting | ❌ |
-| **Archived Books** | `.zip`, `.rar`, `.7z` | ✅ Auto Detect | ⚠️ Basic | Archive unpacking and extraction | ❌ |
-| **Plain Text / Markdown** | `.txt`, `.md`, `.markdown` | ✅ HTML | ⚠️ Basic | Headings, Code Blocks, Lists | ✅ Auto SVG |
+| Format                    | Extensions                       | Reader          | Metadata    | Typography & Formatting                            | Cover         |
+| ------------------------- | -------------------------------- | --------------- | ----------- | -------------------------------------------------- | ------------- |
+| **EPUB / KePub**          | `.epub`, `.kepub.epub`           | ✅ HTML         | ✅ Full     | Bold, Italic, Tables, Figures, Images, Audio/Video | ✅ Full       |
+| **MOBI / AZW / AZW3**     | `.mobi`, `.azw`, `.azw3`, `.amz` | ✅ HTML         | ✅ EXTH     | Bold, Italic, Caps, Tables, Images                 | ✅ EXTH       |
+| **Microsoft Word**        | `.docx`, `.doc`                  | ✅ HTML         | ✅ Full     | Bold, Italic, Underline, Alignment, Images         | ✅ Full       |
+| **OpenDocument Text**     | `.odt`                           | ✅ HTML         | ✅ Full     | Bold, Italic, Underline, Alignment, Images         | ✅ Full       |
+| **Rich Text Format**      | `.rtf`                           | ✅ HTML         | ✅ Full     | Bold, Italic, Underline, Alignment                 | ✅ Full       |
+| **FictionBook**           | `.fb2`, `.fbz`                   | ✅ HTML         | ✅ Full     | Bold, Italic, Figures, Images, TOC                 | ✅ Full       |
+| **Presentations**         | `.pptx`, `.ppt`, `.odp`          | ✅ Slide Deck   | ✅ Full     | Multi-Slide, Bold, Alignment, Images, Media        | ✅ Full       |
+| **Spreadsheets**          | `.xlsx`, `.xls`, `.ods`          | ✅ Table View   | ✅ Full     | Responsive Tables, Sheet Tabs, ODS Thumbnails      | ✅ Full       |
+| **Tabular Data**          | `.csv`, `.tsv`                   | ✅ Table View   | ✅ Full     | Responsive Tables, Delimiter Detection             | ✅ Auto SVG   |
+| **LaTeX / TeX**           | `.tex`, `.latex`, `.ltx`         | ✅ HTML         | ✅ Full     | Headings, Math, Figures, Images                    | ✅ Auto SVG   |
+| **PDF**                   | `.pdf`                           | ✅ Native PDF   | ⚠️ Basic    | Vector PDF Render                                  | ❌            |
+| **Audiobooks**            | `.mp3`, `.m4a`, `.m4b`, `.flac`  | ✅ Audio Stream | ✅ Full ID3 | Native Player, Chapters, Track Playback            | ✅ Tag / SVG  |
+| **Comics / Manga**        | `.cbz`, `.cbr`, `.cbt`, `.cb7`   | ✅ Comic Viewer | ⚠️ Basic    | Double Page, RTL Manga Mode, Webtoon               | ✅ First Page |
+| **HTML Documents**        | `.html`, `.htm`                  | ✅ HTML         | ⚠️ Basic    | Full HTML/CSS formatting                           | ❌            |
+| **Archived Books**        | `.zip`, `.rar`, `.7z`            | ✅ Auto Detect  | ⚠️ Basic    | Archive unpacking and extraction                   | ❌            |
+| **Plain Text / Markdown** | `.txt`, `.md`, `.markdown`       | ✅ HTML         | ⚠️ Basic    | Headings, Code Blocks, Lists                       | ✅ Auto SVG   |
 
 ---
 

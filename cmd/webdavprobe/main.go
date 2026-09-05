@@ -45,7 +45,6 @@ func runLiveProbe(baseURL, user, pass string) {
 	fmt.Printf("[*] Probing live WebDAV server at: %s\n", baseURL)
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	// 1. Send OPTIONS
 	req, _ := http.NewRequest("OPTIONS", baseURL, nil)
 	req.SetBasicAuth(user, pass)
 	resp, err := client.Do(req)
@@ -58,7 +57,6 @@ func runLiveProbe(baseURL, user, pass string) {
 	fmt.Printf("    Allow: %s\n", resp.Header.Get("Allow"))
 	resp.Body.Close()
 
-	// 2. Send PROPFIND (Depth 1)
 	req, _ = http.NewRequest("PROPFIND", baseURL, nil)
 	req.SetBasicAuth(user, pass)
 	req.Header.Set("Depth", "1")
@@ -118,7 +116,6 @@ func runDemoProbe() {
 
 	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte("user@novelhub.local:pass123"))
 
-	// Step 1: Send OPTIONS
 	fmt.Println("\n1. Testing HTTP OPTIONS /webdav...")
 	optReq := httptest.NewRequest("OPTIONS", "/webdav", nil)
 	optReq.Header.Set("Authorization", authHeader)
@@ -131,7 +128,6 @@ func runDemoProbe() {
 	fmt.Printf("   DAV Header: %s\n", optResp.Header.Get("DAV"))
 	fmt.Printf("   Allow: %s\n", optResp.Header.Get("Allow"))
 
-	// Step 2: Send PROPFIND on Root (Depth 1)
 	fmt.Println("\n2. Testing PROPFIND /webdav (Root Level, Depth: 1)...")
 	propReq1 := httptest.NewRequest("PROPFIND", "/webdav", nil)
 	propReq1.Header.Set("Authorization", authHeader)
@@ -141,7 +137,6 @@ func runDemoProbe() {
 	fmt.Printf("   Status: %d Multi-Status\n", propResp1.StatusCode)
 	fmt.Println(string(body1))
 
-	// Step 3: Send PROPFIND on Library (Depth 1)
 	fmt.Println("\n3. Testing PROPFIND /webdav/General Library/ (Library Level, Depth: 1)...")
 	propReq2 := httptest.NewRequest("PROPFIND", "/webdav/General%20Library", nil)
 	propReq2.Header.Set("Authorization", authHeader)

@@ -1,14 +1,4 @@
-// Package flac implements a FLAC decoder (RFC 9639), written from the
-// specification. It covers the full frame
-// syntax: constant, verbatim, fixed, and LPC subframes, Rice-coded
-// residuals with escaped partitions, all stereo decorrelation modes,
-// wasted bits, and sample depths from 4 to 32 bits (side channels carry
-// up to 33 significant bits and are reconstructed in 64-bit arithmetic).
-//
-// The package also exports the pieces containers need to packetize the
-// codec: STREAMINFO parsing, frame-header parsing, and the frame CRC-16,
-// so container/flacn can confirm frame boundaries and container/ogg can
-// stamp packet positions without duplicating the wire format.
+// Package flac implements a FLAC decoder (RFC 9639), written from the specification.
 package flac
 
 import (
@@ -18,13 +8,10 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// Version is the decoder's cache-key version constant (ADR-0004): bump on
-// any change that alters decoded samples.
+// Version is the decoder's cache-key version constant (ADR-0004): bump on any change that alters decoded samples.
 const Version = "flac-dec-1"
 
-// StreamInfoLen is the byte length of a STREAMINFO metadata block body,
-// which is also the codec configuration blob (codec.Encoder.CodecConfig
-// shape) carried in container.Track.CodecConfig.
+// StreamInfoLen is the byte length of a STREAMINFO metadata block body, which is also the codec configuration blob (codec.Encoder.CodecConfig shape) carried in container.Track.CodecConfig.
 const StreamInfoLen = 34
 
 // MaxBlockSize is the largest legal FLAC block size in samples.
@@ -35,20 +22,13 @@ const MaxRate = 1<<20 - 1
 
 // StreamInfo is a parsed STREAMINFO metadata block.
 type StreamInfo struct {
-	// MinBlock and MaxBlock bound the block size in samples. Equal values
-	// promise a constant block size, which fixed-strategy frame numbering
-	// relies on.
 	MinBlock, MaxBlock int
-	// MinFrame and MaxFrame bound the coded frame size in bytes; 0 means
-	// unknown.
 	MinFrame, MaxFrame int
 	Rate               int
 	Channels           int
 	Bits               int
-	// Samples is the total sample count, 0 when unknown.
-	Samples int64
-	// MD5 is the unencoded-audio signature; all zero when unset.
-	MD5 [16]byte
+	Samples            int64
+	MD5                [16]byte
 }
 
 func malformed(format string, args ...any) error {
@@ -82,10 +62,7 @@ func ParseStreamInfo(b []byte) (StreamInfo, error) {
 	return si, nil
 }
 
-// MarshalBinary packs si into the 34-byte STREAMINFO wire form, the
-// inverse of ParseStreamInfo. It validates the fields against their wire
-// widths (rate is 20 bits, sample counts 36, frame sizes 24) so an
-// impossible StreamInfo fails here instead of silently truncating.
+// MarshalBinary packs si into the 34-byte STREAMINFO wire form, the inverse of ParseStreamInfo.
 func (si StreamInfo) MarshalBinary() ([]byte, error) {
 	switch {
 	case si.Rate < 1 || si.Rate > MaxRate:
@@ -116,8 +93,6 @@ func (si StreamInfo) MarshalBinary() ([]byte, error) {
 }
 
 // PCMFormat is the pipeline format the decoder emits for this stream.
-// FLAC's channel orders for 1 to 8 channels coincide with the ascending
-// WAVE_FORMAT_EXTENSIBLE bit order, so no reordering happens anywhere.
 func (si StreamInfo) PCMFormat() audio.Format {
 	return audio.Format{
 		Rate:     si.Rate,

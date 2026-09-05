@@ -9,10 +9,7 @@ import (
 	"novelhub/pkg/constants"
 )
 
-// Verify reads the attempt counter, compares, then writes it back. Concurrent guesses all read the
-// same value and all write the same increment, so the counter tracks the number of rounds rather
-// than the number of guesses — an attacker who fires the whole 000000..999999 space in parallel
-// never trips the limit. Released together, or they serialise and the interleaving never happens.
+// Verify reads the attempt counter, compares, then writes it back.
 func TestOTPBruteForceCannotOutrunTheAttemptLimit(t *testing.T) {
 	store := NewOTPStore(cache.NewRamCache())
 	ctx := context.Background()
@@ -54,9 +51,7 @@ func TestOTPBruteForceCannotOutrunTheAttemptLimit(t *testing.T) {
 	}
 }
 
-// The same read-compare-write window lets every concurrent holder of a correct code past the
-// digest check before any of them deletes it, so one emailed code mints one ticket per racer and
-// each ticket is independently good for a password reset.
+// The same read-compare-write window lets every concurrent holder of a correct code past the digest check before any of them deletes it, so one emailed code mints one ticket per racer and each ticket is independently good for a password reset.
 func TestOneCodeMintsExactlyOneTicket(t *testing.T) {
 	store := NewOTPStore(cache.NewRamCache())
 	ctx := context.Background()
@@ -93,10 +88,7 @@ func TestOneCodeMintsExactlyOneTicket(t *testing.T) {
 	}
 }
 
-// Consume is a read-then-delete, so concurrent resets on one ticket all see it present and all
-// proceed. Only one may win, or a leaked ticket is reusable for as long as it lives. One round
-// lands the race maybe once in three, hence the rounds: with the read-then-delete this reports
-// ~280 extra consumes, with the fix zero.
+// Consume is a read-then-delete, so concurrent resets on one ticket all see it present and all proceed.
 func TestOneTicketIsConsumedOnce(t *testing.T) {
 	ctx := context.Background()
 	const (

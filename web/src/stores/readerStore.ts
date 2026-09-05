@@ -1,8 +1,9 @@
 import type { Book, Chapter } from "@/types";
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-export type ReaderTheme = "light" | "dark" | "sepia" | "warm" | "coffee" | "dim" | "eink" | "custom";
+export type ReaderTheme =
+  "light" | "dark" | "sepia" | "warm" | "coffee" | "dim" | "eink" | "custom";
 export type ReadingMode = "scroll" | "single" | "double" | "webtoon";
 export type ReadingDirection = "ltr" | "rtl";
 export type PageFit = "width" | "height" | "original";
@@ -47,7 +48,12 @@ interface ReaderState {
   setFontSize: (size: number | ((prev: number) => number)) => void;
   setFontFamily: (family: string) => void;
   setTheme: (theme: ReaderTheme) => void;
-  setCustomThemeColors: (bg: string, text: string, accent: string, customCss?: string) => void;
+  setCustomThemeColors: (
+    bg: string,
+    text: string,
+    accent: string,
+    customCss?: string,
+  ) => void;
   setLineHeight: (height: number | ((prev: number) => number)) => void;
   setMaxWidth: (width: number | ((prev: number) => number)) => void;
   setTextAlign: (textAlign: TextAlignment) => void;
@@ -113,19 +119,38 @@ export const useReaderStore = create<ReaderState>()(
       setLoading: (loading) => set({ loading }),
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
-      setFontSize: (size) => set((state) => ({ fontSize: typeof size === 'function' ? size(state.fontSize) : size })),
+      setFontSize: (size) =>
+        set((state) => ({
+          fontSize: typeof size === "function" ? size(state.fontSize) : size,
+        })),
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setTheme: (theme) => set({ theme }),
-      setCustomThemeColors: (customBg, customText, customAccent, customCss = "") =>
+      setCustomThemeColors: (
+        customBg,
+        customText,
+        customAccent,
+        customCss = "",
+      ) =>
         set({ customBg, customText, customAccent, customCss, theme: "custom" }),
-      setLineHeight: (height) => set((state) => ({ lineHeight: typeof height === 'function' ? height(state.lineHeight) : height })),
-      setMaxWidth: (width) => set((state) => ({ maxWidth: typeof width === 'function' ? width(state.maxWidth) : width })),
+      setLineHeight: (height) =>
+        set((state) => ({
+          lineHeight:
+            typeof height === "function" ? height(state.lineHeight) : height,
+        })),
+      setMaxWidth: (width) =>
+        set((state) => ({
+          maxWidth: typeof width === "function" ? width(state.maxWidth) : width,
+        })),
       setTextAlign: (textAlign) => set({ textAlign }),
       setReadingMode: (readingMode) => set({ readingMode }),
       setReadingDirection: (readingDirection) => set({ readingDirection }),
       setPageFit: (pageFit) => set({ pageFit }),
       setPageAnimation: (pageAnimation) => set({ pageAnimation }),
-      setPageIndex: (index) => set((state) => ({ pageIndex: typeof index === 'function' ? index(state.pageIndex) : index })),
+      setPageIndex: (index) =>
+        set((state) => ({
+          pageIndex:
+            typeof index === "function" ? index(state.pageIndex) : index,
+        })),
       setPageFrameWidth: (pageFrameWidth) => set({ pageFrameWidth }),
       setTtsVoiceName: (ttsVoiceName) => set({ ttsVoiceName }),
       setTtsRate: (ttsRate) => set({ ttsRate }),
@@ -134,12 +159,17 @@ export const useReaderStore = create<ReaderState>()(
       reset: () => set(sessionInitialState),
     }),
     {
-      name: 'novelhub-reader-settings',
+      name: "novelhub-reader-settings",
       storage: createJSONStorage(() => localStorage),
       version: 6,
       migrate: (persisted) => {
         const state = (persisted as { state?: { textAlign?: string } })?.state;
-        if (state && !["original", "left", "center", "right"].includes(state.textAlign || "")) {
+        if (
+          state &&
+          !["original", "left", "center", "right"].includes(
+            state.textAlign || "",
+          )
+        ) {
           state.textAlign = "original";
         }
         return persisted;
@@ -163,6 +193,6 @@ export const useReaderStore = create<ReaderState>()(
         ttsRate: state.ttsRate,
         comicInvertColors: state.comicInvertColors,
       }),
-    }
-  )
+    },
+  ),
 );

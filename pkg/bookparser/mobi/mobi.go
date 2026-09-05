@@ -102,7 +102,6 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 	assets, _ := readMobiAssets(filePath)
 	if len(assets) > 0 {
 		var coverAsset *mobiAsset
-		// 1. Try exact cover record by EXTH CoverOffset (Record 201)
 		if header.CoverOffset >= 0 && header.FirstImageIndex > 0 {
 			targetRecord := int(header.FirstImageIndex) + header.CoverOffset
 			for i := range assets {
@@ -112,7 +111,6 @@ func (p *Parser) ParseMetadata(filePath string) (*bookparser.BookMetadata, error
 				}
 			}
 		}
-		// 2. Fallback to first asset if exact offset not found
 		if coverAsset == nil {
 			coverAsset = &assets[0]
 		}
@@ -260,7 +258,6 @@ func (p *Parser) GetAsset(filePath, assetPath string) ([]byte, error) {
 				return asset.Data, nil
 			}
 		}
-		// Legacy recindex="N" counts from the first image record, not from 0.
 		if len(assets) > 0 && recordIndex > 0 && recordIndex <= len(assets) {
 			return assets[recordIndex-1].Data, nil
 		}
@@ -373,10 +370,6 @@ func mobiAssetName(recordIndex int, kindleIndex int, ext string) string {
 	return fmt.Sprintf("images/record-%04d.%s", recordIndex, ext)
 }
 
-// rewriteMobiImageRefs turns legacy recindex attributes and kindle:embed
-// references into images/kindle-XXXX.ext paths that GetAsset resolves. The
-// extension is unknown at HTML time so a generic .img is used; GetAsset
-// matches on the numeric index instead of the extension.
 func rewriteMobiImageRefs(value string) string {
 	value = recindexAttrRegex.ReplaceAllStringFunc(value, func(m string) string {
 		sub := recindexAttrRegex.FindStringSubmatch(m)
@@ -645,25 +638,25 @@ func parseEXTH(first []byte, exthStart int, header *palmDocHeader) {
 		pos += recLen
 
 		switch recType {
-		case 100: // Author / Creator
+		case 100:
 			if a := cleanText(string(data)); a != "" {
 				authors = append(authors, a)
 			}
-		case 101: // Publisher
+		case 101:
 			header.Publisher = cleanText(string(data))
-		case 103: // Description
+		case 103:
 			header.Description = cleanText(string(data))
-		case 105: // Subject
+		case 105:
 			if s := cleanText(string(data)); s != "" {
 				header.Subjects = append(header.Subjects, s)
 			}
-		case 106: // Publishing Date
+		case 106:
 			header.Date = cleanText(string(data))
-		case 201: // Cover Offset
+		case 201:
 			if len(data) == 4 {
 				header.CoverOffset = int(binary.BigEndian.Uint32(data))
 			}
-		case 503: // Updated Title
+		case 503:
 			if t := cleanText(string(data)); t != "" {
 				header.Title = t
 			}
@@ -913,9 +906,6 @@ func mobiNearestBlockStart(inner string, index int) int {
 	return index
 }
 
-// mobiSectionHasImage reports whether the section HTML references an embedded
-// image record. Pure image pages ("Minh họa", svg covers) carry almost no
-// readable text, so the length filter would otherwise throw them away.
 func mobiSectionHasImage(content string) bool {
 	lower := strings.ToLower(content)
 	return strings.Contains(lower, "<img") ||

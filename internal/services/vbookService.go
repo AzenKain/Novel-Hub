@@ -38,12 +38,12 @@ type VBookService interface {
 }
 
 type vbookService struct {
-	bookRepo     repositories.BookCatalogRepository
-	metadataRepo repositories.BookMetadataRepository
+	bookRepo      repositories.BookCatalogRepository
+	metadataRepo  repositories.BookMetadataRepository
 	audiobookRepo repositories.AudiobookRepository
-	bookService  BookService
-	vbookFS      fs.FS
-	cache        cache.Cache
+	bookService   BookService
+	vbookFS       fs.FS
+	cache         cache.Cache
 }
 
 func NewVBookService(bookRepo repositories.BookCatalogRepository, metadataRepo repositories.BookMetadataRepository, audiobookRepo repositories.AudiobookRepository, bookService BookService, vbookFS fs.FS, ramCache cache.Cache) VBookService {
@@ -116,7 +116,6 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 	var cursorTime *time.Time
 	var cursorID string
 
-	// If pageStr is a cursor (contains '|')
 	if strings.Contains(pageStr, "|") {
 		parts := strings.SplitN(pageStr, "|", 2)
 		if len(parts) == 2 {
@@ -126,7 +125,6 @@ func (s *vbookService) GetBooks(ctx context.Context, baseURL string, search *str
 			}
 		}
 	} else if pageStr != "" && pageStr != "1" {
-		// Fallback: if it's a page number greater than 1, we can calculate offset
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 1 {
 			nav := ""
 			if sort == "hot" {
@@ -270,7 +268,6 @@ func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageSt
 		limit = 20
 	}
 
-	// vbook pages by cursor "time|id" like GetBooks; no offset paging.
 	var cursorTime *time.Time
 	var cursorID string
 	if strings.Contains(pageStr, "|") {
@@ -293,7 +290,6 @@ func (s *vbookService) GetAudioBooks(ctx context.Context, baseURL string, pageSt
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to load audio books")
 	}
 
-	// GetBooksByIDs is cache-backed and not order-preserving; re-sort by ids.
 	byID := make(map[string]*models.BookEntity, len(books))
 	for _, b := range books {
 		byID[b.ID] = b
@@ -380,7 +376,6 @@ func (s *vbookService) GetAudioPlaylist(ctx context.Context, bookID string, clai
 	}
 	flush()
 
-	// Fallback: if no audiobook_chapters exist, build tracks from audio book_files directly.
 	if len(tracks) == 0 {
 		files, err := s.bookService.ListBookFiles(ctx, bookID)
 		if err != nil {
@@ -520,8 +515,6 @@ func (s *vbookService) GetChapterContent(ctx context.Context, bookID string, cha
 
 	htmlContent, err := s.bookService.GetChapterHTML(ctx, bookID, chapterID, "")
 	if err != nil {
-		// Plugin may send a content path instead of a chapter id; resolve it
-		// against the TOC, exact match first, then segment-boundary suffix.
 		if chapters, listErr := s.bookService.ListChapters(ctx, bookID); listErr == nil {
 			targetPath := strings.ToLower(strings.TrimLeft(chapterID, "/"))
 			var match *models.ChapterEntity
@@ -623,8 +616,7 @@ func (s *vbookService) GetPluginZip(ctx context.Context, baseURL string) ([]byte
 	return s.buildPluginZip(ctx, baseURL)
 }
 
-// ponytail: audio ext shares the same fs; zip cache key suffixed -audio
-// so the two plugin variants don't clobber each other.
+// ponytail: audio ext shares the same fs; zip cache key suffixed -audio so the two plugin variants don't clobber each other.
 func (s *vbookService) GetPluginZipAudio(ctx context.Context, baseURL string) ([]byte, error) {
 	if s.vbookFS == nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "VBook assets are not available")
@@ -693,7 +685,6 @@ func (s *vbookService) buildAudioPluginZip(_ context.Context, baseURL string) ([
 		audioScripts)
 }
 
-// vbookFiles maps zip src/ name -> disk src/ name (identity for the novel pack).
 func vbookFiles() map[string]string {
 	out := make(map[string]string, len(vbookScripts))
 	for _, name := range vbookScripts {
@@ -702,8 +693,6 @@ func vbookFiles() map[string]string {
 	return out
 }
 
-// zipVBookPlugin writes plugin.json + icon + all script files into a zip.
-// srcFiles maps the zip entry base name -> disk src/<name>.js.
 func zipVBookPlugin(vbookFS fs.FS, baseURL string, manifest *response.VBookPluginResponse, srcFiles map[string]string) ([]byte, error) {
 	pluginJSON, err := jsonx.Marshal(manifest)
 	if err != nil {

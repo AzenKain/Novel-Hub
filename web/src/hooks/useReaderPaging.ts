@@ -22,13 +22,7 @@ type UseReaderPagingArgs = {
   onChapterPrev: () => void;
 };
 
-/**
- * Owns everything about *where in the chapter the reader is*: the page frame
- * width, the current page index, scrolling to a page, and keeping the index in
- * sync when the user scrolls or switches between scroll/single/double modes.
- *
- * Extracted verbatim from ReaderWorkspace — behaviour is unchanged.
- */
+/** Manages reader pagination and scrolling state. */
 export function useReaderPaging({
   contentRef,
   columnsRef,
@@ -62,7 +56,8 @@ export function useReaderPaging({
 
     const container = columnsRef.current || contentRef.current;
 
-    const isPagedMode = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+    const isPagedMode =
+      effectiveReadingMode === "single" || effectiveReadingMode === "double";
     if (pendingLandingRef?.current === "end" && isPagedMode) {
       pendingLandingRef.current = null;
 
@@ -95,11 +90,11 @@ export function useReaderPaging({
         }
       };
 
-      // Perform landing immediately
       landAtEnd();
 
-      // Listen for image loads to stay anchored to the last page as image assets load
-      const images = (columnsRef.current || contentRef.current)?.querySelectorAll("img");
+      const images = (
+        columnsRef.current || contentRef.current
+      )?.querySelectorAll("img");
       if (images && images.length > 0) {
         images.forEach((img) => {
           if (!img.complete) {
@@ -145,7 +140,9 @@ export function useReaderPaging({
     if (!el) return lastVisibleElementRef.current;
     const container = columnsRef.current || el;
     const containerRect = el.getBoundingClientRect();
-    const candidates = container.querySelectorAll<HTMLElement>("p, h1, h2, h3, h4, h5, h6, li, figure, img, blockquote");
+    const candidates = container.querySelectorAll<HTMLElement>(
+      "p, h1, h2, h3, h4, h5, h6, li, figure, img, blockquote",
+    );
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i];
       const rect = candidate.getBoundingClientRect();
@@ -168,7 +165,6 @@ export function useReaderPaging({
     return lastVisibleElementRef.current;
   };
 
-  // In scroll mode, track scroll fraction with O(1) arithmetic and throttle DOM element lookups via rAF
   useEffect(() => {
     if (!scrollLayout) return;
     const el = contentRef.current;
@@ -177,7 +173,10 @@ export function useReaderPaging({
     const onScroll = () => {
       const max = el.scrollHeight - el.clientHeight;
       if (max > 0) {
-        lastScrollFractionRef.current = Math.min(1, Math.max(0, el.scrollTop / max));
+        lastScrollFractionRef.current = Math.min(
+          1,
+          Math.max(0, el.scrollTop / max),
+        );
       } else {
         lastScrollFractionRef.current = 0;
       }
@@ -198,18 +197,21 @@ export function useReaderPaging({
     if (!container) return lastVisibleElementRef.current;
 
     const metrics = getPagedScrollMetrics();
-    if (!metrics || metrics.scrollStep <= 0) return lastVisibleElementRef.current;
+    if (!metrics || metrics.scrollStep <= 0)
+      return lastVisibleElementRef.current;
 
     const containerRect = container.getBoundingClientRect();
     const scrollStep = metrics.scrollStep;
     const currentScrollLeft = container.scrollLeft;
 
-    const candidates = container.querySelectorAll<HTMLElement>("p, h1, h2, h3, h4, h5, h6, li, figure, img, blockquote");
+    const candidates = container.querySelectorAll<HTMLElement>(
+      "p, h1, h2, h3, h4, h5, h6, li, figure, img, blockquote",
+    );
     for (let i = 0; i < candidates.length; i++) {
       const el = candidates[i];
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) continue;
-      const relativeLeft = (rect.left - containerRect.left) + currentScrollLeft;
+      const relativeLeft = rect.left - containerRect.left + currentScrollLeft;
       const elPage = Math.max(0, Math.floor(relativeLeft / scrollStep));
       if (elPage >= targetPageIndex) {
         return el;
@@ -220,11 +222,16 @@ export function useReaderPaging({
 
   const getVisibleTextOffset = (mode: "scroll" | "paged"): number | null => {
     const container = columnsRef.current || contentRef.current;
-    const viewport = mode === "scroll" ? contentRef.current : getPagedScrollContainer();
+    const viewport =
+      mode === "scroll" ? contentRef.current : getPagedScrollContainer();
     if (!container || !viewport) return null;
 
     const viewportRect = viewport.getBoundingClientRect();
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT,
+      null,
+    );
     let currentOffset = 0;
 
     while (walker.nextNode()) {
@@ -241,9 +248,15 @@ export function useReaderPaging({
         const visible = Array.from(range.getClientRects()).some((rect) => {
           if (rect.width === 0 && rect.height === 0) return false;
           if (mode === "paged") {
-            return rect.right > viewportRect.left + 2 && rect.left < viewportRect.right - 2;
+            return (
+              rect.right > viewportRect.left + 2 &&
+              rect.left < viewportRect.right - 2
+            );
           }
-          return rect.bottom > viewportRect.top + 10 && rect.top < viewportRect.bottom - 10;
+          return (
+            rect.bottom > viewportRect.top + 10 &&
+            rect.top < viewportRect.bottom - 10
+          );
         });
 
         if (visible) {
@@ -256,15 +269,18 @@ export function useReaderPaging({
             const subRange = document.createRange();
             subRange.setStart(node, mid);
             subRange.setEnd(node, nodeLength);
-            const firstSub = Array.from(subRange.getClientRects()).find((rect) => rect.width > 0 || rect.height > 0);
+            const firstSub = Array.from(subRange.getClientRects()).find(
+              (rect) => rect.width > 0 || rect.height > 0,
+            );
             if (!firstSub) {
               high = mid - 1;
               continue;
             }
 
-            const beforeViewport = mode === "paged"
-              ? firstSub.right <= viewportRect.left + 2
-              : firstSub.bottom <= viewportRect.top + 10;
+            const beforeViewport =
+              mode === "paged"
+                ? firstSub.right <= viewportRect.left + 2
+                : firstSub.bottom <= viewportRect.top + 10;
             if (beforeViewport) {
               low = mid + 1;
             } else {
@@ -290,16 +306,23 @@ export function useReaderPaging({
     }
   };
 
-  // In paged mode, track the visible element on current page and update fraction
   useEffect(() => {
-    if (scrollLayout || isResizingRef.current || prevModeRef.current !== effectiveReadingMode) return;
+    if (
+      scrollLayout ||
+      isResizingRef.current ||
+      prevModeRef.current !== effectiveReadingMode
+    )
+      return;
     const container = getPagedScrollContainer();
     if (!container) return;
 
     const metrics = getPagedScrollMetrics();
     if (metrics && metrics.scrollStep > 0) {
       if (metrics.maxIndex > 0) {
-        lastScrollFractionRef.current = Math.min(1, Math.max(0, pageIndex / metrics.maxIndex));
+        lastScrollFractionRef.current = Math.min(
+          1,
+          Math.max(0, pageIndex / metrics.maxIndex),
+        );
         lastKnownFractionRef.current = lastScrollFractionRef.current;
       }
       lastVisibleElementRef.current = getPagedVisibleElement(pageIndex);
@@ -328,11 +351,15 @@ export function useReaderPaging({
       let targetPage = lastPageIndexRef.current;
 
       const frameRect = frame.getBoundingClientRect();
-      const frameWidth = frameRect.width > 0 ? frameRect.width : frame.clientWidth;
+      const frameWidth =
+        frameRect.width > 0 ? frameRect.width : frame.clientWidth;
       setPageFrameWidth(frameWidth);
 
       if (frame.clientHeight > 0) {
-        frame.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
+        frame.style.setProperty(
+          "--reader-page-height",
+          `${frame.clientHeight}px`,
+        );
       }
 
       const container = getPagedScrollContainer();
@@ -349,7 +376,10 @@ export function useReaderPaging({
 
       if (container) {
         if (frame.clientHeight > 0) {
-          container.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
+          container.style.setProperty(
+            "--reader-page-height",
+            `${frame.clientHeight}px`,
+          );
         }
         const newStep = frameWidth + READER_PAGE_GAP;
 
@@ -363,12 +393,17 @@ export function useReaderPaging({
               const targetRect = targetEl.getBoundingClientRect();
               const containerRect = container.getBoundingClientRect();
               if (targetRect.width > 0 || targetRect.height > 0) {
-                const relativeLeft = (targetRect.left - containerRect.left) + container.scrollLeft;
+                const relativeLeft =
+                  targetRect.left - containerRect.left + container.scrollLeft;
                 targetPage = Math.max(0, Math.floor(relativeLeft / newStep));
               } else {
                 let offsetLeft = targetEl.offsetLeft;
                 let parent = targetEl.offsetParent as HTMLElement | null;
-                while (parent && container.contains(parent) && parent !== container) {
+                while (
+                  parent &&
+                  container.contains(parent) &&
+                  parent !== container
+                ) {
                   offsetLeft += parent.offsetLeft;
                   parent = parent.offsetParent as HTMLElement | null;
                 }
@@ -376,7 +411,12 @@ export function useReaderPaging({
               }
             }
 
-            if ((targetPage === 0 || !targetEl) && fraction > 0.05 && metrics && metrics.maxIndex > 0) {
+            if (
+              (targetPage === 0 || !targetEl) &&
+              fraction > 0.05 &&
+              metrics &&
+              metrics.maxIndex > 0
+            ) {
               targetPage = Math.round(fraction * metrics.maxIndex);
             }
 
@@ -388,7 +428,8 @@ export function useReaderPaging({
           lastPageIndexRef.current = targetPage;
         }
 
-        const targetLeft = Math.round(targetPage * newStep) * (rtlPaging ? -1 : 1);
+        const targetLeft =
+          Math.round(targetPage * newStep) * (rtlPaging ? -1 : 1);
         if (typeof container.scrollTo === "function") {
           container.scrollTo({ left: targetLeft, behavior: "auto" });
         } else {
@@ -435,21 +476,30 @@ export function useReaderPaging({
     if (!container) return;
 
     const containerRect = container.getBoundingClientRect();
-    const width = containerRect.width > 0 ? containerRect.width : container.clientWidth;
+    const width =
+      containerRect.width > 0 ? containerRect.width : container.clientWidth;
     if (width <= 0) return;
 
     const scrollStep = width + READER_PAGE_GAP;
     let scrollWidth = container.scrollWidth;
 
     if (cachedNodesContentRef.current !== htmlContent) {
-      cachedNodesRef.current = Array.from(container.querySelectorAll<HTMLElement>("p, div, figure, h1, h2, h3, h4, h5, h6, img"));
+      cachedNodesRef.current = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          "p, div, figure, h1, h2, h3, h4, h5, h6, img",
+        ),
+      );
       cachedNodesContentRef.current = htmlContent;
     }
     const allChildren = cachedNodesRef.current || [];
     if (allChildren.length > 0) {
       let maxChildRight = 0;
       const currentScrollLeft = container.scrollLeft;
-      for (let i = allChildren.length - 1; i >= Math.max(0, allChildren.length - 30); i--) {
+      for (
+        let i = allChildren.length - 1;
+        i >= Math.max(0, allChildren.length - 30);
+        i--
+      ) {
         const el = allChildren[i];
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 || rect.height > 0) {
@@ -502,13 +552,15 @@ export function useReaderPaging({
     const { container, scrollStep, maxIndex } = metrics;
     const nextIndex = Math.min(Math.max(targetIndex, 0), maxIndex);
     lastPageIndexRef.current = nextIndex;
-    lastKnownFractionRef.current = maxIndex > 0 ? Math.min(1, Math.max(0, nextIndex / maxIndex)) : 0;
+    lastKnownFractionRef.current =
+      maxIndex > 0 ? Math.min(1, Math.max(0, nextIndex / maxIndex)) : 0;
     requestAnimationFrame(() => rememberVisibleTextOffset("paged"));
 
     const isSlide = !instant && pageAnimation === "slide";
     const behavior = isSlide ? "smooth" : "auto";
 
-    const targetLeft = Math.round(nextIndex * scrollStep) * (rtlPaging ? -1 : 1);
+    const targetLeft =
+      Math.round(nextIndex * scrollStep) * (rtlPaging ? -1 : 1);
     isResizingRef.current = true;
     if (typeof container.scrollTo === "function") {
       container.scrollTo({
@@ -540,9 +592,24 @@ export function useReaderPaging({
     try {
       const rect = range.getBoundingClientRect();
       const scrollRect = scrollEl.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.bottom === 0) return false;
-      const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
-      scrollEl.scrollTop = Math.max(0, Math.min(maxScroll, scrollEl.scrollTop + (rect.top - scrollRect.top) - 24));
+      if (
+        rect.width === 0 &&
+        rect.height === 0 &&
+        rect.top === 0 &&
+        rect.bottom === 0
+      )
+        return false;
+      const maxScroll = Math.max(
+        0,
+        scrollEl.scrollHeight - scrollEl.clientHeight,
+      );
+      scrollEl.scrollTop = Math.max(
+        0,
+        Math.min(
+          maxScroll,
+          scrollEl.scrollTop + (rect.top - scrollRect.top) - 24,
+        ),
+      );
       lastVisibleTextOffsetRef.current = offset;
       return true;
     } catch {
@@ -556,14 +623,31 @@ export function useReaderPaging({
     const container = columnsRef.current || metrics?.container;
     if (!metrics || !container) return false;
 
-    const range = createRangeFromCharOffset(container as HTMLElement, offset, offset + 1);
+    const range = createRangeFromCharOffset(
+      container as HTMLElement,
+      offset,
+      offset + 1,
+    );
     if (!range) return false;
 
     try {
-      const rect = range.getBoundingClientRect();
+      const rawRects = Array.from(range.getClientRects()).filter(
+        (r) => r.width > 0 && r.height > 0,
+      );
+      const rect =
+        rawRects.length > 0
+          ? rawRects[rawRects.length - 1]
+          : range.getBoundingClientRect();
       const containerRect = metrics.container.getBoundingClientRect();
-      const relativeLeft = (rect.left - containerRect.left) + metrics.container.scrollLeft;
-      const targetIndex = Math.min(metrics.maxIndex, Math.max(0, Math.floor(relativeLeft / metrics.scrollStep)));
+      const relativeLeft =
+        rect.left - containerRect.left + metrics.container.scrollLeft;
+      const targetIndex = Math.min(
+        metrics.maxIndex,
+        Math.max(
+          0,
+          Math.floor((relativeLeft + READER_PAGE_GAP / 2) / metrics.scrollStep),
+        ),
+      );
       scrollToPageIndex(targetIndex, true);
       lastVisibleTextOffsetRef.current = offset;
       return true;
@@ -577,7 +661,9 @@ export function useReaderPaging({
     if (scrollLayout && contentRef.current) {
       const el = contentRef.current;
       const max = el.scrollHeight - el.clientHeight;
-      return max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : lastScrollFractionRef.current;
+      return max > 0
+        ? Math.min(1, Math.max(0, el.scrollTop / max))
+        : lastScrollFractionRef.current;
     }
     const metrics = getPagedScrollMetrics();
     if (!metrics || metrics.maxIndex <= 0) return 0;
@@ -589,9 +675,11 @@ export function useReaderPaging({
     if (prevMode === effectiveReadingMode) return;
 
     const isPrevPaged = prevMode === "single" || prevMode === "double";
-    const isNewPaged = effectiveReadingMode === "single" || effectiveReadingMode === "double";
+    const isNewPaged =
+      effectiveReadingMode === "single" || effectiveReadingMode === "double";
     const isPrevScroll = prevMode === "scroll" || prevMode === "webtoon";
-    const isNewScroll = effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
+    const isNewScroll =
+      effectiveReadingMode === "scroll" || effectiveReadingMode === "webtoon";
 
     prevModeRef.current = effectiveReadingMode;
     const savedOffset = lastVisibleTextOffsetRef.current;
@@ -599,16 +687,20 @@ export function useReaderPaging({
     if (isPrevPaged && isNewPaged) {
       const prevIdx = lastPageIndexRef.current;
       const prevMetrics = getPagedScrollMetrics();
-      const prevFraction = lastKnownFractionRef.current || (prevMetrics && prevMetrics.maxIndex > 0
-        ? Math.min(1, Math.max(0, prevIdx / prevMetrics.maxIndex))
-        : 0);
+      const prevFraction =
+        lastKnownFractionRef.current ||
+        (prevMetrics && prevMetrics.maxIndex > 0
+          ? Math.min(1, Math.max(0, prevIdx / prevMetrics.maxIndex))
+          : 0);
       let targetPage = prevIdx;
 
       const tryOffsetRestore = () => {
         if (savedOffset <= 0) return false;
         const restored = restoreTextOffsetToPaged(savedOffset);
         if (restored) {
-          lastVisibleElementRef.current = getPagedVisibleElement(lastPageIndexRef.current);
+          lastVisibleElementRef.current = getPagedVisibleElement(
+            lastPageIndexRef.current,
+          );
         }
         return restored;
       };
@@ -637,11 +729,15 @@ export function useReaderPaging({
 
     if (isPrevPaged && isNewScroll) {
       const prevIdx = lastPageIndexRef.current;
-      const targetEl = getPagedVisibleElement(prevIdx) || lastVisibleElementRef.current;
+      const targetEl =
+        getPagedVisibleElement(prevIdx) || lastVisibleElementRef.current;
       const metrics = getPagedScrollMetrics();
-      const prevFraction = modeTransitionFractionRef.current ?? (lastKnownFractionRef.current || ((metrics && metrics.maxIndex > 0)
-        ? Math.min(1, Math.max(0, prevIdx / metrics.maxIndex))
-        : lastScrollFractionRef.current));
+      const prevFraction =
+        modeTransitionFractionRef.current ??
+        (lastKnownFractionRef.current ||
+          (metrics && metrics.maxIndex > 0
+            ? Math.min(1, Math.max(0, prevIdx / metrics.maxIndex))
+            : lastScrollFractionRef.current));
       modeTransitionFractionRef.current = null;
 
       const container = getPagedScrollContainer();
@@ -682,7 +778,8 @@ export function useReaderPaging({
         }
 
         const newMax = el.scrollHeight - el.clientHeight;
-        lastScrollFractionRef.current = newMax > 0 ? el.scrollTop / newMax : prevFraction;
+        lastScrollFractionRef.current =
+          newMax > 0 ? el.scrollTop / newMax : prevFraction;
         lastKnownFractionRef.current = lastScrollFractionRef.current;
       };
 
@@ -697,7 +794,8 @@ export function useReaderPaging({
 
     if (isPrevScroll && isNewPaged) {
       const targetEl = lastVisibleElementRef.current;
-      const fraction = lastKnownFractionRef.current || lastScrollFractionRef.current;
+      const fraction =
+        lastKnownFractionRef.current || lastScrollFractionRef.current;
       isResizingRef.current = true;
 
       const restorePagedPosition = () => {
@@ -709,7 +807,8 @@ export function useReaderPaging({
         if (!container) return;
 
         const containerRect = container.getBoundingClientRect();
-        const width = containerRect.width > 0 ? containerRect.width : container.clientWidth;
+        const width =
+          containerRect.width > 0 ? containerRect.width : container.clientWidth;
         const scrollStep = width + READER_PAGE_GAP;
         const metrics = getPagedScrollMetrics();
         let targetIndex = lastPageIndexRef.current;
@@ -718,12 +817,17 @@ export function useReaderPaging({
           if (targetEl && container.contains(targetEl) && scrollStep > 0) {
             const rect = targetEl.getBoundingClientRect();
             if (rect.width > 0 || rect.height > 0) {
-              const relativeLeft = (rect.left - containerRect.left) + container.scrollLeft;
+              const relativeLeft =
+                rect.left - containerRect.left + container.scrollLeft;
               targetIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
             } else {
               let offsetLeft = targetEl.offsetLeft;
               let parent = targetEl.offsetParent as HTMLElement | null;
-              while (parent && container.contains(parent) && parent !== container) {
+              while (
+                parent &&
+                container.contains(parent) &&
+                parent !== container
+              ) {
                 offsetLeft += parent.offsetLeft;
                 parent = parent.offsetParent as HTMLElement | null;
               }
@@ -731,7 +835,12 @@ export function useReaderPaging({
             }
           }
 
-          if ((targetIndex === 0 || !targetEl) && fraction > 0.05 && metrics && metrics.maxIndex > 0) {
+          if (
+            (targetIndex === 0 || !targetEl) &&
+            fraction > 0.05 &&
+            metrics &&
+            metrics.maxIndex > 0
+          ) {
             targetIndex = Math.round(fraction * metrics.maxIndex);
           }
 
@@ -764,7 +873,9 @@ export function useReaderPaging({
       if (isResizingRef.current) return;
       const metrics = getPagedScrollMetrics();
       if (!metrics) return;
-      const idx = Math.round(Math.abs(container.scrollLeft) / metrics.scrollStep);
+      const idx = Math.round(
+        Math.abs(container.scrollLeft) / metrics.scrollStep,
+      );
       if (idx !== pageIndex) setPageIndex(idx);
     };
     container.addEventListener("scroll", onScroll, { passive: true });

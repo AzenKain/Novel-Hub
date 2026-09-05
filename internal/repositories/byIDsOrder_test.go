@@ -12,10 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// The by-IDs readers sort their id list to build a stable singleflight key. When every id is a
-// cache miss the "missing" slice aliases the caller's, so sorting it in place reorders the
-// caller's page: SearchBooks hands over keyset order (created_at DESC) and gets id-ascending
-// back, which makes StreamLibraryZip's cursor walk one book per page instead of one hundred.
+// The by-IDs readers sort their id list to build a stable singleflight key.
 func TestGetByIDsPreservesCallerOrder(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "order.db"))
 	if err != nil {

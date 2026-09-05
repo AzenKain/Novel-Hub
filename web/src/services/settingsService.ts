@@ -44,7 +44,10 @@ export const settingsService = {
     }
   },
 
-  async requestOTP(email: string, purpose: OTPPurpose): Promise<CommonResponse<OTPRequestResponse>> {
+  async requestOTP(
+    email: string,
+    purpose: OTPPurpose,
+  ): Promise<CommonResponse<OTPRequestResponse>> {
     try {
       const res = await api.post("/auth/otp/request", { email, purpose });
       return res.data;
@@ -55,7 +58,11 @@ export const settingsService = {
     }
   },
 
-  async verifyOTP(email: string, purpose: OTPPurpose, code: string): Promise<CommonResponse<OTPVerifyResponse>> {
+  async verifyOTP(
+    email: string,
+    purpose: OTPPurpose,
+    code: string,
+  ): Promise<CommonResponse<OTPVerifyResponse>> {
     try {
       const res = await api.post("/auth/otp/verify", { email, purpose, code });
       return res.data;
@@ -66,7 +73,9 @@ export const settingsService = {
     }
   },
 
-  async resetPasswordWithOTP(data: ResetPasswordWithOTPRequest): Promise<CommonResponse<unknown>> {
+  async resetPasswordWithOTP(
+    data: ResetPasswordWithOTPRequest,
+  ): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.post("/auth/password/reset", data);
       return res.data;
@@ -77,7 +86,9 @@ export const settingsService = {
     }
   },
 
-  async submitSetup(data: Record<string, unknown>): Promise<CommonResponse<unknown>> {
+  async submitSetup(
+    data: Record<string, unknown>,
+  ): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.post("/setup", data);
       return res.data;
@@ -88,12 +99,14 @@ export const settingsService = {
     }
   },
 
-  async uploadSetupLogo(data: FormData): Promise<CommonResponse<{ url: string }>> {
+  async uploadSetupLogo(
+    data: FormData,
+  ): Promise<CommonResponse<{ url: string }>> {
     try {
       const res = await api.post("/setup/logo", data, {
         headers: {
-          "Content-Type": "multipart/form-data"
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
       return res.data;
     } catch (error) {

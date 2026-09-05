@@ -10,7 +10,6 @@ import (
 )
 
 func cgroupMemoryLimit() int64 {
-	// Check cgroups v2
 	if data, err := os.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
 		str := strings.TrimSpace(string(data))
 		if str != "max" && str != "" {
@@ -20,12 +19,10 @@ func cgroupMemoryLimit() int64 {
 		}
 	}
 
-	// Check cgroups v1
 	if data, err := os.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
 		str := strings.TrimSpace(string(data))
 		if str != "" {
 			if limit, err := strconv.ParseInt(str, 10, 64); err == nil && limit > 0 {
-				// cgroups v1 sets a huge number (~9EB) when unlimited
 				if limit < (1 << 60) {
 					return limit
 				}

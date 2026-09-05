@@ -62,7 +62,11 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
   const changeTlsMode = (mode: SmtpTlsMode) => {
     setForm((prev) => {
       const isDefaultPort = Object.values(TLS_PORTS).includes(prev.port);
-      return { ...prev, tls_mode: mode, port: isDefaultPort ? TLS_PORTS[mode] : prev.port };
+      return {
+        ...prev,
+        tls_mode: mode,
+        port: isDefaultPort ? TLS_PORTS[mode] : prev.port,
+      };
     });
   };
 
@@ -94,7 +98,8 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
         setPassword("");
         setClearPassword(false);
       },
-      onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : String(err)),
     });
   };
 
@@ -110,9 +115,13 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
         allow_private_networks: form.allow_private_networks,
       },
       {
-        onSuccess: () => toast.success(t("settings.smtp_test_success", "SMTP connection succeeded")),
-        onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
-      }
+        onSuccess: () =>
+          toast.success(
+            t("settings.smtp_test_success", "SMTP connection succeeded"),
+          ),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : String(err)),
+      },
     );
   };
 
@@ -125,7 +134,10 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
             {t("settings.smtp_title", "Email (SMTP)")}
           </h2>
           <p className="text-xs text-base-content/50 mt-1">
-            {t("settings.smtp_desc", "Outbound mail server used for Send-to-Kindle and system notifications.")}
+            {t(
+              "settings.smtp_desc",
+              "Outbound mail server used for Send-to-Kindle and system notifications.",
+            )}
           </p>
         </div>
         <label className="flex items-center gap-2 shrink-0">
@@ -164,7 +176,9 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
               min={1}
               max={65535}
               value={form.port}
-              onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, port: Number(e.target.value) })
+              }
               className="input input-bordered w-full"
             />
           </div>
@@ -197,7 +211,10 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
               }}
               placeholder={
                 smtp?.password_configured
-                  ? t("settings.smtp_password_keep", "Leave blank to keep the saved password")
+                  ? t(
+                      "settings.smtp_password_keep",
+                      "Leave blank to keep the saved password",
+                    )
                   : t("settings.smtp_password_placeholder", "App password")
               }
               className="input input-bordered w-full"
@@ -216,7 +233,10 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
                   }}
                 />
                 <span className="text-xs text-base-content/60">
-                  {t("settings.smtp_password_clear", "Remove the saved password")}
+                  {t(
+                    "settings.smtp_password_clear",
+                    "Remove the saved password",
+                  )}
                 </span>
               </label>
             )}
@@ -262,7 +282,12 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
               min={1}
               max={500}
               value={form.max_attachment_mb}
-              onChange={(e) => setForm({ ...form, max_attachment_mb: parseInt(e.target.value) || 50 })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  max_attachment_mb: parseInt(e.target.value) || 50,
+                })
+              }
               placeholder="50"
               className="input input-bordered w-full"
             />
@@ -274,24 +299,33 @@ export const SmtpSettingsTab: React.FC<Props> = ({ settings }) => {
             type="checkbox"
             className="toggle toggle-warning toggle-sm mt-0.5"
             checked={form.allow_private_networks}
-            onChange={(e) => setForm({ ...form, allow_private_networks: e.target.checked })}
+            onChange={(e) =>
+              setForm({ ...form, allow_private_networks: e.target.checked })
+            }
           />
           <span>
             <span className="text-sm font-semibold flex items-center gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-              {t("settings.smtp_allow_private", "Allow private / local mail servers")}
+              {t(
+                "settings.smtp_allow_private",
+                "Allow private / local mail servers",
+              )}
             </span>
             <span className="block text-xs text-base-content/50 mt-0.5">
               {t(
                 "settings.smtp_allow_private_desc",
-                "Required for a mail server on your LAN, localhost, or a sibling container. Leave off when using an internet provider."
+                "Required for a mail server on your LAN, localhost, or a sibling container. Leave off when using an internet provider.",
               )}
             </span>
           </span>
         </label>
 
         <div className="flex items-center gap-3 pt-3 border-t border-base-200">
-          <button type="submit" className="btn btn-primary btn-sm gap-2" disabled={updateMutation.isPending}>
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm gap-2"
+            disabled={updateMutation.isPending}
+          >
             {updateMutation.isPending ? (
               <span className="loading loading-spinner loading-xs" />
             ) : (

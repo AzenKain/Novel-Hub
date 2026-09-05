@@ -225,4 +225,3 @@ func (e *BookUserStateEntity) ToResponse() *response.BookUserStateResponse {
 }
 
 type ShareInput = request.ShareInput
-

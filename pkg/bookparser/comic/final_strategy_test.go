@@ -14,12 +14,7 @@ import (
 	"novelhub/pkg/cache"
 )
 
-// RAR decode is ~20ms of pure CPU per page (disk floor is 0.2ms, ratio 0.982 so the compression
-// buys nothing). With C readers on a box with N cores, throughput is capped at N/0.02 pages/sec
-// no matter how the archive is opened — unless a page is decoded once and reused.
-//
-// This measures the three levers against that ceiling, on the access pattern Mihon actually
-// produces: readers clustered on the same volume, each prefetching a few pages ahead.
+// RAR decode is ~20ms of pure CPU per page (disk floor is 0.2ms, ratio 0.982 so the compression buys nothing).
 func TestPageDeliveryUnderRealisticLoad(t *testing.T) {
 	realCBR := realCBRPath(t)
 	parser := NewParser("cbr")
@@ -85,8 +80,6 @@ func TestPageDeliveryUnderRealisticLoad(t *testing.T) {
 		}},
 	}
 
-	// 50 readers, 20 pages each, all on one popular volume with overlapping windows —
-	// 1000 requests over ~60 distinct pages.
 	const readers, pagesEach = 50, 20
 	fmt.Printf("\n%d readers x %d pages on one volume (%d requests, ~60 distinct pages)\n",
 		readers, pagesEach, readers*pagesEach)

@@ -13,6 +13,5 @@ const (
 	OTPVerifiedDuration = 15 * time.Minute
 	OTPMaxAttempts      = 5
 
-	// Covers the three TOTP steps a code is accepted across, so a used code cannot be replayed.
 	TOTPReplayWindow = 2 * time.Minute
 )

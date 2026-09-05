@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { audiobookService } from "@/services";
-import type { LookupAudiobookChaptersInput, MergeAudioInput, UpsertAudiobookChapterInput } from "@/types";
+import type {
+  LookupAudiobookChaptersInput,
+  MergeAudioInput,
+  UpsertAudiobookChapterInput,
+} from "@/types";
 
 export function useAudiobookChaptersQuery(book_id: string, enabled = true) {
   return useQuery({
@@ -19,10 +23,14 @@ export function useAudiobookChaptersQuery(book_id: string, enabled = true) {
 export function useUpsertAudiobookChapterMutation(book_id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id?: string; chapter: UpsertAudiobookChapterInput }) =>
-      audiobookService.upsertChapter(book_id, input.id, input.chapter),
+    mutationFn: async (input: {
+      id?: string;
+      chapter: UpsertAudiobookChapterInput;
+    }) => audiobookService.upsertChapter(book_id, input.id, input.chapter),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["audiobookChapters", book_id] });
+      void queryClient.invalidateQueries({
+        queryKey: ["audiobookChapters", book_id],
+      });
     },
   });
 }
@@ -30,9 +38,12 @@ export function useUpsertAudiobookChapterMutation(book_id: string) {
 export function useDeleteAudiobookChapterMutation(book_id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => audiobookService.deleteChapter(book_id, id),
+    mutationFn: async (id: string) =>
+      audiobookService.deleteChapter(book_id, id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["audiobookChapters", book_id] });
+      void queryClient.invalidateQueries({
+        queryKey: ["audiobookChapters", book_id],
+      });
     },
   });
 }
@@ -43,7 +54,9 @@ export function useLookupAudiobookChaptersMutation(book_id: string) {
     mutationFn: async (input: LookupAudiobookChaptersInput) =>
       audiobookService.lookupChapters(book_id, input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["audiobookChapters", book_id] });
+      void queryClient.invalidateQueries({
+        queryKey: ["audiobookChapters", book_id],
+      });
     },
   });
 }
@@ -51,7 +64,8 @@ export function useLookupAudiobookChaptersMutation(book_id: string) {
 export function useMergeAudiobookMutation(book_id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: MergeAudioInput) => audiobookService.mergeAudio(book_id, input),
+    mutationFn: async (input: MergeAudioInput) =>
+      audiobookService.mergeAudio(book_id, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["book", book_id] });
     },

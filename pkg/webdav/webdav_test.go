@@ -40,17 +40,14 @@ func TestBuildMultiStatusXML(t *testing.T) {
 
 	xmlStr := string(data)
 
-	// Check DAV namespace
 	if !strings.Contains(xmlStr, `<D:multistatus xmlns:D="DAV:">`) {
 		t.Fatalf("missing D:multistatus element, got:\n%s", xmlStr)
 	}
 
-	// Check collection resource type
 	if !strings.Contains(xmlStr, "<D:collection/>") && !strings.Contains(xmlStr, "<D:collection></D:collection>") {
 		t.Fatalf("missing collection resourcetype in folder node, got:\n%s", xmlStr)
 	}
 
-	// Check content length and type
 	if !strings.Contains(xmlStr, "<D:getcontentlength>1548291</D:getcontentlength>") {
 		t.Fatalf("missing getcontentlength in file node, got:\n%s", xmlStr)
 	}
@@ -58,7 +55,6 @@ func TestBuildMultiStatusXML(t *testing.T) {
 		t.Fatalf("missing getcontenttype in file node, got:\n%s", xmlStr)
 	}
 
-	// Check ETag
 	if !strings.Contains(xmlStr, "<D:getetag>abc123etag</D:getetag>") {
 		t.Fatalf("missing formatted getetag, got:\n%s", xmlStr)
 	}

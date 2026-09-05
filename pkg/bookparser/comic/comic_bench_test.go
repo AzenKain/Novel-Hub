@@ -12,8 +12,6 @@ import (
 	"testing"
 )
 
-// buildBenchCBZ writes a CBZ with realistic page count and payload size. Stored (not deflated)
-// because comic images are already compressed, which is what real CBZ writers do.
 func buildBenchCBZ(tb testing.TB, pages int) string {
 	tb.Helper()
 	path := filepath.Join(tb.TempDir(), fmt.Sprintf("bench-%d.cbz", pages))
@@ -52,9 +50,7 @@ func buildBenchCBZ(tb testing.TB, pages int) string {
 	return path
 }
 
-// BenchmarkKomgaPageServe measures one /books/{id}/pages/{n} request as the Komga service
-// issues it: ListImages to map the 1-based number onto a name, then GetAsset to read it.
-// Both reopen the archive and re-run the budget scan, so cost grows with page count.
+// BenchmarkKomgaPageServe measures one /books/{id}/pages/{n} request as the Komga service issues it: ListImages to map the 1-based number onto a name, then GetAsset to read it.
 func BenchmarkKomgaPageServe(b *testing.B) {
 	for _, pages := range []int{50, 200, 800} {
 		path := buildBenchCBZ(b, pages)
@@ -75,8 +71,7 @@ func BenchmarkKomgaPageServe(b *testing.B) {
 	}
 }
 
-// The two halves, separately: ListImages is pure overhead per page request since the mapping
-// never changes for a given file.
+// The two halves, separately: ListImages is pure overhead per page request since the mapping never changes for a given file.
 func BenchmarkComicListImages(b *testing.B) {
 	for _, pages := range []int{50, 200, 800} {
 		path := buildBenchCBZ(b, pages)
@@ -131,8 +126,7 @@ func BenchmarkKomgaFullVolumeRead(b *testing.B) {
 	}
 }
 
-// What the cached page-name mapping buys: the list step happens once per file instead of once
-// per page. See komgaService.pageNames.
+// What the cached page-name mapping buys: the list step happens once per file instead of once per page.
 func BenchmarkKomgaPageServeWithCachedNames(b *testing.B) {
 	for _, pages := range []int{50, 200, 800} {
 		path := buildBenchCBZ(b, pages)

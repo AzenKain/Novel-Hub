@@ -234,9 +234,6 @@ func (r *libraryRepository) DeleteLibrary(ctx context.Context, id string) error 
 		_ = r.c.Del(ctx, cache.BuildKey("library", "id", id))
 		_ = r.c.Del(ctx, constants.CacheKeyLibraryList)
 		_ = r.c.Del(ctx, constants.CacheKeyLibraryStats)
-		// books.library_id is ON DELETE CASCADE, so this also removed every book in the
-		// library plus their chapters, files and tag links. We don't know which ids those
-		// were, so sweep by pattern the way BulkDeleteBooks does for the same DB effect.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookAllPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookIDsPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaSeriesPattern)

@@ -214,7 +214,6 @@ func (s *koboService) GetSyncList(ctx context.Context, dto request.KoboSyncDto, 
 		}
 	}
 
-	// Sync User Reading Lists / Shelves to Kobo as UserTags if space permits
 	if !remaining && s.readLists != nil {
 		userLists, _ := s.readLists.GetUserReadLists(ctx, dto.UserID, nil, "", 50)
 		for _, rl := range userLists {
@@ -584,4 +583,3 @@ func (s *koboService) ArchiveBook(ctx context.Context, userID, bookUUID string, 
 	_, _, err := s.accessibleBook(ctx, bookUUID, claims)
 	return err
 }
-

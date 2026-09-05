@@ -20,33 +20,28 @@ var (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
-// Demuxer reads one AAC track from an ADTS elementary stream. It carries no
-// gapless trims (ADTS has none) and seeks one frame early for the decoder's
-// IMDCT overlap.
+// Demuxer reads one AAC track from an ADTS elementary stream.
 type Demuxer struct {
 	src  container.Source
 	opts DemuxerOptions
 
 	ref      header
-	haveRef  bool // ref is set (distinct from firstFrame, which can be 0)
+	haveRef  bool
 	track    container.Track
 	warnings []container.Warning
 
-	firstFrame int64   // offset of the first audio frame
-	idx        []int64 // lazy frame offsets; idx[i] is frame i's byte offset
-	done       bool    // the index has reached the end of the stream
-	cur        int64   // next frame number ReadPacket delivers
+	firstFrame int64
+	idx        []int64
+	done       bool
+	cur        int64
 
 	w srcwin.Window
 }
 
-// NewDemuxer parses the stream head (ID3 tags, the first frame) and derives
-// the AudioSpecificConfig. The returned Demuxer implements container.Seeker
-// and container.Warner.
+// NewDemuxer parses the stream head (ID3 tags, the first frame) and derives the AudioSpecificConfig.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src, w: srcwin.New(src, src.Size(), "adts: reading frame data")}
 	if opts != nil {
@@ -85,9 +80,6 @@ func (d *Demuxer) parse() error {
 		return malformed("no ADTS frames found")
 	}
 	if h.blocks != 0 {
-		// A frame carrying multiple raw_data_blocks would need to be split
-		// into one packet per block; we deliver one block per frame, so
-		// refuse rather than undercount the timeline.
 		return malformed("%d raw_data_blocks per frame is unsupported", h.blocks+1)
 	}
 	if first != off {
@@ -115,13 +107,12 @@ func (d *Demuxer) parse() error {
 		Codec:       codec.AACLC,
 		CodecConfig: h.asc(),
 		Fmt:         f,
-		Samples:     -1, // ADTS declares no length; the stream runs to EOF
+		Samples:     -1,
 		Default:     true,
 	}
 	return nil
 }
 
-// nextFrame scans [from, limit) for a valid, length-confirmed frame header.
 func (d *Demuxer) nextFrame(from, limit int64) (int64, header, bool) {
 	limit = min(limit, d.w.DataEnd())
 	for off := from; off < limit; {
@@ -146,8 +137,6 @@ func (d *Demuxer) nextFrame(from, limit int64) (int64, header, bool) {
 	return 0, header{}, false
 }
 
-// frameAt parses and confirms the frame at the exact offset: its declared
-// length must point at a kin frame header (or the end of data).
 func (d *Demuxer) frameAt(off int64) (header, bool) {
 	h, ok := parseHeader(d.w.BytesAt(off, 9))
 	if !ok {
@@ -158,7 +147,7 @@ func (d *Demuxer) frameAt(off int64) (header, bool) {
 	}
 	next := off + int64(h.frameLen)
 	if next >= d.w.DataEnd() {
-		return h, true // runs to the end: nothing to confirm against
+		return h, true
 	}
 	if nh, ok := parseHeader(d.w.BytesAt(next, 9)); ok && h.kin(nh) {
 		return h, true
@@ -172,7 +161,6 @@ func (d *Demuxer) Tracks() []container.Track { return []container.Track{d.track}
 // Warnings returns damage tolerated during parsing.
 func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 
-// extend grows the frame index by one and reports whether it did.
 func (d *Demuxer) extend() (bool, error) {
 	if d.done {
 		return false, nil
@@ -192,7 +180,6 @@ func (d *Demuxer) extend() (bool, error) {
 		return false, nil
 	}
 	if _, ok := d.frameAt(next); !ok {
-		// Damage or trailing junk: resync within bounds, else end.
 		cand, _, ok := d.nextFrame(next, next+maxResync)
 		if !ok {
 			d.done = true
@@ -210,7 +197,6 @@ func (d *Demuxer) extend() (bool, error) {
 	return true, nil
 }
 
-// frameNo extends the index up to frame n, returning the highest available.
 func (d *Demuxer) frameNo(n int64) (int64, error) {
 	for int64(len(d.idx)) <= n {
 		grew, err := d.extend()
@@ -224,7 +210,7 @@ func (d *Demuxer) frameNo(n int64) (int64, error) {
 	return int64(len(d.idx)) - 1, nil
 }
 
-// ReadPacket yields one raw_data_block. Packet data is reused across calls.
+// ReadPacket yields one raw_data_block.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	lastNo, err := d.frameNo(d.cur)
 	if err != nil {
@@ -247,10 +233,7 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 		if d.w.Err() != nil {
 			return d.w.Err()
 		}
-		// A final frame whose declared length runs past EOF is a truncated
-		// tail (it is always the last indexed frame): drop it with a warning
-		// rather than a hard error, matching the damage-tolerant contract.
-		d.cur++ // consume it so a re-read returns clean EOF
+		d.cur++
 		if werr := d.warn(off, "final frame truncated (%d of %d bytes), dropped", len(frame), h.frameLen); werr != nil {
 			return werr
 		}
@@ -269,8 +252,7 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	return nil
 }
 
-// SeekSample lands one frame before the target (for the AAC IMDCT overlap)
-// and returns that frame's first sample; format.Media pre-rolls the rest.
+// SeekSample lands one frame before the target (for the AAC IMDCT overlap) and returns that frame's first sample; format.Media pre-rolls the rest.
 func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	if track != 0 {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, fmt.Sprintf("adts: no track %d", track))

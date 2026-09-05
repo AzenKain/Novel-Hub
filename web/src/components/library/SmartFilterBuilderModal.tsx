@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Plus, Trash2, Tag, User, BookOpen, Star, FileText } from "lucide-react";
+import {
+  X,
+  Plus,
+  Trash2,
+  Tag,
+  User,
+  BookOpen,
+  Star,
+  FileText,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import {
   useCreateSmartFilterMutation,
@@ -19,11 +28,9 @@ interface SmartFilterBuilderModalProps {
   filterToEdit?: SmartFilter | null;
 }
 
-export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = ({
-  isOpen,
-  onClose,
-  filterToEdit,
-}) => {
+export const SmartFilterBuilderModal: React.FC<
+  SmartFilterBuilderModalProps
+> = ({ isOpen, onClose, filterToEdit }) => {
   const { t } = useTranslation();
   const createMutation = useCreateSmartFilterMutation();
   const updateMutation = useUpdateSmartFilterMutation();
@@ -37,19 +44,29 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
   useEffect(() => {
     if (filterToEdit) {
       setName(filterToEdit.name);
-      setRules((filterToEdit.rules || []).map((r) => ({ ...r, id: r.id || nextRuleId() })));
+      setRules(
+        (filterToEdit.rules || []).map((r) => ({
+          ...r,
+          id: r.id || nextRuleId(),
+        })),
+      );
       setIsPinnedSidebar(filterToEdit.is_pinned_sidebar);
       setIsPinnedHome(filterToEdit.is_pinned_home);
     } else {
       setName("");
-      setRules([{ id: nextRuleId(), field: "status", operator: "eq", value: "unread" }]);
+      setRules([
+        { id: nextRuleId(), field: "status", operator: "eq", value: "unread" },
+      ]);
       setIsPinnedSidebar(false);
       setIsPinnedHome(false);
     }
   }, [filterToEdit, isOpen]);
 
   const handleAddRule = () => {
-    setRules([...rules, { id: nextRuleId(), field: "status", operator: "eq", value: "unread" }]);
+    setRules([
+      ...rules,
+      { id: nextRuleId(), field: "status", operator: "eq", value: "unread" },
+    ]);
   };
 
   const handleRemoveRule = (index: number) => {
@@ -60,7 +77,7 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
   const handleRuleChange = (
     index: number,
     key: keyof SmartFilterRuleItem,
-    value: string
+    value: string,
   ) => {
     const newRules = [...rules];
     if (key === "field") {
@@ -89,7 +106,9 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
     // Filter out rules with empty values
     const cleanedRules = rules.filter((r) => r.value.trim() !== "");
     if (cleanedRules.length === 0) {
-      toast.error(t("library.rules_empty_error", "Please add at least one valid rule."));
+      toast.error(
+        t("library.rules_empty_error", "Please add at least one valid rule."),
+      );
       return;
     }
 
@@ -105,7 +124,7 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
         { id: filterToEdit.id, payload },
         {
           onSuccess: () => onClose(),
-        }
+        },
       );
     } else {
       createMutation.mutate(payload, {
@@ -145,7 +164,10 @@ export const SmartFilterBuilderModal: React.FC<SmartFilterBuilderModalProps> = (
             </label>
             <input
               type="text"
-              placeholder={t("library.enter_filter_name", "e.g., Unread light novels")}
+              placeholder={t(
+                "library.enter_filter_name",
+                "e.g., Unread light novels",
+              )}
               className="input input-bordered w-full rounded-xl"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -250,17 +272,17 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, onChange, onRemove, t }) => {
     rule.field === "author_id"
       ? "authors"
       : rule.field === "series_id"
-      ? "series"
-      : rule.field === "tag_id"
-      ? "tags"
-      : rule.field === "format"
-      ? "formats"
-      : null;
+        ? "series"
+        : rule.field === "tag_id"
+          ? "tags"
+          : rule.field === "format"
+            ? "formats"
+            : null;
 
   // Use facet query if applicable
   const { items: facetItems = [], isPending } = useMetadataFacetQuery(
     facetType || "authors",
-    { search: searchTerm }
+    { search: searchTerm },
   );
 
   return (
@@ -292,8 +314,12 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, onChange, onRemove, t }) => {
             value={rule.value}
             onChange={(e) => onChange("value", e.target.value)}
           >
-            <option value="unread">{t("library.status_unread", "Unread")}</option>
-            <option value="reading">{t("library.status_reading", "Reading")}</option>
+            <option value="unread">
+              {t("library.status_unread", "Unread")}
+            </option>
+            <option value="reading">
+              {t("library.status_reading", "Reading")}
+            </option>
             <option value="read">{t("library.status_read", "Read")}</option>
           </select>
         )}
@@ -330,38 +356,45 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, onChange, onRemove, t }) => {
                 onChange("value", e.target.value);
               }}
             />
-            {showDropdown && (searchTerm.trim() !== "" || facetItems.length > 0) && (
-              <ul className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-base-100 border border-base-200 rounded-lg shadow-lg py-1 text-sm">
-                {isPending && <li className="px-3 py-1.5 text-xs text-base-content/40">{t("common.loading")}</li>}
-                {!isPending && facetItems.length === 0 && (
-                  <li
-                    className="px-3 py-1.5 hover:bg-base-200 cursor-pointer text-xs"
-                    onClick={() => {
-                      onChange("value", searchTerm);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    Use raw value: "{searchTerm}"
-                  </li>
-                )}
-                {facetItems.map((item) => (
-                  <li
-                    key={item.id || item.name}
-                    className="px-3 py-1.5 hover:bg-base-200 cursor-pointer flex justify-between gap-2"
-                    onMouseDown={() => {
-                      onChange("value", item.id || item.name);
-                      setSearchTerm(item.name);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <span className="font-semibold truncate">{item.name}</span>
-                    <span className="text-xs text-base-content/40 shrink-0">
-                      ({item.book_count} books)
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {showDropdown &&
+              (searchTerm.trim() !== "" || facetItems.length > 0) && (
+                <ul className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-base-100 border border-base-200 rounded-lg shadow-lg py-1 text-sm">
+                  {isPending && (
+                    <li className="px-3 py-1.5 text-xs text-base-content/40">
+                      {t("common.loading")}
+                    </li>
+                  )}
+                  {!isPending && facetItems.length === 0 && (
+                    <li
+                      className="px-3 py-1.5 hover:bg-base-200 cursor-pointer text-xs"
+                      onClick={() => {
+                        onChange("value", searchTerm);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      Use raw value: "{searchTerm}"
+                    </li>
+                  )}
+                  {facetItems.map((item) => (
+                    <li
+                      key={item.id || item.name}
+                      className="px-3 py-1.5 hover:bg-base-200 cursor-pointer flex justify-between gap-2"
+                      onMouseDown={() => {
+                        onChange("value", item.id || item.name);
+                        setSearchTerm(item.name);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <span className="font-semibold truncate">
+                        {item.name}
+                      </span>
+                      <span className="text-xs text-base-content/40 shrink-0">
+                        ({item.book_count} books)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
           </div>
         )}
       </div>

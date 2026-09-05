@@ -99,4 +99,3 @@ func GenerateRandomHex(nBytes int) (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
-

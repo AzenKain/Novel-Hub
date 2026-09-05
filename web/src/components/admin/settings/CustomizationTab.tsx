@@ -50,7 +50,6 @@ export const CustomizationTab: React.FC = () => {
     deleteCustomTheme,
   } = useCustomization();
 
-  // Soundscape upload state
   const [soundMode, setSoundMode] = useState<"file" | "url">("file");
   const [soundName, setSoundName] = useState("");
   const [soundCat, setSoundCat] = useState("ambient");
@@ -59,14 +58,12 @@ export const CustomizationTab: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
 
-  // Font upload state
   const [fontMode, setFontMode] = useState<"file" | "url">("file");
   const [fontName, setFontName] = useState("");
   const [fontFamily, setFontFamily] = useState("");
   const [fontUrl, setFontUrl] = useState("");
   const [fontFile, setFontFile] = useState<File | null>(null);
 
-  // Theme creation state
   const [isCreatingTheme, setIsCreatingTheme] = useState(false);
   const [themeName, setThemeName] = useState("");
   const [themeBg, setThemeBg] = useState("#1e1e2e");
@@ -84,7 +81,11 @@ export const CustomizationTab: React.FC = () => {
       audioPlayer.pause();
     }
     const audio = new Audio(streamUrl);
-    audio.play().catch(() => toast.error(t("soundscape.play_failed", "Failed to play audio")));
+    audio
+      .play()
+      .catch(() =>
+        toast.error(t("soundscape.play_failed", "Failed to play audio")),
+      );
     audio.onended = () => setPlayingId(null);
     setAudioPlayer(audio);
     setPlayingId(id);
@@ -105,12 +106,16 @@ export const CustomizationTab: React.FC = () => {
         file: soundMode === "file" && soundFile ? soundFile : undefined,
         is_system: true,
       });
-      toast.success(t("admin.soundscape_created", "System default soundscape added"));
+      toast.success(
+        t("admin.soundscape_created", "System default soundscape added"),
+      );
       setSoundName("");
       setSoundUrl("");
       setSoundFile(null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to add system soundscape");
+      toast.error(
+        err?.response?.data?.message || "Failed to add system soundscape",
+      );
     }
   };
 
@@ -223,7 +228,6 @@ export const CustomizationTab: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* 1. System Default Ambient Soundscapes */}
       <div className="card bg-base-100 shadow-xl border border-base-content/10">
         <div className="card-body p-5 sm:p-6">
           <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
@@ -234,20 +238,28 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_soundscapes", "System Default Soundscapes")}
-                  <span className="badge badge-primary badge-xs">{t("common.system")}</span>
+                  <span className="badge badge-primary badge-xs">
+                    {t("common.system")}
+                  </span>
                 </h2>
                 <p className="text-xs opacity-60">
-                  {t("admin.system_soundscapes_desc", "Soundscapes managed here are instantly available to all users across the platform.")}
+                  {t(
+                    "admin.system_soundscapes_desc",
+                    "Soundscapes managed here are instantly available to all users across the platform.",
+                  )}
                 </p>
               </div>
             </div>
             <span className="badge badge-primary badge-outline text-xs">
-              {soundscapes.filter((s) => s.is_system).length} {t("soundscape.tracks", "Tracks")}
+              {soundscapes.filter((s) => s.is_system).length}{" "}
+              {t("soundscape.tracks", "Tracks")}
             </span>
           </div>
 
-          {/* Admin Upload Form */}
-          <form onSubmit={handleUploadSoundscape} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3">
+          <form
+            onSubmit={handleUploadSoundscape}
+            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("admin.add_system_soundscape", "Add System Soundscape")}
@@ -274,7 +286,9 @@ export const CustomizationTab: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.name", "Name")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.name", "Name")}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Cozy Rain, Coffee Shop Ambient"
@@ -286,25 +300,53 @@ export const CustomizationTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.category", "Category")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.category", "Category")}
+                </label>
                 <select
                   value={soundCat}
                   onChange={(e) => setSoundCat(e.target.value)}
                   className="select select-bordered select-sm w-full"
                 >
-                  <option value="rain">{t("soundscape.cat_rain", "Rain & Storm")}</option>
-                  <option value="coffee">{t("soundscape.cat_coffee", "Cafe & Library")}</option>
-                  <option value="fire">{t("soundscape.cat_fire", "Fireplace & Camp")}</option>
-                  <option value="waves">{t("soundscape.cat_waves", "Ocean & River")}</option>
-                  <option value="wind">{t("soundscape.cat_wind", "Wind & Nature")}</option>
-                  <option value="ambient">{t("soundscape.cat_ambient", "Ambient Music")}</option>
-                  <option value="lofi">{t("soundscape.cat_lofi", "Lo-Fi & Chill Beats")}</option>
-                  <option value="edm">{t("soundscape.cat_edm", "EDM & Electronic")}</option>
-                  <option value="remix">{t("soundscape.cat_remix", "Remix & TikTok Trending")}</option>
-                  <option value="pop">{t("soundscape.cat_pop", "Pop & Acoustic")}</option>
-                  <option value="game">{t("soundscape.cat_game", "Game & Anime BGM")}</option>
-                  <option value="white_noise">{t("soundscape.cat_white_noise", "White Noise & ASMR")}</option>
-                  <option value="other">{t("soundscape.cat_other", "Other / Custom Music")}</option>
+                  <option value="rain">
+                    {t("soundscape.cat_rain", "Rain & Storm")}
+                  </option>
+                  <option value="coffee">
+                    {t("soundscape.cat_coffee", "Cafe & Library")}
+                  </option>
+                  <option value="fire">
+                    {t("soundscape.cat_fire", "Fireplace & Camp")}
+                  </option>
+                  <option value="waves">
+                    {t("soundscape.cat_waves", "Ocean & River")}
+                  </option>
+                  <option value="wind">
+                    {t("soundscape.cat_wind", "Wind & Nature")}
+                  </option>
+                  <option value="ambient">
+                    {t("soundscape.cat_ambient", "Ambient Music")}
+                  </option>
+                  <option value="lofi">
+                    {t("soundscape.cat_lofi", "Lo-Fi & Chill Beats")}
+                  </option>
+                  <option value="edm">
+                    {t("soundscape.cat_edm", "EDM & Electronic")}
+                  </option>
+                  <option value="remix">
+                    {t("soundscape.cat_remix", "Remix & TikTok Trending")}
+                  </option>
+                  <option value="pop">
+                    {t("soundscape.cat_pop", "Pop & Acoustic")}
+                  </option>
+                  <option value="game">
+                    {t("soundscape.cat_game", "Game & Anime BGM")}
+                  </option>
+                  <option value="white_noise">
+                    {t("soundscape.cat_white_noise", "White Noise & ASMR")}
+                  </option>
+                  <option value="other">
+                    {t("soundscape.cat_other", "Other / Custom Music")}
+                  </option>
                 </select>
               </div>
             </div>
@@ -312,7 +354,10 @@ export const CustomizationTab: React.FC = () => {
             {soundMode === "file" ? (
               <div>
                 <label className="label label-text text-xs p-1">
-                  {t("soundscape.audio_file", "Audio File (MP3, OGG, WAV, M4A, FLAC)")}
+                  {t(
+                    "soundscape.audio_file",
+                    "Audio File (MP3, OGG, WAV, M4A, FLAC)",
+                  )}
                 </label>
                 <input
                   type="file"
@@ -324,7 +369,9 @@ export const CustomizationTab: React.FC = () => {
               </div>
             ) : (
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.audio_url", "Direct Audio URL")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.audio_url", "Direct Audio URL")}
+                </label>
                 <input
                   type="url"
                   placeholder="https://example.com/audio.mp3"
@@ -347,7 +394,10 @@ export const CustomizationTab: React.FC = () => {
                 ) : (
                   <Sparkles className="w-4 h-4" />
                 )}
-                {t("admin.publish_system_soundscape", "Publish System Soundscape")}
+                {t(
+                  "admin.publish_system_soundscape",
+                  "Publish System Soundscape",
+                )}
               </button>
             </div>
           </form>
@@ -369,14 +419,24 @@ export const CustomizationTab: React.FC = () => {
                         onClick={() => handleTogglePlay(s.stream_url, s.id)}
                         className={`btn btn-circle btn-sm ${isPlaying ? "btn-primary" : "btn-outline"}`}
                       >
-                        {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                        {isPlaying ? (
+                          <Pause className="w-3.5 h-3.5" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        )}
                       </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="opacity-70">{getIconEl(s.category)}</span>
-                          <span className="font-semibold text-xs truncate">{s.name}</span>
+                          <span className="opacity-70">
+                            {getIconEl(s.category)}
+                          </span>
+                          <span className="font-semibold text-xs truncate">
+                            {s.name}
+                          </span>
                         </div>
-                        <span className="badge badge-ghost badge-xs text-[9px] uppercase">{s.category}</span>
+                        <span className="badge badge-ghost badge-xs text-[9px] uppercase">
+                          {s.category}
+                        </span>
                       </div>
                     </div>
 
@@ -406,20 +466,29 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_fonts", "System Default Reader Fonts")}
-                  <span className="badge badge-secondary badge-xs">{t("common.system")}</span>
+                  <span className="badge badge-secondary badge-xs">
+                    {t("common.system")}
+                  </span>
                 </h2>
                 <p className="text-xs opacity-60">
-                  {t("admin.system_fonts_desc", "Fonts configured here appear in the font selector for all readers.")}
+                  {t(
+                    "admin.system_fonts_desc",
+                    "Fonts configured here appear in the font selector for all readers.",
+                  )}
                 </p>
               </div>
             </div>
             <span className="badge badge-secondary badge-outline text-xs">
-              {customFonts.filter((f) => f.is_system).length} {t("font.fonts", "Fonts")}
+              {customFonts.filter((f) => f.is_system).length}{" "}
+              {t("font.fonts", "Fonts")}
             </span>
           </div>
 
           {/* Admin Font Upload Form */}
-          <form onSubmit={handleUploadFont} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3">
+          <form
+            onSubmit={handleUploadFont}
+            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("admin.add_system_font", "Add System Font")}
@@ -446,7 +515,9 @@ export const CustomizationTab: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="label label-text text-xs p-1">{t("font.display_name", "Display Name")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("font.display_name", "Display Name")}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Literata Book, Crimson Pro"
@@ -460,7 +531,9 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <label className="label label-text text-xs p-1 flex justify-between">
                   <span>{t("font.css_family", "Font Family (CSS)")}</span>
-                  <span className="text-[10px] opacity-50">{t("common.optional_auto", "Auto-detected")}</span>
+                  <span className="text-[10px] opacity-50">
+                    {t("common.optional_auto", "Auto-detected")}
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -480,7 +553,9 @@ export const CustomizationTab: React.FC = () => {
                 <input
                   type="file"
                   accept=".woff2,.woff,.ttf,.otf"
-                  onChange={(e) => handleFontFileSelect(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    handleFontFileSelect(e.target.files?.[0] || null)
+                  }
                   className="file-input file-input-bordered file-input-sm w-full"
                   required
                 />
@@ -488,7 +563,10 @@ export const CustomizationTab: React.FC = () => {
             ) : (
               <div>
                 <label className="label label-text text-xs p-1">
-                  {t("font.stylesheet_url", "Google Fonts / CSS Stylesheet URL")}
+                  {t(
+                    "font.stylesheet_url",
+                    "Google Fonts / CSS Stylesheet URL",
+                  )}
                 </label>
                 <input
                   type="url"
@@ -532,7 +610,9 @@ export const CustomizationTab: React.FC = () => {
                       <code className="text-[11px] px-1.5 py-0.5 rounded bg-base-300 opacity-80">
                         {f.font_family}
                       </code>
-                      <span className="badge badge-ghost badge-xs text-[9px] uppercase">{f.source_type}</span>
+                      <span className="badge badge-ghost badge-xs text-[9px] uppercase">
+                        {f.source_type}
+                      </span>
                     </div>
 
                     <button
@@ -550,7 +630,8 @@ export const CustomizationTab: React.FC = () => {
                     style={{ fontFamily: `'${f.font_family}', sans-serif` }}
                   >
                     <p className="text-sm line-clamp-1">
-                      The quick brown fox jumps over the lazy dog. 0123456789 {t("admin.default_font_note")}
+                      The quick brown fox jumps over the lazy dog. 0123456789{" "}
+                      {t("admin.default_font_note")}
                     </p>
                   </div>
                 </div>
@@ -570,10 +651,15 @@ export const CustomizationTab: React.FC = () => {
               <div>
                 <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
                   {t("admin.system_themes", "System Default Themes")}
-                  <span className="badge badge-accent badge-xs">{t("common.system")}</span>
+                  <span className="badge badge-accent badge-xs">
+                    {t("common.system")}
+                  </span>
                 </h2>
                 <p className="text-xs opacity-60">
-                  {t("admin.system_themes_desc", "Pre-built color themes available to all readers.")}
+                  {t(
+                    "admin.system_themes_desc",
+                    "Pre-built color themes available to all readers.",
+                  )}
                 </p>
               </div>
             </div>
@@ -590,7 +676,10 @@ export const CustomizationTab: React.FC = () => {
           </div>
 
           {isCreatingTheme && (
-            <form onSubmit={handleCreateTheme} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4">
+            <form
+              onSubmit={handleCreateTheme}
+              className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                   {t("admin.create_system_theme", "Create System Theme Preset")}
@@ -605,7 +694,9 @@ export const CustomizationTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="label label-text text-xs p-1">{t("theme.name", "Theme Name")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("theme.name", "Theme Name")}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Midnight Cyberpunk, Forest Emerald"
@@ -618,7 +709,9 @@ export const CustomizationTab: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="label label-text text-xs p-1">{t("theme.bg_color", "Background Color")}</label>
+                  <label className="label label-text text-xs p-1">
+                    {t("theme.bg_color", "Background Color")}
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -636,7 +729,9 @@ export const CustomizationTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="label label-text text-xs p-1">{t("theme.text_color", "Text Color")}</label>
+                  <label className="label label-text text-xs p-1">
+                    {t("theme.text_color", "Text Color")}
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -654,7 +749,9 @@ export const CustomizationTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="label label-text text-xs p-1">{t("theme.accent_color", "Accent Color")}</label>
+                  <label className="label label-text text-xs p-1">
+                    {t("theme.accent_color", "Accent Color")}
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -680,7 +777,10 @@ export const CustomizationTab: React.FC = () => {
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm rounded-xl gap-1.5">
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm rounded-xl gap-1.5"
+                >
                   <Sparkles className="w-4 h-4" />
                   {t("admin.publish_system_theme", "Publish System Theme")}
                 </button>
@@ -714,7 +814,8 @@ export const CustomizationTab: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] opacity-75 font-mono mb-2">
-                    <span>{th.bg_color}</span> / <span>{th.text_color}</span> / <span>{th.accent_color}</span>
+                    <span>{th.bg_color}</span> / <span>{th.text_color}</span> /{" "}
+                    <span>{th.accent_color}</span>
                   </div>
                 </div>
               ))}

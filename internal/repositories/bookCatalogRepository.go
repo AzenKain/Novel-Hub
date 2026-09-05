@@ -120,8 +120,6 @@ func (r *bookDBRepository) GetBook(ctx context.Context, id string) (*models.Book
 	if r.c != nil && !r.inTx {
 		if v, ok := r.c.GetObject(key); ok {
 			if book, ok := v.(*models.BookEntity); ok && book != nil {
-				// Shared cache object: hand out a shallow copy so callers may
-				// assign fields (metadata edits) without touching the cache.
 				out := *book
 				return &out, nil
 			}
@@ -568,32 +566,32 @@ func (r *bookDBRepository) SearchSmartFilterBooks(ctx context.Context, libraryID
 }
 
 type bookSearchFilters struct {
-	Valid           bool
-	MissingMetadata any
-	NoCover         any
-	HasFiles        any
-	HasAuthor       any
-	HasSeries       any
-	HasTags         any
-	HasPublishers   any
-	HasLanguages    any
-	HasFormats      any
-	Reading         any
-	Read            any
-	Unread          any
-	Hot             any
-	TopDownloaded   any
-	TopRated        any
-	RatingStar      any
-	Archived        any
-	Bookmarked      any
-	UserID          sql.NullString
-	AuthorID        any
-	SeriesID        any
-	TagID           any
-	PublisherID     any
-	LanguageID      any
-	FileFormat      any
+	Valid             bool
+	MissingMetadata   any
+	NoCover           any
+	HasFiles          any
+	HasAuthor         any
+	HasSeries         any
+	HasTags           any
+	HasPublishers     any
+	HasLanguages      any
+	HasFormats        any
+	Reading           any
+	Read              any
+	Unread            any
+	Hot               any
+	TopDownloaded     any
+	TopRated          any
+	RatingStar        any
+	Archived          any
+	Bookmarked        any
+	UserID            sql.NullString
+	AuthorID          any
+	SeriesID          any
+	TagID             any
+	PublisherID       any
+	LanguageID        any
+	FileFormat        any
 	ExcludeAudiobooks any
 }
 
@@ -825,8 +823,6 @@ func (r *bookDBRepository) GetBooksByIDs(ctx context.Context, ids []string) ([]*
 	}
 
 	ordered := orderBooks(ids, booksByID)
-	// Shared cache objects: shallow-copy each entity so callers can assign
-	// fields (enrichment, metadata edits) without mutating the cache entries.
 	for i, book := range ordered {
 		if book != nil {
 			out := *book
@@ -979,8 +975,6 @@ func (r *bookDBRepository) BulkDeleteBooks(ctx context.Context, bookIDs []string
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyKomgaBookSeriesPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyChapterPattern)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookFilePattern)
-		// book_tracker_mappings.book_id is ON DELETE CASCADE; a stale mapping would make
-		// tracker sync push progress for a book that no longer exists.
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookTrackerMapPattern)
 		_ = r.c.DelByPattern(context.Background(), "podcasts:*")
 	}

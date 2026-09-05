@@ -20,7 +20,6 @@ import (
 
 func progressAt(percent float64) *float64 { return &percent }
 
-// A nil queue makes DispatchEvent a silent no-op, so the queue must be real here.
 func completedWebhookHarness(t *testing.T) (*featureService, <-chan string) {
 	t.Helper()
 	t.Setenv("DB_ENCRYPTION_KEY", "reading-completed-test-key")

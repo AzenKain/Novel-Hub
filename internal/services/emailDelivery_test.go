@@ -32,8 +32,7 @@ func TestResolveEmailAttachmentSkipsUndeliverableFormats(t *testing.T) {
 	}
 }
 
-// GetFilesByBookId sorts epub first then created_at, so files[0] on a comic-only book is a
-// cbz — which Amazon rejects on arrival.
+// GetFilesByBookId sorts epub first then created_at, so files[0] on a comic-only book is a cbz — which Amazon rejects on arrival.
 func TestResolveEmailAttachmentRejectsComicOnlyBook(t *testing.T) {
 	files := []*models.BookFileEntity{
 		{ID: "f-cbz", Format: "cbz", Path: tempFile(t, "a.cbz", 10)},

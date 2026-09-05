@@ -16,12 +16,14 @@ import type {
   UpdateRolePermissionsRequest,
   UpdateRoleRequest,
   UpdateSettingsRequest,
-  User
+  User,
 } from "@/types";
 import axios from "axios";
 
 export const adminService = {
-  async searchUsers(params: SearchUserParams): Promise<PaginatedResponse<User>> {
+  async searchUsers(
+    params: SearchUserParams,
+  ): Promise<PaginatedResponse<User>> {
     try {
       const res = await api.get(`/users${toQuery(params)}`);
       return res.data;
@@ -45,7 +47,10 @@ export const adminService = {
     }
   },
 
-  async updateUser(id: string, data: UpdateProfileRequest): Promise<CommonResponse<User>> {
+  async updateUser(
+    id: string,
+    data: UpdateProfileRequest,
+  ): Promise<CommonResponse<User>> {
     try {
       const res = await api.put(`/users/${id}`, data);
       return res.data;
@@ -57,9 +62,14 @@ export const adminService = {
     }
   },
 
-  async resetPassword(id: string, newPassword: string): Promise<CommonResponse<unknown>> {
+  async resetPassword(
+    id: string,
+    newPassword: string,
+  ): Promise<CommonResponse<unknown>> {
     try {
-      const res = await api.patch(`/users/${id}/password`, { new_password: newPassword });
+      const res = await api.patch(`/users/${id}/password`, {
+        new_password: newPassword,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -69,7 +79,10 @@ export const adminService = {
     }
   },
 
-  async sendUserEmail(id: string, data: SendUserEmailRequest): Promise<CommonResponse<unknown>> {
+  async sendUserEmail(
+    id: string,
+    data: SendUserEmailRequest,
+  ): Promise<CommonResponse<unknown>> {
     try {
       const res = await api.post(`/users/${id}/email`, data);
       return res.data;
@@ -81,7 +94,10 @@ export const adminService = {
     }
   },
 
-  async changeRoles(id: string, roleIDs: string[]): Promise<CommonResponse<User>> {
+  async changeRoles(
+    id: string,
+    roleIDs: string[],
+  ): Promise<CommonResponse<User>> {
     try {
       const res = await api.patch(`/users/${id}/role`, { role_ids: roleIDs });
       return res.data;
@@ -117,8 +133,6 @@ export const adminService = {
     }
   },
 
-  // ─── Role CRUD ──────────────────────────────────────────────
-
   async getRoles(): Promise<CommonResponse<Role[]>> {
     try {
       const res = await api.get("/roles");
@@ -143,7 +157,10 @@ export const adminService = {
     }
   },
 
-  async updateRole(id: string, data: UpdateRoleRequest): Promise<CommonResponse<Role>> {
+  async updateRole(
+    id: string,
+    data: UpdateRoleRequest,
+  ): Promise<CommonResponse<Role>> {
     try {
       const res = await api.put(`/roles/${id}`, data);
       return res.data;
@@ -155,7 +172,10 @@ export const adminService = {
     }
   },
 
-  async updateRolePermissions(id: string, data: UpdateRolePermissionsRequest): Promise<CommonResponse<Role>> {
+  async updateRolePermissions(
+    id: string,
+    data: UpdateRolePermissionsRequest,
+  ): Promise<CommonResponse<Role>> {
     try {
       const res = await api.put(`/roles/${id}/permissions`, data);
       return res.data;
@@ -203,8 +223,6 @@ export const adminService = {
     }
   },
 
-  // ─── Settings ───────────────────────────────────────────────
-
   async getAdminSettings(): Promise<CommonResponse<AdminSettings>> {
     try {
       const res = await api.get("/settings");
@@ -217,7 +235,9 @@ export const adminService = {
     }
   },
 
-  async updateSettings(data: UpdateSettingsRequest): Promise<CommonResponse<AdminSettings>> {
+  async updateSettings(
+    data: UpdateSettingsRequest,
+  ): Promise<CommonResponse<AdminSettings>> {
     try {
       const res = await api.put("/settings", data);
       return res.data;
@@ -241,11 +261,14 @@ export const adminService = {
     }
   },
 
-  // ─── Reviews ────────────────────────────────────────────────
-
-  async listAllReviews(limit = 50, offset = 0): Promise<CommonResponse<AdminReview[]>> {
+  async listAllReviews(
+    limit = 50,
+    offset = 0,
+  ): Promise<CommonResponse<AdminReview[]>> {
     try {
-      const res = await api.get(`/admin/reviews?limit=${limit}&offset=${offset}`);
+      const res = await api.get(
+        `/admin/reviews?limit=${limit}&offset=${offset}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -255,9 +278,14 @@ export const adminService = {
     }
   },
 
-  async deleteReview(book_id: string, user_id: string): Promise<CommonResponse<unknown>> {
+  async deleteReview(
+    book_id: string,
+    user_id: string,
+  ): Promise<CommonResponse<unknown>> {
     try {
-      const res = await api.delete(`/admin/reviews/${encodeURIComponent(book_id)}/${user_id}`);
+      const res = await api.delete(
+        `/admin/reviews/${encodeURIComponent(book_id)}/${user_id}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -267,12 +295,14 @@ export const adminService = {
     }
   },
 
-  async uploadAdminLogo(data: FormData): Promise<CommonResponse<{ url: string }>> {
+  async uploadAdminLogo(
+    data: FormData,
+  ): Promise<CommonResponse<{ url: string }>> {
     try {
       const res = await api.post("/settings/logo", data, {
         headers: {
-          "Content-Type": "multipart/form-data"
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
       return res.data;
     } catch (error) {
@@ -282,9 +312,15 @@ export const adminService = {
     }
   },
 
-  async importCalibre(path: string, library_id?: string): Promise<CommonResponse<CalibreImportResult>> {
+  async importCalibre(
+    path: string,
+    library_id?: string,
+  ): Promise<CommonResponse<CalibreImportResult>> {
     try {
-      const res = await api.post("/calibre/import", { path, library_id: library_id || "" });
+      const res = await api.post("/calibre/import", {
+        path,
+        library_id: library_id || "",
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

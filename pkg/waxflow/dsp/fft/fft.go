@@ -1,21 +1,4 @@
-// Package fft provides the shared forward complex FFT kernel the codec
-// transforms build on (the CELT MDCT today; any future MDCT/DFT consumer).
-// It exists so the hot transform inner loops live in one place rather than
-// one private FFT per codec.
-//
-// The transform is a mixed-radix decimation-in-time FFT for lengths that
-// factor into 2, 3, and 5, computed in float32 with float64-designed twiddle
-// tables. It evaluates the forward DFT
-//
-//	X[k] = sum_j x[j] * e^(-2*pi*i*j*k/n)
-//
-// with no scaling; callers fold any 1/n factor into their own pre- or
-// post-passes.
-//
-// The per-element floating-point operation sequence is fixed by the radix
-// kernels in this file and contains no fused multiply-add, so a Transform's
-// output is a pure function of its input on every platform: golden streams,
-// cache keys, and deterministic-mode encoders can depend on it.
+// Package fft provides the shared forward complex FFT kernel the codec transforms build on (the CELT MDCT today; any future MDCT/DFT consumer).
 package fft
 
 import (
@@ -23,28 +6,19 @@ import (
 	"math"
 )
 
-// Plan holds the read-only permutation and twiddle tables for one transform
-// length. A Plan is immutable after construction and safe for concurrent use;
-// callers own all per-call buffers.
+// Plan holds the read-only permutation and twiddle tables for one transform length.
 type Plan struct {
 	n      int
-	perm   []int32 // input index feeding each post-shuffle slot
-	levels []level // butterfly passes in execution order (deepest first)
+	perm   []int32
+	levels []level
 }
 
-// level is one butterfly pass: nBlocks contiguous blocks of length bl, each
-// combining f sub-transforms of length m (bl = f*m). twRe/twIm[q-1][k2] is
-// the leg twiddle e^(-2*pi*i*k2*q*stride/n) for leg q at in-block offset k2;
-// the remaining W_f^(r*q) factors are constants baked into the radix kernels.
 type level struct {
 	f, m, bl, nBlocks int
 	twRe, twIm        [][]float32
 }
 
-// NewPlan builds a Plan for length n, which must be a positive product of
-// 2s, 3s, and 5s. Any other length panics: transform sizes are fixed
-// properties of the codecs that embed them, so an unsupported length is a
-// programming error, not an input condition.
+// NewPlan builds a Plan for length n, which must be a positive product of 2s, 3s, and 5s.
 func NewPlan(n int) *Plan {
 	if n < 1 {
 		panic(fmt.Sprintf("fft: length %d must be positive", n))
@@ -59,8 +33,6 @@ func NewPlan(n int) *Plan {
 	p := &Plan{n: n}
 	p.perm = buildPerm(n, factors)
 
-	// Twiddles are designed in float64 and rounded once, so both kernel
-	// flavors consume identical float32 values.
 	bl := n
 	stride := 1
 	for _, f := range factors {
@@ -79,7 +51,6 @@ func NewPlan(n int) *Plan {
 			lv.twRe[q-1] = re
 			lv.twIm[q-1] = im
 		}
-		// Deepest passes run first: prepend so levels holds execution order.
 		p.levels = append([]level{lv}, p.levels...)
 		bl = m
 		stride *= f
@@ -91,15 +62,10 @@ func NewPlan(n int) *Plan {
 func (p *Plan) N() int { return p.n }
 
 // Transform computes the forward DFT of (srcRe, srcIm) into (dstRe, dstIm).
-// All four slices must have length N(); dst and src must not overlap (the
-// transform is not in-place). src is left unmodified. Transform performs no
-// allocation.
 func (p *Plan) Transform(dstRe, dstIm, srcRe, srcIm []float32) {
 	if len(dstRe) < p.n || len(dstIm) < p.n || len(srcRe) < p.n || len(srcIm) < p.n {
 		panic("fft: buffer shorter than the transform length")
 	}
-	// Catch the in-place call shape loudly; the permutation pass would
-	// silently corrupt it. Partial overlap stays the caller's contract.
 	if &dstRe[0] == &srcRe[0] || &dstRe[0] == &srcIm[0] ||
 		&dstIm[0] == &srcRe[0] || &dstIm[0] == &srcIm[0] {
 		panic("fft: dst and src must not overlap; the transform is not in-place")
@@ -114,9 +80,6 @@ func (p *Plan) Transform(dstRe, dstIm, srcRe, srcIm []float32) {
 	}
 }
 
-// factorize returns n's factors in the fixed radix preference order 5, 3, 4,
-// then 2 (the order the analysis FFT established), or nil when a prime other
-// than 2, 3, 5 remains.
 func factorize(n int) []int {
 	var fs []int
 	rem := n
@@ -132,16 +95,13 @@ func factorize(n int) []int {
 	return fs
 }
 
-// buildPerm computes the digit-reversal permutation by walking the
-// decimation-in-time recursion: each level splits the output into f
-// contiguous sub-transforms fed by the f interleaved input sequences.
 func buildPerm(n int, factors []int) []int32 {
 	perm := make([]int32, n)
 	lengths := make([]int, len(factors))
 	l := n
 	for i, f := range factors {
 		l /= f
-		lengths[i] = l // sub-transform length after applying factors[i]
+		lengths[i] = l
 	}
 	var rec func(outBase, inBase, stride, depth int)
 	rec = func(outBase, inBase, stride, depth int) {
@@ -161,18 +121,15 @@ func buildPerm(n int, factors []int) []int32 {
 	return perm
 }
 
-// Radix kernel constants, with digits beyond float32 precision so the
-// conversion rounds unambiguously.
 const (
-	fftCos3  = -0.5                // cos(2*pi/3)
-	fftSin3  = 0.8660254037844386  // sin(2*pi/3)
-	fftCos5a = 0.30901699437494745 // cos(2*pi/5)
-	fftCos5b = -0.8090169943749475 // cos(4*pi/5)
-	fftSin5a = 0.9510565162951535  // sin(2*pi/5)
-	fftSin5b = 0.5877852522924731  // sin(4*pi/5)
+	fftCos3  = -0.5
+	fftSin3  = 0.8660254037844386
+	fftCos5a = 0.30901699437494745
+	fftCos5b = -0.8090169943749475
+	fftSin5a = 0.9510565162951535
+	fftSin5b = 0.5877852522924731
 )
 
-// combineLevel runs one butterfly pass over the whole array.
 func combineLevel(lv *level, re, im []float32) {
 	switch lv.f {
 	case 2:
@@ -187,13 +144,6 @@ func combineLevel(lv *level, re, im []float32) {
 		panic("fft: unsupported radix")
 	}
 }
-
-// Leg twiddling is everywhere the three-rounding form
-// (sr*wr - si*wi, sr*wi + si*wr). The kernels index flat with the block
-// offset on purpose: per-leg re-slicing for bounds-check elimination was
-// measured ~5% SLOWER on the 480- and 60-point benches (the checks are
-// branch-predicted and effectively free; the per-block slice headers are
-// not), so keep the flat form unless a new measurement says otherwise.
 
 func combine2(lv *level, re, im []float32) {
 	m := lv.m

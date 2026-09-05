@@ -23,16 +23,23 @@ export function useOfflineAssets(bookId?: string) {
       revoke();
       let resolved = html;
 
-      // 1. Resolve API asset URLs: /api/v1/reader/.../asset/{path}
-      const apiMatches = [...html.matchAll(/\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?#]+)(\?[^"']*)?/g)];
+      const apiMatches = [
+        ...html.matchAll(
+          /\/api\/v1\/reader\/[^/"']+\/asset\/([^"'?#]+)(\?[^"']*)?/g,
+        ),
+      ];
       for (const match of apiMatches) {
         const fullUrl = match[0];
         const rawPath = decodeURIComponent(match[1]);
         const fileName = rawPath.split("/").pop() || rawPath;
 
-        let blob = await offlineStore.getBlob(bookId, assetKey(rawPath)).catch(() => undefined);
+        let blob = await offlineStore
+          .getBlob(bookId, assetKey(rawPath))
+          .catch(() => undefined);
         if (!blob && fileName !== rawPath) {
-          blob = await offlineStore.getBlob(bookId, assetKey(fileName)).catch(() => undefined);
+          blob = await offlineStore
+            .getBlob(bookId, assetKey(fileName))
+            .catch(() => undefined);
         }
 
         if (blob) {
@@ -41,16 +48,23 @@ export function useOfflineAssets(bookId?: string) {
         }
       }
 
-      // 2. Fallback for <img class="cover"> or <img alt="Cover"> with missing or empty src
-      const coverBlob = await offlineStore.getBlob(bookId, "cover").catch(() => undefined);
+      const coverBlob = await offlineStore
+        .getBlob(bookId, "cover")
+        .catch(() => undefined);
       if (coverBlob) {
         const coverBlobUrl = track(URL.createObjectURL(coverBlob));
-        resolved = resolved.replace(/<img\b(?![^>]*\bsrc=)([^>]*\b(?:class|alt)=["'][^"']*\bcover\b[^"']*["'][^>]*)>/gi, (_m, attrs) => {
-          return `<img src="${coverBlobUrl}" ${attrs}>`;
-        });
-        resolved = resolved.replace(/<img\b([^>]*\bsrc=["']\s*["'][^>]*)>/gi, (_m, attrs) => {
-          return `<img src="${coverBlobUrl}" ${attrs.replace(/src=["']\s*["']/, "")}>`;
-        });
+        resolved = resolved.replace(
+          /<img\b(?![^>]*\bsrc=)([^>]*\b(?:class|alt)=["'][^"']*\bcover\b[^"']*["'][^>]*)>/gi,
+          (_m, attrs) => {
+            return `<img src="${coverBlobUrl}" ${attrs}>`;
+          },
+        );
+        resolved = resolved.replace(
+          /<img\b([^>]*\bsrc=["']\s*["'][^>]*)>/gi,
+          (_m, attrs) => {
+            return `<img src="${coverBlobUrl}" ${attrs.replace(/src=["']\s*["']/, "")}>`;
+          },
+        );
       }
 
       return resolved;
@@ -61,7 +75,9 @@ export function useOfflineAssets(bookId?: string) {
   const resolveBlobURL = useCallback(
     async (key: string) => {
       if (!bookId) return undefined;
-      const blob = await offlineStore.getBlob(bookId, key).catch(() => undefined);
+      const blob = await offlineStore
+        .getBlob(bookId, key)
+        .catch(() => undefined);
       return blob ? track(URL.createObjectURL(blob)) : undefined;
     },
     [bookId, track],

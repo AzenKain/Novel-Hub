@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Palette,
-  Sparkles,
-  Trash2,
-  Eye,
-  Plus,
-} from "lucide-react";
+import { Palette, Sparkles, Trash2, Eye, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCustomization } from "@/hooks/useCustomization";
 import { hasPermission } from "@/utils/permission";
@@ -29,7 +23,9 @@ export const CustomThemesCard: React.FC = () => {
   const [accentColor, setAccentColor] = useState("#89b4fa");
   const [customCss, setCustomCss] = useState("");
 
-  const canManage = hasPermission(user, "user.theme.manage") || hasPermission(user, "admin.theme.manage");
+  const canManage =
+    hasPermission(user, "user.theme.manage") ||
+    hasPermission(user, "admin.theme.manage");
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,22 +43,31 @@ export const CustomThemesCard: React.FC = () => {
         custom_css: customCss.trim(),
       });
 
-      toast.success(t("theme.create_success", "Custom theme created successfully"));
+      toast.success(
+        t("theme.create_success", "Custom theme created successfully"),
+      );
       setName("");
       setCustomCss("");
       setIsCreating(false);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("theme.create_failed", "Failed to create theme"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("theme.create_failed", "Failed to create theme"),
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t("theme.delete_confirm", "Delete this custom theme?"))) return;
+    if (!window.confirm(t("theme.delete_confirm", "Delete this custom theme?")))
+      return;
     try {
       await deleteCustomTheme(id);
       toast.success(t("theme.delete_success", "Custom theme deleted"));
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("theme.delete_failed", "Failed to delete theme"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("theme.delete_failed", "Failed to delete theme"),
+      );
     }
   };
 
@@ -79,7 +84,10 @@ export const CustomThemesCard: React.FC = () => {
                 {t("theme.personal_themes", "Reader Themes & Custom CSS")}
               </h2>
               <p className="text-xs opacity-60">
-                {t("theme.personal_desc", "Design bespoke color palettes and fine-tuned CSS rules for your reading experience.")}
+                {t(
+                  "theme.personal_desc",
+                  "Design bespoke color palettes and fine-tuned CSS rules for your reading experience.",
+                )}
               </p>
             </div>
           </div>
@@ -95,9 +103,11 @@ export const CustomThemesCard: React.FC = () => {
           )}
         </div>
 
-        {/* Creation Form */}
         {isCreating && (
-          <form onSubmit={handleCreate} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4">
+          <form
+            onSubmit={handleCreate}
+            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("theme.create_title", "Create Reader Theme")}
@@ -112,7 +122,9 @@ export const CustomThemesCard: React.FC = () => {
             </div>
 
             <div>
-              <label className="label label-text text-xs p-1">{t("theme.name", "Theme Name")}</label>
+              <label className="label label-text text-xs p-1">
+                {t("theme.name", "Theme Name")}
+              </label>
               <input
                 type="text"
                 placeholder="e.g. Midnight Cyberpunk, Forest Emerald"
@@ -125,7 +137,9 @@ export const CustomThemesCard: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="label label-text text-xs p-1">{t("theme.bg_color", "Background Color")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("theme.bg_color", "Background Color")}
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -143,7 +157,9 @@ export const CustomThemesCard: React.FC = () => {
               </div>
 
               <div>
-                <label className="label label-text text-xs p-1">{t("theme.text_color", "Text Color")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("theme.text_color", "Text Color")}
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -161,7 +177,9 @@ export const CustomThemesCard: React.FC = () => {
               </div>
 
               <div>
-                <label className="label label-text text-xs p-1">{t("theme.accent_color", "Accent / Highlight Color")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("theme.accent_color", "Accent / Highlight Color")}
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -179,7 +197,6 @@ export const CustomThemesCard: React.FC = () => {
               </div>
             </div>
 
-            {/* Live Theme Preview */}
             <div
               className="p-4 rounded-xl border transition-all"
               style={{
@@ -191,7 +208,8 @@ export const CustomThemesCard: React.FC = () => {
               <div className="flex items-center justify-between text-xs mb-2 opacity-80">
                 <span className="font-bold flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5" />
-                  {t("theme.preview", "Live Preview")}: {name || t("theme.untitled_theme")}
+                  {t("theme.preview", "Live Preview")}:{" "}
+                  {name || t("theme.untitled_theme")}
                 </span>
                 <span
                   className="px-2 py-0.5 rounded text-[10px] font-bold"
@@ -200,7 +218,9 @@ export const CustomThemesCard: React.FC = () => {
                   {t("theme.preview_accent_badge")}
                 </span>
               </div>
-              <h4 className="text-base font-bold mb-1">{t("theme.preview_title")}</h4>
+              <h4 className="text-base font-bold mb-1">
+                {t("theme.preview_title")}
+              </h4>
               <p className="text-xs opacity-90 leading-relaxed">
                 {t("theme.preview_text")}
               </p>
@@ -227,7 +247,10 @@ export const CustomThemesCard: React.FC = () => {
               >
                 {t("common.cancel", "Cancel")}
               </button>
-              <button type="submit" className="btn btn-primary btn-sm rounded-xl gap-1.5">
+              <button
+                type="submit"
+                className="btn btn-primary btn-sm rounded-xl gap-1.5"
+              >
                 <Sparkles className="w-4 h-4" />
                 {t("theme.save_theme", "Save Theme")}
               </button>
@@ -235,7 +258,6 @@ export const CustomThemesCard: React.FC = () => {
           </form>
         )}
 
-        {/* Existing Custom Themes List */}
         <div className="mt-4 space-y-2">
           <span className="text-xs font-bold uppercase tracking-wider opacity-70 block mb-2">
             {t("theme.saved_themes_list", "Saved Custom Themes")}
@@ -268,11 +290,14 @@ export const CustomThemesCard: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm">{th.name}</span>
                         {th.is_system && (
-                          <span className="badge badge-info badge-xs text-[9px]">{t("common.system", "System")}</span>
+                          <span className="badge badge-info badge-xs text-[9px]">
+                            {t("common.system", "System")}
+                          </span>
                         )}
                       </div>
 
-                      {(isOwner || hasPermission(user, "admin.theme.manage")) && (
+                      {(isOwner ||
+                        hasPermission(user, "admin.theme.manage")) && (
                         <button
                           type="button"
                           onClick={() => handleDelete(th.id)}
@@ -286,15 +311,24 @@ export const CustomThemesCard: React.FC = () => {
 
                     <div className="flex items-center gap-2 text-[11px] opacity-75 font-mono mb-2">
                       <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full inline-block border" style={{ backgroundColor: th.bg_color }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full inline-block border"
+                          style={{ backgroundColor: th.bg_color }}
+                        />
                         {th.bg_color}
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full inline-block border" style={{ backgroundColor: th.text_color }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full inline-block border"
+                          style={{ backgroundColor: th.text_color }}
+                        />
                         {th.text_color}
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full inline-block border" style={{ backgroundColor: th.accent_color }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full inline-block border"
+                          style={{ backgroundColor: th.accent_color }}
+                        />
                         {th.accent_color}
                       </span>
                     </div>

@@ -12,25 +12,37 @@ import type {
 } from "@/types";
 
 export const customizationService = {
-  // Soundscapes
-  async getSoundscapes(params?: CustomizationListParams): Promise<Soundscape[]> {
-    const res = await api.get<{ status: boolean; data: Soundscape[]; next_cursor?: string | null }>("/soundscapes", { params });
+  async getSoundscapes(
+    params?: CustomizationListParams,
+  ): Promise<Soundscape[]> {
+    const res = await api.get<{
+      status: boolean;
+      data: Soundscape[];
+      next_cursor?: string | null;
+    }>("/soundscapes", { params });
     return Array.isArray(res.data.data) ? res.data.data : [];
   },
 
-  async uploadSoundscape(payload: UploadSoundscapePayload): Promise<Soundscape> {
+  async uploadSoundscape(
+    payload: UploadSoundscapePayload,
+  ): Promise<Soundscape> {
     const formData = new FormData();
     formData.append("name", payload.name);
     if (payload.category) formData.append("category", payload.category);
     if (payload.icon) formData.append("icon", payload.icon);
-    if (typeof payload.volume === "number") formData.append("volume", String(payload.volume));
+    if (typeof payload.volume === "number")
+      formData.append("volume", String(payload.volume));
     if (payload.audio_url) formData.append("audio_url", payload.audio_url);
     if (payload.is_system) formData.append("is_system", "true");
     if (payload.file) formData.append("audio", payload.file);
 
-    const res = await api.post<CommonResponse<Soundscape>>("/soundscapes/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await api.post<CommonResponse<Soundscape>>(
+      "/soundscapes/upload",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
     return res.data.data as Soundscape;
   },
 
@@ -40,7 +52,11 @@ export const customizationService = {
 
   // Custom Fonts
   async getFonts(params?: CustomizationListParams): Promise<CustomFont[]> {
-    const res = await api.get<{ status: boolean; data: CustomFont[]; next_cursor?: string | null }>("/fonts", { params });
+    const res = await api.get<{
+      status: boolean;
+      data: CustomFont[];
+      next_cursor?: string | null;
+    }>("/fonts", { params });
     return Array.isArray(res.data.data) ? res.data.data : [];
   },
 
@@ -53,9 +69,13 @@ export const customizationService = {
     if (payload.is_system) formData.append("is_system", "true");
     if (payload.file) formData.append("font", payload.file);
 
-    const res = await api.post<CommonResponse<CustomFont>>("/fonts/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await api.post<CommonResponse<CustomFont>>(
+      "/fonts/upload",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
     return res.data.data as CustomFont;
   },
 
@@ -65,7 +85,11 @@ export const customizationService = {
 
   // Custom Themes
   async getThemes(params?: CustomizationListParams): Promise<CustomTheme[]> {
-    const res = await api.get<{ status: boolean; data: CustomTheme[]; next_cursor?: string | null }>("/themes", { params });
+    const res = await api.get<{
+      status: boolean;
+      data: CustomTheme[];
+      next_cursor?: string | null;
+    }>("/themes", { params });
     return Array.isArray(res.data.data) ? res.data.data : [];
   },
 
@@ -74,8 +98,14 @@ export const customizationService = {
     return res.data.data as CustomTheme;
   },
 
-  async updateTheme(id: string, payload: UpdateCustomThemePayload): Promise<CustomTheme> {
-    const res = await api.put<CommonResponse<CustomTheme>>(`/themes/${id}`, payload);
+  async updateTheme(
+    id: string,
+    payload: UpdateCustomThemePayload,
+  ): Promise<CustomTheme> {
+    const res = await api.put<CommonResponse<CustomTheme>>(
+      `/themes/${id}`,
+      payload,
+    );
     return res.data.data as CustomTheme;
   },
 

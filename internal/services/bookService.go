@@ -636,7 +636,6 @@ func (s *bookService) ExtractMetadata(ctx context.Context, bookID string) error 
 	}
 	txRepo.FlushCache(ctx)
 
-	// Trigger auto enrichment if enabled
 	var settings *models.PublicSettings
 	if s.settings != nil {
 		if pub, err := s.settings.Public(ctx); err == nil {
@@ -1087,9 +1086,6 @@ func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath str
 		return parser.GetAsset(file.Path, assetPath)
 	}
 
-	// Raster images only: a comic page costs ~20ms of archive decompression every time and a
-	// volume is read page by page, so the same bytes are rebuilt over and over. Everything else
-	// is either mutated below or a whole audiobook, neither of which belongs in RAM.
 	var data []byte
 	if s.assetCache != nil && strings.HasPrefix(contentType, "image/") {
 		data, err = s.assetCache.GetOrLoad(cache.BuildKey("asset", file.ID, file.ModTime, assetPath), load)
@@ -1100,9 +1096,6 @@ func (s *bookService) GetAsset(ctx context.Context, bookID string, assetPath str
 		return nil, err
 	}
 
-	// Extension-less assets (e.g. fb2 binaries like images/fb2img2) resolve to
-	// octet-stream; sniff the bytes or the browser refuses to render them under
-	// X-Content-Type-Options: nosniff.
 	if contentType == "application/octet-stream" {
 		contentType = http.DetectContentType(data)
 	}
@@ -1145,10 +1138,6 @@ func (s *bookService) ArchiveBook(ctx context.Context, id string, archived bool)
 func (s *bookService) DeleteBook(ctx context.Context, id string) error {
 	book, _ := s.GetBook(ctx, id)
 
-	// fts_chapters has no ON DELETE CASCADE and no trigger; a stale FTS row would keep a
-	// deleted book discoverable. Wrap the FTS delete with the book delete in one tx and
-	// propagate the FTS error instead of swallowing it — a half-deleted book (book row gone,
-	// FTS row left) is worse than a reported failure the caller can retry.
 	tx, err := s.txManager.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -1167,7 +1156,6 @@ func (s *bookService) DeleteBook(ctx context.Context, id string) error {
 	}
 	txRepo.FlushCache(ctx)
 
-	// Filesystem cleanup after commit: a rolled-back delete must not destroy book files.
 	if err := s.fileRepo.RemoveBookDir(ctx, id); err != nil {
 		log.Warn().Err(err).Str("book_id", id).Msg("failed to remove book files")
 	}

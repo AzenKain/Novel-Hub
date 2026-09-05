@@ -6,11 +6,23 @@ export function useJobsQuery(status = "", type = "") {
   return useQuery({
     queryKey: ["operations", "jobs", status, type],
     queryFn: async () => {
-      const res = await operationsService.listJobs({ status: status || undefined, type: type || undefined, limit: 100 });
+      const res = await operationsService.listJobs({
+        status: status || undefined,
+        type: type || undefined,
+        limit: 100,
+      });
       if (!res.status) throw new Error(res.message || "jobs_failed");
-      return { items: res.data || [], total: res.pagination?.total_records || 0 };
+      return {
+        items: res.data || [],
+        total: res.pagination?.total_records || 0,
+      };
     },
-    refetchInterval: (query) => query.state.data?.items.some((job) => job.status === "pending" || job.status === "running") ? 3000 : false,
+    refetchInterval: (query) =>
+      query.state.data?.items.some(
+        (job) => job.status === "pending" || job.status === "running",
+      )
+        ? 3000
+        : false,
   });
 }
 
@@ -29,7 +41,8 @@ export function useTriggerJobMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (type: string) => operationsService.triggerJob(type),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["operations", "jobs"] }),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["operations", "jobs"] }),
   });
 }
 
@@ -47,8 +60,18 @@ export function useSchedulesQuery() {
 export function useSaveScheduleMutation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id?: string; input: UpsertJobScheduleInput }) => id ? operationsService.updateSchedule(id, input) : operationsService.createSchedule(input),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["operations", "schedules"] }),
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id?: string;
+      input: UpsertJobScheduleInput;
+    }) =>
+      id
+        ? operationsService.updateSchedule(id, input)
+        : operationsService.createSchedule(input),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["operations", "schedules"] }),
   });
 }
 
@@ -56,7 +79,8 @@ export function useDeleteScheduleMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => operationsService.deleteSchedule(id),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["operations", "schedules"] }),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["operations", "schedules"] }),
   });
 }
 
@@ -87,7 +111,12 @@ export function useLogTailQuery(file: string, level: string, search: string) {
     queryKey: ["operations", "log-tail", file, level, search],
     enabled: Boolean(file),
     queryFn: async () => {
-      const res = await operationsService.tailLogs({ file, lines: 500, level: level || undefined, search: search || undefined });
+      const res = await operationsService.tailLogs({
+        file,
+        lines: 500,
+        level: level || undefined,
+        search: search || undefined,
+      });
       if (!res.status) throw new Error(res.message || "log_tail_failed");
       return res.data;
     },
@@ -108,8 +137,10 @@ export function useBackupsQuery() {
 export function useCreateBackupMutation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (includeBooks: boolean) => operationsService.createBackup(includeBooks),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["operations", "backups"] }),
+    mutationFn: (includeBooks: boolean) =>
+      operationsService.createBackup(includeBooks),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["operations", "backups"] }),
   });
 }
 
@@ -117,12 +148,15 @@ export function useDeleteBackupMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => operationsService.deleteBackup(name),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["operations", "backups"] }),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["operations", "backups"] }),
   });
 }
 
 export function useRestoreBackupMutation() {
-  return useMutation({ mutationFn: (name: string) => operationsService.restoreBackup(name) });
+  return useMutation({
+    mutationFn: (name: string) => operationsService.restoreBackup(name),
+  });
 }
 
 export function useAuditActionsQuery() {
@@ -141,9 +175,17 @@ export function useAuditLogsQuery(action: string, cursor: string) {
     queryKey: ["operations", "audit", action, cursor],
     placeholderData: (previous) => previous,
     queryFn: async () => {
-      const res = await operationsService.listAuditLogs({ action: action || undefined, cursor: cursor || undefined, limit: 20 });
+      const res = await operationsService.listAuditLogs({
+        action: action || undefined,
+        cursor: cursor || undefined,
+        limit: 20,
+      });
       if (!res.status) throw new Error(res.message || "audit_failed");
-      return { items: res.data || [], nextCursor: res.pagination?.next_cursor || "", total: res.pagination?.total_records || 0 };
+      return {
+        items: res.data || [],
+        nextCursor: res.pagination?.next_cursor || "",
+        total: res.pagination?.total_records || 0,
+      };
     },
   });
 }
@@ -159,4 +201,3 @@ export function useCacheStatsQuery() {
     refetchInterval: 5000,
   });
 }
-

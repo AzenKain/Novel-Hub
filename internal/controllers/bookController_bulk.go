@@ -141,4 +141,3 @@ func (h *BookController) BulkUpdateMetadata(c fiber.Ctx) error {
 		Data:   result,
 	})
 }
-

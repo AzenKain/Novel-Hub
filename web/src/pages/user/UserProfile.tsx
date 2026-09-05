@@ -14,7 +14,11 @@ import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { ReadwiseConnectCard } from "@/components/profile/ReadwiseConnectCard";
 import { HardcoverTrackerCard } from "@/components/profile/HardcoverTrackerCard";
 import { UserDevicesCard } from "@/components/profile/UserDevicesCard";
-import { useChangePasswordMutation, useUpdateProfileMutation, useUploadAvatarMutation } from "@/hooks";
+import {
+  useChangePasswordMutation,
+  useUpdateProfileMutation,
+  useUploadAvatarMutation,
+} from "@/hooks";
 import { useAuthStore } from "@/stores";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,7 +32,7 @@ export const UserProfile = () => {
       user: state.user,
       isProfileModalOpen: state.isProfileModalOpen,
       setProfileModalOpen: state.setProfileModalOpen,
-    }))
+    })),
   );
 
   const updateProfileMutation = useUpdateProfileMutation();
@@ -46,19 +50,13 @@ export const UserProfile = () => {
     return new Blob([uInt8Array], { type: contentType });
   };
   const { t } = useTranslation();
-  
+
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [success, setSuccess] = useState(false);
-
-  // URL input states
   const [urlInputOpen, setUrlInputOpen] = useState(false);
   const [tempUrl, setTempUrl] = useState("");
-
-  // Crop states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // Password states
   const changePasswordMutation = useChangePasswordMutation();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -92,23 +90,36 @@ export const UserProfile = () => {
     try {
       const blob = base64ToBlob(base64);
       const file = new File([blob], "avatar.png", { type: blob.type });
-      
+
       const uploadedUrl = await uploadAvatarMutation.mutateAsync(file);
       setAvatarUrl(uploadedUrl);
-      
+
       updateProfileMutation.mutate(
         { full_name: fullName, avatar_url: uploadedUrl },
         {
           onSuccess: () => {
-            toast.success(t('user.avatar_updated_success', 'Avatar updated successfully!'));
+            toast.success(
+              t("user.avatar_updated_success", "Avatar updated successfully!"),
+            );
           },
           onError: (err) => {
-            toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+            toast.error(
+              err instanceof Error
+                ? err.message
+                : t(
+                    "user.profile_update_failed",
+                    "Could not save your profile",
+                  ),
+            );
           },
-        }
+        },
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('user.avatar_upload_failed', 'Failed to upload avatar'));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("user.avatar_upload_failed", "Failed to upload avatar"),
+      );
     }
   };
 
@@ -118,12 +129,18 @@ export const UserProfile = () => {
       { full_name: fullName, avatar_url: "" },
       {
         onSuccess: () => {
-          toast.success(t('user.avatar_removed_success', 'Avatar removed successfully!'));
+          toast.success(
+            t("user.avatar_removed_success", "Avatar removed successfully!"),
+          );
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t("user.profile_update_failed", "Could not save your profile"),
+          );
         },
-      }
+      },
     );
   };
 
@@ -138,9 +155,13 @@ export const UserProfile = () => {
           setTimeout(() => setSuccess(false), 3000);
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : t('user.profile_update_failed', 'Could not save your profile'));
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : t("user.profile_update_failed", "Could not save your profile"),
+          );
         },
-      }
+      },
     );
   };
 
@@ -148,7 +169,9 @@ export const UserProfile = () => {
     e.preventDefault();
     setPasswordError("");
     if (newPassword !== confirmPassword) {
-      setPasswordError(t('user.password_mismatch', 'New passwords do not match'));
+      setPasswordError(
+        t("user.password_mismatch", "New passwords do not match"),
+      );
       return;
     }
     changePasswordMutation.mutate(
@@ -158,9 +181,16 @@ export const UserProfile = () => {
           setProfileModalOpen(false);
         },
         onError: (err) => {
-          setPasswordError(err instanceof Error ? err.message : t('user.password_change_failed', 'Could not change your password'));
+          setPasswordError(
+            err instanceof Error
+              ? err.message
+              : t(
+                  "user.password_change_failed",
+                  "Could not change your password",
+                ),
+          );
         },
-      }
+      },
     );
   };
 
@@ -172,42 +202,50 @@ export const UserProfile = () => {
 
   return (
     <>
-      <dialog className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}>
-      {user && (
-        <div className="modal-box max-w-4xl w-11/12 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border border-base-300 bg-base-100">
-          {/* Sticky Header */}
-          <div className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-base-100/95 backdrop-blur-md border-b border-base-200">
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
-                <User className="h-5 w-5" />
+      <dialog
+        className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}
+      >
+        {user && (
+          <div className="modal-box max-w-4xl w-11/12 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border border-base-300 bg-base-100">
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-base-100/95 backdrop-blur-md border-b border-base-200">
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <User className="h-5 w-5" />
+                </div>
+                <h3 className="font-bold text-lg text-base-content">
+                  {t("user.profile_title", "Your Profile")}
+                </h3>
               </div>
-              <h3 className="font-bold text-lg text-base-content">
-                {t('user.profile_title', 'Your Profile')}
-              </h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn btn-md btn-circle btn-ghost text-base-content/70 hover:text-base-content hover:bg-base-200"
+                title={t("common.close", "Close")}
+              >
+                <X className="h-6 w-6" />
+              </button>
             </div>
-            <button 
-              type="button"
-              onClick={closeModal}
-              className="btn btn-md btn-circle btn-ghost text-base-content/70 hover:text-base-content hover:bg-base-200"
-              title={t('common.close', 'Close')}
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
 
-          {/* Scrollable Body Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-            {updateProfileMutation.error && (
-              <div className="alert alert-error py-2 text-sm rounded-xl">
-                <span>{updateProfileMutation.error instanceof Error ? updateProfileMutation.error.message : String(updateProfileMutation.error)}</span>
-              </div>
-            )}
-            
-            {success && (
-              <div className="alert alert-success py-2 text-sm rounded-xl">
-                <span>{t('user.profile_success', 'Profile updated successfully!')}</span>
-              </div>
-            )}
+            {/* Scrollable Body Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              {updateProfileMutation.error && (
+                <div className="alert alert-error py-2 text-sm rounded-xl">
+                  <span>
+                    {updateProfileMutation.error instanceof Error
+                      ? updateProfileMutation.error.message
+                      : String(updateProfileMutation.error)}
+                  </span>
+                </div>
+              )}
+
+              {success && (
+                <div className="alert alert-success py-2 text-sm rounded-xl">
+                  <span>
+                    {t("user.profile_success", "Profile updated successfully!")}
+                  </span>
+                </div>
+              )}
 
               <>
                 {/* Account Details & Main Settings Card */}
@@ -217,36 +255,48 @@ export const UserProfile = () => {
                       <div className="avatar">
                         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold text-xl overflow-hidden shadow-sm">
                           {avatarUrl && (
-                            <img 
-                              src={getMediaUrl(avatarUrl, undefined, user.updated_at)} 
-                              alt={t("common.alt_avatar")} 
-                              loading="lazy" 
+                            <img
+                              src={getMediaUrl(
+                                avatarUrl,
+                                undefined,
+                                user.updated_at,
+                              )}
+                              alt={t("common.alt_avatar")}
+                              loading="lazy"
                               className="object-cover w-full h-full animate-in fade-in duration-300"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";
-                                const fallback = e.currentTarget.nextElementSibling;
+                                const fallback =
+                                  e.currentTarget.nextElementSibling;
                                 if (fallback) {
-                                  (fallback as HTMLElement).style.display = "flex";
+                                  (fallback as HTMLElement).style.display =
+                                    "flex";
                                 }
                               }}
                             />
                           )}
-                          <span 
+                          <span
                             className="w-full h-full flex items-center justify-center font-bold text-xl text-primary"
                             style={{ display: avatarUrl ? "none" : "flex" }}
                           >
-                            {fullName ? fullName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                            {fullName
+                              ? fullName.charAt(0).toUpperCase()
+                              : user.email.charAt(0).toUpperCase()}
                           </span>
                         </div>
                       </div>
                       <div>
                         <div className="font-bold text-base text-base-content flex items-center gap-2">
                           {user.email}
-                          <span className="badge badge-ghost badge-sm uppercase font-semibold text-base-content/70">{user.auth_provider}</span>
+                          <span className="badge badge-ghost badge-sm uppercase font-semibold text-base-content/70">
+                            {user.auth_provider}
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <label className="btn btn-xs btn-primary cursor-pointer">
-                            <span className="font-medium">{t('user.upload_avatar', 'Upload Photo')}</span>
+                            <span className="font-medium">
+                              {t("user.upload_avatar", "Upload Photo")}
+                            </span>
                             <input
                               type="file"
                               accept="image/*"
@@ -259,19 +309,19 @@ export const UserProfile = () => {
                             onClick={() => setUrlInputOpen(!urlInputOpen)}
                             className="btn btn-xs btn-outline"
                           >
-                            {t('user.load_url', 'From URL')}
+                            {t("user.load_url", "From URL")}
                           </button>
                           {avatarUrl && (
-                             <button
-                               type="button"
-                               onClick={handleRemoveAvatar}
-                               className="btn btn-xs btn-ghost text-error"
-                             >
-                               {t('user.remove_avatar', 'Remove')}
-                             </button>
-                           )}
+                            <button
+                              type="button"
+                              onClick={handleRemoveAvatar}
+                              className="btn btn-xs btn-ghost text-error"
+                            >
+                              {t("user.remove_avatar", "Remove")}
+                            </button>
+                          )}
                         </div>
-                        
+
                         {urlInputOpen && (
                           <div className="flex gap-1.5 items-center mt-2">
                             <input
@@ -291,7 +341,7 @@ export const UserProfile = () => {
                               }}
                               className="btn btn-xs btn-primary font-bold"
                             >
-                              {t('common.ok', 'OK')}
+                              {t("common.ok", "OK")}
                             </button>
                           </div>
                         )}
@@ -311,7 +361,7 @@ export const UserProfile = () => {
                         className="btn btn-sm btn-outline gap-1.5 shrink-0"
                       >
                         <Key className="w-4 h-4" />
-                        {t('user.change_password', 'Change Password')}
+                        {t("user.change_password", "Change Password")}
                       </button>
                     )}
                   </div>
@@ -320,7 +370,7 @@ export const UserProfile = () => {
                   <form onSubmit={handleSave} className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                       <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 w-28 shrink-0">
-                        {t('user.full_name', 'Full Name')}
+                        {t("user.full_name", "Full Name")}
                       </label>
                       <div className="flex-1 flex gap-2 w-full">
                         <input
@@ -328,14 +378,21 @@ export const UserProfile = () => {
                           className="input input-bordered input-sm flex-1 focus:input-primary"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
-                          placeholder={t('user.full_name_placeholder', 'Your full name')}
+                          placeholder={t(
+                            "user.full_name_placeholder",
+                            "Your full name",
+                          )}
                         />
                         <button
                           type="submit"
                           disabled={updateProfileMutation.isPending}
                           className="btn btn-primary btn-sm shrink-0"
                         >
-                          {updateProfileMutation.isPending ? <span className="loading loading-spinner loading-xs"></span> : t('user.save_changes', 'Save Changes')}
+                          {updateProfileMutation.isPending ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            t("user.save_changes", "Save Changes")
+                          )}
                         </button>
                       </div>
                     </div>
@@ -343,7 +400,10 @@ export const UserProfile = () => {
 
                   {/* Password Drawer */}
                   {passwordOpen && (
-                    <form onSubmit={handleChangePassword} className="flex flex-col gap-3 pt-3 border-t border-base-200">
+                    <form
+                      onSubmit={handleChangePassword}
+                      className="flex flex-col gap-3 pt-3 border-t border-base-200"
+                    >
                       {passwordError && (
                         <div className="alert alert-error py-2 text-xs rounded-lg">
                           <span>{passwordError}</span>
@@ -351,7 +411,11 @@ export const UserProfile = () => {
                       )}
                       {changePasswordMutation.error && (
                         <div className="alert alert-error py-2 text-xs rounded-lg">
-                          <span>{changePasswordMutation.error instanceof Error ? changePasswordMutation.error.message : String(changePasswordMutation.error)}</span>
+                          <span>
+                            {changePasswordMutation.error instanceof Error
+                              ? changePasswordMutation.error.message
+                              : String(changePasswordMutation.error)}
+                          </span>
                         </div>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -361,7 +425,10 @@ export const UserProfile = () => {
                           className="input input-bordered input-sm w-full focus:input-primary"
                           value={oldPassword}
                           onChange={(e) => setOldPassword(e.target.value)}
-                          placeholder={t('user.current_password', 'Current password')}
+                          placeholder={t(
+                            "user.current_password",
+                            "Current password",
+                          )}
                           required
                         />
                         <input
@@ -370,7 +437,7 @@ export const UserProfile = () => {
                           className="input input-bordered input-sm w-full focus:input-primary"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder={t('user.new_password', 'New password')}
+                          placeholder={t("user.new_password", "New password")}
                           required
                         />
                         <input
@@ -379,21 +446,33 @@ export const UserProfile = () => {
                           className="input input-bordered input-sm w-full focus:input-primary"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder={t('user.confirm_password', 'Confirm new password')}
+                          placeholder={t(
+                            "user.confirm_password",
+                            "Confirm new password",
+                          )}
                           required
                         />
                       </div>
-                      {newPassword.length > 0 && <PasswordStrength password={newPassword} />}
+                      {newPassword.length > 0 && (
+                        <PasswordStrength password={newPassword} />
+                      )}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1">
                         <p className="text-xs text-base-content/60">
-                          {t('user.password_relogin_note', 'You will be signed out after changing your password.')}
+                          {t(
+                            "user.password_relogin_note",
+                            "You will be signed out after changing your password.",
+                          )}
                         </p>
                         <button
                           type="submit"
                           disabled={changePasswordMutation.isPending}
                           className="btn btn-primary btn-xs self-end sm:self-auto"
                         >
-                          {changePasswordMutation.isPending ? <span className="loading loading-spinner loading-xs"></span> : t('user.update_password', 'Update Password')}
+                          {changePasswordMutation.isPending ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            t("user.update_password", "Update Password")
+                          )}
                         </button>
                       </div>
                     </form>
@@ -449,22 +528,22 @@ export const UserProfile = () => {
                 {/* Hardcover Scrobbling Card */}
                 <HardcoverTrackerCard />
               </>
+            </div>
           </div>
-        </div>
-      )}
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={closeModal}>close</button>
-      </form>
-    </dialog>
+        )}
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={closeModal}>close</button>
+        </form>
+      </dialog>
 
-    {selectedImage && (
-      <ImageCropperModal
-        imageSrc={selectedImage}
-        onCrop={handleCropApply}
-        onCancel={() => setSelectedImage(null)}
-        cropSize={200}
-      />
-    )}
-  </>
+      {selectedImage && (
+        <ImageCropperModal
+          imageSrc={selectedImage}
+          onCrop={handleCropApply}
+          onCancel={() => setSelectedImage(null)}
+          cropSize={200}
+        />
+      )}
+    </>
   );
 };

@@ -46,7 +46,9 @@ export const SoundscapesCard: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
 
-  const canManage = hasPermission(user, "user.soundscape.manage") || hasPermission(user, "admin.soundscape.manage");
+  const canManage =
+    hasPermission(user, "user.soundscape.manage") ||
+    hasPermission(user, "admin.soundscape.manage");
 
   const handleTogglePlay = (streamUrl: string, id: string) => {
     if (playingId === id) {
@@ -60,7 +62,11 @@ export const SoundscapesCard: React.FC = () => {
     }
 
     const audio = new Audio(streamUrl);
-    audio.play().catch(() => toast.error(t("soundscape.play_failed", "Failed to play audio")));
+    audio
+      .play()
+      .catch(() =>
+        toast.error(t("soundscape.play_failed", "Failed to play audio")),
+      );
     audio.onended = () => setPlayingId(null);
     setAudioPlayer(audio);
     setPlayingId(id);
@@ -92,17 +98,25 @@ export const SoundscapesCard: React.FC = () => {
         file: mode === "file" && selectedFile ? selectedFile : undefined,
       });
 
-      toast.success(t("soundscape.upload_success", "Soundscape uploaded successfully"));
+      toast.success(
+        t("soundscape.upload_success", "Soundscape uploaded successfully"),
+      );
       setName("");
       setAudioUrl("");
       setSelectedFile(null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("soundscape.upload_failed", "Failed to upload soundscape"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("soundscape.upload_failed", "Failed to upload soundscape"),
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t("soundscape.delete_confirm", "Delete this soundscape?"))) return;
+    if (
+      !window.confirm(t("soundscape.delete_confirm", "Delete this soundscape?"))
+    )
+      return;
     try {
       if (playingId === id) {
         audioPlayer?.pause();
@@ -111,7 +125,10 @@ export const SoundscapesCard: React.FC = () => {
       await deleteSoundscape(id);
       toast.success(t("soundscape.delete_success", "Soundscape deleted"));
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("soundscape.delete_failed", "Failed to delete"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("soundscape.delete_failed", "Failed to delete"),
+      );
     }
   };
 
@@ -157,10 +174,16 @@ export const SoundscapesCard: React.FC = () => {
             </div>
             <div>
               <h2 className="card-title text-base sm:text-lg">
-                {t("soundscape.personal_soundscapes", "Personal Ambient Soundscapes")}
+                {t(
+                  "soundscape.personal_soundscapes",
+                  "Personal Ambient Soundscapes",
+                )}
               </h2>
               <p className="text-xs opacity-60">
-                {t("soundscape.personal_desc", "Upload background audio & sound effects to listen while reading novels.")}
+                {t(
+                  "soundscape.personal_desc",
+                  "Upload background audio & sound effects to listen while reading novels.",
+                )}
               </p>
             </div>
           </div>
@@ -169,9 +192,11 @@ export const SoundscapesCard: React.FC = () => {
           </span>
         </div>
 
-        {/* Upload Form */}
         {canManage ? (
-          <form onSubmit={handleUpload} className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3">
+          <form
+            onSubmit={handleUpload}
+            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("soundscape.add_soundscape", "Add New Soundscape")}
@@ -198,7 +223,9 @@ export const SoundscapesCard: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.name", "Name")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.name", "Name")}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Japanese Rain Garden"
@@ -210,7 +237,9 @@ export const SoundscapesCard: React.FC = () => {
               </div>
 
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.category", "Category / Tag")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.category", "Category / Tag")}
+                </label>
                 <select
                   value={category}
                   onChange={(e) => {
@@ -219,19 +248,45 @@ export const SoundscapesCard: React.FC = () => {
                   }}
                   className="select select-bordered select-sm w-full"
                 >
-                  <option value="rain">{t("soundscape.cat_rain", "Rain & Storm")}</option>
-                  <option value="coffee">{t("soundscape.cat_coffee", "Cafe & Library")}</option>
-                  <option value="fire">{t("soundscape.cat_fire", "Fireplace & Camp")}</option>
-                  <option value="waves">{t("soundscape.cat_waves", "Ocean & River")}</option>
-                  <option value="wind">{t("soundscape.cat_wind", "Wind & Nature")}</option>
-                  <option value="ambient">{t("soundscape.cat_ambient", "Ambient Music")}</option>
-                  <option value="lofi">{t("soundscape.cat_lofi", "Lo-Fi & Chill Beats")}</option>
-                  <option value="edm">{t("soundscape.cat_edm", "EDM & Electronic")}</option>
-                  <option value="remix">{t("soundscape.cat_remix", "Remix & TikTok Trending")}</option>
-                  <option value="pop">{t("soundscape.cat_pop", "Pop & Acoustic")}</option>
-                  <option value="game">{t("soundscape.cat_game", "Game & Anime BGM")}</option>
-                  <option value="white_noise">{t("soundscape.cat_white_noise", "White Noise & ASMR")}</option>
-                  <option value="other">{t("soundscape.cat_other", "Other / Custom Music")}</option>
+                  <option value="rain">
+                    {t("soundscape.cat_rain", "Rain & Storm")}
+                  </option>
+                  <option value="coffee">
+                    {t("soundscape.cat_coffee", "Cafe & Library")}
+                  </option>
+                  <option value="fire">
+                    {t("soundscape.cat_fire", "Fireplace & Camp")}
+                  </option>
+                  <option value="waves">
+                    {t("soundscape.cat_waves", "Ocean & River")}
+                  </option>
+                  <option value="wind">
+                    {t("soundscape.cat_wind", "Wind & Nature")}
+                  </option>
+                  <option value="ambient">
+                    {t("soundscape.cat_ambient", "Ambient Music")}
+                  </option>
+                  <option value="lofi">
+                    {t("soundscape.cat_lofi", "Lo-Fi & Chill Beats")}
+                  </option>
+                  <option value="edm">
+                    {t("soundscape.cat_edm", "EDM & Electronic")}
+                  </option>
+                  <option value="remix">
+                    {t("soundscape.cat_remix", "Remix & TikTok Trending")}
+                  </option>
+                  <option value="pop">
+                    {t("soundscape.cat_pop", "Pop & Acoustic")}
+                  </option>
+                  <option value="game">
+                    {t("soundscape.cat_game", "Game & Anime BGM")}
+                  </option>
+                  <option value="white_noise">
+                    {t("soundscape.cat_white_noise", "White Noise & ASMR")}
+                  </option>
+                  <option value="other">
+                    {t("soundscape.cat_other", "Other / Custom Music")}
+                  </option>
                 </select>
               </div>
             </div>
@@ -239,7 +294,10 @@ export const SoundscapesCard: React.FC = () => {
             {mode === "file" ? (
               <div>
                 <label className="label label-text text-xs p-1">
-                  {t("soundscape.audio_file", "Audio File (MP3, OGG, WAV, M4A, FLAC)")}
+                  {t(
+                    "soundscape.audio_file",
+                    "Audio File (MP3, OGG, WAV, M4A, FLAC)",
+                  )}
                 </label>
                 <input
                   type="file"
@@ -251,7 +309,9 @@ export const SoundscapesCard: React.FC = () => {
               </div>
             ) : (
               <div>
-                <label className="label label-text text-xs p-1">{t("soundscape.audio_url", "Direct Audio URL")}</label>
+                <label className="label label-text text-xs p-1">
+                  {t("soundscape.audio_url", "Direct Audio URL")}
+                </label>
                 <input
                   type="url"
                   placeholder="https://example.com/ambient.mp3"
@@ -280,7 +340,10 @@ export const SoundscapesCard: React.FC = () => {
           </form>
         ) : (
           <div className="alert alert-warning text-xs mt-3">
-            {t("soundscape.no_permission", "You do not have permission to upload personal soundscapes.")}
+            {t(
+              "soundscape.no_permission",
+              "You do not have permission to upload personal soundscapes.",
+            )}
           </div>
         )}
 
@@ -315,24 +378,37 @@ export const SoundscapesCard: React.FC = () => {
                         onClick={() => handleTogglePlay(s.stream_url, s.id)}
                         className={`btn btn-circle btn-sm ${isPlaying ? "btn-primary" : "btn-outline"}`}
                       >
-                        {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                        {isPlaying ? (
+                          <Pause className="w-3.5 h-3.5" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        )}
                       </button>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="opacity-70">{getIconEl(s.icon || s.category)}</span>
-                          <span className="font-semibold text-xs truncate">{s.name}</span>
+                          <span className="opacity-70">
+                            {getIconEl(s.icon || s.category)}
+                          </span>
+                          <span className="font-semibold text-xs truncate">
+                            {s.name}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <span className="badge badge-ghost badge-xs text-[9px] uppercase">{s.category}</span>
+                          <span className="badge badge-ghost badge-xs text-[9px] uppercase">
+                            {s.category}
+                          </span>
                           {s.is_system && (
-                            <span className="badge badge-info badge-xs text-[9px]">{t("common.system", "System")}</span>
+                            <span className="badge badge-info badge-xs text-[9px]">
+                              {t("common.system", "System")}
+                            </span>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {(isOwner || hasPermission(user, "admin.soundscape.manage")) && (
+                    {(isOwner ||
+                      hasPermission(user, "admin.soundscape.manage")) && (
                       <button
                         type="button"
                         onClick={() => handleDelete(s.id)}

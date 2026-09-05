@@ -125,7 +125,6 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	out.WriteString(`<div class="novelhub-table-wrapper" style="overflow-x: auto; max-width: 100%; margin: 1em 0;">`)
 	out.WriteString(`<table class="novelhub-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; line-height: 1.5;">`)
 
-	// First row as header
 	out.WriteString("<thead><tr>")
 	for _, cell := range rows[0] {
 		out.WriteString(`<th style="border: 1px solid rgba(128,128,128,0.3); padding: 6px 10px; font-weight: bold; background: rgba(128,128,128,0.08);">`)
@@ -134,7 +133,6 @@ func (p *Parser) GetChapterContent(filePath, contentPath string) (string, error)
 	}
 	out.WriteString("</tr></thead>")
 
-	// Remaining rows as body
 	out.WriteString("<tbody>")
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]

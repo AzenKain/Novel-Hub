@@ -3,7 +3,8 @@ import { magicCodeService } from "@/services/magicCodeService";
 
 export const useRequestMagicCodeMutation = () => {
   return useMutation({
-    mutationFn: (deviceInfo?: string) => magicCodeService.requestCode(deviceInfo),
+    mutationFn: (deviceInfo?: string) =>
+      magicCodeService.requestCode(deviceInfo),
   });
 };
 

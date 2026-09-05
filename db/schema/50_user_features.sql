@@ -1,4 +1,3 @@
--- Table for user collections
 CREATE TABLE IF NOT EXISTS collections (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -8,7 +7,6 @@ CREATE TABLE IF NOT EXISTS collections (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Table for linking books to collections
 CREATE TABLE IF NOT EXISTS collection_books (
     collection_id TEXT NOT NULL,
     book_id TEXT NOT NULL,
@@ -30,8 +28,7 @@ CREATE TABLE IF NOT EXISTS read_lists (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- position is deliberately not UNIQUE: swapping two adjacent entries has to pass through a state
--- where both hold the same number, and a UNIQUE constraint would abort mid-transaction.
+-- position is deliberately not UNIQUE to allow reorder swaps mid-transaction.
 CREATE TABLE IF NOT EXISTS read_list_books (
     read_list_id TEXT NOT NULL,
     book_id TEXT NOT NULL,

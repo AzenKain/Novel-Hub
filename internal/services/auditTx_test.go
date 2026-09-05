@@ -62,9 +62,6 @@ func auditBookServiceCache(tb testing.TB, db *sql.DB, dataDir string, reg bookpa
 	return NewBookService(bookRepo, nil, nil, diskRepo, reg, tx, settings, perms, nil, nil), bookRepo
 }
 
-// writeBigEPUB builds a spec-valid EPUB whose spine has `chapters` XHTML documents. ParseSpine
-// re-opens the zip and linear-scans r.File once per spine item (getZipFile), so cost grows with
-// the entry count -- exactly the shape of a real multi-hundred-chapter light novel.
 func writeBigEPUB(tb testing.TB, path string, chapters int) {
 	tb.Helper()
 	var buf bytes.Buffer
@@ -105,7 +102,6 @@ func writeBigEPUB(tb testing.TB, path string, chapters int) {
 	}
 }
 
-// auditSeedBook copies the archive to a per-book path: book_files.path is UNIQUE.
 func auditSeedBook(tb testing.TB, db *sql.DB, bookID, path, format string) {
 	tb.Helper()
 	data, err := os.ReadFile(path)
@@ -135,9 +131,6 @@ func auditSeedBook(tb testing.TB, db *sql.DB, bookID, path, format string) {
 	}
 }
 
-// writeLockProbe repeatedly attempts a real IMMEDIATE write transaction and reports the longest
-// stretch during which every attempt was blocked. Because _txlock=immediate takes the write lock
-// at BEGIN, a probe that cannot begin is proof another writer holds the lock.
 type writeLockProbe struct {
 	failed      atomic.Int64
 	lastErr     atomic.Value
@@ -147,7 +140,6 @@ type writeLockProbe struct {
 }
 
 func (p *writeLockProbe) run(ctx context.Context, db *sql.DB) {
-	// Short busy_timeout on the probe only: we want to observe contention, not wait it out.
 	var firstBlocked time.Time
 	for ctx.Err() == nil {
 		p.attempts.Add(1)
@@ -181,10 +173,7 @@ func (p *writeLockProbe) run(ctx context.Context, db *sql.DB) {
 	}
 }
 
-// ExtractMetadata must not let the cache size leak into how long it holds the write lock. ParseSpine
-// runs before BeginTx, and the per-row invalidations are buffered by the deferred cache that WithTx
-// installs, then published once by FlushCache after Commit. Regressing either one puts a full-cache
-// Range() back inside the transaction, once per chapter.
+// ExtractMetadata must not let the cache size leak into how long it holds the write lock.
 func TestAuditExtractMetadataHoldsWriteLockDuringArchiveParse(t *testing.T) {
 	cases := []struct {
 		name         string
@@ -203,8 +192,6 @@ func TestAuditExtractMetadataHoldsWriteLockDuringArchiveParse(t *testing.T) {
 			bookPath := filepath.Join(dataDir, "audit.epub")
 			writeBigEPUB(t, bookPath, tc.chapters)
 
-			// A cache warmed by ordinary browsing traffic. Nothing here relates to the
-			// book being imported -- these are other books' cached rows.
 			ram := cache.NewRamCache()
 			for i := 0; i < tc.cacheEntries; i++ {
 				_ = ram.Set(context.Background(), fmt.Sprintf("book:id:other-%d", i),
@@ -217,7 +204,6 @@ func TestAuditExtractMetadataHoldsWriteLockDuringArchiveParse(t *testing.T) {
 			svc, _ := auditBookServiceCache(t, db, dataDir, reg, ram)
 			auditSeedBook(t, db, "book-audit", bookPath, "epub")
 
-			// Baseline: what the parse costs with no transaction involved.
 			parser, err := reg.Parser("epub", bookPath)
 			if err != nil {
 				t.Fatal(err)
@@ -236,7 +222,7 @@ func TestAuditExtractMetadataHoldsWriteLockDuringArchiveParse(t *testing.T) {
 				probe.run(ctx, db)
 				close(done)
 			}()
-			time.Sleep(100 * time.Millisecond) // let the probe establish a clean baseline
+			time.Sleep(100 * time.Millisecond)
 
 			extractStart := time.Now()
 			if err := svc.ExtractMetadata(context.Background(), "book-audit"); err != nil {
@@ -270,8 +256,7 @@ func TestAuditExtractMetadataHoldsWriteLockDuringArchiveParse(t *testing.T) {
 	}
 }
 
-// TestAuditExtractMetadataBlocksConcurrentWriters shows the user-visible effect: a second
-// request that only needs to write one row waits behind the archive parse.
+// TestAuditExtractMetadataBlocksConcurrentWriters shows the user-visible effect: a second request that only needs to write one row waits behind the archive parse.
 func TestAuditExtractMetadataBlocksConcurrentWriters(t *testing.T) {
 	db := auditDB(t)
 	dataDir := t.TempDir()
@@ -290,7 +275,6 @@ func TestAuditExtractMetadataBlocksConcurrentWriters(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// Give ExtractMetadata a head start so it is already inside its tx and parsing.
 		time.Sleep(150 * time.Millisecond)
 		start := time.Now()
 		tx, err := db.BeginTx(context.Background(), nil)
@@ -323,8 +307,7 @@ func TestAuditExtractMetadataBlocksConcurrentWriters(t *testing.T) {
 	}
 }
 
-// TestAuditExtractMetadataConnectionsReturnToBaseline guards against a leaked connection or a
-// leaked *sql.Tx on the same path (a leaked immediate tx would hold the write lock forever).
+// TestAuditExtractMetadataConnectionsReturnToBaseline guards against a leaked connection or a leaked *sql.Tx on the same path (a leaked immediate tx would hold the write lock forever).
 func TestAuditExtractMetadataConnectionsReturnToBaseline(t *testing.T) {
 	db := auditDB(t)
 	dataDir := t.TempDir()
@@ -351,7 +334,6 @@ func TestAuditExtractMetadataConnectionsReturnToBaseline(t *testing.T) {
 		t.Errorf("connection leak: InUse went from %d to %d", base, after.InUse)
 	}
 
-	// A held write lock would make this fail rather than return promptly.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	tx, err := db.BeginTx(ctx, nil)
@@ -361,8 +343,7 @@ func TestAuditExtractMetadataConnectionsReturnToBaseline(t *testing.T) {
 	_ = tx.Rollback()
 }
 
-// TestAuditParseSpineDataRace runs the exact ExtractMetadata path concurrently under -race to
-// look for shared-state races in the service/repository/cache layers it touches.
+// TestAuditParseSpineDataRace runs the exact ExtractMetadata path concurrently under -race to look for shared-state races in the service/repository/cache layers it touches.
 func TestAuditParseSpineDataRace(t *testing.T) {
 	db := auditDB(t)
 	dataDir := t.TempDir()

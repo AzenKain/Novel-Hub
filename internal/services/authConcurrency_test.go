@@ -14,14 +14,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// Logout reads the user then writes token_version — a read-then-write transaction. With
-// SQLite's default deferred locking that upgrade fails with SQLITE_BUSY_SNAPSHOT (517)
-// once another writer commits in between, and busy_timeout cannot retry it because the
-// snapshot is already stale. Two devices signing out at once is enough to trigger it.
-//
-// featureService.RecordReadingActivity had a process-global mutex hiding the same problem;
-// this path never did. The DSN now begins transactions in immediate mode, which is what
-// this test pins.
+// Logout reads the user then writes token_version — a read-then-write transaction.
 func TestConcurrentLogoutsDoNotHitBusySnapshot(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "logout.db"))
 	db, err := database.NewSQLiteDB()
@@ -63,7 +56,6 @@ func TestConcurrentLogoutsDoNotHitBusySnapshot(t *testing.T) {
 		t.Fatalf("concurrent logout failed: %v", err)
 	}
 
-	// Every logout must have revoked: a lost update would leave the version behind.
 	var version int64
 	if err := db.QueryRow(`SELECT token_version FROM users WHERE id='01920000-0000-7000-8000-0000000000f1'`).Scan(&version); err != nil {
 		t.Fatal(err)

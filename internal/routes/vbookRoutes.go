@@ -16,8 +16,8 @@ func VBookRoutes(app fiber.Router, vbookController *controllers.VBookController,
 	pub.Get("/plugin-audio.zip", vbookController.GetPluginZipAudio)
 
 	v1 := app.Group(
-		"/v1/vbook", 
-		middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS), 
+		"/v1/vbook",
+		middlewares.RateLimit(settingsService, middlewares.RateLimitOPDS),
 		middlewares.VBookAuth(authService, settingsService, userRepo),
 	)
 	v1.Get("/home", vbookController.GetHome)
@@ -31,4 +31,3 @@ func VBookRoutes(app fiber.Router, vbookController *controllers.VBookController,
 	v1.Get("/audio/playlist", vbookController.GetAudioPlaylist)
 	v1.Get("/audio/stream", vbookController.StreamAudio)
 }
-

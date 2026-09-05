@@ -6,8 +6,6 @@ import (
 	"novelhub/internal/gen/sqlc"
 )
 
-// sqlc types SUM/COALESCE/strftime columns as interface{} or sql.NullFloat64;
-// these helpers normalise them to int64/string for the layer above.
 func normalizeInt64(raw any) int64 {
 	switch v := raw.(type) {
 	case int64:

@@ -26,7 +26,9 @@ export const AgeRatingBadge: React.FC<AgeRatingBadgeProps> = ({
   };
 
   return (
-    <span className={`badge badge-sm uppercase text-[10px] tracking-wider font-semibold ${getBadgeStyle(rating)} ${className}`}>
+    <span
+      className={`badge badge-sm uppercase text-[10px] tracking-wider font-semibold ${getBadgeStyle(rating)} ${className}`}
+    >
       {rating}
     </span>
   );

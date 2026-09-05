@@ -1,5 +1,9 @@
 import { api } from "@/config/api";
-import type { CommonResponse, TrackerConnection, TrackerSearchResult } from "@/types";
+import type {
+  CommonResponse,
+  TrackerConnection,
+  TrackerSearchResult,
+} from "@/types";
 import axios from "axios";
 
 export const trackerService = {
@@ -17,7 +21,7 @@ export const trackerService = {
 
   async connectTracker(
     provider: string,
-    accessToken: string
+    accessToken: string,
   ): Promise<CommonResponse<void>> {
     try {
       const res = await api.post("/trackers/connect", {
@@ -36,7 +40,7 @@ export const trackerService = {
   async mapBookTracker(
     book_id: string,
     provider: string,
-    externalSeriesId: string
+    externalSeriesId: string,
   ): Promise<CommonResponse<void>> {
     try {
       const res = await api.post("/trackers/map", {
@@ -53,9 +57,13 @@ export const trackerService = {
     }
   },
 
-  async searchAniList(title: string): Promise<CommonResponse<TrackerSearchResult>> {
+  async searchAniList(
+    title: string,
+  ): Promise<CommonResponse<TrackerSearchResult>> {
     try {
-      const res = await api.get(`/trackers/search?title=${encodeURIComponent(title)}`);
+      const res = await api.get(
+        `/trackers/search?title=${encodeURIComponent(title)}`,
+      );
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -68,7 +76,7 @@ export const trackerService = {
   async syncProgress(
     book_id: string,
     title: string,
-    progress?: number
+    progress?: number,
   ): Promise<CommonResponse<void>> {
     try {
       const body: { book_id: string; title: string; progress?: number } = {
@@ -88,7 +96,9 @@ export const trackerService = {
     }
   },
 
-  async exportHighlightsToReadwise(book_id: string): Promise<CommonResponse<{ exported: number }>> {
+  async exportHighlightsToReadwise(
+    book_id: string,
+  ): Promise<CommonResponse<{ exported: number }>> {
     try {
       const res = await api.post("/trackers/readwise/export", { book_id });
       return res.data;
@@ -112,9 +122,15 @@ export const trackerService = {
     }
   },
 
-  async syncHardcoverProgress(book_id: string, progress: number): Promise<CommonResponse<void>> {
+  async syncHardcoverProgress(
+    book_id: string,
+    progress: number,
+  ): Promise<CommonResponse<void>> {
     try {
-      const res = await api.post("/scrobble/hardcover/sync", { book_id, progress });
+      const res = await api.post("/scrobble/hardcover/sync", {
+        book_id,
+        progress,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

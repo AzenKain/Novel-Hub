@@ -10,7 +10,6 @@ import (
 )
 
 // The old LEFT JOIN + DISTINCT became an EXISTS subquery (367ms -> 11ms at 200k users).
-// EXISTS is only correct if a multi-role user is still returned and counted once.
 func TestSearchUsersDeduplicatesMultiRoleUsers(t *testing.T) {
 	repo, db, _ := newUserTestRepo(t)
 	ctx := context.Background()
@@ -62,7 +61,6 @@ func TestSearchUsersRoleFilterMatchesAnyRole(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO roles (id, name) VALUES ('r1','role-r1'), ('r2','role-r2')`); err != nil {
 		t.Fatal(err)
 	}
-	// u1 holds r1 and r2; u2 holds only r2.
 	if _, err := db.ExecContext(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ('u1','r1'), ('u1','r2'), ('u2','r2')`); err != nil {
 		t.Fatal(err)
 	}

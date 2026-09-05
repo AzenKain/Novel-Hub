@@ -1,12 +1,5 @@
 package opus
 
-// SILK encoder analysis chain, ported from libopus silk/float/:
-// find_pitch_lags_FLP.c, find_LPC_FLP.c, find_pred_coefs_FLP.c,
-// find_LTP_FLP.c, corrMatrix_FLP.c, residual_energy_FLP.c,
-// LTP_analysis_filter_FLP.c, LTP_scale_ctrl_FLP.c, process_gains_FLP.c,
-// noise_shape_analysis_FLP.c, and the fixed/float wrappers from
-// wrappers_FLP.c.
-
 import "math"
 
 const (
@@ -14,7 +7,6 @@ const (
 	findPitchLPCWinMax   = findPitchLPCWinMS * silkMaxFsKHz
 )
 
-// silkA2NLSFFLP converts float AR coefficients to NLSFs (silk_A2NLSF_FLP).
 func silkA2NLSFFLP(nlsfQ15 []int16, pAR []float32, lpcOrder int) {
 	var aFixQ16 [silkMaxLPCOrder]int32
 	for i := 0; i < lpcOrder; i++ {
@@ -23,7 +15,6 @@ func silkA2NLSFFLP(nlsfQ15 []int16, pAR []float32, lpcOrder int) {
 	silkA2NLSF(nlsfQ15, aFixQ16[:lpcOrder], lpcOrder)
 }
 
-// silkNLSF2AFLP converts NLSFs to float AR coefficients (silk_NLSF2A_FLP).
 func silkNLSF2AFLP(pAR []float32, nlsfQ15 []int16, lpcOrder int) {
 	var aFixQ12 [silkMaxLPCOrder]int16
 	silkNLSF2A(aFixQ12[:], nlsfQ15, lpcOrder)
@@ -32,8 +23,6 @@ func silkNLSF2AFLP(pAR []float32, nlsfQ15 []int16, lpcOrder int) {
 	}
 }
 
-// processNLSFsFLP quantizes NLSFs through the fixed-point core and returns
-// float prediction coefficients (silk_process_NLSFs_FLP).
 func (ch *silkEncoderChannel) processNLSFsFLP(predCoef *[2][silkMaxLPCOrder]float32, nlsfQ15 []int16, prevNLSFQ15 []int16) {
 	var predCoefQ12 [2][silkMaxLPCOrder]int16
 	ch.processNLSFs(&predCoefQ12, nlsfQ15, prevNLSFQ15)
@@ -44,8 +33,6 @@ func (ch *silkEncoderChannel) processNLSFsFLP(predCoef *[2][silkMaxLPCOrder]floa
 	}
 }
 
-// silkQuantLTPGainsFLP quantizes LTP gains through the fixed-point core
-// (silk_quant_LTP_gains_FLP).
 func silkQuantLTPGainsFLP(B []float32, cbkIndex []int8, periodicityIndex *int8, sumLogGainQ7 *int32,
 	predGainDB *float32, XX, xX []float32, subfrLen, nbSubfr int) {
 
@@ -66,8 +53,6 @@ func silkQuantLTPGainsFLP(B []float32, cbkIndex []int8, periodicityIndex *int8, 
 	*predGainDB = float32(predGainDBQ7) * (1.0 / 128.0)
 }
 
-// nsqWrapper converts the float control parameters to fixed point and runs
-// the noise shaping quantizer (silk_NSQ_wrapper_FLP).
 func (ch *silkEncoderChannel) nsqWrapper(ctrl *silkEncoderControl, psIndices *silkIndices,
 	psNSQ *silkNSQState, pulses []int8, x []float32) {
 
@@ -122,9 +107,6 @@ func (ch *silkEncoderChannel) nsqWrapper(ctrl *silkEncoderControl, psIndices *si
 	}
 }
 
-// findPitchLags runs the whitening filter and pitch estimator
-// (silk_find_pitch_lags_FLP). res receives the LPC residual; x is the frame
-// positioned at xBuf[ltpMemLength:].
 func (ch *silkEncoderChannel) findPitchLags(ctrl *silkEncoderControl, res, xBuf []float32) {
 	bufLen := ch.laPitch + ch.frameLength + ch.ltpMemLength
 
@@ -132,7 +114,6 @@ func (ch *silkEncoderChannel) findPitchLags(ctrl *silkEncoderControl, res, xBuf 
 	var autoCorr [maxFindPitchLPCOrder + 1]float32
 	var reflCoef, A [maxFindPitchLPCOrder]float32
 
-	// Windowed signal: sine slope, flat middle, cosine slope.
 	off := bufLen - ch.pitchLPCWinLength
 	silkApplySineWindowFLP(wsig[:], xBuf[off:], 1, ch.laPitch)
 	shift := ch.laPitch
@@ -184,8 +165,6 @@ func (ch *silkEncoderChannel) findPitchLags(ctrl *silkEncoderControl, res, xBuf 
 
 const silkFloatMax = math.MaxFloat32
 
-// findLPC computes the LPC coefficients and NLSF interpolation decision
-// (silk_find_LPC_FLP).
 func (ch *silkEncoderChannel) findLPC(nlsfQ15 []int16, x []float32, minInvGain float32) {
 	subfrLength := ch.subfrLength + ch.predictLPCOrder
 
@@ -198,7 +177,6 @@ func (ch *silkEncoderChannel) findLPC(nlsfQ15 []int16, x []float32, minInvGain f
 	resNrg := silkBurgModifiedFLP(a[:], x, minInvGain, subfrLength, ch.nbSubfr, ch.predictLPCOrder)
 
 	if ch.useInterpolatedNLSFs && !ch.firstFrameAfterReset && ch.nbSubfr == silkMaxNBSubfr {
-		// Optimal for the last 10 ms.
 		resNrg -= silkBurgModifiedFLP(aTmp[:], x[(silkMaxNBSubfr/2)*subfrLength:], minInvGain, subfrLength, silkMaxNBSubfr/2, ch.predictLPCOrder)
 		silkA2NLSFFLP(nlsfQ15, aTmp[:], ch.predictLPCOrder)
 
@@ -225,24 +203,21 @@ func (ch *silkEncoderChannel) findLPC(nlsfQ15 []int16, x []float32, minInvGain f
 	}
 }
 
-// silkCorrVectorFLP calculates X'*t (silk_corrVector_FLP). x has L+order-1
-// samples ending order-1 before the target.
 func silkCorrVectorFLP(x, t []float32, L, order int, Xt []float32) {
 	for lag := 0; lag < order; lag++ {
 		Xt[lag] = float32(silkInnerProductFLP(x[order-1-lag:], t, L))
 	}
 }
 
-// silkCorrMatrixFLP calculates X'*X (silk_corrMatrix_FLP).
 func silkCorrMatrixFLP(x []float32, L, order int, XX []float32) {
-	p1 := order - 1 // first sample of column 0 of X
+	p1 := order - 1
 	energy := silkEnergyFLP(x[p1:], L)
 	XX[0] = float32(energy)
 	for j := 1; j < order; j++ {
 		energy += float64(x[p1-j])*float64(x[p1-j]) - float64(x[p1+L-j])*float64(x[p1+L-j])
 		XX[j*order+j] = float32(energy)
 	}
-	p2 := order - 2 // first sample of column 1 of X
+	p2 := order - 2
 	for lag := 1; lag < order; lag++ {
 		energy = silkInnerProductFLP(x[p1:], x[p2:], L)
 		XX[lag*order] = float32(energy)
@@ -256,8 +231,6 @@ func silkCorrMatrixFLP(x []float32, L, order int, XX []float32) {
 	}
 }
 
-// findLTP computes the LTP correlation weights (silk_find_LTP_FLP). r is the
-// pitch residual positioned at the frame start.
 func silkFindLTPFLP(XX, xX []float32, r []float32, rOff int, lag []int, subfrLength, nbSubfr int) {
 	for k := 0; k < nbSubfr; k++ {
 		lagOff := rOff - (lag[k] + silkLTPOrder/2)
@@ -275,8 +248,6 @@ func silkFindLTPFLP(XX, xX []float32, r []float32, rOff int, lag []int, subfrLen
 	}
 }
 
-// silkLTPAnalysisFilterFLP creates the LTP residual (silk_LTP_analysis_filter_FLP).
-// x is positioned preLength samples before the first subframe.
 func silkLTPAnalysisFilterFLP(ltpRes []float32, x []float32, xOff int, B []float32,
 	pitchL []int, invGains []float32, subfrLength, nbSubfr, preLength int) {
 
@@ -298,7 +269,6 @@ func silkLTPAnalysisFilterFLP(ltpRes []float32, x []float32, xOff int, B []float
 	}
 }
 
-// ltpScaleCtrl selects the LTP scaling index (silk_LTP_scale_ctrl_FLP).
 func (ch *silkEncoderChannel) ltpScaleCtrl(ctrl *silkEncoderControl, condCoding int) {
 	if condCoding == codeIndependently {
 		roundLoss := int32(ch.packetLossPerc * ch.nFramesPerPacket)
@@ -319,9 +289,6 @@ func (ch *silkEncoderChannel) ltpScaleCtrl(ctrl *silkEncoderControl, condCoding 
 	ctrl.ltpScale = float32(silk_LTPScales_table_Q14[ch.indices.LTPScaleIndex]) / 16384.0
 }
 
-// findPredCoefs finds the LPC and LTP coefficients (silk_find_pred_coefs_FLP).
-// resPitch is the pitch-analysis residual buffer; both it and xBuf are
-// positioned at the frame start via their offsets.
 func (ch *silkEncoderChannel) findPredCoefs(ctrl *silkEncoderControl, resPitch []float32, resPitchOff int,
 	xBuf []float32, xOff int, condCoding int) {
 
@@ -343,7 +310,6 @@ func (ch *silkEncoderChannel) findPredCoefs(ctrl *silkEncoderControl, resPitch [
 		silkLTPAnalysisFilterFLP(lpcInPre, xBuf, xOff-ch.predictLPCOrder, ctrl.ltpCoef[:],
 			ctrl.pitchL[:], invGains[:], ch.subfrLength, ch.nbSubfr, ch.predictLPCOrder)
 	} else {
-		// Unvoiced: prepended subframes scaled by inverse gains.
 		off := xOff - ch.predictLPCOrder
 		pre := 0
 		for i := 0; i < ch.nbSubfr; i++ {
@@ -378,8 +344,6 @@ func (ch *silkEncoderChannel) findPredCoefs(ctrl *silkEncoderControl, resPitch [
 
 const maxPredictionPowerGainAfterReset = 1e2
 
-// silkResidualEnergyFLP measures the residual energy per subframe with the
-// quantized coefficients (silk_residual_energy_FLP).
 func silkResidualEnergyFLP(nrgs []float32, x []float32, a *[2][silkMaxLPCOrder]float32,
 	gains []float32, subfrLength, nbSubfr, lpcOrder int) {
 
@@ -397,8 +361,6 @@ func silkResidualEnergyFLP(nrgs []float32, x []float32, a *[2][silkMaxLPCOrder]f
 	}
 }
 
-// processGains processes and quantizes the subframe gains
-// (silk_process_gains_FLP).
 func (ch *silkEncoderChannel) processGains(ctrl *silkEncoderControl, condCoding int) {
 	if ch.indices.signalType == typeVoiced {
 		s := 1.0 - 0.5*silkSigmoid(0.25*(ctrl.ltpredCodGain-12.0))
@@ -448,8 +410,6 @@ func (ch *silkEncoderChannel) processGains(ctrl *silkEncoderControl, condCoding 
 		lambdaQuantOffset*quantOffset
 }
 
-// warpedGain computes the gain making warped coefficients zero-mean in log
-// frequency (noise_shape_analysis_FLP.c warped_gain).
 func warpedGain(coefs []float32, lambda float32, order int) float32 {
 	lambda = -lambda
 	gain := coefs[order-1]
@@ -459,8 +419,6 @@ func warpedGain(coefs []float32, lambda float32, order int) float32 {
 	return 1.0 / (1.0 - lambda*gain)
 }
 
-// warpedTrue2MonicCoefs converts to monic warped coefficients, limiting the
-// maximum amplitude by bandwidth expansion (warped_true2monic_coefs).
 func warpedTrue2MonicCoefs(coefs []float32, lambda, limit float32, order int) {
 	for i := order - 1; i > 0; i-- {
 		coefs[i-1] -= lambda * coefs[i]
@@ -504,7 +462,6 @@ func warpedTrue2MonicCoefs(coefs []float32, lambda, limit float32, order int) {
 	}
 }
 
-// limitCoefs bounds coefficient amplitudes by bandwidth expansion (limit_coefs).
 func limitCoefs(coefs []float32, limit float32, order int) {
 	for iter := 0; iter < 10; iter++ {
 		maxabs := float32(-1.0)
@@ -527,10 +484,6 @@ func limitCoefs(coefs []float32, limit float32, order int) {
 	}
 }
 
-// noiseShapeAnalysis computes the noise shaping coefficients and initial
-// gains (silk_noise_shape_analysis_FLP). pitchRes is the pitch residual at
-// the frame start; xBuf/xOff point at the frame start (la_shape history is
-// available before it).
 func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 	pitchRes []float32, pitchResOff int, xBuf []float32, xOff int) {
 
@@ -541,7 +494,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 
 	xPtr := xOff - ch.laShape
 
-	// GAIN CONTROL.
 	SNRAdjDB := float32(ch.snrDBQ7) * (1 / 128.0)
 	ctrl.inputQuality = 0.5 * float32(ch.inputQualityBandsQ15[0]+ch.inputQualityBandsQ15[1]) * (1.0 / 32768.0)
 	ctrl.codingQuality = silkSigmoid(0.25 * (SNRAdjDB - 20.0))
@@ -557,7 +509,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		SNRAdjDB += (-0.4*float32(ch.snrDBQ7)*(1/128.0) + 6.0) * (1.0 - ctrl.inputQuality)
 	}
 
-	// SPARSENESS PROCESSING.
 	if ch.indices.signalType == typeVoiced {
 		ch.indices.quantOffsetType = 0
 	} else {
@@ -586,13 +537,11 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		}
 	}
 
-	// Bandwidth expansion control.
 	strength := float32(findPitchWhiteNoiseFraction) * ctrl.predGain
 	BWExp := float32(bandwidthExpansion) / (1.0 + strength*strength)
 
 	warping := float32(ch.warpingQ16)/65536.0 + 0.01*ctrl.codingQuality
 
-	// Compute noise shaping AR coefficients and gains.
 	for k := 0; k < ch.nbSubfr; k++ {
 		flatPart := ch.fsKHz * 3
 		slopePart := (ch.shapeWinLength - flatPart) / 2
@@ -629,7 +578,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		}
 	}
 
-	// Gain tweaking.
 	gainMult := float32(math.Pow(2.0, -0.16*float64(SNRAdjDB)))
 	gainAdd := float32(math.Pow(2.0, 0.16*minQGainDB))
 	for k := 0; k < ch.nbSubfr; k++ {
@@ -637,7 +585,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		ctrl.gains[k] += gainAdd
 	}
 
-	// Low-frequency shaping and noise tilt.
 	strength = lowFreqShaping * (1.0 + lowQualityLowFreqShapingDecr*(float32(ch.inputQualityBandsQ15[0])*(1.0/32768.0)-1.0))
 	strength *= float32(ch.speechActivityQ8) * (1.0 / 256.0)
 	var tilt float32
@@ -659,7 +606,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		tilt = -hpNoiseCoef
 	}
 
-	// Harmonic shaping control.
 	var harmShapeGain float32
 	if ch.indices.signalType == typeVoiced {
 		harmShapeGain = harmonicShaping
@@ -667,7 +613,6 @@ func (ch *silkEncoderChannel) noiseShapeAnalysis(ctrl *silkEncoderControl,
 		harmShapeGain *= float32(math.Sqrt(float64(ch.LTPCorr)))
 	}
 
-	// Smooth over subframes.
 	for k := 0; k < ch.nbSubfr; k++ {
 		psShapeSt.harmShapeGainSmth += subfrSmthCoef * (harmShapeGain - psShapeSt.harmShapeGainSmth)
 		ctrl.harmShapeGain[k] = psShapeSt.harmShapeGainSmth

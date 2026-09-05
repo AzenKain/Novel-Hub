@@ -6,9 +6,7 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// An absent field must not reach the service at all. It used to arrive as a typed
-// nil pointer boxed in a non-nil interface, which the settings service then
-// dereferenced — panicking the whole process on any admin settings save.
+// An absent field must not reach the service at all.
 func TestValuesOmitsAbsentFields(t *testing.T) {
 	empty := &UpdateSettingsDto{}
 	if values := empty.Values(); len(values) != 0 {
@@ -85,4 +83,3 @@ func TestUpdateSettingsDtoEmptyServerURL(t *testing.T) {
 		t.Fatalf("expected values['server.url'] to be empty string, got %#v", v)
 	}
 }
-

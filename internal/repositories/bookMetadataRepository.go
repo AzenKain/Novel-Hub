@@ -32,8 +32,6 @@ func (f MetadataFacetFilter) cacheKey(facet string) string {
 	return cache.BuildKey("metadata", facet, f.Cursor, f.Limit, f.Search, f.Alpha, f.scopeKey())
 }
 
-// BookCount is computed under the caller's readable-library set, so every key holding it must
-// carry that set or a wider caller's count leaks to a narrower one.
 func (f MetadataFacetFilter) scopeKey() string {
 	return strings.Join(f.LibraryIDs, ",")
 }

@@ -60,7 +60,9 @@ export function LogsTab() {
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${tail.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${tail.isFetching ? "animate-spin" : ""}`}
+          />
           {t("admin.operations.refresh")}
         </button>
         {file && (

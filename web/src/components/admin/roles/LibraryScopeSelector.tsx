@@ -1,5 +1,12 @@
 import type { Library } from "@/types";
-import { Check, ChevronDown, Library as LibraryIcon, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Library as LibraryIcon,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -21,10 +28,12 @@ export function LibraryScopeSelector({
 
   const isAll = selectedLibraryIds.length === 0;
 
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -32,9 +41,10 @@ export function LibraryScopeSelector({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredLibraries = libraries.filter((lib) =>
-    lib.name.toLowerCase().includes(search.toLowerCase()) ||
-    lib.id.toLowerCase().includes(search.toLowerCase())
+  const filteredLibraries = libraries.filter(
+    (lib) =>
+      lib.name.toLowerCase().includes(search.toLowerCase()) ||
+      lib.id.toLowerCase().includes(search.toLowerCase()),
   );
 
   function handleToggleMode(all: boolean) {
@@ -70,7 +80,6 @@ export function LibraryScopeSelector({
 
   return (
     <div className="flex flex-col gap-2 pt-1">
-      {/* Mode Switcher */}
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-base-content/70 shrink-0 flex items-center gap-1.5">
           <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -98,7 +107,8 @@ export function LibraryScopeSelector({
                 : "text-base-content/70 hover:text-base-content"
             }`}
           >
-            {t("scope_specific_libraries", "Specific Libraries")} ({selectedLibraryIds.length})
+            {t("scope_specific_libraries", "Specific Libraries")} (
+            {selectedLibraryIds.length})
           </button>
         </div>
       </div>
@@ -110,7 +120,10 @@ export function LibraryScopeSelector({
           <div className="flex flex-wrap items-center gap-1.5 min-h-8">
             {selectedLibraryIds.length === 0 ? (
               <span className="text-xs text-warning flex items-center gap-1 italic">
-                {t("no_libraries_selected", "No libraries selected (Permission will not match any library)")}
+                {t(
+                  "no_libraries_selected",
+                  "No libraries selected (Permission will not match any library)",
+                )}
               </span>
             ) : (
               selectedLibraryIds.map((id) => {
@@ -143,7 +156,9 @@ export function LibraryScopeSelector({
                 className="btn btn-xs btn-outline btn-primary gap-1 font-normal"
               >
                 <span>{t("select_libraries", "Select Libraries")}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               {/* Popover Menu */}
@@ -207,7 +222,9 @@ export function LibraryScopeSelector({
                               />
                               <span className="truncate">{lib.name}</span>
                             </div>
-                            {checked && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                            {checked && (
+                              <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                            )}
                           </label>
                         );
                       })

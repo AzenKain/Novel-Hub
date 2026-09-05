@@ -10,7 +10,6 @@ import (
 func TestSpreadsheetParserWithRealFiles(t *testing.T) {
 	parser := NewParser()
 
-	// 1. XLSX
 	xlsxPath := filepath.Join("..", "..", "..", "sample_file", "file_example_XLSX_5000.xlsx")
 	if _, err := os.Stat(xlsxPath); err == nil {
 		meta, err := parser.ParseMetadata(xlsxPath)
@@ -35,7 +34,6 @@ func TestSpreadsheetParserWithRealFiles(t *testing.T) {
 		}
 	}
 
-	// 2. ODS
 	odsPath := filepath.Join("..", "..", "..", "sample_file", "file_example_ODS_5000.ods")
 	if _, err := os.Stat(odsPath); err == nil {
 		meta, err := parser.ParseMetadata(odsPath)
@@ -60,7 +58,6 @@ func TestSpreadsheetParserWithRealFiles(t *testing.T) {
 		}
 	}
 
-	// 3. XLS
 	xlsPath := filepath.Join("..", "..", "..", "sample_file", "file_example_XLS_5000.xls")
 	if _, err := os.Stat(xlsPath); err == nil {
 		meta, err := parser.ParseMetadata(xlsPath)

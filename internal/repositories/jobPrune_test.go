@@ -12,8 +12,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// Keeps the newest N finished rows, never touching rows a worker still owns. Now that
-// it runs on a schedule (not just at startup) the pending/running exemption matters.
+// Keeps the newest N finished rows, never touching rows a worker still owns.
 func TestPruneFinishedJobsKeepsNewestAndSparesUnfinished(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -25,7 +24,6 @@ func TestPruneFinishedJobsKeepsNewestAndSparesUnfinished(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	// 5 finished at distinct ages, plus one pending and one running.
 	for i, status := range []string{"completed", "failed", "completed", "failed", "completed"} {
 		if _, err := db.ExecContext(ctx,
 			`INSERT INTO jobs (id, type, status, updated_at) VALUES (?, 'scan', ?, datetime('now', ?))`,

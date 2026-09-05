@@ -87,14 +87,20 @@ func writeFB2(book *bookparser.BookData, images []Image) ([]byte, error) {
 		b.WriteString(`<coverpage><image l:href="#cover"/></coverpage>`)
 	}
 	b.WriteString("</title-info>")
-	b.WriteString("<document-info><id>");b.WriteString(newID());b.WriteString("</id><program-used>NovelHub</program-used><date>");b.WriteString(today());b.WriteString("</date></document-info>")
+	b.WriteString("<document-info><id>")
+	b.WriteString(newID())
+	b.WriteString("</id><program-used>NovelHub</program-used><date>")
+	b.WriteString(today())
+	b.WriteString("</date></document-info>")
 	b.WriteString("</description>")
 
 	b.WriteString("<body>")
 	for _, ch := range book.Chapters {
 		b.WriteString("<section>")
 		if strings.TrimSpace(ch.Title) != "" {
-			b.WriteString("<title><p>");b.WriteString(escapeXML(strings.TrimSpace(ch.Title)));b.WriteString("</p></title>")
+			b.WriteString("<title><p>")
+			b.WriteString(escapeXML(strings.TrimSpace(ch.Title)))
+			b.WriteString("</p></title>")
 		}
 		content := rebaseChapterLinks(ch.Content, ch.ContentPath, book.Chapters, func(c bookparser.ChapterData) string {
 			return fmt.Sprintf("section:%d", c.Index)
@@ -107,12 +113,18 @@ func writeFB2(book *bookparser.BookData, images []Image) ([]byte, error) {
 	b.WriteString("</body>")
 
 	if len(book.Metadata.CoverData) > 0 {
-		b.WriteString(`<binary id="cover" content-type="`);b.WriteString(mediaTypeForBytes(book.Metadata.CoverData, book.Metadata.CoverType));b.WriteString(`">`)
+		b.WriteString(`<binary id="cover" content-type="`)
+		b.WriteString(mediaTypeForBytes(book.Metadata.CoverData, book.Metadata.CoverType))
+		b.WriteString(`">`)
 		b.WriteString(base64Encode(book.Metadata.CoverData))
 		b.WriteString("</binary>")
 	}
 	for i, img := range images {
-		b.WriteString(`<binary id="fb2img`);b.WriteString(strconv.Itoa(i + 1));b.WriteString(`" content-type="`);b.WriteString(mediaType(img.Src));b.WriteString(`">`)
+		b.WriteString(`<binary id="fb2img`)
+		b.WriteString(strconv.Itoa(i + 1))
+		b.WriteString(`" content-type="`)
+		b.WriteString(mediaType(img.Src))
+		b.WriteString(`">`)
 		b.WriteString(base64Encode(img.Data))
 		b.WriteString("</binary>")
 	}
@@ -127,8 +139,6 @@ func writeFB2Node(n *nethtml.Node, b *strings.Builder, imgIndex map[string]int) 
 	case nethtml.ElementNode:
 		switch strings.ToLower(n.Data) {
 		case "li":
-			// FB2 has no list model; render each item as a paragraph so the
-			// reader doesn't drop bare text under <section>.
 			b.WriteString("<p>")
 			writeFB2Children(n, b, imgIndex)
 			b.WriteString("</p>")
@@ -150,11 +160,15 @@ func writeFB2Node(n *nethtml.Node, b *strings.Builder, imgIndex map[string]int) 
 			b.WriteString("</emphasis>")
 		case "img":
 			if idx, ok := imgIndex[base(fileAttr(n, "src"))]; ok {
-				b.WriteString(`<image l:href="#fb2img`);b.WriteString(strconv.Itoa(idx + 1));b.WriteString(`"/>`)
+				b.WriteString(`<image l:href="#fb2img`)
+				b.WriteString(strconv.Itoa(idx + 1))
+				b.WriteString(`"/>`)
 			}
 		case "a":
 			if href := fileAttr(n, "href"); href != "" && href != "#" {
-				b.WriteString(`<a href="`);b.WriteString(escapeXML(href));b.WriteString(`">`)
+				b.WriteString(`<a href="`)
+				b.WriteString(escapeXML(href))
+				b.WriteString(`">`)
 				writeFB2Children(n, b, imgIndex)
 				b.WriteString("</a>")
 			} else {

@@ -13,63 +13,38 @@ import (
 
 var _ container.Muxer = (*Muxer)(nil)
 
-// seekInterval is the target spacing between SEEKTABLE points in
-// seconds, matching the reference encoder's default table.
 const seekInterval = 10
 
-// maxWriteSeekPoints caps the SEEKTABLE reservation (18 bytes a point;
-// the cap covers 45 hours at the default spacing). Longer streams go
-// without points past the cap, never a header that scales with an
-// attacker-supplied Track.Samples.
 const maxWriteSeekPoints = 1 << 14
 
-// placeholderSample marks an unfilled seek point (RFC 9639 section
-// 8.5); placeholders must trail real points, which holds because points
-// fill in stream order.
+// placeholderSample marks an unfilled seek point (RFC 9639 section 8.5); placeholders must trail real points, which holds because points fill in stream order.
 const placeholderSample = ^uint64(0)
 
-// seekRec is a recorded seek point: the frame's first sample, its byte
-// offset from the first frame, and its length (the wire point's third
-// field), all known at write time.
 type seekRec struct {
 	sample, off, dur int64
 }
 
 // MuxerOptions configures writing.
 type MuxerOptions struct {
-	// MD5 supplies the unencoded-PCM signature for the STREAMINFO
-	// back-patch at End, typically the encoder's MD5 method (valid once
-	// the engine has called Finish, which precedes End). When nil the
-	// initial STREAMINFO's signature stands; a packet-for-packet remux
-	// wants exactly that, since identical audio keeps its signature.
-	MD5 func() [16]byte
-	// Tags are written as a VORBIS_COMMENT block between STREAMINFO and
-	// the audio. Vorbis comments are the canonical vocabulary already, so
-	// every key passes through as KEY=value.
+	MD5  func() [16]byte
 	Tags []container.Tag
 }
 
-// Muxer writes one FLAC track as a native FLAC stream. NeedsSeek
-// reports false: a plain io.Writer receives a compliant stream whose
-// STREAMINFO carries the totals known up front and zeros elsewhere. An
-// io.WriteSeeker upgrades the result: STREAMINFO is back-patched at End
-// with exact totals, frame size bounds, and the MD5 signature, and a
-// SEEKTABLE sized from the projected length is reserved at Begin and
-// filled as frames pass.
+// Muxer writes one FLAC track as a native FLAC stream.
 type Muxer struct {
 	w    io.Writer
-	ws   io.WriteSeeker // nil when w cannot seek
+	ws   io.WriteSeeker
 	opts MuxerOptions
 
 	si         flac.StreamInfo
-	wroteTotal int64 // sample total written into the header at Begin
-	off        int64 // bytes written so far
-	firstFrame int64 // byte offset of the first audio frame
+	wroteTotal int64
+	off        int64
+	firstFrame int64
 
-	seekOff  int64 // offset of the first seek point, 0 when absent
+	seekOff  int64
 	points   []seekRec
 	interval int64
-	target   int64 // next seek point's sample threshold
+	target   int64
 	filled   int
 
 	minFrame, maxFrame int
@@ -92,8 +67,7 @@ func NewMuxer(w io.Writer, opts *MuxerOptions) *Muxer {
 // NeedsSeek reports false: native FLAC has a compliant streaming form.
 func (m *Muxer) NeedsSeek() bool { return false }
 
-// Begin validates the track and writes the stream marker, STREAMINFO,
-// and the SEEKTABLE reservation.
+// Begin validates the track and writes the stream marker, STREAMINFO, and the SEEKTABLE reservation.
 func (m *Muxer) Begin(tracks []container.Track) error {
 	if m.began {
 		return waxerr.New(waxerr.CodeInternal, "flacn: Begin called twice")
@@ -116,10 +90,6 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 		return waxerr.New(waxerr.CodeUnsupportedFormat,
 			fmt.Sprintf("flacn: track format %v does not match STREAMINFO (want %v)", t.Fmt, want))
 	}
-	// The encoder cannot know the stream length; the engine's projection
-	// arrives via the track, so fold it into the header when STREAMINFO
-	// has none. The 36-bit field caps what it can say; longer streams
-	// stay 0 (unknown), which every reader must handle anyway.
 	if si.Samples == 0 && t.Samples > 0 && t.Samples < 1<<36 {
 		si.Samples = t.Samples
 	}
@@ -129,7 +99,7 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 
 	table := m.ws != nil && si.Samples > 0
 	vc := vorbisCommentBlock(m.opts.Tags)
-	head := [4]byte{0x80} // STREAMINFO, last metadata block
+	head := [4]byte{0x80}
 	if table || vc != nil {
 		head[0] = 0x00
 	}
@@ -145,7 +115,7 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	if vc != nil {
 		hdr := [4]byte{4, byte(len(vc) >> 16), byte(len(vc) >> 8), byte(len(vc))}
 		if !table {
-			hdr[0] |= 0x80 // last metadata block
+			hdr[0] |= 0x80
 		}
 		if err := m.write(hdr[:], vc); err != nil {
 			return err
@@ -175,8 +145,7 @@ func (m *Muxer) Begin(tracks []container.Track) error {
 	return nil
 }
 
-// WritePacket appends one frame and accounts for the header patch and
-// the seek table.
+// WritePacket appends one frame and accounts for the header patch and the seek table.
 func (m *Muxer) WritePacket(pkt container.Packet) error {
 	if !m.began || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "flacn: WritePacket outside Begin/End")
@@ -204,9 +173,7 @@ func (m *Muxer) WritePacket(pkt container.Packet) error {
 	return nil
 }
 
-// End finalizes the stream. With a seekable writer STREAMINFO and the
-// seek table are back-patched exactly; with a plain writer the headers
-// stand, and a known-length projection the stream missed is an error.
+// End finalizes the stream.
 func (m *Muxer) End(trailer codec.Trailer) error {
 	if !m.began || m.ended {
 		return waxerr.New(waxerr.CodeInternal, "flacn: End outside Begin")
@@ -245,8 +212,6 @@ func (m *Muxer) End(trailer codec.Trailer) error {
 		return err
 	}
 
-	// Fill recorded seek points; the tail keeps its placeholders, which
-	// stay legal (and sorted, trailing every real point).
 	if len(m.points) > m.filled {
 		buf := make([]byte, 18*(len(m.points)-m.filled))
 		for i, p := range m.points[m.filled:] {
@@ -277,7 +242,6 @@ func (m *Muxer) write(parts ...[]byte) error {
 	return nil
 }
 
-// patch rewrites bytes at an absolute offset on the seekable writer.
 func (m *Muxer) patch(off int64, parts ...[]byte) error {
 	if _, err := m.ws.Seek(off, io.SeekStart); err != nil {
 		return waxerr.Wrap(waxerr.CodeOutputUnwritable, "flacn: seek for patch", err)
@@ -290,15 +254,9 @@ func (m *Muxer) patch(off int64, parts ...[]byte) error {
 	return nil
 }
 
-// maxCommentBytes bounds the VORBIS_COMMENT block body. The engine passes
-// a minimal tag set; comments past the cap are dropped rather than growing
-// the pre-audio headers without limit (the block length field itself only
-// holds 24 bits).
 const maxCommentBytes = 48 << 10
 
-// vorbisCommentBlock renders tags as a VORBIS_COMMENT body (RFC 9639
-// section 8.6: little-endian lengths, UTF-8 KEY=value comments), nil for
-// no tags.
+// vorbisCommentBlock renders tags as a VORBIS_COMMENT body (RFC 9639 section 8.6: little-endian lengths, UTF-8 KEY=value comments), nil for no tags.
 func vorbisCommentBlock(tags []container.Tag) []byte {
 	if len(tags) == 0 {
 		return nil
@@ -315,8 +273,6 @@ func vorbisCommentBlock(tags []container.Tag) []byte {
 		}
 		c := t.Key + "=" + t.Value
 		if len(body)+4+len(c) > maxCommentBytes {
-			// Skip just the comment that does not fit: one oversized
-			// value must not erase the small descriptive tags after it.
 			continue
 		}
 		body = binary.LittleEndian.AppendUint32(body, uint32(len(c)))

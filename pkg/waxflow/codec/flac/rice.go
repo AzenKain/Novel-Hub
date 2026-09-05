@@ -1,51 +1,29 @@
 package flac
 
-// Rice residual sizing and partition optimization for the encoder. All
-// decisions run on the zigzag magnitude sums per partition: the best
-// parameter for a partition follows from its mean, and coarser partition
-// orders reuse the finer sums by pairwise addition, so one pass over the
-// residual prices every legal partitioning.
-
-// riceEscape4 and riceEscape5 are the parameter values reserved as
-// escape codes per coding method; the encoder never writes escapes, so
-// they bound the usable parameter range instead.
 const (
-	riceMaxParam4 = 14 // 4-bit parameters, method 0
-	riceMaxParam5 = 30 // 5-bit parameters, method 1
+	riceMaxParam4 = 14
+	riceMaxParam5 = 30
 )
 
-// ricePlan is a chosen residual coding: partition order, method, and the
-// parameter per partition.
 type ricePlan struct {
 	partOrder int
-	method    int // 0: 4-bit parameters, 1: 5-bit
+	method    int
 	params    []uint8
-	// bits is the estimated residual section size, excluding the 2+4
-	// header. int64 so 32-bit builds agree with 64-bit ones: a
-	// pathological predictor blowup can push a partition's shifted sum
-	// past 31 bits, and a wrapped estimate would select differently.
-	bits int64
+	bits      int64
 }
 
-// riceScratch holds the partition sum pyramid between frames.
 type riceScratch struct {
-	zig    []uint64 // zigzag residuals
-	sums   []uint64 // partition magnitude sums, finest order
-	merged []uint64 // coarser sums, rebuilt per order
-	params []uint8  // trial parameter buffer
-	best   []uint8  // winning parameters
+	zig    []uint64
+	sums   []uint64
+	merged []uint64
+	params []uint8
+	best   []uint8
 }
 
-// zigzag folds signed residuals into the unsigned mapping Rice codes.
 func zigzag(v int64) uint64 {
 	return uint64(v<<1) ^ uint64(v>>63)
 }
 
-// bestRiceParam returns the cheapest parameter for a partition with the
-// given zigzag sum and sample count, and the estimated bits at that
-// parameter. The estimate prices the quotient run as sum>>k, exact
-// within one bit per sample; every candidate carries the same bias, so
-// choices match exact pricing in practice.
 func bestRiceParam(sum uint64, count int) (uint, int64) {
 	if count == 0 {
 		return 0, 0
@@ -71,12 +49,7 @@ func bestRiceParam(sum uint64, count int) (uint, int64) {
 	return best, bestBits
 }
 
-// planRice prices res[order:] across partition orders 0..maxPart and
-// returns the cheapest plan. blockSize is the frame's sample count; a
-// partition order is legal only when it divides the block evenly and the
-// first partition retains at least the warmup samples.
 func planRice(res []int64, order, blockSize, maxPart int, s *riceScratch) ricePlan {
-	// Highest legal partition order.
 	top := maxPart
 	for top > 0 && (blockSize%(1<<top) != 0 || blockSize>>top < order) {
 		top--
@@ -94,7 +67,6 @@ func planRice(res []int64, order, blockSize, maxPart int, s *riceScratch) ricePl
 		zig[i] = zigzag(res[i])
 	}
 
-	// Partition sums at the finest order; coarser orders merge pairs.
 	parts := 1 << top
 	size := blockSize >> top
 	sums := s.sums[:parts]
@@ -154,8 +126,6 @@ func planRice(res []int64, order, blockSize, maxPart int, s *riceScratch) ricePl
 	return plan
 }
 
-// writeRice emits the residual section: coding method, partition order,
-// and each partition's parameter and Rice-coded residuals.
 func (w *bitWriter) writeRice(res []int64, order, blockSize int, plan ricePlan) {
 	w.writeBits(2, uint64(plan.method))
 	w.writeBits(4, uint64(plan.partOrder))

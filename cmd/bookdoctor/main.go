@@ -104,7 +104,6 @@ func runDemo() {
 	repairedPath := filepath.Join("data", "repaired_sample.epub")
 	_ = os.MkdirAll("data", 0755)
 
-	// Create corrupted EPUB
 	f, err := os.Create(brokenPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
@@ -112,15 +111,12 @@ func runDemo() {
 	}
 	zw := zip.NewWriter(f)
 
-	// Flaw 1: compressed mimetype
 	mw, _ := zw.CreateHeader(&zip.FileHeader{Name: "mimetype", Method: zip.Deflate})
 	_, _ = mw.Write([]byte("application/epub+zip"))
 
-	// Flaw 2: container.xml
 	cw, _ := zw.Create("META-INF/container.xml")
 	_, _ = cw.Write([]byte(`<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`))
 
-	// Flaw 3: OPF with missing dc:language, missing file in manifest, missing spine itemref
 	ow, _ := zw.Create("OEBPS/content.opf")
 	_, _ = ow.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookID" version="2.0">
@@ -138,7 +134,6 @@ func runDemo() {
   </spine>
 </package>`))
 
-	// Flaw 4: XHTML with unclosed <br>, <img>, &nbsp;, bare &
 	ch1w, _ := zw.Create("OEBPS/ch1.xhtml")
 	_, _ = ch1w.Write([]byte(`<html><head></head><body><h1>Chapter 1</h1><p>Text with&nbsp;HTML entity & lone & ampersand.<br><hr><img src="missing.jpg"></p></body></html>`))
 

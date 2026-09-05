@@ -1,15 +1,4 @@
-// Package alac implements an Apple Lossless (ALAC) decoder. It is a
-// clean-room port of Apple's ALAC reference decoder (see
-// THIRD-PARTY-NOTICES.md). The algorithm is faithful to
-// the reference: adaptive-Golomb residual coding, the cascaded adaptive FIR
-// predictor, and the lossless middle-side matrix, so decodes are bit-exact.
-//
-// The decoder covers mono and stereo elements at 16/20/24/32-bit depths,
-// the uncompressed escape path, and the wasted-byte shift. Cookies that
-// declare more than two channels are rejected: the WAV channel remap for
-// multichannel layouts is not implemented, so decoding them in bitstream
-// order would emit a silently wrong layout. SBR-style extensions do not
-// exist in ALAC.
+// Package alac implements an Apple Lossless (ALAC) decoder.
 package alac
 
 import (
@@ -19,34 +8,27 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// Version is the decoder's cache-key version constant (ADR-0004): bump on
-// any change that alters decoded samples.
+// Version is the decoder's cache-key version constant (ADR-0004): bump on any change that alters decoded samples.
 const Version = "alac-dec-1"
 
-// CookieLen is the byte length of an ALACSpecificConfig (the magic cookie),
-// the blob carried in container.Track.CodecConfig.
+// CookieLen is the byte length of an ALACSpecificConfig (the magic cookie), the blob carried in container.Track.CodecConfig.
 const CookieLen = 24
 
-// maxFrameLength bounds a packet's declared sample count, which sizes the
-// decoder's scratch. The reference default is 4096; 16384 leaves headroom
-// without letting a crafted cookie force a large allocation.
 const maxFrameLength = 16384
 
 // Config is a parsed ALACSpecificConfig.
 type Config struct {
 	FrameLength   uint32
 	BitDepth      int
-	PB            uint32 // rice history multiplier tuning
-	MB            uint32 // rice initial history
-	KB            uint32 // rice k-modifier
+	PB            uint32
+	MB            uint32
+	KB            uint32
 	Channels      int
 	MaxRun        uint32
 	MaxFrameBytes uint32
 	AvgBitRate    uint32
 	SampleRate    int
 
-	// Cookie is the canonical 24-byte ALACSpecificConfig, retained so the
-	// format registry can round-trip the track config to the decoder.
 	Cookie []byte
 }
 
@@ -54,8 +36,7 @@ func malformed(format string, args ...any) error {
 	return waxerr.New(waxerr.CodeUnsupportedFormat, "alac: "+fmt.Sprintf(format, args...))
 }
 
-// ParseMagicCookie parses the 24-byte ALACSpecificConfig at the head of b
-// (trailing channel-layout bytes are ignored).
+// ParseMagicCookie parses the 24-byte ALACSpecificConfig at the head of b (trailing channel-layout bytes are ignored).
 func ParseMagicCookie(b []byte) (Config, error) {
 	if len(b) < CookieLen {
 		return Config{}, malformed("magic cookie of %d bytes, want at least %d", len(b), CookieLen)
@@ -89,8 +70,7 @@ func ParseMagicCookie(b []byte) (Config, error) {
 	return c, nil
 }
 
-// Format is the pipeline format the decoder emits for this stream: the
-// int domain, right-justified at the stream's bit depth.
+// Format is the pipeline format the decoder emits for this stream: the int domain, right-justified at the stream's bit depth.
 func (c Config) Format() audio.Format {
 	return audio.Format{
 		Rate:     c.SampleRate,

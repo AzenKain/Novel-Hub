@@ -26,8 +26,6 @@ import (
 	"novelhub/pkg/bookparser/plain"
 )
 
-// regressionRegistry registers every parser the writers must round-trip
-// through, so converted output is re-parsed by the same reader users see.
 func regressionRegistry(t *testing.T) bookparser.Registry {
 	t.Helper()
 	reg := bookparser.NewRegistry()
@@ -84,27 +82,22 @@ func stripTags(s string) string {
 	return b.String()
 }
 
-// writeSourceEPUBRealBookShape builds an epub that mirrors the production
-// book that lost every image: manifest items carry an EMPTY media-type and
-// the <img src> references are URL-encoded with query strings. Both facts
-// used to drop all images during conversion.
 func writeSourceEPUBRealBookShape(t *testing.T) string {
 	t.Helper()
 	manifest := `<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Real Shape</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/><item id="c1" href="Text/chapter_1.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/Chương 1 - Ảnh bìa.jpg" media-type=""/><item id="img2" href="Images/Ảnh minh họa.png" media-type=""/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1>One</h1><p>Chương một có hình minh họa.</p><p><img src="Images/Ch%C6%B0%C6%A1ng%201%20-%20%E1%BA%A2nh%20b%C3%ACa.jpg?v=1#frag" alt="bia"/></p><p><img src="images/%E1%BA%A2nh%20minh%20h%E1%BB%8Da.png" alt="minhhoa"/></p></body></html>`
 	entries := map[string][]byte{
-		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf":      []byte(manifest),
-		"OEBPS/toc.ncx":          []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>One</text></navLabel><content src="Text/chapter_1.xhtml"/></navPoint></navMap></ncx>`),
-		"OEBPS/Text/chapter_1.xhtml": []byte(chapter),
+		"META-INF/container.xml":              []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
+		"OEBPS/content.opf":                   []byte(manifest),
+		"OEBPS/toc.ncx":                       []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>One</text></navLabel><content src="Text/chapter_1.xhtml"/></navPoint></navMap></ncx>`),
+		"OEBPS/Text/chapter_1.xhtml":          []byte(chapter),
 		"OEBPS/Images/Chương 1 - Ảnh bìa.jpg": []byte("\xff\xd8\xff\xe0fake-jpeg"),
-		"OEBPS/Images/Ảnh minh họa.png":      []byte("\x89PNG\r\n\x1a\nfake-png"),
+		"OEBPS/Images/Ảnh minh họa.png":       []byte("\x89PNG\r\n\x1a\nfake-png"),
 	}
 	return writeZip(t, "real.epub", entries)
 }
 
-// TestRealBookShapeImagesSurvive is the regression for "fb2/kepub/docx mất
-// toàn bộ ảnh" on the production book: manifest media-type="" + encoded refs.
+// TestRealBookShapeImagesSurvive is the regression for "fb2/kepub/docx mất toàn bộ ảnh" on the production book: manifest media-type="" + encoded refs.
 func TestRealBookShapeImagesSurvive(t *testing.T) {
 	reg := regressionRegistry(t)
 	src := writeSourceEPUBRealBookShape(t)
@@ -173,10 +166,7 @@ func zipEntry(t *testing.T, r *zip.Reader, name string) string {
 	return ""
 }
 
-// TestMobiRoundTripChapters is the regression for "mobi ko ra toc, content
-// đầu tiên lại là chương 3": round-trips a 2-chapter epub through the mobi
-// writer and re-parses with the mobi reader. A truncated PalmDOC textLength
-// used to cut the book mid-walk and mis-number chapters.
+// TestMobiRoundTripChapters is the regression for "mobi ko ra toc, content đầu tiên lại là chương 3": round-trips a 2-chapter epub through the mobi writer and re-parses with the mobi reader.
 func TestMobiRoundTripChapters(t *testing.T) {
 	reg := regressionRegistry(t)
 	src := writeSourceEPUB(t, false)
@@ -205,8 +195,7 @@ func TestMobiRoundTripChapters(t *testing.T) {
 	}
 }
 
-// TestMobiRoundTripImages proves image records survive the mobi writer and
-// are readable back through the reader's GetAsset.
+// TestMobiRoundTripImages proves image records survive the mobi writer and are readable back through the reader's GetAsset.
 func TestMobiRoundTripImages(t *testing.T) {
 	reg := regressionRegistry(t)
 	src := writeSourceEPUB(t, true)
@@ -232,8 +221,7 @@ func TestMobiRoundTripImages(t *testing.T) {
 	}
 }
 
-// TestKepubRoundTripPreservesText proves the kepub writer emits a valid epub
-// whose prose survives a round-trip through the epub reader.
+// TestKepubRoundTripPreservesText proves the kepub writer emits a valid epub whose prose survives a round-trip through the epub reader.
 func TestKepubRoundTripPreservesText(t *testing.T) {
 	reg := regressionRegistry(t)
 	src := writeSourceEPUB(t, true)
@@ -262,8 +250,7 @@ func TestKepubRoundTripPreservesText(t *testing.T) {
 	}
 }
 
-// TestPDFBasicStructure is the regression for "pdf sai font, chữ cách nhau
-// xa": the embedded font must parse as a real TTF.
+// TestPDFBasicStructure is the regression for "pdf sai font, chữ cách nhau xa": the embedded font must parse as a real TTF.
 func TestPDFBasicStructure(t *testing.T) {
 	reg := regressionRegistry(t)
 	out := convert(t, reg, "txt", writeSourceTXT(t), "pdf")
@@ -283,17 +270,14 @@ func TestPDFBasicStructure(t *testing.T) {
 	}
 }
 
-// writeSourceEPUBRealImages builds a 1-chapter epub whose cover is a real
-// PNG-with-alpha and whose body carries a real JPEG, so the pdf writer has
-// decodable streams to embed.
 func writeSourceEPUBRealImages(t *testing.T) string {
 	t.Helper()
 	pngBytes := encodePNG(t, color.RGBA{255, 0, 0, 128})
 	jpgBytes := encodeJPEG(t, color.RGBA{0, 128, 255, 255})
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1>One</h1><p><img src="../Images/cover.png" alt="cover"/></p><p>Prose after the images.</p><p><img src="../Images/photo.jpg" alt="photo"/></p></body></html>`
 	entries := map[string][]byte{
-		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>PDF Images</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/chapter_1.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cover.png" media-type="image/png"/><item id="img2" href="Images/photo.jpg" media-type="image/jpeg"/></manifest><spine><itemref idref="c1"/></spine></package>`),
+		"META-INF/container.xml":     []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
+		"OEBPS/content.opf":          []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>PDF Images</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/chapter_1.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cover.png" media-type="image/png"/><item id="img2" href="Images/photo.jpg" media-type="image/jpeg"/></manifest><spine><itemref idref="c1"/></spine></package>`),
 		"OEBPS/Text/chapter_1.xhtml": []byte(chapter),
 		"OEBPS/Images/cover.png":     pngBytes,
 		"OEBPS/Images/photo.jpg":     jpgBytes,
@@ -331,9 +315,7 @@ func encodeJPEG(t *testing.T, c color.RGBA) []byte {
 	return buf.Bytes()
 }
 
-// TestConvertToPDFImages is the regression for "pdf chữ cách nhau xa, mất
-// ảnh": the pdf writer must embed both the alpha PNG (as RGB + SMask) and the
-// JPEG (DCTDecode passthrough) as image XObjects.
+// TestConvertToPDFImages is the regression for "pdf chữ cách nhau xa, mất ảnh": the pdf writer must embed both the alpha PNG (as RGB + SMask) and the JPEG (DCTDecode passthrough) as image XObjects.
 func TestConvertToPDFImages(t *testing.T) {
 	reg := regressionRegistry(t)
 	out := convert(t, reg, "epub", writeSourceEPUBRealImages(t), "pdf")
@@ -351,11 +333,7 @@ func TestConvertToPDFImages(t *testing.T) {
 	}
 }
 
-// TestPDFImageTextGap is the regression for "pdf chữ nhảy lên ảnh": the
-// content stream must leave a gap between an image's bottom edge and the next
-// text baseline. The image cm places its bottom-left at (72, y); the following
-// absolute "72 Y Td" is that text's baseline, so Y must sit at least one line
-// lead below the image bottom. Asserted per page stream, not cross-page.
+// TestPDFImageTextGap is the regression for "pdf chữ nhảy lên ảnh": the content stream must leave a gap between an image's bottom edge and the next text baseline.
 func TestPDFImageTextGap(t *testing.T) {
 	reg := regressionRegistry(t)
 	out := convert(t, reg, "epub", writeSourceEPUBRealImages(t), "pdf")
@@ -379,7 +357,7 @@ func TestPDFImageTextGap(t *testing.T) {
 				t.Fatalf("bad img y %q: %v", m[1], err)
 			}
 			for _, base := range b {
-				if base >= y { // baselines above the image's bottom edge are the lines rendered before it
+				if base >= y {
 					continue
 				}
 				checked++
@@ -397,11 +375,7 @@ func TestPDFImageTextGap(t *testing.T) {
 	}
 }
 
-// TestMobiTOCMatchesSource is the regression for mobi TOC duplication: the
-// source chapter files carry their own <h1>/<h2> headings, and the reader
-// splits its TOC on every heading tag — so a chapter with an internal heading
-// became two "chapters" on round-trip. The writer must leave only its own <h1>
-// per chapter in the body.
+// TestMobiTOCMatchesSource is the regression for mobi TOC duplication: the source chapter files carry their own <h1>/<h2> headings, and the reader splits its TOC on every heading tag — so a chapter with an internal heading became two "chapters" on round-trip.
 func TestMobiTOCMatchesSource(t *testing.T) {
 	reg := regressionRegistry(t)
 	src := writeSourceEPUB(t, false)
@@ -440,15 +414,13 @@ func TestMobiTOCMatchesSource(t *testing.T) {
 	}
 }
 
-// TestMobiTOCChapterSurvives is the regression for the production book whose
-// "Mục lục" spine chapter kept losing its dat a in mobi/azw: a nav-named
-// chapter must stay a first-class section with its item text intact.
+// TestMobiTOCChapterSurvives is the regression for the production book whose "Mục lục" spine chapter kept losing its dat a in mobi/azw: a nav-named chapter must stay a first-class section with its item text intact.
 func TestMobiTOCChapterSurvives(t *testing.T) {
 	reg := regressionRegistry(t)
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mục lục</title></head><body><h1>Mục lục</h1><nav><ol><li><a href="Text/ch1.xhtml">Minh họa</a></li><li><a href="Text/ch2.xhtml">Mở đầu</a></li></ol></nav></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Kepub TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Kepub TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
 		"OEBPS/Text/toc.xhtml":   []byte(chapter),
 		"OEBPS/Text/ch1.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Minh họa</title></head><body><h1>Minh họa</h1><p>Một trang minh họa đủ chữ để vượt qua cơ chế lọc mục.</p></body></html>`),
 		"OEBPS/Text/ch2.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mở đầu</title></head><body><h1>Mở đầu</h1><p>Văn xuôi mở đầu đủ chữ để vượt qua cơ chế lọc mục.</p></body></html>`),
@@ -486,18 +458,13 @@ func TestMobiTOCChapterSurvives(t *testing.T) {
 	}
 }
 
-// TestConvertedTOCTargetsChapterKeys is the regression for "trang mục lục
-// hiện xanh nhưng bấm không nhảy chương": converted books re-host chapters
-// under new content keys (chapter_N.xhtml / mobi-section:N / section:N) while
-// the TOC copy kept the source filenames, so the reader could never map a link
-// back to a chapter. The writer must rewrite cross-chapter hrefs to the target
-// format's key.
+// TestConvertedTOCTargetsChapterKeys is the regression for "trang mục lục hiện xanh nhưng bấm không nhảy chương": converted books re-host chapters under new content keys (chapter_N.xhtml / mobi-section:N / section:N) while the TOC copy kept the source filenames, so the reader could never map a link back to a chapter.
 func TestConvertedTOCTargetsChapterKeys(t *testing.T) {
 	reg := regressionRegistry(t)
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mục lục</title></head><body><h1>Mục lục</h1><nav><ol><li><a href="ch1.xhtml">Chapter One</a></li><li><a href="ch2.xhtml">Chapter Two</a></li></ol></nav></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Link TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Link TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
 		"OEBPS/Text/toc.xhtml":   []byte(chapter),
 		"OEBPS/Text/ch1.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter One</title></head><body><h1>Chapter One</h1><p>First prose paragraph.</p></body></html>`),
 		"OEBPS/Text/ch2.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter Two</title></head><body><h1>Chapter Two</h1><p>Second chapter standalone prose.</p></body></html>`),
@@ -545,17 +512,13 @@ func TestConvertedTOCTargetsChapterKeys(t *testing.T) {
 	}
 }
 
-// TestConvertedTOCLinksNavigate is the end-to-end round of
-// TestConvertedTOCTargetsChapterKeys: the rebased href must resolve (after the
-// backend's asset-URL rewriting and the reader's path matching) to the target
-// chapter. It simulates the FE matching: decode the asset href, normalize, and
-// require it to match the chapter content paths of the round-tripped book.
+// TestConvertedTOCLinksNavigate is the end-to-end round of TestConvertedTOCTargetsChapterKeys: the rebased href must resolve (after the backend's asset-URL rewriting and the reader's path matching) to the target chapter.
 func TestConvertedTOCLinksNavigate(t *testing.T) {
 	reg := regressionRegistry(t)
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mục lục</title></head><body><h1>Mục lục</h1><nav><ol><li><a href="ch1.xhtml">Chapter One</a></li><li><a href="ch2.xhtml">Chapter Two</a></li></ol></nav></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Link TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Link TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
 		"OEBPS/Text/toc.xhtml":   []byte(chapter),
 		"OEBPS/Text/ch1.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter One</title></head><body><h1>Chapter One</h1><p>First prose paragraph.</p></body></html>`),
 		"OEBPS/Text/ch2.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter Two</title></head><body><h1>Chapter Two</h1><p>Second chapter standalone prose.</p></body></html>`),
@@ -600,7 +563,6 @@ func TestConvertedTOCLinksNavigate(t *testing.T) {
 					if ch.Title != want {
 						continue
 					}
-					// the FE match for /asset/<targetPath> links
 					for _, href := range regexp.MustCompile(`href="([^"]+)"`).FindAllStringSubmatch(tocContent, -1) {
 						targetPath := strings.TrimPrefix(decodePercentStrings(href[1]), "/")
 						if strings.Contains(targetPath, "/asset/") {
@@ -625,8 +587,6 @@ func TestConvertedTOCLinksNavigate(t *testing.T) {
 	}
 }
 
-// decodePercentStrings decodes percent escapes so the test mirrors the FE's
-// decodeURIComponent before matching.
 func decodePercentStrings(s string) string {
 	if v, err := url.PathUnescape(s); err == nil {
 		return v
@@ -634,15 +594,13 @@ func decodePercentStrings(s string) string {
 	return s
 }
 
-// TestFB2TOCItemsSurvive is the regression for "fb2 trang mục lục mất data":
-// list items under a <nav>/<ol> must render as <p> so the fb2 reader keeps
-// them instead of dropping bare text under its section model.
+// TestFB2TOCItemsSurvive is the regression for "fb2 trang mục lục mất data": list items under a <nav>/<ol> must render as <p> so the fb2 reader keeps them instead of dropping bare text under its section model.
 func TestFB2TOCItemsSurvive(t *testing.T) {
 	reg := regressionRegistry(t)
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mục lục</title></head><body><h1>Mục lục</h1><nav><ol><li><a href="Text/ch1.xhtml">Minh họa</a></li><li><a href="Text/ch2.xhtml">Mở đầu – Ước vọng từ quá khứ</a></li></ol></nav></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>FB2 TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>FB2 TOC</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/toc.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
 		"OEBPS/Text/toc.xhtml":   []byte(chapter),
 	}
 	src := writeZip(t, "toc.epub", entries)
@@ -671,9 +629,7 @@ func TestFB2TOCItemsSurvive(t *testing.T) {
 	}
 }
 
-// TestPDFVietGlyphCoverage is the regression for "pdf sai font chữ": the
-// embedded font must carry a glyph for every Vietnamese rune the writer
-// might emit, or a reader renders tofu.
+// TestPDFVietGlyphCoverage is the regression for "pdf sai font chữ": the embedded font must carry a glyph for every Vietnamese rune the writer might emit, or a reader renders tofu.
 func TestPDFVietGlyphCoverage(t *testing.T) {
 	f, err := sfnt.Parse(embeddedPDFFont)
 	if err != nil {
@@ -695,22 +651,18 @@ func TestPDFVietGlyphCoverage(t *testing.T) {
 	}
 }
 
-// TestMobiImageOnlySectionSurvives is the regression for "mobi cắt mất trang
-// minh họa": an illustration page carries almost no readable text, so the
-// reader's <24-char section filter used to throw the whole section away.
-// Covers the two shapes the production book uses: a plain "<p><img>" gallery
-// and an svg cover whose <image xlink:href> is rebased to a kindle record.
+// TestMobiImageOnlySectionSurvives is the regression for "mobi cắt mất trang minh họa": an illustration page carries almost no readable text, so the reader's <24-char section filter used to throw the whole section away.
 func TestMobiImageOnlySectionSurvives(t *testing.T) {
 	reg := regressionRegistry(t)
 	png := encodePNG(t, color.RGBA{0, 128, 255, 255})
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Image Page</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch3.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/mh.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
-		"OEBPS/toc.ncx": []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>Cover</text></navLabel><content src="Text/ch1.xhtml"/></navPoint><navPoint id="n2" playOrder="2"><navLabel><text>Minh họa</text></navLabel><content src="Text/ch2.xhtml"/></navPoint><navPoint id="n3" playOrder="3"><navLabel><text>Mở đầu</text></navLabel><content src="Text/ch3.xhtml"/></navPoint></navMap></ncx>`),
-		"OEBPS/Text/ch1.xhtml": []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Cover</title></head><body><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="150"><image xlink:href="../Images/mh.png" width="100" height="150"/></svg></body></html>`),
-		"OEBPS/Text/ch2.xhtml": []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Minh họa</title></head><body><h1>Minh họa</h1><p><img src="../Images/mh.png" alt="minh hoa"/></p></body></html>`),
-		"OEBPS/Text/ch3.xhtml": []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mở đầu</title></head><body><h1>Mở đầu</h1><p>Có một chương dài với văn xuôi thật sự ở đây để vượt qua giới hạn ba mươi hai ký tự của bộ lọc.</p></body></html>`),
-		"OEBPS/Images/mh.png":     png,
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Image Page</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="Text/ch3.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/mh.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/><itemref idref="c2"/><itemref idref="c3"/></spine></package>`),
+		"OEBPS/toc.ncx":          []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>Cover</text></navLabel><content src="Text/ch1.xhtml"/></navPoint><navPoint id="n2" playOrder="2"><navLabel><text>Minh họa</text></navLabel><content src="Text/ch2.xhtml"/></navPoint><navPoint id="n3" playOrder="3"><navLabel><text>Mở đầu</text></navLabel><content src="Text/ch3.xhtml"/></navPoint></navMap></ncx>`),
+		"OEBPS/Text/ch1.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Cover</title></head><body><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="150"><image xlink:href="../Images/mh.png" width="100" height="150"/></svg></body></html>`),
+		"OEBPS/Text/ch2.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Minh họa</title></head><body><h1>Minh họa</h1><p><img src="../Images/mh.png" alt="minh hoa"/></p></body></html>`),
+		"OEBPS/Text/ch3.xhtml":   []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mở đầu</title></head><body><h1>Mở đầu</h1><p>Có một chương dài với văn xuôi thật sự ở đây để vượt qua giới hạn ba mươi hai ký tự của bộ lọc.</p></body></html>`),
+		"OEBPS/Images/mh.png":    png,
 	}
 	src := writeZip(t, "img.epub", entries)
 	out := convert(t, reg, "epub", src, "mobi")
@@ -749,19 +701,17 @@ func TestMobiImageOnlySectionSurvives(t *testing.T) {
 	}
 }
 
-// TestMobiSvgCoverRebased is the regression for the kepub cover page: the
-// writer emits chapter content into mobi rawml, so a source <svg><image
-// xlink:href="..."/></svg> cover must be rebased to the kindle image record.
+// TestMobiSvgCoverRebased is the regression for the kepub cover page: the writer emits chapter content into mobi rawml, so a source <svg><image xlink:href="..."/></svg> cover must be rebased to the kindle image record.
 func TestMobiSvgCoverRebased(t *testing.T) {
 	reg := regressionRegistry(t)
 	png := encodePNG(t, color.RGBA{200, 30, 30, 255})
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1>One</h1><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="150" viewBox="0 0 100 150"><image xlink:href="../Images/cv.png" width="100" height="150"/></svg><p>Trang sau là phần nội dung thật sự của chương truyện này.</p><p>Có khá nhiều câu chữ ở đây để đủ độ dài cho cơ chế đọc mobi.</p></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Svg Cover</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cv.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
-		"OEBPS/toc.ncx": []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>One</text></navLabel><content src="Text/ch1.xhtml"/></navPoint></navMap></ncx>`),
-		"OEBPS/Text/ch1.xhtml": []byte(chapter),
-		"OEBPS/Images/cv.png":   png,
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Svg Cover</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/><item id="img1" href="Images/cv.png" media-type="image/png"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
+		"OEBPS/toc.ncx":          []byte(`<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="n1" playOrder="1"><navLabel><text>One</text></navLabel><content src="Text/ch1.xhtml"/></navPoint></navMap></ncx>`),
+		"OEBPS/Text/ch1.xhtml":   []byte(chapter),
+		"OEBPS/Images/cv.png":    png,
 	}
 	src := writeZip(t, "svg.epub", entries)
 	out := convert(t, reg, "epub", src, "mobi")
@@ -797,16 +747,13 @@ func TestMobiSvgCoverRebased(t *testing.T) {
 	}
 }
 
-// TestFB2SingleTitlePerSection is the regression for "Mục lục Mục lục":
-// in-content h1-h6 must not be promoted to <title> inside a section that
-// already carries the writer's own <title>, which the reader then renders
-// as a duplicated chapter heading.
+// TestFB2SingleTitlePerSection is the regression for "Mục lục Mục lục": in-content h1-h6 must not be promoted to <title> inside a section that already carries the writer's own <title>, which the reader then renders as a duplicated chapter heading.
 func TestFB2SingleTitlePerSection(t *testing.T) {
 	reg := regressionRegistry(t)
 	chapter := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Mục lục</title></head><body><h1>Mục lục</h1><p>Chương 1......</p><h2>Phần phụ đề</h2><p>Nội dung phần.</p></body></html>`
 	entries := map[string][]byte{
 		"META-INF/container.xml": []byte(`<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`),
-		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Kepub FB2</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
+		"OEBPS/content.opf":      []byte(`<?xml version="1.0"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Kepub FB2</dc:title><dc:creator>Jane Doe</dc:creator><dc:language>vi</dc:language></metadata><manifest><item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/></manifest><spine toc="ncx"><itemref idref="c1"/></spine></package>`),
 		"OEBPS/Text/ch1.xhtml":   []byte(chapter),
 	}
 	src := writeZip(t, "dup.epub", entries)

@@ -4,7 +4,18 @@ import { useLogoutMutation } from "@/hooks";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
-import { BookOpen, Copy, Key, ListTodo, LogOut, Menu, MessageSquareText, Settings2, Shield, Users } from "lucide-react";
+import {
+  BookOpen,
+  Copy,
+  Key,
+  ListTodo,
+  LogOut,
+  Menu,
+  MessageSquareText,
+  Settings2,
+  Shield,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -24,29 +35,87 @@ export function AdminLayout() {
   };
 
   const navItems = [
-    { name: t("admin.users", "Users"), path: "/admin/users", icon: Users, permissions: ["user.manage"] },
-    { name: t("admin.roles", "Roles"), path: "/admin/roles", icon: Shield, permissions: ["role.manage"] },
-    { name: t("admin.books_libraries", "Books & Libraries"), path: "/admin/books", icon: BookOpen, permissions: ["book.upload", "book.edit", "book.delete", "book.bulk.manage", "library.manage"] },
-    { name: t("admin.settings", "Settings"), path: "/admin/settings", icon: Settings2, permissions: ["setting.manage"] },
-    { name: t("admin.oauth_settings", "OAuth & OIDC"), path: "/admin/oauth", icon: Key, permissions: ["setting.manage"] },
-    { name: t("admin.duplicates", "Duplicate Files"), path: "/admin/duplicates", icon: Copy, permissions: ["book.duplicate.manage"] },
-    { name: t("admin.operations.title"), path: "/admin/operations", icon: ListTodo, permissions: ["job.read", "job.manage", "system.log.read", "system.backup"] },
-    { name: t("admin.reviews", "Reviews"), path: "/admin/reviews", icon: MessageSquareText, permissions: ["book.review.delete"] }
-  ].filter((item) => item.permissions.some((permission) => hasPermission(user, permission)));
+    {
+      name: t("admin.users", "Users"),
+      path: "/admin/users",
+      icon: Users,
+      permissions: ["user.manage"],
+    },
+    {
+      name: t("admin.roles", "Roles"),
+      path: "/admin/roles",
+      icon: Shield,
+      permissions: ["role.manage"],
+    },
+    {
+      name: t("admin.books_libraries", "Books & Libraries"),
+      path: "/admin/books",
+      icon: BookOpen,
+      permissions: [
+        "book.upload",
+        "book.edit",
+        "book.delete",
+        "book.bulk.manage",
+        "library.manage",
+      ],
+    },
+    {
+      name: t("admin.settings", "Settings"),
+      path: "/admin/settings",
+      icon: Settings2,
+      permissions: ["setting.manage"],
+    },
+    {
+      name: t("admin.oauth_settings", "OAuth & OIDC"),
+      path: "/admin/oauth",
+      icon: Key,
+      permissions: ["setting.manage"],
+    },
+    {
+      name: t("admin.duplicates", "Duplicate Files"),
+      path: "/admin/duplicates",
+      icon: Copy,
+      permissions: ["book.duplicate.manage"],
+    },
+    {
+      name: t("admin.operations.title"),
+      path: "/admin/operations",
+      icon: ListTodo,
+      permissions: [
+        "job.read",
+        "job.manage",
+        "system.log.read",
+        "system.backup",
+      ],
+    },
+    {
+      name: t("admin.reviews", "Reviews"),
+      path: "/admin/reviews",
+      icon: MessageSquareText,
+      permissions: ["book.review.delete"],
+    },
+  ].filter((item) =>
+    item.permissions.some((permission) => hasPermission(user, permission)),
+  );
 
   return (
     <div className="drawer lg:drawer-open bg-base-200 min-h-screen font-sans">
       <input id="admin-drawer" type="checkbox" className="drawer-toggle" />
-      
+
       <div className="drawer-content flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Mobile Navbar */}
         <div className="navbar bg-base-100 shadow-sm lg:hidden border-b border-base-200 px-4">
           <div className="flex-none">
-            <label htmlFor="admin-drawer" aria-label="open sidebar" className="btn btn-square btn-ghost">
+            <label
+              htmlFor="admin-drawer"
+              aria-label="open sidebar"
+              className="btn btn-square btn-ghost"
+            >
               <Menu className="w-5 h-5" />
             </label>
           </div>
-          <div className="flex-1 px-2 mx-2 font-bold">{t('admin.panel', 'Admin Panel')}</div>
+          <div className="flex-1 px-2 mx-2 font-bold">
+            {t("admin.panel", "Admin Panel")}
+          </div>
         </div>
 
         <main className="flex-1 overflow-auto bg-base-200/50">
@@ -55,22 +124,39 @@ export function AdminLayout() {
       </div>
 
       <div className="drawer-side z-20 border-r border-base-200 shadow-xl lg:shadow-none">
-        <label htmlFor="admin-drawer" aria-label="close sidebar" className="drawer-overlay"></label> 
+        <label
+          htmlFor="admin-drawer"
+          aria-label="close sidebar"
+          className="drawer-overlay"
+        ></label>
         <aside className="bg-base-100 w-64 min-h-full flex flex-col">
           <div className="h-20 flex flex-col justify-center px-6 border-b border-base-200">
-            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+            <Link
+              to="/"
+              className="flex items-center hover:opacity-80 transition-opacity"
+            >
               {settings?.site?.logo ? (
-                <img src={settings.site.logo} alt={t("common.alt_logo")} className="h-10 w-auto max-w-[50px] object-contain mr-3 shrink-0 drop-shadow-sm" />
+                <img
+                  src={settings.site.logo}
+                  alt={t("common.alt_logo")}
+                  className="h-10 w-auto max-w-[50px] object-contain mr-3 shrink-0 drop-shadow-sm"
+                />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3 shrink-0">NH</div>
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3 shrink-0">
+                  NH
+                </div>
               )}
               <div className="flex flex-col">
-                <span className="text-xl font-bold leading-tight">{settings?.site?.title || "NovelHub"}</span>
-                <span className="text-xs text-base-content/60 font-medium uppercase tracking-wider">{t('admin.panel', 'Admin Panel')}</span>
+                <span className="text-xl font-bold leading-tight">
+                  {settings?.site?.title || "NovelHub"}
+                </span>
+                <span className="text-xs text-base-content/60 font-medium uppercase tracking-wider">
+                  {t("admin.panel", "Admin Panel")}
+                </span>
               </div>
             </Link>
           </div>
-          
+
           <nav className="flex-1 py-6 px-4">
             <ul className="menu menu-md w-full p-0 gap-1">
               {navItems.map((item) => {
@@ -80,7 +166,11 @@ export function AdminLayout() {
                   <li key={item.name}>
                     <Link
                       to={item.path}
-                      className={isActive ? "active bg-primary/10 text-primary font-bold" : "text-base-content/80 font-medium"}
+                      className={
+                        isActive
+                          ? "active bg-primary/10 text-primary font-bold"
+                          : "text-base-content/80 font-medium"
+                      }
                     >
                       <Icon className="w-5 h-5 opacity-70" />
                       {item.name}
@@ -90,7 +180,7 @@ export function AdminLayout() {
               })}
             </ul>
           </nav>
-          
+
           <div className="p-4 border-t border-base-200 mt-auto">
             <div className="flex items-center justify-between px-2 pb-4">
               <ThemeController className="dropdown-top" />
@@ -102,7 +192,11 @@ export function AdminLayout() {
                 <div className="w-10 h-10 rounded-full ring-1 ring-base-content/10 overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold">
                   {user?.avatar_url ? (
                     <img
-                      src={getMediaUrl(user.avatar_url, undefined, user.updated_at)}
+                      src={getMediaUrl(
+                        user.avatar_url,
+                        undefined,
+                        user.updated_at,
+                      )}
                       alt={user.full_name || user.email}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -110,7 +204,11 @@ export function AdminLayout() {
                       }}
                     />
                   ) : (
-                    <span>{user?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}</span>
+                    <span>
+                      {user?.full_name?.charAt(0).toUpperCase() ||
+                        user?.email?.charAt(0).toUpperCase() ||
+                        "U"}
+                    </span>
                   )}
                 </div>
               </div>
@@ -118,7 +216,9 @@ export function AdminLayout() {
                 <p className="text-sm font-bold truncate">
                   {user?.full_name || "Admin"}
                 </p>
-                <p className="text-xs text-base-content/60 truncate">{user?.email}</p>
+                <p className="text-xs text-base-content/60 truncate">
+                  {user?.email}
+                </p>
               </div>
             </div>
             <button

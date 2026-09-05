@@ -27,7 +27,6 @@ import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { TopNav } from "@/components/common/TopNav";
 
-// Profile Cards
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { KidsModePinCard } from "@/components/profile/KidsModePinCard";
 import { EReaderMagicCodeCard } from "@/components/profile/EReaderMagicCodeCard";
@@ -56,7 +55,7 @@ export const ProfilePage: React.FC = () => {
   const { user } = useAuthStore(
     useShallow((state) => ({
       user: state.user,
-    }))
+    })),
   );
 
   const updateProfileMutation = useUpdateProfileMutation();
@@ -67,7 +66,6 @@ export const ProfilePage: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Password change state
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -160,7 +158,9 @@ export const ProfilePage: React.FC = () => {
     setPasswordSuccess(false);
 
     if (newPassword !== confirmPassword) {
-      setPasswordError(t("profile.passwords_do_not_match", "New passwords do not match"));
+      setPasswordError(
+        t("profile.passwords_do_not_match", "New passwords do not match"),
+      );
       return;
     }
 
@@ -173,13 +173,23 @@ export const ProfilePage: React.FC = () => {
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast.success(t("profile.password_updated", "Password changed successfully"));
+      toast.success(
+        t("profile.password_updated", "Password changed successfully"),
+      );
     } catch (err: any) {
-      setPasswordError(err?.response?.data?.message || t("profile.password_change_failed", "Failed to change password"));
+      setPasswordError(
+        err?.response?.data?.message ||
+          t("profile.password_change_failed", "Failed to change password"),
+      );
     }
   };
 
-  const tabs: { id: ProfileTab; label: string; icon: React.ReactNode; badge?: string }[] = [
+  const tabs: {
+    id: ProfileTab;
+    label: string;
+    icon: React.ReactNode;
+    badge?: string;
+  }[] = [
     {
       id: "account",
       label: t("profile.tab_account", "Account & Security"),
@@ -207,7 +217,6 @@ export const ProfilePage: React.FC = () => {
     <div className="min-h-screen bg-base-200/50 pb-16">
       <TopNav showSidebarToggle={false} />
 
-      {/* Header Banner */}
       <div className="bg-base-100 border-b border-base-content/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -225,10 +234,19 @@ export const ProfilePage: React.FC = () => {
                 <div className="avatar">
                   <div className="w-16 h-16 rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-base-100 overflow-hidden bg-base-300">
                     {avatarUrl ? (
-                      <img src={getMediaUrl(avatarUrl, undefined, user?.updated_at)} alt={fullName || user?.email} />
+                      <img
+                        src={getMediaUrl(
+                          avatarUrl,
+                          undefined,
+                          user?.updated_at,
+                        )}
+                        alt={fullName || user?.email}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center font-bold text-xl text-base-content/60">
-                        {(fullName || user?.email || "U").charAt(0).toUpperCase()}
+                        {(fullName || user?.email || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                     )}
                   </div>
@@ -246,7 +264,9 @@ export const ProfilePage: React.FC = () => {
 
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  {fullName || user?.email || t("profile.title", "User Profile")}
+                  {fullName ||
+                    user?.email ||
+                    t("profile.title", "User Profile")}
                   {user?.auth_provider && (
                     <span className="badge badge-sm badge-ghost uppercase text-[10px]">
                       {user.auth_provider}
@@ -264,7 +284,6 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick action: Return to Library */}
             <button
               type="button"
               onClick={() => navigate("/")}
@@ -275,7 +294,6 @@ export const ProfilePage: React.FC = () => {
             </button>
           </div>
 
-          {/* Navigation Tabs Bar */}
           <div className="flex items-center gap-1 mt-6 border-b border-base-content/10 overflow-x-auto custom-scrollbar">
             {tabs.map((tab) => {
               const isActive = currentTab === tab.id;
@@ -320,14 +338,19 @@ export const ProfilePage: React.FC = () => {
                       {t("profile.basic_info", "Basic Information")}
                     </h2>
                     <p className="text-xs opacity-60">
-                      {t("profile.basic_info_desc", "Update your display name and public credentials.")}
+                      {t(
+                        "profile.basic_info_desc",
+                        "Update your display name and public credentials.",
+                      )}
                     </p>
                   </div>
                 </div>
 
                 <form onSubmit={handleSaveProfile} className="space-y-4 mt-4">
                   <div>
-                    <label className="label label-text text-xs">{t("profile.full_name", "Full Name")}</label>
+                    <label className="label label-text text-xs">
+                      {t("profile.full_name", "Full Name")}
+                    </label>
                     <input
                       type="text"
                       value={fullName}
@@ -338,7 +361,9 @@ export const ProfilePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="label label-text text-xs">{t("profile.email", "Email Address")}</label>
+                    <label className="label label-text text-xs">
+                      {t("profile.email", "Email Address")}
+                    </label>
                     <input
                       type="email"
                       value={user?.email || ""}
@@ -346,7 +371,10 @@ export const ProfilePage: React.FC = () => {
                       className="input input-bordered input-sm w-full rounded-xl bg-base-200 opacity-70"
                     />
                     <span className="text-[11px] opacity-50 block mt-1">
-                      {t("profile.email_immutable", "Email address is tied to your account authentication.")}
+                      {t(
+                        "profile.email_immutable",
+                        "Email address is tied to your account authentication.",
+                      )}
                     </span>
                   </div>
 
@@ -356,7 +384,9 @@ export const ProfilePage: React.FC = () => {
                       disabled={updateProfileMutation.isPending}
                       className="btn btn-primary btn-sm rounded-xl gap-2"
                     >
-                      {updateProfileMutation.isPending && <span className="loading loading-spinner loading-xs" />}
+                      {updateProfileMutation.isPending && (
+                        <span className="loading loading-spinner loading-xs" />
+                      )}
                       {t("common.save", "Save Changes")}
                     </button>
                   </div>
@@ -377,12 +407,18 @@ export const ProfilePage: React.FC = () => {
                         {t("profile.change_password", "Change Password")}
                       </h2>
                       <p className="text-xs opacity-60">
-                        {t("profile.change_password_desc", "Keep your account secure with a strong password.")}
+                        {t(
+                          "profile.change_password_desc",
+                          "Keep your account secure with a strong password.",
+                        )}
                       </p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleChangePassword} className="space-y-3 mt-4">
+                  <form
+                    onSubmit={handleChangePassword}
+                    className="space-y-3 mt-4"
+                  >
                     {passwordError && (
                       <div className="alert alert-error text-xs p-2 rounded-xl">
                         {passwordError}
@@ -391,12 +427,17 @@ export const ProfilePage: React.FC = () => {
                     {passwordSuccess && (
                       <div className="alert alert-success text-xs p-2 rounded-xl flex items-center gap-2">
                         <Check className="w-4 h-4" />
-                        {t("profile.password_updated", "Password changed successfully")}
+                        {t(
+                          "profile.password_updated",
+                          "Password changed successfully",
+                        )}
                       </div>
                     )}
 
                     <div>
-                      <label className="label label-text text-xs">{t("profile.current_password", "Current Password")}</label>
+                      <label className="label label-text text-xs">
+                        {t("profile.current_password", "Current Password")}
+                      </label>
                       <input
                         type="password"
                         value={oldPassword}
@@ -407,7 +448,9 @@ export const ProfilePage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="label label-text text-xs">{t("profile.new_password", "New Password")}</label>
+                      <label className="label label-text text-xs">
+                        {t("profile.new_password", "New Password")}
+                      </label>
                       <input
                         type="password"
                         value={newPassword}
@@ -419,7 +462,9 @@ export const ProfilePage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="label label-text text-xs">{t("profile.confirm_password", "Confirm New Password")}</label>
+                      <label className="label label-text text-xs">
+                        {t("profile.confirm_password", "Confirm New Password")}
+                      </label>
                       <input
                         type="password"
                         value={confirmPassword}
@@ -435,7 +480,9 @@ export const ProfilePage: React.FC = () => {
                         disabled={changePasswordMutation.isPending}
                         className="btn btn-warning btn-sm rounded-xl gap-2"
                       >
-                        {changePasswordMutation.isPending && <span className="loading loading-spinner loading-xs" />}
+                        {changePasswordMutation.isPending && (
+                          <span className="loading loading-spinner loading-xs" />
+                        )}
                         {t("profile.update_password_btn", "Update Password")}
                       </button>
                     </div>

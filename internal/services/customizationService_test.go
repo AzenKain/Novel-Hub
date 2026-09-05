@@ -36,8 +36,10 @@ func (p *customPermissionStub) CanRoles(roleIDs []string, roles []constants.Role
 	}
 	return p.allowed
 }
-func (p *customPermissionStub) IsAdmin(roleIDs []string, roles []constants.RoleType) bool { return p.admin }
-func (p *customPermissionStub) GetGuestPermissions() []string               { return nil }
+func (p *customPermissionStub) IsAdmin(roleIDs []string, roles []constants.RoleType) bool {
+	return p.admin
+}
+func (p *customPermissionStub) GetGuestPermissions() []string                       { return nil }
 func (p *customPermissionStub) DescribeRoles(roleIDs []string) []*models.RoleSimple { return nil }
 
 func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
@@ -52,7 +54,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Seed test user
 	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider) VALUES ('u1', 'test@example.com', 'LOCAL')`); err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		Roles: []constants.RoleType{constants.RoleTypeUser},
 	}
 
-	// 1. Upload Soundscape with file bytes
 	audioData := []byte("ID3_FAKE_MP3_AUDIO_STREAM_DATA")
 	sound, err := svc.CreateSoundscape(ctx, userClaims, &request.UploadSoundscapeDto{
 		Name:     "Rain On Leaves",
@@ -82,7 +82,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("expected Name 'Rain On Leaves', got '%s'", sound.Name)
 	}
 
-	// Security: Attempt to upload fake audio / malware should fail
 	if _, err := svc.CreateSoundscape(ctx, userClaims, &request.UploadSoundscapeDto{Name: "Bad"}, []byte("MZ_WINDOWS_EXE"), "hack.exe"); err == nil {
 		t.Fatal("expected error on .exe upload as soundscape, got nil")
 	}
@@ -90,25 +89,21 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatal("expected error on fake mp3 magic header, got nil")
 	}
 
-	// List with cursor pagination
 	sounds, nextCursor, err := svc.ListSoundscapes(ctx, userClaims, nil, "", 20)
 	if err != nil || len(sounds) != 1 {
 		t.Fatalf("ListSoundscapes expected 1, got %d, err: %v", len(sounds), err)
 	}
 	_ = nextCursor
 
-	// Get file path
 	path, name, err := svc.GetSoundscapeFilePath(ctx, sound.ID, userClaims)
 	if err != nil || path == "" || name != "Rain On Leaves" {
 		t.Fatalf("GetSoundscapeFilePath failed: %v, path: %s", err, path)
 	}
 
-	// Delete
 	if err := svc.DeleteSoundscape(ctx, sound.ID, userClaims); err != nil {
 		t.Fatalf("DeleteSoundscape failed: %v", err)
 	}
 
-	// 2. Custom Fonts
 	fontData := []byte("wOF2_FAKE_WOFF2_FONT_DATA")
 	font, err := svc.CreateCustomFont(ctx, userClaims, &request.UploadFontDto{
 		Name:       "Bookerly Serif",
@@ -122,7 +117,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("expected Font Name 'Bookerly Serif', got '%s'", font.Name)
 	}
 
-	// Security: Attempt to upload fake font / malware should fail
 	if _, err := svc.CreateCustomFont(ctx, userClaims, &request.UploadFontDto{Name: "Bad", SourceType: "file"}, []byte("ELF_LINUX_BINARY"), "hack.woff2"); err == nil {
 		t.Fatal("expected error on fake woff2 magic header, got nil")
 	}
@@ -136,7 +130,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("DeleteCustomFont failed: %v", err)
 	}
 
-	// 3. Custom Themes
 	theme, err := svc.CreateCustomTheme(ctx, userClaims, &request.CreateCustomThemeDto{
 		Name:        "Cyberpunk Neon",
 		BgColor:     "#0f0f17",
@@ -151,7 +144,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("expected Theme Name 'Cyberpunk Neon', got '%s'", theme.Name)
 	}
 
-	// Security: XSS injection in CustomCss should fail
 	if _, err := svc.CreateCustomTheme(ctx, userClaims, &request.CreateCustomThemeDto{
 		Name:      "XSS Theme",
 		CustomCss: "<script>alert(1)</script>",
@@ -164,7 +156,6 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("ListCustomThemes expected 1, got %d", len(themes))
 	}
 
-	// Update Theme
 	updatedTheme, err := svc.UpdateCustomTheme(ctx, theme.ID, userClaims, &request.UpdateCustomThemeDto{
 		Name:        "Cyberpunk Neon 2077",
 		BgColor:     "#0a0a10",
@@ -175,19 +166,16 @@ func TestCustomizationServiceSoundscapesAndFonts(t *testing.T) {
 		t.Fatalf("UpdateCustomTheme failed: %v", err)
 	}
 
-	// Get Theme
 	gotTheme, err := svc.GetCustomTheme(ctx, theme.ID, userClaims)
 	if err != nil || gotTheme.Name != "Cyberpunk Neon 2077" {
 		t.Fatalf("GetCustomTheme failed: %v", err)
 	}
 
-	// Other user cannot get private theme
 	otherClaims := &response.JWTClaims{UId: "u2", Roles: []constants.RoleType{constants.RoleTypeUser}}
 	if _, err := svc.GetCustomTheme(ctx, theme.ID, otherClaims); err == nil {
 		t.Fatal("expected error when other user gets private theme, got nil")
 	}
 
-	// Delete Theme
 	if err := svc.DeleteCustomTheme(ctx, theme.ID, userClaims); err != nil {
 		t.Fatalf("DeleteCustomTheme failed: %v", err)
 	}

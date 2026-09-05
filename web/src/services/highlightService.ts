@@ -11,7 +11,7 @@ export const highlightService = {
     end_index: number,
     color: string,
     note?: string,
-    cfi_range?: string
+    cfi_range?: string,
   ): Promise<CommonResponse<Highlight>> {
     try {
       const res = await api.post("/highlights", {
@@ -33,7 +33,10 @@ export const highlightService = {
     }
   },
 
-  async getHighlights(chapter_id?: string, book_id?: string): Promise<CommonResponse<Highlight[]>> {
+  async getHighlights(
+    chapter_id?: string,
+    book_id?: string,
+  ): Promise<CommonResponse<Highlight[]>> {
     try {
       const params = new URLSearchParams();
       if (chapter_id) params.append("chapter_id", chapter_id);
@@ -51,7 +54,7 @@ export const highlightService = {
   async updateHighlightNote(
     id: string,
     color: string,
-    note?: string
+    note?: string,
   ): Promise<CommonResponse<Highlight>> {
     try {
       const res = await api.put(`/highlights/${id}`, { color, note });
@@ -79,30 +82,41 @@ export const highlightService = {
   // Downloads the Markdown export as a blob so a backend error (e.g. no
   // highlights) surfaces as a toast instead of navigating to a JSON page.
   async exportMarkdown(book_id: string): Promise<Blob> {
-    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.md`, {
-      responseType: "blob",
-    });
+    const res = await api.get(
+      `/highlights/${encodeURIComponent(book_id)}/export.md`,
+      {
+        responseType: "blob",
+      },
+    );
     return res.data as Blob;
   },
 
   async exportAnki(book_id: string): Promise<Blob> {
-    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.apkg`, {
-      responseType: "blob",
-    });
+    const res = await api.get(
+      `/highlights/${encodeURIComponent(book_id)}/export.apkg`,
+      {
+        responseType: "blob",
+      },
+    );
     return res.data as Blob;
   },
 
   async exportCSV(book_id: string): Promise<Blob> {
-    const res = await api.get(`/highlights/${encodeURIComponent(book_id)}/export.csv`, {
-      responseType: "blob",
-    });
+    const res = await api.get(
+      `/highlights/${encodeURIComponent(book_id)}/export.csv`,
+      {
+        responseType: "blob",
+      },
+    );
     return res.data as Blob;
   },
 
   async extractErrorMessage(error: unknown, fallback: string): Promise<string> {
     if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
       try {
-        const parsed = JSON.parse(await error.response.data.text()) as CommonResponse<unknown>;
+        const parsed = JSON.parse(
+          await error.response.data.text(),
+        ) as CommonResponse<unknown>;
         if (parsed?.message) return parsed.message;
       } catch {
         // not a JSON error envelope, fall through to fallback

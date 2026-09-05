@@ -30,10 +30,11 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [theme, setTheme] = useState<CardTheme>("aurora");
   const [copiedImage, setCopiedImage] = useState(false);
-  const [coverImgElement, setCoverImgElement] = useState<HTMLImageElement | null>(null);
-  const [quoteImgElement, setQuoteImgElement] = useState<HTMLImageElement | null>(null);
+  const [coverImgElement, setCoverImgElement] =
+    useState<HTMLImageElement | null>(null);
+  const [quoteImgElement, setQuoteImgElement] =
+    useState<HTMLImageElement | null>(null);
 
-  // Preload book cover image
   useEffect(() => {
     if (!bookCover) {
       setCoverImgElement(null);
@@ -46,7 +47,6 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
     img.onerror = () => setCoverImgElement(null);
   }, [bookCover]);
 
-  // Preload quote artwork image (for illustration bookmarks)
   useEffect(() => {
     if (!imageUrl) {
       setQuoteImgElement(null);
@@ -65,33 +65,27 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // High Resolution Canvas (1080 x 1350 - Standard Instagram Portrait 4:5)
     const width = 1080;
     const height = 1350;
     canvas.width = width;
     canvas.height = height;
 
-    // Reset base text metrics
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
 
-    // 1. Draw Background Theme
     if (theme === "vintage") {
-      // Warm Paper Texture Style
       const grad = ctx.createLinearGradient(0, 0, width, height);
       grad.addColorStop(0, "#f7f2e7");
       grad.addColorStop(1, "#ebdcc4");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle Vintage Border
       ctx.strokeStyle = "#c8b393";
       ctx.lineWidth = 4;
       ctx.strokeRect(40, 40, width - 80, height - 80);
       ctx.lineWidth = 1;
       ctx.strokeRect(48, 48, width - 96, height - 96);
     } else if (theme === "aurora") {
-      // Modern Vibrant Mesh Gradient
       const grad = ctx.createLinearGradient(0, 0, width, height);
       grad.addColorStop(0, "#0f172a");
       grad.addColorStop(0.5, "#1e1b4b");
@@ -99,13 +93,27 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, width, height);
 
-      const radial1 = ctx.createRadialGradient(width * 0.8, height * 0.2, 50, width * 0.8, height * 0.2, 500);
+      const radial1 = ctx.createRadialGradient(
+        width * 0.8,
+        height * 0.2,
+        50,
+        width * 0.8,
+        height * 0.2,
+        500,
+      );
       radial1.addColorStop(0, "rgba(168, 85, 247, 0.35)");
       radial1.addColorStop(1, "transparent");
       ctx.fillStyle = radial1;
       ctx.fillRect(0, 0, width, height);
 
-      const radial2 = ctx.createRadialGradient(width * 0.2, height * 0.7, 50, width * 0.2, height * 0.7, 550);
+      const radial2 = ctx.createRadialGradient(
+        width * 0.2,
+        height * 0.7,
+        50,
+        width * 0.2,
+        height * 0.7,
+        550,
+      );
       radial2.addColorStop(0, "rgba(56, 189, 248, 0.3)");
       radial2.addColorStop(1, "transparent");
       ctx.fillStyle = radial2;
@@ -117,13 +125,19 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, width, height);
 
-      const radial = ctx.createRadialGradient(width * 0.2, height * 0.8, 50, width * 0.2, height * 0.8, 600);
+      const radial = ctx.createRadialGradient(
+        width * 0.2,
+        height * 0.8,
+        50,
+        width * 0.2,
+        height * 0.8,
+        600,
+      );
       radial.addColorStop(0, "rgba(13, 148, 136, 0.25)");
       radial.addColorStop(1, "transparent");
       ctx.fillStyle = radial;
       ctx.fillRect(0, 0, width, height);
     } else {
-      // Modern OLED Dark
       ctx.fillStyle = "#0c0d12";
       ctx.fillRect(0, 0, width, height);
 
@@ -132,29 +146,25 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.strokeRect(40, 40, width - 80, height - 80);
     }
 
-    // 2. Compute Bottom Attribution Card Geometry
     const bottomCardHeight = 160;
-    const bottomCardY = height - bottomCardHeight - 60; // 1350 - 160 - 60 = 1130
+    const bottomCardY = height - bottomCardHeight - 60;
 
-    // 3. Draw Content: Image Card OR Text Quote
     if (quoteImgElement) {
-      // IMAGE QUOTE CARD
-      // Check if there is a personal user note to display
       const cleanQuote = (quote || "").trim();
       const hasCaption = Boolean(
         cleanQuote &&
-          !cleanQuote.startsWith("http") &&
-          !cleanQuote.startsWith("[Minh họa]") &&
-          cleanQuote !== bookTitle &&
-          cleanQuote !== chapterTitle
+        !cleanQuote.startsWith("http") &&
+        !cleanQuote.startsWith("[Minh họa]") &&
+        cleanQuote !== bookTitle &&
+        cleanQuote !== chapterTitle,
       );
 
       const topPadding = 60;
       const captionHeight = hasCaption ? 50 : 0;
       const captionGap = hasCaption ? 20 : 0;
       const maxImageBottom = bottomCardY - 30 - captionHeight - captionGap;
-      const maxAreaH = maxImageBottom - topPadding; // ~980px
-      const maxAreaW = width - 140; // 940px
+      const maxAreaH = maxImageBottom - topPadding;
+      const maxAreaW = width - 140;
 
       const imgW = quoteImgElement.naturalWidth || 800;
       const imgH = quoteImgElement.naturalHeight || 600;
@@ -175,7 +185,6 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       const drawX = (width - drawW) / 2;
       const drawY = topPadding + (maxAreaH - drawH) / 2;
 
-      // Draw image with rounded corners
       ctx.save();
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") {
@@ -187,31 +196,31 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.drawImage(quoteImgElement, drawX, drawY, drawW, drawH);
       ctx.restore();
 
-      // Border around artwork
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") {
         ctx.roundRect(drawX, drawY, drawW, drawH, 18);
       } else {
         ctx.rect(drawX, drawY, drawW, drawH);
       }
-      ctx.strokeStyle = theme === "vintage" ? "rgba(180, 140, 90, 0.45)" : "rgba(255, 255, 255, 0.18)";
+      ctx.strokeStyle =
+        theme === "vintage"
+          ? "rgba(180, 140, 90, 0.45)"
+          : "rgba(255, 255, 255, 0.18)";
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Caption / Note if provided (Strictly placed below image and above bottom card)
       if (hasCaption) {
         const captionY = drawY + drawH + 16;
         ctx.font = `italic 500 28px "Georgia", "Merriweather", "Noto Serif", serif`;
         ctx.fillStyle = theme === "vintage" ? "#382818" : "#f1f5f9";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        const displayCaption = cleanQuote.length > 80 ? cleanQuote.slice(0, 77) + "..." : cleanQuote;
+        const displayCaption =
+          cleanQuote.length > 80 ? cleanQuote.slice(0, 77) + "..." : cleanQuote;
         ctx.fillText(displayCaption, width / 2, captionY);
         ctx.textAlign = "left";
       }
     } else {
-      // TEXT QUOTE CARD
-      // Decorative Quotation Mark
       ctx.save();
       if (theme === "vintage") {
         ctx.fillStyle = "rgba(160, 110, 60, 0.2)";
@@ -225,7 +234,6 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.fillText("“", 80, 100);
       ctx.restore();
 
-      // Text Wrapping & Typography for Quote
       const safeQuote = (quote || "").trim() || "...";
       const maxTextWidth = width - 200;
       let fontSize = 46;
@@ -268,11 +276,15 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       });
 
       // Divider Line
-      const dividerY = Math.min(startY + displayedLines.length * lineHeight + 35, bottomCardY - 30);
+      const dividerY = Math.min(
+        startY + displayedLines.length * lineHeight + 35,
+        bottomCardY - 30,
+      );
       ctx.beginPath();
       ctx.moveTo(100, dividerY);
       ctx.lineTo(240, dividerY);
-      ctx.strokeStyle = theme === "vintage" ? "#b48c5a" : "rgba(255, 255, 255, 0.25)";
+      ctx.strokeStyle =
+        theme === "vintage" ? "#b48c5a" : "rgba(255, 255, 255, 0.25)";
       ctx.lineWidth = 4;
       ctx.stroke();
     }
@@ -293,11 +305,20 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
           ctx.rect(100, bottomCardY, coverWidth, coverHeight);
         }
         ctx.clip();
-        ctx.drawImage(coverImgElement, 100, bottomCardY, coverWidth, coverHeight);
+        ctx.drawImage(
+          coverImgElement,
+          100,
+          bottomCardY,
+          coverWidth,
+          coverHeight,
+        );
         ctx.restore();
 
         // Border around cover
-        ctx.strokeStyle = theme === "vintage" ? "rgba(180, 140, 90, 0.4)" : "rgba(255,255,255,0.15)";
+        ctx.strokeStyle =
+          theme === "vintage"
+            ? "rgba(180, 140, 90, 0.4)"
+            : "rgba(255,255,255,0.15)";
         ctx.lineWidth = 2;
         ctx.beginPath();
         if (typeof ctx.roundRect === "function") {
@@ -309,45 +330,96 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
 
         // Text beside cover
         const textX = 225;
-        ctx.font = "bold 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.font =
+          "bold 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
         ctx.fillStyle = theme === "vintage" ? "#1e140a" : "#ffffff";
-        ctx.fillText(bookTitle.length > 34 ? bookTitle.slice(0, 34) + "..." : bookTitle, textX, bottomCardY + 15);
+        ctx.fillText(
+          bookTitle.length > 34 ? bookTitle.slice(0, 34) + "..." : bookTitle,
+          textX,
+          bottomCardY + 15,
+        );
 
-        ctx.font = "500 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = theme === "vintage" ? "#6c5035" : "rgba(255, 255, 255, 0.65)";
-        ctx.fillText(bookAuthor.length > 40 ? bookAuthor.slice(0, 40) + "..." : bookAuthor, textX, bottomCardY + 60);
+        ctx.font =
+          "500 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle =
+          theme === "vintage" ? "#6c5035" : "rgba(255, 255, 255, 0.65)";
+        ctx.fillText(
+          bookAuthor.length > 40 ? bookAuthor.slice(0, 40) + "..." : bookAuthor,
+          textX,
+          bottomCardY + 60,
+        );
 
         if (chapterTitle) {
-          ctx.font = "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-          ctx.fillStyle = theme === "vintage" ? "#9c7c5b" : "rgba(255, 255, 255, 0.45)";
-          ctx.fillText(chapterTitle.length > 45 ? chapterTitle.slice(0, 45) + "..." : chapterTitle, textX, bottomCardY + 100);
+          ctx.font =
+            "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.fillStyle =
+            theme === "vintage" ? "#9c7c5b" : "rgba(255, 255, 255, 0.45)";
+          ctx.fillText(
+            chapterTitle.length > 45
+              ? chapterTitle.slice(0, 45) + "..."
+              : chapterTitle,
+            textX,
+            bottomCardY + 100,
+          );
         }
       } catch (e) {
         console.warn("[QuoteCard] cover draw fallback", e);
       }
     } else {
-      ctx.font = "bold 34px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font =
+        "bold 34px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.fillStyle = theme === "vintage" ? "#1e140a" : "#ffffff";
-      ctx.fillText(bookTitle.length > 45 ? bookTitle.slice(0, 45) + "..." : bookTitle, 100, bottomCardY + 20);
+      ctx.fillText(
+        bookTitle.length > 45 ? bookTitle.slice(0, 45) + "..." : bookTitle,
+        100,
+        bottomCardY + 20,
+      );
 
-      ctx.font = "500 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillStyle = theme === "vintage" ? "#6c5035" : "rgba(255, 255, 255, 0.65)";
-      ctx.fillText(bookAuthor.length > 50 ? bookAuthor.slice(0, 50) + "..." : bookAuthor, 100, bottomCardY + 68);
+      ctx.font =
+        "500 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillStyle =
+        theme === "vintage" ? "#6c5035" : "rgba(255, 255, 255, 0.65)";
+      ctx.fillText(
+        bookAuthor.length > 50 ? bookAuthor.slice(0, 50) + "..." : bookAuthor,
+        100,
+        bottomCardY + 68,
+      );
 
       if (chapterTitle) {
-        ctx.font = "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = theme === "vintage" ? "#9c7c5b" : "rgba(255, 255, 255, 0.45)";
-        ctx.fillText(chapterTitle.length > 55 ? chapterTitle.slice(0, 55) + "..." : chapterTitle, 100, bottomCardY + 108);
+        ctx.font =
+          "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle =
+          theme === "vintage" ? "#9c7c5b" : "rgba(255, 255, 255, 0.45)";
+        ctx.fillText(
+          chapterTitle.length > 55
+            ? chapterTitle.slice(0, 55) + "..."
+            : chapterTitle,
+          100,
+          bottomCardY + 108,
+        );
       }
     }
 
     // 5. Watermark Footer
-    ctx.font = "600 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    ctx.fillStyle = theme === "vintage" ? "rgba(100, 70, 40, 0.5)" : "rgba(255, 255, 255, 0.35)";
+    ctx.font =
+      "600 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle =
+      theme === "vintage"
+        ? "rgba(100, 70, 40, 0.5)"
+        : "rgba(255, 255, 255, 0.35)";
     ctx.textAlign = "right";
     ctx.fillText("NovelHub", width - 80, height - 45);
     ctx.textAlign = "left";
-  }, [theme, quote, imageUrl, quoteImgElement, bookTitle, bookAuthor, chapterTitle, coverImgElement]);
+  }, [
+    theme,
+    quote,
+    imageUrl,
+    quoteImgElement,
+    bookTitle,
+    bookAuthor,
+    chapterTitle,
+    coverImgElement,
+  ]);
 
   useEffect(() => {
     if (open) {
@@ -424,10 +496,26 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
           </span>
           <div className="grid grid-cols-4 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             {[
-              { id: "aurora", label: "Aurora", bg: "bg-linear-to-r from-purple-900 to-sky-900" },
-              { id: "modern", label: "OLED", bg: "bg-[#0c0d12] border border-white/20" },
-              { id: "vintage", label: "Vintage", bg: "bg-[#f5e6cb] text-black" },
-              { id: "glass", label: "Emerald", bg: "bg-linear-to-r from-teal-950 to-slate-900" },
+              {
+                id: "aurora",
+                label: "Aurora",
+                bg: "bg-linear-to-r from-purple-900 to-sky-900",
+              },
+              {
+                id: "modern",
+                label: "OLED",
+                bg: "bg-[#0c0d12] border border-white/20",
+              },
+              {
+                id: "vintage",
+                label: "Vintage",
+                bg: "bg-[#f5e6cb] text-black",
+              },
+              {
+                id: "glass",
+                label: "Emerald",
+                bg: "bg-linear-to-r from-teal-950 to-slate-900",
+              },
             ].map((th) => (
               <button
                 key={th.id}
@@ -460,8 +548,16 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
               onClick={handleCopyImage}
               className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border) font-semibold text-xs min-w-0"
             >
-              {copiedImage ? <Check size={14} className="text-success shrink-0" /> : <Copy size={14} className="shrink-0" />}
-              <span className="truncate">{copiedImage ? t("reader.copied", "Copied") : t("reader.copy_image", "Copy Image")}</span>
+              {copiedImage ? (
+                <Check size={14} className="text-success shrink-0" />
+              ) : (
+                <Copy size={14} className="shrink-0" />
+              )}
+              <span className="truncate">
+                {copiedImage
+                  ? t("reader.copied", "Copied")
+                  : t("reader.copy_image", "Copy Image")}
+              </span>
             </button>
             <button
               type="button"
@@ -469,7 +565,9 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
               className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90 font-bold text-xs min-w-0"
             >
               <Download size={14} className="shrink-0" />
-              <span className="truncate">{t("reader.download_image", "Download image")}</span>
+              <span className="truncate">
+                {t("reader.download_image", "Download image")}
+              </span>
             </button>
           </div>
         </div>

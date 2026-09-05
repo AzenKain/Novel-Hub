@@ -2,16 +2,6 @@ package opus
 
 import "math"
 
-// Encoder-side pitch analysis and the pitch pre-filter (the comb filter whose
-// inverse is the decoder's post-filter). Clean-room ports of libopus pitch.c,
-// celt_lpc.c, and the run_prefilter/tone_detect parts of celt_encoder.c
-// (float build). The pre-filter attenuates the harmonic structure of pitched
-// signals before the MDCT so coding noise stays shaped along the harmonics,
-// and the decoder's post-filter restores it.
-
-// toneLPC fits a 2-tap LPC filter with a least-squares fit over both forward
-// and backward prediction (libopus tone_lpc, float build). It reports
-// failure when the covariance system is near-singular.
 func toneLPC(x []float32, length, delay int, lpc *[2]float32) bool {
 	var r00, r01, r11, r02, r12, r22, edges float32
 	for i := 0; i < length-2*delay; i++ {
@@ -34,14 +24,12 @@ func toneLPC(x []float32, length, delay int, lpc *[2]float32) bool {
 		edges += x[length+i-2*delay]*x[length+i-delay] - x[i]*x[i+delay]
 	}
 	r12 = r01 + edges
-	// Reverse and sum to get the backward contribution.
 	R00 := r00 + r22
 	R01 := r01 + r12
 	R11 := 2 * r11
 	R02 := 2 * r02
 	R12 := r12 + r01
 	r00, r01, r11, r02, r12 = R00, R01, R11, R02, R12
-	// Solve A*x=b, where A=[r00, r01; r01, r11] and b=[r02; r12].
 	den := r00*r11 - r01*r01
 	if den < 0.001*(r00*r11) {
 		return true
@@ -67,11 +55,6 @@ func toneLPC(x []float32, length, delay int, lpc *[2]float32) bool {
 	return false
 }
 
-// toneDetect detects pure or nearly pure tones so the encoder can keep them
-// from destabilizing the pitch estimator, the transient detector, and the
-// allocation (libopus tone_detect, float build). It returns the tone's
-// normalized angular frequency (or -1) and sets toneishness to the squared
-// pole radius of the fitted resonator.
 func toneDetect(in [][]float32, C, n int, toneishness *float32) float32 {
 	delay := 1
 	x := make([]float32, n)
@@ -84,12 +67,10 @@ func toneDetect(in [][]float32, C, n int, toneishness *float32) float32 {
 	}
 	var lpc [2]float32
 	fail := toneLPC(x, n, delay, &lpc)
-	// If the LPC filter resonates too close to DC, retry with down-sampling.
 	for delay <= SampleRate/3000 && (fail || (lpc[0] > 1 && lpc[1] < 0)) {
 		delay *= 2
 		fail = toneLPC(x, n, delay, &lpc)
 	}
-	// Check that the filter has complex roots.
 	if !fail && lpc[0]*lpc[0]+3.999999*lpc[1] < 0 {
 		*toneishness = -lpc[1]
 		return float32(math.Acos(0.5*float64(lpc[0]))) / float32(delay)
@@ -98,8 +79,6 @@ func toneDetect(in [][]float32, C, n int, toneishness *float32) float32 {
 	return -1
 }
 
-// celtAutocorr computes lag+1 autocorrelation values of x (libopus
-// _celt_autocorr, float build, rectangular window path).
 func celtAutocorr(x []float32, ac []float32, lag, n int) {
 	for k := 0; k <= lag; k++ {
 		var d float32
@@ -110,8 +89,6 @@ func celtAutocorr(x []float32, ac []float32, lag, n int) {
 	}
 }
 
-// celtLPC computes LPC coefficients from autocorrelations by Levinson-Durbin
-// (libopus _celt_lpc, float build).
 func celtLPC(lpc []float32, ac []float32, p int) {
 	clear(lpc[:p])
 	errE := ac[0]
@@ -130,7 +107,6 @@ func celtLPC(lpc []float32, ac []float32, p int) {
 				lpc[i-1-j] = tmp2 + r*tmp1
 			}
 			errE = errE - r*r*errE
-			// Bail out once we get 30 dB gain.
 			if errE <= 0.001*ac[0] {
 				break
 			}
@@ -138,7 +114,6 @@ func celtLPC(lpc []float32, ac []float32, p int) {
 	}
 }
 
-// celtFIR5 applies a 5-tap FIR in place (libopus celt_fir5, float build).
 func celtFIR5(x []float32, num *[5]float32, n int) {
 	var mem0, mem1, mem2, mem3, mem4 float32
 	for i := 0; i < n; i++ {
@@ -149,9 +124,6 @@ func celtFIR5(x []float32, num *[5]float32, n int) {
 	}
 }
 
-// pitchDownsample half-rates the summed channels and whitens the result with
-// a modified LPC filter, preparing the pitch search input (libopus
-// pitch_downsample, float build, factor 2).
 func pitchDownsample(x [][]float32, xLP []float32, length, C int) {
 	const factor = 2
 	offset := factor / 2
@@ -167,9 +139,7 @@ func pitchDownsample(x [][]float32, xLP []float32, length, C int) {
 	}
 	var ac [5]float32
 	celtAutocorr(xLP, ac[:], 4, length)
-	// Noise floor -40 dB.
 	ac[0] *= 1.0001
-	// Lag windowing.
 	for i := 1; i <= 4; i++ {
 		ac[i] -= ac[i] * (0.008 * float32(i)) * (0.008 * float32(i))
 	}
@@ -180,7 +150,6 @@ func pitchDownsample(x [][]float32, xLP []float32, length, C int) {
 		tmp *= 0.9
 		lpc[i] *= tmp
 	}
-	// Add a zero.
 	const c1 = float32(0.8)
 	num := [5]float32{
 		lpc[0] + 0.8,
@@ -192,16 +161,12 @@ func pitchDownsample(x [][]float32, xLP []float32, length, C int) {
 	celtFIR5(xLP, &num, length)
 }
 
-// pitchXcorr computes the raw cross-correlations for every candidate lag
-// (libopus celt_pitch_xcorr, plain C path).
 func pitchXcorr(x, y []float32, xcorr []float32, length, maxPitch int) {
 	for i := 0; i < maxPitch; i++ {
 		xcorr[i] = innerProd(x, y[i:], length)
 	}
 }
 
-// findBestPitch keeps the two lags with the best normalized correlation
-// (libopus find_best_pitch, float build).
 func findBestPitch(xcorr, y []float32, length, maxPitch int, bestPitch *[2]int) {
 	syy := float32(1)
 	bestNum := [2]float32{-1, -1}
@@ -212,7 +177,6 @@ func findBestPitch(xcorr, y []float32, length, maxPitch int, bestPitch *[2]int) 
 	}
 	for i := 0; i < maxPitch; i++ {
 		if xcorr[i] > 0 {
-			// The scaling avoids both underflow and overflow when squaring.
 			xcorr16 := xcorr[i] * 1e-12
 			num := xcorr16 * xcorr16
 			if num*bestDen[1] > bestNum[1]*syy {
@@ -229,28 +193,20 @@ func findBestPitch(xcorr, y []float32, length, maxPitch int, bestPitch *[2]int) 
 	}
 }
 
-// pitchSearch finds the best pitch lag with a coarse 4x-decimated
-// cross-correlation refined at 2x and by pseudo-interpolation (libopus
-// pitch_search, float build). xLP is the current frame in the half-rate
-// domain and y the same buffer including maxPitch samples of history before
-// it.
 func pitchSearch(xLP, y []float32, length, maxPitch int) int {
 	lag := length + maxPitch
 	xLP4 := make([]float32, length>>2)
 	yLP4 := make([]float32, lag>>2)
 	xcorr := make([]float32, maxPitch>>1)
-	// Downsample by 2 again.
 	for j := range xLP4 {
 		xLP4[j] = xLP[2*j]
 	}
 	for j := range yLP4 {
 		yLP4[j] = y[2*j]
 	}
-	// Coarse search with 4x decimation.
 	var bestPitch [2]int
 	pitchXcorr(xLP4, yLP4, xcorr, length>>2, maxPitch>>2)
 	findBestPitch(xcorr[:maxPitch>>2], yLP4, length>>2, maxPitch>>2, &bestPitch)
-	// Finer search with 2x decimation.
 	for i := 0; i < maxPitch>>1; i++ {
 		xcorr[i] = 0
 		if iabs(i-2*bestPitch[0]) > 2 && iabs(i-2*bestPitch[1]) > 2 {
@@ -259,7 +215,6 @@ func pitchSearch(xLP, y []float32, length, maxPitch int) int {
 		xcorr[i] = max(-1, innerProd(xLP, y[i:], length>>1))
 	}
 	findBestPitch(xcorr, y, length>>1, maxPitch>>1, &bestPitch)
-	// Refine by pseudo-interpolation.
 	offset := 0
 	if bestPitch[0] > 0 && bestPitch[0] < (maxPitch>>1)-1 {
 		a := xcorr[bestPitch[0]-1]
@@ -271,14 +226,6 @@ func pitchSearch(xLP, y []float32, length, maxPitch int) int {
 			offset = -1
 		}
 	}
-	// The subtraction reproduces the reference exactly even though the sign
-	// looks inverted (a peak drifting toward larger i means a smaller lag,
-	// yet the caller's maxPeriod-result grows by offset). Any period codes a
-	// valid bitstream, so nothing breaks either way, but this value is only
-	// the seed for removeDoubling, which re-derives its own interpolation
-	// offset in the lag domain; keeping the reference behavior is what keeps
-	// our per-frame decisions identical to libopus's (the prefilter
-	// differential test pins that agreement).
 	return 2*bestPitch[0] - offset
 }
 
@@ -288,10 +235,6 @@ func computePitchGain(xy, xx, yy float32) float32 {
 
 var secondCheck = [16]int{0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2}
 
-// removeDoubling checks whether the detected period is a multiple of the true
-// pitch and returns the pitch gain (libopus remove_doubling, float build).
-// x is the half-rate whitened buffer whose first maxPeriod samples are
-// history; periods are in full-rate samples.
 func removeDoubling(x []float32, maxPeriod, minPeriod, N int, T0ptr *int, prevPeriod int, prevGain float32) float32 {
 	minPeriod0 := minPeriod
 	maxPeriod /= 2
@@ -299,7 +242,7 @@ func removeDoubling(x []float32, maxPeriod, minPeriod, N int, T0ptr *int, prevPe
 	*T0ptr /= 2
 	prevPeriod /= 2
 	N /= 2
-	xo := maxPeriod // x[xo:] is the current frame
+	xo := maxPeriod
 	if *T0ptr >= maxPeriod {
 		*T0ptr = maxPeriod - 1
 	}
@@ -318,7 +261,6 @@ func removeDoubling(x []float32, maxPeriod, minPeriod, N int, T0ptr *int, prevPe
 	bestXY, bestYY := xy, yy
 	g := computePitchGain(xy, xx, yy)
 	g0 := g
-	// Look for any pitch at T/k.
 	for k := 2; k <= 15; k++ {
 		T1 := (2*T0 + k) / (2 * k)
 		if T1 < minPeriod {
@@ -348,8 +290,6 @@ func removeDoubling(x []float32, maxPeriod, minPeriod, N int, T0ptr *int, prevPe
 			cont = 0.5 * prevGain
 		}
 		thresh := max(0.3, 0.7*g0-cont)
-		// Bias against very high pitch (very short period) to avoid
-		// false-positives due to short-term correlation.
 		if T1 < 3*minPeriod {
 			thresh = max(0.4, 0.85*g0-cont)
 		} else if T1 < 2*minPeriod {
@@ -388,13 +328,6 @@ func removeDoubling(x []float32, maxPeriod, minPeriod, N int, T0ptr *int, prevPe
 	return pg
 }
 
-// combFilter runs the two-window comb filter from x into y, transitioning
-// from (T0, g0, tapset0) to (T1, g1, tapset1) over the first overlap samples
-// (libopus celt.c comb_filter, float build, shared by both directions like
-// the reference). y[yo+i] is written from x[xo+i-T] history, so x must carry
-// at least T1+2 samples before xo. The decoder applies it in place (y == x)
-// as the post-filter; the encoder calls it with negative gains, making the
-// pre-filter the exact inverse.
 func combFilter(y []float32, yo int, x []float32, xo int, T0, T1, N int,
 	g0, g1 float32, tapset0, tapset1 int, window []float64, overlap int) {
 	if g0 == 0 && g1 == 0 {
@@ -403,8 +336,6 @@ func combFilter(y []float32, yo int, x []float32, xo int, T0, T1, N int,
 		}
 		return
 	}
-	// When the gain is zero, T0 and/or T1 is set to zero. We need them to be
-	// at least 2 to avoid processing garbage data.
 	T0 = max(T0, combMinPeriod)
 	T1 = max(T1, combMinPeriod)
 	g00 := g0 * combGains[tapset0][0]
@@ -417,7 +348,6 @@ func combFilter(y []float32, yo int, x []float32, xo int, T0, T1, N int,
 	x2 := x[xo-T1]
 	x3 := x[xo-T1-1]
 	x4 := x[xo-T1-2]
-	// If the filter didn't change, we don't need the overlap.
 	if g0 == g1 && T0 == T1 && tapset0 == tapset1 {
 		overlap = 0
 	}
@@ -440,7 +370,6 @@ func combFilter(y []float32, yo int, x []float32, xo int, T0, T1, N int,
 		}
 		return
 	}
-	// The constant-filter tail with T1.
 	for ; i < N; i++ {
 		x0 := x[xo+i-T1+2]
 		y[yo+i] = x[xo+i] + g10*x2 + g11*(x1+x3) + g12*(x0+x4)
@@ -448,13 +377,6 @@ func combFilter(y []float32, yo int, x []float32, xo int, T0, T1, N int,
 	}
 }
 
-// runPrefilter searches the frame for a pitch, decides whether the pre-filter
-// pays for itself, applies it in place to in[c][overlap:overlap+N], and
-// updates the pre-filter memories (libopus run_prefilter, float build). It
-// returns pf_on, the pitch lag, the quantized gain, and its 3-bit index.
-// in[c] holds [overlap history | N new] pre-emphasized samples; on entry the
-// history is the unfiltered tail (for the pitch search continuity), and this
-// replaces it with the filtered tail the MDCT windows need.
 func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int,
 	enabled bool, tfEstimate float32, nbAvailableBytes int, toneFreq, toneishness float32) (pfOn, pitchIndex int, gain float32, qgain int) {
 
@@ -471,9 +393,6 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 	var gain1 float32
 	switch {
 	case enabled && toneishness > 0.99:
-		// The signal is dominated by a single tone: the standard pitch
-		// estimator becomes unreliable, so derive the period from the tone
-		// frequency directly.
 		multiple := 1
 		for toneFreq >= float32(multiple)*0.39 {
 			multiple++
@@ -481,16 +400,12 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 		if toneFreq > 0.006148 {
 			pitchIndex = min(int(math.Floor(0.5+2*math.Pi*float64(multiple)/float64(toneFreq))), maxPeriod-2)
 		} else {
-			// For a pitch too low for the post-filter, a very high pitch
-			// still helps through the filter's DC component.
 			pitchIndex = minPeriod
 		}
 		gain1 = 0.75
 	case enabled && e.complexity >= 5:
 		pitchBuf := make([]float32, (maxPeriod+N)>>1)
 		pitchDownsample(pre, pitchBuf, (maxPeriod+N)>>1, C)
-		// Don't search the last 1.5 octaves of the range: too many
-		// false-positives from short-term correlation.
 		pitchIndex = maxPeriod - pitchSearch(pitchBuf[maxPeriod>>1:], pitchBuf, N, maxPeriod-3*minPeriod)
 		gain1 = removeDoubling(pitchBuf, maxPeriod, minPeriod, N, &pitchIndex, e.prefilterPeriod, e.prefilterGain)
 		if pitchIndex > maxPeriod-2 {
@@ -501,19 +416,13 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 		gain1 = 0
 		pitchIndex = minPeriod
 	}
-	// The analyser damps the gain when the signal is not actually pitched
-	// (max_pitch_ratio near 0 on noise, near 1 on clean pitch).
 	if e.analysis.valid {
 		gain1 *= e.analysis.maxPitchRatio
 	}
 
-	// Gain threshold for enabling the prefilter/postfilter, adjusted by rate
-	// and continuity.
 	pfThreshold := float32(0.2)
 	if iabs(pitchIndex-e.prefilterPeriod)*10 > pitchIndex {
 		pfThreshold += 0.2
-		// Completely disable the prefilter on strong transients without
-		// continuity.
 		if tfEstimate > 0.98 {
 			gain1 = 0
 		}
@@ -546,8 +455,6 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 		pfOn = 1
 	}
 
-	// Apply the filter in place, transitioning from the previous frame's
-	// filter, and compare loudness before and after.
 	var before, after [2]float32
 	offset := celtShortMDCTSize - overlap
 	e.prefilterPeriod = max(e.prefilterPeriod, minPeriod)
@@ -572,21 +479,16 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 	if C == 2 {
 		thresh0 := 0.25*gain1*before[0] + 0.01*before[1]
 		thresh1 := 0.25*gain1*before[1] + 0.01*before[0]
-		// Don't use the filter if one channel gets significantly worse.
 		if after[0]-before[0] > thresh0 || after[1]-before[1] > thresh1 {
 			cancelPitch = true
 		}
-		// Use the filter only if at least one channel gets significantly
-		// better.
 		if before[0]-after[0] < thresh0 && before[1]-after[1] < thresh1 {
 			cancelPitch = true
 		}
 	} else if after[0] > before[0] {
-		// Check that the mono channel actually got better.
 		cancelPitch = true
 	}
 	if cancelPitch {
-		// Revert to a gain of zero, fading the previous frame's filter out.
 		for c := 0; c < C; c++ {
 			copy(in[c][overlap:overlap+N], pre[c][maxPeriod:maxPeriod+N])
 			combFilter(in[c], overlap+offset, pre[c], maxPeriod+offset,
@@ -599,9 +501,6 @@ func (e *celtEncoder) runPrefilter(in [][]float32, C, N int, prefilterTapset int
 	}
 
 	for c := 0; c < C; c++ {
-		// The filtered tail becomes the next frame's MDCT history; the
-		// caller copies it from in[c] after the frame is fully assembled.
-		// The unfiltered signal slides into the pitch-search history.
 		if N > maxPeriod {
 			copy(e.prefilterMem[c], pre[c][N:N+maxPeriod])
 		} else {

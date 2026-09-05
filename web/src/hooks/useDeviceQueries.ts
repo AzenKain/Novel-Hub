@@ -2,7 +2,10 @@ import { deviceService } from "@/services";
 import type { CreateUserDeviceInput } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export function useDevicesQuery(enabled = true, params?: { cursor?: string; limit?: number }) {
+export function useDevicesQuery(
+  enabled = true,
+  params?: { cursor?: string; limit?: number },
+) {
   return useQuery({
     queryKey: ["user", "devices", params?.cursor, params?.limit],
     enabled,
@@ -17,8 +20,10 @@ export function useDevicesQuery(enabled = true, params?: { cursor?: string; limi
 export function useCreateDeviceMutation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateUserDeviceInput) => deviceService.createDevice(input),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["user", "devices"] }),
+    mutationFn: (input: CreateUserDeviceInput) =>
+      deviceService.createDevice(input),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["user", "devices"] }),
   });
 }
 
@@ -26,7 +31,8 @@ export function useDeleteDeviceMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deviceService.deleteDevice(id),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["user", "devices"] }),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ["user", "devices"] }),
   });
 }
 

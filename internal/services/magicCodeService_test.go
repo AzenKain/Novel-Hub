@@ -22,8 +22,8 @@ type mockAuthService struct{}
 func (m *mockAuthService) Signin(ctx context.Context, dto *request.SignInDto) (*response.AuthResponse, error) {
 	return nil, nil
 }
-func (m *mockAuthService) SetTOTPService(service TOTPService)            {}
-func (m *mockAuthService) SetJobQueue(jobQueue *worker.Queue)            {}
+func (m *mockAuthService) SetTOTPService(service TOTPService) {}
+func (m *mockAuthService) SetJobQueue(jobQueue *worker.Queue) {}
 func (m *mockAuthService) ExecuteSendOTPJob(ctx context.Context, payloadJSON string) error {
 	return nil
 }
@@ -87,12 +87,10 @@ func TestMagicCodeFullLifecycle(t *testing.T) {
 	ctx := context.Background()
 	const baseURL = "http://localhost:3434"
 
-	// 1. Create a user for activation
 	if _, err := db.Exec(`INSERT INTO users (id, email, full_name, password_hash) VALUES ('user-1', 'test@example.com', 'Test User', 'hash')`); err != nil {
 		t.Fatal(err)
 	}
 
-	// 2. eReader requests a magic code
 	reqResp, err := svc.RequestMagicCode(ctx, &request.RequestMagicCodeDto{DeviceInfo: "Kindle Oasis"}, baseURL)
 	if err != nil {
 		t.Fatalf("RequestMagicCode failed: %v", err)
@@ -108,7 +106,6 @@ func TestMagicCodeFullLifecycle(t *testing.T) {
 		t.Fatalf("ExpiresInSeconds = %d, want 300", reqResp.ExpiresInSeconds)
 	}
 
-	// 3. eReader polls before user activation -> expect status = "pending"
 	pollPending, err := svc.PollMagicCode(ctx, &request.PollMagicCodeDto{PollToken: reqResp.PollToken})
 	if err != nil {
 		t.Fatalf("PollMagicCode failed: %v", err)
@@ -117,7 +114,6 @@ func TestMagicCodeFullLifecycle(t *testing.T) {
 		t.Fatalf("Expected pending status with no auth response, got status: %s", pollPending.Status)
 	}
 
-	// 4. Logged-in user on phone/PC activates code
 	authResp, err := svc.ActivateMagicCode(ctx, "user-1", &request.ActivateMagicCodeDto{Code: reqResp.Code})
 	if err != nil {
 		t.Fatalf("ActivateMagicCode failed: %v", err)
@@ -126,7 +122,6 @@ func TestMagicCodeFullLifecycle(t *testing.T) {
 		t.Fatal("Expected non-empty access token upon activation")
 	}
 
-	// 5. eReader polls after activation -> expect status = "active" with access token
 	pollActive, err := svc.PollMagicCode(ctx, &request.PollMagicCodeDto{PollToken: reqResp.PollToken})
 	if err != nil {
 		t.Fatalf("PollMagicCode after activation failed: %v", err)
@@ -135,7 +130,6 @@ func TestMagicCodeFullLifecycle(t *testing.T) {
 		t.Fatalf("Expected active status with access token, got: %+v", pollActive)
 	}
 
-	// 6. Attempting to activate an already activated code should fail
 	_, errSecondActivate := svc.ActivateMagicCode(ctx, "user-1", &request.ActivateMagicCodeDto{Code: reqResp.Code})
 	if errSecondActivate == nil {
 		t.Fatal("Second activation of the same code should fail")

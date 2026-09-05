@@ -1,22 +1,11 @@
 package opus
 
-// Tonality analyser, ported from libopus src/analysis.c. It runs on a 24 kHz
-// downmix in 10 ms hops, computing per-frame tonality/noisiness/bandwidth
-// features and the MLP-based music and activity probabilities that drive the
-// SILK/CELT mode decision, plus the CELT hooks (leak_boost, max_pitch_ratio,
-// tonality) that the earlier port left out.
-//
-// The 480-point complex FFT stands in for celt's kiss_fft: a plain
-// mixed-radix Cooley-Tukey with the same forward 1/N scaling. The analysis
-// features feed float thresholds, so bit-exactness with kiss_fft is not
-// required (and the reference itself varies per architecture here).
-
 import "math"
 
 const (
 	nbFrames          = 8
 	nbTbands          = 18
-	analysisBufSize   = 720 // 30 ms at 24 kHz
+	analysisBufSize   = 720
 	analysisCountMax  = 10000
 	detectSize        = 100
 	nbTonalSkipBands  = 9
@@ -31,7 +20,6 @@ var analysisTbands = [nbTbands + 1]int{
 	4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 136, 160, 192, 240,
 }
 
-// analysisInfo is one analysed frame's result (celt.h AnalysisInfo).
 type analysisInfo struct {
 	valid               bool
 	tonality            float32
@@ -47,8 +35,6 @@ type analysisInfo struct {
 	leakBoost           [leakBands]uint8
 }
 
-// tonalityAnalysisState carries the analyser's history
-// (TonalityAnalysisState).
 type tonalityAnalysisState struct {
 	angle            [240]float32
 	dAngle           [240]float32
@@ -81,19 +67,14 @@ type tonalityAnalysisState struct {
 	info             [detectSize]analysisInfo
 }
 
-// reset clears the analyser history (tonality_analysis_reset).
 func (t *tonalityAnalysisState) reset() {
 	*t = tonalityAnalysisState{}
 }
 
-// --- 480-point FFT --------------------------------------------------------
-
-// fft480 is a mixed-radix DIT plan for N=480 (factors 2^5*3*5), with the
-// forward 1/N scaling celt's kiss_fft applies in float builds.
 type fftPlan struct {
 	n       int
 	factors []int
-	twiddle []complex64 // e^{-2*pi*i*k/n} for k in [0, n)
+	twiddle []complex64
 }
 
 var analysisFFT = newFFTPlan(analysisFFTSize)
@@ -118,7 +99,6 @@ func newFFTPlan(n int) *fftPlan {
 	return p
 }
 
-// transform computes the scaled forward FFT of in into out (both length n).
 func (p *fftPlan) transform(in, out []complex64) {
 	scale := complex(float32(1.0/float64(p.n)), 0)
 	tmp := make([]complex64, p.n)
@@ -128,10 +108,6 @@ func (p *fftPlan) transform(in, out []complex64) {
 	p.work(out, tmp, 1, p.factors)
 }
 
-// work is textbook recursive decimation-in-time: with N = f*m at this level
-// and input stride s in the original array, the sub-DFTs Y_q of the f
-// interleaved sequences combine as
-// X[k2 + r*m] = sum_q Y_q[k2] * e^{-2*pi*i*(k2+r*m)*q*s/N_total}.
 func (p *fftPlan) work(out, in []complex64, stride int, factors []int) {
 	f := factors[0]
 	length := 1
@@ -164,9 +140,6 @@ func (p *fftPlan) work(out, in []complex64, stride int, factors []int) {
 	}
 }
 
-// --- analysis-side DSP helpers --------------------------------------------
-
-// fastAtan2 is celt's fast_atan2f approximation (mathops.h).
 func fastAtan2(y, x float32) float32 {
 	const (
 		cA = 0.43157974
@@ -199,8 +172,6 @@ func fastAtan2(y, x float32) float32 {
 	return x*y*(x2+cA*y2)/den + signY - signXY
 }
 
-// analysisDown2HP is the float silk_resampler_down2_hp: a 2x decimator that
-// also reports the high-pass energy of the discarded band.
 func analysisDown2HP(S []float32, out, in []float32, inLen int) float32 {
 	len2 := inLen / 2
 	var hpEner float64
@@ -225,18 +196,12 @@ func analysisDown2HP(S []float32, out, in []float32, inLen int) float32 {
 		out32hp += X
 		S[2] = -in32 + X
 
-		// The reference spells SHR64(x*x, 8) here, but in the float build the
-		// shift macros are no-ops (arch.h): the energy accumulates unscaled.
-		// Dividing by 256 anyway made the >12 kHz bandwidth detector miss real
-		// content (bw stuck at 18, CELT skipped the top band at high rates).
 		hpEner += float64(out32hp) * float64(out32hp)
 		out[k] = 0.5 * out32
 	}
 	return float32(hpEner)
 }
 
-// analysisDownmix mixes the requested channels of planar float input into
-// the signal domain (downmix_float): output is scaled to +-32768.
 func analysisDownmix(x [][]float32, y []float32, subframe, offset, c1, c2, C int) {
 	for j := 0; j < subframe; j++ {
 		y[j] = 32768 * x[c1][offset+j]
@@ -254,8 +219,6 @@ func analysisDownmix(x [][]float32, y []float32, subframe, offset, c1, c2, C int
 	}
 }
 
-// downmixAndResample feeds the 24 kHz analysis buffer from 48 kHz input
-// (downmix_and_resample, Fs==48000 branch) and returns the HP energy.
 func (t *tonalityAnalysisState) downmixAndResample(x [][]float32, y []float32, subframe, offset, c1, c2, C int) float32 {
 	if subframe == 0 {
 		return 0
@@ -273,17 +236,11 @@ func (t *tonalityAnalysisState) downmixAndResample(x [][]float32, y []float32, s
 	return ret * (1.0 / 32768 / 32768)
 }
 
-// --- main analysis ---------------------------------------------------------
-
 var analysisStdFeatureBias = [9]float32{
 	5.684947, 3.475288, 1.770634, 1.599784, 3.773215,
 	2.163313, 1.260756, 1.116868, 1.918795,
 }
 
-// tonalityAnalysis analyses one 10 ms hop (tonality_analysis). x is planar
-// 48 kHz float input; len48/offset48 are in 48 kHz samples. lsbDepth is the
-// input's true bit depth: the bandwidth detector's noise floor scales with it
-// (a 16-bit source cannot carry HF below its quantization floor).
 func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48, c1, c2, C, lsbDepth int) {
 	const N = analysisFFTSize
 	const N2 = N / 2
@@ -299,7 +256,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 		alphaE2 = 1
 	}
 
-	// 48 kHz in, 24 kHz analysis domain.
 	length := len48 / 2
 	offset := offset48 / 2
 
@@ -333,8 +289,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 		in[i] = complex(w*t.inmem[i], w*t.inmem[N2+i])
 		in[N-i-1] = complex(analysis_window_240[i]*t.inmem[N-i-1], analysis_window_240[i]*t.inmem[N+N2-i-1])
 	}
-	// Note the reference windows in[N-i-1] with analysis_window[i] as well:
-	// the window is symmetric in usage (rising half applied from both ends).
 	copy(t.inmem[:240], t.inmem[analysisBufSize-240:])
 
 	remaining := length - (analysisBufSize - t.memFill)
@@ -382,9 +336,7 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 		mod2 *= mod2
 
 		avgMod := 0.25 * (t.d2Angle[i] + mod1 + 2*mod2)
-		// Reliable but 2 frames delayed.
 		tonality[i] = 1.0/(1.0+40.0*16.0*pi4*avgMod) - 0.015
-		// Instant but less reliable.
 		tonality2[i] = 1.0/(1.0+40.0*16.0*pi4*mod2) - 0.015
 
 		t.angle[i] = angle2
@@ -414,7 +366,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 	var bandLog2 [nbTbands + 1]float32
 	var bandTonality [nbTbands]float32
 	{
-		// First band is special because of DC.
 		X1r := 2 * real(out[0])
 		X2r := 2 * imag(out[0])
 		E := X1r*X1r + X2r*X2r
@@ -480,7 +431,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 		bandTonality[b] = maxA(tE/(1e-15+E), stationarity*t.prevBandTonality[b])
 		frameTonality += bandTonality[b]
 		if b >= nbTbands-nbTonalSkipBands {
-			// Sliding window over the most recent NB_TONAL_SKIP_BANDS bands.
 			frameTonality -= bandTonality[b-nbTbands+nbTonalSkipBands]
 		}
 		maxFrameTonality = maxA(maxFrameTonality, (1.0+0.03*float32(b-nbTbands))*frameTonality)
@@ -564,8 +514,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 		bandwidthMask = maxA(0.05*bandwidthMask, E)
 	}
 	{
-		// Bands 19-20 exist only as energy above 12 kHz from the HP side of
-		// the decimator.
 		E := hpEner * (1.0 / (60 * 60))
 		noiseRatio := float32(30.0)
 		if t.prevBandwidth == 20 {
@@ -692,9 +640,6 @@ func (t *tonalityAnalysisState) tonalityAnalysis(x [][]float32, len48, offset48,
 	info.valid = true
 }
 
-// tonalityGetInfo reads the analysis result for the coming frame
-// (tonality_get_info), including the badness-minimizing music_prob_min/max
-// hysteresis thresholds.
 func (t *tonalityAnalysisState) tonalityGetInfo(infoOut *analysisInfo, length int) {
 	pos := t.readPos
 	currLookahead := t.writePos - t.readPos
@@ -711,7 +656,6 @@ func (t *tonalityAnalysisState) tonalityGetInfo(infoOut *analysisInfo, length in
 		t.readPos -= detectSize
 	}
 
-	// On long frames, look at the second analysis window.
 	if length > 48000/50 && pos != t.writePos {
 		pos++
 		if pos == detectSize {
@@ -830,9 +774,6 @@ func (t *tonalityAnalysisState) tonalityGetInfo(infoOut *analysisInfo, length in
 	infoOut.musicProbMax = probMax
 }
 
-// runAnalysis drives the analyser over new input and reads the info for the
-// frame about to be encoded (run_analysis). x is planar 48 kHz float32;
-// lsbDepth is the input's true bit depth (see tonalityAnalysis).
 func (t *tonalityAnalysisState) runAnalysis(x [][]float32, analysisFrameSize, frameSize, c1, c2, C, lsbDepth int, infoOut *analysisInfo) {
 	analysisFrameSize -= analysisFrameSize & 1
 	if x != nil {

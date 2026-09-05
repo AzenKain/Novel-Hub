@@ -12,10 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// The frontend evaluates permissions locally: hasPermission() walks role.permissions and sorts by
-// role.position (web/src/utils/permission.ts). GetUserRoles projects only id and name, and the
-// mapping dropped even is_admin, so every custom role granted nothing in the UI and only the
-// name === "ADMIN" shortcut kept the admin pages reachable.
+// The frontend evaluates permissions locally: hasPermission() walks role.permissions and sorts by role.position (web/src/utils/permission.ts).
 func TestCurrentUserCarriesRoleGrants(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-access-secret")
 	t.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret")
@@ -36,8 +33,6 @@ func TestCurrentUserCarriesRoleGrants(t *testing.T) {
 		wantPermission string
 	}{
 		{role: "ADMIN", email: "admin@example.com", wantAdmin: true, wantPermission: "setting.manage"},
-		// USER is the interesting case: it grants real permissions but is not admin, so before
-		// the fix every hasPermission() call for this account returned false.
 		{role: "USER", email: "user@example.com", wantAdmin: false, wantPermission: "book.read"},
 	} {
 		t.Run(tc.role, func(t *testing.T) {

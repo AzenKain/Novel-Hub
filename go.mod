@@ -1,6 +1,6 @@
 module novelhub
 
-go 1.27.0
+go 1.27.1
 
 require (
 	github.com/Yiling-J/theine-go v0.6.2
@@ -10,8 +10,8 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/deepteams/webp v1.2.7
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
-	github.com/go-playground/validator/v10 v10.30.3
-	github.com/gofiber/contrib/v3/jwt v1.2.1
+	github.com/go-playground/validator/v10 v10.30.4
+	github.com/gofiber/contrib/v3/jwt v1.2.2
 	github.com/gofiber/contrib/v3/zerolog v1.1.4
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -21,14 +21,14 @@ require (
 	github.com/richardlehane/mscfb v1.0.8
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
-	github.com/yuin/goldmark v1.8.5
-	golang.org/x/crypto v0.55.0
+	github.com/yuin/goldmark v1.8.6
+	golang.org/x/crypto v0.56.0
 	golang.org/x/image v0.45.0
 	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/text v0.41.0
-	modernc.org/sqlite v1.57.0
+	modernc.org/sqlite v1.58.0
 )
 
 require (
@@ -43,10 +43,10 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/gofiber/schema v1.8.4 // indirect
-	github.com/gofiber/utils/v2 v2.4.2 // indirect
+	github.com/gofiber/schema v1.8.5 // indirect
+	github.com/gofiber/utils/v2 v2.4.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/klauspost/compress v1.19.2 // indirect
+	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
@@ -68,7 +68,7 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/arch v0.30.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	modernc.org/libc v1.75.6 // indirect
+	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )

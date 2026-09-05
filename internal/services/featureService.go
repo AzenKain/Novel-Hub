@@ -87,9 +87,8 @@ type featureService struct {
 }
 
 const (
-	readCountCooldown = 12 * time.Hour
-	shareCountWindow  = time.Hour
-	// Must match the "read"/"reading" filters in db/query/books.sql.
+	readCountCooldown    = 12 * time.Hour
+	shareCountWindow     = time.Hour
 	bookCompletedPercent = 99.5
 )
 
@@ -889,9 +888,6 @@ func (s *featureService) GetLibraryBreakdown(ctx context.Context, userID string)
 	return res, nil
 }
 
-// Defaults mirror the reading_goals table (db/schema/58_reading_goals.sql). A user
-// who never set a goal is a normal state, not a 404 — the analytics page always
-// needs something to divide by.
 const (
 	defaultTargetWordsPerDay  = 1000
 	defaultTargetBooksPerYear = 12
@@ -1009,7 +1005,6 @@ func (s *featureService) CreateSmartFilter(ctx context.Context, userID string, d
 	}
 	id := uuid.Must(uuid.NewV7()).String()
 
-	// Get current list of smart filters to compute next position
 	filters, err := s.repo.ListSmartFilters(ctx, userID)
 	var nextPos int64 = 0
 	if err == nil {

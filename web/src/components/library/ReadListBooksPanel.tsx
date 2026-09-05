@@ -1,6 +1,14 @@
 import { getMediaUrl } from "@/config/api";
 import type { ReadListBook } from "@/types";
-import { BookOpen, ChevronDown, ChevronUp, GripVertical, Play, Trash2, Download } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Play,
+  Trash2,
+  Download,
+} from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,8 +23,7 @@ type ReadListBooksPanelProps = {
   onDownloadAll?: () => void;
 };
 
-// The server rejects an order that does not name every stored book, so a move always sends the whole
-// id array back rather than the pair that changed.
+// Server requires full book list order on update.
 const movedOrder = (books: ReadListBook[], from: number, to: number) => {
   const next = [...books];
   const [entry] = next.splice(from, 1);
@@ -62,7 +69,10 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
             {t("library.readlist_books_empty", "This read list is empty")}
           </p>
           <p className="mt-1 text-xs text-base-content/50">
-            {t("library.readlist_books_empty_hint", "Open a book and add it to this read list to start the order.")}
+            {t(
+              "library.readlist_books_empty_hint",
+              "Open a book and add it to this read list to start the order.",
+            )}
           </p>
         </div>
       </div>
@@ -72,12 +82,18 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <button className="btn btn-primary btn-sm w-fit gap-1.5 rounded-xl" onClick={onReadInOrder}>
+        <button
+          className="btn btn-primary btn-sm w-fit gap-1.5 rounded-xl"
+          onClick={onReadInOrder}
+        >
           <Play className="h-4 w-4" />
           {t("library.readlist_read_in_order", "Read in order")}
         </button>
         {onDownloadAll && (
-          <button className="btn btn-outline btn-sm w-fit gap-1.5 rounded-xl" onClick={onDownloadAll}>
+          <button
+            className="btn btn-outline btn-sm w-fit gap-1.5 rounded-xl"
+            onClick={onDownloadAll}
+          >
             <Download className="h-4 w-4" />
             {t("library.download_all", "Download All")}
           </button>
@@ -86,7 +102,9 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
 
       <ul className="flex flex-col gap-2">
         {books.map((entry, index) => {
-          const coverUrl = entry.book.cover_url ? getMediaUrl(entry.book.cover_url) : null;
+          const coverUrl = entry.book.cover_url
+            ? getMediaUrl(entry.book.cover_url)
+            : null;
           return (
             <li
               key={entry.book.id}
@@ -106,7 +124,12 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
               >
                 <div className="relative aspect-[3/4.2] w-11 shrink-0 overflow-hidden rounded-lg border border-base-200 bg-base-200">
                   {coverUrl ? (
-                    <img src={coverUrl} alt={entry.book.title} loading="lazy" className="h-full w-full object-cover" />
+                    <img
+                      src={coverUrl}
+                      alt={entry.book.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="grid h-full w-full place-items-center bg-primary/10 text-primary">
                       <BookOpen className="h-5 w-5" />
@@ -114,9 +137,13 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-base-content">{entry.book.title}</p>
+                  <p className="truncate text-sm font-bold text-base-content">
+                    {entry.book.title}
+                  </p>
                   {entry.book.author_name && (
-                    <p className="mt-0.5 truncate text-xs text-base-content/60">{entry.book.author_name}</p>
+                    <p className="mt-0.5 truncate text-xs text-base-content/60">
+                      {entry.book.author_name}
+                    </p>
                   )}
                 </div>
               </button>
@@ -141,7 +168,10 @@ export const ReadListBooksPanel: React.FC<ReadListBooksPanelProps> = ({
                 <button
                   className="btn btn-ghost btn-xs btn-square text-error hover:bg-error/10"
                   onClick={() => onRemove(entry.book.id)}
-                  title={t("library.readlist_remove_book", "Remove from read list")}
+                  title={t(
+                    "library.readlist_remove_book",
+                    "Remove from read list",
+                  )}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

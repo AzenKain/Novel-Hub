@@ -10,7 +10,7 @@ export const magicCodeService = {
   requestCode: async (deviceInfo?: string) => {
     const res = await api.post<CommonResponse<RequestMagicCodeResponse>>(
       "/auth/magic-code/request",
-      { device_info: deviceInfo }
+      { device_info: deviceInfo },
     );
     return res.data;
   },
@@ -18,7 +18,7 @@ export const magicCodeService = {
   pollCode: async (pollToken: string) => {
     const res = await api.post<CommonResponse<PollMagicCodeResponse>>(
       "/auth/magic-code/poll",
-      { poll_token: pollToken }
+      { poll_token: pollToken },
     );
     return res.data;
   },
@@ -26,7 +26,7 @@ export const magicCodeService = {
   activateCode: async (code: string) => {
     const res = await api.post<CommonResponse<AuthResponse>>(
       "/auth/magic-code/activate",
-      { code }
+      { code },
     );
     return res.data;
   },

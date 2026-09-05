@@ -76,6 +76,5 @@ SELECT id, name, task_type, payload_json, interval_minutes, enabled, next_run_at
 FROM job_schedules
 WHERE id IN (sqlc.slice('ids'));
 
-
 -- name: CountUnfinishedJobs :one
 SELECT COUNT(*) FROM jobs WHERE status IN ('pending', 'running');

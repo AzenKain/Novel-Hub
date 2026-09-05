@@ -1,11 +1,5 @@
 package opus
 
-// SILK pitch analysis, ported from libopus silk/float/pitch_analysis_core_FLP.c
-// plus the fixed-point decimators it uses (silk/resampler_down2.c,
-// silk/resampler_down2_3.c). The cross-correlation kernel reuses pitchXcorr
-// from the CELT encoder port (celt/pitch.c is shared in the reference too).
-
-// Pitch estimator constants (silk/pitch_est_defines.h).
 const (
 	peMaxFsKHz         = 16
 	peSubfrLengthMS    = 5
@@ -33,8 +27,6 @@ const (
 	resamplerMaxBatchSizeIn = resamplerMaxBatchMS * 48
 )
 
-// silkResamplerDown2 downsamples by 2 with allpass sections
-// (silk_resampler_down2). S is the 2-element Q10 state.
 func silkResamplerDown2(S []int32, out, in []int16, inLen int) {
 	len2 := inLen >> 1
 	for k := 0; k < len2; k++ {
@@ -55,14 +47,11 @@ func silkResamplerDown2(S []int32, out, in []int16, inLen int) {
 	}
 }
 
-// Allpass coefficients for the 2x downsampler (silk/resampler_rom.h).
 const (
 	silk_resampler_down2_0 = 9872
 	silk_resampler_down2_1 = 39809 - 65536
 )
 
-// silkResamplerDown23 downsamples by 2/3, low quality
-// (silk_resampler_down2_3). S is the 6-element state.
 func silkResamplerDown23(S []int32, out, in []int16, inLen int) {
 	const orderFIR = 4
 	buf := make([]int32, resamplerMaxBatchSizeIn+orderFIR)
@@ -106,9 +95,6 @@ func silkResamplerDown23(S []int32, out, in []int16, inLen int) {
 	copy(S[:orderFIR], buf[nSamplesIn:])
 }
 
-// silkPitchAnalysisCore is the three-stage pitch analyser
-// (silk_pitch_analysis_core_FLP). Returns false for voiced (a lag was
-// found), true for unvoiced, matching the reference's 0/1.
 func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, contourIndex *int8,
 	ltpCorr *float32, prevLag int, searchThres1, searchThres2 float32,
 	fsKHz, complexity, nbSubfr int) bool {
@@ -132,7 +118,6 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 	maxLag4kHz := peMaxLagMS * 4
 	maxLag8kHz := peMaxLagMS*8 - 1
 
-	// Resample to 8 kHz.
 	switch fsKHz {
 	case 16:
 		var frame16FIX [16 * peMaxFrameLengthMS]int16
@@ -148,14 +133,10 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 		silkFloat2ShortArray(frame8FIX[:], frame, frameLength8kHz)
 	}
 
-	// Decimate again to 4 kHz.
 	filtState[0], filtState[1] = 0, 0
 	silkResamplerDown2(filtState[:2], frame4FIX[:], frame8FIX[:], frameLength8kHz)
 	silkShort2FloatArray(frame4kHz[:], frame4FIX[:], frameLength4kHz)
 
-	// Low-pass filter. The reference applies the int16 saturating-add macro
-	// to float operands: the first operand is truncated to int, the sum
-	// saturates, and the result truncates back through an int16 cast.
 	for i := frameLength4kHz - 1; i > 0; i-- {
 		sum := float64(int32(frame4kHz[i])) + float64(frame4kHz[i-1])
 		if sum > silkInt16Max {
@@ -191,12 +172,10 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 		targetOff += int32(sfLength8kHz)
 	}
 
-	// Short-lag bias.
 	for i := maxLag4kHz; i >= minLag4kHz; i-- {
 		C[0][i] -= C[0][i] * float32(i) / 4096.0
 	}
 
-	// Sort; keep length_d_srch best candidates.
 	lengthDSrch := 4 + 2*complexity
 	var dSrch [peDSrchLength]int
 	silkInsertionSortDecreasingFLP(C[0][minLag4kHz:], dSrch[:], maxLag4kHz-minLag4kHz+1, lengthDSrch)
@@ -227,7 +206,6 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 		dComp[dSrch[i]] = 1
 	}
 
-	// Convolution.
 	for i := maxLag8kHz + 3; i >= minLag8kHz; i-- {
 		dComp[i] += dComp[i-1] + dComp[i-2]
 	}
@@ -249,7 +227,6 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 		}
 	}
 
-	// SECOND STAGE: operating at 8 kHz on high-correlation lag sections.
 	for k := range C {
 		for d := range C[k] {
 			C[k][d] = 0
@@ -294,7 +271,6 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 		prevLagLog2 = silkLog2F(float64(prevLag))
 	}
 
-	// Stage 2 codebook.
 	var lagCB [][]int8
 	var cbkSize, nbCbkSearch int
 	if nbSubfr == peMaxNBSubfr {
@@ -357,7 +333,6 @@ func silkPitchAnalysisCore(frame []float32, pitchOut []int, lagIndex *int, conto
 	*ltpCorr = CCmax / float32(nbSubfr)
 
 	if fsKHz > 8 {
-		// THIRD STAGE: search in the original signal.
 		if fsKHz == 12 {
 			lag = int(silkRSHIFTROUND(silkSMULBB(int32(lag), 3), 1))
 		} else {
@@ -440,8 +415,6 @@ func silkMinIntGo(a, b int) int {
 	return b
 }
 
-// silkPAnaCalcCorrSt3 calculates the stage-3 correlations
-// (silk_P_Ana_calc_corr_st3).
 func silkPAnaCalcCorrSt3(crossCorrSt3 *[peMaxNBSubfr][peNBCbksStage3Max][peNBStage3Lags]float32,
 	frame []float32, startLag, sfLength, nbSubfr, complexity int) {
 
@@ -482,8 +455,6 @@ func silkPAnaCalcCorrSt3(crossCorrSt3 *[peMaxNBSubfr][peNBCbksStage3Max][peNBSta
 	}
 }
 
-// silkPAnaCalcEnergySt3 calculates the stage-3 energies recursively
-// (silk_P_Ana_calc_energy_st3).
 func silkPAnaCalcEnergySt3(energiesSt3 *[peMaxNBSubfr][peNBCbksStage3Max][peNBStage3Lags]float32,
 	frame []float32, startLag, sfLength, nbSubfr, complexity int) {
 

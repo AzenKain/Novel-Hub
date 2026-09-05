@@ -17,7 +17,11 @@ function render(html: string): HTMLElement {
 }
 
 function textNodes(container: HTMLElement): Node[] {
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
   const out: Node[] = [];
   while (walker.nextNode()) out.push(walker.currentNode);
   return out;
@@ -33,12 +37,18 @@ describe("getCharacterOffsetOfRange", () => {
     const range = document.createRange();
     range.setStart(container.firstChild!, 1);
     range.setEnd(container.querySelector("b")!.firstChild!, 3);
-    expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 1, end: 9 });
+    expect(getCharacterOffsetOfRange(container, range)).toEqual({
+      start: 1,
+      end: 9,
+    });
 
     const single = document.createRange();
     single.setStart(container.firstChild!, 1);
     single.setEnd(container.firstChild!, 4);
-    expect(getCharacterOffsetOfRange(container, single)).toEqual({ start: 1, end: 4 });
+    expect(getCharacterOffsetOfRange(container, single)).toEqual({
+      start: 1,
+      end: 4,
+    });
   });
 
   it("maps element boundary containers to document offsets", () => {
@@ -47,13 +57,19 @@ describe("getCharacterOffsetOfRange", () => {
     const range = document.createRange();
     range.setStart(root, 0);
     range.setEnd(root, root.childNodes.length);
-    expect(getCharacterOffsetOfRange(container, range)).toEqual({ start: 0, end: 11 });
+    expect(getCharacterOffsetOfRange(container, range)).toEqual({
+      start: 0,
+      end: 11,
+    });
   });
   it("handles whitespace, equal, and unresolved ranges", () => {
     const container = render("   ");
     const whitespace = document.createRange();
     whitespace.selectNodeContents(container);
-    expect(getCharacterOffsetOfRange(container, whitespace)).toEqual({ start: 0, end: 3 });
+    expect(getCharacterOffsetOfRange(container, whitespace)).toEqual({
+      start: 0,
+      end: 3,
+    });
     const equal = document.createRange();
     equal.setStart(container.firstChild!, 1);
     equal.setEnd(container.firstChild!, 1);
@@ -89,9 +105,14 @@ describe("resolveToTextNode", () => {
     const container = render("<p>hello</p>");
     const node = textNodes(container)[0];
 
-    expect(resolveToTextNode(container, node, 2)).toEqual({ textNode: node, textOffset: 2 });
-    // A selection can report an offset past the node when the DOM shifted.
-    expect(resolveToTextNode(container, node, 99)).toEqual({ textNode: node, textOffset: 5 });
+    expect(resolveToTextNode(container, node, 2)).toEqual({
+      textNode: node,
+      textOffset: 2,
+    });
+    expect(resolveToTextNode(container, node, 99)).toEqual({
+      textNode: node,
+      textOffset: 5,
+    });
   });
 
   it("maps an element + child index onto the text node underneath", () => {
@@ -108,7 +129,13 @@ describe("resolveToTextNode", () => {
     const stranger = render("<p>outside</p>");
 
     expect(resolveToTextNode(container, textNodes(stranger)[0], 0)).toBeNull();
-    expect(resolveToTextNode(container, stranger.firstElementChild as HTMLElement, 0)).toBeNull();
+    expect(
+      resolveToTextNode(
+        container,
+        stranger.firstElementChild as HTMLElement,
+        0,
+      ),
+    ).toBeNull();
   });
 });
 
@@ -178,9 +205,6 @@ describe("extractTextFromHtml", () => {
 });
 
 describe("scrollToTextOffset", () => {
-  // jsdom has no layout, so Element.scrollIntoView does not exist and the real
-  // call would throw straight into the function's catch. Stub it so the test
-  // measures offset resolution rather than jsdom's gaps.
   let scrolled: Element[];
   beforeEach(() => {
     scrolled = [];
@@ -193,7 +217,6 @@ describe("scrollToTextOffset", () => {
     const container = render("<p>0123456789</p><p>abcdefghij</p>");
 
     expect(scrollToTextOffset(container, 12)).toBe(true);
-    // Offset 12 is 2 chars into the second paragraph, so that is what scrolls.
     expect(scrolled).toHaveLength(1);
     expect(scrolled[0].textContent).toBe("abcdefghij");
   });
@@ -203,7 +226,6 @@ describe("scrollToTextOffset", () => {
 
     expect(scrollToTextOffset(container, 0)).toBe(true);
     expect(scrollToTextOffset(container, -5)).toBe(false);
-    // Total text is 5 chars; nothing to resolve past it.
     expect(scrollToTextOffset(container, 500)).toBe(false);
   });
 });
@@ -218,9 +240,14 @@ describe("getVisibleTtsStartPoint", () => {
   });
 
   it("extracts from overflowed text offset on current page when paragraph starts on previous page", () => {
-    const container = render("<p>Paragraph one line one. Paragraph one line two on page two.</p><p>Paragraph two.</p>");
+    const container = render(
+      "<p>Paragraph one line one. Paragraph one line two on page two.</p><p>Paragraph two.</p>",
+    );
     container.classList.add("reader-mode-single");
-    Object.defineProperty(container, "clientWidth", { value: 800, configurable: true });
+    Object.defineProperty(container, "clientWidth", {
+      value: 800,
+      configurable: true,
+    });
 
     const originalGetBCR = container.getBoundingClientRect;
     container.getBoundingClientRect = () => ({
@@ -239,7 +266,6 @@ describe("getVisibleTtsStartPoint", () => {
     Range.prototype.getClientRects = function () {
       const nodeText = this.startContainer.textContent || "";
       if (nodeText.includes("Paragraph one line one")) {
-        // If range starts at or after "Paragraph one line two" (offset 24)
         if (this.startOffset >= 24) {
           return [
             {
@@ -255,7 +281,6 @@ describe("getVisibleTtsStartPoint", () => {
             } as DOMRect,
           ] as unknown as DOMRectList;
         }
-        // Entire node or start < 24: has 2 line boxes (one on previous page, one on page two)
         return [
           {
             left: -700,
@@ -289,7 +314,9 @@ describe("getVisibleTtsStartPoint", () => {
       expect(result.startPoint).not.toBeNull();
       expect(result.startPoint?.textNodeIndex).toBe(0);
       expect(result.startPoint?.offset).toBe(24);
-      expect(result.text).toBe("Paragraph one line two on page two.Paragraph two.");
+      expect(result.text).toBe(
+        "Paragraph one line two on page two.Paragraph two.",
+      );
       expect(result.text.startsWith("Paragraph one line two")).toBe(true);
     } finally {
       Range.prototype.getClientRects = originalGetClientRects;

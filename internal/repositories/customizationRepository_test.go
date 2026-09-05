@@ -27,12 +27,10 @@ func TestCustomizationRepositoryCRUDAndCacheByIDs(t *testing.T) {
 	repo := NewCustomizationRepository(db, cache.NewRamCache())
 	ctx := context.Background()
 
-	// Seed test user
 	if _, err := db.Exec(`INSERT INTO users (id, email, auth_provider) VALUES ('u1', 'test@example.com', 'LOCAL')`); err != nil {
 		t.Fatal(err)
 	}
 
-	// 1. Soundscape CRUD, Cache-by-IDs & Cursor Pagination
 	createdSound1, err := repo.CreateSoundscape(ctx, sqlc.CreateSoundscapeParams{
 		ID:       "s1",
 		UserID:   sql.NullString{String: "u1", Valid: true},
@@ -65,26 +63,22 @@ func TestCustomizationRepositoryCRUDAndCacheByIDs(t *testing.T) {
 	}
 	_ = createdSound2
 
-	// Fetch single by ID
 	fetchedSound, err := repo.GetSoundscapeByID(ctx, "s1")
 	if err != nil || fetchedSound == nil {
 		t.Fatalf("GetSoundscapeByID failed: %v", err)
 	}
 
-	// Fetch batch by IDs (Cache-by-IDs)
 	batchSounds, err := repo.GetSoundscapesByIDs(ctx, []string{"s1", "s2"})
 	if err != nil || len(batchSounds) != 2 {
 		t.Fatalf("GetSoundscapesByIDs expected 2, got %d", len(batchSounds))
 	}
 
-	// List soundscapes with cursor pagination
 	uID := "u1"
 	soundList, err := repo.ListSoundscapes(ctx, &uID, nil, "", 10)
 	if err != nil || len(soundList) != 2 {
 		t.Fatalf("ListSoundscapes expected 2, got %d", len(soundList))
 	}
 
-	// Delete soundscape & check cache invalidation
 	if err := repo.DeleteSoundscape(ctx, "s1"); err != nil {
 		t.Fatalf("DeleteSoundscape failed: %v", err)
 	}
@@ -96,7 +90,6 @@ func TestCustomizationRepositoryCRUDAndCacheByIDs(t *testing.T) {
 		t.Fatalf("DeleteSoundscape failed: %v", err)
 	}
 
-	// 2. Custom Font CRUD & Cache-by-IDs
 	createdFont, err := repo.CreateCustomFont(ctx, sqlc.CreateCustomFontParams{
 		ID:         "f1",
 		UserID:     sql.NullString{String: "u1", Valid: true},
@@ -128,7 +121,6 @@ func TestCustomizationRepositoryCRUDAndCacheByIDs(t *testing.T) {
 		t.Fatalf("DeleteCustomFont failed: %v", err)
 	}
 
-	// 3. Custom Theme CRUD & Cache-by-IDs
 	createdTheme, err := repo.CreateCustomTheme(ctx, sqlc.CreateCustomThemeParams{
 		ID:          "t1",
 		UserID:      sql.NullString{String: "u1", Valid: true},

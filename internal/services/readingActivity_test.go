@@ -32,8 +32,6 @@ func (allowAllPermissions) DescribeRoles([]string) []*models.RoleSimple { return
 
 func newActivityService(t *testing.T) (*featureService, *sql.DB) {
 	t.Helper()
-	// NewSQLiteDB, not sql.Open: the production DSN sets busy_timeout and WAL, which is
-	// exactly what decides whether concurrent writers block or fail with SQLITE_BUSY.
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "activity.db"))
 	db, err := database.NewSQLiteDB()
 	if err != nil {
@@ -61,11 +59,7 @@ func newActivityService(t *testing.T) (*featureService, *sql.DB) {
 	}, db
 }
 
-// opened_count used to be read in Go, incremented, and written back absolutely, so a
-// process-global mutex was the only thing keeping concurrent readers from clobbering each
-// other's count. That mutex serialized every user's reading writes. The increment now
-// happens in SQL, which makes the write atomic per row without a shared lock — this test
-// is what proves it: with the old read-modify-write it loses increments.
+// opened_count used to be read in Go, incremented, and written back absolutely, so a process-global mutex was the only thing keeping concurrent readers from clobbering each other's count.
 func TestRecordReadingActivityCountsEveryConcurrentOpen(t *testing.T) {
 	svc, db := newActivityService(t)
 	ctx := context.Background()

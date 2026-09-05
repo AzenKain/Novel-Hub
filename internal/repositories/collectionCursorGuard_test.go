@@ -7,10 +7,7 @@ import (
 	"time"
 )
 
-// SQLite CURRENT_TIMESTAMP has one-second resolution, so collections created in the same batch share
-// a created_at. A cursor carrying only that timestamp cannot break the tie and the walk stalls after
-// one page — the reason GetCollections emits "<created_at>|<id>" and the reason the frontend must
-// send back the server's cursor rather than rebuilding one from the last row's created_at.
+// SQLite CURRENT_TIMESTAMP has one-second resolution, so collections created in the same batch share a created_at.
 func TestCollectionCursorNeedsTheIDHalf(t *testing.T) {
 	ctx := context.Background()
 	db := probeDB(t)

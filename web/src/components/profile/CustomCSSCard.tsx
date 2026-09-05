@@ -14,7 +14,9 @@ export const CustomCSSCard: React.FC = () => {
     e.preventDefault();
     setCustomCss(cssText);
     setSaved(true);
-    toast.success(t("profile.custom_css_saved", "Custom CSS updated successfully!"));
+    toast.success(
+      t("profile.custom_css_saved", "Custom CSS updated successfully!"),
+    );
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -37,7 +39,10 @@ export const CustomCSSCard: React.FC = () => {
                 {t("profile.custom_css_title", "Custom CSS Injector")}
               </h3>
               <p className="text-xs text-base-content/70">
-                {t("profile.custom_css_desc", "Inject custom CSS styles into NovelHub UI for personalized themes.")}
+                {t(
+                  "profile.custom_css_desc",
+                  "Inject custom CSS styles into NovelHub UI for personalized themes.",
+                )}
               </p>
             </div>
           </div>
@@ -64,7 +69,9 @@ export const CustomCSSCard: React.FC = () => {
 
             <button type="submit" className="btn btn-secondary btn-sm gap-1">
               <Check className="w-4 h-4" />
-              {saved ? t("common.saved", "Saved!") : t("common.save_changes", "Save CSS")}
+              {saved
+                ? t("common.saved", "Saved!")
+                : t("common.save_changes", "Save CSS")}
             </button>
           </div>
         </form>

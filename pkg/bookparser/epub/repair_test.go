@@ -162,14 +162,12 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 	corruptEPUBPath := filepath.Join(tempDir, "corrupted.epub")
 	repairedEPUBPath := filepath.Join(tempDir, "repaired.epub")
 
-	// Create intentionally corrupted EPUB
 	f, err := os.Create(corruptEPUBPath)
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 	zw := zip.NewWriter(f)
 
-	// 1. Deflated mimetype at wrong place
 	w1, _ := zw.Create("META-INF/container.xml")
 	_, _ = w1.Write([]byte(`<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -181,7 +179,6 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 	w2, _ := zw.CreateHeader(&zip.FileHeader{Name: "mimetype", Method: zip.Deflate})
 	_, _ = w2.Write([]byte("application/epub+zip"))
 
-	// 2. OPF with unclosed item and wrong media-type
 	w3, _ := zw.Create("OEBPS/content.opf")
 	_, _ = w3.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="uid" version="2.0">
@@ -200,7 +197,6 @@ func TestValidateAndRepairEPUB(t *testing.T) {
   </spine>
 </package>`))
 
-	// 3. ch1.xhtml with unclosed tags, bare ampersands, and named entity
 	w4, _ := zw.Create("OEBPS/ch1.xhtml")
 	_, _ = w4.Write([]byte(`<html>
 <head><title>Chapter 1</title></head>
@@ -211,14 +207,12 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 </body>
 </html>`))
 
-	// 4. Unmanifested extra file in zip
 	w5, _ := zw.Create("OEBPS/extra_style.css")
 	_, _ = w5.Write([]byte(`body { font-family: sans-serif; }`))
 
 	_ = zw.Close()
 	_ = f.Close()
 
-	// Step 1: Diagnose
 	report, err := ValidateEPUB(corruptEPUBPath)
 	if err != nil {
 		t.Fatalf("ValidateEPUB failed: %v", err)
@@ -231,7 +225,6 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 		t.Fatalf("expected errors in corrupted epub, got 0. Issues: %#v", report.Issues)
 	}
 
-	// Step 2: Auto-repair
 	opts := DefaultRepairOptions()
 	result, err := RepairEPUB(corruptEPUBPath, repairedEPUBPath, opts)
 	if err != nil {
@@ -242,7 +235,6 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 		t.Fatalf("expected repair to succeed, logs: %v", result.Logs)
 	}
 
-	// Step 3: Validate repaired EPUB
 	postReport, err := ValidateEPUB(repairedEPUBPath)
 	if err != nil {
 		t.Fatalf("post-repair ValidateEPUB failed: %v", err)
@@ -252,7 +244,6 @@ func TestValidateAndRepairEPUB(t *testing.T) {
 		t.Fatalf("expected repaired EPUB to be 100%% valid with 0 errors, got: %d errors, issues: %#v", postReport.Errors, postReport.Issues)
 	}
 
-	// Verify mimetype is at byte 0 and uncompressed
 	rRepaired, err := zip.OpenReader(repairedEPUBPath)
 	if err != nil {
 		t.Fatalf("failed to open repaired epub: %v", err)

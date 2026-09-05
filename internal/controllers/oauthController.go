@@ -34,7 +34,6 @@ func (h *OAuthController) OAuth2Login(c fiber.Ctx) error {
 		return apperrors.HandleError(c, err)
 	}
 
-	// Set state cookie
 	cookieSettings := getAuthCookieSettings(c)
 	stateCookie := &fiber.Cookie{
 		Name:     "oauth_state",
@@ -60,7 +59,6 @@ func (h *OAuthController) OAuth2Callback(c fiber.Ctx) error {
 	stateParam := c.Query("state")
 	cookieState := c.Cookies("oauth_state")
 
-	// Clear the state cookie immediately
 	clearAuthCookie(c, "oauth_state")
 
 	res, err := h.auth.HandleOAuthCallback(ctx, provider, code, stateParam, cookieState)
@@ -68,11 +66,9 @@ func (h *OAuthController) OAuth2Callback(c fiber.Ctx) error {
 		return c.Redirect().To("/login?error=" + url.QueryEscape(err.Error()))
 	}
 
-	// Save JWT tokens in Secure/HTTPOnly cookies
 	setAuthCookie(c, "access_token", res.AccessToken, constants.AccessTokenDuration)
 	setAuthCookie(c, "refresh_token", res.RefreshToken, constants.RefreshTokenDuration)
 	setCSRFCookie(c, constants.RefreshTokenDuration)
 
-	// Redirect to frontend
 	return c.Redirect().To(res.RedirectURL)
 }

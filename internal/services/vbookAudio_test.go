@@ -43,14 +43,12 @@ func newVBookAudioTestSvc(t *testing.T) (*sql.DB, VBookService, cache.Cache) {
 	return db, svc, ramCache
 }
 
-// seedAudioChapters inserts a book with the given (title, fileID) chapter pairs in order.
 func seedAudioChapters(t *testing.T, db *sql.DB, bookID string, chapters [][2]string) {
 	t.Helper()
 	for i, ch := range chapters {
 		title, fileID := ch[0], ch[1]
 		var fileIDVal any
 		if fileID != "" {
-			// book_files must exist for the FK on file_id; insert ignores duplicates (same file reused across runs)
 			if _, err := db.Exec(
 				`INSERT OR IGNORE INTO book_files (id, book_id, path, format, size_bytes, mod_time) VALUES (?, ?, ?, ?, 1, ?)`,
 				fileID, bookID, "/tmp/"+bookID+"-"+string(rune('0'+i))+".mp3", "mp3", time.Now().UTC(),
@@ -77,14 +75,13 @@ func TestVBookAudioPlaylistGroupsRuns(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	// Single-chapter run, multi-chapter run on the same file, then a gap run (nil file)
 	seedAudioChapters(t, db, "audio-1", [][2]string{
 		{"Chương 1", "f1"},
 		{"Chương 2", "f1"},
 		{"Chương 3", "f2"},
-		{"Chương 4", ""}, // skipped: no file
+		{"Chương 4", ""},
 		{"Chương 5", "f3"},
-		{"Chương 6", "f1"}, // new run for the same file
+		{"Chương 6", "f1"},
 	})
 
 	tracks, err := svc.GetAudioPlaylist(ctx, "audio-1", nil)
@@ -126,7 +123,6 @@ func TestVBookAudioPlaylistEmptyIsNotFound(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	// chapters exist but all are nil-file (never grouped into a track)
 	seedAudioChapters(t, db, "audio-empty", [][2]string{{"Chương 1", ""}, {"Chương 2", ""}})
 
 	if _, err := svc.GetAudioPlaylist(ctx, "audio-empty", nil); err == nil {
@@ -138,7 +134,6 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 	db, svc, _ := newVBookAudioTestSvc(t)
 	ctx := context.Background()
 
-	// 5 books with audio chapters, distinct updated_at so cursor ordering is stable
 	now := time.Now().UTC()
 	for i := 0; i < 5; i++ {
 		id := "audio-" + string(rune('A'+i))
@@ -151,7 +146,6 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 		seedAudioChapters(t, db, id, [][2]string{{"Chương 1", id + "-f1"}})
 	}
 
-	// Page 1: limit 2
 	page1, err := svc.GetAudioBooks(ctx, "http://localhost", "1", 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 1 failed: %v", err)
@@ -163,7 +157,6 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 		t.Fatalf("page 1 Next = %v, want cursor", page1.Next)
 	}
 
-	// Page 2 via cursor
 	page2, err := svc.GetAudioBooks(ctx, "http://localhost", *page1.Next, 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 2 failed: %v", err)
@@ -175,7 +168,6 @@ func TestVBookAudioBooksCursorPagination(t *testing.T) {
 		t.Fatal("page 2 Next = nil, want cursor")
 	}
 
-	// Page 3 via cursor: 1 book left, no Next
 	page3, err := svc.GetAudioBooks(ctx, "http://localhost", *page2.Next, 2, nil)
 	if err != nil {
 		t.Fatalf("GetAudioBooks page 3 failed: %v", err)

@@ -20,9 +20,7 @@ import (
 	"novelhub/pkg/opds"
 )
 
-// Acquisition feeds used to return a hardcoded 50 books with no cursor and no rel="next",
-// so a reader had no way to reach book 51 and no way to tell the feed had been truncated —
-// the rest of the library was simply unreachable over OPDS.
+// Acquisition feeds used to return a hardcoded 50 books with no cursor and no rel="next", so a reader had no way to reach book 51 and no way to tell the feed had been truncated — the rest of the library was simply unreachable over OPDS.
 func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 	svc, claims := newOPDSPagingService(t, 7)
 	ctx := context.Background()
@@ -56,8 +54,7 @@ func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 	}
 }
 
-// The last page must not advertise a next link, otherwise a reader loops forever asking for
-// a page that is always empty.
+// The last page must not advertise a next link, otherwise a reader loops forever asking for a page that is always empty.
 func TestOPDSLastPageHasNoNextLink(t *testing.T) {
 	svc, claims := newOPDSPagingService(t, 2)
 	feed, err := svc.GetRecentBooks(context.Background(), "http://localhost:3434", request.OPDSPageDto{Limit: 50}, claims)
@@ -112,7 +109,6 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 
 	for i := range books {
-		// Distinct created_at so the cursor has a stable order to page through.
 		if _, err := db.Exec(
 			`INSERT INTO books (id, library_id, title, status, created_at) VALUES (?, 'lib-1', ?, 'active', datetime('now', ?))`,
 			fmt.Sprintf("book-%02d", i), fmt.Sprintf("Book %02d", i), fmt.Sprintf("-%d minutes", i),
@@ -121,7 +117,6 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 		}
 	}
 
-	// Admin claims: the point of the test is paging, not permission filtering.
 	claims := &response.JWTClaims{UId: "admin", Roles: []constants.RoleType{constants.RoleTypeAdmin}}
 	return NewOPDSService(bookService, permissionCache), claims
 }

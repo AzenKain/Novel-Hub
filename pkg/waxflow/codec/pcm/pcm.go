@@ -1,11 +1,4 @@
-// Package pcm implements the PCM "codec": the bridge between raw
-// interleaved wire bytes inside containers (WAV, AIFF, and later MP4 and
-// Matroska PCM tracks) and the pipeline's planar audio.Buffer domain.
-//
-// The wire encoding lives in Config, marshaled into Track.CodecConfig by
-// demuxers so decoding needs no container knowledge. Integer samples cross
-// into the pipeline right-justified at their valid bit depth, which is
-// what makes lossless round-trips bit-exact by construction.
+// Package pcm implements the PCM "codec": the bridge between raw interleaved wire bytes inside containers (WAV, AIFF, and later MP4 and Matroska PCM tracks) and the pipeline's planar audio.Buffer domain.
 package pcm
 
 import (
@@ -19,12 +12,8 @@ import (
 type Encoding uint8
 
 const (
-	// SignedInt is two's-complement PCM, the common case.
 	SignedInt Encoding = iota
-	// UnsignedInt is offset-binary PCM; only 8-bit, the WAV convention.
 	UnsignedInt
-	// Float is IEEE 754 PCM, 32- or 64-bit. 64-bit wires convert through
-	// the pipeline's float32 domain (documented precision loss).
 	Float
 )
 
@@ -41,25 +30,15 @@ func (e Encoding) String() string {
 	}
 }
 
-// Config describes how PCM samples are packed on the wire. It marshals
-// into Track.CodecConfig.
+// Config describes how PCM samples are packed on the wire.
 type Config struct {
-	Encoding Encoding
-	// Bits is the container word size per sample: 8, 16, 24, or 32 for
-	// integers; 32 or 64 for floats.
-	Bits int
-	// ValidBits is the meaningful precision for integers, left-justified
-	// in the container word per WAVE_FORMAT_EXTENSIBLE (for example 24
-	// valid bits in 32-bit words). Zero means all Bits are valid. Floats
-	// require zero.
+	Encoding  Encoding
+	Bits      int
 	ValidBits int
-	// BigEndian selects byte order for multi-byte samples (AIFF is
-	// big-endian, WAV little-endian).
 	BigEndian bool
 }
 
-// Validate reports whether the wire configuration is one this package
-// packs and unpacks.
+// Validate reports whether the wire configuration is one this package packs and unpacks.
 func (c Config) Validate() error {
 	bad := func(msg string) error {
 		return waxerr.New(waxerr.CodeUnsupportedFormat, "pcm: "+msg)
@@ -94,7 +73,6 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// depth is the pipeline bit depth: valid bits for integers, 32 for floats.
 func (c Config) depth() int {
 	if c.Encoding == Float {
 		return 32
@@ -105,8 +83,6 @@ func (c Config) depth() int {
 	return c.Bits
 }
 
-// shift is how far integer samples are left-justified within the container
-// word.
 func (c Config) shift() int {
 	if c.Encoding == Float || c.ValidBits == 0 {
 		return 0
@@ -114,8 +90,7 @@ func (c Config) shift() int {
 	return c.Bits - c.ValidBits
 }
 
-// PCMFormat returns the pipeline format this wire configuration decodes
-// to, for a track with the given rate and channel layout.
+// PCMFormat returns the pipeline format this wire configuration decodes to, for a track with the given rate and channel layout.
 func (c Config) PCMFormat(rate, channels int, layout audio.ChannelMask) audio.Format {
 	t := audio.Int
 	if c.Encoding == Float {
@@ -129,20 +104,14 @@ func (c Config) BytesPerFrame(channels int) int {
 	return c.Bits / 8 * channels
 }
 
-// ContainerBits returns the smallest whole-byte container width holding
-// the given number of valid bits (20 valid bits pack into 24-bit words).
-// Containers with no separate valid-bits field derive storage this way.
+// ContainerBits returns the smallest whole-byte container width holding the given number of valid bits (20 valid bits pack into 24-bit words).
 func ContainerBits(validBits int) int {
 	return (validBits + 7) / 8 * 8
 }
 
-// Version is the PCM encoder's algorithm revision for cache keys
-// (ADR-0004). PCM packing has no tunable algorithm, but the constant
-// exists from birth like every encoder's: a packing fix must invalidate
-// cached outputs.
+// Version is the PCM encoder's algorithm revision for cache keys (ADR-0004).
 const Version = "pcm-1"
 
-// configVersion versions the marshaled Config layout.
 const configVersion = 1
 
 // MarshalBinary encodes the Config for Track.CodecConfig.

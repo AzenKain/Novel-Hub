@@ -63,20 +63,20 @@ type UpdateSettingsDto struct {
 	ProxyAuthTrustedProxies *[]string `json:"auth.proxy_auth_trusted_proxies"`
 	ProxyAuthAutoCreate     *bool     `json:"auth.proxy_auth_auto_create"`
 
-	OAuthGoogleEnabled      *bool     `json:"oauth.google.enabled"`
-	OAuthGoogleClientID     *string   `json:"oauth.google.client_id" validate:"omitempty,max=500"`
-	OAuthGoogleClientSecret *string   `json:"oauth.google.client_secret" validate:"omitempty,max=1000"`
-	OAuthGoogleRedirectURI  *string   `json:"oauth.google.redirect_uri" validate:"omitempty,max=2048"`
+	OAuthGoogleEnabled      *bool   `json:"oauth.google.enabled"`
+	OAuthGoogleClientID     *string `json:"oauth.google.client_id" validate:"omitempty,max=500"`
+	OAuthGoogleClientSecret *string `json:"oauth.google.client_secret" validate:"omitempty,max=1000"`
+	OAuthGoogleRedirectURI  *string `json:"oauth.google.redirect_uri" validate:"omitempty,max=2048"`
 
-	OAuthGithubEnabled      *bool     `json:"oauth.github.enabled"`
-	OAuthGithubClientID     *string   `json:"oauth.github.client_id" validate:"omitempty,max=500"`
-	OAuthGithubClientSecret *string   `json:"oauth.github.client_secret" validate:"omitempty,max=1000"`
-	OAuthGithubRedirectURI  *string   `json:"oauth.github.redirect_uri" validate:"omitempty,max=2048"`
+	OAuthGithubEnabled      *bool   `json:"oauth.github.enabled"`
+	OAuthGithubClientID     *string `json:"oauth.github.client_id" validate:"omitempty,max=500"`
+	OAuthGithubClientSecret *string `json:"oauth.github.client_secret" validate:"omitempty,max=1000"`
+	OAuthGithubRedirectURI  *string `json:"oauth.github.redirect_uri" validate:"omitempty,max=2048"`
 
-	OAuthDiscordEnabled      *bool     `json:"oauth.discord.enabled"`
-	OAuthDiscordClientID     *string   `json:"oauth.discord.client_id" validate:"omitempty,max=500"`
-	OAuthDiscordClientSecret *string   `json:"oauth.discord.client_secret" validate:"omitempty,max=1000"`
-	OAuthDiscordRedirectURI  *string   `json:"oauth.discord.redirect_uri" validate:"omitempty,max=2048"`
+	OAuthDiscordEnabled      *bool   `json:"oauth.discord.enabled"`
+	OAuthDiscordClientID     *string `json:"oauth.discord.client_id" validate:"omitempty,max=500"`
+	OAuthDiscordClientSecret *string `json:"oauth.discord.client_secret" validate:"omitempty,max=1000"`
+	OAuthDiscordRedirectURI  *string `json:"oauth.discord.redirect_uri" validate:"omitempty,max=2048"`
 
 	OAuthOidcEnabled      *bool     `json:"oauth.oidc.enabled"`
 	OAuthOidcName         *string   `json:"oauth.oidc.name" validate:"omitempty,max=200"`
@@ -121,10 +121,6 @@ func (d *UpdateSettingsDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// putPtr stores the pointed-to value, or nothing when the field was absent from
-// the request body. It is generic on purpose: a `func(string, any)` helper would
-// box a typed nil (*string)(nil) into a non-nil interface, so every unset field
-// would be forwarded downstream and dereferenced into a panic.
 func putPtr[T any](values map[string]any, key string, value *T) {
 	if value != nil {
 		values[key] = *value
@@ -218,13 +214,13 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"server.url":                true,
 		"auth.registration_enabled": true, "auth.login_required": true, "guest_access.mode": true, "guest_access.library_ids": true,
 		"reader.enable_in_book_search": true, "font.enable_custom_font_upload": true,
-		"tracker.anilist_enabled":   true,
-		"hardcover.enabled":        true,
-		"hardcover.client_id":      true,
-		"hardcover.client_secret":  true,
+		"tracker.anilist_enabled":      true,
+		"hardcover.enabled":            true,
+		"hardcover.client_id":          true,
+		"hardcover.client_secret":      true,
 		"metadata.auto_enrich_enabled": true,
 		"metadata.webp_cover_enabled":  true,
-		"auth.require_email_verify": true, "auth.password_reset_enabled": true,
+		"auth.require_email_verify":    true, "auth.password_reset_enabled": true,
 		"limits.upload_chunk_bytes": true, "limits.upload_chunks": true, "limits.upload_sessions": true,
 		"limits.upload_bytes": true, "limits.upload_session_ttl_seconds": true,
 		"limits.cover_bytes": true, "limits.site_asset_bytes": true,
@@ -236,7 +232,7 @@ func (d *UpdateSettingsDto) UnknownKeys() []string {
 		"auth.proxy_auth_enabled":         true,
 		"auth.proxy_auth_headers":         true,
 		"auth.proxy_auth_trusted_proxies": true,
-		"auth.proxy_auth_auto_create":      true,
+		"auth.proxy_auth_auto_create":     true,
 		"oauth.google.enabled":            true,
 		"oauth.google.client_id":          true,
 		"oauth.google.client_secret":      true,

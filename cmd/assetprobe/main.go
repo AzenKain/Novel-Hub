@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	docparser "novelhub/pkg/bookparser/doc"
 	"novelhub/pkg/bookparser/comic"
+	docparser "novelhub/pkg/bookparser/doc"
 	"novelhub/pkg/bookparser/docx"
 	"novelhub/pkg/bookparser/mobi"
 	"novelhub/pkg/bookparser/odt"
@@ -44,7 +44,7 @@ func dump(name, path string, p bookparser.Parser) {
 				fmt.Printf("    %s\n", im)
 			}
 			if i == 0 && len(imgs) == 0 {
-			snippet := content
+				snippet := content
 				if len(snippet) > 300 {
 					snippet = snippet[:300]
 				}

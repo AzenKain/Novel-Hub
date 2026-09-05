@@ -10,7 +10,6 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// Syntactic element types (ISO 14496-3 Table 4.85).
 const (
 	elSCE = 0
 	elCPE = 1
@@ -25,10 +24,9 @@ const (
 const (
 	maxWindowGroups = 8
 	maxSFBCount     = 64
-	sfOffset        = 100 // scalefactor gain offset (2^0.25 steps)
+	sfOffset        = 100
 )
 
-// icsInfo is the per-channel window and grouping description.
 type icsInfo struct {
 	windowSequence  int
 	windowShape     int
@@ -36,11 +34,10 @@ type icsInfo struct {
 	numWindows      int
 	numWindowGroups int
 	windowGroupLen  [maxWindowGroups]int
-	swb             []uint16 // scalefactor-band offsets for this window type
+	swb             []uint16
 	numSwb          int
 }
 
-// channelData holds one channel's parsed ICS and decoded spectrum.
 type channelData struct {
 	info       icsInfo
 	globalGain int
@@ -54,33 +51,23 @@ type channelData struct {
 	pnsSeed    uint32
 }
 
-// Decoder decodes AAC-LC access units into planar float buffers. Each
-// packet is one 1024-sample frame; the IMDCT's overlap makes frame N depend
-// on frame N-1, so Reset clears the overlap after a seek and the container
-// pre-rolls one frame.
+// Decoder decodes AAC-LC access units into planar float buffers.
 type Decoder struct {
 	cfg      Config
 	fmt      audio.Format
 	rateIdx  int
 	frameLen int
-	// slots routes each element in the frame's channel sequence to its
-	// output channel (waveSlots). Its length is the output channel count,
-	// which is why there is no separate field for that: one source for
-	// both cannot drift from the other. elems is the element type expected
-	// at each of those positions, or nil where the routing is the identity
-	// and the order cannot matter.
-	slots []int
-	elems []int
+	slots    []int
+	elems    []int
 
 	buf      *audio.Buffer
 	ch       [audio.MaxChannels]channelData
 	overlap  [audio.MaxChannels][1024]float64
-	prevWin  [audio.MaxChannels]int // previous window_shape per output channel
-	pnsState uint32                 // perceptual-noise PRNG state
+	prevWin  [audio.MaxChannels]int
+	pnsState uint32
 }
 
-// NewDecoder returns a Decoder for a stream. The track format must be what
-// Config.Format produces.
+// NewDecoder returns a Decoder for a stream.
 func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -110,17 +97,8 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	return d, nil
 }
 
-// checkElement rejects an element that is not the one Table 1.19 puts at
-// this position in the channel sequence. Positions are routed by index
-// (see channelElements), so a deviant order would write every channel
-// somewhere plausible and wrong rather than fail.
 func (d *Decoder) checkElement(pos int, tag uint32) error {
 	if d.elems == nil {
-		// Mono and stereo route through the identity, so their element
-		// order is unconstrained here on purpose. An LFE is not an order
-		// question though: these layouts carry no low-frequency channel,
-		// so there is nowhere for one to land but a full-range front
-		// channel, at the full-range level.
 		if tag == elLFE {
 			return malformed("channel configuration %d has no LFE channel", d.cfg.ChannelConfig)
 		}
@@ -145,8 +123,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	}
 
 	r := newBitReader(pkt)
-	// elem walks the frame's channel sequence; d.slots turns that position
-	// into the output channel, which past stereo is not the same number.
 	elem := 0
 	for {
 		if r.left() < 3 {
@@ -155,7 +131,7 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		tag := r.read(3)
 		switch tag {
 		case elSCE, elLFE:
-			r.read(4) // element_instance_tag
+			r.read(4)
 			if elem >= len(d.slots) {
 				return malformed("more channels in bitstream than configured")
 			}
@@ -171,17 +147,13 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 			d.finishChannel(cd, d.slots[elem])
 			elem++
 		case elCPE:
-			r.read(4) // element_instance_tag
+			r.read(4)
 			if elem+2 > len(d.slots) {
 				return malformed("channel pair exceeds configured channels")
 			}
 			if err := d.checkElement(elem, tag); err != nil {
 				return err
 			}
-			// The pair's two output slots are passed explicitly: a coupled
-			// pair is adjacent in the bitstream but need not be adjacent in
-			// WAVE order (configuration 6 sends L/R to 0 and 1, then Ls/Rs to
-			// 4 and 5, straddling the LFE).
 			if err := d.decodePair(r, d.slots[elem], d.slots[elem+1]); err != nil {
 				return err
 			}
@@ -195,14 +167,13 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		case elEND:
 			r.byteAlign()
 			goto done
-		default: // CCE
+		default:
 			return malformed("unsupported element type %d", tag)
 		}
 		if r.overrun() {
 			return malformed("access unit overruns packet")
 		}
 		if elem >= len(d.slots) {
-			// Remaining elements (fill, padding) do not add audio.
 			break
 		}
 	}
@@ -210,10 +181,6 @@ done:
 	return emit(d.buf)
 }
 
-// decodePair decodes a channel-pair element, applying the shared window and
-// M/S stereo before the per-channel filterbank. leftCh and rightCh are the
-// output channels the pair's two members land in, which need not be
-// adjacent.
 func (d *Decoder) decodePair(r *bitReader, leftCh, rightCh int) error {
 	common := r.bit() != 0
 	var shared icsInfo
@@ -245,9 +212,6 @@ func (d *Decoder) decodePair(r *bitReader, leftCh, rightCh int) error {
 	}
 	d.dequant(left)
 	d.dequant(right)
-	// PNS fills noise bands before the stereo tools so intensity, which
-	// copies the left channel, sees the filled spectrum (ISO 14496-3 order:
-	// dequant, PNS, M/S, intensity). M/S and intensity both skip PNS bands.
 	d.applyPNS(left)
 	d.applyPNS(right)
 	if common && msMask != 0 {
@@ -259,8 +223,7 @@ func (d *Decoder) decodePair(r *bitReader, leftCh, rightCh int) error {
 	return nil
 }
 
-// Drain is a no-op: each access unit emits its full 1024-sample frame, and
-// the trailing filterbank overlap belongs to no further frame.
+// Drain is a no-op: each access unit emits its full 1024-sample frame, and the trailing filterbank overlap belongs to no further frame.
 func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 
 // Reset clears the filterbank overlap and window history after a seek.

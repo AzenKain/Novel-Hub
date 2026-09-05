@@ -11,38 +11,32 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// Syntactic element tags. ALAC frames reuse the AAC element-ID layout
-// (single-channel, channel-pair, and so on); these constants are ALAC's own
-// copy, independent of codec/aac.
 const (
-	idSCE = 0 // single channel element
-	idCPE = 1 // channel pair element
-	idCCE = 2 // coupling channel element (unsupported)
-	idLFE = 3 // LFE channel element
-	idDSE = 4 // data stream element (skipped)
-	idPCE = 5 // program config element (unsupported)
-	idFIL = 6 // fill element (skipped)
-	idEND = 7 // frame end
+	idSCE = 0
+	idCPE = 1
+	idCCE = 2
+	idLFE = 3
+	idDSE = 4
+	idPCE = 5
+	idFIL = 6
+	idEND = 7
 )
 
-// Decoder decodes ALAC packets into planar int buffers. Each packet is one
-// independently decodable frame, so Drain and Reset are no-ops.
+// Decoder decodes ALAC packets into planar int buffers.
 type Decoder struct {
 	ac  Config
 	fmt audio.Format
-	buf *audio.Buffer // reusable output, borrowed by emit callbacks
+	buf *audio.Buffer
 
-	predictor []int32  // residual/predictor scratch, frameLength
-	mixU      []int32  // channel U mix buffer
-	mixV      []int32  // channel V mix buffer
-	shiftBuf  []uint16 // wasted-byte low bits
+	predictor []int32
+	mixU      []int32
+	mixV      []int32
+	shiftBuf  []uint16
 	coefsU    [32]int16
 	coefsV    [32]int16
 }
 
-// NewDecoder returns a Decoder for a stream. The track format must be what
-// Config.Format produces; containers build both from the same cookie, so a
-// mismatch is a wiring bug.
+// NewDecoder returns a Decoder for a stream.
 func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -62,16 +56,13 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	}, nil
 }
 
-// Decode decodes one packet and emits one buffer. The buffer is borrowed:
-// valid only during the callback.
+// Decode decodes one packet and emits one buffer.
 func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	frameLen := int(d.ac.FrameLength)
 	if d.buf == nil || d.buf.Cap() < frameLen || d.buf.Fmt != d.fmt {
 		audio.Put(d.buf)
 		d.buf = audio.Get(d.fmt, frameLen)
 	}
-	// Pad so a 32-bit peek near the tail never indexes past the slice; the
-	// reader also guards, but the copy keeps the packet slice immutable.
 	r := &bitReader{data: pkt, pos: 0, validBits: len(pkt) * 8}
 
 	numChannels := d.ac.Channels
@@ -112,14 +103,13 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 		case idEND:
 			r.byteAlign()
 			channelIndex = numChannels
-		default: // CCE, PCE
+		default:
 			return malformed("unsupported element type %d", tag)
 		}
 	}
 	if r.overrun() {
 		return malformed("frame overruns packet")
 	}
-	// Any channels the bitstream did not supply stay silent.
 	for c := channelIndex; c < numChannels; c++ {
 		clear(d.buf.I[c*d.buf.Stride : c*d.buf.Stride+frameSamples])
 	}
@@ -127,10 +117,8 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	return emit(d.buf)
 }
 
-// elementHeader reads the common per-element header and returns the frame
-// sample count, shift, escape flag, and per-channel bit width.
 func (d *Decoder) elementHeader(r *bitReader, sideBit uint) (numSamples int, bytesShifted uint32, escape uint32, chanBits uint, err error) {
-	r.read(4) // elementInstanceTag
+	r.read(4)
 	if r.read(12) != 0 {
 		return 0, 0, 0, 0, malformed("element header reserved bits set")
 	}
@@ -152,7 +140,6 @@ func (d *Decoder) elementHeader(r *bitReader, sideBit uint) (numSamples int, byt
 	return numSamples, bytesShifted, escape, chanBits, nil
 }
 
-// decodeMono decodes a single-channel element into output channel ci.
 func (d *Decoder) decodeMono(r *bitReader, ci int) (int, error) {
 	numSamples, bytesShifted, escape, chanBits, err := d.elementHeader(r, 0)
 	if err != nil {
@@ -160,8 +147,8 @@ func (d *Decoder) decodeMono(r *bitReader, ci int) (int, error) {
 	}
 	shift := uint(bytesShifted * 8)
 	if escape == 0 {
-		r.read(8) // mixBits, unused for mono
-		r.read(8) // mixRes
+		r.read(8)
+		r.read(8)
 		hb := r.read(8)
 		modeU, denShiftU := hb>>4, uint(hb&0xf)
 		hb = r.read(8)
@@ -196,7 +183,6 @@ func (d *Decoder) decodeMono(r *bitReader, ci int) (int, error) {
 	return numSamples, nil
 }
 
-// decodeStereo decodes a channel-pair element into output channels ci, ci+1.
 func (d *Decoder) decodeStereo(r *bitReader, ci int) (int, error) {
 	numSamples, bytesShifted, escape, chanBits, err := d.elementHeader(r, 1)
 	if err != nil {
@@ -208,8 +194,6 @@ func (d *Decoder) decodeStereo(r *bitReader, ci int) (int, error) {
 		mixBits = int32(r.read(8))
 		mixRes = int32(int8(r.read(8)))
 		if mixRes != 0 && mixBits >= 32 {
-			// The unmix shifts a 32-bit residual by mixBits; a value at or
-			// past the word width is malformed (a valid stream keeps it small).
 			return 0, malformed("mix shift %d out of range", mixBits)
 		}
 		hb := r.read(8)
@@ -268,8 +252,6 @@ func (d *Decoder) decodeStereo(r *bitReader, ci int) (int, error) {
 	return numSamples, nil
 }
 
-// predict runs the FIR predictor for one channel, handling the mode-1
-// two-pass cascade.
 func (d *Decoder) predict(mode uint32, num int, coefs []int16, numactive int, chanBits, denShift uint, out []int32) {
 	if mode == 0 {
 		unpcBlock(d.predictor, out, num, coefs, numactive, chanBits, denShift)
@@ -279,8 +261,6 @@ func (d *Decoder) predict(mode uint32, num int, coefs []int16, numactive int, ch
 	unpcBlock(d.predictor, out, num, coefs, numactive, chanBits, denShift)
 }
 
-// readUncompressed reads the escape (uncompressed) samples, sign-extended
-// to chanBits, into one or two mix buffers.
 func (d *Decoder) readUncompressed(r *bitReader, chanBits uint, num int, u, v []int32) {
 	sh := 32 - chanBits
 	for i := 0; i < num; i++ {
@@ -291,8 +271,6 @@ func (d *Decoder) readUncompressed(r *bitReader, chanBits uint, num int, u, v []
 	}
 }
 
-// readShift reads the wasted low bytes from the saved shift region. count
-// is 1 for mono, 2 for stereo (interleaved).
 func (d *Decoder) readShift(r *bitReader, start int, shift uint, num, count int) {
 	sr := bitReader{data: r.data, pos: start, validBits: r.validBits}
 	for i := 0; i < num*count; i++ {
@@ -300,8 +278,6 @@ func (d *Decoder) readShift(r *bitReader, start int, shift uint, num, count int)
 	}
 }
 
-// dynDecomp decodes numSamples adaptive-Golomb residuals into pc (the
-// reference dyn_decomp).
 func (d *Decoder) dynDecomp(r *bitReader, pc []int32, chanBits uint, pb uint32) error {
 	numSamples := len(pc)
 	maxSize := uint32(chanBits)
@@ -359,7 +335,6 @@ func (d *Decoder) dynDecomp(r *bitReader, pc []int32, chanBits uint, pb uint32) 
 	return nil
 }
 
-// signOf returns the sign of i as -1, 0, or 1.
 func signOf(i int32) int32 {
 	switch {
 	case i > 0:
@@ -371,23 +346,14 @@ func signOf(i int32) int32 {
 	}
 }
 
-// unpcBlock reverses the adaptive FIR predictor (the reference unpc_block,
-// general case). coefs is modified in place as the predictor adapts.
 func unpcBlock(pc1, out []int32, num int, coefs []int16, numactive int, chanBits, denShift uint) {
 	if num <= 0 {
-		return // a zero-length (degenerate partial) frame predicts nothing
+		return
 	}
-	// chanBits reaches 33 for a 32-bit stereo channel (the mid/side side gets
-	// an extra bit). int32 cannot sign-extend past 32 bits, so clamp the shift
-	// to 0 there; for chanBits <= 32 this is the exact 32-chanBits. A plain
-	// 32-chanBits would underflow the uint and shift by ~2^32, zeroing output.
 	var chanShift uint
 	if chanBits < 32 {
 		chanShift = 32 - chanBits
 	}
-	// denShift 0 means no rounding offset. Go already yields 0 here (a shift
-	// count at or past the type width gives 0, unlike C's undefined result),
-	// but the guard states the intent and matches the reference decoder.
 	var denHalf int32
 	if denShift > 0 {
 		denHalf = int32(1) << (denShift - 1)
@@ -399,7 +365,6 @@ func unpcBlock(pc1, out []int32, num int, coefs []int16, numactive int, chanBits
 		return
 	}
 	if numactive == 31 {
-		// order-1 cascade: running difference with sign extension.
 		prev := out[0]
 		for j := 1; j < num; j++ {
 			prev = (pc1[j] + prev) << chanShift >> chanShift
@@ -407,9 +372,6 @@ func unpcBlock(pc1, out []int32, num int, coefs []int16, numactive int, chanBits
 		}
 		return
 	}
-	// warm-up: the first numactive residuals are exact differences. A
-	// malformed frame can declare more predictor taps than it has samples
-	// (a tiny FrameLength cookie), so clamp the run to the buffer.
 	warm := numactive
 	if warm > num-1 {
 		warm = num - 1
@@ -454,9 +416,8 @@ func unpcBlock(pc1, out []int32, num int, coefs []int16, numactive int, chanBits
 	}
 }
 
-// skipDSE skips a data stream element (the reference DataStreamElement).
 func skipDSE(r *bitReader) error {
-	r.read(4) // element_instance_tag
+	r.read(4)
 	align := r.one()
 	count := r.read(8)
 	if count == 255 {
@@ -469,7 +430,6 @@ func skipDSE(r *bitReader) error {
 	return nil
 }
 
-// skipFIL skips a fill element (the reference FillElement).
 func skipFIL(r *bitReader) error {
 	count := r.read(4)
 	if count == 15 {

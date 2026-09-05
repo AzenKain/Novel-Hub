@@ -7,40 +7,30 @@ import (
 	"sort"
 )
 
-// sampleTable is a track's flattened sample map: per-sample file offset and
-// byte size, a run-encoded time base in output samples, and the sync set.
 type sampleTable struct {
-	offsets []int64  // per-sample file offset
-	sizes   []uint32 // per-sample byte size
-	total   int64    // sample count (== len(offsets))
+	offsets []int64
+	sizes   []uint32
+	total   int64
 
-	// Time base in output samples (rescaled from mdhd ticks to the codec
-	// rate), run-encoded so uniform audio costs a handful of entries.
-	runStart []int64 // sample index at each run's start
-	runPTS   []int64 // output-sample position at each run's start
-	runDelta []int64 // per-sample output duration within the run
-	runCount []int64 // samples in the run
-	totalDur int64   // total output samples across all runs (raw timeline)
+	runStart []int64
+	runPTS   []int64
+	runDelta []int64
+	runCount []int64
+	totalDur int64
 
-	// sync holds the 0-based sync sample indices in ascending order; nil
-	// means every sample is a sync point (the audio norm).
 	sync []int64
 }
 
-// stscEntry is one sample-to-chunk run.
 type stscEntry struct {
-	first int64 // first chunk (1-based) this run applies to
-	spc   int64 // samples per chunk
+	first int64
+	spc   int64
 }
 
-// sttsEntry is one time-to-sample run in media ticks.
 type sttsEntry struct {
 	count int64
 	delta int64
 }
 
-// parseStbl parses the sample table box into t. stsd sets the codec,
-// config, and format; the remaining boxes build the sample map.
 func (d *Demuxer) parseStbl(t *track, body []byte, depth int) error {
 	if depth > maxDepth {
 		return malformed("box nesting deeper than %d", maxDepth)
@@ -60,20 +50,11 @@ func (d *Demuxer) parseStbl(t *track, body []byte, depth int) error {
 	)
 	err := walkBoxes(body, func(typ string, payload []byte) error {
 		if stsdErr != nil {
-			// The sample description failed, so this track has no codec and
-			// is going to be discarded. stsd leads the box order in practice,
-			// so stopping here is what keeps a rejected track from allocating
-			// a sample-size table for nobody.
 			return nil
 		}
 		switch typ {
 		case "stsd":
 			haveStsd = true
-			// Held back rather than returned: stsd is the box that sets
-			// t.codec, so a failure here makes isAudio below false and the
-			// error would be dropped whole, leaving selectAudio to report
-			// "unknown" where the codec layer had a reason. Handled after the
-			// walk so the audio-track rule still applies.
 			stsdErr = d.parseStsd(t, payload, depth+1)
 			return nil
 		case "stts":
@@ -98,36 +79,21 @@ func (d *Demuxer) parseStbl(t *track, body []byte, depth int) error {
 	isAudio := t.handler == "soun" && t.codec != ""
 	isText := t.handler == "text" || t.handler == "sbtl"
 	if stsdErr != nil {
-		// Keep the reason for selectAudio, which reports it when no track at
-		// all was selectable.
 		t.stsdErr = stsdErr
 		if isAudio {
-			// Damaged audio we would otherwise decode stays fatal, and this
-			// is reachable: every setter in stsd.go assigns t.codec only once
-			// it has succeeded, but walkBoxes rejects a malformed box on its
-			// own, so a first sample entry that parsed cleanly followed by a
-			// truncated second one arrives here with the codec set.
 			return stsdErr
 		}
-		// No codec means no sample map worth building, for a sound track or
-		// a text one.
 		return nil
 	}
 	if err != nil {
-		// A damaged sample table in the audio track we would decode is fatal,
-		// but a broken stco/stsz in a sibling video or text track must not
-		// reject an otherwise-decodable file.
 		if isAudio {
 			return err
 		}
 		return nil
 	}
 	if !isAudio && !isText {
-		return nil // video and other tracks need no sample map here
+		return nil
 	}
-	// A fragmented movie's sample tables are empty by design (samples live in
-	// moof fragments); the stsd alone gives the codec, config, and format. So
-	// require the full table only for a progressive movie.
 	if d.fragmented {
 		return nil
 	}
@@ -135,7 +101,7 @@ func (d *Demuxer) parseStbl(t *track, body []byte, depth int) error {
 		if isAudio {
 			return malformed("audio track %d missing a sample table box", t.id)
 		}
-		return nil // an incomplete text track simply yields no chapters
+		return nil
 	}
 
 	st := &t.st
@@ -154,10 +120,6 @@ func (d *Demuxer) parseStbl(t *track, body []byte, depth int) error {
 	return nil
 }
 
-// flatten builds the per-sample offset and size arrays from the
-// sample-to-chunk map, bounded at every step. A sample that would read
-// past the end of the file truncates the table with a warning rather than
-// letting playback over-read a damaged or truncated source.
 func (d *Demuxer) flatten(st *sampleTable, sampleN int64, sizes []uint32, constSize uint32, stsc []stscEntry, chunks []int64) error {
 	if sampleN > maxSamples {
 		return malformed("%d samples exceed the %d cap", sampleN, int64(maxSamples))
@@ -193,8 +155,6 @@ func (d *Demuxer) flatten(st *sampleTable, sampleN int64, sizes []uint32, constS
 			base := chunks[c-1]
 			for s := int64(0); s < spc && idx < sampleN; s++ {
 				sz := sizeAt(idx)
-				// base > d.size-sz, not base+sz > d.size: a co64 offset near
-				// 2^63 would overflow the sum and slip past the guard.
 				if base < 0 || base > d.size-int64(sz) {
 					truncated = base
 					goto done
@@ -222,9 +182,6 @@ done:
 	return nil
 }
 
-// buildTimeBase converts the stts runs (in media ticks) to output-sample
-// runs. When the media timescale equals the codec rate (the audio norm)
-// the conversion is exact and free; otherwise each run is rescaled.
 func (d *Demuxer) buildTimeBase(st *sampleTable, stts []sttsEntry, timescale, rate int64) {
 	rescale := timescale > 0 && rate > 0 && timescale != rate
 	if rescale {
@@ -241,10 +198,6 @@ func (d *Demuxer) buildTimeBase(st *sampleTable, stts []sttsEntry, timescale, ra
 			delta = rescaleTicks(e.delta, rate, timescale)
 		}
 		if delta < 1 {
-			// Every frame must advance the timeline. A raw stts delta of zero,
-			// or a rescale that floored to nothing (a media timescale far above
-			// the sample rate), would stall PTS and hand ReadPacket a
-			// non-positive duration.
 			delta = 1
 		}
 		st.runStart = append(st.runStart, sample)
@@ -255,8 +208,6 @@ func (d *Demuxer) buildTimeBase(st *sampleTable, stts []sttsEntry, timescale, ra
 		pts += count * delta
 	}
 	st.totalDur = pts
-	// stts may cover fewer samples than the table; extend the last run's
-	// cadence over the remainder so every sample has a time.
 	if sample < st.total && len(st.runDelta) > 0 {
 		delta := st.runDelta[len(st.runDelta)-1]
 		st.runStart = append(st.runStart, sample)
@@ -267,16 +218,10 @@ func (d *Demuxer) buildTimeBase(st *sampleTable, stts []sttsEntry, timescale, ra
 	}
 }
 
-// rescaleTicks converts a media-tick sample delta to output samples as
-// delta*rate/timescale, evaluated in 128 bits so a crafted rate or timescale
-// cannot overflow the multiply. The quotient is capped at the 32-bit tick
-// domain: a rate far above the timescale could otherwise yield a single delta
-// large enough to overflow count*delta during PTS accumulation. The caller
-// floors the returned value at one output sample.
 func rescaleTicks(delta, rate, timescale int64) int64 {
 	hi, lo := bits.Mul64(uint64(delta), uint64(rate))
 	if hi >= uint64(timescale) {
-		return math.MaxUint32 // quotient would exceed 64 bits: degenerate ratio
+		return math.MaxUint32
 	}
 	q, _ := bits.Div64(hi, lo, uint64(timescale))
 	if q > math.MaxUint32 {
@@ -285,11 +230,9 @@ func rescaleTicks(delta, rate, timescale int64) int64 {
 	return int64(q)
 }
 
-// buildSync stores the sync set from an stss table (1-based sample numbers)
-// as sorted 0-based indices; an absent or empty stss means all-sync.
 func buildSync(st *sampleTable, stss []int64) {
 	if len(stss) == 0 {
-		return // all samples are sync points
+		return
 	}
 	sync := make([]int64, 0, len(stss))
 	for _, n := range stss {
@@ -298,15 +241,12 @@ func buildSync(st *sampleTable, stss []int64) {
 		}
 	}
 	if len(sync) == 0 {
-		return // no in-range entries: fall back to all-sync (nil), not no-sync
+		return
 	}
-	// A malformed stss may repeat sample numbers; sort then drop the
-	// duplicates so isSync and syncAtOrBefore search a minimal set.
 	slices.Sort(sync)
 	st.sync = slices.Compact(sync)
 }
 
-// timeOf returns sample i's output position and duration.
 func (st *sampleTable) timeOf(i int64) (pts, dur int64) {
 	k := sort.Search(len(st.runStart), func(j int) bool { return st.runStart[j] > i }) - 1
 	if k < 0 {
@@ -315,8 +255,6 @@ func (st *sampleTable) timeOf(i int64) (pts, dur int64) {
 	return st.runPTS[k] + (i-st.runStart[k])*st.runDelta[k], st.runDelta[k]
 }
 
-// sampleAt returns the index of the sample whose span contains output
-// position pts, clamped to the last sample for past-the-end targets.
 func (st *sampleTable) sampleAt(pts int64) int64 {
 	if pts <= 0 || len(st.runPTS) == 0 {
 		return 0
@@ -335,22 +273,20 @@ func (st *sampleTable) sampleAt(pts int64) int64 {
 	return idx
 }
 
-// syncAtOrBefore returns the greatest sync sample index at or before i.
 func (st *sampleTable) syncAtOrBefore(i int64) int64 {
 	if st.sync == nil {
-		return i // every sample is a sync point
+		return i
 	}
 	k := sort.Search(len(st.sync), func(j int) bool { return st.sync[j] > i }) - 1
 	if k < 0 {
 		if len(st.sync) > 0 {
-			return st.sync[0] // no sync at or before: earliest available
+			return st.sync[0]
 		}
 		return 0
 	}
 	return st.sync[k]
 }
 
-// isSync reports whether sample i is a sync point.
 func (st *sampleTable) isSync(i int64) bool {
 	if st.sync == nil {
 		return true
@@ -359,7 +295,6 @@ func (st *sampleTable) isSync(i int64) bool {
 	return k < len(st.sync) && st.sync[k] == i
 }
 
-// parseStts reads a time-to-sample box.
 func parseStts(payload []byte) ([]sttsEntry, error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 4 {
@@ -377,7 +312,6 @@ func parseStts(payload []byte) ([]sttsEntry, error) {
 	return out, nil
 }
 
-// parseStsc reads a sample-to-chunk box, keeping first_chunk monotonic.
 func parseStsc(payload []byte) ([]stscEntry, error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 4 {
@@ -401,9 +335,6 @@ func parseStsc(payload []byte) ([]stscEntry, error) {
 	return out, nil
 }
 
-// parseStsz reads a sample-size box: a constant size, or a per-sample
-// table. sampleCount is capped against the file size so a crafted constant
-// size cannot force a huge allocation.
 func parseStsz(payload []byte, fileSize int64) (sizes []uint32, constSize uint32, count int64, err error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 8 {
@@ -413,8 +344,6 @@ func parseStsz(payload []byte, fileSize int64) (sizes []uint32, constSize uint32
 	count = int64(be32(rest[4:]))
 	rest = rest[8:]
 	if constSize != 0 {
-		// Every sample is constSize bytes; the count cannot exceed what the
-		// file could hold plus slack.
 		if maxN := fileSize/int64(constSize) + 1; count > maxN {
 			count = maxN
 		}
@@ -433,7 +362,6 @@ func parseStsz(payload []byte, fileSize int64) (sizes []uint32, constSize uint32
 	return sizes, 0, count, nil
 }
 
-// parseStz2 reads a compact sample-size box (4-, 8-, or 16-bit fields).
 func parseStz2(payload []byte) (sizes []uint32, count int64, err error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 8 {
@@ -443,8 +371,6 @@ func parseStz2(payload []byte) (sizes []uint32, count int64, err error) {
 	count = int64(be32(rest[4:]))
 	rest = rest[8:]
 	if count > maxSamples {
-		// Cap before allocating: the per-field byte bounds still allow a
-		// ~64 MB moov to size a half-gigabyte slice without this backstop.
 		return nil, 0, malformed("stz2 declares %d samples", count)
 	}
 	switch fieldSize {
@@ -483,7 +409,6 @@ func parseStz2(payload []byte) (sizes []uint32, count int64, err error) {
 	return sizes, count, nil
 }
 
-// parseStco reads a chunk-offset box (32- or 64-bit).
 func parseStco(payload []byte, wide bool) ([]int64, error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 4 {
@@ -509,7 +434,6 @@ func parseStco(payload []byte, wide bool) ([]int64, error) {
 	return out, nil
 }
 
-// parseStss reads a sync-sample box.
 func parseStss(payload []byte) ([]int64, error) {
 	_, _, rest, ok := fullBox(payload)
 	if !ok || len(rest) < 4 {

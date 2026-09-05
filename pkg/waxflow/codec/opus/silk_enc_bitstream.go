@@ -1,12 +1,5 @@
 package opus
 
-// SILK bitstream encoding, ported from libopus silk/encode_indices.c,
-// silk/encode_pulses.c, silk/shell_coder.c (encode half), and
-// silk/code_signs.c (encode half). Exact mirrors of the decode side in
-// silk_decode.go: encode(x) followed by the decoder reproduces x bit-for-bit.
-
-// encodeIndices encodes one frame's side-information parameters
-// (silk_encode_indices).
 func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, encodeLBRR bool, condCoding int) {
 	var psIndices *silkIndices
 	if encodeLBRR {
@@ -15,7 +8,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 		psIndices = &ch.indices
 	}
 
-	// Signal type and quantizer offset.
 	typeOffset := 2*int(psIndices.signalType) + int(psIndices.quantOffsetType)
 	if encodeLBRR || typeOffset >= 2 {
 		enc.encodeICDF(typeOffset-2, silk_type_offset_VAD_iCDF, 8)
@@ -23,7 +15,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 		enc.encodeICDF(typeOffset, silk_type_offset_no_VAD_iCDF, 8)
 	}
 
-	// Gains: first subframe conditional or independent (MSBs then 3 LSBs).
 	if condCoding == codeConditionally {
 		enc.encodeICDF(int(psIndices.GainsIndices[0]), silk_delta_gain_iCDF, 8)
 	} else {
@@ -34,7 +25,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 		enc.encodeICDF(int(psIndices.GainsIndices[i]), silk_delta_gain_iCDF, 8)
 	}
 
-	// NLSFs.
 	enc.encodeICDF(int(psIndices.NLSFIndices[0]),
 		ch.psNLSFCB.cb1ICDF[(int(psIndices.signalType)>>1)*ch.psNLSFCB.nVectors:], 8)
 	var ecIx [silkMaxLPCOrder]int16
@@ -58,7 +48,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 	}
 
 	if psIndices.signalType == typeVoiced {
-		// Pitch lags: absolute, or delta against the previous frame.
 		encodeAbsoluteLagIndex := true
 		if condCoding == codeConditionally && ch.ecPrevSignalType == typeVoiced {
 			deltaLagIndex := psIndices.lagIndex - ch.ecPrevLagIndex
@@ -80,7 +69,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 
 		enc.encodeICDF(int(psIndices.contourIndex), ch.pitchContourICDF, 8)
 
-		// LTP gains: period index then per-subframe codebook indices.
 		enc.encodeICDF(int(psIndices.PERIndex), silk_LTP_per_index_iCDF, 8)
 		for k := 0; k < ch.nbSubfr; k++ {
 			enc.encodeICDF(int(psIndices.LTPIndex[k]), silkLTPGainICDFPtrs[psIndices.PERIndex], 8)
@@ -96,8 +84,6 @@ func (ch *silkEncoderChannel) encodeIndices(enc *rangeEncoder, frameIndex int, e
 	enc.encodeICDF(int(psIndices.Seed), silk_uniform4_iCDF, 8)
 }
 
-// combineAndCheck pairwise-combines pulses and reports whether any sum
-// exceeds maxPulses (combine_and_check).
 func combineAndCheck(pulsesComb, pulsesIn []int, maxPulses, length int) bool {
 	for k := 0; k < length; k++ {
 		sum := pulsesIn[2*k] + pulsesIn[2*k+1]
@@ -109,12 +95,9 @@ func combineAndCheck(pulsesComb, pulsesIn []int, maxPulses, length int) bool {
 	return false
 }
 
-// encodePulses encodes the quantized excitation (silk_encode_pulses).
 func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulses []int8, frameLength int) {
 	var pulsesComb [8]int
 
-	// The 10 ms @ 12 kHz frame (120 samples) is not a whole number of shell
-	// blocks; pad with zeros like the reference.
 	iter := frameLength >> log2ShellFrame
 	if iter*shellFrameLen < frameLength {
 		iter++
@@ -132,7 +115,6 @@ func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulse
 		absPulses[i] = v
 	}
 
-	// Sum pulses per shell block, scaling down until each fits.
 	sumPulses := make([]int, iter)
 	nRshifts := make([]int, iter)
 	for i := 0; i < iter; i++ {
@@ -153,7 +135,6 @@ func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulse
 		}
 	}
 
-	// Rate level: fewest bits for the pulses-per-block info.
 	rateLevelIndex := 0
 	minSumBitsQ5 := int32(silkInt32Max)
 	for k := 0; k < nRateLevels-1; k++ {
@@ -173,7 +154,6 @@ func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulse
 	}
 	enc.encodeICDF(rateLevelIndex, silk_rate_levels_iCDF[signalType>>1], 8)
 
-	// Sum-weighted-pulses encoding.
 	cdf := silk_pulses_per_block_iCDF[rateLevelIndex]
 	for i := 0; i < iter; i++ {
 		if nRshifts[i] == 0 {
@@ -187,14 +167,12 @@ func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulse
 		}
 	}
 
-	// Shell encoding.
 	for i := 0; i < iter; i++ {
 		if sumPulses[i] > 0 {
 			shellEncoder(enc, absPulses[i*shellFrameLen:(i+1)*shellFrameLen])
 		}
 	}
 
-	// LSB encoding.
 	for i := 0; i < iter; i++ {
 		if nRshifts[i] > 0 {
 			blk := pulses[i*shellFrameLen:]
@@ -216,15 +194,12 @@ func silkEncodePulses(enc *rangeEncoder, signalType, quantOffsetType int8, pulse
 	encodeSigns(enc, pulses, frameLength, signalType, quantOffsetType, sumPulses)
 }
 
-// encodeSplit encodes one shell-tree split (encode_split).
 func encodeSplit(enc *rangeEncoder, pChild1, p int, shellTable []uint8) {
 	if p > 0 {
 		enc.encodeICDF(pChild1, shellTable[silk_shell_code_table_offsets[p]:], 8)
 	}
 }
 
-// shellEncoder encodes one shell block of 16 nonnegative pulse amplitudes
-// (silk_shell_encoder).
 func shellEncoder(enc *rangeEncoder, pulses0 []int) {
 	var pulses1 [8]int
 	var pulses2 [4]int
@@ -265,7 +240,6 @@ func shellEncoder(enc *rangeEncoder, pulses0 []int) {
 	encodeSplit(enc, pulses0[14], pulses1[7], silk_shell_code_table0)
 }
 
-// encodeSigns encodes the excitation signs (silk_encode_signs).
 func encodeSigns(enc *rangeEncoder, pulses []int8, length int, signalType, quantOffsetType int8, sumPulses []int) {
 	var icdf [2]uint8
 	i := int(7 * (int32(quantOffsetType) + int32(signalType)<<1))
@@ -282,7 +256,6 @@ func encodeSigns(enc *rangeEncoder, pulses []int8, length int, signalType, quant
 			blk := pulses[i*shellFrameLen:]
 			for j := 0; j < shellFrameLen; j++ {
 				if blk[j] != 0 {
-					// silk_enc_map: sign bit to 0/1.
 					enc.encodeICDF(int(blk[j]>>7)+1, icdf[:], 8)
 				}
 			}

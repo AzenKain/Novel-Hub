@@ -18,9 +18,6 @@ import (
 	"novelhub/pkg/mailer"
 )
 
-// auditStubSettings is the minimal SettingsService surface CanReadBook touches.
-// It is a test double, not a wrapper: it implements the interface so the
-// service under test can be constructed without a full settings stack.
 type auditStubSettings struct{}
 
 func (a *auditStubSettings) Reload(ctx context.Context) error { return nil }
@@ -53,13 +50,7 @@ func (a *auditStubSettings) HardcoverConfig(ctx context.Context) (*models.Hardco
 	return nil, nil
 }
 
-// TestAuditCanReadBookIgnoresAgeRating proves task T0.3: CanReadBook does not
-// enforce age rating / kids mode.
-//
-// The DB is seeded with a real kid: is_kids_mode=1, max_allowed_age_rating='G',
-// and a real book rated R18+. The role grants book.read. If age rating were
-// enforced, CanReadBook must return false for this user+book pair. It returns
-// true, which is the bug the audit claims — so this test PASSING is the proof.
+// TestAuditCanReadBookIgnoresAgeRating proves task T0.3: CanReadBook does not enforce age rating / kids mode.
 func TestAuditCanReadBookIgnoresAgeRating(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "audit_canread.db"))
 	if err != nil {
@@ -95,15 +86,12 @@ func TestAuditCanReadBookIgnoresAgeRating(t *testing.T) {
 	svc := &bookService{settings: &auditStubSettings{}, permissions: permissions}
 	claims := &response.JWTClaims{UId: "u-kids", RoleIDs: []string{userRoleID}}
 
-	// Sanity: permission plumbing works — a G book is readable.
 	gBook := &models.BookEntity{ID: "b-r18", LibraryID: "lib-1", AgeRating: constants.AgeRatingG}
 	if !svc.CanReadBook(ctx, gBook, claims) {
 		t.Fatalf("setup broken: CanReadBook denied a G book for a USER-role holder; cannot probe the age-rating gap")
 	}
 
 	r18Book := &models.BookEntity{ID: "b-r18", LibraryID: "lib-1", AgeRating: constants.AgeRatingR18}
-	// BUG PROOF: kid (max G) is allowed to read an R18+ book.
-	// A fix must make this assertion fail (return false).
 	if !svc.CanReadBook(ctx, r18Book, claims) {
 		t.Fatalf("unexpected: CanReadBook returned false — age-rating enforcement may have been added; the audit claim no longer holds")
 	}

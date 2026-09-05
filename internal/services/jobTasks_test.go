@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// ListTasks is what the admin UI renders; a task absent from it is unreachable even though
-// Trigger would accept it. scan_library_inbox was in the map and had a handler for months.
+// ListTasks is what the admin UI renders; a task absent from it is unreachable even though Trigger would accept it.
 func TestListTasksExposesEveryTask(t *testing.T) {
 	service := NewJobService(nil, nil)
 
@@ -34,8 +33,7 @@ func TestListTasksExposesEveryTask(t *testing.T) {
 	}
 }
 
-// Each task type is rendered with t(`admin.operations.tasks.${type}`), so a missing key shows
-// the raw i18n path to the operator.
+// Each task type is rendered with t(`admin.operations.tasks.${type}`), so a missing key shows the raw i18n path to the operator.
 func TestEveryTaskHasALocaleLabel(t *testing.T) {
 	service := NewJobService(nil, nil)
 

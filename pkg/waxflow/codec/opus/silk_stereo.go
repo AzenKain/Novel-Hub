@@ -1,19 +1,13 @@
 package opus
 
-// SILK stereo unmixing and the packet-level decode driver, ported from libopus
-// silk/stereo_decode_pred.c, stereo_MS_to_LR.c, and dec_API.c.
-// File decode only: no PLC, CNG, FEC, or DTX.
-
-// silkControl carries the per-Opus-frame configuration the Opus layer supplies.
 type silkControl struct {
 	payloadSizeMs     int
-	internalRate      int // Hz (8000/12000/16000)
+	internalRate      int
 	nChannelsInternal int
 	nChannelsAPI      int
-	apiSampleRate     int // 48000
+	apiSampleRate     int
 }
 
-// stereoDecodePred decodes the mid/side prediction weights (silk_stereo_decode_pred).
 func stereoDecodePred(dec *rangeDecoder, predQ13 []int32) {
 	var ix [2][3]int
 	n := dec.decodeICDF(silk_stereo_pred_joint_iCDF, 8)
@@ -33,13 +27,10 @@ func stereoDecodePred(dec *rangeDecoder, predQ13 []int32) {
 	predQ13[0] -= predQ13[1]
 }
 
-// stereoDecodeMidOnly decodes the mid-only flag (silk_stereo_decode_mid_only).
 func stereoDecodeMidOnly(dec *rangeDecoder) int {
 	return dec.decodeICDF(silk_stereo_only_code_mid_iCDF, 8)
 }
 
-// stereoMSToLR converts mid/side back to left/right in place (silk_stereo_MS_to_LR).
-// x1/x2 carry a 2-sample lead: indices 0..1 are inter-frame history.
 func stereoMSToLR(st *stereoState, x1, x2 []int16, predQ13 []int32, fsKHz, frameLength int) {
 	x1[0], x1[1] = st.sMid[0], st.sMid[1]
 	x2[0], x2[1] = st.sSide[0], st.sSide[1]
@@ -78,9 +69,6 @@ func stereoMSToLR(st *stereoState, x1, x2 []int16, predQ13 []int32, fsKHz, frame
 	}
 }
 
-// decode decodes one SILK frame (all internal channels) and resamples it to the
-// API rate, writing nSamplesOut samples per API channel into out. Mirrors one
-// silk_Decode call (silk/dec_API.c, FLAG_DECODE_NORMAL path).
 func (d *silkDecoder) decode(dec *rangeDecoder, ctrl silkControl, out [][]int16) int {
 	cs0 := &d.channel[0]
 	nInt := ctrl.nChannelsInternal
@@ -130,7 +118,6 @@ func (d *silkDecoder) decode(dec *rangeDecoder, ctrl silkControl, out [][]int16)
 				}
 			}
 		}
-		// Consume (and discard) LBRR redundancy frames to stay bit-aligned.
 		for i := 0; i < cs0.nFramesPerPacket; i++ {
 			for n := 0; n < nInt; n++ {
 				cs := &d.channel[n]
@@ -201,9 +188,6 @@ func (d *silkDecoder) decode(dec *rangeDecoder, ctrl silkControl, out [][]int16)
 	if nAPI == 2 && nInt == 2 {
 		stereoMSToLR(&d.sStereo, buf[0], buf[1], msPredQ13[:], cs0.fsKHz, nSamplesOutDec)
 	} else {
-		// Only the mid history is buffered here, matching dec_API.c: sSide
-		// is read solely by stereoMSToLR, which a mono-API track can never
-		// reach, and the API-2/internal-2 transition above resets it.
 		buf[0][0], buf[0][1] = d.sStereo.sMid[0], d.sStereo.sMid[1]
 		d.sStereo.sMid[0], d.sStereo.sMid[1] = buf[0][nSamplesOutDec], buf[0][nSamplesOutDec+1]
 	}

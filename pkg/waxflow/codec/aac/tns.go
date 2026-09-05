@@ -4,23 +4,19 @@ import "math"
 
 const maxTNSOrder = 20
 
-// tnsFilter is one temporal-noise-shaping filter's synthesis coefficients.
 type tnsFilter struct {
 	length    int
 	order     int
 	direction int
-	coef      [maxTNSOrder]float64 // LPC a[1..order]
+	coef      [maxTNSOrder]float64
 }
 
-// tnsInfo holds the parsed TNS filters per window.
 type tnsInfo struct {
 	nFilt   [8]int
 	coefRes [8]int
 	filt    [8][4]tnsFilter
 }
 
-// parseTNS reads tns_data (ISO 14496-3 4.6.9.1) and converts the coded
-// reflection coefficients into synthesis LPC coefficients.
 func parseTNS(r *bitReader, cd *channelData) {
 	info := &cd.info
 	t := &cd.tns
@@ -52,9 +48,6 @@ func parseTNS(r *bitReader, cd *channelData) {
 			negMask := ^((1 << uint(coefBits)) - 1)
 			iqfac := (float64(int(1)<<uint(resBits-1)) - 0.5) / (math.Pi / 2)
 			iqfacM := (float64(int(1)<<uint(resBits-1)) + 0.5) / (math.Pi / 2)
-			// A malformed stream can code an order past LC's limit; consume
-			// every coded coefficient to stay bit-aligned, but keep only the
-			// first maxTNSOrder for the synthesis filter.
 			filt.order = min(rawOrder, maxTNSOrder)
 			var refl [maxTNSOrder]float64
 			for i := 0; i < rawOrder; i++ {
@@ -76,8 +69,6 @@ func parseTNS(r *bitReader, cd *channelData) {
 	}
 }
 
-// reflToLPC runs the Levinson step-up recursion, converting reflection
-// coefficients into the direct-form LPC coefficients a[1..order].
 func reflToLPC(refl, a []float64) {
 	order := len(refl)
 	var lpc [maxTNSOrder + 1]float64
@@ -97,8 +88,6 @@ func reflToLPC(refl, a []float64) {
 	}
 }
 
-// applyTNS runs the auto-regressive synthesis filters over the spectral
-// coefficients (ISO 14496-3 4.6.9.3), reversing the encoder's TNS analysis.
 func applyTNS(cd *channelData, rateIdx int) {
 	info := &cd.info
 	t := &cd.tns
@@ -110,9 +99,6 @@ func applyTNS(cd *channelData, rateIdx int) {
 		if t.nFilt[w] == 0 {
 			continue
 		}
-		// The filter region counts down from the full scalefactor-band count;
-		// the tns_max_bands and max_sfb caps apply only where swb[] is indexed
-		// (ISO 14496-3 / faad tns_decode_frame), not to the countdown itself.
 		top := info.numSwb
 		base := w * 128
 		for f := 0; f < t.nFilt[w]; f++ {
@@ -135,7 +121,6 @@ func applyTNS(cd *channelData, rateIdx int) {
 	}
 }
 
-// arFilter applies one all-pole synthesis filter in place over spec.
 func arFilter(spec []float64, size int, filt *tnsFilter) {
 	inc := 1
 	off := 0
@@ -152,7 +137,6 @@ func arFilter(spec []float64, size int, filt *tnsFilter) {
 				y -= filt.coef[j] * state[j]
 			}
 		}
-		// shift state (arFilter runs only for order >= 1)
 		for j := filt.order - 1; j > 0; j-- {
 			state[j] = state[j-1]
 		}

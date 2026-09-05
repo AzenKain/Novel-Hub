@@ -20,7 +20,5 @@ func SetupReaderRoutes(router fiber.Router, controller *controllers.ReaderContro
 	reader.Get("/:id/images", middlewares.OptionalJwtAccess(userRepo), controller.ListImages)
 	reader.Get("/proxy-cover", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit), controller.ProxyCover)
 	reader.Post("/:id/cover", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookEdit, middlewares.BookLibraryAttr(bookRepo, "id")), controller.UpdateCover)
-	// Assets are one request per comic page — a 200-page volume is 200 hits that
-	// each re-open the archive. The ETag lets a re-read return 304 instead.
 	reader.Get("/:id/asset/*", etag.New(), middlewares.OptionalJwtAccess(userRepo), controller.GetAsset)
 }

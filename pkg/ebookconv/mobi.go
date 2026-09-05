@@ -25,11 +25,6 @@ func writeMOBI(book *bookparser.BookData, images []Image) ([]byte, error) {
 	}
 
 	chunks := splitRecords(compressed)
-	// Record 0 holds the PalmDOC header, MOBI header and title only; the
-	// parser's extractText reads records[1..recordCount] for the text.
-	// textLength is the UNCOMPRESSED size: the reader compares its
-	// decompressed output against it, so a compressed size would truncate
-	// the book mid-walk (the "first chapter becomes chapter 3" bug).
 	record0 := make([]byte, 0, 16+mobiHeaderLen+len(title))
 	record0 = append(record0, palmDOCHeader(uint16(len(chunks)), uint32(len(html)))...)
 	record0 = append(record0, mobiHeader(title, uint32(len(chunks)+1))...)
@@ -49,7 +44,7 @@ func writeMOBI(book *bookparser.BookData, images []Image) ([]byte, error) {
 
 func palmDOCHeader(recordCount uint16, textLength uint32) []byte {
 	h := make([]byte, 16)
-	binary.BigEndian.PutUint16(h[0:2], 2) // compression: PalmDOC LZ77
+	binary.BigEndian.PutUint16(h[0:2], 2)
 	binary.BigEndian.PutUint32(h[4:8], textLength)
 	binary.BigEndian.PutUint16(h[8:10], recordCount)
 	binary.BigEndian.PutUint16(h[10:12], palmDOCRecordSize)
@@ -170,10 +165,6 @@ func rebaseImagesToKindle(content string, images []Image) string {
 	return b.String()
 }
 
-// demoteMobiHeadings rewrites h1-h6 inside a chapter fragment to <p> so the
-// only headings in the mobi body are the <h1> chapter titles the writer emits
-// itself. The reader splits its TOC on heading tags; leaving a chapter's own
-// <h2> in place promoted it to a duplicate "chapter" on round-trip.
 func demoteMobiHeadings(content string) string {
 	nodes := fragmentNodes(content)
 	if len(nodes) == 0 {
@@ -224,9 +215,6 @@ func mobiImageExt(img Image) string {
 	}
 }
 
-// palmDOCCompress runs the PalmDOC LZ77 back-reference scheme (max distance
-// 2047, length 3-10, literal runs ≤8). The format is the inverse of the
-// decompressor in pkg/bookparser/mobi.
 func palmDOCCompress(data []byte) []byte {
 	out := make([]byte, 0, len(data))
 	positions := make(map[uint32][]int)

@@ -19,25 +19,13 @@ var (
 	_ container.Warner  = (*Demuxer)(nil)
 )
 
-// Hostile-input caps (ADR-0005 invariants).
 const (
-	// maxMetaBlocks bounds the metadata walk; real files hold a handful,
-	// pathological repetition (the IETF suite ships a 1000-block file)
-	// stays well under.
 	maxMetaBlocks = 4096
-	// maxSeekPoints caps the SEEKTABLE allocation; points past the cap
-	// only coarsen seeks, so the prefix is kept and the rest skipped.
 	maxSeekPoints = 1 << 16
-	// maxFrameLen caps a single frame scan. STREAMINFO's frame size field
-	// is 24-bit, so no compliant frame can exceed it.
-	maxFrameLen = 1 << 24
-	// maxResync bounds the scan for a frame sync after damage.
-	maxResync = 1 << 20
-	// seekWindow is the bisection cutoff: below this span, walk frames.
-	seekWindow = 128 << 10
-	// maxTrailers bounds trailing-tag peeling at end of stream (tags
-	// stack: APEv2 then ID3v1 is a classic).
-	maxTrailers = 8
+	maxFrameLen   = 1 << 24
+	maxResync     = 1 << 20
+	seekWindow    = 128 << 10
+	maxTrailers   = 8
 )
 
 // Metadata block types (RFC 9639 section 8).
@@ -49,13 +37,12 @@ const (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
 	Strict bool
 }
 
 type seekPoint struct {
 	sample int64
-	off    int64 // relative to the first frame
+	off    int64
 }
 
 // Demuxer reads one FLAC track from a native FLAC source.
@@ -68,28 +55,20 @@ type Demuxer struct {
 	seekTable []seekPoint
 	warnings  []container.Warning
 
-	firstFrame int64 // byte offset of the first audio frame
+	firstFrame int64
 
-	// num maps coded numbers to sample positions (flac.Numbering,
-	// latched from the first frame); varBit is the blocking-strategy
-	// header bit, which must not change within a stream.
 	num    flac.Numbering
 	varBit bool
 
-	off   int64          // offset of the current undelivered frame
-	cur   flac.FrameInfo // its parsed header
-	valid bool           // false once the stream is exhausted
-	empty bool           // stream has zero frames (legal: metadata only)
+	off   int64
+	cur   flac.FrameInfo
+	valid bool
+	empty bool
 
-	// w is the shared read-ahead window; its data end is the end of
-	// frame data (trailing tags stripped lazily) and its sticky error
-	// surfaces on the packet and seek paths.
 	w srcwin.Window
 }
 
-// NewDemuxer parses the headers of a native FLAC source and positions on
-// the first frame. The returned Demuxer implements container.Seeker and
-// container.Warner.
+// NewDemuxer parses the headers of a native FLAC source and positions on the first frame.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src, w: srcwin.New(src, src.Size(), "flacn: reading frame data")}
 	if opts != nil {
@@ -105,7 +84,6 @@ func malformed(format string, args ...any) error {
 	return waxerr.New(waxerr.CodeUnsupportedFormat, "flacn: "+fmt.Sprintf(format, args...))
 }
 
-// warn records tolerated damage, or fails in strict mode.
 func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if d.opts.Strict {
@@ -202,16 +180,9 @@ func (d *Demuxer) parse() error {
 		Default:     true,
 	}
 
-	// Latch the first frame: it fixes the blocking strategy and the
-	// fixed-strategy constant block size that converts frame numbers to
-	// sample positions everywhere else.
 	fi, err := flac.ParseFrameHeader(d.w.BytesAt(off, flac.MaxFrameHeaderLen))
 	if err != nil || !d.consistent(fi) {
 		if d.firstFrame >= d.w.DataEnd() {
-			// Zero frames and zero audio bytes: a legal stream (encoding
-			// empty input produces exactly this, STREAMINFO total 0 and
-			// all). Reads return EOF, seeks land at 0. A declared total
-			// with no frames to back it is an inconsistency, though.
 			if d.si.Samples != 0 {
 				if werr := d.warn(off, "STREAMINFO declares %d samples but the stream has no frames", d.si.Samples); werr != nil {
 					return werr
@@ -223,8 +194,6 @@ func (d *Demuxer) parse() error {
 		}
 		fOff, ffi, ok := d.nextCandidate(off, off+maxResync)
 		if !ok {
-			// A read failure looks identical from here (empty scans); it
-			// must not be misreported as an unsupported file.
 			if d.w.Err() != nil {
 				return d.w.Err()
 			}
@@ -244,8 +213,6 @@ func (d *Demuxer) parse() error {
 	return nil
 }
 
-// parseSeekTable reads up to maxSeekPoints seek points, dropping
-// placeholders and non-monotonic entries.
 func (d *Demuxer) parseSeekTable(off, length int64) error {
 	if length%18 != 0 {
 		if err := d.warn(off, "SEEKTABLE length %d is not whole seek points", length); err != nil {
@@ -265,7 +232,7 @@ func (d *Demuxer) parseSeekTable(off, length int64) error {
 		b := raw[i*18:]
 		sample := binary.BigEndian.Uint64(b)
 		if sample == 1<<64-1 {
-			continue // placeholder point
+			continue
 		}
 		p := seekPoint{sample: int64(sample), off: int64(binary.BigEndian.Uint64(b[8:]))}
 		if p.sample < 0 || p.off < 0 ||
@@ -286,9 +253,6 @@ func (d *Demuxer) Tracks() []container.Track { return []container.Track{d.track}
 // Warnings returns damage tolerated during parsing.
 func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 
-// consistent reports whether a frame header agrees with STREAMINFO; the
-// pipeline's track format is fixed, and consistency is also what makes
-// sync-candidate scanning trustworthy.
 func (d *Demuxer) consistent(fi flac.FrameInfo) bool {
 	rate, bits := fi.Rate, fi.Bits
 	if rate == 0 {
@@ -300,10 +264,6 @@ func (d *Demuxer) consistent(fi flac.FrameInfo) bool {
 	return rate == d.si.Rate && bits == d.si.Bits && fi.Channels == d.si.Channels
 }
 
-// nextCandidate scans [from, limit) for a sync candidate whose header
-// parses and agrees with STREAMINFO. Used for initial positioning,
-// resync after damage, and bisection probes; packet boundaries demand
-// the stronger findEnd confirmation.
 func (d *Demuxer) nextCandidate(from, limit int64) (int64, flac.FrameInfo, bool) {
 	limit = min(limit, d.w.DataEnd())
 	for off := from; off < limit; {
@@ -331,20 +291,11 @@ func (d *Demuxer) nextCandidate(from, limit int64) (int64, flac.FrameInfo, bool)
 	return 0, flac.FrameInfo{}, false
 }
 
-// findEnd locates the end of the current frame at d.off: the next sync
-// candidate that parses consistently, carries the expected position, and
-// where the bytes so far checksum as a complete frame (CRC-16). At end
-// of data the final span must checksum likewise; recognized trailers
-// (ID3v1, APEv2, appended ID3v2, NUL padding) are peeled and retried
-// before the tail is declared damaged. end < 0 with a nil error reports
-// a tolerantly dropped tail.
 func (d *Demuxer) findEnd() (end int64, next flac.FrameInfo, nextOK bool, err error) {
 	start := d.off
 	crc := uint16(0)
-	crcPos := start // crc covers [start, crcPos)
+	crcPos := start
 
-	// A boundary needs at least a header and CRC-16 before it; starting
-	// past the fixed header bytes keeps the scan out of our own header.
 	scan := start + 4
 	for {
 		if scan-start > maxFrameLen {
@@ -352,7 +303,7 @@ func (d *Demuxer) findEnd() (end int64, next flac.FrameInfo, nextOK bool, err er
 		}
 		buf := d.w.BytesAt(scan, srcwin.Chunk)
 		if len(buf) == 0 {
-			break // end of data
+			break
 		}
 		rel := 0
 		for {
@@ -377,17 +328,12 @@ func (d *Demuxer) findEnd() (end int64, next flac.FrameInfo, nextOK bool, err er
 			crcPos = cand - 2
 			tail := d.w.BytesAt(crcPos, 2)
 			if len(tail) == 2 && crc == uint16(tail[0])<<8|uint16(tail[1]) {
-				// Confirmed boundary. A frame here that disagrees with
-				// STREAMINFO is a mid-stream format change: not damage but
-				// a stream shape the fixed-format pipeline rejects (RFC
-				// 9639 permits this), so it is a hard error either mode.
 				if !d.consistent(fi) {
 					return 0, flac.FrameInfo{}, false,
 						malformed("mid-stream format change at offset %d", cand)
 				}
 				return cand, fi, true, nil
 			}
-			// Not a boundary: fold the two checked bytes in and go on.
 			crc = flac.UpdateCRC16(crc, tail)
 			crcPos += int64(len(tail))
 		}
@@ -397,11 +343,6 @@ func (d *Demuxer) findEnd() (end int64, next flac.FrameInfo, nextOK bool, err er
 		return 0, flac.FrameInfo{}, false, d.w.Err()
 	}
 
-	// End of data: the last frame must checksum to exactly here, after
-	// peeling any recognized trailing tags (taggers bolt ID3v1, APEv2,
-	// and appended ID3v2 onto FLAC files; NUL padding shows up too, and
-	// tags stack). dataEnd shrinks permanently only once a peel is
-	// confirmed by the checksum.
 	end = d.w.DataEnd()
 	for range maxTrailers {
 		if d.tailChecks(crc, crcPos, end) {
@@ -428,11 +369,6 @@ func (d *Demuxer) findEnd() (end int64, next flac.FrameInfo, nextOK bool, err er
 	return -1, flac.FrameInfo{}, false, nil
 }
 
-// stripTrailer recognizes one trailing non-FLAC structure ending at end
-// and returns the end without it: an ID3v1 tag, an APEv2 tag (with its
-// optional header), an appended ID3v2 tag, or NUL padding. The caller
-// re-checks the frame checksum after each peel, so a false recognition
-// costs a retry, never data.
 func (d *Demuxer) stripTrailer(start, end int64) (int64, bool) {
 	if e := end - 128; e >= start+2 {
 		if string(d.w.BytesAt(e, 3)) == "TAG" {
@@ -441,8 +377,6 @@ func (d *Demuxer) stripTrailer(start, end int64) (int64, bool) {
 	}
 	if e := end - 32; e >= start+2 {
 		if f := d.w.BytesAt(e, 32); len(f) == 32 && string(f[:8]) == "APETAGEX" {
-			// Size covers items plus this footer; a set header flag adds
-			// an equally sized preamble.
 			total := int64(binary.LittleEndian.Uint32(f[12:16]))
 			if binary.LittleEndian.Uint32(f[20:24])&(1<<31) != 0 {
 				total += 32
@@ -455,7 +389,6 @@ func (d *Demuxer) stripTrailer(start, end int64) (int64, bool) {
 	if e := end - 10; e >= start+2 {
 		if f := d.w.BytesAt(e, 10); len(f) == 10 && string(f[:3]) == "3DI" &&
 			(f[6]|f[7]|f[8]|f[9])&0x80 == 0 {
-			// An appended ID3v2 tag: header, syncsafe-sized body, footer.
 			size := int64(f[6])<<21 | int64(f[7])<<14 | int64(f[8])<<7 | int64(f[9])
 			if total := size + 20; end-total >= start+2 {
 				return end - total, true
@@ -476,8 +409,6 @@ func (d *Demuxer) stripTrailer(start, end int64) (int64, bool) {
 	return end, false
 }
 
-// tailChecks reports whether [d.off, end) checksums as a complete frame,
-// given crc already covering [d.off, crcPos).
 func (d *Demuxer) tailChecks(crc uint16, crcPos, end int64) bool {
 	if end-crcPos < 2 || end > d.w.DataEnd() {
 		return false
@@ -490,8 +421,7 @@ func (d *Demuxer) tailChecks(crc uint16, crcPos, end int64) bool {
 	return crc == uint16(tail[0])<<8|uint16(tail[1])
 }
 
-// ReadPacket yields one whole frame, checksum included. Packet data is
-// reused across calls.
+// ReadPacket yields one whole frame, checksum included.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	if !d.valid {
 		if d.w.Err() != nil {
@@ -505,7 +435,6 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 		return err
 	}
 	if end < 0 {
-		// Damaged tail, tolerantly dropped.
 		d.valid = false
 		return io.EOF
 	}
@@ -529,11 +458,7 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	return nil
 }
 
-// SeekSample repositions to the frame containing the target sample and
-// returns that frame's first sample; format.Media pre-rolls the
-// remainder. The SEEKTABLE provides the starting point when present and
-// trustworthy; otherwise bisection on the frame headers' own position
-// numbers narrows the range.
+// SeekSample repositions to the frame containing the target sample and returns that frame's first sample; format.Media pre-rolls the remainder.
 func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	if track != 0 {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, fmt.Sprintf("flacn: no track %d", track))
@@ -542,15 +467,11 @@ func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, "flacn: negative seek target")
 	}
 	if d.empty {
-		return 0, nil // nothing to land on; reads stay EOF
+		return 0, nil
 	}
 
 	off, fi, ok := d.seekTableHint(sample)
 	if ok {
-		// The table is data, not truth: like every other boundary here,
-		// the landing only counts once the pointed-at frame's end is
-		// checksum-confirmed. Warnings from a failed probe are dropped
-		// with it.
 		d.off, d.cur, d.valid = off, fi, true
 		saved := len(d.warnings)
 		end, _, _, err := d.findEnd()
@@ -573,8 +494,6 @@ func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	}
 
 	d.off, d.cur, d.valid = off, fi, true
-	// Walk forward to the frame containing the target; stop on the last
-	// frame for past-the-end targets.
 	for d.num.Start(d.cur)+int64(d.cur.BlockSize) <= sample {
 		d.w.Trim(d.off)
 		end, next, nextOK, err := d.findEnd()
@@ -589,8 +508,6 @@ func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	return d.num.Start(d.cur), nil
 }
 
-// seekTableHint resolves the target through the SEEKTABLE, verifying the
-// pointed-at bytes really are a consistent frame header.
 func (d *Demuxer) seekTableHint(sample int64) (int64, flac.FrameInfo, bool) {
 	lo, hi := 0, len(d.seekTable)
 	for lo < hi {
@@ -617,9 +534,6 @@ func (d *Demuxer) seekTableHint(sample int64) (int64, flac.FrameInfo, bool) {
 	return off, fi, true
 }
 
-// bisect narrows the byte range containing the target sample using frame
-// headers found from probe offsets, then hands back the earliest frame
-// of the final window.
 func (d *Demuxer) bisect(sample int64) (int64, flac.FrameInfo, bool) {
 	lo := d.firstFrame
 	loFi, err := flac.ParseFrameHeader(d.w.BytesAt(lo, flac.MaxFrameHeaderLen))

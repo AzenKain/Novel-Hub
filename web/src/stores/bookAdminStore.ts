@@ -1,16 +1,26 @@
 import { queryClient } from "@/config/queryClient";
 import i18n from "@/i18n";
-import { formatFileSize, formatUploadSpeed, getMetaContent, toStringList } from "@/lib/bookDetail";
+import {
+  formatFileSize,
+  formatUploadSpeed,
+  getMetaContent,
+  toStringList,
+} from "@/lib/bookDetail";
 import { bookService, metadataService, uploadService } from "@/services";
-import { Book, BookFile, Library, MetadataJSON, OnlineMetadataResult } from "@/types";
-import { toast } from 'react-toastify';
+import {
+  Book,
+  BookFile,
+  Library,
+  MetadataJSON,
+  OnlineMetadataResult,
+} from "@/types";
+import { toast } from "react-toastify";
 import { create } from "zustand";
 
 interface BookAdminState {
   search: string;
   selectedLibraryId: string;
 
-  // Editor Modal
   editingBook: Book | null;
   formData: {
     title: string;
@@ -28,21 +38,18 @@ interface BookAdminState {
   bookFiles: BookFile[];
   uploadingBookFiles: boolean;
 
-  // Cover preview & tabs
   coverTab: "book" | "upload" | "link";
   epubImages: string[];
   loadingImages: boolean;
   linkUrl: string;
   coverPreview: string | null;
-  pendingCover: { type: 'file' | 'url' | 'epub', value: any } | null;
+  pendingCover: { type: "file" | "url" | "epub"; value: any } | null;
 
-  // Metadata Search
   searchSource: string;
   onlineSearchQuery: string;
   searching: boolean;
   searchResults: OnlineMetadataResult[];
 
-  // Upload Modal
   showUploadModal: boolean;
   uploadLibraryId: string;
   uploading: boolean;
@@ -52,33 +59,32 @@ interface BookAdminState {
   uploadBytesText: string;
   uploadBatchInfo: { current: number; total: number } | null;
 
-  // Manage Libraries Modal
   showLibraryModal: boolean;
   newLibraryName: string;
 
-  // Deletion modals state
   bookToDelete: Book | null;
   libraryToDelete: Library | null;
 
-  // Setters
   setSearch: (search: string) => void;
   setSelectedLibraryId: (id: string) => void;
   setSearchSource: (source: string) => void;
   setOnlineSearchQuery: (query: string) => void;
   setCoverTab: (tab: "book" | "upload" | "link") => void;
   setLinkUrl: (url: string) => void;
-  setFormData: (data: Partial<{
-    title: string;
-    author: string;
-    description: string;
-    publisher: string;
-    language: string;
-    date: string;
-    subjects: string[];
-    series: string;
-    series_index: string;
-    age_rating: string;
-  }>) => void;
+  setFormData: (
+    data: Partial<{
+      title: string;
+      author: string;
+      description: string;
+      publisher: string;
+      language: string;
+      date: string;
+      subjects: string[];
+      series: string;
+      series_index: string;
+      age_rating: string;
+    }>,
+  ) => void;
   setShowUploadModal: (show: boolean) => void;
   setUploadLibraryId: (id: string) => void;
   setShowLibraryModal: (show: boolean) => void;
@@ -88,7 +94,6 @@ interface BookAdminState {
   setBookToDelete: (book: Book | null) => void;
   setLibraryToDelete: (library: Library | null) => void;
 
-  // Actions
   openEditModal: (book: Book) => void;
   handleSearchOnline: () => Promise<void>;
   handleSelectResult: (result: OnlineMetadataResult) => void;
@@ -96,8 +101,12 @@ interface BookAdminState {
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleLinkUpload: () => Promise<void>;
   handleEditSubmit: (e?: React.SyntheticEvent) => Promise<void>;
-  handleUploadBookFiles: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleUploadFiles: (filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleUploadBookFiles: (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => Promise<void>;
+  handleUploadFiles: (
+    filesOrEvent: FileList | File[] | React.ChangeEvent<HTMLInputElement>,
+  ) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
   archiveBook: (id: string, archived: boolean) => Promise<void>;
   deleteBookFile: (fileId: string) => Promise<void>;
@@ -114,7 +123,18 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   selectedLibraryId: "",
 
   editingBook: null,
-  formData: { title: "", author: "", description: "", publisher: "", language: "", date: "", subjects: [], series: "", series_index: "", age_rating: "" },
+  formData: {
+    title: "",
+    author: "",
+    description: "",
+    publisher: "",
+    language: "",
+    date: "",
+    subjects: [],
+    series: "",
+    series_index: "",
+    age_rating: "",
+  },
   submitting: false,
   bookFiles: [],
   uploadingBookFiles: false,
@@ -152,7 +172,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   setOnlineSearchQuery: (onlineSearchQuery) => set({ onlineSearchQuery }),
   setCoverTab: (coverTab) => set({ coverTab }),
   setLinkUrl: (linkUrl) => set({ linkUrl }),
-  setFormData: (data) => set((state) => ({ formData: { ...state.formData, ...data } })),
+  setFormData: (data) =>
+    set((state) => ({ formData: { ...state.formData, ...data } })),
   setShowUploadModal: (showUploadModal) => set({ showUploadModal }),
   setUploadLibraryId: (uploadLibraryId) => set({ uploadLibraryId }),
   setShowLibraryModal: (showLibraryModal) => set({ showLibraryModal }),
@@ -179,7 +200,8 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         date = meta.date || meta.dates?.[0] || "";
         subjects = toStringList(meta.subject);
         series = meta.series || getMetaContent(meta, "calibre:series");
-        series_index = meta.series_index || getMetaContent(meta, "calibre:series_index");
+        series_index =
+          meta.series_index || getMetaContent(meta, "calibre:series_index");
       } catch (e) {
         console.error("Failed to parse metadata_json", e);
       }
@@ -207,16 +229,22 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       pendingCover: null,
       onlineSearchQuery: book.title || "",
       searchResults: [],
-      loadingImages: true
+      loadingImages: true,
     });
 
     void Promise.all([
-      bookService.listImages(book.id).then(res => {
-        if (res.status && res.data) set({ epubImages: res.data });
-      }).catch(() => undefined),
-      bookService.listFiles(book.id).then(res => {
-        if (res.status && res.data) set({ bookFiles: res.data });
-      }).catch(() => undefined)
+      bookService
+        .listImages(book.id)
+        .then((res) => {
+          if (res.status && res.data) set({ epubImages: res.data });
+        })
+        .catch(() => undefined),
+      bookService
+        .listFiles(book.id)
+        .then((res) => {
+          if (res.status && res.data) set({ bookFiles: res.data });
+        })
+        .catch(() => undefined),
     ]).finally(() => {
       set({ loadingImages: false });
     });
@@ -224,7 +252,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
 
   handleSearchOnline: async () => {
     const { onlineSearchQuery, formData, editingBook, searchSource } = get();
-    const query = onlineSearchQuery?.trim() || formData.title?.trim() || editingBook?.title?.trim() || "";
+    const query =
+      onlineSearchQuery?.trim() ||
+      formData.title?.trim() ||
+      editingBook?.title?.trim() ||
+      "";
     if (!query) {
       toast.warn(i18n.t("admin.search_keyword_required"));
       return;
@@ -234,7 +266,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       const results = await metadataService.searchOnline(query, searchSource);
       set({ searchResults: results });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.metadata_fetch_error"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t("admin.metadata_fetch_error"),
+      );
     } finally {
       set({ searching: false });
     }
@@ -250,17 +286,19 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         description: result.description || formData.description,
         publisher: result.publisher || formData.publisher,
         language: result.language || formData.language,
-        subjects: result.subject ? toStringList(result.subject) : formData.subjects,
+        subjects: result.subject
+          ? toStringList(result.subject)
+          : formData.subjects,
         series: result.series || formData.series,
         series_index: result.series_index || formData.series_index,
       },
-      searchResults: []
+      searchResults: [],
     });
-    
+
     if (result.cover_image && editingBook) {
-      set({ 
-        coverPreview: result.cover_image, 
-        pendingCover: { type: 'url', value: result.cover_image } 
+      set({
+        coverPreview: result.cover_image,
+        pendingCover: { type: "url", value: result.cover_image },
       });
     }
   },
@@ -268,9 +306,9 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
   handleSelectEpubImage: async (imagePath) => {
     const { editingBook } = get();
     if (!editingBook) return;
-    set({ 
-      coverPreview: `/api/v1/reader/${editingBook.id}/asset/${imagePath}`, 
-      pendingCover: { type: 'epub', value: imagePath } 
+    set({
+      coverPreview: `/api/v1/reader/${editingBook.id}/asset/${imagePath}`,
+      pendingCover: { type: "epub", value: imagePath },
     });
   },
 
@@ -278,18 +316,18 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     const file = e.target.files?.[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
-    set({ 
-      coverPreview: previewUrl, 
-      pendingCover: { type: 'file', value: file } 
+    set({
+      coverPreview: previewUrl,
+      pendingCover: { type: "file", value: file },
     });
   },
 
   handleLinkUpload: async () => {
     const { linkUrl } = get();
     if (!linkUrl) return;
-    set({ 
-      coverPreview: linkUrl, 
-      pendingCover: { type: 'url', value: linkUrl } 
+    set({
+      coverPreview: linkUrl,
+      pendingCover: { type: "url", value: linkUrl },
     });
     toast.success(i18n.t("admin.cover_link_applied"));
   },
@@ -313,16 +351,22 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         subjects: formData.subjects,
         age_rating: formData.age_rating.trim(),
       };
-      
+
       await bookService.updateMetadata(editingBook.id, submitData);
 
       if (pendingCover) {
-        if (pendingCover.type === 'file') {
-          await bookService.updateCover(editingBook.id, { cover: pendingCover.value });
-        } else if (pendingCover.type === 'url') {
-          await bookService.updateCover(editingBook.id, { cover_url: pendingCover.value });
-        } else if (pendingCover.type === 'epub') {
-          await bookService.updateCover(editingBook.id, { epub_image_path: pendingCover.value });
+        if (pendingCover.type === "file") {
+          await bookService.updateCover(editingBook.id, {
+            cover: pendingCover.value,
+          });
+        } else if (pendingCover.type === "url") {
+          await bookService.updateCover(editingBook.id, {
+            cover_url: pendingCover.value,
+          });
+        } else if (pendingCover.type === "epub") {
+          await bookService.updateCover(editingBook.id, {
+            epub_image_path: pendingCover.value,
+          });
         }
       }
 
@@ -330,7 +374,9 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       set({ editingBook: null });
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.book_update_error"));
+      toast.error(
+        err instanceof Error ? err.message : i18n.t("admin.book_update_error"),
+      );
     } finally {
       set({ submitting: false });
     }
@@ -346,7 +392,11 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       let successCount = 0;
       for (const file of Array.from(files)) {
         try {
-          const res = await uploadService.uploadFileChunked(file, "book", editingBook.id);
+          const res = await uploadService.uploadFileChunked(
+            file,
+            "book",
+            editingBook.id,
+          );
           if (!res.status) throw new Error(res.message || "Upload failed");
           successCount++;
         } catch (fileErr) {
@@ -354,18 +404,23 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
         }
       }
 
-      if (successCount === 0) throw new Error(i18n.t("admin.upload_all_failed_generic"));
+      if (successCount === 0)
+        throw new Error(i18n.t("admin.upload_all_failed_generic"));
 
       toast.success(i18n.t("admin.files_uploaded", { count: successCount }));
       const res = await bookService.listFiles(editingBook.id);
       const nextFiles = res.data || [];
       set((state) => ({
         bookFiles: nextFiles,
-        editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
+        editingBook: state.editingBook
+          ? { ...state.editingBook, files: nextFiles }
+          : state.editingBook,
       }));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.upload_files_error"));
+      toast.error(
+        err instanceof Error ? err.message : i18n.t("admin.upload_files_error"),
+      );
     } finally {
       e.target.value = "";
       set({ uploadingBookFiles: false });
@@ -376,7 +431,12 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
     let fileArray: File[] = [];
     if (Array.isArray(filesOrEvent)) {
       fileArray = filesOrEvent;
-    } else if ("target" in filesOrEvent && filesOrEvent.target && "files" in filesOrEvent.target && filesOrEvent.target.files) {
+    } else if (
+      "target" in filesOrEvent &&
+      filesOrEvent.target &&
+      "files" in filesOrEvent.target &&
+      filesOrEvent.target.files
+    ) {
       fileArray = Array.from(filesOrEvent.target.files);
     } else if (filesOrEvent && "length" in filesOrEvent) {
       fileArray = Array.from(filesOrEvent as FileList);
@@ -420,22 +480,32 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
                 uploadSpeed: formatUploadSpeed(stats.speedBytesPerSec),
                 uploadBytesText: `${formatFileSize(stats.uploadedBytes)} / ${formatFileSize(stats.totalBytes)}`,
               });
-            }
+            },
           );
           if (!res.status) throw new Error(res.message || "Upload failed");
           successCount++;
         } catch (fileErr) {
           console.error("Failed to upload file:", file.name, fileErr);
-          if (!firstError) firstError = fileErr instanceof Error ? fileErr.message : String(fileErr);
+          if (!firstError)
+            firstError =
+              fileErr instanceof Error ? fileErr.message : String(fileErr);
         }
       }
 
-      if (successCount === 0) throw new Error(i18n.t("admin.upload_all_failed", { reason: firstError }));
+      if (successCount === 0)
+        throw new Error(
+          i18n.t("admin.upload_all_failed", { reason: firstError }),
+        );
 
       set({ showUploadModal: false });
-      toast.info(successCount === totalFiles
-        ? i18n.t("admin.upload_done", { count: successCount })
-        : i18n.t("admin.upload_partial", { count: successCount, total: totalFiles }));
+      toast.info(
+        successCount === totalFiles
+          ? i18n.t("admin.upload_done", { count: successCount })
+          : i18n.t("admin.upload_partial", {
+              count: successCount,
+              total: totalFiles,
+            }),
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -457,18 +527,29 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       toast.success(i18n.t("admin.book_deleted"));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.book_delete_failed"));
+      toast.error(
+        err instanceof Error ? err.message : i18n.t("admin.book_delete_failed"),
+      );
     }
   },
 
   archiveBook: async (id, archived) => {
     try {
       const res = await bookService.archiveBook(id, archived);
-      if (!res.status) throw new Error(res.message || "Failed to update archive state");
-      toast.success(archived ? i18n.t("admin.book_archived") : i18n.t("admin.book_unarchived"));
+      if (!res.status)
+        throw new Error(res.message || "Failed to update archive state");
+      toast.success(
+        archived
+          ? i18n.t("admin.book_archived")
+          : i18n.t("admin.book_unarchived"),
+      );
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.archive_update_failed"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t("admin.archive_update_failed"),
+      );
     }
   },
 
@@ -483,11 +564,15 @@ export const useBookAdminStore = create<BookAdminState>((set, get) => ({
       const nextFiles = listRes.data || [];
       set((state) => ({
         bookFiles: nextFiles,
-        editingBook: state.editingBook ? { ...state.editingBook, files: nextFiles } : state.editingBook
+        editingBook: state.editingBook
+          ? { ...state.editingBook, files: nextFiles }
+          : state.editingBook,
       }));
       invalidateBooks();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : i18n.t("admin.file_delete_error"));
+      toast.error(
+        err instanceof Error ? err.message : i18n.t("admin.file_delete_error"),
+      );
     }
-  }
+  },
 }));

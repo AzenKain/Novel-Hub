@@ -1,4 +1,3 @@
--- Table for content warnings
 CREATE TABLE IF NOT EXISTS content_warnings (
     id TEXT PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
@@ -6,7 +5,6 @@ CREATE TABLE IF NOT EXISTS content_warnings (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table linking books and content warnings (Many-to-Many)
 CREATE TABLE IF NOT EXISTS book_content_warnings (
     book_id TEXT NOT NULL,
     warning_id TEXT NOT NULL,
@@ -18,7 +16,6 @@ CREATE TABLE IF NOT EXISTS book_content_warnings (
 CREATE INDEX IF NOT EXISTS idx_book_content_warnings_book ON book_content_warnings(book_id);
 CREATE INDEX IF NOT EXISTS idx_book_content_warnings_warning ON book_content_warnings(warning_id);
 
--- Seed standard content warnings
 INSERT OR IGNORE INTO content_warnings (id, name, description) VALUES
 ('cw-violence', 'Violence', 'Depictions of physical violence or combat'),
 ('cw-nudity', 'Nudity', 'Depictions of partial or full nudity'),

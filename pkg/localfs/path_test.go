@@ -7,7 +7,6 @@ import (
 )
 
 func TestResolveBookFilePath(t *testing.T) {
-	// Setup test data dir
 	tempDir, err := os.MkdirTemp("", "novelhub-test-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -21,7 +20,6 @@ func TestResolveBookFilePath(t *testing.T) {
 	bookID := "test-book-uuid"
 	filename := "book.epub"
 
-	// Create the directory structure locally to simulate existing file
 	localBookDir := filepath.Join(tempDir, "books", bookID)
 	if err := os.MkdirAll(localBookDir, 0755); err != nil {
 		t.Fatalf("failed to create local book dir: %v", err)
@@ -66,7 +64,6 @@ func TestResolveBookFilePath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ResolveBookFilePath(bookID, tt.rawPath)
-			// Clean paths to normalize comparison
 			gotClean := filepath.Clean(got)
 			wantClean := filepath.Clean(tt.want)
 			if gotClean != wantClean {

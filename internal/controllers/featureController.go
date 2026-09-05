@@ -580,9 +580,6 @@ func (c *FeatureController) ListBookReviews(ctx fiber.Ctx) error {
 		}
 	}
 
-	// Reviews name their author and quote free text, so they are scoped to the book they hang
-	// off. This route used to carry no check at all: anyone who guessed a book id read the
-	// reviewers of a library they had no access to.
 	if !c.service.PolicyAllowsBook(reqCtx, "read", ctx.Params("id"), getOptionalClaims(ctx)) {
 		return ctx.Status(fiber.StatusForbidden).JSON(response.CommonResponse{Status: false, Message: "You do not have access to this book"})
 	}

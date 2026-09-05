@@ -70,8 +70,13 @@ export const useCustomization = () => {
   });
 
   const updateCustomThemeMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateCustomThemePayload }) =>
-      customizationService.updateTheme(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateCustomThemePayload;
+    }) => customizationService.updateTheme(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_themes"] });
     },

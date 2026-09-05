@@ -46,12 +46,18 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <AlertCircle className="h-6 w-6 shrink-0" />
           <span>{title}</span>
         </h3>
-        <div className="py-4 text-sm text-base-content/80 leading-relaxed">{message}</div>
+        <div className="py-4 text-sm text-base-content/80 leading-relaxed">
+          {message}
+        </div>
 
         {expectedConfirmationText && (
           <div className="space-y-2 mb-2 p-3.5 bg-error/5 border border-error/15 rounded-2xl">
             <label className="text-xs font-bold text-base-content/80 block">
-              {t("admin.type_to_confirm", "Please type")} <span className="font-mono text-error font-extrabold select-all">"{expectedConfirmationText}"</span> {t("admin.or_type_delete", 'or type "DELETE" to confirm:')}
+              {t("admin.type_to_confirm", "Please type")}{" "}
+              <span className="font-mono text-error font-extrabold select-all">
+                "{expectedConfirmationText}"
+              </span>{" "}
+              {t("admin.or_type_delete", 'or type "DELETE" to confirm:')}
             </label>
             <input
               type="text"
@@ -71,7 +77,11 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         )}
 
         <div className="modal-action mt-5">
-          <button onClick={onClose} disabled={loading} className="btn btn-md btn-ghost rounded-xl font-semibold">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="btn btn-md btn-ghost rounded-xl font-semibold"
+          >
             {cancelText || t("common.cancel", "Cancel")}
           </button>
           <button
@@ -85,9 +95,10 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose} disabled={loading}>close</button>
+        <button onClick={onClose} disabled={loading}>
+          close
+        </button>
       </form>
     </dialog>
   );
 };
-

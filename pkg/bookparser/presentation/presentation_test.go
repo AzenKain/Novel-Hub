@@ -10,7 +10,6 @@ import (
 func TestPresentationParserWithRealFiles(t *testing.T) {
 	parser := NewParser()
 
-	// 1. PPTX
 	pptxPath := filepath.Join("..", "..", "..", "sample_file", "sample-5.pptx")
 	if _, err := os.Stat(pptxPath); err == nil {
 		meta, err := parser.ParseMetadata(pptxPath)
@@ -43,7 +42,6 @@ func TestPresentationParserWithRealFiles(t *testing.T) {
 		}
 	}
 
-	// 2. ODP
 	odpPath := filepath.Join("..", "..", "..", "sample_file", "file_example_ODP_1MB.odp")
 	if _, err := os.Stat(odpPath); err == nil {
 		meta, err := parser.ParseMetadata(odpPath)
@@ -68,7 +66,6 @@ func TestPresentationParserWithRealFiles(t *testing.T) {
 		}
 	}
 
-	// 3. PPT
 	pptPath := filepath.Join("..", "..", "..", "sample_file", "file_example_PPT_1MB.ppt")
 	if _, err := os.Stat(pptPath); err == nil {
 		meta, err := parser.ParseMetadata(pptPath)

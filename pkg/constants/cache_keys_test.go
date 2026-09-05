@@ -2,9 +2,7 @@ package constants
 
 import "testing"
 
-// The constants replaced string literals scattered across the repositories. A typo here
-// silently stops invalidating that key — nothing fails, the cache just goes stale forever.
-// These are the exact strings that were in the code before the swap.
+// The constants replaced string literals scattered across the repositories.
 func TestCacheKeyValuesUnchanged(t *testing.T) {
 	for name, got := range map[string]string{
 		"CacheKeyBookSearchPattern":        CacheKeyBookSearchPattern,

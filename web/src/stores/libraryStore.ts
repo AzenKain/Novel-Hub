@@ -57,7 +57,11 @@ interface LibraryState {
   setStats: (stats: LibraryStats) => void;
   setMetadataFacets: (facets: Partial<LibraryState["metadataFacets"]>) => void;
   setCollections: (collections: Collection[]) => void;
-  appendCollections: (collections: Collection[], cursor: string | null, hasMore: boolean) => void;
+  appendCollections: (
+    collections: Collection[],
+    cursor: string | null,
+    hasMore: boolean,
+  ) => void;
   addCollection: (collection: Collection) => void;
   updateCollection: (id: string, name: string) => void;
   deleteCollection: (id: string) => void;

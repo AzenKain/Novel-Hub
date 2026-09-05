@@ -1,36 +1,28 @@
 package vorbis
 
-// mode is one Vorbis mode (spec 4.2.4 step 6): a block-size flag and the
-// mapping it uses. window/transform types are always 0 in Vorbis I.
 type mode struct {
 	blockflag bool
 	mapping   int
 }
 
-// submap pairs a floor and a residue; a channel is routed to one submap.
 type submap struct {
 	floor   int
 	residue int
 }
 
-// coupling is one channel-coupling step: a magnitude and an angle channel.
 type mapping struct {
 	submaps     []submap
 	couplingMag []int
 	couplingAng []int
-	mux         []int // per-channel submap index
+	mux         []int
 }
 
-// parseSetup reads the entire setup header (packet type 5) into the Config.
-// The identification header must already be parsed (channels/blocksizes set).
 func (c *Config) parseSetup(pkt []byte) error {
-	// The 7-byte header: type byte 0x05 then "vorbis".
 	if len(pkt) < 7 || pkt[0] != 0x05 || string(pkt[1:7]) != "vorbis" {
 		return malformed("setup header lacks the type/signature")
 	}
 	r := newBitReader(pkt[7:])
 
-	// Codebooks.
 	numCodebooks := int(r.read(8)) + 1
 	c.codebooks = make([]codebook, numCodebooks)
 	for i := range c.codebooks {
@@ -41,7 +33,6 @@ func (c *Config) parseSetup(pkt []byte) error {
 		c.codebooks[i] = cb
 	}
 
-	// Time-domain transforms: placeholder, every value must be zero.
 	numTimes := int(r.read(6)) + 1
 	for i := 0; i < numTimes; i++ {
 		if v := r.read(16); v != 0 {
@@ -49,7 +40,6 @@ func (c *Config) parseSetup(pkt []byte) error {
 		}
 	}
 
-	// Floors.
 	numFloors := int(r.read(6)) + 1
 	if numFloors > maxFloors {
 		return malformed("%d floors (max %d)", numFloors, maxFloors)
@@ -75,7 +65,6 @@ func (c *Config) parseSetup(pkt []byte) error {
 		c.floors[i] = f
 	}
 
-	// Residues.
 	numResidues := int(r.read(6)) + 1
 	if numResidues > maxResidues {
 		return malformed("%d residues (max %d)", numResidues, maxResidues)
@@ -89,7 +78,6 @@ func (c *Config) parseSetup(pkt []byte) error {
 		c.residues[i] = res
 	}
 
-	// Mappings.
 	numMappings := int(r.read(6)) + 1
 	if numMappings > maxMappings {
 		return malformed("%d mappings (max %d)", numMappings, maxMappings)
@@ -106,7 +94,6 @@ func (c *Config) parseSetup(pkt []byte) error {
 		c.mappings[i] = m
 	}
 
-	// Modes.
 	numModes := int(r.read(6)) + 1
 	if numModes > maxModes {
 		return malformed("%d modes (max %d)", numModes, maxModes)
@@ -172,7 +159,7 @@ func (c *Config) parseMapping(r *bitReader, numFloors, numResidues int) (mapping
 	}
 	m.submaps = make([]submap, submaps)
 	for i := 0; i < submaps; i++ {
-		r.read(8) // unused time-config placeholder
+		r.read(8)
 		fl := int(r.read(8))
 		if fl >= numFloors {
 			return m, malformed("submap floor %d of %d", fl, numFloors)
@@ -189,9 +176,7 @@ func (c *Config) parseMapping(r *bitReader, numFloors, numResidues int) (mapping
 	return m, nil
 }
 
-// ParseHeaders parses the three Vorbis header packets (identification,
-// comment, setup) into a Config. The comment packet is validated for type and
-// signature but its content is left to the container's metadata mapper.
+// ParseHeaders parses the three Vorbis header packets (identification, comment, setup) into a Config.
 func ParseHeaders(id, comment, setup []byte) (Config, error) {
 	var c Config
 	if err := c.parseID(id); err != nil {
@@ -206,7 +191,6 @@ func ParseHeaders(id, comment, setup []byte) (Config, error) {
 	return c, nil
 }
 
-// parseID parses the identification header (packet type 1, spec 4.2.2).
 func (c *Config) parseID(pkt []byte) error {
 	if len(pkt) < 7 || pkt[0] != 0x01 || string(pkt[1:7]) != "vorbis" {
 		return malformed("identification header lacks the type/signature")
@@ -224,9 +208,9 @@ func (c *Config) parseID(pkt []byte) error {
 	if c.Rate <= 0 {
 		return malformed("sample rate %d", c.Rate)
 	}
-	r.read(32) // bitrate_maximum
+	r.read(32)
 	c.Bitrate = int(int32(r.read(32)))
-	r.read(32) // bitrate_minimum
+	r.read(32)
 	bs0 := int(r.read(4))
 	bs1 := int(r.read(4))
 	if bs0 < minBlockLog || bs0 > maxBlockLog || bs1 < minBlockLog || bs1 > maxBlockLog || bs0 > bs1 {

@@ -14,9 +14,6 @@ import (
 
 const inboxSettleDelay = 10 * time.Second
 
-// inboxMaxDepth bounds recursion below data/inbox/<libraryID>/ so a symlink loop
-// or a pathological tree cannot stall the job.
-// ponytail: fixed depth, make it a runtime limit if anyone actually nests deeper
 const inboxMaxDepth = 5
 
 func (s *libraryService) ScanInbox(ctx context.Context) (int, error) {
@@ -73,15 +70,10 @@ func (s *libraryService) scanInboxLibrary(ctx context.Context, libraryID string,
 		imported++
 		log.Info().Str("library_id", libraryID).Str("file", filename).Msg("imported file from inbox")
 	}
-	// Drop folders the user emptied by way of import. libraryPath itself is their
-	// drop point and is never removed.
 	pruneEmptyInboxDirs(libraryPath, 0)
 	return imported
 }
 
-// collectInboxFiles walks dirPath up to inboxMaxDepth and returns the files that
-// are ready to import: parsable, settled, and not a symlink. Directories that are
-// nested deeper are skipped with a warning rather than silently ignored.
 func collectInboxFiles(dirPath string, depth int, isParsable func(string) bool) []string {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -117,7 +109,6 @@ func collectInboxFiles(dirPath string, depth int, isParsable func(string) bool) 
 		if err != nil {
 			continue
 		}
-		// Still being copied into place.
 		if time.Since(info.ModTime()) < inboxSettleDelay {
 			continue
 		}
@@ -127,8 +118,6 @@ func collectInboxFiles(dirPath string, depth int, isParsable func(string) bool) 
 	return files
 }
 
-// pruneEmptyInboxDirs removes empty subdirectories bottom-up. dirPath itself
-// (depth 0) is always kept.
 func pruneEmptyInboxDirs(dirPath string, depth int) {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -147,6 +136,5 @@ func pruneEmptyInboxDirs(dirPath string, depth int) {
 	if depth == 0 {
 		return
 	}
-	// Fails harmlessly when the directory still holds files the scan skipped.
 	_ = os.Remove(dirPath)
 }

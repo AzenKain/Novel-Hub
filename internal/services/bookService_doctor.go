@@ -109,7 +109,6 @@ func (s *bookService) RepairBookEPUB(ctx context.Context, bookID string, fileID 
 		}
 	}
 
-	// Perform in-place repair via atomic temp file
 	tmpRepaired := file.Path + ".doctor_tmp"
 	defer os.Remove(tmpRepaired)
 
@@ -118,7 +117,6 @@ func (s *bookService) RepairBookEPUB(ctx context.Context, bookID string, fileID 
 		return nil, apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("EPUB repair failed: %v", err))
 	}
 
-	// Overwrite original file
 	if err := os.Rename(tmpRepaired, file.Path); err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("Failed to apply repaired EPUB: %v", err))
 	}
@@ -129,7 +127,6 @@ func (s *bookService) RepairBookEPUB(ctx context.Context, bookID string, fileID 
 		}
 	}
 
-	// Re-extract metadata in background if needed
 	if s.parsers != nil {
 		_ = s.ExtractMetadata(ctx, bookID)
 	}

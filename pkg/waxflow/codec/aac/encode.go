@@ -12,47 +12,27 @@ import (
 
 var _ codec.Encoder = (*Encoder)(nil)
 
-// EncoderVersion identifies the encode algorithm revision for cache keys
-// (ADR-0004). It composes the psychoacoustic model's revision: retuning
-// dsp/psy changes these streams too.
+// EncoderVersion identifies the encode algorithm revision for cache keys (ADR-0004).
 const EncoderVersion = "aac-enc-1+" + psy.Version
 
-// EncoderDelay is the codec priming in output samples: one frame of
-// zeros ahead of the first real sample, so frame 0's MDCT window (which
-// reaches one frame into the past) sees defined history. Carried in
-// Trailer.Delay and the container's edit list.
+// EncoderDelay is the codec priming in output samples: one frame of zeros ahead of the first real sample, so frame 0's MDCT window (which reaches one frame into the past) sees defined history.
 const EncoderDelay = 1024
 
-// frameLen is the AAC-LC long frame in samples per channel.
 const frameLen = 1024
 
 // DefaultBitrate is used when EncoderOptions.Bitrate is zero.
 const DefaultBitrate = 128000
 
-// thrCalib maps psy thresholds (FFT energy of unit-full-scale input)
-// onto the encoder's MDCT energy scale: the analytic window/scale ratio
-// (8/3: Hann FFT energy 3N/8 against the scale-2 sine-window MDCT's N)
-// times the 32768 PCM scaling, squared.
 const thrCalib = (8.0 / 3.0) * 32768 * 32768
 
-// psyOffsetDB is the model's SNR-demand offset, the encoder's master
-// quality tuning constant (positive demands lower thresholds and so
-// more bits per band before the rate loop pushes back).
 const psyOffsetDB = 0.0
 
-// EncoderOptions configures NewEncoder. The zero value is the default.
+// EncoderOptions configures NewEncoder.
 type EncoderOptions struct {
-	// Bitrate is the target in bits per second for the whole stream
-	// (all channels), 0 for DefaultBitrate. AAC frames are inherently
-	// variable-size; the encoder holds the long-term mean at the target
-	// with a bit reservoir (ABR), which is what both fMP4 and ADTS
-	// carry naturally.
 	Bitrate int
 }
 
-// Encoder is an AAC-LC encoder producing raw access units (one packet
-// per 1024-sample frame). The fMP4 muxer stores CodecConfig's
-// AudioSpecificConfig; the ADTS muxer derives its header fields from it.
+// Encoder is an AAC-LC encoder producing raw access units (one packet per 1024-sample frame).
 type Encoder struct {
 	fmt      audio.Format
 	channels int
@@ -68,33 +48,23 @@ type Encoder struct {
 	maxSfbLong  int
 	maxSfbShort int
 
-	// Input pipeline: pending holds not-yet-complete source blocks;
-	// hist slides three whole blocks (m-2, m-1, m). AU m windows blocks
-	// m-1 and m (hist[1024:3072]): decoder output block m is the FIRST
-	// half of AU m's window, which puts the first real sample at output
-	// position 1024, the declared EncoderDelay. Block m doubles as the
-	// window-decision lookahead.
 	pending   [2][]float32
 	hist      [2][3 * frameLen]float32
 	inSamples int64
 	outFrames int64
 
-	// Window decision state.
 	det        [2]*psy.AttackDetector
-	attackPrev [2]attackInfo // attack in the previous source block
-	attackCur  [2]attackInfo // attack in the just-arrived source block
+	attackPrev [2]attackInfo
+	attackCur  [2]attackInfo
 	prevSeq    int
 
-	// Psychoacoustics, per channel.
 	psyLong  [2]*psy.Model
 	psyShort [2]*psy.Model
 
-	// Rate control.
 	meanBits  float64
 	reservoir float64
 	avgPE     float64
 
-	// Per-frame scratch.
 	spec  [2][1024]float64
 	cq    [2]chanQuant
 	tns   [2]tnsEnc
@@ -108,8 +78,7 @@ type attackInfo struct {
 	pos    int
 }
 
-// NewEncoder returns an Encoder for f, which must be float32 with 1 or
-// 2 channels at one of the 13 AAC sampling rates.
+// NewEncoder returns an Encoder for f, which must be float32 with 1 or 2 channels at one of the 13 AAC sampling rates.
 func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -134,8 +103,6 @@ func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	if o.Bitrate == 0 {
 		o.Bitrate = DefaultBitrate
 	}
-	// Floor keeps the rate loop meaningful; the ceiling is the spec's
-	// 6144-bit-per-channel decoder buffer drained at frame rate.
 	minRate := 8000 * f.Channels
 	maxRate := 6 * f.Rate * f.Channels
 	bitrate := min(max(o.Bitrate, minRate), maxRate)
@@ -156,9 +123,6 @@ func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	e.numSwbLong = swbCountLong(rateIdx)
 	e.numSwbShort = swbCountShort(rateIdx)
 
-	// Bandwidth cutoff: spending the budget below the cutoff beats
-	// coding shaped noise at the top; the offsets scale with the
-	// per-channel rate. maxSfb is the first band wholly past cutoff.
 	cutoff := 3000.0 + float64(bitrate)/float64(f.Channels)/5
 	cutoff = math.Min(cutoff, 0.94*float64(f.Rate)/2)
 	e.maxSfbLong = coveringSfb(e.swbLong, e.numSwbLong, cutoff, f.Rate, 2048)
@@ -193,12 +157,10 @@ func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	}
 
 	e.meanBits = float64(bitrate) * frameLen / float64(f.Rate)
-	e.avgPE = e.meanBits * 0.4 // settles onto real content within a few frames
+	e.avgPE = e.meanBits * 0.4
 	return e, nil
 }
 
-// coveringSfb returns the smallest max_sfb whose bands reach cutoff Hz
-// (at least 1, at most numSwb). n is the full transform length.
 func coveringSfb(swb []uint16, numSwb int, cutoff float64, rate, n int) int {
 	lineHz := float64(rate) / float64(n)
 	for sfb := 1; sfb <= numSwb; sfb++ {
@@ -221,25 +183,14 @@ func (e *Encoder) Bitrate() int { return e.bitrate }
 // Delay reports the encoder priming in output samples.
 func (e *Encoder) Delay() int { return EncoderDelay }
 
-// CodecConfig returns the two-byte AudioSpecificConfig (AAC-LC, this
-// stream's rate index and channel configuration).
+// CodecConfig returns the two-byte AudioSpecificConfig (AAC-LC, this stream's rate index and channel configuration).
 func (e *Encoder) CodecConfig() []byte { return e.asc[:] }
 
-// maxSample bounds accepted input magnitudes (nominal full scale is 1;
-// the bound is far above any legitimate pipeline level). Non-finite
-// samples become 0 and larger magnitudes clamp: unbounded spectra would
-// leave the rate loop no fitting solution and break the 6144-bit-per-
-// channel access-unit ceiling.
 const maxSample = 8.0
 
-// auCeilingSlack is held back from the 6144-bit-per-channel access unit when
-// the rate loop's hard cap is computed. totalBits and overheadBits predict the
-// writer rather than being it, and run under it by up to 84 bits; this clears
-// that with room to spare. encodeFrame's post-assembly passes are the backstop.
 const auCeilingSlack = 256
 
-// Encode buffers src and emits an access unit for every whole source
-// block that becomes available.
+// Encode buffers src and emits an access unit for every whole source block that becomes available.
 func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error {
 	if src.Fmt != e.fmt {
 		return waxerr.New(waxerr.CodeUnsupportedFormat,
@@ -257,8 +208,6 @@ func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error
 	return nil
 }
 
-// appendSanitized appends src to dst with non-finite samples zeroed and
-// magnitudes clamped to maxSample.
 func appendSanitized(dst, src []float32) []float32 {
 	for _, v := range src {
 		switch {
@@ -274,9 +223,6 @@ func appendSanitized(dst, src []float32) []float32 {
 	return dst
 }
 
-// pushBlock consumes one whole source block from the FIFO and encodes
-// the AU it completes: AU m needs blocks m-2 and m-1 for its window and
-// block m's attack status for the LONG_START lookahead.
 func (e *Encoder) pushBlock(emit func(codec.Packet) error) error {
 	for c := 0; c < e.channels; c++ {
 		h := &e.hist[c]
@@ -290,16 +236,11 @@ func (e *Encoder) pushBlock(emit func(codec.Packet) error) error {
 	return e.encodeFrame(emit)
 }
 
-// windowSeq runs the window-sequence state machine for the AU being
-// encoded: shortNow reflects an attack inside its output block,
-// shortNext one inside the next.
 func (e *Encoder) windowSeq(shortNow, shortNext bool) int {
 	switch {
 	case shortNow:
 		return eightShort
 	case e.prevSeq == eightShort && shortNext:
-		// Bridging short: the left overlap is short and the right must
-		// be too; a plain long window cannot sit between two shorts.
 		return eightShort
 	case e.prevSeq == eightShort:
 		return longStop
@@ -310,12 +251,6 @@ func (e *Encoder) windowSeq(shortNow, shortNext bool) int {
 	}
 }
 
-// grouping maps a transient position (8ths of the previous source
-// block, which is the first half of the AU's window) onto the
-// short-window grouping: windows before the attack, the attack window
-// alone, and the tail. Short window i spans window offsets
-// [448+128i, 704+128i); an attack at block offset 128p+64 lands there
-// around i = p-3.
 func grouping(pos int) []int {
 	win := pos - 3
 	if win < 0 {
@@ -336,7 +271,6 @@ func grouping(pos int) []int {
 
 var longGroup = []int{1}
 
-// encodeFrame encodes one access unit from the history window.
 func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 	shortNow := false
 	shortNext := false
@@ -361,8 +295,6 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 		maxSfb = e.maxSfbShort
 	}
 
-	// Psychoacoustics. The long model runs every frame to keep its
-	// prediction history continuous; PE feeds the bit reservoir.
 	pe := 0.0
 	for c := 0; c < e.channels; c++ {
 		rl, err := e.psyLong[c].Analyze(e.hist[c][frameLen : frameLen+2048])
@@ -376,7 +308,6 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 			}
 			continue
 		}
-		// Short thresholds accumulate over each group's windows.
 		var wThr [8][maxSFBCount]float64
 		for i := 0; i < 8; i++ {
 			off := frameLen + 448 + i*128
@@ -401,7 +332,6 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 		}
 	}
 
-	// MDCT on the 32768-scaled block (the decoder normalizes by 1/32768).
 	for c := 0; c < e.channels; c++ {
 		var tblk [2048]float64
 		for i := range tblk {
@@ -410,8 +340,6 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 		mdctFrame(&tblk, seq, &e.spec[c])
 	}
 
-	// TNS per channel (long windows), before the stereo transform: the
-	// decoder recombines M/S first and inverse-filters L/R after.
 	for c := 0; c < e.channels; c++ {
 		e.tns[c] = tnsEnc{}
 		if seq != eightShort {
@@ -419,20 +347,17 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 		}
 	}
 
-	// M/S decision and transform (stereo only).
 	msMask := 0
 	if e.channels == 2 {
 		msMask = e.decideMS(groupLen, swb, maxSfb)
 	}
 
-	// Band tables and thresholds feed the two-loop quantizer.
 	for c := 0; c < e.channels; c++ {
 		ch := c
 		e.cq[c].buildBands(&e.spec[c], groupLen, swb, maxSfb,
 			func(g, sfb int) float64 { return e.thr[ch][g][sfb] }, seq == eightShort)
 	}
 
-	// Frame bit budget: reservoir-smoothed, difficulty-modulated.
 	e.avgPE = 0.95*e.avgPE + 0.05*pe
 	difficulty := 1.0
 	if e.avgPE > 0 {
@@ -448,26 +373,18 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 	if spectral < 0 {
 		spectral = 0
 	}
-	// The spectral ceiling the rate loop may never cross, as against the target
-	// above, which it may. The target is already well under it, so neither this
-	// clamp nor quantizeChannel's fires today. They are not dead: the fallback
-	// quantizeChannel takes on a stale candidate only fits the hard cap because
-	// the budget it was fitted to is capped. Raise 0.93 and they start working.
 	hard := 6144*e.channels - overhead - auCeilingSlack
 	if hard < 0 {
 		hard = 0
 	}
 	spectral = min(spectral, hard)
 
-	// Resolved once, so the corrective passes keep the same channel balance.
 	frac := 0.5
 	if e.channels == 2 {
 		if dl, dr := e.cq[0].demand, e.cq[1].demand; dl+dr > 0 {
 			frac = min(max(dl/(dl+dr), 0.2), 0.8)
 		}
 	}
-	// build quantizes both channels and assembles the unit. The hard cap splits
-	// like the budget, so the channels' caps still sum to the frame's.
 	build := func(spectral, hard int) {
 		if e.channels == 2 {
 			lSpectral, lHard := int(float64(spectral)*frac), int(float64(hard)*frac)
@@ -485,13 +402,6 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 	}
 	build(spectral, hard)
 
-	// Enforce the ceiling on the bytes emitted, not on the estimate the rate
-	// loop worked from: the estimates run under the writer, so drift in them
-	// must fail on the frame that caused it rather than silently emit a unit a
-	// conforming decoder cannot buffer. No frame reaches this today.
-	//
-	// The first pass cuts the budget by the overshoot it measured, the second
-	// cuts it to nothing, which zeroes every band. Bounded at three passes.
 	ceiling := 6144 * e.channels
 	for pass := 1; e.w.bitLen() > ceiling && pass <= 2; pass++ {
 		if pass == 1 {
@@ -512,15 +422,9 @@ func (e *Encoder) encodeFrame(emit func(codec.Packet) error) error {
 
 	e.prevSeq = seq
 	e.outFrames++
-	// Packets are borrowed (valid during emit only), so the writer's
-	// buffer goes out directly.
 	return emit(codec.Packet{Data: e.w.buf, PTS: (e.outFrames - 1) * frameLen, Dur: frameLen, Sync: true})
 }
 
-// decideMS chooses the per-band M/S mask by comparing the perceptual
-// bit demand of L/R against M/S coding under the conservative shared
-// threshold, transforms the chosen bands in place, and rewrites both
-// channels' thresholds. Returns ms_mask_present (0, 1, or 2).
 func (e *Encoder) decideMS(groupLen []int, swb []uint16, maxSfb int) int {
 	all, none := true, true
 	winBase := 0
@@ -557,7 +461,6 @@ func (e *Encoder) decideMS(groupLen []int, swb []uint16, maxSfb int) int {
 	if none {
 		return 0
 	}
-	// Transform the chosen bands and install the shared thresholds.
 	winBase = 0
 	for g, L := range groupLen {
 		for sfb := 0; sfb < maxSfb; sfb++ {
@@ -585,8 +488,6 @@ func (e *Encoder) decideMS(groupLen []int, swb []uint16, maxSfb int) int {
 	return 1
 }
 
-// demandOf is the perceptual bit demand of one band: information above
-// the masking threshold.
 func demandOf(energy, thr, width float64) float64 {
 	if thr <= 0 || energy <= thr {
 		return 0
@@ -594,20 +495,17 @@ func demandOf(energy, thr, width float64) float64 {
 	return width * math.Log2(energy/thr)
 }
 
-// overheadBits counts every non-spectral bit of the frame so the rate
-// loop budgets exactly: element headers, ics_info, the M/S mask, TNS
-// presence and data, and the END element with byte alignment slack.
 func (e *Encoder) overheadBits(seq, maxSfb, msMask, groups int) int {
-	ics := 1 + 2 + 1 // reserved + sequence + shape
+	ics := 1 + 2 + 1
 	if seq == eightShort {
 		ics += 4 + 7
 	} else {
 		ics += 6 + 1
 	}
-	perChan := 8 + 1 + 1 + 1 // global_gain + pulse + tns present + gain control
-	total := 3 + 4           // element id + instance tag
+	perChan := 8 + 1 + 1 + 1
+	total := 3 + 4
 	if e.channels == 2 {
-		total += 1 + ics + 2 // common_window + shared ics_info + ms_mask_present
+		total += 1 + ics + 2
 		if msMask == 1 {
 			total += groups * maxSfb
 		}
@@ -618,14 +516,10 @@ func (e *Encoder) overheadBits(seq, maxSfb, msMask, groups int) int {
 	for c := 0; c < e.channels; c++ {
 		total += e.tns[c].sideBits()
 	}
-	total += 3 + 7 // END + worst-case alignment
+	total += 3 + 7
 	return total
 }
 
-// writeICSBody emits one channel's individual_channel_stream:
-// global_gain, then ics_info when the window is not shared (SCE), then
-// sections, scalefactors, pulse/TNS/gain flags, and spectra. The order
-// matches decodeChannelData: global_gain comes FIRST.
 func (e *Encoder) writeICSBody(c int, info func()) {
 	cq := &e.cq[c]
 	w := &e.w
@@ -633,7 +527,6 @@ func (e *Encoder) writeICSBody(c int, info func()) {
 	if info != nil {
 		info()
 	}
-	// section_data
 	lenEsc := uint64(1)<<uint(cq.lenBits) - 1
 	for g := 0; g < cq.nGroups; g++ {
 		k := 0
@@ -653,7 +546,6 @@ func (e *Encoder) writeICSBody(c int, info func()) {
 			k += run
 		}
 	}
-	// scale_factor_data
 	prev := cq.globalGain
 	for g := 0; g < cq.nGroups; g++ {
 		for k := 0; k < cq.maxSfb; k++ {
@@ -665,15 +557,14 @@ func (e *Encoder) writeICSBody(c int, info func()) {
 			prev = b.sf
 		}
 	}
-	w.writeBits(1, 0) // pulse_data_present
+	w.writeBits(1, 0)
 	if e.tns[c].present {
 		w.writeBits(1, 1)
 		e.tns[c].write(w)
 	} else {
 		w.writeBits(1, 0)
 	}
-	w.writeBits(1, 0) // gain_control_data_present
-	// spectral_data: per group, tuples across each equal-codebook section.
+	w.writeBits(1, 0)
 	var vbuf [1024]int
 	for g := 0; g < cq.nGroups; g++ {
 		for k := 0; k < cq.maxSfb; {
@@ -698,16 +589,13 @@ func (e *Encoder) writeICSBody(c int, info func()) {
 	}
 }
 
-// writeICSInfo emits ics_info for the frame's window configuration.
 func (e *Encoder) writeICSInfo(seq, maxSfb int, groupLen []int) {
 	w := &e.w
-	w.writeBits(1, 0) // ics_reserved
+	w.writeBits(1, 0)
 	w.writeBits(2, uint64(seq))
 	w.writeBits(1, shapeSine)
 	if seq == eightShort {
 		w.writeBits(4, uint64(maxSfb))
-		// scale_factor_grouping: bit i set means window i+1 shares
-		// window i's group.
 		bits := uint64(0)
 		win := 0
 		for _, L := range groupLen {
@@ -719,20 +607,20 @@ func (e *Encoder) writeICSInfo(seq, maxSfb int, groupLen []int) {
 		w.writeBits(7, bits)
 	} else {
 		w.writeBits(6, uint64(maxSfb))
-		w.writeBits(1, 0) // predictor_data_present
+		w.writeBits(1, 0)
 	}
 }
 
 func (e *Encoder) writeSCE(seq int, groupLen []int, maxSfb int) {
 	e.w.writeBits(3, elSCE)
-	e.w.writeBits(4, 0) // element_instance_tag
+	e.w.writeBits(4, 0)
 	e.writeICSBody(0, func() { e.writeICSInfo(seq, maxSfb, groupLen) })
 }
 
 func (e *Encoder) writeCPE(seq int, groupLen []int, maxSfb, msMask int) {
 	e.w.writeBits(3, elCPE)
 	e.w.writeBits(4, 0)
-	e.w.writeBits(1, 1) // common_window
+	e.w.writeBits(1, 1)
 	e.writeICSInfo(seq, maxSfb, groupLen)
 	e.w.writeBits(2, uint64(msMask))
 	if msMask == 1 {
@@ -750,9 +638,7 @@ func (e *Encoder) writeCPE(seq int, groupLen []int, maxSfb, msMask int) {
 	e.writeICSBody(1, nil)
 }
 
-// Finish pads the tail to a whole block, encodes it, then encodes one
-// final block so every real sample is covered by two overlapping
-// windows, and reports the gapless trailer.
+// Finish pads the tail to a whole block, encodes it, then encodes one final block so every real sample is covered by two overlapping windows, and reports the gapless trailer.
 func (e *Encoder) Finish(emit func(codec.Packet) error) (codec.Trailer, error) {
 	if n := len(e.pending[0]); n > 0 {
 		for c := 0; c < e.channels; c++ {

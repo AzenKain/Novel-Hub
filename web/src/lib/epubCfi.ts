@@ -1,10 +1,3 @@
-/**
- * EPUB3 Canonical Fragment Identifier (CFI) Generator & Resolver
- * Implements the standard EPUB CFI format: elements are channellized as even numbers,
- * text nodes as odd numbers, with spine chapter offset mapping.
- */
-
-// Helper to determine index path step from parent node to child node
 function getCfiStep(parent: Node, child: Node): string {
   let elementIndex = 0;
   let textIndex = 0;
@@ -49,7 +42,7 @@ export function generateCfi(
   node: Node,
   offset: number,
   chapterIndex: number,
-  chapterId: string
+  chapterId: string,
 ): string {
   if (!container || !node) return "";
   const domPath = getDomPath(container, node);
@@ -62,7 +55,7 @@ export function generateCfi(
  */
 export function resolveCfi(
   container: HTMLElement,
-  cfi: string
+  cfi: string,
 ): { node: Node; offset: number } | null {
   if (!container || !cfi) return null;
 
@@ -90,7 +83,7 @@ export function resolveCfi(
       // Even number: Element child
       const targetIndex = val / 2 - 1;
       const elementChildren = Array.from(current.childNodes).filter(
-        (n) => n.nodeType === Node.ELEMENT_NODE
+        (n) => n.nodeType === Node.ELEMENT_NODE,
       );
       if (targetIndex >= 0 && targetIndex < elementChildren.length) {
         current = elementChildren[targetIndex];
@@ -101,7 +94,7 @@ export function resolveCfi(
       // Odd number: Text child
       const targetIndex = (val + 1) / 2 - 1;
       const textChildren = Array.from(current.childNodes).filter(
-        (n) => n.nodeType === Node.TEXT_NODE
+        (n) => n.nodeType === Node.TEXT_NODE,
       );
       if (targetIndex >= 0 && targetIndex < textChildren.length) {
         current = textChildren[targetIndex];
@@ -121,7 +114,7 @@ export function generateCfiRange(
   container: HTMLElement,
   range: Range,
   chapterIndex: number,
-  chapterId: string
+  chapterId: string,
 ): string {
   if (!container || !range) return "";
 
@@ -156,7 +149,10 @@ export function generateCfiRange(
 /**
  * Resolve a standard EPUB CFI range string back into a DOM Range object.
  */
-export function resolveCfiRange(container: HTMLElement, cfiRange: string): Range | null {
+export function resolveCfiRange(
+  container: HTMLElement,
+  cfiRange: string,
+): Range | null {
   if (!container || !cfiRange) return null;
 
   const match = cfiRange.match(/^epubcfi\((.+)\)$/);
@@ -175,10 +171,14 @@ export function resolveCfiRange(container: HTMLElement, cfiRange: string): Range
   const endPart = commaParts[2];
 
   // Construct absolute paths for start and end
-  const startFull = lcaPart + (startPart.startsWith("/") ? "" : "/") + startPart;
+  const startFull =
+    lcaPart + (startPart.startsWith("/") ? "" : "/") + startPart;
   const endFull = lcaPart + (endPart.startsWith("/") ? "" : "/") + endPart;
 
-  const resolvedStart = resolveCfi(container, `epubcfi(${parts[0]}!${startFull})`);
+  const resolvedStart = resolveCfi(
+    container,
+    `epubcfi(${parts[0]}!${startFull})`,
+  );
   const resolvedEnd = resolveCfi(container, `epubcfi(${parts[0]}!${endFull})`);
 
   if (!resolvedStart || !resolvedEnd) return null;

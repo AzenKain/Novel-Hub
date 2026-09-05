@@ -1,17 +1,11 @@
 package opus
 
-// SILK gain and LTP quantization, ported from libopus silk/gain_quant.c
-// (encode half; the dequantizer lives in silk.go), silk/quant_LTP_gains.c,
-// and silk/VQ_WMat_EC.c.
-
 const (
 	gainQuantOffset      = (minQGainDB*128)/6 + 16*128
 	gainQuantScaleQ16    = (65536 * (nLevelsQGain - 1)) / (((maxQGainDB - minQGainDB) * 128) / 6)
 	gainQuantInvScaleQ16 = (65536 * (((maxQGainDB - minQGainDB) * 128) / 6)) / (nLevelsQGain - 1)
 )
 
-// silkGainsQuant quantizes the subframe gains uniformly on a log scale with
-// hysteresis (silk_gains_quant).
 func silkGainsQuant(ind []int8, gainQ16 []int32, prevInd *int8, conditional bool, nbSubfr int) {
 	for k := 0; k < nbSubfr; k++ {
 		v := silkSMULWB(gainQuantScaleQ16, silkLin2Log(gainQ16[k])-gainQuantOffset)
@@ -42,8 +36,6 @@ func silkGainsQuant(ind []int8, gainQ16 []int32, prevInd *int8, conditional bool
 	}
 }
 
-// silkGainsID computes a unique identifier of a gain index vector
-// (silk_gains_ID).
 func silkGainsID(ind []int8, nbSubfr int) int32 {
 	var gainsID int32
 	for k := 0; k < nbSubfr; k++ {
@@ -52,13 +44,10 @@ func silkGainsID(ind []int8, nbSubfr int) int32 {
 	return gainsID
 }
 
-// LTP codebook wiring (silk/tables_LTP.c).
 var silkLTPGainBITSQ5Ptrs = [][]uint8{silk_LTP_gain_BITS_Q5_0, silk_LTP_gain_BITS_Q5_1, silk_LTP_gain_BITS_Q5_2}
 var silkLTPVQGainPtrsQ7 = [][]uint8{silk_LTP_gain_vq_0_gain, silk_LTP_gain_vq_1_gain, silk_LTP_gain_vq_2_gain}
 var silkLTPVQSizes = []int{8, 16, 32}
 
-// silkVQWMatEC is the entropy-constrained matrix-weighted VQ over 5-element
-// LTP vectors (silk_VQ_WMat_EC_c).
 func silkVQWMatEC(ind *int8, resNrgQ15, rateDistQ8 *int32, gainQ7 *int32,
 	xxQ17, xXQ17 []int32, cbQ7 [][]int8, cbGainQ7 []uint8, clQ5 []uint8,
 	subfrLen int, maxGainQ7 int32, L int) {
@@ -77,7 +66,6 @@ func silkVQWMatEC(ind *int8, resNrgQ15, rateDistQ8 *int32, gainQ7 *int32,
 		sum1Q15 := silkFixConst(1.001, 15)
 		penalty := silkLSHIFT32(silkMaxInt(gainTmpQ7-maxGainQ7, 0), 11)
 
-		// Quantization error: 1 - 2*xX*cb + cb'*XX*cb, exploiting symmetry.
 		sum2Q24 := silkMLA(negxXQ24[0], xxQ17[1], int32(cbRow[1]))
 		sum2Q24 = silkMLA(sum2Q24, xxQ17[2], int32(cbRow[2]))
 		sum2Q24 = silkMLA(sum2Q24, xxQ17[3], int32(cbRow[3]))
@@ -109,7 +97,6 @@ func silkVQWMatEC(ind *int8, resNrgQ15, rateDistQ8 *int32, gainQ7 *int32,
 		sum1Q15 = silkSMLAWB(sum1Q15, sum2Q24, int32(cbRow[4]))
 
 		if sum1Q15 >= 0 {
-			// 6 dB == 1 bit/sample under the high-rate assumption.
 			bitsResQ8 := silkSMULBB(int32(subfrLen), silkLin2Log(sum1Q15+penalty)-15<<7)
 			bitsTotQ8 := bitsResQ8 + silkLSHIFT32(int32(clQ5[k]), 3-1)
 			if bitsTotQ8 <= *rateDistQ8 {
@@ -122,17 +109,12 @@ func silkVQWMatEC(ind *int8, resNrgQ15, rateDistQ8 *int32, gainQ7 *int32,
 	}
 }
 
-// silkQuantLTPGains picks the best LTP codebook and quantizes the per-subframe
-// LTP gain vectors (silk_quant_LTP_gains).
 func silkQuantLTPGains(bQ14 []int16, cbkIndex []int8, periodicityIndex *int8,
 	sumLogGainQ7 *int32, predGainDBQ7 *int32, xxQ17, xXQ17 []int32, subfrLen, nbSubfr int) {
 
 	var tempIdx [silkMaxNBSubfr]int8
 	minRateDistQ7 := int32(silkInt32Max)
 	bestSumLogGainQ7 := int32(0)
-	// Deliberately reference-faithful: the residual energy driving
-	// predGainDBQ7 below is the LAST codebook's accumulation, not the
-	// winner's (quant_LTP_gains.c leaves res_nrg_Q15 at its k==2 value).
 	resNrgQ15 := int32(0)
 	for k := 0; k < 3; k++ {
 		gainSafety := silkFixConst(0.4, 7)

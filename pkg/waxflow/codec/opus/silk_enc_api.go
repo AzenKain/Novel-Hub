@@ -1,12 +1,5 @@
 package opus
 
-// SILK encoder top level, ported from libopus silk/enc_API.c and
-// silk/float/encode_frame_FLP.c. One silk_Encode call consumes whole 10 ms
-// blocks at the API rate and produces at most one payload per packet; the
-// caller owns the range encoder so SILK-only, hybrid, and redundancy layouts
-// all compose.
-
-// newSILKEncoder returns an initialized SILK encoder (silk_InitEncoder).
 func newSILKEncoder(channels int) *silkEncoder {
 	e := &silkEncoder{}
 	for n := 0; n < channels; n++ {
@@ -17,9 +10,6 @@ func newSILKEncoder(channels int) *silkEncoder {
 	return e
 }
 
-// encodeDoVAD runs the VAD and converts activity into frame type flags
-// (silk_encode_do_VAD_FLP). activity is the Opus-level DTX decision
-// (negative means no decision).
 func (ch *silkEncoderChannel) encodeDoVAD(activity int) {
 	activityThreshold := silkFixConst(speechActivityDTXThres, 8)
 
@@ -50,8 +40,6 @@ func (ch *silkEncoderChannel) encodeDoVAD(activity int) {
 	}
 }
 
-// encodeFrame encodes one 20 ms (or 10 ms) frame (silk_encode_frame_FLP).
-// Returns the payload byte count so far.
 func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits int, useCBR bool) int {
 	var sEncCtrl silkEncoderControl
 	resPitch := make([]float32, 2*silkMaxFrameLen+laPitchMax)
@@ -69,27 +57,22 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 	xFrameOff := ch.ltpMemLength
 	resPitchFrameOff := ch.ltpMemLength
 
-	// Smooth bandwidth transitions.
 	ch.sLP.variableCutoff(ch.inputBuf[1:], ch.frameLength)
 
-	// Copy new frame to front of input buffer.
 	silkShort2FloatArray(ch.xBuf[xFrameOff+laShapeMS*ch.fsKHz:], ch.inputBuf[1:], ch.frameLength)
 
-	// Avoid denormals.
 	for i := 0; i < 8; i++ {
 		v := float32(1 - (i & 2))
 		ch.xBuf[xFrameOff+laShapeMS*ch.fsKHz+i*(ch.frameLength>>3)] += v * 1e-6
 	}
 
 	if !ch.prefillFlag {
-		// Pitch, shaping, and prediction analysis.
 		ch.findPitchLags(&sEncCtrl, resPitch, ch.xBuf[:])
 		ch.noiseShapeAnalysis(&sEncCtrl, resPitch, resPitchFrameOff, ch.xBuf[:], xFrameOff)
 		ch.findPredCoefs(&sEncCtrl, resPitch, resPitchFrameOff, ch.xBuf[:], xFrameOff, condCoding)
 		ch.processGains(&sEncCtrl, condCoding)
 		ch.lbrrEncode(&sEncCtrl, ch.xBuf[xFrameOff:], condCoding)
 
-		// Loop over quantizer and entropy coding to control bitrate.
 		maxIter := 6
 		gainMultQ8 := int32(silkFixConst(1, 8))
 		foundLower := false
@@ -142,7 +125,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 
 				nBits = int32(enc.tell())
 
-				// Damage control on final-iteration bust.
 				if iter == maxIter && !foundLower && nBits > int32(maxBits) {
 					enc.restore(&sRangeEncCopy2)
 					ch.sShape.lastGainIndex = sEncCtrl.lastGainIndexPrev
@@ -169,7 +151,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 
 			if iter == maxIter {
 				if foundLower && (gainsID == gainsIDLower || nBits > int32(maxBits)) {
-					// Restore the last budget-respecting output state.
 					enc.restore(&sRangeEncCopy2)
 					copy(enc.buf[:sRangeEncCopy2.offs], ecBufCopy)
 					ch.sNSQ = sNSQCopy1
@@ -180,7 +161,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 
 			if nBits > int32(maxBits) {
 				if !foundLower && iter >= 2 {
-					// Harder rate/distortion tradeoff, less dithering.
 					sEncCtrl.lambda *= 1.5
 					if sEncCtrl.lambda < 1.5 {
 						sEncCtrl.lambda = 1.5
@@ -206,7 +186,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 					lastGainIndexCopy2 = ch.sShape.lastGainIndex
 				}
 			} else {
-				// Close enough.
 				break
 			}
 
@@ -229,14 +208,12 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 				}
 			}
 			if !foundLower || !foundUpper {
-				// High-rate rate/distortion curve.
 				if nBits > int32(maxBits) {
 					gainMultQ8 = silkMinInt(1024, gainMultQ8*3/2)
 				} else {
 					gainMultQ8 = silkMaxInt(64, gainMultQ8*4/5)
 				}
 			} else {
-				// Interpolate; clamp to the middle half of the old range.
 				gainMultQ8 = gainMultLower + (gainMultUpper-gainMultLower)*(int32(maxBits)-nBitsLower)/(nBitsUpper-nBitsLower)
 				if gainMultQ8 > gainMultLower+(gainMultUpper-gainMultLower)>>2 {
 					gainMultQ8 = gainMultLower + (gainMultUpper-gainMultLower)>>2
@@ -266,7 +243,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 		}
 	}
 
-	// Update input buffer.
 	copy(ch.xBuf[:ch.ltpMemLength+laShapeMS*ch.fsKHz],
 		ch.xBuf[ch.frameLength:ch.frameLength+ch.ltpMemLength+laShapeMS*ch.fsKHz])
 
@@ -281,8 +257,6 @@ func (ch *silkEncoderChannel) encodeFrame(enc *rangeEncoder, condCoding, maxBits
 	return (enc.tell() + 7) >> 3
 }
 
-// lbrrEncode reuses the frame parameters to code a low-bitrate redundant
-// excitation (silk_LBRR_encode_FLP). Inactive unless LBRR is enabled.
 func (ch *silkEncoderChannel) lbrrEncode(ctrl *silkEncoderControl, xfw []float32, condCoding int) {
 	if !ch.LBRREnabled || ch.speechActivityQ8 <= silkFixConst(lbrrSpeechActivityThres, 8) {
 		return
@@ -314,10 +288,6 @@ func (ch *silkEncoderChannel) lbrrEncode(ctrl *silkEncoderControl, xfw []float32
 	copy(ctrl.gains[:ch.nbSubfr], tempGains[:ch.nbSubfr])
 }
 
-// encode buffers and encodes input, driving the per-frame encoder
-// (silk_Encode). samplesIn holds nSamplesIn samples per channel, interleaved
-// for stereo, at the API rate. Returns the payload size in bytes (0 until a
-// whole packet is complete). maxBits bounds the packet size in bits.
 func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSamplesIn int,
 	enc *rangeEncoder, nBytesOut *int, prefillFlag int, activity int) {
 
@@ -333,7 +303,6 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 
 	encControl.switchReady = false
 	if encControl.nChannelsInternal > e.nChannelsInternal {
-		// Mono to stereo: init the second channel and the stereo state.
 		e.channel[1].initEncoderChannel()
 		e.sStereo.predPrevQ13 = [2]int16{}
 		e.sStereo.sSide = [2]int16{}
@@ -400,7 +369,6 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 		e.channel[n].inDTX = e.channel[n].useDTX
 	}
 
-	// Input buffering/resampling and encoding.
 	nSamplesToBufferMax := 10 * nBlocksOf10ms * e.channel[0].fsKHz
 	nSamplesFromInputMax := nSamplesToBufferMax * e.channel[0].apiFsHz / (e.channel[0].fsKHz * 1000)
 	buf := make([]int16, nSamplesFromInputMax)
@@ -466,16 +434,13 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 			break
 		}
 
-		// Enough data buffered: encode one frame per channel.
 		currNBitsUsedLBRR := 0
 		if e.channel[0].nFramesEncoded == 0 && prefillFlag == 0 {
-			// Space for VAD and FEC flags.
 			iCDF := [2]uint8{0, 0}
 			iCDF[0] = uint8(256 - silkRSHIFT(256, (e.channel[0].nFramesPerPacket+1)*encControl.nChannelsInternal))
 			enc.encodeICDF(0, iCDF[:], 8)
 			currNBitsUsedLBRR = enc.tell()
 
-			// LBRR flags and data from the previous packet.
 			for n := 0; n < encControl.nChannelsInternal; n++ {
 				lbrrSymbol := int32(0)
 				for i := 0; i < e.channel[n].nFramesPerPacket; i++ {
@@ -516,15 +481,12 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 			currNBitsUsedLBRR = enc.tell() - currNBitsUsedLBRR
 		}
 
-		// Adaptive high-pass tracking on channel 0.
 		e.channel[0].variableHPSmth1Q15 = silkHPVariableCutoff(e.channel[0].variableHPSmth1Q15,
 			int(e.channel[0].prevSignalType), e.channel[0].prevLag, e.channel[0].fsKHz,
 			e.channel[0].inputQualityBandsQ15[0], e.channel[0].speechActivityQ8)
 
-		// Total target bits for the packet.
 		nBits := int(encControl.bitRate) * encControl.payloadSizeMS / 1000
 		if prefillFlag == 0 {
-			// Exponential moving average of LBRR usage.
 			if currNBitsUsedLBRR < 10 {
 				e.nBitsUsedLBRR = 0
 			} else if e.nBitsUsedLBRR < 10 {
@@ -548,7 +510,6 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 		}
 		targetRateBps = silkLIMIT(targetRateBps, encControl.bitRate, 5000)
 
-		// Left/Right to Mid/Side.
 		if encControl.nChannelsInternal == 2 {
 			e.sStereo.lrToMS(e.channel[0].inputBuf[:], e.channel[1].inputBuf[:],
 				&e.sStereo.predIx[e.channel[0].nFramesEncoded],
@@ -580,20 +541,16 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 				}
 			}
 		} else {
-			// Buffering.
 			copy(e.channel[0].inputBuf[:2], e.sStereo.sMid[:])
 			copy(e.sStereo.sMid[:], e.channel[0].inputBuf[e.channel[0].frameLength:e.channel[0].frameLength+2])
 		}
 		e.channel[0].encodeDoVAD(activity)
 
 		for n := 0; n < encControl.nChannelsInternal; n++ {
-			// Rate constraints.
 			maxBits := encControl.maxBits
 			if totBlocks == 2 && currBlock == 0 {
 				maxBits = maxBits * 3 / 5
 			} else if totBlocks == 3 {
-				// Cap the first two blocks so the last of three keeps its
-				// full budget.
 				switch currBlock {
 				case 0:
 					maxBits = maxBits * 2 / 5
@@ -632,7 +589,6 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 		}
 		e.prevDecodeOnlyMiddle = int(e.sStereo.midOnlyFlags[e.channel[0].nFramesEncoded-1])
 
-		// Insert VAD and FEC flags at the front of the bitstream.
 		if *nBytesOut > 0 && e.channel[0].nFramesEncoded == e.channel[0].nFramesPerPacket {
 			flags := int32(0)
 			for n := 0; n < encControl.nChannelsInternal; n++ {
@@ -646,7 +602,6 @@ func (e *silkEncoder) encode(encControl *silkEncControl, samplesIn []int16, nSam
 			if prefillFlag == 0 {
 				enc.patchInitialBits(uint32(flags), uint((e.channel[0].nFramesPerPacket+1)*encControl.nChannelsInternal))
 			}
-			// DTX on all channels: no payload.
 			if e.channel[0].inDTX && (encControl.nChannelsInternal == 1 || e.channel[1].inDTX) {
 				*nBytesOut = 0
 			}

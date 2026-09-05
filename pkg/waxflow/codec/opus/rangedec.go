@@ -2,22 +2,19 @@ package opus
 
 import "math/bits"
 
-// rangeDecoder is Opus's entropy decoder (RFC 6716 section 4.1), a range coder
-// that reads range-coded symbols from the front of the packet and raw bits from
-// the back. It is a clean-room port of libopus entdec.c;
-// the arithmetic is bit-exact with the reference, which the RFC requires.
+// rangeDecoder is Opus's entropy decoder (RFC 6716 section 4.1), a range coder that reads range-coded symbols from the front of the packet and raw bits from the back.
 type rangeDecoder struct {
 	buf     []byte
 	storage int
-	offs    int    // next byte from the front
-	endOffs int    // bytes consumed from the back
-	endWin  uint32 // raw-bit window (from the back)
-	nEnd    int    // valid bits in endWin
-	nbits   int    // total bits consumed, for ec_tell
+	offs    int
+	endOffs int
+	endWin  uint32
+	nEnd    int
+	nbits   int
 	rng     uint32
 	val     uint32
-	ext     uint32 // scratch shared by decode/update
-	rem     int    // last byte read from the front (normalize straddle)
+	ext     uint32
+	rem     int
 }
 
 // Range coder constants (RFC 6716 section 4.1 / libopus).
@@ -26,8 +23,8 @@ const (
 	ecCodeBits = 32
 	ecSymMax   = 0xFF
 	ecCodeTop  = 1 << 31
-	ecCodeBot  = ecCodeTop >> 8               // 1<<23
-	ecCodeXtra = (ecCodeBits-2)%ecSymBits + 1 // 7
+	ecCodeBot  = ecCodeTop >> 8
+	ecCodeXtra = (ecCodeBits-2)%ecSymBits + 1
 	ecWindow   = 32
 	ecUintBits = 8
 )
@@ -71,7 +68,6 @@ func (d *rangeDecoder) normalize() {
 	}
 }
 
-// decode returns the current cumulative frequency in [0, ft).
 func (d *rangeDecoder) decode(ft uint32) uint32 {
 	d.ext = d.rng / ft
 	s := d.val / d.ext
@@ -92,8 +88,7 @@ func (d *rangeDecoder) decodeBin(bits uint) uint32 {
 	return 0
 }
 
-// update advances the decoder after a symbol with cumulative range [fl, fh) of
-// total ft (RFC 6716 4.1.2).
+// update advances the decoder after a symbol with cumulative range [fl, fh) of total ft (RFC 6716 4.1.2).
 func (d *rangeDecoder) update(fl, fh, ft uint32) {
 	s := d.ext * (ft - fh)
 	d.val -= s
@@ -105,8 +100,7 @@ func (d *rangeDecoder) update(fl, fh, ft uint32) {
 	d.normalize()
 }
 
-// decodeBitLogp decodes one bit whose probability of being zero is
-// 1 - 2^-logp (RFC 6716 4.1.3.2).
+// decodeBitLogp decodes one bit whose probability of being zero is 1 - 2^-logp (RFC 6716 4.1.3.2).
 func (d *rangeDecoder) decodeBitLogp(logp uint) int {
 	r := d.rng
 	s := r >> logp
@@ -125,8 +119,7 @@ func (d *rangeDecoder) decodeBitLogp(logp uint) int {
 	return ret
 }
 
-// decodeICDF decodes a symbol from an inverse cumulative distribution table
-// scaled to 2^ftb (RFC 6716 4.1.3.3). icdf is non-increasing and ends in 0.
+// decodeICDF decodes a symbol from an inverse cumulative distribution table scaled to 2^ftb (RFC 6716 4.1.3.3).
 func (d *rangeDecoder) decodeICDF(icdf []byte, ftb uint) int {
 	r := d.rng >> ftb
 	ret := -1
@@ -164,15 +157,11 @@ func (d *rangeDecoder) decodeRawBits(bits uint) uint32 {
 	available -= int(bits)
 	d.endWin = window
 	d.nEnd = available
-	// Raw bits consumed from the back count toward the total, exactly like the
-	// front reads in normalize (libopus ec_dec_bits: nbits_total += _bits).
-	// tell()/tellFrac() must not under-report, or CELT bit allocation desyncs.
 	d.nbits += int(bits)
 	return ret
 }
 
-// decodeUint decodes a uniformly distributed integer in [0, ft) (RFC 6716
-// 4.1.5). ft must be at least 1.
+// decodeUint decodes a uniformly distributed integer in [0, ft) (RFC 6716 4.1.5).
 func (d *rangeDecoder) decodeUint(ft uint32) uint32 {
 	ft--
 	ftb := ilog(ft)
@@ -185,10 +174,6 @@ func (d *rangeDecoder) decodeUint(ft uint32) uint32 {
 		if v <= ft {
 			return v
 		}
-		// Out-of-range raw tail: the packet is corrupt. Clamp and keep
-		// decoding, matching the reference (ec_dec_uint returns ft and the
-		// decode carries on); a decoder is robust, not validating, and the
-		// bounded output on hostile input is what the fuzzer asserts.
 		return ft
 	}
 	ft++
@@ -197,8 +182,7 @@ func (d *rangeDecoder) decodeUint(ft uint32) uint32 {
 	return s
 }
 
-// tell returns the number of bits consumed so far (ceil), used by CELT bit
-// allocation (RFC 6716 4.1.6).
+// tell returns the number of bits consumed so far (ceil), used by CELT bit allocation (RFC 6716 4.1.6).
 func (d *rangeDecoder) tell() int {
 	return d.nbits - ilog(d.rng)
 }
@@ -208,11 +192,7 @@ func (d *rangeDecoder) tellFrac() int {
 	return ecTellFrac(d.nbits, d.rng)
 }
 
-// ecTellFrac computes bits used in eighth-bit units from a coder's bit count
-// and range register (RFC 6716 section 4.1.6): rng is corrected to 15
-// significant bits, then the fractional part comes from the table. The
-// encoder and decoder share it because bit allocation must see identical
-// accounting on both sides.
+// ecTellFrac computes bits used in eighth-bit units from a coder's bit count and range register (RFC 6716 section 4.1.6): rng is corrected to 15 significant bits, then the fractional part comes from the table.
 func ecTellFrac(nbits int, rng uint32) int {
 	n := nbits << 3
 	l := ilog(rng)
@@ -225,8 +205,6 @@ func ecTellFrac(nbits int, rng uint32) int {
 	return n - l
 }
 
-// correctionThresh is the tell_frac fractional-bit correction table (libopus).
 var correctionThresh = [8]uint32{35733, 38967, 42495, 46340, 50535, 55109, 60097, 65535}
 
-// ilog returns floor(log2(x)) + 1 for x > 0, and 0 for x == 0.
 func ilog(x uint32) int { return bits.Len32(x) }

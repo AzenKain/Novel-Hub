@@ -7,9 +7,6 @@ import (
 	"novelhub/pkg/waxflow/waxerr"
 )
 
-// flacMapping decodes the Xiph FLAC-in-Ogg mapping (version 1). FLAC self-times:
-// every frame header carries its sample position, so packetTiming reads it
-// directly and seeks need no pre-roll.
 type flacMapping struct {
 	si          flac.StreamInfo
 	codecConfig []byte
@@ -19,8 +16,6 @@ type flacMapping struct {
 
 func (m *flacMapping) codecID() codec.ID { return codec.FLAC }
 
-// parseID parses the Ogg-FLAC identification packet: the 0x7F FLAC signature,
-// mapping version, header count, and an embedded fLaC marker with STREAMINFO.
 func (m *flacMapping) parseID(pkt []byte) (int, error) {
 	const want = 13 + 4 + flac.StreamInfoLen
 	if len(pkt) < want {
@@ -49,8 +44,6 @@ func (m *flacMapping) parseID(pkt []byte) (int, error) {
 	return headerPackets, nil
 }
 
-// parseHeader ignores FLAC metadata block packets; STREAMINFO from the
-// identification packet is all the decoder needs.
 func (m *flacMapping) parseHeader([]byte) error { return nil }
 
 func (m *flacMapping) isAudio(pkt []byte) bool { return flac.SyncOK(pkt) }
@@ -62,8 +55,6 @@ func (m *flacMapping) finalizeTrack(lastGranule func() int64) (container.Track, 
 	}
 	samples := m.si.Samples
 	if samples == 0 {
-		// Streaming muxers leave STREAMINFO's total at zero; only then pay for
-		// the tail scan to read the length from the last page's granule.
 		samples = lastGranule()
 	}
 	return container.Track{

@@ -181,9 +181,6 @@ func (c *OPDSController) GetOPDS2Catalog(ctx fiber.Ctx) error {
 	return ctx.JSON(feed)
 }
 
-// The configured server.url wins over the detected host: behind a path-rewriting proxy the
-// detected value is wrong, and a reader app follows these links to download files, so a wrong
-// host shows a working catalog whose every download fails.
 func getBaseURL(ctx fiber.Ctx, settings services.SettingsService) string {
 	if settings != nil {
 		if configured := settings.ServerURL(); configured != "" {

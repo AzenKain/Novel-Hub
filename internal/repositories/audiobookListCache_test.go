@@ -13,9 +13,7 @@ import (
 	"novelhub/pkg/database"
 )
 
-// New chapters change which books have audio, so ListBooksWithAudio's page
-// caches must be dropped on every chapter mutation — otherwise the vbook audio
-// shelf goes stale after a chapter merge.
+// New chapters change which books have audio, so ListBooksWithAudio's page caches must be dropped on every chapter mutation — otherwise the vbook audio shelf goes stale after a chapter merge.
 func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "t.db"))
 	if err != nil {
@@ -43,7 +41,6 @@ func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 		}
 	}
 
-	// Seed one chapter on b1, then read the list twice to populate + hit cache
 	if _, err := repo.UpsertChapter(ctx, "c1", "b1", strPtr("b1f"), 0, "Ch1", 0.0, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +48,6 @@ func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Second read is a cache hit; still the same ids
 	if _, err := repo.ListBooksWithAudio(ctx, nil, "", 10); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +55,6 @@ func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 		t.Fatalf("initial list = %v, want [b1]", listA)
 	}
 
-	// Upsert a chapter on b2 — the list cache must refresh to include it.
 	if _, err := repo.UpsertChapter(ctx, "c2", "b2", strPtr("b2f"), 0, "Ch1", 0.0, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +66,6 @@ func TestAudiobookListInvalidatedOnUpsert(t *testing.T) {
 		t.Fatalf("after upsert list = %v, want 2 books", listB)
 	}
 
-	// Delete the only chapter of b1 — it must leave the list.
 	if err := repo.DeleteChaptersForBook(ctx, "b1"); err != nil {
 		t.Fatal(err)
 	}

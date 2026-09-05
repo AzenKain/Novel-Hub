@@ -1,7 +1,4 @@
--- Migration 95: RBAC Restructure & GUEST Role
 
--- Insert GUEST system role if missing
--- Same fixed GUEST UUID literal as 90_seed_roles.sql (must stay in lockstep).
 INSERT INTO roles (id, name, is_system, is_admin, is_banned, auto_assign, description)
 VALUES ('01920000-0000-7000-8000-000000000005', 'GUEST', 1, 0, 0, 0, 'Built-in unauthenticated visitor role')
 ON CONFLICT(name) DO UPDATE SET
@@ -9,7 +6,6 @@ ON CONFLICT(name) DO UPDATE SET
     is_banned = excluded.is_banned,
     description = excluded.description;
 
--- Insert 35 permissions
 INSERT INTO permissions (key, description) VALUES
     ('book.read', 'Read books and online reader'),
     ('book.tts', 'Use text-to-speech audio reader'),
@@ -51,7 +47,6 @@ INSERT INTO permissions (key, description) VALUES
 ON CONFLICT(key) DO UPDATE SET
     description = excluded.description;
 
--- Grant GUEST default permissions if not exists
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -59,7 +54,6 @@ JOIN permissions p ON p.key IN ('book.read', 'book.tts', 'library.read', 'opds.r
 WHERE r.name = 'GUEST'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 
--- Grant USER new permissions if not exists
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -72,7 +66,6 @@ JOIN permissions p ON p.key IN (
 WHERE r.name = 'USER'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 
--- Grant MOD new permissions if not exists
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -89,7 +82,6 @@ JOIN permissions p ON p.key IN (
 WHERE r.name = 'MOD'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 
--- Grant ADMIN all permissions
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
@@ -99,7 +91,6 @@ ON CONFLICT(role_id, permission_key) DO UPDATE SET
     effect = 'allow',
     conditions_json = '{}';
 
--- Ensure role positions
 UPDATE roles SET position = 100 WHERE name = 'ADMIN';
 UPDATE roles SET position = 80 WHERE name = 'MOD';
 UPDATE roles SET position = 50 WHERE name = 'USER';

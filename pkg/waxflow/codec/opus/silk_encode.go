@@ -1,13 +1,5 @@
 package opus
 
-// SILK encoder state, ported from libopus silk/structs.h (silk_encoder_state,
-// silk_nsq_state, stereo_enc_state) and silk/float/structs_FLP.h
-// (silk_shape_state_FLP, silk_encoder_state_FLP, silk_encoder_control_FLP,
-// silk_encoder). The analysis chain is the reference's float build (FLP);
-// quantization and entropy coding are the shared fixed-point core, matching
-// the decoder bit-for-bit.
-
-// Encoder constants (silk/define.h).
 const (
 	silkMaxFsKHz           = 16
 	laShapeMS              = 5
@@ -25,10 +17,9 @@ const (
 	maxFramesPerPacket     = 3
 	encoderNumChannels     = 2
 	maxPredictionPowerGain = 1e4
-	silkMaxOrderLPC        = 24 // MAX_ORDER_LPC (whitening filter order cap)
+	silkMaxOrderLPC        = 24
 )
 
-// silkNSQState is the noise shaping quantizer state (silk_nsq_state).
 type silkNSQState struct {
 	xq            [2 * silkMaxFrameLen]int16
 	sLTPShpQ14    [2 * silkMaxFrameLen]int32
@@ -44,22 +35,18 @@ type silkNSQState struct {
 	rewhiteFlag   int
 }
 
-// reset restores the initial quantizer state (part of silk_init_encoder).
 func (s *silkNSQState) reset() {
 	*s = silkNSQState{}
 	s.lagPrev = 100
 	s.prevGainQ16 = 65536
 }
 
-// silkShapeState is the noise shaping analysis state (silk_shape_state_FLP).
 type silkShapeState struct {
 	lastGainIndex     int8
 	harmShapeGainSmth float32
 	tiltSmth          float32
 }
 
-// silkEncoderControl carries one frame's analysis results into quantization
-// (silk_encoder_control_FLP).
 type silkEncoderControl struct {
 	gains    [silkMaxNBSubfr]float32
 	predCoef [2][silkMaxLPCOrder]float32
@@ -84,8 +71,6 @@ type silkEncoderControl struct {
 	lastGainIndexPrev int8
 }
 
-// silkEncoderChannel is one internal channel's encoder state
-// (silk_encoder_state fused with its FLP wrapper silk_encoder_state_FLP).
 type silkEncoderChannel struct {
 	inHPState                   [2]int32
 	variableHPSmth1Q15          int32
@@ -166,7 +151,7 @@ type silkEncoderChannel struct {
 	useDTX          bool
 	inDTX           bool
 	noSpeechCounter int
-	savedFsKHz      int // sLP.saved_fs_kHz: rate before a bandwidth-switch reset
+	savedFsKHz      int
 
 	useInBandFEC      bool
 	LBRREnabled       bool
@@ -174,13 +159,11 @@ type silkEncoderChannel struct {
 	indicesLBRR       [maxFramesPerPacket]silkIndices
 	pulsesLBRR        [maxFramesPerPacket][silkMaxFrameLen]int8
 
-	// FLP wrapper state (silk_encoder_state_FLP).
 	sShape  silkShapeState
 	xBuf    [2*silkMaxFrameLen + laShapeMax]float32
 	LTPCorr float32
 }
 
-// stereoEncState is the stereo mixing encoder state (stereo_enc_state).
 type stereoEncState struct {
 	predPrevQ13   [2]int16
 	sMid          [2]int16
@@ -193,7 +176,6 @@ type stereoEncState struct {
 	midOnlyFlags  [maxFramesPerPacket]int8
 }
 
-// silkEncoder is the top-level SILK encoder (silk_encoder).
 type silkEncoder struct {
 	sStereo                  stereoEncState
 	nBitsUsedLBRR            int32

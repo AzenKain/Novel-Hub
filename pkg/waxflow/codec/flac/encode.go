@@ -13,32 +13,15 @@ import (
 
 var _ codec.Encoder = (*Encoder)(nil)
 
-// DefaultEncoderLevel is the compression level used when EncoderOptions
-// is nil, matching the reference encoder's default.
+// DefaultEncoderLevel is the compression level used when EncoderOptions is nil, matching the reference encoder's default.
 const DefaultEncoderLevel = 5
 
-// EncoderOptions configures the encoder. A nil options pointer selects
-// DefaultEncoderLevel; a non-nil one uses Level literally, so level 0 is
-// expressible.
+// EncoderOptions configures the encoder.
 type EncoderOptions struct {
-	// Level is the compression level, 0 (fastest) through 8 (smallest).
-	// Levels trade encode speed for size and never affect decoded audio.
-	Level int
-	// FirstFrame numbers the first encoded frame. Frame headers carry the
-	// frame's ordinal under the fixed blocking strategy, so an encoder
-	// producing a mid-stream slice (an HLS worker restarted at a segment
-	// boundary) must number frames by their absolute position or the slice
-	// disagrees with the stream around it. 0 (the default) is a whole
-	// stream from the top.
+	Level      int
 	FirstFrame int64
 }
 
-// levelParams maps a compression level to its search effort, modeled on
-// the reference encoder's presets: block size, LPC ceiling (0 keeps to
-// fixed predictors), whether to search all stereo decorrelation modes,
-// the Rice partition ceiling, and the apodization windows to try (Tukey
-// taper fractions). Every level stays inside the streamable subset:
-// blocks of at most 4608 and predictor orders of at most 12.
 type levelParams struct {
 	block   int
 	maxLPC  int
@@ -59,17 +42,12 @@ var levels = [9]levelParams{
 	{block: 4096, maxLPC: 12, search: true, maxPart: 6, apod: []float64{0.5, 0.25, 0.75}},
 }
 
-// EncoderVersion is the encoder's algorithm revision for cache keys
-// (ADR-0004): compressed bytes for the same input must never change
-// without a bump. The level is part of the version because it changes
-// the bytes while leaving the decoded samples untouched.
+// EncoderVersion is the encoder's algorithm revision for cache keys (ADR-0004): compressed bytes for the same input must never change without a bump.
 func EncoderVersion(level int) string {
 	return fmt.Sprintf("flacenc-1-l%d", level)
 }
 
-// EncoderBlockSize returns the frame length in samples the given level
-// encodes at, which is also Encoder.FrameSize for the pipeline framer.
-// Levels outside 0..8 return 0.
+// EncoderBlockSize returns the frame length in samples the given level encodes at, which is also Encoder.FrameSize for the pipeline framer.
 func EncoderBlockSize(level int) int {
 	if level < 0 || level >= len(levels) {
 		return 0
@@ -77,7 +55,6 @@ func EncoderBlockSize(level int) int {
 	return levels[level].block
 }
 
-// subframe kinds, distinct from the wire type codes they map to.
 const (
 	kindConstant = iota
 	kindVerbatim
@@ -85,32 +62,26 @@ const (
 	kindLPC
 )
 
-// subplan is one channel signal's chosen encoding, retained until the
-// stereo decorrelation decision and the frame write.
 type subplan struct {
 	kind   int
 	order  int
 	wasted uint
-	bps    uint // warmup/verbatim sample width: signal width minus wasted
+	bps    uint
 	shift  uint
 	qcoef  [maxLPCOrder]int64
 	rice   ricePlan
 	cost   int64
-	x      []int64 // signal, shifted right by wasted
-	res    []int64 // residual for fixed and LPC kinds
+	x      []int64
+	res    []int64
 }
 
-// slot is the per-signal scratch a subplan points into.
 type slot struct {
 	x, res, trial []int64
 	params        [1 << 8]uint8
 	plan          subplan
 }
 
-// Encoder encodes integer PCM into FLAC frames. It implements
-// codec.Encoder: one input chunk of FrameSize samples becomes exactly
-// one frame packet, so the pipeline framer drives the fixed blocking
-// strategy (a short chunk is legal only as the last one).
+// Encoder encodes integer PCM into FLAC frames.
 type Encoder struct {
 	fmt   audio.Format
 	si    StreamInfo
@@ -119,7 +90,7 @@ type Encoder struct {
 
 	frameNo  int64
 	pos      int64
-	short    bool // a short chunk was encoded; the stream must end
+	short    bool
 	finished bool
 
 	md5    hash.Hash
@@ -127,7 +98,7 @@ type Encoder struct {
 	md5buf []byte
 
 	slots []slot
-	wins  map[float64][]float64 // apodization windows for the full block size
+	wins  map[float64][]float64
 	wx    []float64
 	acf   []float64
 	errs  []float64
@@ -136,10 +107,7 @@ type Encoder struct {
 	w     bitWriter
 }
 
-// NewEncoder returns an Encoder for integer PCM in format f. A nil opts
-// selects DefaultEncoderLevel. The format's layout must be the channel
-// convention FLAC implies (the default layout), which is what the
-// pipeline produces.
+// NewEncoder returns an Encoder for integer PCM in format f.
 func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	level := DefaultEncoderLevel
 	firstFrame := int64(0)
@@ -172,12 +140,6 @@ func NewEncoder(f audio.Format, opts *EncoderOptions) (*Encoder, error) {
 	if want := si.PCMFormat(); f != want {
 		if f.Layout != want.Layout && f.Rate == want.Rate && f.Channels == want.Channels &&
 			f.Type == want.Type && f.BitDepth == want.BitDepth {
-			// Only the layout differs, and audio.Format.String does not
-			// print it, so naming the two formats would print the same
-			// text twice. FLAC fixes the speaker assignment per channel
-			// count (four channels are quad), so a layout it does not name
-			// has nowhere to be stored: AAC's 4.0, a centre and a back
-			// centre, is the one that reaches here.
 			return nil, waxerr.New(waxerr.CodeUnsupportedFormat,
 				fmt.Sprintf("flac: cannot encode channel layout %v (FLAC assigns %d channels as %v)",
 					f.Layout, f.Channels, want.Layout))
@@ -210,26 +172,19 @@ func (e *Encoder) InputFormat() audio.Format { return e.fmt }
 // FrameSize returns the block size the framer must deliver.
 func (e *Encoder) FrameSize() int { return e.lv.block }
 
-// CodecConfig returns the stream's STREAMINFO block body. Totals, frame
-// size bounds, and the MD5 signature are unknown until the stream ends;
-// a muxer with a seekable destination back-patches them (MD5 via the
-// MD5 method after Finish).
+// CodecConfig returns the stream's STREAMINFO block body.
 func (e *Encoder) CodecConfig() []byte {
 	b, err := e.si.MarshalBinary()
 	if err != nil {
-		// NewEncoder validated the fields; this cannot happen.
 		panic(err)
 	}
 	return b
 }
 
-// MD5 returns the RFC 9639 signature of the unencoded audio: MD5 over
-// interleaved samples, each in the fewest whole little-endian bytes the
-// bit depth needs. Valid only after Finish; zero before.
+// MD5 returns the RFC 9639 signature of the unencoded audio: MD5 over interleaved samples, each in the fewest whole little-endian bytes the bit depth needs.
 func (e *Encoder) MD5() [16]byte { return e.md5sum }
 
-// Finish reports the stream totals. FLAC has no encoder delay, padding,
-// or buffered frames, so nothing flushes.
+// Finish reports the stream totals.
 func (e *Encoder) Finish(func(codec.Packet) error) (codec.Trailer, error) {
 	if e.finished {
 		return codec.Trailer{}, waxerr.New(waxerr.CodeInternal, "flac: Finish called twice")
@@ -239,13 +194,7 @@ func (e *Encoder) Finish(func(codec.Packet) error) (codec.Trailer, error) {
 	return codec.Trailer{Samples: e.pos}, nil
 }
 
-// Encode encodes one chunk as one frame. Chunks must be FrameSize
-// samples; a shorter chunk is accepted only as the stream's last (the
-// framer guarantees this), because the fixed blocking strategy codes
-// frame indexes, not positions. For the same reason a mid-stream
-// discontinuity cannot be represented: a splice or a seek needs a fresh
-// encoder, and the engine never routes one mid-stream today. The
-// emitted packet is borrowed: Data is valid only during the callback.
+// Encode encodes one chunk as one frame.
 func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error {
 	switch {
 	case e.finished:
@@ -276,8 +225,6 @@ func (e *Encoder) Encode(src *audio.Buffer, emit func(codec.Packet) error) error
 	return emit(pkt)
 }
 
-// updateMD5 folds the chunk into the running signature: interleaved,
-// little-endian, ceil(bits/8) bytes per sample, two's complement.
 func (e *Encoder) updateMD5(src *audio.Buffer) {
 	bs := (e.fmt.BitDepth + 7) / 8
 	need := src.N * e.fmt.Channels * bs
@@ -321,7 +268,6 @@ func (e *Encoder) updateMD5(src *audio.Buffer) {
 	e.md5.Write(buf)
 }
 
-// Channel assignment plan indexes for the stereo search slots.
 const (
 	sigLeft = iota
 	sigRight
@@ -329,8 +275,6 @@ const (
 	sigSide
 )
 
-// encodeFrame plans every channel signal and assembles the frame into
-// e.w.
 func (e *Encoder) encodeFrame(src *audio.Buffer) {
 	n := src.N
 	ch := e.fmt.Channels
@@ -374,7 +318,7 @@ func (e *Encoder) encodeFrame(src *audio.Buffer) {
 	}
 
 	assign := ch - 1
-	order := make([]int, 0, 8) // slot write order
+	order := make([]int, 0, 8)
 	if stereo {
 		indep := e.slots[sigLeft].plan.cost + e.slots[sigRight].plan.cost
 		left := e.slots[sigLeft].plan.cost + e.slots[sigSide].plan.cost
@@ -406,8 +350,6 @@ func (e *Encoder) encodeFrame(src *audio.Buffer) {
 	e.w.buf = append(e.w.buf, byte(crc>>8), byte(crc))
 }
 
-// planSignal picks the cheapest subframe encoding for one channel
-// signal of width w bits, leaving the choice in sl.plan.
 func (e *Encoder) planSignal(sl *slot, n int, w uint) {
 	x := sl.x[:n]
 
@@ -425,8 +367,6 @@ func (e *Encoder) planSignal(sl *slot, n int, w uint) {
 		return
 	}
 
-	// Wasted bits: trailing zeros common to every sample shift out once
-	// per subframe instead of riding every residual.
 	wasted := uint(0)
 	if tz := uint(bits.TrailingZeros64(uint64(or))); tz > 0 {
 		wasted = min(tz, w-1)
@@ -437,12 +377,11 @@ func (e *Encoder) planSignal(sl *slot, n int, w uint) {
 	}
 	hdr := 8
 	if wasted > 0 {
-		hdr += int(wasted) // flag already in the 8; unary of wasted-1
+		hdr += int(wasted)
 	}
 
 	sl.plan = subplan{kind: kindVerbatim, wasted: wasted, bps: w, cost: int64(hdr) + int64(n)*int64(w), x: x}
 
-	// Fixed predictors: estimate the best order, then price it exactly.
 	fo := bestFixedOrder(x, sl.trial[:n])
 	fixedResidual(x, fo, sl.trial[:n])
 	plan := planRice(sl.trial[:n], fo, n, e.lv.maxPart, &e.rs)
@@ -451,9 +390,6 @@ func (e *Encoder) planSignal(sl *slot, n int, w uint) {
 		e.adopt(sl, subplan{kind: kindFixed, order: fo, wasted: wasted, bps: w, rice: plan, cost: cost, x: x}, n)
 	}
 
-	// LPC: one candidate per apodization window at the estimated best
-	// order. A predictor longer than half the block prices more header
-	// than residual, so short final blocks cap the order.
 	maxOrder := min(e.lv.maxLPC, (n-1)/2)
 	if maxOrder < 1 {
 		return
@@ -486,9 +422,6 @@ func (e *Encoder) planSignal(sl *slot, n int, w uint) {
 	}
 }
 
-// adopt installs a trial plan as the slot's best: the trial residual
-// swaps into the plan and the Rice parameters copy out of the shared
-// scratch, which the next planRice call overwrites.
 func (e *Encoder) adopt(sl *slot, plan subplan, n int) {
 	sl.res, sl.trial = sl.trial, sl.res
 	plan.res = sl.res[:n]
@@ -497,8 +430,6 @@ func (e *Encoder) adopt(sl *slot, plan subplan, n int) {
 	sl.plan = plan
 }
 
-// writeFrameHeader emits the fixed-strategy frame header including its
-// CRC-8.
 func (e *Encoder) writeFrameHeader(n, assign int) {
 	w := &e.w
 	w.writeBits(16, 0xFFF8)
@@ -535,8 +466,6 @@ func (e *Encoder) writeFrameHeader(n, assign int) {
 		case rate%10 == 0 && rate/10 <= 0xFFFF:
 			rateCode, rateBits, rateVal = 14, 16, rate/10
 		}
-		// Other rates defer to STREAMINFO (code 0), which is valid FLAC
-		// but outside the streamable subset.
 	}
 
 	bitsCode := 0
@@ -558,23 +487,19 @@ func (e *Encoder) writeFrameHeader(n, assign int) {
 	w.writeBits(8, uint64(crc8(w.buf)))
 }
 
-// writeCodedNumber emits the UTF-8-like variable-length integer frame
-// headers carry, up to 36 bits.
 func (e *Encoder) writeCodedNumber(v uint64) {
 	w := &e.w
 	if v < 0x80 {
 		w.writeBits(8, v)
 		return
 	}
-	// An encoding of total bytes holds 6*(total-1) continuation bits plus
-	// 7-total lead bits: 11 bits at two bytes, five more per byte after.
 	total := 2
 	for lim := uint64(1) << 11; v >= lim && total < 7; total++ {
 		lim <<= 5
 	}
 	lead := uint64(0xFF<<(8-total)) & 0xFF
 	payload := uint(6 * (total - 1))
-	head := 8 - total - 1 // payload bits in the lead byte
+	head := 8 - total - 1
 	if head < 0 {
 		head = 0
 	}
@@ -584,7 +509,6 @@ func (e *Encoder) writeCodedNumber(v uint64) {
 	}
 }
 
-// writeSubframe emits one subframe per its plan.
 func (e *Encoder) writeSubframe(p *subplan, n int) {
 	w := &e.w
 	w.writeBits(1, 0)

@@ -13,12 +13,11 @@ type LookupAudiobookChaptersDto struct {
 	ASIN string `json:"asin" validate:"required,min=9,max=20"`
 }
 
-
 type MergeAudioSegment struct {
 	FileID   string  `json:"file_id" validate:"required"`
 	StartSec float64 `json:"start_sec" validate:"gte=0"`
 	EndSec   float64 `json:"end_sec" validate:"required,gtfield=StartSec"`
-	Gain     float64 `json:"gain" validate:"gte=0,lte=5"` // 1.0 = original, 0-5x range
+	Gain     float64 `json:"gain" validate:"gte=0,lte=5"`
 }
 
 type MergeAudioDto struct {

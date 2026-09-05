@@ -26,7 +26,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    
+
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       setZoom((prevZoom) => {
@@ -62,7 +62,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     if (!isDragging) return;
     setPosition({
       x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+      y: e.clientY - dragStart.y,
     });
   };
 
@@ -95,7 +95,9 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     const ctx = canvas.getContext("2d");
 
     const container = containerRef.current;
-    const containerWidth = container ? container.getBoundingClientRect().width : 320;
+    const containerWidth = container
+      ? container.getBoundingClientRect().width
+      : 320;
     const ratio = cropSize / containerWidth;
 
     if (ctx) {
@@ -104,7 +106,13 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       ctx.translate(cropSize / 2, cropSize / 2);
       ctx.translate(position.x * ratio, position.y * ratio);
       ctx.scale(zoom, zoom);
-      ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+      ctx.drawImage(
+        img,
+        -drawWidth / 2,
+        -drawHeight / 2,
+        drawWidth,
+        drawHeight,
+      );
       ctx.restore();
 
       const base64 = canvas.toDataURL("image/png", 1.0);
@@ -115,67 +123,65 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-md w-full flex flex-col items-center gap-4">
-        <h4 className="font-bold text-lg">{t('common.crop_image', 'Crop & Adjust Photo')}</h4>
-      
-      <div 
-        ref={containerRef}
-        className="w-full max-w-[320px] aspect-square overflow-hidden relative border-2 border-primary shadow-lg bg-base-300 mx-auto select-none"
-        style={{ borderRadius: cropSize > 200 ? '0.5rem' : '9999px' }} 
-      >
-        <img
-          ref={imgRef}
-          src={imageSrc}
-          crossOrigin="anonymous"
-          alt={t("common.alt_crop_preview")}
-          draggable={false}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className={`absolute cursor-move select-none max-w-none origin-center ${
-            isLandscape ? 'h-full w-auto' : 'w-full h-auto'
-          }`}
-          style={{
-            top: '50%',
-            left: '50%',
-            transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,
-          }}
-        />
-      </div>
-      
-      <div className="w-full max-w-xs flex flex-col gap-2 mt-2">
-        <div className="flex justify-between text-xs text-base-content/60 px-1">
-          <span>{t('user.zoom', 'Zoom')}</span>
-          <span>{Math.round(zoom * 100)}%</span>
+        <h4 className="font-bold text-lg">
+          {t("common.crop_image", "Crop & Adjust Photo")}
+        </h4>
+
+        <div
+          ref={containerRef}
+          className="w-full max-w-[320px] aspect-square overflow-hidden relative border-2 border-primary shadow-lg bg-base-300 mx-auto select-none"
+          style={{ borderRadius: cropSize > 200 ? "0.5rem" : "9999px" }}
+        >
+          <img
+            ref={imgRef}
+            src={imageSrc}
+            crossOrigin="anonymous"
+            alt={t("common.alt_crop_preview")}
+            draggable={false}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className={`absolute cursor-move select-none max-w-none origin-center ${
+              isLandscape ? "h-full w-auto" : "w-full h-auto"
+            }`}
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,
+            }}
+          />
         </div>
-        <input
-          type="range"
-          min="1"
-          max="3"
-          step="0.05"
-          value={zoom}
-          onChange={(e) => setZoom(parseFloat(e.target.value))}
-          className="range range-primary range-sm"
-        />
-        <p className="text-center text-xs text-base-content/50 mt-1">
-          {t('user.crop_instructions', 'Drag image to reposition')}
-        </p>
-      </div>
-      
+
+        <div className="w-full max-w-xs flex flex-col gap-2 mt-2">
+          <div className="flex justify-between text-xs text-base-content/60 px-1">
+            <span>{t("user.zoom", "Zoom")}</span>
+            <span>{Math.round(zoom * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.05"
+            value={zoom}
+            onChange={(e) => setZoom(parseFloat(e.target.value))}
+            className="range range-primary range-sm"
+          />
+          <p className="text-center text-xs text-base-content/50 mt-1">
+            {t("user.crop_instructions", "Drag image to reposition")}
+          </p>
+        </div>
+
         <div className="flex gap-2 w-full justify-end mt-4">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={onCancel}
-          >
-            {t('common.cancel', 'Cancel')}
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            {t("common.cancel", "Cancel")}
           </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={handleCropApply}
           >
-            {t('common.apply', 'Apply')}
+            {t("common.apply", "Apply")}
           </button>
         </div>
       </div>

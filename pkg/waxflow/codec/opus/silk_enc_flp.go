@@ -1,49 +1,31 @@
 package opus
 
-// SILK float-analysis primitives, ported from libopus silk/float/:
-// SigProc_FLP.h, energy_FLP.c, inner_product_FLP.c, scale_vector_FLP.c,
-// scale_copy_vector_FLP.c, sort_FLP.c, bwexpander_FLP.c,
-// apply_sine_window_FLP.c, autocorrelation_FLP.c, schur_FLP.c, k2a_FLP.c,
-// LPC_inv_pred_gain_FLP.c, LPC_analysis_filter_FLP.c,
-// warped_autocorrelation_FLP.c, and burg_modified_FLP.c.
-// silk_float is float32; accumulators the reference declares double stay
-// float64.
-
 import "math"
 
-// silkFloat2Int rounds to nearest like the reference's lrintf under the
-// default rounding mode (silk_float2int).
 func silkFloat2Int(x float32) int32 {
 	return int32(math.RoundToEven(float64(x)))
 }
 
-// silkFloat2ShortArray converts and saturates to int16 (silk_float2short_array).
 func silkFloat2ShortArray(out []int16, in []float32, length int) {
 	for k := 0; k < length; k++ {
 		out[k] = int16(silkSAT16(silkFloat2Int(in[k])))
 	}
 }
 
-// silkShort2FloatArray widens int16 samples to float32 (silk_short2float_array).
 func silkShort2FloatArray(out []float32, in []int16, length int) {
 	for k := 0; k < length; k++ {
 		out[k] = float32(in[k])
 	}
 }
 
-// silkSigmoid is 1/(1+exp(-x)) (silk_sigmoid).
 func silkSigmoid(x float32) float32 {
 	return float32(1.0 / (1.0 + math.Exp(-float64(x))))
 }
 
-// silkLog2F is log2 through log10, matching the reference's constant
-// (silk_log2).
 func silkLog2F(x float64) float32 {
 	return float32(3.32192809488736 * math.Log10(x))
 }
 
-// silkEnergyFLP is the sum of squares with a float64 accumulator
-// (silk_energy_FLP).
 func silkEnergyFLP(data []float32, dataSize int) float64 {
 	var result float64
 	for i := 0; i < dataSize; i++ {
@@ -52,8 +34,6 @@ func silkEnergyFLP(data []float32, dataSize int) float64 {
 	return result
 }
 
-// silkInnerProductFLP is the inner product with a float64 accumulator
-// (silk_inner_product_FLP_c).
 func silkInnerProductFLP(data1, data2 []float32, dataSize int) float64 {
 	var result float64
 	for i := 0; i < dataSize; i++ {
@@ -62,22 +42,18 @@ func silkInnerProductFLP(data1, data2 []float32, dataSize int) float64 {
 	return result
 }
 
-// silkScaleVectorFLP multiplies a vector by a constant (silk_scale_vector_FLP).
 func silkScaleVectorFLP(data []float32, gain float32, dataSize int) {
 	for i := 0; i < dataSize; i++ {
 		data[i] *= gain
 	}
 }
 
-// silkScaleCopyVectorFLP copies with a gain (silk_scale_copy_vector_FLP).
 func silkScaleCopyVectorFLP(dataOut, dataIn []float32, gain float32, dataSize int) {
 	for i := 0; i < dataSize; i++ {
 		dataOut[i] = gain * dataIn[i]
 	}
 }
 
-// silkInsertionSortDecreasingFLP sorts a decreasing, tracking indices, with
-// only the first K positions guaranteed (silk_insertion_sort_decreasing_FLP).
 func silkInsertionSortDecreasingFLP(a []float32, idx []int, L, K int) {
 	for i := 0; i < K; i++ {
 		idx[i] = i
@@ -106,7 +82,6 @@ func silkInsertionSortDecreasingFLP(a []float32, idx []int, L, K int) {
 	}
 }
 
-// silkBWExpanderFLP chirps an AR filter (silk_bwexpander_FLP).
 func silkBWExpanderFLP(ar []float32, d int, chirp float32) {
 	cfac := chirp
 	for i := 0; i < d-1; i++ {
@@ -116,8 +91,6 @@ func silkBWExpanderFLP(ar []float32, d int, chirp float32) {
 	ar[d-1] *= cfac
 }
 
-// silkApplySineWindowFLP applies a sine window: type 1 rises 0..pi/2, type 2
-// falls pi/2..pi (silk_apply_sine_window_FLP). Length must be a multiple of 4.
 func silkApplySineWindowFLP(pxWin, px []float32, winType, length int) {
 	freq := float32(math.Pi) / float32(length+1)
 	c := 2.0 - freq*freq
@@ -139,7 +112,6 @@ func silkApplySineWindowFLP(pxWin, px []float32, winType, length int) {
 	}
 }
 
-// silkAutocorrelationFLP computes autocorrelation taps (silk_autocorrelation_FLP).
 func silkAutocorrelationFLP(results []float32, inputData []float32, inputDataSize, correlationCount int) {
 	if correlationCount > inputDataSize {
 		correlationCount = inputDataSize
@@ -149,8 +121,6 @@ func silkAutocorrelationFLP(results []float32, inputData []float32, inputDataSiz
 	}
 }
 
-// silkSchurFLP computes reflection coefficients from autocorrelations and
-// returns the residual energy (silk_schur_FLP).
 func silkSchurFLP(reflCoef []float32, autoCorr []float32, order int) float32 {
 	var C [silkMaxOrderLPC + 1][2]float64
 	for k := 0; k <= order; k++ {
@@ -174,8 +144,6 @@ func silkSchurFLP(reflCoef []float32, autoCorr []float32, order int) float32 {
 	return float32(C[0][1])
 }
 
-// silkK2AFLP converts reflection coefficients to prediction coefficients
-// (silk_k2a_FLP).
 func silkK2AFLP(A []float32, rc []float32, order int) {
 	for k := 0; k < order; k++ {
 		rck := rc[k]
@@ -189,8 +157,6 @@ func silkK2AFLP(A []float32, rc []float32, order int) {
 	}
 }
 
-// silkLPCInversePredGainFLP computes the inverse prediction gain and returns
-// 0 for unstable filters (silk_LPC_inverse_pred_gain_FLP).
 func silkLPCInversePredGainFLP(A []float32, order int) float32 {
 	var atmp [silkMaxOrderLPC]float32
 	copy(atmp[:order], A[:order])
@@ -219,8 +185,6 @@ func silkLPCInversePredGainFLP(A []float32, order int) float32 {
 	return float32(invGain)
 }
 
-// silkLPCAnalysisFilterFLP runs the zero-state whitening filter; the first
-// order output samples are zeroed (silk_LPC_analysis_filter_FLP).
 func silkLPCAnalysisFilterFLP(rLPC []float32, predCoef []float32, s []float32, length, order int) {
 	for ix := order; ix < length; ix++ {
 		var lpcPred float32
@@ -234,8 +198,6 @@ func silkLPCAnalysisFilterFLP(rLPC []float32, predCoef []float32, s []float32, l
 	}
 }
 
-// silkWarpedAutocorrelationFLP computes autocorrelations on a warped
-// frequency axis (silk_warped_autocorrelation_FLP).
 func silkWarpedAutocorrelationFLP(corr []float32, input []float32, warping float32, length, order int) {
 	var state [maxShapeLPCOrder + 1]float64
 	var C [maxShapeLPCOrder + 1]float64
@@ -258,9 +220,6 @@ func silkWarpedAutocorrelationFLP(corr []float32, input []float32, warping float
 	}
 }
 
-// silkBurgModifiedFLP computes prediction coefficients with Burg's method,
-// bounded by a minimum inverse prediction gain, and returns the residual
-// energy (silk_burg_modified_FLP).
 func silkBurgModifiedFLP(A []float32, x []float32, minInvGain float32, subfrLength, nbSubfr, D int) float32 {
 	var cFirstRow, cLastRow [silkMaxOrderLPC]float64
 	var cAf, cAb [silkMaxOrderLPC + 1]float64
@@ -320,8 +279,6 @@ func silkBurgModifiedFLP(A []float32, x []float32, minInvGain float32, subfrLeng
 
 		tmp1 = invGain * (1.0 - rc*rc)
 		if tmp1 <= float64(minInvGain) {
-			// Set the reflection coefficient to hit the max prediction gain
-			// exactly.
 			rc = math.Sqrt(1.0 - float64(minInvGain)/invGain)
 			if num > 0 {
 				rc = -rc

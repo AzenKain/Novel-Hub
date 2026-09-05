@@ -8,10 +8,7 @@ import (
 	"testing"
 )
 
-// The author:name / tag:name / series:name / publisher:name / language:name cache entries are
-// never invalidated. That is correct only because these rows are create-or-get and immutable:
-// no query renames or deletes one. Add such a query and the cache starts serving a stale name
-// with no Del to clear it, so this guard fails the moment the assumption stops holding.
+// The author:name / tag:name / series:name / publisher:name / language:name cache entries are never invalidated.
 func TestMetadataNameEntitiesHaveNoRenameOrDelete(t *testing.T) {
 	entities := []string{"Author", "Tag", "Series", "Publisher", "Language"}
 	pattern := regexp.MustCompile(`-- name: (Update|Delete|Rename)(` + strings.Join(entities, "|") + `)\b`)

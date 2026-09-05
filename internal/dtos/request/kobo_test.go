@@ -6,9 +6,6 @@ import (
 	"novelhub/pkg/jsonx"
 )
 
-// A real device body, shaped as calibre-web's HandleStateRequest reads it (cps/kobo.py). The
-// keys are Kobo's, PascalCase and all, so these assertions are the only thing standing between
-// a renamed field and a device that silently stops reporting progress.
 const devicePutStateBody = `{
   "ReadingStates": [{
     "CurrentBookmark": {
@@ -43,15 +40,12 @@ func TestPutKoboStateDtoParsesDeviceBody(t *testing.T) {
 	if state.StatusInfo == nil || state.StatusInfo.Status != "Reading" {
 		t.Errorf("StatusInfo not parsed: %#v", state.StatusInfo)
 	}
-	// Minutes are floats on the wire even though they read as whole numbers.
 	if state.Statistics == nil || state.Statistics.SpentReadingMinutes == nil || *state.Statistics.SpentReadingMinutes != 42 {
 		t.Errorf("Statistics not parsed: %#v", state.Statistics)
 	}
 }
 
-// Devices omit blocks they have nothing for. A nil block means "leave this alone", so it has to
-// stay distinguishable from a present-but-zero one — decoding a null into a zero struct would
-// look like the device reporting 0% progress.
+// Devices omit blocks they have nothing for.
 func TestPutKoboStateDtoTreatsNullBlocksAsAbsent(t *testing.T) {
 	const body = `{"ReadingStates":[{"CurrentBookmark":null,"Statistics":null,"StatusInfo":null}]}`
 	var dto PutKoboStateDto
@@ -81,7 +75,6 @@ func TestPutKoboStateDtoBookmarkWithoutLocation(t *testing.T) {
 	if bookmark.Location != nil {
 		t.Errorf("Location = %#v, want nil when the device did not send one", bookmark.Location)
 	}
-	// Zero and absent must not collapse: 0%% is a real value a reset device reports.
 	if bookmark.ContentSourceProgressPercent != nil {
 		t.Errorf("ContentSourceProgressPercent = %v, want nil (absent), not 0", *bookmark.ContentSourceProgressPercent)
 	}

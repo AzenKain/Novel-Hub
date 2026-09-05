@@ -8,7 +8,7 @@ RUN bun install --frozen-lockfile
 COPY web/ ./
 RUN bun run build
 
-FROM --platform=$BUILDPLATFORM golang:1.27.0-alpine AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS backend-builder
 WORKDIR /app
 
 RUN apk add --no-cache git build-base

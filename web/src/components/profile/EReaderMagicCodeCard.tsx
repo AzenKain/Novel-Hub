@@ -23,14 +23,30 @@ export const EReaderMagicCodeCard: React.FC = () => {
     try {
       const data = await activateMutation.mutateAsync(code.trim());
       if (data?.status) {
-        setSuccessMessage(t("profile.ereader_activated", "Device activated successfully! Your eReader is now logged in."));
+        setSuccessMessage(
+          t(
+            "profile.ereader_activated",
+            "Device activated successfully! Your eReader is now logged in.",
+          ),
+        );
         setCode("");
-        toast.success(t("profile.ereader_activated", "Device activated successfully!"));
+        toast.success(
+          t("profile.ereader_activated", "Device activated successfully!"),
+        );
       } else {
-        setErrorMessage(data?.message || t("profile.ereader_activate_failed", "Failed to activate eReader code"));
+        setErrorMessage(
+          data?.message ||
+            t(
+              "profile.ereader_activate_failed",
+              "Failed to activate eReader code",
+            ),
+        );
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || t("profile.ereader_activate_failed", "Failed to activate eReader code");
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        t("profile.ereader_activate_failed", "Failed to activate eReader code");
       setErrorMessage(msg);
     }
   };
@@ -49,7 +65,7 @@ export const EReaderMagicCodeCard: React.FC = () => {
             <p className="text-xs text-base-content/70">
               {t(
                 "profile.ereader_login_desc",
-                "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password."
+                "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
               )}
             </p>
           </div>

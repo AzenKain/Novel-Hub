@@ -29,10 +29,14 @@ export const ReadListImportReport: React.FC<ReadListImportReportProps> = ({
         </h3>
 
         <p className="py-3 text-sm opacity-80">
-          {t("library.readlist_import_summary", "Matched {{matched}} of {{total}} entries in the file.", {
-            matched,
-            total,
-          })}
+          {t(
+            "library.readlist_import_summary",
+            "Matched {{matched}} of {{total}} entries in the file.",
+            {
+              matched,
+              total,
+            },
+          )}
         </p>
 
         {unmatched.length > 0 && (

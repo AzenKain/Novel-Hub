@@ -184,11 +184,6 @@ func (p *permissionCache) IsAdmin(roleIDs []string, roles []constants.RoleType) 
 }
 
 // DescribeRoles fills in what a role grants, for the payload the frontend evaluates locally.
-// It reads the same in-memory snapshot Can() uses, so no query is added on the auth path.
-//
-// The frontend's hasPermission() walks role.permissions and sorts by role.position. Without
-// these fields it returned false for every custom role, and only the name === "ADMIN" shortcut
-// in permission.ts kept the admin UI working at all.
 func (p *permissionCache) DescribeRoles(roleIDs []string) []*models.RoleSimple {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

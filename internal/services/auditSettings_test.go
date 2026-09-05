@@ -5,8 +5,7 @@ import (
 	"testing"
 )
 
-// The whole point of encrypting smtp.password is that it does not sit in plaintext somewhere
-// every admin can read. The audit table is exactly such a place.
+// The whole point of encrypting smtp.password is that it does not sit in plaintext somewhere every admin can read.
 func TestSettingsAuditLabelNeverCarriesTheSMTPPassword(t *testing.T) {
 	const password = "sup3r-secret-mail-pw"
 

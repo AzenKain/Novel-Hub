@@ -6,10 +6,7 @@ import type { MetadataCount } from "@/types";
 const FACET_STALE_TIME = 60_000;
 const FACET_LIMIT = 100;
 
-/**
- * Fetches all metadata facets needed by the Advanced Search page in parallel.
- * Returns the raw query results so the page can check loading/error state per facet.
- */
+/** Fetches metadata facets for Advanced Search. */
 export function useAdvancedSearchFacets() {
   const formatsQuery = useQuery({
     queryKey: ["metadata", "formats", { limit: FACET_LIMIT }],

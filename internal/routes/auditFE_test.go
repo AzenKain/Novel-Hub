@@ -5,10 +5,7 @@ import (
 	"testing"
 )
 
-// TestAuditFE_DiscordFieldMutatesGoogleState proves task T2.3: in
-// OAuthSettings.tsx the Discord Client ID input reads discordClientId but its
-// onChange calls setGoogleClientId — a copy-paste bug that makes the two
-// provider configs interfere.
+// TestAuditFE_DiscordFieldMutatesGoogleState proves task T2.3: in OAuthSettings.tsx the Discord Client ID input reads discordClientId but its onChange calls setGoogleClientId — a copy-paste bug that makes the two provider configs interfere.
 func TestAuditFE_DiscordFieldMutatesGoogleState(t *testing.T) {
 	src := readRepoFile(t, "web/src/pages/admin/OAuthSettings.tsx")
 	if !strings.Contains(src, "setGoogleClientId(e.target.value)") {
@@ -19,8 +16,7 @@ func TestAuditFE_DiscordFieldMutatesGoogleState(t *testing.T) {
 	}
 }
 
-// TestAuditFE_BangumiNeverImplemented proves task T2.4: the roadmap promised
-// bangumi_id (EPIC 1.2) but no reference exists anywhere in code or schema.
+// TestAuditFE_BangumiNeverImplemented proves task T2.4: the roadmap promised bangumi_id (EPIC 1.2) but no reference exists anywhere in code or schema.
 func TestAuditFE_BangumiNeverImplemented(t *testing.T) {
 	for _, rel := range []string{
 		"db/schema/20_books.sql",
@@ -35,8 +31,7 @@ func TestAuditFE_BangumiNeverImplemented(t *testing.T) {
 	}
 }
 
-// TestAuditFE_OfflineCacheBuffersWholeFile proves task T4.1: useOfflineBook
-// fetches the entire stream into a Blob before caching — no chunking, no quota.
+// TestAuditFE_OfflineCacheBuffersWholeFile proves task T4.1: useOfflineBook fetches the entire stream into a Blob before caching — no chunking, no quota.
 func TestAuditFE_OfflineCacheBuffersWholeFile(t *testing.T) {
 	src := readRepoFile(t, "web/src/hooks/useOfflineBook.ts")
 	if !strings.Contains(src, "res.blob()") {

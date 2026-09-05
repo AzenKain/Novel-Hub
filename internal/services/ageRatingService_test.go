@@ -55,12 +55,10 @@ func TestKidsMode6DigitPinLifecycle(t *testing.T) {
 	svc, db := newTestAgeRatingService(t)
 	ctx := context.Background()
 
-	// 1. Insert test user
 	if _, err := db.Exec(`INSERT INTO users (id, email, full_name) VALUES ('user-kids-1', 'kids@example.com', 'Kids User')`); err != nil {
 		t.Fatal(err)
 	}
 
-	// 2. Reject non-6-digit PINs
 	err4Digit := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{Pin: "1234"})
 	if err4Digit == nil {
 		t.Fatal("4-digit PIN should be rejected, exactly 6 digits required")
@@ -70,12 +68,11 @@ func TestKidsMode6DigitPinLifecycle(t *testing.T) {
 		t.Fatal("Alpha-numeric PIN should be rejected, exactly 6 numeric digits required")
 	}
 
-	// 3. Set valid 6-digit PIN (bcrypt hashed)
 	if err := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{Pin: "849102"}); err != nil {
 		t.Fatalf("SetKidsModePin 6-digit failed: %v", err)
 	}
 
-	// 4. Enable Kids Mode
+	// 4.
 	if err := svc.ToggleKidsMode(ctx, "user-kids-1", &request.ToggleKidsModeDto{Enable: true}); err != nil {
 		t.Fatalf("ToggleKidsMode enable failed: %v", err)
 	}
@@ -88,18 +85,17 @@ func TestKidsMode6DigitPinLifecycle(t *testing.T) {
 		t.Fatal("Expected IsKidsMode = true")
 	}
 
-	// 5. Attempt exit Kids Mode with incorrect 6-digit PIN -> Error
+	// 5.
 	errWrongPin := svc.ToggleKidsMode(ctx, "user-kids-1", &request.ToggleKidsModeDto{Enable: false, Pin: "111111"})
 	if errWrongPin == nil {
 		t.Fatal("Exiting Kids Mode with incorrect PIN should return error")
 	}
 
-	// 6. Exit Kids Mode with correct 6-digit PIN -> Success
+	// 6.
 	if err := svc.ToggleKidsMode(ctx, "user-kids-1", &request.ToggleKidsModeDto{Enable: false, Pin: "849102"}); err != nil {
 		t.Fatalf("Exiting Kids Mode with correct PIN failed: %v", err)
 	}
 
-	// 7. Change PIN without old PIN or with wrong old PIN -> Error
 	errNoOld := svc.SetKidsModePin(ctx, "user-kids-1", &request.SetKidsModePinDto{Pin: "999999"})
 	if errNoOld == nil {
 		t.Fatal("Changing existing PIN without providing old PIN should fail")
@@ -117,7 +113,6 @@ func TestContentWarningsAndAgeRating(t *testing.T) {
 	svc, db := newTestAgeRatingService(t)
 	ctx := context.Background()
 
-	// 1. Check seeded content warnings via Cache-by-IDs
 	cws, err := svc.GetContentWarnings(ctx)
 	if err != nil {
 		t.Fatalf("GetContentWarnings failed: %v", err)
@@ -126,7 +121,6 @@ func TestContentWarningsAndAgeRating(t *testing.T) {
 		t.Fatal("Expected non-empty content warnings list")
 	}
 
-	// 2. Create test book
 	if _, err := db.Exec(`INSERT INTO libraries (id, name) VALUES ('lib-1', 'Main Lib')`); err != nil {
 		t.Fatal(err)
 	}
@@ -134,9 +128,8 @@ func TestContentWarningsAndAgeRating(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 3. Update book age rating & content warnings
 	errUpdate := svc.UpdateBookAgeRating(ctx, "book-1", &request.UpdateBookAgeRatingDto{
-		AgeRating:          constants.AgeRatingR17,
+		AgeRating:         constants.AgeRatingR17,
 		ContentWarningIDs: []string{"cw-violence", "cw-language"},
 	})
 	if errUpdate != nil {

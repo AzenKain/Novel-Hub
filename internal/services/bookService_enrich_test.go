@@ -40,15 +40,13 @@ func TestCleanEnrichQuery(t *testing.T) {
 }
 
 func TestAutoEnrichBook_Success(t *testing.T) {
-	// Enable private IPs for this test
 	netx.AllowPrivateIPsInTest = true
 	defer func() { netx.AllowPrivateIPsInTest = false }()
 
-	// Set up local mock API server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-case "/anilist":
+		case "/anilist":
 			w.Write([]byte(`{
 				"data": {
 					"Page": {
@@ -91,7 +89,6 @@ case "/anilist":
 	}))
 	defer ts.Close()
 
-	// Redirect service URLs to test server
 	oldAniList := aniListURL
 	oldOpenLibrary := openLibraryURL
 	oldGoogleBooks := googleBooksURL
@@ -104,7 +101,6 @@ case "/anilist":
 	openLibraryURL = ts.URL + "/openlibrary"
 	googleBooksURL = ts.URL + "/googlebooks"
 
-	// Setup db and repository
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test_enrich.db")
 	db, err := sql.Open("sqlite", dbPath)
@@ -113,7 +109,6 @@ case "/anilist":
 	}
 	defer db.Close()
 
-	// Apply schema migrations (must include 99b_metadata_settings.sql)
 	schemaFiles := []string{
 		"../../db/schema/10_auth.sql",
 		"../../db/schema/15_libraries.sql",
@@ -141,7 +136,6 @@ case "/anilist":
 	permissionCache := NewPermissionCache(roleRepo)
 	settingsService := NewSettingsService(settingsRepo, database.NewTxManager(db), permissionCache)
 
-	// Create test book
 	testBook := &models.BookEntity{
 		ID:        "book-enrich-1",
 		LibraryID: "lib-1",
@@ -156,14 +150,12 @@ case "/anilist":
 
 	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
 
-	// Run AutoEnrichBook
 	ctx := context.Background()
 	err = bookService.AutoEnrichBook(ctx, "book-enrich-1")
 	if err != nil {
 		t.Fatalf("AutoEnrichBook failed: %v", err)
 	}
 
-	// Verify enriched attributes
 	enriched, err := bookRepo.GetBook(ctx, "book-enrich-1")
 	if err != nil {
 		t.Fatalf("failed to retrieve enriched book: %v", err)

@@ -210,7 +210,6 @@ func (c *ReadListController) NextInOrder(ctx fiber.Ctx) error {
 	return ctx.JSON(response.CommonResponse{Status: true, Data: next})
 }
 
-
 func (c *ReadListController) ImportCBL(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

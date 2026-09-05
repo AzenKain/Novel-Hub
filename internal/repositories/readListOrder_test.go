@@ -29,10 +29,7 @@ func readListProbe(tb testing.TB, c cache.Cache) (ReadListRepository, *sql.DB, c
 	return NewReadListRepository(db, c), db, ctx
 }
 
-// Every mutation has to be visible through the cache exactly as it is through a cold read: an
-// append that lands in SQLite but leaves a stale items key makes the reader walk a list the user
-// cannot see any more. Running the identical script twice — once with no cache, once with one —
-// and comparing turns "the cache went stale" from a support ticket into a failing test.
+// Every mutation has to be visible through the cache exactly as it is through a cold read: an append that lands in SQLite but leaves a stale items key makes the reader walk a list the user cannot see any more.
 func TestReadListOrderSurvivesTheCache(t *testing.T) {
 	script := func(repo ReadListRepository, ctx context.Context) [][]string {
 		var snapshots [][]string
@@ -84,8 +81,7 @@ func TestReadListOrderSurvivesTheCache(t *testing.T) {
 	}
 }
 
-// Append puts a book at MAX(position)+1 rather than at COUNT(*), so removing the middle of the list
-// and appending again cannot land on a position that is still occupied.
+// Append puts a book at MAX(position)+1 rather than at COUNT(*), so removing the middle of the list and appending again cannot land on a position that is still occupied.
 func TestAppendAfterRemovalDoesNotCollide(t *testing.T) {
 	repo, _, ctx := readListProbe(t, nil)
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Order", ""); err != nil {
@@ -115,8 +111,7 @@ func TestAppendAfterRemovalDoesNotCollide(t *testing.T) {
 	}
 }
 
-// Appending the same book twice is a double click, not an error, and it must not create a second
-// row at a new position — the ON CONFLICT DO NOTHING is what keeps the list a set.
+// Appending the same book twice is a double click, not an error, and it must not create a second row at a new position — the ON CONFLICT DO NOTHING is what keeps the list a set.
 func TestAppendIsIdempotent(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Order", ""); err != nil {
@@ -143,8 +138,7 @@ func TestAppendIsIdempotent(t *testing.T) {
 	}
 }
 
-// The grouped count is keyed by the joined page of ids, so nothing can evict it by list name — the
-// whole counts namespace has to go on every membership change or the list cards freeze at old sizes.
+// The grouped count is keyed by the joined page of ids, so nothing can evict it by list name — the whole counts namespace has to go on every membership change or the list cards freeze at old sizes.
 func TestCountBooksInReadListsFollowsMembership(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	for _, id := range []string{"rl-1", "rl-2"} {
@@ -185,8 +179,7 @@ func TestCountBooksInReadListsFollowsMembership(t *testing.T) {
 	}
 }
 
-// GetReadListsByIDs answers in the order it was asked, not the order SQLite returns rows, and it has
-// to do that on a partial cache hit too — the position-ordered list view depends on it.
+// GetReadListsByIDs answers in the order it was asked, not the order SQLite returns rows, and it has to do that on a partial cache hit too — the position-ordered list view depends on it.
 func TestGetReadListsByIDsKeepsRequestedOrder(t *testing.T) {
 	repo, _, ctx := readListProbe(t, cache.NewRamCache())
 	for i := 0; i < 4; i++ {
@@ -213,8 +206,7 @@ func TestGetReadListsByIDsKeepsRequestedOrder(t *testing.T) {
 	}
 }
 
-// Next walks the position column, skips archived books, and reports end-of-list as ErrNoRows so the
-// reader can hide the button instead of showing an error.
+// Next walks the position column, skips archived books, and reports end-of-list as ErrNoRows so the reader can hide the button instead of showing an error.
 func TestGetNextInReadListSkipsArchivedAndEnds(t *testing.T) {
 	repo, db, ctx := readListProbe(t, nil)
 	if _, err := repo.CreateReadList(ctx, "rl-1", "u-1", "Civil War", ""); err != nil {

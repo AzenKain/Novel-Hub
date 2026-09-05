@@ -1,7 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { GripVertical, Edit2, Trash2, PinOff } from "lucide-react";
-import { useSmartFilterBooksQuery, usePinSmartFilterHomeMutation } from "@/hooks";
+import {
+  useSmartFilterBooksQuery,
+  usePinSmartFilterHomeMutation,
+} from "@/hooks";
 import { HorizontalBookShelf } from "./HorizontalBookShelf";
 import type { SmartFilter, Book } from "@/types";
 
@@ -25,7 +28,11 @@ export const SmartFilterShelf: React.FC<SmartFilterShelfProps> = ({
   onDrop,
 }) => {
   const { t } = useTranslation();
-  const { data: books = [], isLoading } = useSmartFilterBooksQuery(filter.id, undefined, 12);
+  const { data: books = [], isLoading } = useSmartFilterBooksQuery(
+    filter.id,
+    undefined,
+    12,
+  );
   const pinHomeMutation = usePinSmartFilterHomeMutation();
 
   const handleUnpin = (e: React.MouseEvent) => {
@@ -48,7 +55,10 @@ export const SmartFilterShelf: React.FC<SmartFilterShelfProps> = ({
       ) : (
         <HorizontalBookShelf
           title={filter.name}
-          subtitle={t("library.smart_filter_shelf_desc", "Dynamic custom shelf")}
+          subtitle={t(
+            "library.smart_filter_shelf_desc",
+            "Dynamic custom shelf",
+          )}
           icon={
             <div className="cursor-grab active:cursor-grabbing p-1 text-base-content/30 hover:text-base-content/75 transition-colors">
               <GripVertical className="h-5 w-5 shrink-0" />
@@ -84,7 +94,10 @@ export const SmartFilterShelf: React.FC<SmartFilterShelfProps> = ({
           }
           books={books}
           onBookClick={onBookClick}
-          emptyMessage={t("library.no_matching_books", "No books matching this filter.")}
+          emptyMessage={t(
+            "library.no_matching_books",
+            "No books matching this filter.",
+          )}
         />
       )}
     </div>

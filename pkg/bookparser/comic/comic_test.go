@@ -244,7 +244,7 @@ func TestSevenZipParserOrdersPagesAndReadsAssets(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(staging, "notes.txt"), []byte("skip"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if _, err := exec.LookPath("7z"); err != nil {
 		t.Skip("7z command line not found, skipping 7z parser test")
 	}

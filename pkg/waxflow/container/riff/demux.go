@@ -18,8 +18,6 @@ var (
 	_ container.Warner  = (*Demuxer)(nil)
 )
 
-// Hostile-input caps (ADR-0005 invariants). A legitimate WAV holds a
-// handful of chunks; parsing stops long before any pathological count.
 const (
 	maxChunks     = 1024
 	maxFmtPayload = 4096
@@ -27,9 +25,6 @@ const (
 
 // DemuxerOptions configures parsing.
 type DemuxerOptions struct {
-	// Strict turns tolerated damage (the Warnings list) into errors.
-	// Conformance tests and `waxflow probe --strict` use it; playback
-	// paths stay tolerant because real libraries are messy.
 	Strict bool
 }
 
@@ -41,14 +36,12 @@ type Demuxer struct {
 	track      container.Track
 	frameBytes int
 	dataOff    int64
-	pos        int64 // next frame to read
+	pos        int64
 	warnings   []container.Warning
 	readBuf    []byte
 }
 
-// NewDemuxer parses the headers of a WAV source. The returned Demuxer
-// implements container.Seeker (WAV seeks are trivially sample-exact) and
-// container.Warner.
+// NewDemuxer parses the headers of a WAV source.
 func NewDemuxer(src container.Source, opts *DemuxerOptions) (*Demuxer, error) {
 	d := &Demuxer{src: src}
 	if opts != nil {
@@ -64,7 +57,6 @@ func malformed(format string, args ...any) error {
 	return waxerr.New(waxerr.CodeUnsupportedFormat, "riff: "+fmt.Sprintf(format, args...))
 }
 
-// warn records tolerated damage, or fails in strict mode.
 func (d *Demuxer) warn(off int64, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if d.opts.Strict {
@@ -127,8 +119,6 @@ func (d *Demuxer) parse() error {
 			ds64DataSize = le.Uint64(p[8:])
 			ds64SampleCount = le.Uint64(p[16:])
 			haveDS64 = true
-			// The chunk table that may follow holds sizes for other big
-			// chunks; audio needs none of them, so it is skipped unread.
 		case idFmt:
 			if fmtSeen {
 				if err := d.warn(off, "duplicate fmt chunk ignored"); err != nil {
@@ -169,9 +159,6 @@ func (d *Demuxer) parse() error {
 			d.dataOff = off + 8
 			switch {
 			case chunkSize == size32Unknown && haveDS64:
-				// ds64 sizes are 64-bit and file-supplied: bound against
-				// the file before converting, or a huge value wraps int64
-				// negative and dodges the clamp.
 				if ds64DataSize > uint64(size-d.dataOff) {
 					if err := d.warn(off, "ds64 data size %d exceeds file, clamped", ds64DataSize); err != nil {
 						return err
@@ -181,7 +168,6 @@ func (d *Demuxer) parse() error {
 					dataBytes = int64(ds64DataSize)
 				}
 			case chunkSize == size32Unknown:
-				// The live-written convention: data runs to end of file.
 				if err := d.warn(off, "streaming data size, clamped to end of file"); err != nil {
 					return err
 				}
@@ -199,10 +185,8 @@ func (d *Demuxer) parse() error {
 		}
 
 		if streamingData {
-			break // data extends to EOF; nothing can follow
+			break
 		}
-		// Chunks are word-aligned: odd sizes carry a pad byte. Advancing
-		// by at least the 8-byte header guarantees parse progress.
 		next := off + 8 + chunkSize + chunkSize&1
 		if next <= off {
 			return malformed("chunk size overflow")
@@ -252,19 +236,12 @@ func (d *Demuxer) parse() error {
 		Samples:     samples,
 		Default:     true,
 	}
-	// audio.Format carries floats as float32, so a 64-bit float source
-	// decodes at BitDepth 32. The file's own depth is not lost, it just has
-	// nowhere in the format to live; recorded here so probe reports what the
-	// source holds rather than what the pipeline runs on. Integer depths need
-	// no such note: ValidBits already puts the source depth in Fmt.BitDepth.
 	if cfg.Encoding == pcm.Float && cfg.Bits != f.BitDepth {
 		d.track.SourceBitDepth = cfg.Bits
 	}
 	return nil
 }
 
-// parseFmt maps a fmt chunk payload onto a wire config and stream
-// parameters.
 func (d *Demuxer) parseFmt(b []byte, off int64) (cfg pcm.Config, rate, channels int, layout audio.ChannelMask, err error) {
 	tag := le.Uint16(b)
 	channels = int(le.Uint16(b[2:]))
@@ -275,8 +252,6 @@ func (d *Demuxer) parseFmt(b []byte, off int64) (cfg pcm.Config, rate, channels 
 	if channels < 1 || channels > audio.MaxChannels {
 		return cfg, 0, 0, 0, malformed("%d channels (supported: 1..%d)", channels, audio.MaxChannels)
 	}
-	// Bound in int64 so acceptance does not depend on the platform's int
-	// width (a rate above MaxInt32 would wrap negative on 32-bit builds).
 	if rate64 <= 0 || rate64 > math.MaxInt32 {
 		return cfg, 0, 0, 0, malformed("sample rate %d", rate64)
 	}
@@ -301,7 +276,6 @@ func (d *Demuxer) parseFmt(b []byte, off int64) (cfg pcm.Config, rate, channels 
 		mask := audio.ChannelMask(le.Uint32(b[20:]))
 		switch {
 		case mask == 0:
-			// Common in the wild; keep the guessed default layout.
 		case mask.Count() != channels:
 			if werr := d.warn(off, "channel mask %v does not cover %d channels, ignored", mask, channels); werr != nil {
 				return cfg, 0, 0, 0, werr
@@ -327,7 +301,7 @@ func (d *Demuxer) parseFmt(b []byte, off int64) (cfg pcm.Config, rate, channels 
 		case validBits != 0 && validBits != containerBits:
 			cfg.ValidBits = validBits
 		case bits != containerBits:
-			cfg.ValidBits = bits // for example 20 valid bits in 24-bit words
+			cfg.ValidBits = bits
 		}
 	case tagIEEEFloat:
 		if bits != 32 && bits != 64 {
@@ -355,8 +329,7 @@ func (d *Demuxer) Tracks() []container.Track { return []container.Track{d.track}
 // Warnings returns damage tolerated during parsing.
 func (d *Demuxer) Warnings() []container.Warning { return d.warnings }
 
-// ReadPacket yields up to audio.StandardChunk frames of raw interleaved
-// PCM. Packet data is reused across calls.
+// ReadPacket yields up to audio.StandardChunk frames of raw interleaved PCM.
 func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	remaining := d.track.Samples - d.pos
 	if remaining <= 0 {
@@ -382,9 +355,7 @@ func (d *Demuxer) ReadPacket(pkt *container.Packet) error {
 	return nil
 }
 
-// SeekSample repositions to the given sample. Every PCM frame is a sync
-// point, so landing is exact; targets past the end land at the end and
-// the next ReadPacket returns io.EOF.
+// SeekSample repositions to the given sample.
 func (d *Demuxer) SeekSample(track int, sample int64) (int64, error) {
 	if track != 0 {
 		return 0, waxerr.New(waxerr.CodeInvalidRequest, fmt.Sprintf("riff: no track %d", track))

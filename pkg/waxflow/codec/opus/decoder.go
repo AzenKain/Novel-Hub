@@ -1,11 +1,5 @@
 package opus
 
-// Top-level Opus decoder: it splits each packet into frames (opus.go), then runs
-// each frame through the SILK, CELT, or hybrid path on one shared range decoder,
-// mirroring libopus src/opus_decoder.c opus_decode_frame.
-// SILK fills the low band, CELT the high band (start band 17) for hybrid, and
-// their outputs sum. Output is planar float32 at 48 kHz.
-
 import (
 	"math"
 	"math/bits"
@@ -15,20 +9,13 @@ import (
 )
 
 // maxFrameSamples is the largest single Opus frame at 48 kHz (SILK 60 ms).
-// Version is the decoder's cache-key version constant (ADR-0004): bump on
-// any change that alters decoded samples. Revision 2: the CELT inverse
-// MDCT's DFT moved from a float64 direct form to the float32 dsp/fft
-// kernel.
 const Version = "opus-dec-2"
 
 const maxFrameSamples = 2880
 
-// CELT sub-frame sizes at 48 kHz used by the redundancy/transition logic
-// (libopus opus_decoder.c F5/F2_5): a redundant frame is 5 ms, a crossfade
-// spans 2.5 ms.
 const (
-	celtF5   = 240 // 5 ms redundant frame
-	celtF2_5 = 120 // 2.5 ms crossfade overlap (== celtOverlap)
+	celtF5   = 240
+	celtF2_5 = 120
 )
 
 // Decoder decodes an Opus stream to 48 kHz planar float32 (codec.Decoder).
@@ -38,18 +25,17 @@ type Decoder struct {
 	celt           *celtDecoder
 	silk           *silkDecoder
 	prevMode       int
-	prevRedundancy bool // previous frame ended with a SILK->CELT redundant frame
+	prevRedundancy bool
 	gainMult       float32
 
-	silkBuf [2][]int16   // per API channel, internal SILK output before float
-	redCh   [][]float32  // redundant-frame CELT output views, per API channel
-	redBuf  [2][]float32 // backing for redCh, celtF5 samples each
+	silkBuf [2][]int16
+	redCh   [][]float32
+	redBuf  [2][]float32
 	out     *audio.Buffer
 	outCh   [][]float32
 }
 
-// NewDecoder returns a decoder for a parsed OpusHead Config. The track format
-// must be what Config.Format produces (48 kHz float32).
+// NewDecoder returns a decoder for a parsed OpusHead Config.
 func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -57,10 +43,7 @@ func NewDecoder(cfg Config, f audio.Format) (*Decoder, error) {
 	if f.Type != audio.Float || f.Channels != cfg.Channels || f.Rate != SampleRate {
 		return nil, malformed("track format %v does not match Opus %dch", f, cfg.Channels)
 	}
-	// One elementary Opus stream carries at most two channels; more requires
-	// multistream de-framing (RFC 7845 family 1 with several streams), which
-	// this decoder does not implement. The per-channel state below is sized
-	// for exactly this bound.
+	// One elementary Opus stream carries at most two channels; more requires multistream de-framing (RFC 7845 family 1 with several streams), which this decoder does not implement.
 	if cfg.Channels > 2 {
 		return nil, malformed("%d-channel Opus needs multistream decoding (mono and stereo only)", cfg.Channels)
 	}
@@ -113,7 +96,6 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	return nil
 }
 
-// endBandFor maps a bandwidth to the CELT end band (libopus opus_decoder.c).
 func endBandFor(bw int) int {
 	switch bw {
 	case bandNB:
@@ -127,13 +109,7 @@ func endBandFor(bw int) int {
 	}
 }
 
-// decodeFrame decodes one Opus frame into out[ch][0:frameSize] at 48 kHz,
-// mirroring libopus opus_decode_frame (opus_decoder.c). It stitches the SILK low
-// band, the CELT high/full band, and the short redundant CELT frames used to
-// smooth mode transitions. The FLAG_DECODE_NORMAL path only: PLC/FEC/DTX are out
-// of scope (RFC 6716 file decode), so the CELT-only<->SILK "transition" crossfade
-// (which libopus fills from a PLC frame) is not synthesized; redundancy handling,
-// which is mutually exclusive with it and fully in-band, is.
+// decodeFrame decodes one Opus frame into out[ch][0:frameSize] at 48 kHz, mirroring libopus opus_decode_frame (opus_decoder.c).
 func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 	mode := fr.cfg.mode
 	bw := fr.cfg.bandwidth
@@ -151,8 +127,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 
 	dec := newRangeDecoder(fr.data)
 
-	// SILK / hybrid low band, decoded into silkBuf (summed into out below, after
-	// any CELT overwrite, matching libopus's pcm_silk accumulation order).
 	if mode != modeCELT {
 		if d.prevMode == modeCELT {
 			d.silk.reset()
@@ -184,9 +158,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 		}
 	}
 
-	// Redundancy signalling (opus_decode_frame): after SILK, a flag may reserve a
-	// short CELT "redundancy" frame at the tail of the packet, used to bridge a
-	// mode transition. celtToSilk picks which end of this frame it crossfades.
 	celtLen := len(fr.data)
 	redundancy := false
 	celtToSilk := false
@@ -211,8 +182,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 					redundancyBytes = celtLen - (dec.tell()+7)/8
 				}
 				celtLen -= redundancyBytes
-				// Sanity check (opus_decode_frame): behaviour is non-normative
-				// for an invalid packet, but must not read out of bounds.
 				if celtLen*8 < dec.tell() || celtLen < 0 || redundancyBytes < 0 ||
 					celtLen+redundancyBytes > len(fr.data) {
 					celtLen = 0
@@ -227,9 +196,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 	}
 	redData := fr.data[celtLen : celtLen+redundancyBytes]
 
-	// 5 ms redundant frame for a CELT->SILK transition is decoded first, using
-	// the (possibly stale) CELT state, so its content can crossfade the START of
-	// this frame's output.
 	if redundancy && celtToSilk {
 		d.redViews()
 		if err := d.celt.celtDecode(redData, 1, C, 0, end, d.redCh); err != nil {
@@ -237,10 +203,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 		}
 	}
 
-	// CELT high band (hybrid) or full band (CELT-only), overwriting out. The
-	// previous CELT state is discarded on a mode change UNLESS the previous
-	// frame ended with a SILK->CELT redundant frame, whose decode primed the
-	// CELT state this frame continues from (opus_decode_frame).
 	if mode != modeSILK {
 		if mode != d.prevMode && d.prevMode != -1 && !d.prevRedundancy {
 			d.celt.Reset()
@@ -250,12 +212,9 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 			return err
 		}
 	} else if d.prevMode == modeHybrid && !(redundancy && celtToSilk && d.prevRedundancy) {
-		// Hybrid->SILK: run a 2.5 ms CELT silence frame so the previous hybrid
-		// high band fades out through the MDCT overlap (not PLC; decodes 0xFFFF).
 		d.celt.celtDecode(silenceCELT[:], 0, C, 0, end, out)
 	}
 
-	// Sum the SILK low band onto the CELT output (opus_decode_frame).
 	if mode != modeCELT {
 		for c := 0; c < CC; c++ {
 			oc := out[c]
@@ -266,8 +225,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 		}
 	}
 
-	// 5 ms redundant frame for a SILK->CELT transition is decoded fresh (reset
-	// CELT state) after the main frame, and crossfaded onto its END.
 	if redundancy && !celtToSilk {
 		d.celt.Reset()
 		d.redViews()
@@ -279,9 +236,6 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 		}
 	}
 
-	// Crossfade the CELT->SILK redundant frame onto the START of the output. It
-	// is skipped (but was still decoded, for state) when the previous frame gave
-	// the CELT decoder no valid history to continue from.
 	if redundancy && celtToSilk && (d.prevMode != modeSILK || d.prevRedundancy) {
 		for c := 0; c < CC; c++ {
 			copy(out[c][:celtF2_5], d.redCh[c][:celtF2_5])
@@ -294,20 +248,14 @@ func (d *Decoder) decodeFrame(fr frame, out [][]float32) error {
 	return nil
 }
 
-// silenceCELT is the two-byte "silence" CELT frame libopus decodes to fade a
-// hybrid high band out through the MDCT overlap on a hybrid->SILK transition.
 var silenceCELT = [2]byte{0xFF, 0xFF}
 
-// redViews points redCh at the per-channel redundant-frame backing slices.
 func (d *Decoder) redViews() {
 	for c := 0; c < d.cfg.Channels; c++ {
 		d.redCh[c] = d.redBuf[c]
 	}
 }
 
-// smoothFade crossfades from in1 to in2 across one CELT overlap window into out
-// (libopus smooth_fade; single channel, 48 kHz so the window is read directly).
-// out may alias in2. w rises 0->1 so the result fades in1 out and in2 in.
 func smoothFade(in1, in2, out []float32, window []float64) {
 	for i := 0; i < celtF2_5; i++ {
 		w := float32(window[i] * window[i])
@@ -315,9 +263,7 @@ func smoothFade(in1, in2, out []float32, window []float64) {
 	}
 }
 
-// Drain flushes decoder latency. Opus carries no cross-packet decoder delay
-// beyond what the container's pre-skip/end-trim already handle, so there is
-// nothing to flush at end of stream.
+// Drain flushes decoder latency.
 func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 
 // Reset discards inter-frame state after a seek so the next packet primes.
@@ -335,7 +281,6 @@ func (d *Decoder) Release() {
 	}
 }
 
-// reset re-initializes the SILK decoder (silk_ResetDecoder).
 func (d *silkDecoder) reset() {
 	d.channel[0].reset()
 	d.channel[1].reset()

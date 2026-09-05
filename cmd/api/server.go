@@ -497,9 +497,6 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.KoboRoutes(s.App, koboController, koboRepo, userRepo, permissionCache, settingsService)
 	routes.KoboSetupRoutes(v1, koboController, userRepo, permissionCache)
 
-	// Mounted on the app root, not on api: the Mihon Komga extension appends /api/v1 to the
-	// address the user types, so the user enters http://host/komga and requests land on
-	// /komga/api/v1/... See internal/routes/komgaRoutes.go.
 	komgaRepo := repositories.NewKomgaRepository(db, ramCache)
 	komgaService := services.NewKomgaService(komgaRepo, bookRepo, bookFileRepo, readListRepo, userRepo, bookService, libraryService, featureService, permissionCache, ramCache)
 	komgaController := controllers.NewKomgaController(komgaService)
@@ -571,19 +568,19 @@ func resolveOrigin(c fiber.Ctx, settingsServerURL string) string {
 }
 
 type metaTags struct {
-	Title        string
-	Description  string
-	OGType       string
-	OGSiteName   string
-	OGTitle      string
-	OGDesc       string
-	OGImage      string
-	OGImageType  string
-	OGURL        string
-	TwitterCard  string
-	Author       string
-	ReleaseDate  string
-	Tags         []string
+	Title       string
+	Description string
+	OGType      string
+	OGSiteName  string
+	OGTitle     string
+	OGDesc      string
+	OGImage     string
+	OGImageType string
+	OGURL       string
+	TwitterCard string
+	Author      string
+	ReleaseDate string
+	Tags        []string
 }
 
 var (
@@ -701,7 +698,6 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 
 		htmlDoc := string(rawIndex)
 
-		// Determine site settings
 		siteTitle := "NovelHub"
 		siteDescription := "A modern, local light novel library and reader."
 		logoURL := ""
@@ -719,7 +715,6 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 			}
 		}
 
-		// Determine base origin URL
 		serverURLSetting := ""
 		if settingsService != nil {
 			serverURLSetting = settingsService.ServerURL()
@@ -746,7 +741,6 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 			ogURL = origin + c.OriginalURL()
 		}
 
-		// Determine site logo / image
 		if logoURL != "" && !strings.HasSuffix(strings.ToLower(logoURL), ".svg") {
 			if strings.HasPrefix(logoURL, "http://") || strings.HasPrefix(logoURL, "https://") {
 				ogImage = logoURL
@@ -774,7 +768,6 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 			ogImageType = "image/png"
 		}
 
-		// Check if accessing a book route: /books/:id or /reader/:id
 		var bookID string
 		if strings.HasPrefix(path, "/books/") {
 			bookID = strings.TrimPrefix(path, "/books/")
@@ -937,8 +930,7 @@ func serveEmbeddedFrontend(app *fiber.App, bookService services.BookService, set
 
 	app.Use(static.New("", static.Config{
 		FS:     dist,
-		MaxAge: 31536000, // 1 year, correct only for the content-hashed assets/*
-		// Caching sw.js freezes the old service worker forever; public/ files have no content hash.
+		MaxAge: 31536000,
 		ModifyResponse: func(c fiber.Ctx) error {
 			switch path := c.Path(); {
 			case path == "/sw.js" || path == "/registerSW.js" || path == "/manifest.webmanifest":

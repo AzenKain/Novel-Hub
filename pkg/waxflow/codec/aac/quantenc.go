@@ -2,46 +2,23 @@ package aac
 
 import "math"
 
-// Two-loop quantization (the ISO 14496-3 informative encoder structure):
-// an inner rate loop finds the uniform scalefactor offset whose Huffman
-// cost fits the frame budget, and an outer distortion loop walks
-// individual bands whose quantization noise exceeds their masking
-// threshold down to finer step sizes, re-running the rate loop after
-// each amplification round. Codebook choice is greedy per band (the
-// cheapest book covering the band's magnitudes); sections then form
-// from equal-codebook runs. A dynamic-programming section merge could
-// shave a few header bits per frame and is a recorded quality ratchet,
-// not a correctness gap.
-
 const (
-	// ampMax bounds per-band amplification so the scalefactor DPCM
-	// deltas stay far inside their +-60 range.
-	ampMax = 30
-	// maxAmpIter bounds outer-loop rounds; each round re-runs the rate
-	// search, so this is the encoder's main speed/quality dial.
-	maxAmpIter = 10
-	// sfSearchMax bounds the rate search's uniform offset. 300 clamps
-	// to 255 everywhere, which quantizes every line to zero, so the
-	// search always terminates on a fitting solution.
+	ampMax      = 30
+	maxAmpIter  = 10
 	sfSearchMax = 300
 )
 
-// encBand is one coded band: a (window group, scalefactor band) cell in
-// grouped spectral order.
 type encBand struct {
-	off, n int // span in the grouped line order
+	off, n int
 	maxAbs float64
 	energy float64
-	thr    float64 // allowed noise energy, MDCT units
-	minSf  int     // clip guard: below this a magnitude exceeds 8191
-	amp    int     // outer-loop amplification steps
-	// final assembly
-	sf int
-	cb int
+	thr    float64
+	minSf  int
+	amp    int
+	sf     int
+	cb     int
 }
 
-// bandMemo caches one band's quantization outcome at one scalefactor;
-// the rate search revisits the same (band, sf) pairs constantly.
 type bandMemo struct {
 	epoch uint32
 	bits  int32
@@ -50,32 +27,25 @@ type bandMemo struct {
 	noise float64
 }
 
-// chanQuant is one channel's per-frame quantization state, reused
-// across frames (memo storage dominates; it is epoch-invalidated).
 type chanQuant struct {
-	spec  *[1024]float64 // the frame's spectrum (for signs), set by buildBands
-	pos   [1024]int32    // grouped order -> spec index
-	absv  [1024]float64  // |spec| in grouped order
-	xrpow [1024]float64  // |spec|^0.75
-	q     [1024]int      // final signed quantized values
-	qtmp  [1024]int      // quantization scratch
+	spec  *[1024]float64
+	pos   [1024]int32
+	absv  [1024]float64
+	xrpow [1024]float64
+	q     [1024]int
+	qtmp  [1024]int
 
 	bands   []encBand
 	memo    []bandMemo
 	epoch   uint32
 	maxSfb  int
 	nGroups int
-	lenBits int // section length field width (5 long, 3 short)
+	lenBits int
 
-	// assembly outputs
 	globalGain int
-	demand     float64 // perceptual bit demand, for stereo budget split
+	demand     float64
 }
 
-// buildBands lays the grouped coded order and band table for one
-// channel's frame. groupLen holds the window count per group (1 group of
-// 1 window for long sequences), swb the band offsets for the window
-// type, thr the per-(group, band) allowed noise.
 func (cq *chanQuant) buildBands(spec *[1024]float64, groupLen []int, swb []uint16, maxSfb int, thr func(g, sfb int) float64, short bool) {
 	cq.spec = spec
 	cq.maxSfb = maxSfb
@@ -98,7 +68,7 @@ func (cq *chanQuant) buildBands(spec *[1024]float64, groupLen []int, swb []uint1
 					av := math.Abs(v)
 					cq.pos[n] = int32(base + k)
 					cq.absv[n] = av
-					cq.xrpow[n] = math.Sqrt(av * math.Sqrt(av)) // |v|^0.75
+					cq.xrpow[n] = math.Sqrt(av * math.Sqrt(av))
 					if av > b.maxAbs {
 						b.maxAbs = av
 					}
@@ -120,7 +90,6 @@ func (cq *chanQuant) buildBands(spec *[1024]float64, groupLen []int, swb []uint1
 	cq.memo = cq.memo[:need]
 	cq.epoch++
 
-	// Perceptual demand: information above threshold, for budget splits.
 	d := 0.0
 	for _, b := range cq.bands {
 		if b.energy > b.thr && b.thr > 0 {
@@ -130,13 +99,10 @@ func (cq *chanQuant) buildBands(spec *[1024]float64, groupLen []int, swb []uint1
 	cq.demand = d
 }
 
-// minSfFor is the smallest scalefactor keeping the band's largest
-// magnitude inside the quantizer's 8191 ceiling.
 func minSfFor(maxAbs float64) int {
 	if maxAbs < 1 {
 		return 0
 	}
-	// |q| = maxAbs^(3/4) * 2^(-3/16*(sf-100)) <= 8191.5
 	sf := int(math.Ceil(100 + (16.0/3.0)*(0.75*math.Log2(maxAbs)-math.Log2(8191.4))))
 	if sf < 0 {
 		return 0
@@ -149,7 +115,6 @@ func minSfFor(maxAbs float64) int {
 
 const sfClampMax = 255
 
-// sfFor is a band's scalefactor at uniform offset delta.
 func (b *encBand) sfFor(delta int) int {
 	sf := delta - b.amp
 	if sf < b.minSf {
@@ -161,8 +126,6 @@ func (b *encBand) sfFor(delta int) int {
 	return sf
 }
 
-// quantAt fills q[:b.n] with the band's signed quantized values at sf
-// and returns the largest magnitude.
 func (cq *chanQuant) quantAt(b *encBand, sf int, q []int) int {
 	f := math.Exp2(-0.1875 * float64(sf-100))
 	maxQ := 0
@@ -179,12 +142,9 @@ func (cq *chanQuant) quantAt(b *encBand, sf int, q []int) int {
 	return maxQ
 }
 
-// bookTiers lists the codebook pairs by magnitude ceiling.
 var bookTiers = [...][2]int{{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 0}}
 var tierMax = [...]int{1, 2, 4, 7, 12, escMaxValue}
 
-// bandAt quantizes band b at scalefactor sf and returns its memoized
-// cost: cheapest covering codebook, Huffman bits, and noise energy.
 func (cq *chanQuant) bandAt(bi, sf int) *bandMemo {
 	m := &cq.memo[bi*256+sf]
 	if m.epoch == cq.epoch {
@@ -194,14 +154,10 @@ func (cq *chanQuant) bandAt(bi, sf int) *bandMemo {
 	q := cq.qtmp[:b.n]
 	maxQ := cq.quantAt(b, sf, q)
 
-	// Memo slots are reused across frames, so every field must be
-	// assigned on a miss; a stale zero flag would silently delete the
-	// band from later frames.
 	if maxQ == 0 {
 		*m = bandMemo{epoch: cq.epoch, zero: true, noise: b.energy}
 		return m
 	}
-	// Noise at this step size (signs do not affect it).
 	gain := math.Exp2(0.25 * float64(sf-sfOffset))
 	noise := 0.0
 	for i := 0; i < b.n; i++ {
@@ -209,8 +165,6 @@ func (cq *chanQuant) bandAt(bi, sf int) *bandMemo {
 		noise += e * e
 	}
 
-	// Cheapest codebook: the covering tier, the next one up, and the
-	// escape book as insurance for mixed content.
 	tier := 0
 	for tierMax[tier] < maxQ {
 		tier++
@@ -238,9 +192,6 @@ func (cq *chanQuant) bandAt(bi, sf int) *bandMemo {
 	return m
 }
 
-// totalBits evaluates the frame cost at uniform offset delta: spectral
-// Huffman bits, section headers (with exact length-escape accounting),
-// and the scalefactor DPCM chain.
 func (cq *chanQuant) totalBits(delta int) int {
 	total := 0
 	lenEsc := 1<<uint(cq.lenBits) - 1
@@ -286,9 +237,6 @@ func (cq *chanQuant) totalBits(delta int) int {
 	return total
 }
 
-// rateSearch finds the smallest uniform offset whose total fits budget.
-// Cost is monotone nonincreasing in the offset (coarser steps cost
-// less), and the all-zero ceiling always fits, so the search is total.
 func (cq *chanQuant) rateSearch(budget int) int {
 	lo, hi := 0, sfSearchMax
 	for lo < hi {
@@ -302,12 +250,6 @@ func (cq *chanQuant) rateSearch(budget int) int {
 	return lo
 }
 
-// quantizeChannel runs the two loops and assembles the channel's final
-// scalefactors, codebooks, and quantized values, ready for writeICSBody.
-//
-// budget is soft: the reservoir absorbs a frame that runs over it, which lets a
-// hard frame borrow from easy ones. hardCap is this channel's share of the
-// 6144-bit-per-channel access-unit ceiling, and no solution may exceed it.
 func (cq *chanQuant) quantizeChannel(budget, hardCap int) {
 	if hardCap < 0 {
 		hardCap = 0
@@ -323,8 +265,6 @@ func (cq *chanQuant) quantizeChannel(budget, hardCap int) {
 	delta := 0
 	for iter := 0; ; iter++ {
 		delta = cq.rateSearch(budget)
-		// Score this solution by total noise-over-threshold; remember
-		// the best in case later amplification rounds regress.
 		score := 0.0
 		violated := false
 		for bi := range cq.bands {
@@ -352,23 +292,12 @@ func (cq *chanQuant) quantizeChannel(budget, hardCap int) {
 			}
 		}
 	}
-	// bestDelta was scored against the amplification state of the round that
-	// found it, and assemble runs against the final one; amplification only
-	// raises costs, so it can have grown since. Checked against the hard cap,
-	// not the budget, since the reservoir absorbs a soft overshoot. The
-	// fallback is the last round's delta, which rateSearch fitted at exactly
-	// the state assemble uses (the loop breaks before amplifying).
 	if bestDelta < 0 || cq.totalBits(bestDelta) > hardCap {
 		bestDelta = delta
 	}
 	cq.assemble(bestDelta)
 }
 
-// assemble materializes the final solution at delta: per-band sf and cb,
-// signed quantized values, the DPCM-legal scalefactor chain, and the
-// global gain. The writer emits exactly these fields; the frame's real
-// bit count comes from the bit writer itself (the reservoir reads
-// bitLen), so nothing recounts the assembly.
 func (cq *chanQuant) assemble(delta int) {
 	prevSf := -1
 	cq.globalGain = 0
@@ -380,14 +309,11 @@ func (cq *chanQuant) assemble(delta int) {
 		if m.zero {
 			b.cb = 0
 			b.sf = 0
-			// Zero the assembled values so writeICS's run writer sees them.
 			for i := 0; i < b.n; i++ {
 				cq.q[b.off+i] = 0
 			}
 			continue
 		}
-		// Clamp into the DPCM's +-60 reach of the previous coded band
-		// (unreachable under ampMax 30, but the wire format must hold).
 		if prevSf >= 0 {
 			if sf < prevSf-60 {
 				sf = prevSf - 60
@@ -402,9 +328,6 @@ func (cq *chanQuant) assemble(delta int) {
 			firstCoded = false
 		}
 		prevSf = sf
-		// Materialize signed values at the final scalefactor; signs
-		// rejoin from the source spectrum (the quantizer works on
-		// magnitudes).
 		q := cq.qtmp[:b.n]
 		cq.quantAt(b, sf, q)
 		for i := 0; i < b.n; i++ {
@@ -416,6 +339,6 @@ func (cq *chanQuant) assemble(delta int) {
 		}
 	}
 	if firstCoded {
-		cq.globalGain = 100 // silent channel: any legal value
+		cq.globalGain = 100
 	}
 }

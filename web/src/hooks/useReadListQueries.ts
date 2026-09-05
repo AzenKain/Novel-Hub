@@ -1,5 +1,10 @@
 import { readListService } from "@/services";
-import type { ImportCBLResult, ReadList, ReadListBook, ReadListNext } from "@/types";
+import type {
+  ImportCBLResult,
+  ReadList,
+  ReadListBook,
+  ReadListNext,
+} from "@/types";
 import i18n from "@/i18n";
 import {
   useInfiniteQuery,
@@ -15,9 +20,7 @@ const readListKeys = {
   books: (id: string) => ["read-list", id, "books"] as const,
 };
 
-// Every mutation touches both the card grid (book_count) and the ordered items of one list, so the
-// two keys are always invalidated together — a reorder that refreshed only the items would leave a
-// stale count on the card the user just dragged in.
+// Invalidate card grid and ordered items together.
 function useReadListInvalidation() {
   const queryClient = useQueryClient();
   return (id?: string) => {
@@ -32,7 +35,8 @@ export function useReadListsQuery(enabled = true) {
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const res = await readListService.getReadLists(pageParam, 50);
-      if (!res.status) throw new Error(res.message || "Failed to fetch read lists");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch read lists");
       return res;
     },
     getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
@@ -45,7 +49,8 @@ export function useReadListQuery(id: string | undefined) {
     queryKey: readListKeys.detail(id || ""),
     queryFn: async () => {
       const res = await readListService.getReadList(id as string);
-      if (!res.status) throw new Error(res.message || "Failed to fetch the read list");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch the read list");
       return res.data;
     },
     enabled: !!id,
@@ -57,21 +62,29 @@ export function useReadListBooksQuery(id: string | undefined) {
     queryKey: readListKeys.books(id || ""),
     queryFn: async () => {
       const res = await readListService.getReadListBooks(id as string);
-      if (!res.status) throw new Error(res.message || "Failed to fetch the read list books");
+      if (!res.status)
+        throw new Error(res.message || "Failed to fetch the read list books");
       return res.data || [];
     },
     enabled: !!id,
   });
 }
 
-// Keyed under ["read-list", id] so the mutations already invalidate it — the reader asks for the
-// next book after the one it is showing, which changes as soon as the order does.
-export function useReadListNextQuery(readListId: string | undefined, afterBookId: string | undefined) {
+export function useReadListNextQuery(
+  readListId: string | undefined,
+  afterBookId: string | undefined,
+) {
   return useQuery<ReadListNext | undefined>({
     queryKey: ["read-list", readListId || "", "next", afterBookId || ""],
     queryFn: async () => {
-      const res = await readListService.nextInOrder(readListId as string, afterBookId);
-      if (!res.status) throw new Error(res.message || "Failed to fetch the next book in the read list");
+      const res = await readListService.nextInOrder(
+        readListId as string,
+        afterBookId,
+      );
+      if (!res.status)
+        throw new Error(
+          res.message || "Failed to fetch the next book in the read list",
+        );
       return res.data;
     },
     enabled: !!readListId && !!afterBookId,
@@ -81,17 +94,33 @@ export function useReadListNextQuery(readListId: string | undefined, afterBookId
 export function useCreateReadListMutation() {
   const invalidate = useReadListInvalidation();
   return useMutation({
-    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+    mutationFn: async ({
+      name,
+      description,
+    }: {
+      name: string;
+      description?: string;
+    }) => {
       const res = await readListService.createReadList(name, description);
-      if (!res.status) throw new Error(res.message || "Failed to create the read list");
+      if (!res.status)
+        throw new Error(res.message || "Failed to create the read list");
       return res.data;
     },
     onSuccess: () => {
       invalidate();
-      toast.success(i18n.t("library.readlist_created", "Read list created successfully"));
+      toast.success(
+        i18n.t("library.readlist_created", "Read list created successfully"),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_create_failed", "Could not create the read list"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_create_failed",
+              "Could not create the read list",
+            ),
+      );
     },
   });
 }
@@ -99,17 +128,35 @@ export function useCreateReadListMutation() {
 export function useUpdateReadListMutation() {
   const invalidate = useReadListInvalidation();
   return useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description?: string }) => {
+    mutationFn: async ({
+      id,
+      name,
+      description,
+    }: {
+      id: string;
+      name: string;
+      description?: string;
+    }) => {
       const res = await readListService.updateReadList(id, name, description);
-      if (!res.status) throw new Error(res.message || "Failed to rename the read list");
+      if (!res.status)
+        throw new Error(res.message || "Failed to rename the read list");
       return res.data;
     },
     onSuccess: (_data, variables) => {
       invalidate(variables.id);
-      toast.success(i18n.t("library.readlist_updated", "Read list updated successfully"));
+      toast.success(
+        i18n.t("library.readlist_updated", "Read list updated successfully"),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_update_failed", "Could not update the read list"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_update_failed",
+              "Could not update the read list",
+            ),
+      );
     },
   });
 }
@@ -119,15 +166,25 @@ export function useDeleteReadListMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await readListService.deleteReadList(id);
-      if (!res.status) throw new Error(res.message || "Failed to delete the read list");
+      if (!res.status)
+        throw new Error(res.message || "Failed to delete the read list");
       return res;
     },
     onSuccess: (_data, id) => {
       invalidate(id);
-      toast.success(i18n.t("library.readlist_deleted", "Read list deleted successfully"));
+      toast.success(
+        i18n.t("library.readlist_deleted", "Read list deleted successfully"),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_delete_failed", "Could not delete the read list"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_delete_failed",
+              "Could not delete the read list",
+            ),
+      );
     },
   });
 }
@@ -142,10 +199,22 @@ export function useAddReadListBookMutation() {
     },
     onSuccess: (_data, variables) => {
       invalidate(variables.id);
-      toast.success(i18n.t("library.readlist_add_book_success", "Book added to the read list"));
+      toast.success(
+        i18n.t(
+          "library.readlist_add_book_success",
+          "Book added to the read list",
+        ),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_add_book_failed", "Could not add the book to the read list"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_add_book_failed",
+              "Could not add the book to the read list",
+            ),
+      );
     },
   });
 }
@@ -155,15 +224,28 @@ export function useRemoveReadListBookMutation() {
   return useMutation({
     mutationFn: async ({ id, bookId }: { id: string; bookId: string }) => {
       const res = await readListService.removeBook(id, bookId);
-      if (!res.status) throw new Error(res.message || "Failed to remove the book");
+      if (!res.status)
+        throw new Error(res.message || "Failed to remove the book");
       return res;
     },
     onSuccess: (_data, variables) => {
       invalidate(variables.id);
-      toast.success(i18n.t("library.readlist_remove_book_success", "Book removed from the read list"));
+      toast.success(
+        i18n.t(
+          "library.readlist_remove_book_success",
+          "Book removed from the read list",
+        ),
+      );
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_remove_book_failed", "Could not remove the book from the read list"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_remove_book_failed",
+              "Could not remove the book from the read list",
+            ),
+      );
     },
   });
 }
@@ -173,22 +255,33 @@ export function useReorderReadListMutation() {
   return useMutation({
     mutationFn: async ({ id, bookIds }: { id: string; bookIds: string[] }) => {
       const res = await readListService.reorder(id, bookIds);
-      if (!res.status) throw new Error(res.message || "Failed to reorder the read list");
+      if (!res.status)
+        throw new Error(res.message || "Failed to reorder the read list");
       return res;
     },
     onSuccess: (_data, variables) => invalidate(variables.id),
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_reorder_failed", "Could not save the new order"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_reorder_failed",
+              "Could not save the new order",
+            ),
+      );
     },
   });
 }
 
-export function useImportCBLMutation(onImported?: (result: ImportCBLResult) => void) {
+export function useImportCBLMutation(
+  onImported?: (result: ImportCBLResult) => void,
+) {
   const invalidate = useReadListInvalidation();
   return useMutation({
     mutationFn: async (file: File) => {
       const res = await readListService.importCBL(file);
-      if (!res.status || !res.data) throw new Error(res.message || "Failed to import the .cbl file");
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to import the .cbl file");
       return res.data;
     },
     onSuccess: (result) => {
@@ -196,7 +289,14 @@ export function useImportCBLMutation(onImported?: (result: ImportCBLResult) => v
       onImported?.(result);
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : i18n.t("library.readlist_import_failed", "Could not import the .cbl file"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : i18n.t(
+              "library.readlist_import_failed",
+              "Could not import the .cbl file",
+            ),
+      );
     },
   });
 }

@@ -433,8 +433,6 @@ func contentXMLToHTML(data []byte) (string, error) {
 	return out.String(), nil
 }
 
-// ObjectReplacements/* entries are StarView metafiles (VCLMTF) that browsers
-// cannot render; only real raster/vector picture files are usable.
 func isRenderableODFImage(href string) bool {
 	switch strings.ToLower(filepath.Ext(href)) {
 	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg":
@@ -444,7 +442,8 @@ func isRenderableODFImage(href string) bool {
 	}
 }
 
-func headingTag(element xml.StartElement) string {	for _, attr := range element.Attr {
+func headingTag(element xml.StartElement) string {
+	for _, attr := range element.Attr {
 		if attr.Name.Local != "outline-level" {
 			continue
 		}

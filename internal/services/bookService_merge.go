@@ -11,10 +11,7 @@ import (
 	"novelhub/pkg/apperrors"
 )
 
-// PotentialDuplicateBooks scans the whole library for same-work pairs by title
-// similarity (bigram Dice + Jaro-Winkler, max) plus author match. ponytail:
-// O(n²) over the whole list; the whole-list cache makes it cheap to re-run, but
-// a per-group index would be needed if the library ever reaches ~50k books.
+// PotentialDuplicateBooks scans the whole library for same-work pairs by title similarity (bigram Dice + Jaro-Winkler, max) plus author match.
 func (s *bookService) PotentialDuplicateBooks(ctx context.Context) ([]*response.PotentialDuplicateResponse, error) {
 	rows, err := s.bookRepo.ListAllTitleAuthor(ctx)
 	if err != nil {
@@ -56,9 +53,7 @@ func (s *bookService) PotentialDuplicateBooks(ctx context.Context) ([]*response.
 	return out, nil
 }
 
-// MergeBooks folds every row that references sourceID into targetID, deletes the
-// source book, then moves its surviving files into the target's directory. The
-// filesystem follows the DB commit and is best-effort, mirroring DeleteBook.
+// MergeBooks folds every row that references sourceID into targetID, deletes the source book, then moves its surviving files into the target's directory.
 func (s *bookService) MergeBooks(ctx context.Context, sourceID string, targetID string) error {
 	if sourceID == targetID {
 		return apperrors.New(apperrors.ErrBadRequest, "cannot merge a book into itself")
@@ -107,9 +102,6 @@ func normalizeTitle(s string) string {
 	return strings.Join(strings.Fields(b.String()), " ")
 }
 
-// titleMatches gates on score AND shape: a short title that is a mere prefix of
-// a longer one ("Dune" vs "Dune Messiah") scores high on Jaro-Winkler but is a
-// different work, so the shorter title must be at least half the longer's length.
 func titleMatches(normA, normB string) bool {
 	shorter, longer := len(normA), len(normB)
 	if shorter > longer {

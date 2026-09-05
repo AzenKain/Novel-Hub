@@ -74,7 +74,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     const el = containerRef.current;
     if (!el) return;
-    if (e.button !== 0) return; // Left click only
+    if (e.button !== 0) return;
 
     stopInertia();
     isDownRef.current = true;
@@ -85,7 +85,6 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
     lastTimeRef.current = performance.now();
     velocityRef.current = 0;
 
-    // Eliminate snap & smooth scroll lag during direct mouse drag
     el.style.scrollBehavior = "auto";
     el.style.scrollSnapType = "none";
     el.classList.add("cursor-grabbing");
@@ -121,14 +120,13 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
         containerRef.current.classList.remove("cursor-grabbing");
         containerRef.current.classList.add("cursor-grab");
 
-        // Physics-based momentum glide
         let velocity = velocityRef.current * 16;
         if (Math.abs(velocity) > 1.2) {
           const stepInertia = () => {
             const track = containerRef.current;
             if (!track) return;
             track.scrollLeft -= velocity;
-            velocity *= 0.94; // smooth friction
+            velocity *= 0.94;
 
             if (Math.abs(velocity) > 0.3) {
               animIdRef.current = requestAnimationFrame(stepInertia);
@@ -176,7 +174,9 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
             <div className="min-w-0">
               <h3 className="text-lg font-black truncate">{title}</h3>
               {subtitle && (
-                <p className="text-sm text-base-content/50 truncate">{subtitle}</p>
+                <p className="text-sm text-base-content/50 truncate">
+                  {subtitle}
+                </p>
               )}
             </div>
           </div>

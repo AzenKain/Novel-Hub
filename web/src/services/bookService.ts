@@ -126,13 +126,17 @@ export const bookService = {
     }
   },
 
-  async getPotentialDuplicates(): Promise<CommonResponse<PotentialDuplicateResult[]>> {
+  async getPotentialDuplicates(): Promise<
+    CommonResponse<PotentialDuplicateResult[]>
+  > {
     try {
       const res = await api.get(`/books/potential-duplicates`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<PotentialDuplicateResult[]>;
+        return error.response.data as CommonResponse<
+          PotentialDuplicateResult[]
+        >;
       throw error;
     }
   },
@@ -273,9 +277,14 @@ export const bookService = {
     }
   },
 
-  async sendToEmail(id: string, recipientEmail: string): Promise<CommonResponse<void>> {
+  async sendToEmail(
+    id: string,
+    recipientEmail: string,
+  ): Promise<CommonResponse<void>> {
     try {
-      const res = await api.post(`/books/${id}/send-email`, { recipient_email: recipientEmail });
+      const res = await api.post(`/books/${id}/send-email`, {
+        recipient_email: recipientEmail,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
@@ -284,59 +293,90 @@ export const bookService = {
     }
   },
 
-  async bulkDeleteBooks(bookIds: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+  async bulkDeleteBooks(
+    bookIds: string[],
+  ): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
     try {
       const res = await api.post(`/books/bulk-delete`, { book_ids: bookIds });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+        return error.response.data as CommonResponse<
+          import("@/types").BulkOperationResponse
+        >;
       throw error;
     }
   },
 
-  async bulkMoveBooks(bookIds: string[], targetLibraryId: string): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+  async bulkMoveBooks(
+    bookIds: string[],
+    targetLibraryId: string,
+  ): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
     try {
-      const res = await api.post(`/books/bulk-move`, { book_ids: bookIds, target_library_id: targetLibraryId });
+      const res = await api.post(`/books/bulk-move`, {
+        book_ids: bookIds,
+        target_library_id: targetLibraryId,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+        return error.response.data as CommonResponse<
+          import("@/types").BulkOperationResponse
+        >;
       throw error;
     }
   },
 
-  async bulkAssignCollections(bookIds: string[], collectionIds: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+  async bulkAssignCollections(
+    bookIds: string[],
+    collectionIds: string[],
+  ): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
     try {
-      const res = await api.post(`/books/bulk-assign-collections`, { book_ids: bookIds, collection_ids: collectionIds });
+      const res = await api.post(`/books/bulk-assign-collections`, {
+        book_ids: bookIds,
+        collection_ids: collectionIds,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+        return error.response.data as CommonResponse<
+          import("@/types").BulkOperationResponse
+        >;
       throw error;
     }
   },
 
-  async bulkAddTags(bookIds: string[], tagNames: string[]): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+  async bulkAddTags(
+    bookIds: string[],
+    tagNames: string[],
+  ): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
     try {
-      const res = await api.post(`/books/bulk-add-tags`, { book_ids: bookIds, tag_names: tagNames });
+      const res = await api.post(`/books/bulk-add-tags`, {
+        book_ids: bookIds,
+        tag_names: tagNames,
+      });
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+        return error.response.data as CommonResponse<
+          import("@/types").BulkOperationResponse
+        >;
       throw error;
     }
   },
 
-  async bulkUpdateMetadata(payload: import("@/types").BulkUpdateMetadataRequest): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+  async bulkUpdateMetadata(
+    payload: import("@/types").BulkUpdateMetadataRequest,
+  ): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
     try {
       const res = await api.post(`/books/bulk-update-metadata`, payload);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response)
-        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+        return error.response.data as CommonResponse<
+          import("@/types").BulkOperationResponse
+        >;
       throw error;
     }
   },
 };
-

@@ -13,24 +13,15 @@ var (
 	_ codec.Releaser = (*Decoder)(nil)
 )
 
-// Decoder decodes FLAC frames into planar buffers. It implements
-// codec.Decoder: one packet is exactly one frame, checksum included, and
-// every frame is independently decodable, so Drain and Reset are no-ops.
-//
-// Subframes are reconstructed in int64 scratch: side channels carry one
-// bit more than the stream depth (33 significant bits at 32-bit depth),
-// and LPC accumulators need up to depth+precision+log2(order) bits. The
-// final samples always fit int32.
+// Decoder decodes FLAC frames into planar buffers.
 type Decoder struct {
 	si  StreamInfo
 	fmt audio.Format
-	buf *audio.Buffer // reusable output, borrowed by emit callbacks
-	res []int64       // per-channel scratch, blockSize stride
+	buf *audio.Buffer
+	res []int64
 }
 
-// NewDecoder returns a Decoder for a stream. The track format must be
-// what si.PCMFormat produces; containers build both from the same
-// STREAMINFO, so a mismatch is a wiring bug.
+// NewDecoder returns a Decoder for a stream.
 func NewDecoder(si StreamInfo, f audio.Format) (*Decoder, error) {
 	if err := f.Valid(); err != nil {
 		return nil, err
@@ -42,8 +33,7 @@ func NewDecoder(si StreamInfo, f audio.Format) (*Decoder, error) {
 	return &Decoder{si: si, fmt: f}, nil
 }
 
-// Decode decodes one frame and emits one buffer of BlockSize frames. The
-// buffer is borrowed: valid only during the callback.
+// Decode decodes one frame and emits one buffer of BlockSize frames.
 func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	fi, err := ParseFrameHeader(pkt)
 	if err != nil {
@@ -56,9 +46,7 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	if bits == 0 {
 		bits = d.si.Bits
 	}
-	// The pipeline's track format is fixed; a frame that disagrees with
-	// STREAMINFO would need a mid-stream format change, which RFC 9639
-	// permits decoders to reject.
+	// The pipeline's track format is fixed; a frame that disagrees with STREAMINFO would need a mid-stream format change, which RFC 9639 permits decoders to reject.
 	if rate != d.si.Rate || bits != d.si.Bits || fi.Channels != d.si.Channels {
 		return malformed("frame format %dHz %dch %dbit disagrees with STREAMINFO %dHz %dch %dbit",
 			rate, fi.Channels, bits, d.si.Rate, d.si.Channels, d.si.Bits)
@@ -107,8 +95,7 @@ func (d *Decoder) Decode(pkt []byte, emit func(*audio.Buffer) error) error {
 	return emit(d.buf)
 }
 
-// decorrelate undoes inter-channel decorrelation from scratch into the
-// output buffer (RFC 9639 section 4.2).
+// decorrelate undoes inter-channel decorrelation from scratch into the output buffer (RFC 9639 section 4.2).
 func (d *Decoder) decorrelate(fi FrameInfo, n int) {
 	switch fi.assign {
 	case assignLeftSide:
@@ -150,8 +137,7 @@ func (d *Decoder) Drain(func(*audio.Buffer) error) error { return nil }
 // Reset is a no-op: every frame decodes independently.
 func (d *Decoder) Reset() {}
 
-// Release returns the output buffer to the pool (codec.Releaser). The
-// decoder must not be used afterward.
+// Release returns the output buffer to the pool (codec.Releaser).
 func (d *Decoder) Release() {
 	audio.Put(d.buf)
 	d.buf = nil
@@ -163,7 +149,6 @@ const (
 	subVerbatim = 1
 )
 
-// decodeSubframe reconstructs one channel into out.
 func decodeSubframe(r *bitReader, out []int64, bps uint) error {
 	if r.u(1) != 0 {
 		return malformed("subframe padding bit set")
@@ -211,7 +196,6 @@ func decodeSubframe(r *bitReader, out []int64, bps uint) error {
 	return nil
 }
 
-// decodeFixed decodes a fixed-predictor subframe of the given order.
 func decodeFixed(r *bitReader, out []int64, order int, bps uint) error {
 	if order > len(out) {
 		return malformed("fixed order %d exceeds block size %d", order, len(out))
@@ -243,7 +227,6 @@ func decodeFixed(r *bitReader, out []int64, order int, bps uint) error {
 	return nil
 }
 
-// decodeLPC decodes a linear-predictor subframe of the given order.
 func decodeLPC(r *bitReader, out []int64, order int, bps uint) error {
 	if order > len(out) {
 		return malformed("LPC order %d exceeds block size %d", order, len(out))
@@ -280,8 +263,7 @@ func decodeLPC(r *bitReader, out []int64, order int, bps uint) error {
 	return nil
 }
 
-// decodeResidual fills out[order:] with residuals from a coded residual
-// section (RFC 9639 section 9.2.7).
+// decodeResidual fills out[order:] with residuals from a coded residual section (RFC 9639 section 9.2.7).
 func decodeResidual(r *bitReader, out []int64, order int) error {
 	method := r.u(2)
 	if method > 1 {

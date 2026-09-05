@@ -15,9 +15,19 @@ import {
 } from "lucide-react";
 import React, { useEffect } from "react";
 
-import type { PageAnimation, PageFit, ReaderTheme, ReadingDirection, ReadingMode, TextAlignment } from "@/stores";
+import type {
+  PageAnimation,
+  PageFit,
+  ReaderTheme,
+  ReadingDirection,
+  ReadingMode,
+  TextAlignment,
+} from "@/stores";
 import { useReaderStore } from "@/stores/readerStore";
-import { useCustomFontsQuery, useCustomThemesQuery } from "@/hooks/useCustomization";
+import {
+  useCustomFontsQuery,
+  useCustomThemesQuery,
+} from "@/hooks/useCustomization";
 
 type ReaderSettingsPanelProps = {
   t: TFunction;
@@ -85,11 +95,19 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   const { data: customFonts = [] } = useCustomFontsQuery();
   const { data: customThemes = [] } = useCustomThemesQuery();
 
-  const maxContentWidth = typeof window !== "undefined"
-    ? Math.max(600, Math.min(1800, Math.floor((window.innerWidth - (window.innerWidth < 640 ? 32 : 80)) / 50) * 50))
-    : 1600;
+  const maxContentWidth =
+    typeof window !== "undefined"
+      ? Math.max(
+          600,
+          Math.min(
+            1800,
+            Math.floor(
+              (window.innerWidth - (window.innerWidth < 640 ? 32 : 80)) / 50,
+            ) * 50,
+          ),
+        )
+      : 1600;
 
-  // Inject custom fonts dynamically into document head
   useEffect(() => {
     customFonts.forEach((f) => {
       if (f.source_type === "url" && f.font_url) {
@@ -116,9 +134,18 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   // Sync custom theme CSS variables to document root when custom theme is active
   useEffect(() => {
     if (theme === "custom") {
-      document.documentElement.style.setProperty("--custom-reader-bg", customBg);
-      document.documentElement.style.setProperty("--custom-reader-text", customText);
-      document.documentElement.style.setProperty("--custom-reader-accent", customAccent);
+      document.documentElement.style.setProperty(
+        "--custom-reader-bg",
+        customBg,
+      );
+      document.documentElement.style.setProperty(
+        "--custom-reader-text",
+        customText,
+      );
+      document.documentElement.style.setProperty(
+        "--custom-reader-accent",
+        customAccent,
+      );
     }
   }, [theme, customBg, customText, customAccent]);
 
@@ -145,7 +172,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <Moon className="h-4 w-4" />
-              <span className="text-[10px] font-medium">{t("reader.theme_dark", "Dark")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_dark", "Dark")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("dim")}
@@ -154,7 +183,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <span className="text-xs font-bold opacity-75">D</span>
-              <span className="text-[10px] font-medium">{t("reader.theme_dim", "Dim")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_dim", "Dim")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("light")}
@@ -163,7 +194,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <Sun className="h-4 w-4" />
-              <span className="text-[10px] font-medium">{t("reader.theme_light", "Light")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_light", "Light")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("sepia")}
@@ -172,7 +205,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <AlignLeft className="h-4 w-4" />
-              <span className="text-[10px] font-medium">{t("reader.theme_sepia", "Sepia")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_sepia", "Sepia")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("warm")}
@@ -181,7 +216,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <span className="text-xs font-bold">W</span>
-              <span className="text-[10px] font-medium">{t("reader.theme_warm", "Warm")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_warm", "Warm")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("coffee")}
@@ -190,7 +227,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <span className="text-xs font-bold">C</span>
-              <span className="text-[10px] font-medium">{t("common.coffee", "Coffee")}</span>
+              <span className="text-[10px] font-medium">
+                {t("common.coffee", "Coffee")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("eink")}
@@ -200,7 +239,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               title={t("reader.eink_title")}
             >
               <Eye className="h-4 w-4" />
-              <span className="text-[10px] font-medium">{t("reader.eink")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.eink")}
+              </span>
             </button>
             <button
               onClick={() => setTheme("custom")}
@@ -209,7 +250,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               }`}
             >
               <Palette className="h-4 w-4" />
-              <span className="text-[10px] font-medium">{t("reader.theme_custom", "Custom")}</span>
+              <span className="text-[10px] font-medium">
+                {t("reader.theme_custom", "Custom")}
+              </span>
             </button>
           </div>
         </div>
@@ -221,7 +264,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
               {t("reader.content_width", "Content Width")}
             </span>
             <span className="font-mono text-xs opacity-50">
-              {maxWidth >= maxContentWidth ? `${t("common.full", "Full")} (${maxContentWidth}px)` : `${maxWidth}px`}
+              {maxWidth >= maxContentWidth
+                ? `${t("common.full", "Full")} (${maxContentWidth}px)`
+                : `${maxWidth}px`}
             </span>
           </div>
           <input
@@ -246,7 +291,10 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             <button
               onClick={() => setReadingMode("webtoon")}
               className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                effectiveReadingMode === "webtoon" || effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""
+                effectiveReadingMode === "webtoon" ||
+                effectiveReadingMode === "scroll"
+                  ? "reader-segment-btn-active"
+                  : ""
               }`}
             >
               {t("reader.mode_webtoon", "Webtoon")}
@@ -254,7 +302,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             <button
               onClick={() => setReadingMode("single")}
               className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""
+                effectiveReadingMode === "single"
+                  ? "reader-segment-btn-active"
+                  : ""
               }`}
             >
               {t("reader.mode_single", "1 Page")}
@@ -262,9 +312,15 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             <button
               disabled={!canUseDoubleMode}
               onClick={() => setReadingMode("double")}
-              title={!canUseDoubleMode ? t("reader.double_page_unavailable") : undefined}
+              title={
+                !canUseDoubleMode
+                  ? t("reader.double_page_unavailable")
+                  : undefined
+              }
               className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""
+                effectiveReadingMode === "double"
+                  ? "reader-segment-btn-active"
+                  : ""
               } ${!canUseDoubleMode ? "opacity-40" : ""}`}
             >
               {t("reader.mode_double", "2 Pages")}
@@ -283,19 +339,28 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             type="button"
             onClick={() => setComicInvertColors(!comicInvertColors)}
             className={`reader-segment-btn btn h-auto min-h-9 w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold ${
-              comicInvertColors ? "btn-warning text-warning-content shadow-md" : ""
+              comicInvertColors
+                ? "btn-warning text-warning-content shadow-md"
+                : ""
             }`}
           >
             <div className="flex items-center gap-2">
               <SunMoon className="h-4 w-4" />
-              <span>{t("reader.invert_colors", "Invert Colors (Night Manga)")}</span>
+              <span>
+                {t("reader.invert_colors", "Invert Colors (Night Manga)")}
+              </span>
             </div>
-            <span className="badge badge-sm">{comicInvertColors ? t("common.on", "ON") : t("common.off", "OFF")}</span>
+            <span className="badge badge-sm">
+              {comicInvertColors
+                ? t("common.on", "ON")
+                : t("common.off", "OFF")}
+            </span>
           </button>
         </div>
 
         {/* Reading Direction (Only for paged modes: single & double) */}
-        {(effectiveReadingMode === "single" || effectiveReadingMode === "double") && (
+        {(effectiveReadingMode === "single" ||
+          effectiveReadingMode === "double") && (
           <div className="mt-4 border-t border-current/10 pt-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium opacity-80">
@@ -324,86 +389,88 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
         )}
 
         {/* Page Fit (For Single/Double Page Modes) */}
-        {effectiveReadingMode !== "webtoon" && effectiveReadingMode !== "scroll" && (
-          <div className="mt-4 border-t border-current/10 pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium opacity-80">
-                {t("reader.fit", "Page Fit")}
-              </span>
+        {effectiveReadingMode !== "webtoon" &&
+          effectiveReadingMode !== "scroll" && (
+            <div className="mt-4 border-t border-current/10 pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-80">
+                  {t("reader.fit", "Page Fit")}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  onClick={() => setPageFit("width")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageFit === "width" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.fit_width", "Width")}
+                </button>
+                <button
+                  onClick={() => setPageFit("height")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageFit === "height" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.fit_height", "Height")}
+                </button>
+                <button
+                  onClick={() => setPageFit("original")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageFit === "original" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.fit_original", "Original")}
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                onClick={() => setPageFit("width")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageFit === "width" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.fit_width", "Width")}
-              </button>
-              <button
-                onClick={() => setPageFit("height")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageFit === "height" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.fit_height", "Height")}
-              </button>
-              <button
-                onClick={() => setPageFit("original")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageFit === "original" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.fit_original", "Original")}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Page Animation */}
-        {effectiveReadingMode !== "webtoon" && effectiveReadingMode !== "scroll" && (
-          <div className="mt-4 border-t border-current/10 pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium opacity-80">
-                {t("reader.page_animation", "Page Animation")}
-              </span>
+        {effectiveReadingMode !== "webtoon" &&
+          effectiveReadingMode !== "scroll" && (
+            <div className="mt-4 border-t border-current/10 pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-80">
+                  {t("reader.page_animation", "Page Animation")}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setPageAnimation("eink")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageAnimation === "eink" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.animation_eink", "E-Ink Flash")}
+                </button>
+                <button
+                  onClick={() => setPageAnimation("none")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageAnimation === "none" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.animation_none", "Instant / None")}
+                </button>
+                <button
+                  onClick={() => setPageAnimation("fade")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageAnimation === "fade" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.animation_fade", "Fade")}
+                </button>
+                <button
+                  onClick={() => setPageAnimation("slide")}
+                  className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
+                    pageAnimation === "slide" ? "reader-segment-btn-active" : ""
+                  }`}
+                >
+                  {t("reader.animation_slide", "Slide")}
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                onClick={() => setPageAnimation("eink")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageAnimation === "eink" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.animation_eink", "E-Ink Flash")}
-              </button>
-              <button
-                onClick={() => setPageAnimation("none")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageAnimation === "none" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.animation_none", "Instant / None")}
-              </button>
-              <button
-                onClick={() => setPageAnimation("fade")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageAnimation === "fade" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.animation_fade", "Fade")}
-              </button>
-              <button
-                onClick={() => setPageAnimation("slide")}
-                className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-                  pageAnimation === "slide" ? "reader-segment-btn-active" : ""
-                }`}
-              >
-                {t("reader.animation_slide", "Slide")}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Reset */}
         <div className="mt-5 border-t border-current/10 pt-4">
@@ -442,7 +509,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <Sun className="h-4 w-4" />
-            <span className="text-[10px] font-medium">{t("reader.theme_light", "Light")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_light", "Light")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("sepia")}
@@ -451,7 +520,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <AlignLeft className="h-4 w-4" />
-            <span className="text-[10px] font-medium">{t("reader.theme_sepia", "Sepia")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_sepia", "Sepia")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("warm")}
@@ -460,7 +531,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <span className="text-xs font-bold">W</span>
-            <span className="text-[10px] font-medium">{t("reader.theme_warm", "Warm")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_warm", "Warm")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("coffee")}
@@ -469,7 +542,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <span className="text-xs font-bold">C</span>
-            <span className="text-[10px] font-medium">{t("common.coffee", "Coffee")}</span>
+            <span className="text-[10px] font-medium">
+              {t("common.coffee", "Coffee")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("dark")}
@@ -478,7 +553,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <Moon className="h-4 w-4" />
-            <span className="text-[10px] font-medium">{t("reader.theme_dark", "Dark")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_dark", "Dark")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("dim")}
@@ -487,7 +564,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <span className="text-xs font-bold opacity-75">D</span>
-            <span className="text-[10px] font-medium">{t("reader.theme_dim", "Dim")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_dim", "Dim")}
+            </span>
           </button>
           <button
             onClick={() => setTheme("eink")}
@@ -506,7 +585,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             }`}
           >
             <Palette className="h-4 w-4" />
-            <span className="text-[10px] font-medium">{t("reader.theme_custom", "Custom")}</span>
+            <span className="text-[10px] font-medium">
+              {t("reader.theme_custom", "Custom")}
+            </span>
           </button>
         </div>
 
@@ -524,7 +605,12 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                       key={th.id}
                       type="button"
                       onClick={() =>
-                        setCustomThemeColors(th.bg_color, th.text_color, th.accent_color, th.custom_css)
+                        setCustomThemeColors(
+                          th.bg_color,
+                          th.text_color,
+                          th.accent_color,
+                          th.custom_css,
+                        )
                       }
                       className="btn btn-xs btn-ghost border border-current/20 rounded-lg text-[11px]"
                       style={{
@@ -549,10 +635,19 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                   <input
                     type="color"
                     value={customBg}
-                    onChange={(e) => setCustomThemeColors(e.target.value, customText, customAccent, customCss)}
+                    onChange={(e) =>
+                      setCustomThemeColors(
+                        e.target.value,
+                        customText,
+                        customAccent,
+                        customCss,
+                      )
+                    }
                     className="w-7 h-7 rounded border border-current/20 cursor-pointer p-0"
                   />
-                  <span className="font-mono text-[10px] opacity-70 uppercase">{customBg}</span>
+                  <span className="font-mono text-[10px] opacity-70 uppercase">
+                    {customBg}
+                  </span>
                 </div>
               </div>
               <div>
@@ -563,10 +658,19 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                   <input
                     type="color"
                     value={customText}
-                    onChange={(e) => setCustomThemeColors(customBg, e.target.value, customAccent, customCss)}
+                    onChange={(e) =>
+                      setCustomThemeColors(
+                        customBg,
+                        e.target.value,
+                        customAccent,
+                        customCss,
+                      )
+                    }
                     className="w-7 h-7 rounded border border-current/20 cursor-pointer p-0"
                   />
-                  <span className="font-mono text-[10px] opacity-70 uppercase">{customText}</span>
+                  <span className="font-mono text-[10px] opacity-70 uppercase">
+                    {customText}
+                  </span>
                 </div>
               </div>
               <div>
@@ -577,10 +681,19 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
                   <input
                     type="color"
                     value={customAccent}
-                    onChange={(e) => setCustomThemeColors(customBg, customText, e.target.value, customCss)}
+                    onChange={(e) =>
+                      setCustomThemeColors(
+                        customBg,
+                        customText,
+                        e.target.value,
+                        customCss,
+                      )
+                    }
                     className="w-7 h-7 rounded border border-current/20 cursor-pointer p-0"
                   />
-                  <span className="font-mono text-[10px] opacity-70 uppercase">{customAccent}</span>
+                  <span className="font-mono text-[10px] opacity-70 uppercase">
+                    {customAccent}
+                  </span>
                 </div>
               </div>
             </div>
@@ -595,7 +708,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             <span>{t("reader.font_family", "Font Family")}</span>
             {customFonts.length > 0 && (
               <span className="text-[11px] opacity-50 font-normal">
-                {t("reader.custom_fonts_count", "{{count}} custom fonts", { count: customFonts.length })}
+                {t("reader.custom_fonts_count", "{{count}} custom fonts", {
+                  count: customFonts.length,
+                })}
               </span>
             )}
           </div>
@@ -610,8 +725,12 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             <option value="'Merriweather', serif">Merriweather (Serif)</option>
             <option value="'Inter', sans-serif">Inter (Sans)</option>
             <option value="'Roboto', sans-serif">Roboto (Sans)</option>
-            <option value="'OpenDyslexic', sans-serif">OpenDyslexic (Dyslexia-friendly)</option>
-            <option value="'JetBrains Mono', monospace">JetBrains Mono (Monospace)</option>
+            <option value="'OpenDyslexic', sans-serif">
+              OpenDyslexic (Dyslexia-friendly)
+            </option>
+            <option value="'JetBrains Mono', monospace">
+              JetBrains Mono (Monospace)
+            </option>
           </optgroup>
           {customFonts.length > 0 && (
             <optgroup label={t("reader.custom_fonts", "Custom Fonts")}>
@@ -685,7 +804,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             {t("reader.content_width", "Content Width")}
           </span>
           <span className="font-mono text-xs opacity-50">
-            {maxWidth >= maxContentWidth ? `${t("common.full", "Full")} (${maxContentWidth}px)` : `${maxWidth}px`}
+            {maxWidth >= maxContentWidth
+              ? `${t("common.full", "Full")} (${maxContentWidth}px)`
+              : `${maxWidth}px`}
           </span>
         </div>
         <input
@@ -716,7 +837,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             title={t("reader.align_original", "Publisher Default")}
           >
             <BookText className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("reader.align_original_short", "Original")}</span>
+            <span className="hidden sm:inline">
+              {t("reader.align_original_short", "Original")}
+            </span>
           </button>
           <button
             type="button"
@@ -727,7 +850,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             title={t("reader.align_left", "Align Left")}
           >
             <AlignLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("reader.align_left_short", "Left")}</span>
+            <span className="hidden sm:inline">
+              {t("reader.align_left_short", "Left")}
+            </span>
           </button>
           <button
             type="button"
@@ -738,7 +863,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             title={t("reader.align_center", "Align Center")}
           >
             <AlignCenter className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("reader.align_center_short", "Center")}</span>
+            <span className="hidden sm:inline">
+              {t("reader.align_center_short", "Center")}
+            </span>
           </button>
           <button
             type="button"
@@ -749,7 +876,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
             title={t("reader.align_right", "Align Right")}
           >
             <AlignRight className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("reader.align_right_short", "Right")}</span>
+            <span className="hidden sm:inline">
+              {t("reader.align_right_short", "Right")}
+            </span>
           </button>
         </div>
       </div>
@@ -765,7 +894,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           <button
             onClick={() => setReadingMode("scroll")}
             className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-              effectiveReadingMode === "scroll" ? "reader-segment-btn-active" : ""
+              effectiveReadingMode === "scroll"
+                ? "reader-segment-btn-active"
+                : ""
             }`}
           >
             {t("reader.mode_scroll", "Scroll")}
@@ -773,7 +904,9 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           <button
             onClick={() => setReadingMode("single")}
             className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-              effectiveReadingMode === "single" ? "reader-segment-btn-active" : ""
+              effectiveReadingMode === "single"
+                ? "reader-segment-btn-active"
+                : ""
             }`}
           >
             {t("reader.mode_single", "Single Page")}
@@ -781,9 +914,15 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
           <button
             disabled={!canUseDoubleMode}
             onClick={() => setReadingMode("double")}
-            title={!canUseDoubleMode ? t("reader.double_page_unavailable") : undefined}
+            title={
+              !canUseDoubleMode
+                ? t("reader.double_page_unavailable")
+                : undefined
+            }
             className={`reader-segment-btn btn h-auto min-h-7.5 flex items-center justify-center rounded-lg px-1 py-1.5 text-center text-[11px] leading-tight ${
-              effectiveReadingMode === "double" ? "reader-segment-btn-active" : ""
+              effectiveReadingMode === "double"
+                ? "reader-segment-btn-active"
+                : ""
             } ${!canUseDoubleMode ? "opacity-40" : ""}`}
           >
             {t("reader.mode_double", "Double Page")}
@@ -792,7 +931,8 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
       </div>
 
       {/* Reading Direction (Only for paged modes: single & double) */}
-      {(effectiveReadingMode === "single" || effectiveReadingMode === "double") && (
+      {(effectiveReadingMode === "single" ||
+        effectiveReadingMode === "double") && (
         <div className="mt-4 border-t border-current/10 pt-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium opacity-80">
@@ -821,7 +961,8 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
       )}
 
       {/* Page Animation */}
-      {(effectiveReadingMode === "single" || effectiveReadingMode === "double") && (
+      {(effectiveReadingMode === "single" ||
+        effectiveReadingMode === "double") && (
         <div className="mt-4 border-t border-current/10 pt-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium opacity-80">

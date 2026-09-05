@@ -5,7 +5,9 @@ interface DiscordMarkdownProps {
   className?: string;
 }
 
-export const SpoilerSpan: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SpoilerSpan: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [revealed, setRevealed] = useState(false);
 
   return (
@@ -29,14 +31,21 @@ export const SpoilerSpan: React.FC<{ children: React.ReactNode }> = ({ children 
           : "bg-neutral-800 text-transparent hover:bg-neutral-700 select-none shadow-xs border border-neutral-700"
       }`}
     >
-      <span className={revealed ? "opacity-100" : "opacity-0 select-none pointer-events-none"}>
+      <span
+        className={
+          revealed ? "opacity-100" : "opacity-0 select-none pointer-events-none"
+        }
+      >
         {children}
       </span>
     </span>
   );
 };
 
-export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, className = "" }) => {
+export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({
+  content,
+  className = "",
+}) => {
   if (!content) return null;
 
   // Render text with Discord-like formatting:
@@ -50,7 +59,8 @@ export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, class
   // - Block Quotes: > text
   // - Links: https://...
   const renderInline = (text: string): React.ReactNode[] => {
-    const tokenRegex = /(\|\|.+?\|\||\*\*\*.+?\*\*\*|\*\*.+?\*\*|__.+?__|~~.+?~~|`[^`]+`|\*[^*]+?\*|_[^_]+?_|https?:\/\/[^\s<]+)/g;
+    const tokenRegex =
+      /(\|\|.+?\|\||\*\*\*.+?\*\*\*|\*\*.+?\*\*|__.+?__|~~.+?~~|`[^`]+`|\*[^*]+?\*|_[^_]+?_|https?:\/\/[^\s<]+)/g;
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -63,42 +73,69 @@ export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, class
 
       const matchText = match[0];
 
-      if (matchText.startsWith("||") && matchText.endsWith("||") && matchText.length >= 4) {
+      if (
+        matchText.startsWith("||") &&
+        matchText.endsWith("||") &&
+        matchText.length >= 4
+      ) {
         const inner = matchText.slice(2, -2);
         parts.push(
           <SpoilerSpan key={`spoiler-${match.index}`}>
             {renderInline(inner)}
-          </SpoilerSpan>
+          </SpoilerSpan>,
         );
-      } else if (matchText.startsWith("***") && matchText.endsWith("***") && matchText.length >= 6) {
+      } else if (
+        matchText.startsWith("***") &&
+        matchText.endsWith("***") &&
+        matchText.length >= 6
+      ) {
         const inner = matchText.slice(3, -3);
         parts.push(
           <strong key={`bi-${match.index}`}>
             <em>{renderInline(inner)}</em>
-          </strong>
+          </strong>,
         );
-      } else if (matchText.startsWith("**") && matchText.endsWith("**") && matchText.length >= 4) {
+      } else if (
+        matchText.startsWith("**") &&
+        matchText.endsWith("**") &&
+        matchText.length >= 4
+      ) {
         const inner = matchText.slice(2, -2);
         parts.push(
-          <strong key={`b-${match.index}`} className="font-bold text-base-content">
+          <strong
+            key={`b-${match.index}`}
+            className="font-bold text-base-content"
+          >
             {renderInline(inner)}
-          </strong>
+          </strong>,
         );
-      } else if (matchText.startsWith("__") && matchText.endsWith("__") && matchText.length >= 4) {
+      } else if (
+        matchText.startsWith("__") &&
+        matchText.endsWith("__") &&
+        matchText.length >= 4
+      ) {
         const inner = matchText.slice(2, -2);
         parts.push(
           <u key={`u-${match.index}`} className="underline underline-offset-2">
             {renderInline(inner)}
-          </u>
+          </u>,
         );
-      } else if (matchText.startsWith("~~") && matchText.endsWith("~~") && matchText.length >= 4) {
+      } else if (
+        matchText.startsWith("~~") &&
+        matchText.endsWith("~~") &&
+        matchText.length >= 4
+      ) {
         const inner = matchText.slice(2, -2);
         parts.push(
           <del key={`del-${match.index}`} className="line-through opacity-70">
             {renderInline(inner)}
-          </del>
+          </del>,
         );
-      } else if (matchText.startsWith("`") && matchText.endsWith("`") && matchText.length >= 2) {
+      } else if (
+        matchText.startsWith("`") &&
+        matchText.endsWith("`") &&
+        matchText.length >= 2
+      ) {
         const inner = matchText.slice(1, -1);
         parts.push(
           <code
@@ -106,19 +143,26 @@ export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, class
             className="rounded bg-base-200 px-1.5 py-0.5 font-mono text-xs text-primary border border-base-300"
           >
             {inner}
-          </code>
+          </code>,
         );
       } else if (
-        (matchText.startsWith("*") && matchText.endsWith("*") && matchText.length >= 2) ||
-        (matchText.startsWith("_") && matchText.endsWith("_") && matchText.length >= 2)
+        (matchText.startsWith("*") &&
+          matchText.endsWith("*") &&
+          matchText.length >= 2) ||
+        (matchText.startsWith("_") &&
+          matchText.endsWith("_") &&
+          matchText.length >= 2)
       ) {
         const inner = matchText.slice(1, -1);
         parts.push(
           <em key={`em-${match.index}`} className="italic">
             {renderInline(inner)}
-          </em>
+          </em>,
         );
-      } else if (matchText.startsWith("http://") || matchText.startsWith("https://")) {
+      } else if (
+        matchText.startsWith("http://") ||
+        matchText.startsWith("https://")
+      ) {
         parts.push(
           <a
             key={`link-${match.index}`}
@@ -129,7 +173,7 @@ export const DiscordMarkdown: React.FC<DiscordMarkdownProps> = ({ content, class
             onClick={(e) => e.stopPropagation()}
           >
             {matchText}
-          </a>
+          </a>,
         );
       } else {
         parts.push(matchText);

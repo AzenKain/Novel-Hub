@@ -24,7 +24,7 @@ type CurrentBookmark struct {
 	Location                     *Location `json:"Location,omitempty"`
 }
 
-// Statistics is the reading-time block. Both counters are device-supplied.
+// Statistics is the reading-time block.
 type Statistics struct {
 	LastModified         string `json:"LastModified"`
 	SpentReadingMinutes  *int64 `json:"SpentReadingMinutes,omitempty"`
@@ -107,15 +107,12 @@ func NewReadingState(in ReadingStateInput) ReadingState {
 	}
 }
 
-// PutStateSubResult is the per-block acknowledgement the device looks for. Always
-// {"Result": "Success"} in practice — the device retries a block it gets no result for.
+// PutStateSubResult is the per-block acknowledgement the device looks for.
 type PutStateSubResult struct {
 	Result string `json:"Result"`
 }
 
-// PutStateResult is one entry of the PUT response's UpdateResults. Only the sub-results the
-// request actually contained are included, mirroring calibre-web — hence the pointers. The
-// request body itself is request.PutKoboStateDto, bound in the app layer rather than here.
+// PutStateResult is one entry of the PUT response's UpdateResults.
 type PutStateResult struct {
 	EntitlementID         string             `json:"EntitlementId"`
 	CurrentBookmarkResult *PutStateSubResult `json:"CurrentBookmarkResult,omitempty"`

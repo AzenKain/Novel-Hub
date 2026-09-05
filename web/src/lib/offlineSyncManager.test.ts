@@ -48,7 +48,9 @@ describe("offlineSyncManager", () => {
 
     const count = await flushSyncQueue();
     expect(count).toBe(1);
-    expect(featureService.recordReadingActivity).toHaveBeenCalledWith(progressPayload);
+    expect(featureService.recordReadingActivity).toHaveBeenCalledWith(
+      progressPayload,
+    );
 
     items = await offlineStore.listSyncItems();
     expect(items).toHaveLength(0);
@@ -73,7 +75,11 @@ describe("offlineSyncManager", () => {
 
     const count = await flushSyncQueue();
     expect(count).toBe(1);
-    expect(readerService.syncReadingSession).toHaveBeenCalledWith("book-2", 300, 1500);
+    expect(readerService.syncReadingSession).toHaveBeenCalledWith(
+      "book-2",
+      300,
+      1500,
+    );
 
     const items = await offlineStore.listSyncItems();
     expect(items).toHaveLength(0);
@@ -88,11 +94,20 @@ describe("offlineSyncManager", () => {
     const cleanup = initOfflineSyncManager();
 
     expect(windowSpy).toHaveBeenCalledWith("online", expect.any(Function));
-    expect(documentSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(documentSpy).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
 
     cleanup();
 
-    expect(windowRemoveSpy).toHaveBeenCalledWith("online", expect.any(Function));
-    expect(documentRemoveSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(windowRemoveSpy).toHaveBeenCalledWith(
+      "online",
+      expect.any(Function),
+    );
+    expect(documentRemoveSpy).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
   });
 });

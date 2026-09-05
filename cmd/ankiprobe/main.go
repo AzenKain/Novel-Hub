@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"novelhub/pkg/anki"
 	_ "modernc.org/sqlite"
+	"novelhub/pkg/anki"
 )
 
 func main() {
@@ -71,7 +71,6 @@ func main() {
 		Description: deckDesc,
 	}
 
-	// 1. Generate CSV
 	csvContent, err := anki.GenerateCSV(cards)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: GenerateCSV failed: %v\n", err)
@@ -79,7 +78,6 @@ func main() {
 	}
 	fmt.Printf("[OK] Generated Anki TSV/CSV (%d bytes, %d cards)\n", len(csvContent), len(cards))
 
-	// 2. Generate .apkg
 	apkgBytes, err := anki.GenerateApkg(cards, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: GenerateApkg failed: %v\n", err)
@@ -87,7 +85,6 @@ func main() {
 	}
 	fmt.Printf("[OK] Generated Anki .apkg (%d bytes)\n", len(apkgBytes))
 
-	// 3. Inspect internal zip and SQLite DB
 	zipReader, err := zip.NewReader(bytes.NewReader(apkgBytes), int64(len(apkgBytes)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to open generated .apkg zip: %v\n", err)
@@ -106,7 +103,6 @@ func main() {
 		}
 	}
 
-	// 4. Verify SQLite schema & counts
 	tmpDb, err := os.CreateTemp("", "ankiprobe-*.db")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
@@ -128,7 +124,6 @@ func main() {
 	_ = db.QueryRow("SELECT count(*) FROM cards").Scan(&cardsCount)
 	fmt.Printf("[OK] Verified Anki Collection SQLite: %d notes, %d cards\n", notesCount, cardsCount)
 
-	// 5. Always write files if --db or --write flag is supplied
 	if *writeFlag || *dbFlag != "" {
 		_ = os.MkdirAll(*outDirFlag, 0755)
 		apkgPath := filepath.Join(*outDirFlag, "novelhub_highlights.apkg")

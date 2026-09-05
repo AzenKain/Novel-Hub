@@ -10,8 +10,7 @@ import (
 	"novelhub/pkg/constants"
 )
 
-// FTS must return exactly what LIKE did. These are the cases that broke during
-// development: sub-3-char terms, FTS5 operators, quotes escaping the MATCH string.
+// FTS must return exactly what LIKE did.
 func TestUserSearchFTSMatchesLikeSemantics(t *testing.T) {
 	repo, db, _ := newUserTestRepo(t)
 	ctx := context.Background()
@@ -35,23 +34,22 @@ func TestUserSearchFTSMatchesLikeSemantics(t *testing.T) {
 	notDeleted := sql.NullInt64{Int64: 0, Valid: true}
 	terms := []string{
 		"omiya",
-		"miya",  // mid-token: why trigram, not a word tokenizer
-		"gmail", // matches most rows
-		"zzqx",  // matches nothing
-		"ab",    // below trigram minimum -> LIKE
+		"miya",
+		"gmail",
+		"zzqx",
+		"ab",
 		"a",
-		`"`, // must not break the MATCH string
+		`"`,
 		`a"b`,
-		"Star *", // FTS5 operators, literal
+		"Star *",
 		"OR 1=1",
 		"NEAR(a)",
-		"u1", // id fragment
+		"u1",
 		"nguyen",
 	}
 
 	for _, term := range terms {
 		t.Run(fmt.Sprintf("term=%q", term), func(t *testing.T) {
-			// Reference: the LIKE path, run directly.
 			wantIDs, err := db.QueryContext(ctx, `SELECT u.id FROM users u
 				WHERE (u.is_deleted = 0)
 				AND (CAST(u.id AS TEXT) LIKE '%'||?1||'%'
@@ -101,8 +99,7 @@ func TestUserSearchFTSMatchesLikeSemantics(t *testing.T) {
 	}
 }
 
-// Drives the DB directly and clears the cache by hand: the triggers are what's under
-// test, and repository-level invalidation would mask a stale index.
+// Drives the DB directly and clears the cache by hand: the triggers are what's under test, and repository-level invalidation would mask a stale index.
 func TestUserSearchFTSStaysInSyncOnUpdateAndDelete(t *testing.T) {
 	repo, db, c := newUserTestRepo(t)
 	ctx := context.Background()

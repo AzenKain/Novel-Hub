@@ -38,8 +38,6 @@ func (p *AudiobookParser) ParseMetadata(filePath string) (*bookparser.BookMetada
 		Series: m.Album(),
 	}
 
-	// ASIN: MP4 ITunes tagging exposes `----:com.apple.iTunes:ASIN`, ID3v2 `TXXX:ASIN`.
-	// dhowden Raw() is a flat map; match case-insensitively so both hit.
 	if raw := m.Raw(); raw != nil {
 		for k, v := range raw {
 			if strings.Contains(strings.ToLower(k), "asin") {

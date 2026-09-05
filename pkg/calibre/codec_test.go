@@ -25,7 +25,6 @@ func TestEncodeDecodeName(t *testing.T) {
 		}
 	}
 
-	// Test fallback when string is not valid hex
 	if fallback := DecodeName("plain_text_name"); fallback != "plain_text_name" {
 		t.Errorf("expected plain_text_name, got %q", fallback)
 	}

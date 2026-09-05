@@ -29,12 +29,6 @@ type authCookieSettings struct {
 	sameSite string
 }
 
-// Derived from the request, not configured: c.Scheme() is "https" on TLS or when
-// a trusted proxy says so (TRUST_PROXY), which is exactly when Secure is needed.
-// Domain is never set, so the cookie stays scoped to the host that served it.
-//
-// SameSite=Lax is the only CSRF defence this app has — there is no token or
-// origin check anywhere — so it must not be loosened to None.
 func getAuthCookieSettings(c fiber.Ctx) authCookieSettings {
 	return authCookieSettings{
 		secure:   c.Scheme() == "https",
@@ -75,7 +69,6 @@ func setCSRFCookie(c fiber.Ctx, duration time.Duration) {
 	}
 	c.Cookie(cookie)
 }
-
 
 func clearAuthCookie(c fiber.Ctx, name string) {
 	settings := getAuthCookieSettings(c)

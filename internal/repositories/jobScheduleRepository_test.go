@@ -45,8 +45,7 @@ func TestJobScheduleRepositoryClaimsDueSchedule(t *testing.T) {
 	}
 }
 
-// A nil cache is a supported construction, so the DB-fallback closures must guard
-// their Set calls the same way the reads above them are guarded.
+// A nil cache is a supported construction, so the DB-fallback closures must guard their Set calls the same way the reads above them are guarded.
 func TestJobScheduleRepositoryNilCacheReads(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

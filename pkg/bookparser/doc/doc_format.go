@@ -42,27 +42,27 @@ type paraFormat struct {
 }
 
 const (
-	sprmCBold          uint16 = 0x0835
-	sprmCItalic        uint16 = 0x0836
-	sprmCUnderline     uint16 = 0x0837
-	sprmCStrike        uint16 = 0x0838
-	sprmCAllCaps       uint16 = 0x0839
-	sprmCSmallCaps     uint16 = 0x083A
-	sprmCHidden        uint16 = 0x083B
-	sprmCSuperscript   uint16 = 0x083C
-	sprmCSubscript     uint16 = 0x083D
-	sprmCImprint       uint16 = 0x084F
-	sprmCEmboss        uint16 = 0x084E
-	sprmCFontSize      uint16 = 0x0840
-	sprmCKern          uint16 = 0x0842
-	sprmCFontIndex     uint16 = 0x0841
-	sprmCColor         uint16 = 0x0845
-	sprmCHighlight     uint16 = 0x0846
-	sprmCCharScaling   uint16 = 0x0850
-	sprmCNoProof       uint16 = 0x0857
-	sprmCDoubleStrike  uint16 = 0x0858
-	sprmCRevMarkDel    uint16 = 0x0859
-	sprmCRevMarkIns    uint16 = 0x085A
+	sprmCBold         uint16 = 0x0835
+	sprmCItalic       uint16 = 0x0836
+	sprmCUnderline    uint16 = 0x0837
+	sprmCStrike       uint16 = 0x0838
+	sprmCAllCaps      uint16 = 0x0839
+	sprmCSmallCaps    uint16 = 0x083A
+	sprmCHidden       uint16 = 0x083B
+	sprmCSuperscript  uint16 = 0x083C
+	sprmCSubscript    uint16 = 0x083D
+	sprmCImprint      uint16 = 0x084F
+	sprmCEmboss       uint16 = 0x084E
+	sprmCFontSize     uint16 = 0x0840
+	sprmCKern         uint16 = 0x0842
+	sprmCFontIndex    uint16 = 0x0841
+	sprmCColor        uint16 = 0x0845
+	sprmCHighlight    uint16 = 0x0846
+	sprmCCharScaling  uint16 = 0x0850
+	sprmCNoProof      uint16 = 0x0857
+	sprmCDoubleStrike uint16 = 0x0858
+	sprmCRevMarkDel   uint16 = 0x0859
+	sprmCRevMarkIns   uint16 = 0x085A
 
 	sprmPJc              uint16 = 0x2403
 	sprmPLeftIndent      uint16 = 0x2407
@@ -160,7 +160,7 @@ func detectCPScale(word []byte, charMap map[int]charFormat, paraMap map[int]para
 
 func keyCP(base, scale, pieceCP int) int {
 	if scale == 2 && base > 0 {
-		return base + (pieceCP*2)
+		return base + (pieceCP * 2)
 	}
 	return pieceCP
 }

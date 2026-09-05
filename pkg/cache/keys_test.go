@@ -5,10 +5,7 @@ import (
 	"time"
 )
 
-// A nil *time.Time used to panic here: it matched the fmt.Stringer case, and time.Time.String
-// has a value receiver, so calling it through a nil pointer dereferences nothing. Repositories
-// pass cursors straight into BuildKey and the first page of every listing has a nil cursor, so
-// any new keyset-paged branch that keyed on the cursor turned page 1 into a 500.
+// A nil *time.Time used to panic here: it matched the fmt.Stringer case, and time.Time.String has a value receiver, so calling it through a nil pointer dereferences nothing.
 func TestBuildKeyHandlesNilPointers(t *testing.T) {
 	var (
 		nilTime   *time.Time
@@ -37,8 +34,7 @@ func TestBuildKeyHandlesNilPointers(t *testing.T) {
 	}
 }
 
-// Cursors are keyed by value, not by address: two equal timestamps must hit the same cache entry
-// and two different ones must not collide.
+// Cursors are keyed by value, not by address: two equal timestamps must hit the same cache entry and two different ones must not collide.
 func TestBuildKeyIsValueStableForCursors(t *testing.T) {
 	first := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)
 	same := time.Date(2026, 8, 5, 10, 0, 0, 0, time.UTC)

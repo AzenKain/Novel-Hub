@@ -41,15 +41,7 @@ func seedAuditLibraryAndBooks(t *testing.T, db *sql.DB, bookIDs ...string) {
 	}
 }
 
-// TestAuditSmartFilterLeaksCrossUserReadingStatus proves task T2.1: the
-// SearchSmartFilterBookIDs query (db/query/books.sql:151-153) filters on
-// reading_progress without any user_id scoping, and SearchSmartFilterBooks
-// takes no userID at all. One user's read state therefore leaks into every
-// other user's smart-filter results.
-//
-// Setup: u1 has read b1, u2 has read b2. Nothing else differs.
-// u1's "status = read" filter must return ONLY b1. PASSING the current
-// behaviour returns b1 AND b2 — proof that u2's reading state leaked to u1.
+// TestAuditSmartFilterLeaksCrossUserReadingStatus proves task T2.1: the SearchSmartFilterBookIDs query (db/query/books.sql:151-153) filters on reading_progress without any user_id scoping, and SearchSmartFilterBooks takes no userID at all.
 func TestAuditSmartFilterLeaksCrossUserReadingStatus(t *testing.T) {
 	db := newAuditRepoTestDB(t)
 	ctx := context.Background()
@@ -58,7 +50,6 @@ func TestAuditSmartFilterLeaksCrossUserReadingStatus(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO users (id, email) VALUES ('u1', 'u1@example.com'), ('u2', 'u2@example.com')`); err != nil {
 		t.Fatal(err)
 	}
-	// u1 has read b1 to completion; u2 has read b2 to completion.
 	for _, row := range []struct{ uid, bid string }{{"u1", "b1"}, {"u2", "b2"}} {
 		if _, err := db.Exec(`INSERT INTO reading_progress (user_id, book_id, chapter_ref, progress_percent) VALUES (?, ?, 'c1', 100)`, row.uid, row.bid); err != nil {
 			t.Fatal(err)
@@ -85,13 +76,7 @@ func TestAuditSmartFilterLeaksCrossUserReadingStatus(t *testing.T) {
 	}
 }
 
-// TestAuditSpineResyncOrphansHighlights proves task T2.2: spine re-sync
-// (maintenanceService.IndexBook) deletes and recreates every chapter with a new
-// UUID, but highlights carry chapter_id with no FK to chapters and are never
-// cleaned up — so they end up pointing at chapters that no longer exist.
-//
-// PASSING = orphan proved: after the chapter is deleted, the highlight row
-// still exists and references the dead chapter id.
+// TestAuditSpineResyncOrphansHighlights proves task T2.2: spine re-sync (maintenanceService.IndexBook) deletes and recreates every chapter with a new UUID, but highlights carry chapter_id with no FK to chapters and are never cleaned up — so they end up pointing at chapters that no longer exist.
 func TestAuditSpineResyncOrphansHighlights(t *testing.T) {
 	db := newAuditRepoTestDB(t)
 	ctx := context.Background()
@@ -121,22 +106,18 @@ func TestAuditSpineResyncOrphansHighlights(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// maintenanceService.IndexBook does exactly this when the spine changes.
 	if err := bookRepo.DeleteChaptersByBook(ctx, "b1"); err != nil {
 		t.Fatal(err)
 	}
 
-	// The chapter is gone...
 	if _, err := bookRepo.GetChapter(ctx, "ch-old"); err == nil {
 		t.Fatal("setup broken: chapter still exists after DeleteChaptersByBook")
 	}
 
-	// ...but the highlight survives, pointing at nothing.
 	var orphanCount int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM highlights WHERE book_id = 'b1' AND chapter_id = 'ch-old'`).Scan(&orphanCount); err != nil {
 		t.Fatal(err)
 	}
-	// BUG PROOF: a highlight references a deleted chapter.
 	if orphanCount == 0 {
 		t.Fatalf("no orphan to prove: highlights were cleaned up with their chapters")
 	}

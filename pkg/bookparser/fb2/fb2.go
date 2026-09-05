@@ -336,7 +336,6 @@ func isHeadingLikeText(s string) bool {
 		strings.HasPrefix(lower, "illustration") {
 		return true
 	}
-	// Short standalone header without sentence-ending punctuation
 	if len(s) <= 60 && !strings.Contains(s, ". ") && !strings.Contains(s, ", ") {
 		return true
 	}

@@ -128,7 +128,6 @@ func setupCalibreFixture(t *testing.T) calibreFixture {
 		t.Fatalf("mkdir book folder: %v", err)
 	}
 
-	// Create test cover image
 	coverPath := filepath.Join(bookFolder, "cover.jpg")
 	coverF, err := os.Create(coverPath)
 	if err != nil {
@@ -139,7 +138,6 @@ func setupCalibreFixture(t *testing.T) calibreFixture {
 	_ = jpeg.Encode(coverF, img, nil)
 	_ = coverF.Close()
 
-	// Create test epub file
 	epubFullPath := filepath.Join(bookFolder, "book.epub")
 	if err := os.WriteFile(epubFullPath, []byte("fake epub data stream"), 0644); err != nil {
 		t.Fatalf("write epub: %v", err)
@@ -174,7 +172,6 @@ func basicAuthHeader(email, password string) string {
 func TestCalibreServer_AuthRequirements(t *testing.T) {
 	fix := setupCalibreFixture(t)
 
-	// 1. Without credentials -> 401
 	req1 := httptest.NewRequest(http.MethodGet, "/calibre/ajax/library-info", nil)
 	resp1, err := fix.app.Test(req1)
 	if err != nil {
@@ -187,7 +184,6 @@ func TestCalibreServer_AuthRequirements(t *testing.T) {
 		t.Errorf("expected WWW-Authenticate header, got %q", resp1.Header.Get("WWW-Authenticate"))
 	}
 
-	// 2. With invalid credentials -> 401
 	req2 := httptest.NewRequest(http.MethodGet, "/calibre/ajax/library-info", nil)
 	req2.Header.Set("Authorization", basicAuthHeader(calibreTestEmail, "wrongpassword"))
 	resp2, err := fix.app.Test(req2)
@@ -198,7 +194,6 @@ func TestCalibreServer_AuthRequirements(t *testing.T) {
 		t.Fatalf("expected 401 Unauthorized, got %d", resp2.StatusCode)
 	}
 
-	// 3. With valid credentials -> 200 OK
 	req3 := httptest.NewRequest(http.MethodGet, "/calibre/ajax/library-info", nil)
 	req3.Header.Set("Authorization", basicAuthHeader(calibreTestEmail, calibreTestPassword))
 	resp3, err := fix.app.Test(req3)
@@ -209,7 +204,6 @@ func TestCalibreServer_AuthRequirements(t *testing.T) {
 		t.Fatalf("expected 200 OK, got %d", resp3.StatusCode)
 	}
 
-	// 4. With banned user credentials -> 403 Forbidden
 	req4 := httptest.NewRequest(http.MethodGet, "/calibre/ajax/library-info", nil)
 	req4.Header.Set("Authorization", basicAuthHeader("banned@example.com", calibreTestPassword))
 	resp4, err := fix.app.Test(req4)
@@ -225,7 +219,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 	fix := setupCalibreFixture(t)
 	auth := basicAuthHeader(calibreTestEmail, calibreTestPassword)
 
-	// 1. Categories
 	reqCat := httptest.NewRequest(http.MethodGet, "/calibre/ajax/categories", nil)
 	reqCat.Header.Set("Authorization", auth)
 	respCat, err := fix.app.Test(reqCat)
@@ -240,7 +233,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 		t.Fatalf("expected 'authors' in category map, got %v", catMap)
 	}
 
-	// 2. Category Authors Items
 	encAuthors := calibre.EncodeName("authors")
 	reqAuth := httptest.NewRequest(http.MethodGet, "/calibre/ajax/category/"+encAuthors, nil)
 	reqAuth.Header.Set("Authorization", auth)
@@ -256,7 +248,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 		t.Fatalf("expected at least 1 author item, got 0")
 	}
 
-	// 3. Books In Category
 	encAuthorItem := calibre.EncodeName("Arthur Conan Doyle")
 	reqBooksIn := httptest.NewRequest(http.MethodGet, "/calibre/ajax/books_in/"+encAuthors+"/"+encAuthorItem, nil)
 	reqBooksIn.Header.Set("Authorization", auth)
@@ -272,7 +263,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 		t.Fatalf("expected book ID %q, got %v", fix.bookID, booksIn.BookIDs)
 	}
 
-	// 4. Bulk Books Metadata
 	reqBooks := httptest.NewRequest(http.MethodGet, "/calibre/ajax/books?ids="+fix.bookID, nil)
 	reqBooks.Header.Set("Authorization", auth)
 	respBooks, err := fix.app.Test(reqBooks)
@@ -288,7 +278,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 		t.Fatalf("expected title 'A Study in Scarlet', got %v", book)
 	}
 
-	// 5. Single Book Metadata
 	reqSingle := httptest.NewRequest(http.MethodGet, "/calibre/ajax/book/"+fix.bookID, nil)
 	reqSingle.Header.Set("Authorization", auth)
 	respSingle, err := fix.app.Test(reqSingle)
@@ -296,7 +285,6 @@ func TestCalibreServer_CategoriesAndBooks(t *testing.T) {
 		t.Fatalf("single book failed: status %d, err %v", respSingle.StatusCode, err)
 	}
 
-	// 6. Search
 	reqSearch := httptest.NewRequest(http.MethodGet, "/calibre/ajax/search?query=Scarlet", nil)
 	reqSearch.Header.Set("Authorization", auth)
 	respSearch, err := fix.app.Test(reqSearch)
@@ -316,7 +304,6 @@ func TestCalibreServer_GetContentFiles(t *testing.T) {
 	fix := setupCalibreFixture(t)
 	auth := basicAuthHeader(calibreTestEmail, calibreTestPassword)
 
-	// 1. Download Cover
 	reqCover := httptest.NewRequest(http.MethodGet, "/calibre/get/cover/"+fix.bookID, nil)
 	reqCover.Header.Set("Authorization", auth)
 	respCover, err := fix.app.Test(reqCover)
@@ -324,7 +311,6 @@ func TestCalibreServer_GetContentFiles(t *testing.T) {
 		t.Fatalf("cover failed: status %d, err %v", respCover.StatusCode, err)
 	}
 
-	// 2. Download EPUB file
 	reqEpub := httptest.NewRequest(http.MethodGet, "/calibre/get/epub/"+fix.bookID, nil)
 	reqEpub.Header.Set("Authorization", auth)
 	respEpub, err := fix.app.Test(reqEpub)
@@ -335,7 +321,6 @@ func TestCalibreServer_GetContentFiles(t *testing.T) {
 		t.Errorf("expected application/epub+zip, got %q", ct)
 	}
 
-	// 3. Download format not present -> 404
 	reqMobi := httptest.NewRequest(http.MethodGet, "/calibre/get/mobi/"+fix.bookID, nil)
 	reqMobi.Header.Set("Authorization", auth)
 	respMobi, err := fix.app.Test(reqMobi)

@@ -20,8 +20,7 @@ const civilWarCBL = `<?xml version="1.0"?>
   </Books>
 </ReadingList>`
 
-// Document order IS the reading order for a .cbl — Civil War #1 has to stay between the two
-// tie-in issues. A parser that sorted by Number or Series would silently break every crossover.
+// Document order IS the reading order for a .cbl — Civil War #1 has to stay between the two tie-in issues.
 func TestParseCBLKeepsDocumentOrder(t *testing.T) {
 	list, err := ParseCBL(strings.NewReader(civilWarCBL))
 	if err != nil {
@@ -45,8 +44,7 @@ func TestParseCBLKeepsDocumentOrder(t *testing.T) {
 	}
 }
 
-// Volume is the series start year in real .cbl files, not a sequence number. ComicInfo falls back
-// Volume -> Number; doing that here would turn "Civil War #1" into "Civil War #2006".
+// Volume is the series start year in real .cbl files, not a sequence number.
 func TestParseCBLDoesNotFallBackVolumeToNumber(t *testing.T) {
 	list, err := ParseCBL(strings.NewReader(`<ReadingList><Name>x</Name><Books>
 		<Book Series="Civil War" Volume="2006" /></Books></ReadingList>`))
@@ -71,8 +69,7 @@ func TestParseCBLRejectsBadInput(t *testing.T) {
 	}
 }
 
-// A 40MB <Name> would otherwise be buffered whole. LimitReader truncates mid-document, so the
-// decoder fails rather than the process growing to fit whatever was uploaded.
+// A 40MB <Name> would otherwise be buffered whole.
 func TestParseCBLStopsAtSizeLimit(t *testing.T) {
 	oversized := `<ReadingList><Name>` + strings.Repeat("A", constants.MaxCBLBytes+1024) +
 		`</Name><Books><Book Series="a" Number="1" /></Books></ReadingList>`

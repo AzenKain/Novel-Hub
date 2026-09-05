@@ -189,10 +189,6 @@ func (p *Parser) defaultSpine(filePath string) []bookparser.ChapterData {
 	}}
 }
 
-// ----------------------------------------------------------------------------
-// XLSX Support
-// ----------------------------------------------------------------------------
-
 func (p *Parser) parseXLSXMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}
 	r, err := zip.OpenReader(filePath)
@@ -252,7 +248,6 @@ func (p *Parser) parseXLSXSpine(filePath string) ([]bookparser.ChapterData, erro
 	}
 	defer r.Close()
 
-	// Parse relationships to map rId -> target sheet file
 	relMap := make(map[string]string)
 	for _, f := range r.File {
 		if f.Name == "xl/_rels/workbook.xml.rels" {
@@ -278,7 +273,6 @@ func (p *Parser) parseXLSXSpine(filePath string) ([]bookparser.ChapterData, erro
 		}
 	}
 
-	// Parse workbook.xml for sheets in order
 	var chapters []bookparser.ChapterData
 	for _, f := range r.File {
 		if f.Name == "xl/workbook.xml" {
@@ -310,7 +304,6 @@ func (p *Parser) parseXLSXSpine(filePath string) ([]bookparser.ChapterData, erro
 	}
 
 	if len(chapters) == 0 {
-		// Fallback: search for sheet*.xml
 		var sheetFiles []string
 		for _, f := range r.File {
 			if strings.HasPrefix(f.Name, "xl/worksheets/sheet") && strings.HasSuffix(f.Name, ".xml") {
@@ -340,7 +333,6 @@ func (p *Parser) getXLSXSheetContent(filePath, contentPath string) (string, erro
 	}
 	defer r.Close()
 
-	// Load Shared Strings
 	var sharedStrings []string
 	for _, f := range r.File {
 		if f.Name == "xl/sharedStrings.xml" {
@@ -451,10 +443,6 @@ func (p *Parser) getXLSXSheetContent(filePath, contentPath string) (string, erro
 
 	return renderSpreadsheetTableHTML(rows), nil
 }
-
-// ----------------------------------------------------------------------------
-// ODS Support
-// ----------------------------------------------------------------------------
 
 func (p *Parser) parseODSMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}
@@ -653,10 +641,6 @@ func (p *Parser) getODSSheetContent(filePath, contentPath string) (string, error
 	return renderSpreadsheetTableHTML(rows), nil
 }
 
-// ----------------------------------------------------------------------------
-// Binary XLS (Excel 97-2003) Support
-// ----------------------------------------------------------------------------
-
 func (p *Parser) parseXLSMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{
 		Title:       bookparser.TitleFromPath(filePath),
@@ -740,9 +724,9 @@ func parseBIFF8Workbook(data []byte) [][]string {
 		pos += int(recLen)
 
 		switch recType {
-		case 0x00FC: // SST (Shared String Table)
+		case 0x00FC:
 			sst = parseBIFF8SST(rec)
-		case 0x00FD: // LABELSST
+		case 0x00FD:
 			if len(rec) >= 10 {
 				row := int(binary.LittleEndian.Uint16(rec[0:2]))
 				col := int(binary.LittleEndian.Uint16(rec[2:4]))
@@ -753,7 +737,7 @@ func parseBIFF8Workbook(data []byte) [][]string {
 				}
 				cells = append(cells, cellPos{row: row, col: col, val: val})
 			}
-		case 0x0204: // LABEL
+		case 0x0204:
 			if len(rec) >= 8 {
 				row := int(binary.LittleEndian.Uint16(rec[0:2]))
 				col := int(binary.LittleEndian.Uint16(rec[2:4]))
@@ -763,7 +747,7 @@ func parseBIFF8Workbook(data []byte) [][]string {
 					cells = append(cells, cellPos{row: row, col: col, val: val})
 				}
 			}
-		case 0x0203: // NUMBER
+		case 0x0203:
 			if len(rec) >= 14 {
 				row := int(binary.LittleEndian.Uint16(rec[0:2]))
 				col := int(binary.LittleEndian.Uint16(rec[2:4]))
@@ -771,7 +755,7 @@ func parseBIFF8Workbook(data []byte) [][]string {
 				val := fmt.Sprintf("%g", math.Float64frombits(bits))
 				cells = append(cells, cellPos{row: row, col: col, val: val})
 			}
-		case 0x027E: // RK
+		case 0x027E:
 			if len(rec) >= 10 {
 				row := int(binary.LittleEndian.Uint16(rec[0:2]))
 				col := int(binary.LittleEndian.Uint16(rec[2:4]))
@@ -785,7 +769,6 @@ func parseBIFF8Workbook(data []byte) [][]string {
 		return nil
 	}
 
-	// Find grid boundaries
 	maxRow, maxCol := 0, 0
 	for _, c := range cells {
 		if c.row > maxRow {
@@ -813,7 +796,6 @@ func parseBIFF8Workbook(data []byte) [][]string {
 		}
 	}
 
-	// Filter trailing empty rows
 	var result [][]string
 	for _, row := range grid {
 		hasVal := false
@@ -890,10 +872,8 @@ func parseBIFF8SST(data []byte) []string {
 func decodeRK(rk uint32) float64 {
 	var num float64
 	if (rk & 0x02) != 0 {
-		// Integer
 		num = float64(int32(rk) >> 2)
 	} else {
-		// Float
 		var buf bytes.Buffer
 		_ = binary.Write(&buf, binary.LittleEndian, uint32(0))
 		_ = binary.Write(&buf, binary.LittleEndian, rk&0xFFFFFFFC)
@@ -915,7 +895,6 @@ func renderSpreadsheetTableHTML(rows [][]string) string {
 	out.WriteString(`<div class="novelhub-table-wrapper" style="overflow-x: auto; max-width: 100%; margin: 1em 0;">`)
 	out.WriteString(`<table class="novelhub-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; line-height: 1.5;">`)
 
-	// Limit to maximum 1000 rows for smooth browser rendering
 	renderLimit := len(rows)
 	if renderLimit > 1000 {
 		renderLimit = 1000

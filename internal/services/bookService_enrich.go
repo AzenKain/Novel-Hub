@@ -131,7 +131,6 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*onl
 
 	media := mediaList[0]
 
-	// Determine best title
 	title := media.Title.English
 	if title == "" {
 		title = media.Title.Romaji
@@ -140,13 +139,11 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*onl
 		title = media.Title.Native
 	}
 
-	// Format description: clean HTML tags
 	desc := media.Description
 	reHTML := regexp.MustCompile(`<[^>]*>`)
 	desc = reHTML.ReplaceAllString(desc, "")
 	desc = strings.TrimSpace(desc)
 
-	// Extract authors
 	var authors []string
 	for _, edge := range media.Staff.Edges {
 		role := strings.ToLower(edge.Role)
@@ -161,7 +158,6 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*onl
 		creator = authors[0]
 	}
 
-	// Map countryOfOrigin to language if needed
 	lang := ""
 	switch strings.ToUpper(media.CountryOfOrigin) {
 	case "JP":
@@ -173,13 +169,13 @@ func searchAniList(ctx context.Context, client *http.Client, query string) (*onl
 	}
 
 	return &onlineEnrichResult{
-		Title:         title,
-		Creator:       creator,
-		Language:      lang,
-		Description:   desc,
-		CoverURL:      media.CoverImage.Large,
-		Subjects:      media.Genres,
-		AnilistID:     fmt.Sprintf("%d", media.ID),
+		Title:       title,
+		Creator:     creator,
+		Language:    lang,
+		Description: desc,
+		CoverURL:    media.CoverImage.Large,
+		Subjects:    media.Genres,
+		AnilistID:   fmt.Sprintf("%d", media.ID),
 	}, nil
 }
 
@@ -301,7 +297,6 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 		return err
 	}
 
-	// If book already has external IDs, skip it
 	if (book.GoogleBooksID != nil && *book.GoogleBooksID != "") ||
 		(book.AnilistID != nil && *book.AnilistID != "") ||
 		(book.OpenLibraryID != nil && *book.OpenLibraryID != "") {
@@ -313,19 +308,16 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 
 	var result *onlineEnrichResult
 
-	// Try AniList (GraphQL)
 	if res, err := searchAniList(ctx, client, query); err == nil && res != nil {
 		result = res
 	}
 
-	// Try OpenLibrary
 	if result == nil {
 		if res, err := searchOpenLibrary(ctx, client, query); err == nil && res != nil {
 			result = res
 		}
 	}
 
-	// Try Google Books (using original title)
 	if result == nil {
 		if res, err := searchGoogleBooks(ctx, client, book.Title); err == nil && res != nil {
 			result = res
@@ -336,7 +328,6 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 		return fmt.Errorf("no metadata found for book: %s", book.Title)
 	}
 
-	// Fill in missing details
 	if (book.Description == nil || *book.Description == "") && result.Description != "" {
 		book.Description = &result.Description
 	}
@@ -358,7 +349,6 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 	defer func() { _ = tx.Rollback() }()
 	txRepo := s.bookRepo.WithTx(tx)
 
-	// Enrich Author if missing
 	if book.AuthorID == nil || *book.AuthorID == "" {
 		authorName := result.Creator
 		if authorName != "" {
@@ -369,7 +359,6 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 		}
 	}
 
-	// Enrich Tags (Subjects)
 	for _, tagName := range result.Subjects {
 		tagName = strings.TrimSpace(tagName)
 		if tagName == "" {
@@ -397,7 +386,6 @@ func (s *bookService) AutoEnrichBook(ctx context.Context, bookID string) error {
 
 	txRepo.FlushCache(ctx)
 
-	// Enrich cover if missing
 	if (book.CoverURL == nil || *book.CoverURL == "") && result.CoverURL != "" {
 		dto := request.UpdateCoverDto{
 			CoverURL: result.CoverURL,
@@ -483,7 +471,7 @@ type aniListResponse struct {
 					English string `json:"english"`
 					Native  string `json:"native"`
 				} `json:"title"`
-				Description string   `json:"description"`
+				Description string `json:"description"`
 				CoverImage  struct {
 					Large string `json:"large"`
 				} `json:"coverImage"`

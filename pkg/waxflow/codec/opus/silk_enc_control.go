@@ -1,10 +1,5 @@
 package opus
 
-// SILK encoder control, ported from libopus silk/control_codec.c,
-// control_SNR.c, control_audio_bandwidth.c, and init_encoder.c.
-
-// silkEncControl mirrors silk_EncControlStruct (silk/control.h), with the
-// DRED/OSCE fields dropped (out of scope like the decoder-side neural paths).
 type silkEncControl struct {
 	nChannelsAPI              int
 	nChannelsInternal         int
@@ -25,7 +20,6 @@ type silkEncControl struct {
 	opusCanSwitch             bool
 	reducedDependency         bool
 
-	// Outputs.
 	internalSampleRate        int
 	allowBandwidthSwitch      bool
 	inWBmodeWithoutVariableLP bool
@@ -35,7 +29,6 @@ type silkEncControl struct {
 	offset                    int16
 }
 
-// initEncoderChannel resets one channel state (silk_init_encoder).
 func (ch *silkEncoderChannel) initEncoderChannel() {
 	*ch = silkEncoderChannel{}
 	ch.variableHPSmth1Q15 = silkLSHIFT(silkLin2Log(silkFixConst(variableHPMinCutoffHz, 16))-16<<7, 8)
@@ -44,8 +37,6 @@ func (ch *silkEncoderChannel) initEncoderChannel() {
 	ch.sVAD.init()
 }
 
-// controlEncoder configures the channel per the control struct
-// (silk_control_encoder).
 func (ch *silkEncoderChannel) controlEncoder(encControl *silkEncControl, allowBWSwitch bool, channelNb int, forceFsKHz int) {
 	ch.useDTX = encControl.useDTX
 	ch.useCBR = encControl.useCBR
@@ -78,8 +69,6 @@ func (ch *silkEncoderChannel) controlEncoder(encControl *silkEncControl, allowBW
 	ch.controlledSinceLastPayload = true
 }
 
-// setupResamplers prepares the API-rate to internal-rate resampler,
-// re-buffering the analysis history at the new rate (silk_setup_resamplers).
 func (ch *silkEncoderChannel) setupResamplers(fsKHz int) {
 	if ch.fsKHz != fsKHz || ch.prevAPIFsHz != ch.apiFsHz {
 		if ch.fsKHz == 0 {
@@ -109,8 +98,6 @@ func (ch *silkEncoderChannel) setupResamplers(fsKHz int) {
 	ch.prevAPIFsHz = ch.apiFsHz
 }
 
-// setupFS sets the packet size and internal sampling frequency
-// (silk_setup_fs).
 func (ch *silkEncoderChannel) setupFS(fsKHz, packetSizeMS int) {
 	if packetSizeMS != ch.packetSizeMS {
 		if packetSizeMS <= 10 {
@@ -128,7 +115,7 @@ func (ch *silkEncoderChannel) setupFS(fsKHz, packetSizeMS int) {
 				ch.pitchContourICDF = silk_pitch_contour_10_ms_iCDF
 			}
 		} else {
-			ch.nFramesPerPacket = packetSizeMS / 20 // MAX_FRAME_LENGTH_MS
+			ch.nFramesPerPacket = packetSizeMS / 20
 			ch.nbSubfr = silkMaxNBSubfr
 			ch.frameLength = 20 * fsKHz
 			ch.pitchLPCWinLength = findPitchLPCWinMS * fsKHz
@@ -139,7 +126,7 @@ func (ch *silkEncoderChannel) setupFS(fsKHz, packetSizeMS int) {
 			}
 		}
 		ch.packetSizeMS = packetSizeMS
-		ch.targetRateBps = 0 // trigger new SNR computation
+		ch.targetRateBps = 0
 	}
 
 	if ch.fsKHz != fsKHz {
@@ -199,8 +186,6 @@ func (ch *silkEncoderChannel) setupFS(fsKHz, packetSizeMS int) {
 	}
 }
 
-// setupComplexity maps the 0..10 complexity setting onto the analysis knobs
-// (silk_setup_complexity).
 func (ch *silkEncoderChannel) setupComplexity(complexity int) {
 	switch {
 	case complexity < 1:
@@ -282,7 +267,6 @@ func (ch *silkEncoderChannel) setupComplexity(complexity int) {
 	ch.complexity = complexity
 }
 
-// setupLBRR configures low-bitrate-redundancy coding (silk_setup_LBRR).
 func (ch *silkEncoderChannel) setupLBRR(encControl *silkEncControl) {
 	lbrrInPreviousPacket := ch.LBRREnabled
 	ch.LBRREnabled = encControl.lbrrCoded
@@ -299,8 +283,6 @@ func (ch *silkEncoderChannel) setupLBRR(encControl *silkEncControl) {
 	}
 }
 
-// controlSNR maps the target rate to the SNR setting via the measured
-// rate curves (silk_control_SNR).
 func (ch *silkEncoderChannel) controlSNR(targetRateBps int32) {
 	ch.targetRateBps = targetRateBps
 	if ch.nbSubfr == 2 {
@@ -324,10 +306,6 @@ func (ch *silkEncoderChannel) controlSNR(targetRateBps int32) {
 	}
 }
 
-// controlAudioBandwidth runs the internal-sampling-rate state machine
-// (silk_control_audio_bandwidth). The sLP.saved_fs_kHz path is only needed
-// for prefill-style resets, which store the rate in the LP state; we keep a
-// direct field instead.
 func (ch *silkEncoderChannel) controlAudioBandwidth(encControl *silkEncControl) int {
 	origKHz := ch.fsKHz
 	if origKHz == 0 {
@@ -349,7 +327,6 @@ func (ch *silkEncoderChannel) controlAudioBandwidth(encControl *silkEncControl) 
 		}
 		if ch.allowBandwidthSwitch || encControl.opusCanSwitch {
 			if origKHz*1000 > ch.desiredInternalFsHz {
-				// Switch down.
 				if ch.sLP.mode == 0 {
 					ch.sLP.transitionFrameNo = transitionFrames
 					ch.sLP.inLPState = [2]int32{}
@@ -365,10 +342,9 @@ func (ch *silkEncoderChannel) controlAudioBandwidth(encControl *silkEncControl) 
 					encControl.switchReady = true
 					encControl.maxBits -= encControl.maxBits * 5 / (encControl.payloadSizeMS + 5)
 				} else {
-					ch.sLP.mode = -2 // down at double speed
+					ch.sLP.mode = -2
 				}
 			} else if origKHz*1000 < ch.desiredInternalFsHz {
-				// Switch up.
 				if encControl.opusCanSwitch {
 					if origKHz == 8 {
 						fsKHz = 12

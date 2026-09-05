@@ -304,9 +304,7 @@ func TestSettingsServiceRejectsIncompleteSMTP(t *testing.T) {
 	}
 }
 
-// server.url is admin-only on purpose: GET /settings/public has no middleware, so a field on
-// PublicSettings is served to anonymous callers, and this value names the internal host, its
-// port and the proxy topology in front of it.
+// server.url is admin-only on purpose: GET /settings/public has no middleware, so a field on PublicSettings is served to anonymous callers, and this value names the internal host, its port and the proxy topology in front of it.
 func TestSettingsServiceServerURLStaysOutOfPublicPayload(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "settings.db")
 	t.Setenv("SQLITE_DB_PATH", dbPath)
@@ -390,11 +388,9 @@ func TestSettingsServiceRejectsInvalidServerURL(t *testing.T) {
 		})
 	}
 
-	// Empty means "detect it per request", which is the default and must stay writable.
 	if _, err := service.UpdateSettings(ctx, map[string]any{"server.url": ""}); err != nil {
 		t.Fatalf("empty server URL was rejected: %v", err)
 	}
-	// A trailing slash would double up in serverURL + "/api/opds/v1".
 	admin, err := service.UpdateSettings(ctx, map[string]any{"server.url": "https://books.example.com/"})
 	if err != nil {
 		t.Fatal(err)
@@ -404,10 +400,7 @@ func TestSettingsServiceRejectsInvalidServerURL(t *testing.T) {
 	}
 }
 
-// allowedSettingKey and UpdateSettingsDto.UnknownKeys are two hand-maintained lists that must
-// agree. They drifted once: limits.rate_limit_api sat in allowedSettingKey for months while
-// UnknownKeys rejected it at decode time, so the key was unreachable over HTTP and unread by
-// any limiter — dead config that still looked configurable.
+// allowedSettingKey and UpdateSettingsDto.UnknownKeys are two hand-maintained lists that must agree.
 func TestAllowedSettingKeysAreAcceptedByTheRequestDto(t *testing.T) {
 	for _, key := range allowedSettingKeys {
 		t.Run(key, func(t *testing.T) {

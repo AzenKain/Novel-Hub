@@ -35,18 +35,15 @@ import (
 )
 
 // Engine is the library-first entry point to the transcoding pipeline.
-// The CLI and the HTTP server are both thin layers over it.
 type Engine struct {
 	log *slog.Logger
-	idx IndexCache // nil: no index sidecar
+	idx IndexCache
 
-	// plans caches the chain-invariant part of PlanTranscode results, so
-	// per-request planning does not materialize a filter bank.
 	mu    sync.RWMutex
 	plans map[planKey]*planCore
 }
 
-// New returns an Engine. Without WithLogger, logs are discarded.
+// New returns an Engine.
 func New(opts ...Option) *Engine {
 	e := &Engine{log: slog.New(slog.DiscardHandler)}
 	for _, opt := range opts {
@@ -55,16 +52,12 @@ func New(opts ...Option) *Engine {
 	return e
 }
 
-// Probe identifies src and returns its parsed headers. The hint is an
-// optional file extension used only when no magic bytes match.
+// Probe identifies src and returns its parsed headers.
 func (e *Engine) Probe(src container.Source, hint string, opts *ProbeOptions) (*format.Info, error) {
 	return format.Probe(src, hint, &format.Options{Strict: opts != nil && opts.Strict})
 }
 
-// OpenStream opens src for decoded, sample-exact PCM access. With an
-// IndexCache configured, a saved source index (the MP3 frame table) is
-// restored into the demuxer before the first read, and a grown one is
-// saved back when the media closes.
+// OpenStream opens src for decoded, sample-exact PCM access.
 func (e *Engine) OpenStream(src container.Source, hint string) (format.Media, error) {
 	med, err := format.Open(src, hint, nil)
 	if err != nil || e.idx == nil {
@@ -76,8 +69,6 @@ func (e *Engine) OpenStream(src container.Source, hint string) (format.Media, er
 	}
 	if blob := e.idx.Load(src); blob != nil {
 		if !ix.RestoreIndex(blob) {
-			// The demuxer found the blob inconsistent with the source;
-			// drop it so it is not served (and kept warm) again.
 			e.idx.Drop(src)
 			e.log.Debug("index sidecar rejected and dropped", "hint", hint)
 		}
@@ -85,11 +76,6 @@ func (e *Engine) OpenStream(src container.Source, hint string) (format.Media, er
 	return &indexSavingMedia{Media: med, ix: ix, cache: e.idx, src: src}, nil
 }
 
-// indexSavingMedia saves a grown source index when the media closes.
-// Close is idempotent like the media it wraps (ix nils after the first
-// call, so a double Close cannot double-save), and the wrapper stays
-// transparent to container.Indexer asserts: embedding the Media
-// interface does not promote methods outside it.
 type indexSavingMedia struct {
 	format.Media
 	ix    container.Indexer
@@ -120,28 +106,12 @@ func (m *indexSavingMedia) RestoreIndex(blob []byte) bool {
 
 // TranscodeResult reports what Transcode produced.
 type TranscodeResult struct {
-	// Samples is the number of frames written.
-	Samples int64
-	// Format is the PCM format of the output track.
-	Format audio.Format
-	// Container is the output container name.
+	Samples   int64
+	Format    audio.Format
 	Container string
 }
 
-// Transcode decodes src and writes it to dst in the requested output
-// format: decode -> DSP -> encode -> mux, checking ctx between chunks.
-// The DSP chain (convert, resample, mix, gain, dither, in that fixed
-// order) is assembled only from the options that differ from the source, so
-// zero options add no stage at all and the decoder's samples reach the
-// encoder unaltered. Against a lossless source and a lossless output that
-// makes the transcode a bit-exact container rewrite. A lossy source is still
-// decoded and re-encoded, which is a new generation rather than a rewrite of
-// its packets; moving packets through untouched is a separate rung this
-// engine does not yet have. A positive FromSample seeks sample-exact before
-// the first chunk (the HTTP t= parameter, converted at the boundary).
-// Output formats whose muxer needs to back-patch headers (AIFF, exact
-// WAV sizes) want dst to be an io.WriteSeeker; WAV falls back to a
-// compliant streaming form on a plain writer.
+// Transcode decodes src and writes it to dst in the requested output format: decode -> DSP -> encode -> mux, checking ctx between chunks.
 func (e *Engine) Transcode(ctx context.Context, src container.Source, hint string, dst io.Writer, opts TranscodeOptions) (*TranscodeResult, error) {
 	med, err := e.OpenStream(src, hint)
 	if err != nil {
@@ -151,12 +121,7 @@ func (e *Engine) Transcode(ctx context.Context, src container.Source, hint strin
 	return e.TranscodeMedia(ctx, med, dst, opts)
 }
 
-// TranscodeMedia transcodes an already-opened Media to dst, the same
-// decode -> DSP -> encode -> mux pipeline as Transcode without the source-open
-// step. It is the entry point for inputs that are not a single sniffable Source:
-// the HLS client assembles a presentation from many fetched resources and
-// exposes it as a format.Media, which flows through here exactly like a local
-// file. The caller owns med and closes it.
+// TranscodeMedia transcodes an already-opened Media to dst, the same decode -> DSP -> encode -> mux pipeline as Transcode without the source-open step.
 func (e *Engine) TranscodeMedia(ctx context.Context, med format.Media, dst io.Writer, opts TranscodeOptions) (*TranscodeResult, error) {
 	srcTrack := med.Info().Default()
 	srcSamples := srcTrack.Samples
@@ -176,10 +141,6 @@ func (e *Engine) TranscodeMedia(ctx context.Context, med format.Media, dst io.Wr
 	if err != nil {
 		return nil, err
 	}
-	// Mirror of the plan-side check, through the plan's own funnel: a container
-	// override the format cannot honor must fail here too, so a caller skipping
-	// the plan cannot have it silently ignored (a mux closure that just fell
-	// through on an unknown name would otherwise write the default form).
 	containerName, _, err := resolveContainer(row, opts.Container)
 	if err != nil {
 		return nil, err
@@ -208,16 +169,9 @@ func (e *Engine) TranscodeMedia(ctx context.Context, med format.Media, dst io.Wr
 		Samples:     chain.OutputSamples(srcSamples),
 		Default:     true,
 	}
-	// Encoders with priming declare it; muxers that can signal it (the
-	// fMP4 edit list) read it from the track, and the trailer restates
-	// it exactly at End.
 	if d, ok := enc.(interface{ Delay() int }); ok {
 		track.Delay = int64(d.Delay())
 	}
-	// The muxer is built from the finished track, which is why this follows
-	// the encoder rather than arriving beside it: a muxer reads the stream's
-	// shape off the track, and the remux rung has a track with no encoder
-	// behind it. See output.mux.
 	mux, err := row.mux(track, opts, enc, dst)
 	if err != nil {
 		return nil, err
@@ -270,15 +224,6 @@ func (e *Engine) TranscodeMedia(ctx context.Context, med format.Media, dst io.Wr
 	return &TranscodeResult{Samples: trailer.Samples, Format: f, Container: containerName}, nil
 }
 
-// resolveContainer resolves a Container override against a row: the name the
-// output carries and its HTTP media type, or the row's own defaults for the
-// empty override.
-//
-// A row with no alternate form rejects any override up front, per the
-// unknown-parameter principle: a request naming a container the format cannot
-// honor must fail, never fall back silently to the default form. Every rung
-// resolves through here, so a plan and the run it plans cannot disagree about
-// which wrapper was asked for.
 func resolveContainer(row *output, name string) (containerName, mediaType string, err error) {
 	if name == "" {
 		return row.name, row.mediaType, nil
@@ -294,10 +239,6 @@ func resolveContainer(row *output, name string) (containerName, mediaType string
 	return name, mt, nil
 }
 
-// checkSeekable enforces the one capability bit Muxer exposes: a
-// back-patching muxer needs a seekable destination (a file). It is checked
-// before any work starts on a doomed output, in one place so no muxer, and
-// no rung of the ladder, re-invents the guard.
 func checkSeekable(mux container.Muxer, dst io.Writer, format string) error {
 	if !mux.NeedsSeek() {
 		return nil
@@ -309,8 +250,6 @@ func checkSeekable(mux container.Muxer, dst io.Writer, format string) error {
 	return nil
 }
 
-// specFor maps TranscodeOptions onto the DSP chain spec, in one place so
-// Transcode and PlanTranscode cannot drift.
 func specFor(opts TranscodeOptions) dsp.ChainSpec {
 	return dsp.ChainSpec{
 		Rate:     opts.Rate,
@@ -320,58 +259,23 @@ func specFor(opts TranscodeOptions) dsp.ChainSpec {
 		Dynamics: opts.Dynamics,
 		Shaping:  opts.Shaping,
 		Profile:  opts.ResampleProfile,
-		// FrameSize stays 0 here; frame-native encoders set it through
-		// their output row's adjust hook (the PCM rows accept any chunk
-		// length).
 	}
 }
 
-// TranscodePlan describes what a transcode would produce, computed from
-// headers alone: no decoding, no output. The HTTP layer plans before it
-// runs, because the ADR-0004 cache key (node versions) and the response
-// headers (duration, size estimate) must exist before any pipeline does.
+// TranscodePlan describes what a transcode would produce, computed from headers alone: no decoding, no output.
 type TranscodePlan struct {
-	// Format is the output PCM format.
-	Format audio.Format
-	// Container is the output container name.
-	Container string
-	// MediaType is the output's HTTP media type.
-	MediaType string
-	// Live reports whether the container has a streaming form (a muxer
-	// that does not need a seekable destination).
-	Live bool
-	// Versions are the version constants of every sample-affecting node,
-	// source decoder, then DSP chain, then encoder, for the cache key:
-	// a decoder revision must invalidate cached transcodes of
-	// that codec's sources just as an encoder revision invalidates its
-	// outputs.
-	Versions []string
-	// Samples is the projected output length from FromSample to the end,
-	// -1 when the source length is unknown.
-	Samples int64
-	// BytesPerFrame is the output wire size of one frame across channels.
-	BytesPerFrame int
-	// FrameSize is the encoder-native frame length in output samples (the
-	// chain framer's chunk), 0 for formats that accept any chunk length.
-	// Segmented (HLS) outputs snap their boundaries to it.
-	FrameSize int
-	// BitRate is the projected output bit rate in bits per second, 0 when
-	// unknown. PCM outputs derive it from the wire format; lossy encoders
-	// will report their target rate here.
-	BitRate int
-	// EstimatedBytes is the projected total output size including the
-	// nominal container header, -1 when the source length is unknown. A
-	// hint for players, not a promise.
+	Format         audio.Format
+	Container      string
+	MediaType      string
+	Live           bool
+	Versions       []string
+	Samples        int64
+	BytesPerFrame  int
+	FrameSize      int
+	BitRate        int
 	EstimatedBytes int64
 }
 
-// decodeVersion is the read-side member of the plan's version tuple: the
-// source codec's decoder revision (each codec package's Version constant).
-// It rides in TranscodePlan.Versions so a decoder change invalidates
-// cached transcodes OF that codec's sources, closing the loop ADR-0004
-// requires of every sample-affecting node; the encoder version alone only
-// covers outputs. The plan core stays codec-independent (it is keyed and
-// cached on the decoded PCM format), so this composes per call.
 func decodeVersion(id codec.ID) string {
 	switch id {
 	case codec.PCM:
@@ -389,32 +293,19 @@ func decodeVersion(id codec.ID) string {
 	case codec.Vorbis:
 		return vorbis.Version
 	default:
-		// Unregistered codecs cannot decode, so no cached bytes exist to
-		// go stale; keep their plans keyed distinctly all the same.
 		return "dec:" + string(id)
 	}
 }
 
-// eofReader satisfies dsp.Reader for plan-only chains, which are built
-// for their Format and Versions and never pulled.
 type eofReader struct{}
 
 func (eofReader) ReadChunk(*audio.Buffer) error { return io.EOF }
 
-// planKey addresses the chain-invariant part of a plan: everything except
-// the seek position and the per-call payloads (tags, chapters, art, the
-// progress callback), none of which shape the chain.
 type planKey struct {
 	fmt  audio.Format
 	opts planOpts
 }
 
-// planOpts is the comparable projection of TranscodeOptions the plan
-// cache keys on. Every TranscodeOptions field that shapes the chain or
-// the plan MUST appear here with the same name and type;
-// TestPlanOptsCoverage pins the two field lists together, because a new
-// option missing from this key would let two different requests share a
-// stale plan (wrong Format, wrong Versions, wrong cache entries).
 type planOpts struct {
 	Format          string
 	Container       string
@@ -437,7 +328,6 @@ type planOpts struct {
 	ResampleProfile resample.Profile
 }
 
-// planOptsOf projects the plan-shaping option fields.
 func planOptsOf(opts TranscodeOptions) planOpts {
 	return planOpts{
 		Format:          opts.Format,
@@ -462,10 +352,6 @@ func planOptsOf(opts TranscodeOptions) planOpts {
 	}
 }
 
-// planCore is the cached invariant part of a plan. Building it constructs
-// (and releases) a real DSP chain, so Format and Versions can never drift
-// from what Transcode assembles; the cache just keeps that construction
-// off the per-request path.
 type planCore struct {
 	format        audio.Format
 	container     string
@@ -474,22 +360,14 @@ type planCore struct {
 	versions      []string
 	l, m          int
 	bytesPerFrame int
-	// bitRate is a fixed output bit rate in bits per second, for compressed
-	// CBR encoders whose per-sample byte cost is fractional. 0 means derive
-	// it from bytesPerFrame (uncompressed PCM) or leave it unknown (VBR).
-	bitRate     int
-	headerBytes int
-	frameSize   int
+	bitRate       int
+	headerBytes   int
+	frameSize     int
 }
 
-// maxPlanCache bounds the plan cache; the key space is as unbounded as
-// the rate parameter, so an adversarial parameter sweep must not grow
-// memory. Past the cap, plans build per-request (correct, just slower).
 const maxPlanCache = 1024
 
-// PlanTranscode plans a transcode of the given source track without
-// opening a pipeline. The same validation as Transcode applies, so a plan
-// that succeeds will not fail chain assembly later.
+// PlanTranscode plans a transcode of the given source track without opening a pipeline.
 func (e *Engine) PlanTranscode(track container.Track, opts TranscodeOptions) (*TranscodePlan, error) {
 	if opts.FromSample < 0 {
 		return nil, waxerr.New(waxerr.CodeInvalidRequest, "waxflow: negative FromSample")
@@ -500,8 +378,6 @@ func (e *Engine) PlanTranscode(track container.Track, opts TranscodeOptions) (*T
 	core, ok := e.plans[key]
 	e.mu.RUnlock()
 	if !ok {
-		// The core builds from the normalized options: no seek position,
-		// no per-call payloads, exactly what the key says.
 		norm := opts
 		norm.FromSample = 0
 		norm.Tags, norm.Chapters, norm.Art, norm.Progress = nil, nil, nil, nil
@@ -527,9 +403,6 @@ func (e *Engine) PlanTranscode(track container.Track, opts TranscodeOptions) (*T
 	if samples >= 0 {
 		samples = (samples*int64(core.l) + int64(core.m) - 1) / int64(core.m)
 	}
-	// A fixed CBR bit rate (compressed) overrides the per-sample derivation;
-	// PCM leaves bitRate 0 and derives it from bytesPerFrame. VBR encoders
-	// report both 0, leaving size and rate hints honestly unknown.
 	bitRate := core.bitRate
 	if bitRate == 0 {
 		bitRate = core.bytesPerFrame * core.format.Rate * 8
@@ -539,7 +412,6 @@ func (e *Engine) PlanTranscode(track container.Track, opts TranscodeOptions) (*T
 	case samples >= 0 && core.bytesPerFrame > 0:
 		estimated = int64(core.headerBytes) + samples*int64(core.bytesPerFrame)
 	case samples >= 0 && bitRate > 0 && core.format.Rate > 0:
-		// CBR compressed: bytes = bit rate * duration / 8.
 		estimated = int64(core.headerBytes) + samples*int64(bitRate)/(int64(core.format.Rate)*8)
 	}
 	return &TranscodePlan{
@@ -556,8 +428,6 @@ func (e *Engine) PlanTranscode(track container.Track, opts TranscodeOptions) (*T
 	}, nil
 }
 
-// buildPlanCore assembles and releases a throwaway chain to capture the
-// plan invariants.
 func buildPlanCore(in audio.Format, opts TranscodeOptions) (*planCore, error) {
 	row, err := outputRow(opts.Format)
 	if err != nil {
@@ -575,15 +445,6 @@ func buildPlanCore(in audio.Format, opts TranscodeOptions) (*planCore, error) {
 	f := chain.Format()
 	version, bytesPerFrame, bitRate, err := row.plan(f, opts)
 	if err != nil {
-		// Encoder channel refusals surface here in the encoder's own words,
-		// which name no remedy to a caller who never asked for a channel
-		// count. Phrased in option vocabulary, not any boundary's spelling:
-		// this is the public engine. %w keeps the encoder's code.
-		//
-		// planAcceptsStereo is load-bearing, not belt and braces: rows that
-		// hold multichannel natively validate their own options first, so a
-		// bad --flac-level on a 5.1 source lands here with nothing to do
-		// with channels.
 		if opts.Channels == 0 && in.Channels > 2 && planAcceptsStereo(row, f, opts) {
 			return nil, fmt.Errorf("%w; set the output channel count to 2", err)
 		}
@@ -609,9 +470,6 @@ func buildPlanCore(in audio.Format, opts TranscodeOptions) (*planCore, error) {
 	}, nil
 }
 
-// planAcceptsStereo reports whether row.plan would have succeeded at stereo:
-// "would asking for a channel count have helped?", put to the encoder rather
-// than guessed from the error text. Failure path only.
 func planAcceptsStereo(row *output, f audio.Format, opts TranscodeOptions) bool {
 	f.Channels = 2
 	f.Layout = audio.DefaultLayout(2)
@@ -619,98 +477,27 @@ func planAcceptsStereo(row *output, f audio.Format, opts TranscodeOptions) bool 
 	return err == nil
 }
 
-// output is one row of the writer-side capability table, the analog of
-// format's read-side driver table: the single source of truth for what
-// the engine can produce. Rows appear here as encoders and muxers land;
-// the CLI's extension inference and the /caps endpoint both read this
-// table instead of maintaining their own lists.
 type output struct {
-	name string
-	// exts are the extensions that resolve TO this format (the read
-	// direction, OutputFormatForExt). A row claims one only where it is what
-	// that extension should mean, so at most one row claims any extension.
-	exts []string
-	// writeExt is the extension a file of this format is written with (the
-	// write direction, OutputExt) when it is not the first claimed one. The
-	// two directions are not inverses, and alac is why: it writes an entirely
-	// ordinary .m4a, it just is not what .m4a resolves back to, since aac
-	// claimed that. Adding m4a to its exts to say so would make the read
-	// direction answer two formats for one extension, so the row carries the
-	// name it writes separately from the names it answers to.
-	writeExt string
-	// live: the muxer writes a compliant stream to a plain io.Writer
-	// (NeedsSeek false), so /stream can serve it.
-	live bool
-	// lossy reports the encoder discards audio for a target bit rate, so it
-	// accepts the bitrate/q quality parameters. This is the single source of
-	// truth for lossiness (a hardcoded name in the server would drift).
-	lossy bool
-	// mediaType is the HTTP media type transcode responses carry.
-	mediaType string
-	// headerBytes is the nominal container overhead, for size estimates.
+	name        string
+	exts        []string
+	writeExt    string
+	live        bool
+	lossy       bool
+	mediaType   string
 	headerBytes int
-	// codecID is what the encoder produces, for the muxed Track.
-	codecID codec.ID
-	// adjust folds the encoder's input constraints into the chain spec:
-	// its native frame size, and a depth default when the encoder cannot
-	// take the float domain the chain would otherwise emit. Plan and
-	// Transcode both apply it, so they cannot disagree about the output
-	// format. Nil when the encoder takes anything.
-	adjust func(spec *dsp.ChainSpec, src audio.Format, opts TranscodeOptions)
-	// plan validates the encoder configuration against the chain output
-	// format and reports the encoder's cache-key version (ADR-0004), the
-	// wire bytes per frame (0 when per-sample size is signal-dependent), and
-	// a fixed bit rate in bits per second (0 unless the encoder is CBR with a
-	// fractional per-sample byte cost). A plan that succeeds must guarantee
-	// build succeeds.
-	plan func(f audio.Format, opts TranscodeOptions) (version string, bytesPerFrame, bitRate int, err error)
-	// encode constructs the row's encoder for one transcode.
-	encode func(f audio.Format, opts TranscodeOptions) (codec.Encoder, error)
-	// mux constructs the row's container writer, resolving the Container
-	// override to the wrapper it names.
-	//
-	// It is separate from encode because remux has no encoder: the middle rung
-	// moves the source's own packets, so the muxer must be reachable without
-	// one. Splitting it is what makes the muxer a remux writes through the same
-	// muxer a transcode writes through, rather than two constructions that
-	// agree only until someone edits one of them.
-	//
-	// t is the output track, which is where a muxer reads what it needs to know
-	// about the stream (the mpa Xing header's encoder delay). enc is the
-	// encoder that produced the track, or nil for a remux, and it exists for
-	// the one fact no track can carry: FLAC's MD5 over the *unencoded* audio,
-	// which is knowable only by having encoded it. Leaving it nil on a remux is
-	// not a degradation but the correct answer, since the source's own
-	// STREAMINFO signature still describes the audio the packets hold; handing
-	// a remux a fresh encoder's MD5 would back-patch the signature of nothing
-	// over a correct one.
-	mux func(t container.Track, opts TranscodeOptions, enc codec.Encoder, dst io.Writer) (container.Muxer, error)
-	// container resolves a TranscodeOptions.Container override to its
-	// HTTP media type; nil means the format has no alternate container
-	// and any override is rejected up front (the unknown-parameter
-	// principle: a request naming a container the format cannot honor
-	// must fail, never fall back silently).
-	container func(name string) (mediaType string, err error)
-	// hls describes the format's segmented CMAF form; nil means the format
-	// has none and cannot serve HLS.
-	hls *hlsOutput
+	codecID     codec.ID
+	adjust      func(spec *dsp.ChainSpec, src audio.Format, opts TranscodeOptions)
+	plan        func(f audio.Format, opts TranscodeOptions) (version string, bytesPerFrame, bitRate int, err error)
+	encode      func(f audio.Format, opts TranscodeOptions) (codec.Encoder, error)
+	mux         func(t container.Track, opts TranscodeOptions, enc codec.Encoder, dst io.Writer) (container.Muxer, error)
+	container   func(name string) (mediaType string, err error)
+	hls         *hlsOutput
 }
 
-// hlsOutput is the writer-side table's segmented-delivery column: what an
-// output format needs beyond its progressive muxer to become numbered
-// fMP4 segments.
 type hlsOutput struct {
 	// codecs is the RFC 6381 CODECS attribute value for master playlists.
 	codecs string
-	// delay is the encoder delay in output samples. It rides in the init
-	// segment's edit list and shifts the decode timeline: packet j holds
-	// input samples [j*F-delay, (j+1)*F-delay).
-	delay int64
-	// encode builds the encoder for one segmented run. startSample is the
-	// decode-timeline position of the first PCM sample the run feeds
-	// (zero for a whole stream): FLAC numbers its frame headers by
-	// absolute position, so a worker restarted mid-stream must say where
-	// it stands; the other codecs ignore it.
+	delay  int64
 	encode func(f audio.Format, opts TranscodeOptions, startSample int64) (codec.Encoder, error)
 }
 
@@ -745,8 +532,6 @@ var outputs = []output{
 			}
 			return riff.NewMuxer(dst, nil), nil
 		},
-		// PCM rides in Matroska (A_PCM/INT/LIT or A_PCM/FLOAT/IEEE) but not
-		// WebM, whose audio subset is Opus and Vorbis only.
 		container: func(name string) (string, error) {
 			if mt, ok := matroskaContainer(name, false); ok {
 				return mt, nil
@@ -756,22 +541,18 @@ var outputs = []output{
 		},
 	},
 	{
-		name:      "opus",
-		exts:      []string{"opus"},
-		live:      true,
-		lossy:     true,
-		mediaType: "audio/ogg",
-		// headerBytes approximates the Ogg-Opus overhead the sample-based
-		// estimate omits: the two header pages plus per-page framing. It is a
-		// hint; the live stream is chunked with no Content-Length.
+		name:        "opus",
+		exts:        []string{"opus"},
+		live:        true,
+		lossy:       true,
+		mediaType:   "audio/ogg",
 		headerBytes: 512,
 		codecID:     codec.Opus,
 		adjust: func(spec *dsp.ChainSpec, src audio.Format, _ TranscodeOptions) {
-			// Opus decodes at 48 kHz and encodes float.
 			spec.Rate = opus.SampleRate
 			spec.Float = true
 			spec.BitDepth = 0
-			spec.FrameSize = 960 // 20 ms at 48 kHz, the encoder-native frame
+			spec.FrameSize = 960
 			foldWideToStereo(spec, src)
 		},
 		plan: func(f audio.Format, opts TranscodeOptions) (string, int, int, error) {
@@ -798,7 +579,6 @@ var outputs = []output{
 			}
 			return ogg.NewMuxer(dst, &ogg.MuxerOptions{Tags: opts.Tags}), nil
 		},
-		// Opus rides in Matroska and WebM (its native container besides Ogg).
 		container: func(name string) (string, error) {
 			if mt, ok := matroskaContainer(name, true); ok {
 				return mt, nil
@@ -819,26 +599,14 @@ var outputs = []output{
 		},
 	},
 	{
-		name: "vorbis",
-		// The opus row claims only "opus", and flac's Ogg form is a container
-		// override (its extension stays "flac"), so "ogg"/"oga" are free for the
-		// native Ogg-Vorbis output the extension conventionally implies.
-		exts:      []string{"ogg", "oga"},
-		live:      true,
-		lossy:     true,
-		mediaType: "audio/ogg",
-		// headerBytes approximates the Ogg-Vorbis overhead the sample estimate
-		// omits: the identification/comment/setup header pages plus per-page
-		// framing. The setup header is the bulk; it is a hint, and the live
-		// stream is chunked with no Content-Length.
+		name:        "vorbis",
+		exts:        []string{"ogg", "oga"},
+		live:        true,
+		lossy:       true,
+		mediaType:   "audio/ogg",
 		headerBytes: 4096,
 		codecID:     codec.Vorbis,
 		adjust: func(spec *dsp.ChainSpec, _ audio.Format, _ TranscodeOptions) {
-			// Vorbis encodes float at the source rate and supports multichannel
-			// natively (up to eight channels), so unlike Opus it neither resamples
-			// to a fixed rate nor downmixes: keep the source rate and channel
-			// count. Block sizes vary per packet, so leave FrameSize 0 and let the
-			// encoder do its own overlap buffering.
 			spec.Float = true
 			spec.BitDepth = 0
 		},
@@ -866,8 +634,6 @@ var outputs = []output{
 			}
 			return ogg.NewMuxer(dst, &ogg.MuxerOptions{Tags: opts.Tags}), nil
 		},
-		// Vorbis rides in Matroska and WebM (it is, with Opus, one of webm's two
-		// audio codecs) besides its native Ogg.
 		container: func(name string) (string, error) {
 			if mt, ok := matroskaContainer(name, true); ok {
 				return mt, nil
@@ -875,7 +641,6 @@ var outputs = []output{
 			return "", waxerr.New(waxerr.CodeInvalidRequest,
 				fmt.Sprintf("waxflow: vorbis container %q: want mka or webm", name))
 		},
-		// hls stays nil: Vorbis has no CMAF/HLS segmented form.
 	},
 	{
 		name:        "aiff",
@@ -907,14 +672,8 @@ var outputs = []output{
 		exts:      []string{"flac"},
 		live:      true,
 		mediaType: "audio/flac",
-		// headerBytes stays 0: size estimates are gated on a fixed
-		// bytesPerFrame, which VBR lossless lacks.
-		codecID: codec.FLAC,
+		codecID:   codec.FLAC,
 		adjust: func(spec *dsp.ChainSpec, src audio.Format, opts TranscodeOptions) {
-			// FLAC holds integer PCM only; a float source with no depth
-			// requested quantizes to 24 bits, which carries the whole
-			// float32 mantissa. An invalid level leaves FrameSize 0 and
-			// plan reports the error.
 			if level, err := flacLevel(opts); err == nil {
 				spec.FrameSize = flac.EncoderBlockSize(level)
 			}
@@ -947,17 +706,11 @@ var outputs = []output{
 				return ogg.NewMuxer(dst, &ogg.MuxerOptions{Tags: opts.Tags}), nil
 			}
 			mo := flacn.MuxerOptions{Tags: opts.Tags}
-			// The signature comes from the encoder or not at all, and this is the
-			// row the nil-enc contract exists for: a remux leaves it nil and the
-			// source's own STREAMINFO signature stands, which is right because
-			// the packets carry the same audio it was computed over.
 			if fe, ok := enc.(*flac.Encoder); ok {
 				mo.MD5 = fe.MD5
 			}
 			return flacn.NewMuxer(dst, &mo), nil
 		},
-		// FLAC rides in Matroska (A_FLAC) and Ogg (the Xiph FLAC-in-Ogg
-		// mapping), but not WebM (Opus/Vorbis only).
 		container: func(name string) (string, error) {
 			if name == "ogg" {
 				return "audio/ogg", nil
@@ -975,8 +728,6 @@ var outputs = []output{
 				if err != nil {
 					return nil, err
 				}
-				// Segment boundaries are frame multiples, so a mid-stream
-				// start is a whole frame number.
 				return flac.NewEncoder(f, &flac.EncoderOptions{
 					Level:      level,
 					FirstFrame: startSample / int64(flac.EncoderBlockSize(level)),
@@ -985,22 +736,14 @@ var outputs = []output{
 		},
 	},
 	{
-		name: "mp3",
-		exts: []string{"mp3", "mpga"},
-		live: true,
-		// headerBytes approximates the non-audio overhead the sample-based
-		// estimate omits: the leading Xing/Info frame plus the two flush
-		// frames. The exact size is rate-dependent, so this is a hint (the
-		// stream is chunked with no Content-Length anyway).
+		name:        "mp3",
+		exts:        []string{"mp3", "mpga"},
+		live:        true,
 		headerBytes: 1024,
 		lossy:       true,
 		mediaType:   "audio/mpeg",
 		codecID:     codec.MP3,
 		adjust: func(spec *dsp.ChainSpec, src audio.Format, _ TranscodeOptions) {
-			// MP3 encodes float32 in native frames: two granules (MPEG-1) or
-			// one (MPEG-2/2.5), which the framer resolves from the rate. The
-			// lossy path always runs in the float domain, so any integer
-			// depth request is dropped.
 			spec.FrameSize = 1152
 			spec.BitDepth = 0
 			spec.Float = true
@@ -1015,9 +758,6 @@ var outputs = []output{
 			if err != nil {
 				return "", 0, 0, err
 			}
-			// The encoder clamps to a layer-legal rate; report the actual
-			// one. A VBR encoder reports 0, leaving rate and size hints
-			// honestly unknown (the PlanTranscode VBR contract).
 			return mp3.EncoderVersion, 0, enc.Bitrate(), nil
 		},
 		encode: func(f audio.Format, opts TranscodeOptions) (codec.Encoder, error) {
@@ -1027,39 +767,19 @@ var outputs = []output{
 			}
 			return mp3.NewEncoder(f, eo)
 		},
-		// The Xing header's delay reads off the track rather than the encoder,
-		// which is the same number by construction (Transcode stamps track.Delay
-		// from the encoder) and is also the one a remux has: the source's own
-		// LAME-tag delay, carried across.
 		mux: func(t container.Track, opts TranscodeOptions, _ codec.Encoder, dst io.Writer) (container.Muxer, error) {
 			return mpa.NewMuxer(dst, &mpa.MuxerOptions{Delay: int(t.Delay), VBR: opts.MP3VBR, Tags: opts.Tags}), nil
 		},
 	},
 	{
-		name: "aac",
-		// m4a moved here from the alac row when the AAC encoder landed
-		// (the anticipated disambiguation): the extension overwhelmingly
-		// means AAC in the wild. The bare .aac extension implies the
-		// ADTS container at the CLI boundary.
-		//
-		// m4b is the audiobook spelling of the same file and already reads
-		// (format/registry.go); it answers here so `transcode in.flac
-		// out.m4b` infers a format rather than demanding --format. It stays
-		// after m4a, which is what an m4a-or-m4b output is written as
-		// (OutputExt takes the first).
-		exts:      []string{"m4a", "aac", "m4b"},
-		live:      true,
-		lossy:     true,
-		mediaType: "audio/mp4",
-		// headerBytes approximates the fMP4 init header (ftyp+moov).
+		name:        "aac",
+		exts:        []string{"m4a", "aac", "m4b"},
+		live:        true,
+		lossy:       true,
+		mediaType:   "audio/mp4",
 		headerBytes: 700,
 		codecID:     codec.AACLC,
 		adjust: func(spec *dsp.ChainSpec, src audio.Format, _ TranscodeOptions) {
-			// AAC-LC encodes float32 in 1024-sample frames. The lossy path
-			// always runs in the float domain, so any integer depth request
-			// is dropped. The rate is not snapped: the encoder accepts the
-			// thirteen AAC rates and rejects anything else at plan time,
-			// like the mp3 row (an explicit rate= converts first).
 			spec.FrameSize = 1024
 			spec.BitDepth = 0
 			spec.Float = true
@@ -1073,8 +793,6 @@ var outputs = []output{
 			if err != nil {
 				return "", 0, 0, err
 			}
-			// The encoder clamps to its legal range; report the actual
-			// target (an ABR mean, held by the bit reservoir).
 			return aac.EncoderVersion, 0, enc.Bitrate(), nil
 		},
 		encode: func(f audio.Format, opts TranscodeOptions) (codec.Encoder, error) {
@@ -1083,9 +801,6 @@ var outputs = []output{
 			}
 			return aac.NewEncoder(f, &aac.EncoderOptions{Bitrate: opts.AACBitrate})
 		},
-		// The container name is not re-validated here: every caller resolves it
-		// through resolveContainer (which is this row's own aacContainerMediaType)
-		// before reaching mux, and the encode closure checks it besides.
 		mux: func(_ container.Track, opts TranscodeOptions, _ codec.Encoder, dst io.Writer) (container.Muxer, error) {
 			if isMatroska(opts.Container) {
 				return mkaMuxer(dst, opts), nil
@@ -1108,28 +823,17 @@ var outputs = []output{
 		},
 	},
 	{
-		name: "alac",
-		// exts is empty since the aac row claimed m4a: ALAC output is
-		// reachable by naming the format explicitly. It still writes an m4a,
-		// which is what writeExt says; see the field.
+		name:      "alac",
 		exts:      []string{},
 		writeExt:  "m4a",
 		live:      true,
 		mediaType: "audio/mp4",
-		// headerBytes stays 0: size estimates are gated on a fixed
-		// bytesPerFrame, which VBR lossless lacks.
-		codecID: codec.ALAC,
+		codecID:   codec.ALAC,
 		adjust: func(spec *dsp.ChainSpec, src audio.Format, opts TranscodeOptions) {
 			spec.FrameSize = alac.FrameSize
 			if opts.BitDepth != 0 {
-				return // explicit depth; plan validates it against ALAC's set
+				return
 			}
-			// ALAC holds integer PCM at 16/20/24/32 bits. A float source with
-			// no depth requested quantizes to 24 bits (the whole float32
-			// mantissa); an integer source at another depth snaps up to the
-			// nearest ALAC depth (8-bit becomes 16, losslessly widened).
-			// alacSnapDepth is the identity on the ALAC depths, so a source
-			// already at one needs no override.
 			if src.Type == audio.Float {
 				spec.BitDepth = 24
 			} else if d := alacSnapDepth(src.BitDepth); d != src.BitDepth {
@@ -1151,8 +855,6 @@ var outputs = []output{
 			}
 			return mp4.NewMuxer(dst, mp4MuxerOptions(opts)), nil
 		},
-		// ALAC rides only in MP4, so its overrides are the two box shapes:
-		// progressive (flat) and fragmented (CMAF, the row's default).
 		container: func(name string) (string, error) {
 			if name == ContainerProgressive || name == ContainerFragmented {
 				return mp4MediaType, nil
@@ -1169,17 +871,6 @@ var outputs = []output{
 	},
 }
 
-// logImplicitDownmix says out loud that the chain folded channels the caller
-// never asked to lose, at Warn rather than Debug: the default level is info,
-// and a scripted conversion that quietly halves a 5.1 master should not need a
-// flag to find out.
-//
-// Here rather than in buildPlanCore, which is package-level with no logger
-// and, worse, memoized: PlanTranscode caches cores per (format, options), so a
-// warning there would fire on the first of 500 identically shaped files and
-// stay silent for the other 499. Every run-side entry point calls this, which
-// is why it is a method and not four copies: the segmented path folds through
-// the same adjust hook and used to say nothing at all.
 func (e *Engine) logImplicitDownmix(opts TranscodeOptions, src, out audio.Format) {
 	if opts.Channels == 0 && out.Channels < src.Channels {
 		e.log.Warn("downmixed to fit the output format",
@@ -1187,34 +878,12 @@ func (e *Engine) logImplicitDownmix(opts TranscodeOptions, src, out audio.Format
 	}
 }
 
-// foldWideToStereo is the lossy rows' channel policy, in one place because
-// it is a policy and not an encoder detail: a source wider than the encoder
-// can hold folds to stereo when the caller asked for no particular width.
-//
-// The split it draws is lossy against lossless, not one encoder against
-// another. opus, mp3 and aac are all 1-2 channel encoders, and a listener
-// asking for a lossy delivery of a 5.1 film has already accepted that audio
-// is being discarded; refusing the request outright serves nobody, and it
-// used to be that only opus folded while mp3 and aac 415'd the same request.
-// alac is the counterexample and stays a refusal: a lossless output that
-// silently drops four channels is a lie about what it holds. flac and vorbis
-// hold multichannel natively and never reach here.
-//
-// An explicit channel request is never overridden: 1 and 2 are honored, and
-// anything else fails loudly in the chain or the encoder rather than being
-// silently rewritten. The fold itself is dsp/mix's BS.775 matrix with the
-// chain's true-peak limiter behind it, unchanged; this decides only when it
-// engages. Engine.TranscodeMedia logs the folds nobody asked for.
 func foldWideToStereo(spec *dsp.ChainSpec, src audio.Format) {
 	if spec.Channels == 0 && src.Channels > 2 {
 		spec.Channels = 2
 	}
 }
 
-// aacContainerMediaType resolves the aac row's container override:
-// empty selects fragmented MP4 (the row's default, with gapless edit-list
-// signaling), "adts" the raw elementary stream (no gapless signaling at
-// all, which is why it is the opt-out and not the default).
 func aacContainerMediaType(name string) (string, error) {
 	switch name {
 	case "":
@@ -1222,12 +891,8 @@ func aacContainerMediaType(name string) (string, error) {
 	case "adts":
 		return "audio/aac", nil
 	case ContainerProgressive, ContainerFragmented:
-		// The two MP4 box shapes: flat (moov+mdat) and fragmented (CMAF).
-		// Same media type, same codec, different layout; only progressive
-		// back-patches, so only it is not a streaming form.
 		return mp4MediaType, nil
 	}
-	// AAC also rides in Matroska (A_AAC), though not WebM (Opus/Vorbis only).
 	if mt, ok := matroskaContainer(name, false); ok {
 		return mt, nil
 	}
@@ -1235,47 +900,14 @@ func aacContainerMediaType(name string) (string, error) {
 		fmt.Sprintf("waxflow: aac container %q: want adts, progressive, fragmented, or mka", name))
 }
 
-// ContainerProgressive and ContainerFragmented are the TranscodeOptions.
-// Container overrides naming the two MP4 box shapes. Progressive is the flat
-// moov+mdat form, "the .m4a most players expect"; it back-patches its header,
-// so it needs a seekable destination and is not live. Fragmented is the CMAF
-// form /stream and HLS deliver, and it is the aac and alac rows' default (the
-// empty override).
-//
-// Fragmented is spellable even though it is the default because the empty
-// override no longer reaches it everywhere: a file output takes the flat form
-// (FileOutputContainer), which would otherwise leave the delivery form with no
-// name a caller could ask for.
-//
-// Exported because four packages spell them: the CLI's --container flag, the
-// job request's container field, the /stream query parameter, and this table.
-// They were restated per boundary until the empty-to-progressive rule was
-// reimplemented three times and one of the three was missed, which is what
-// FileOutputContainer below now prevents by construction.
 const (
 	ContainerProgressive = "progressive"
 	ContainerFragmented  = "fragmented"
 )
 
-// mp4MediaType is what an mp4-family output's plan reports. The file-output
-// rule keys on it rather than on a format name, so a new mp4-family row is
-// covered without the rule knowing it exists.
 const mp4MediaType = "audio/mp4"
 
-// FileOutputContainer resolves the container a file output should be written
-// with: the caller's explicit choice, or the flat MP4 form when the plan says
-// this is an mp4-family output and the caller expressed no preference.
-//
-// A file can satisfy the back-patch the flat header needs, streaming buys it
-// nothing, and it is the only form that carries a QuickTime chapter track or
-// that a tag rewriter can edit afterwards. Delivery keeps the fragmented
-// default, which is where it belongs.
-//
-// It lives here rather than at each boundary because every writer of a file
-// needs it: `waxflow transcode`, `waxflow split`, and all of the transcode,
-// split and merge job types. Pass the plan taken from the caller's own options
-// and re-plan when this changes the answer, so the plan and the run agree
-// about what was asked for.
+// FileOutputContainer resolves the container a file output should be written with: the caller's explicit choice, or the flat MP4 form when the plan says this is an mp4-family output and the caller expressed no preference.
 func FileOutputContainer(requested string, plan *TranscodePlan) string {
 	if requested == "" && plan != nil && plan.MediaType == mp4MediaType {
 		return ContainerProgressive
@@ -1283,14 +915,6 @@ func FileOutputContainer(requested string, plan *TranscodePlan) string {
 	return requested
 }
 
-// containerLive reports the effective liveness of a transcode: a Container
-// override can select a muxer whose NeedsSeek differs from the row's default.
-// Only progressive MP4 flips it (it back-patches the mdat size, so NeedsSeek is
-// true); every other override (adts, mka, webm, ogg) streams like the row's
-// default. The row's static live bit is exactly the default-container
-// liveness, so the empty override is unchanged. This keeps /stream (which plans
-// first) from offering the progressive form, while /caps still advertises the
-// row's default streamability.
 func containerLive(rowLive bool, container string) bool {
 	if container == ContainerProgressive {
 		return false
@@ -1298,12 +922,6 @@ func containerLive(rowLive bool, container string) bool {
 	return rowLive
 }
 
-// matroskaContainer resolves the Matroska/WebM container overrides shared by
-// every codec row MKA carries (opus, aac, flac, wav): "mka" is always valid,
-// "webm" only when the codec is in webm's subset (webmOK; Opus and Vorbis).
-// ok is false for a name that is not a Matroska form, so a row falls through
-// to its own overrides (adts for aac). This is the aac/adts precedent applied
-// to one muxer serving many codecs.
 func matroskaContainer(name string, webmOK bool) (mediaType string, ok bool) {
 	switch name {
 	case "mka":
@@ -1316,20 +934,12 @@ func matroskaContainer(name string, webmOK bool) (mediaType string, ok bool) {
 	return "", false
 }
 
-// isMatroska reports whether a Container override selects the MKA muxer.
 func isMatroska(name string) bool { return name == "mka" || name == "webm" }
 
-// mkaMuxer builds the Matroska/WebM muxer for a container override, selecting
-// the DocType from the requested name (webm vs mka).
 func mkaMuxer(dst io.Writer, opts TranscodeOptions) container.Muxer {
 	return mka.NewMuxer(dst, &mka.MuxerOptions{WebM: opts.Container == "webm", Tags: opts.Tags})
 }
 
-// mkaPCMConfig is the PCM wire configuration for a track carried in Matroska:
-// like riff.DefaultConfig, but signed rather than unsigned for 8-bit, since
-// Matroska PCM is signed (A_PCM/INT/LIT) with no unsigned form. Float stays
-// 32-bit IEEE (A_PCM/FLOAT/IEEE). This is what the mka muxer's CodecID and
-// BitDepth declare, so the demuxer reads the bytes back unchanged.
 func mkaPCMConfig(f audio.Format) pcm.Config {
 	if f.Type == audio.Float {
 		return pcm.Config{Encoding: pcm.Float, Bits: 32}
@@ -1342,9 +952,6 @@ func mkaPCMConfig(f audio.Format) pcm.Config {
 	return cfg
 }
 
-// mp4MuxerOptions carries the per-call metadata payloads into the MP4
-// muxer; nil when there are none, so the default construction stays the
-// zero options.
 func mp4MuxerOptions(opts TranscodeOptions) *mp4.MuxerOptions {
 	if len(opts.Tags) == 0 && len(opts.Chapters) == 0 && opts.Art == nil {
 		return nil
@@ -1352,7 +959,6 @@ func mp4MuxerOptions(opts TranscodeOptions) *mp4.MuxerOptions {
 	return &mp4.MuxerOptions{Tags: opts.Tags, Chapters: opts.Chapters, Art: opts.Art}
 }
 
-// alacSnapDepth rounds an integer bit depth up to the nearest ALAC depth.
 func alacSnapDepth(d int) int {
 	switch {
 	case d <= 16:
@@ -1366,9 +972,6 @@ func alacSnapDepth(d int) int {
 	}
 }
 
-// opusEncoderOptions builds the codec-level Opus options from a transcode
-// request, resolving the zero values to encoder defaults. An unknown signal
-// hint fails here, so plans reject it before any work starts.
 func opusEncoderOptions(opts TranscodeOptions) (*opus.EncoderOptions, error) {
 	sig, err := opusSignal(opts)
 	if err != nil {
@@ -1382,10 +985,6 @@ func opusEncoderOptions(opts TranscodeOptions) (*opus.EncoderOptions, error) {
 	}, nil
 }
 
-// vorbisEncoderOptions builds the codec-level Vorbis options from a transcode
-// request. A zero VorbisQuality keeps the encoder default; VorbisBitrate passes
-// through so the encoder rejects a nonzero ABR target (unimplemented) at plan
-// time rather than silently ignoring it.
 func vorbisEncoderOptions(opts TranscodeOptions) (*vorbis.EncoderOptions, error) {
 	return &vorbis.EncoderOptions{
 		Quality: opts.VorbisQuality,
@@ -1393,7 +992,6 @@ func vorbisEncoderOptions(opts TranscodeOptions) (*vorbis.EncoderOptions, error)
 	}, nil
 }
 
-// opusSignal resolves TranscodeOptions.OpusSignal to the codec-level hint.
 func opusSignal(opts TranscodeOptions) (opus.Signal, error) {
 	switch opts.OpusSignal {
 	case "", "auto":
@@ -1407,9 +1005,6 @@ func opusSignal(opts TranscodeOptions) (opus.Signal, error) {
 		fmt.Sprintf("opus signal hint %q is not auto, voice, or music", opts.OpusSignal))
 }
 
-// opusBitrate resolves TranscodeOptions.OpusBitrate: the zero value keeps the
-// encoder default (96 kbit/s); any other value passes through to the encoder,
-// which validates it.
 func opusBitrate(opts TranscodeOptions) int {
 	if opts.OpusBitrate == 0 {
 		return opus.DefaultBitrate
@@ -1417,10 +1012,6 @@ func opusBitrate(opts TranscodeOptions) int {
 	return opts.OpusBitrate
 }
 
-// mp3EncoderOptions builds the codec-level MP3 options from a transcode
-// request. The zero bit rate keeps the encoder default (128 kbit/s); any
-// other value passes through to the encoder, which validates it against
-// the layer's legal rates (a CBR rate, or the VBR quality anchor).
 func mp3EncoderOptions(opts TranscodeOptions) (*mp3.EncoderOptions, error) {
 	bitrate := opts.MP3Bitrate
 	if bitrate == 0 {
@@ -1433,9 +1024,6 @@ func mp3EncoderOptions(opts TranscodeOptions) (*mp3.EncoderOptions, error) {
 	return &mp3.EncoderOptions{Bitrate: bitrate, VBR: opts.MP3VBR}, nil
 }
 
-// flacLevel resolves TranscodeOptions.FLACLevel: the zero value keeps
-// the encoder default, -1 selects level 0 (which the zero value cannot
-// mean without stealing the default), and 1..8 pass through.
 func flacLevel(opts TranscodeOptions) (int, error) {
 	switch {
 	case opts.FLACLevel == FLACLevelDefault:
@@ -1449,9 +1037,7 @@ func flacLevel(opts TranscodeOptions) (int, error) {
 		fmt.Sprintf("waxflow: FLAC level %d outside -1..8", opts.FLACLevel))
 }
 
-// DefaultLiveFormat returns the output format that format=auto resolves
-// to when a transcode is required: the first registered output with a
-// streaming form.
+// DefaultLiveFormat returns the output format that format=auto resolves to when a transcode is required: the first registered output with a streaming form.
 func DefaultLiveFormat() string {
 	for _, o := range outputs {
 		if o.live {
@@ -1465,7 +1051,6 @@ func DefaultLiveFormat() string {
 type OutputInfo struct {
 	Name string
 	Exts []string
-	// Live reports a streaming form exists (plain io.Writer suffices).
 	Live bool
 }
 
@@ -1473,8 +1058,6 @@ type OutputInfo struct {
 func Outputs() []OutputInfo {
 	infos := make([]OutputInfo, len(outputs))
 	for i, o := range outputs {
-		// The copy starts from a non-nil empty slice so a format with no
-		// extensions (alac since aac claimed m4a) marshals as [] not null.
 		infos[i] = OutputInfo{Name: o.name, Exts: append([]string{}, o.exts...), Live: o.live}
 	}
 	return infos
@@ -1489,10 +1072,7 @@ func OutputFormats() []string {
 	return names
 }
 
-// LossyFormat reports whether the named output format is lossy (accepts
-// bitrate/q), and whether it is a registered format at all. An unregistered
-// name returns (false, false) so callers defer to the format-existence error
-// rather than mislabeling it as lossless.
+// LossyFormat reports whether the named output format is lossy (accepts bitrate/q), and whether it is a registered format at all.
 func LossyFormat(name string) (lossy, known bool) {
 	for _, o := range outputs {
 		if o.name == name {
@@ -1502,9 +1082,7 @@ func LossyFormat(name string) (lossy, known bool) {
 	return false, false
 }
 
-// OutputFormatForExt maps a file extension (with or without the leading
-// dot, any case) to the output format name that writes it, or "" when no
-// registered output claims the extension.
+// OutputFormatForExt maps a file extension (with or without the leading dot, any case) to the output format name that writes it, or "" when no registered output claims the extension.
 func OutputFormatForExt(ext string) string {
 	ext = strings.ToLower(strings.TrimPrefix(ext, "."))
 	for _, o := range outputs {
@@ -1517,13 +1095,7 @@ func OutputFormatForExt(ext string) string {
 	return ""
 }
 
-// OutputContainerForExt maps a container-selecting output extension (one that
-// names a container form rather than a top-level format) to the format and
-// container override it implies. MKA and WebM are reached through a Container
-// override on a codec row, not their own output rows, so the extension alone
-// does not resolve through OutputFormatForExt; this fills that gap for the CLI.
-// A ".mka"/".mkv" defaults to lossless FLAC-in-Matroska (matching a lossless
-// source), ".webm" to Opus-in-WebM. ok is false for any other extension.
+// OutputContainerForExt maps a container-selecting output extension (one that names a container form rather than a top-level format) to the format and container override it implies.
 func OutputContainerForExt(ext string) (format, container string, ok bool) {
 	switch strings.ToLower(strings.TrimPrefix(ext, ".")) {
 	case "mka", "mkv":
@@ -1534,30 +1106,7 @@ func OutputContainerForExt(ext string) (format, container string, ok bool) {
 	return "", "", false
 }
 
-// OutputExt is the file extension for an output written as format in
-// container (empty for the format's default form), without the leading dot.
-//
-// It is the write direction of OutputFormatForExt and a separate function
-// rather than that one inverted, because the two are not inverses: an
-// extension resolves to at most one format, so of the two formats that write
-// .m4a only aac claims it, and yet both write it. A caller naming a download
-// needs the name the file should carry, which is the question the read
-// direction cannot answer. See output.writeExt.
-//
-// A container override names a wrapper, not a box shape, and only a
-// different wrapper renames the file: adts, mka, webm, and ogg each write a
-// different kind of file than the row's default, while progressive is the
-// aac/alac row's own MP4 with its boxes flattened and stays an m4a. That
-// distinction is what this exists for. A container name used as an extension
-// yields foo.progressive, which is not a file Apple Books will open.
-//
-// An unregistered format falls back to bin. The caller is naming a download,
-// so "" is not an answer; the format's own name is the confident lie this
-// removes (foo.alac), and a format with no row has no file form to name at
-// all, which is exactly what bin says.
-//
-// format and container are taken as a pair some plan already accepted: this
-// names the result, it does not re-validate the request.
+// OutputExt is the file extension for an output written as format in container (empty for the format's default form), without the leading dot.
 func OutputExt(format, container string) string {
 	row, err := outputRow(format)
 	if err != nil {
@@ -1575,16 +1124,8 @@ func OutputExt(format, container string) string {
 	return outputExtFallback
 }
 
-// outputExtFallback is the extension for an output there is no file form for:
-// opaque bytes, promising nothing. See OutputExt.
 const outputExtFallback = "bin"
 
-// containerExt maps a Container override to the extension its wrapper is
-// written with, reporting false for one that does not rename the file at all:
-// the empty default, and ContainerProgressive/ContainerFragmented, which are the row's own
-// MP4 in two box shapes rather than a second container. The rest are the shared
-// override names (the matroskaContainer set, aac's adts, flac's ogg), resolved
-// in one place for the same reason those are: one wrapper serves many rows.
 func containerExt(name string) (ext string, ok bool) {
 	switch name {
 	case "adts":
@@ -1594,15 +1135,11 @@ func containerExt(name string) (ext string, ok bool) {
 	case "webm":
 		return "webm", true
 	case "ogg":
-		// The Xiph extension for Ogg-encapsulated audio that is not Vorbis.
-		// Only the flac row takes this override, and .flac there would name a
-		// native-FLAC file that these bytes are not.
 		return "oga", true
 	}
 	return "", false
 }
 
-// outputRow resolves an output format name against the table.
 func outputRow(name string) (*output, error) {
 	if name == "" {
 		return nil, waxerr.New(waxerr.CodeInvalidRequest, "waxflow: no output format requested")

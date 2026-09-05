@@ -75,7 +75,6 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
   const [draftNote, setDraftNote] = useState("");
   const [draftColor, setDraftColor] = useState(HIGHLIGHT_COLORS[0]);
 
-  // Create chapters map for quick title lookup
   const chaptersMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const ch of chapters) {
@@ -84,7 +83,6 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
     return map;
   }, [chapters]);
 
-  // Merge text highlights & image bookmarks into a unified list
   const allItems: UnifiedBookmarkItem[] = useMemo(() => {
     const items: UnifiedBookmarkItem[] = [];
 
@@ -146,7 +144,8 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
       if (q) {
         const textMatch = item.text_content?.toLowerCase().includes(q) ?? false;
         const noteMatch = item.note?.toLowerCase().includes(q) ?? false;
-        const titleMatch = item.chapter_title?.toLowerCase().includes(q) ?? false;
+        const titleMatch =
+          item.chapter_title?.toLowerCase().includes(q) ?? false;
         if (!textMatch && !noteMatch && !titleMatch) return false;
       }
 
@@ -201,7 +200,10 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("reader.search_highlights_placeholder", "Search highlights & notes...")}
+            placeholder={t(
+              "reader.search_highlights_placeholder",
+              "Search highlights & notes...",
+            )}
             className="input input-xs h-7 pl-7 pr-6 w-full rounded-lg bg-(--reader-ui-soft,rgba(255,255,255,0.06)) border-(--reader-ui-border,rgba(255,255,255,0.12)) text-xs text-(--reader-ui-text) focus:border-(--reader-ui-accent) focus:outline-hidden"
           />
           {searchQuery && (
@@ -267,7 +269,9 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                 <button
                   key={c}
                   type="button"
-                  onClick={() => setSelectedColor(selectedColor === c ? null : c)}
+                  onClick={() =>
+                    setSelectedColor(selectedColor === c ? null : c)
+                  }
                   style={{ backgroundColor: c }}
                   className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${
                     selectedColor === c
@@ -306,7 +310,10 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
           <div className="py-12 text-center space-y-2 opacity-60">
             <Search className="w-8 h-8 mx-auto opacity-30 text-(--reader-ui-text)" />
             <p className="text-xs font-medium">
-              {t("reader.no_matching_highlights", "No matching highlights found")}
+              {t(
+                "reader.no_matching_highlights",
+                "No matching highlights found",
+              )}
             </p>
           </div>
         ) : (
@@ -358,24 +365,36 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                         </button>
                         <div className="flex items-center gap-1 shrink-0">
                           {onOpenQuoteCard && (
-                            <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Create quote image")}>
+                            <div
+                              className="tooltip tooltip-top"
+                              data-tip={t(
+                                "reader.quote_card",
+                                "Create quote image",
+                              )}
+                            >
                               <button
                                 type="button"
                                 onClick={() =>
                                   onOpenQuoteCard(
                                     bm.note?.trim() || undefined,
-                                    bm.image_url
+                                    bm.image_url,
                                   )
                                 }
                                 className="btn btn-ghost btn-xs text-amber-500 hover:text-amber-600"
-                                aria-label={t("reader.quote_card", "Create quote image")}
+                                aria-label={t(
+                                  "reader.quote_card",
+                                  "Create quote image",
+                                )}
                               >
                                 <Sparkles className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
                           {onDeleteImageBookmark && (
-                            <div className="tooltip tooltip-top" data-tip={t("common.delete", "Delete")}>
+                            <div
+                              className="tooltip tooltip-top"
+                              data-tip={t("common.delete", "Delete")}
+                            >
                               <button
                                 type="button"
                                 onClick={() => onDeleteImageBookmark(bm.id)}
@@ -429,7 +448,10 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                                       ? "border-current ring-2 ring-(--reader-ui-accent,#38bdf8) ring-offset-1"
                                       : "border-current/20"
                                   }`}
-                                  aria-label={t("reader.highlight_color", "Highlight color")}
+                                  aria-label={t(
+                                    "reader.highlight_color",
+                                    "Highlight color",
+                                  )}
                                 />
                               ))}
                             </div>
@@ -438,12 +460,18 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                               value={draftNote}
                               onChange={(e) => setDraftNote(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                if (
+                                  e.key === "Enter" &&
+                                  (e.ctrlKey || e.metaKey)
+                                ) {
                                   e.preventDefault();
                                   saveEditing(highlight.id);
                                 }
                               }}
-                              placeholder={t("reader.add_note_placeholder", "Add a note...")}
+                              placeholder={t(
+                                "reader.add_note_placeholder",
+                                "Add a note...",
+                              )}
                               className="textarea textarea-bordered textarea-xs w-full rounded-lg text-xs bg-(--reader-ui-soft) border-(--reader-ui-border) text-(--reader-ui-text)"
                             />
                             <div className="flex justify-end gap-1">
@@ -471,35 +499,64 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
                               <p
                                 onClick={() => onSelect?.(highlight)}
                                 className="mt-1.5 text-xs italic opacity-80 hover:opacity-100 cursor-pointer hover:underline border-l-2 border-(--reader-ui-accent,#38bdf8)/50 pl-2 text-(--reader-ui-text)"
-                                title={t("reader.jump_to_highlight", "Jump to highlight")}
+                                title={t(
+                                  "reader.jump_to_highlight",
+                                  "Jump to highlight",
+                                )}
                               >
                                 {highlight.note}
                               </p>
                             )}
                             <div className="mt-2 flex justify-end gap-1 border-t border-(--reader-ui-border,rgba(255,255,255,0.06)) pt-1">
                               {onOpenQuoteCard && (
-                                <div className="tooltip tooltip-top" data-tip={t("reader.quote_card", "Create quote image")}>
+                                <div
+                                  className="tooltip tooltip-top"
+                                  data-tip={t(
+                                    "reader.quote_card",
+                                    "Create quote image",
+                                  )}
+                                >
                                   <button
                                     type="button"
-                                    onClick={() => onOpenQuoteCard(highlight.text_content, undefined)}
+                                    onClick={() =>
+                                      onOpenQuoteCard(
+                                        highlight.text_content,
+                                        undefined,
+                                      )
+                                    }
                                     className="btn btn-ghost btn-xs text-amber-500 hover:text-amber-600"
-                                    aria-label={t("reader.quote_card", "Create quote image")}
+                                    aria-label={t(
+                                      "reader.quote_card",
+                                      "Create quote image",
+                                    )}
                                   >
                                     <Sparkles className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               )}
-                              <div className="tooltip tooltip-top" data-tip={t("reader.edit_highlight", "Edit note")}>
+                              <div
+                                className="tooltip tooltip-top"
+                                data-tip={t(
+                                  "reader.edit_highlight",
+                                  "Edit note",
+                                )}
+                              >
                                 <button
                                   type="button"
                                   onClick={() => startEditing(highlight)}
                                   className="btn btn-ghost btn-xs text-(--reader-ui-text) opacity-70 hover:opacity-100"
-                                  aria-label={t("reader.edit_highlight", "Edit note")}
+                                  aria-label={t(
+                                    "reader.edit_highlight",
+                                    "Edit note",
+                                  )}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               </div>
-                              <div className="tooltip tooltip-top" data-tip={t("common.delete", "Delete")}>
+                              <div
+                                className="tooltip tooltip-top"
+                                data-tip={t("common.delete", "Delete")}
+                              >
                                 <button
                                   type="button"
                                   onClick={() => onDelete(highlight.id)}

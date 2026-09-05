@@ -11,16 +11,16 @@ let initialFetchDone = false;
 function applySiteSettingsToDOM(settings: PublicSettings | null) {
   if (!settings?.site) return;
   const site = settings.site;
-  
+
   if (site.title) {
     document.title = site.title;
   }
-  
+
   if (site.favicon) {
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
+      link = document.createElement("link");
+      link.rel = "icon";
       document.head.appendChild(link);
     }
     link.href = site.favicon;
@@ -29,11 +29,9 @@ function applySiteSettingsToDOM(settings: PublicSettings | null) {
 
 export function usePublicSettings(): PublicSettings | null {
   const { publicSettings } = useSettingsStore(
-    useShallow((state) => ({ publicSettings: state.publicSettings }))
+    useShallow((state) => ({ publicSettings: state.publicSettings })),
   );
-  const { user } = useAuthStore(
-    useShallow((state) => ({ user: state.user }))
-  );
+  const { user } = useAuthStore(useShallow((state) => ({ user: state.user })));
 
   useEffect(() => {
     applySiteSettingsToDOM(publicSettings);
@@ -41,13 +39,16 @@ export function usePublicSettings(): PublicSettings | null {
     if (initialFetchDone || fetching) return;
     fetching = true;
 
-    settingsService.getPublic().then((res) => {
-      useSettingsStore.getState().setPublicSettings(res.data || null);
-      initialFetchDone = true;
-      fetching = false;
-    }).catch(() => {
-      fetching = false;
-    });
+    settingsService
+      .getPublic()
+      .then((res) => {
+        useSettingsStore.getState().setPublicSettings(res.data || null);
+        initialFetchDone = true;
+        fetching = false;
+      })
+      .catch(() => {
+        fetching = false;
+      });
   }, [user]);
 
   useEffect(() => {
@@ -56,7 +57,6 @@ export function usePublicSettings(): PublicSettings | null {
 
   return publicSettings;
 }
-
 
 export async function invalidatePublicSettings(): Promise<void> {
   fetching = false;

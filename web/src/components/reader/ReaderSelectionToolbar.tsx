@@ -1,6 +1,15 @@
 import type { TFunction } from "i18next";
 import i18n from "@/i18n";
-import { Volume2, Play, Copy, MessageSquarePlus, Languages, Sparkles, Loader2, Check } from "lucide-react";
+import {
+  Volume2,
+  Play,
+  Copy,
+  MessageSquarePlus,
+  Languages,
+  Sparkles,
+  Loader2,
+  Check,
+} from "lucide-react";
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
   SUPPORTED_LANGUAGES,
@@ -22,14 +31,54 @@ type ReaderSelectionToolbarProps = {
 };
 
 const HIGHLIGHT_COLOR_OPTIONS = [
-  { color: "#fef08a", bgClass: "bg-[#facc15]", labelKey: "reader.highlight_yellow", defaultName: "Yellow" },
-  { color: "#bbf7d0", bgClass: "bg-[#4ade80]", labelKey: "reader.highlight_green", defaultName: "Green" },
-  { color: "#bfdbfe", bgClass: "bg-[#60a5fa]", labelKey: "reader.highlight_blue", defaultName: "Blue" },
-  { color: "#fbcfe8", bgClass: "bg-[#f472b6]", labelKey: "reader.highlight_pink", defaultName: "Pink" },
-  { color: "#fed7aa", bgClass: "bg-[#fb923c]", labelKey: "reader.highlight_orange", defaultName: "Orange" },
-  { color: "#e9d5ff", bgClass: "bg-[#c084fc]", labelKey: "reader.highlight_purple", defaultName: "Purple" },
-  { color: "#fecaca", bgClass: "bg-[#f87171]", labelKey: "reader.highlight_red", defaultName: "Red" },
-  { color: "#99f6e4", bgClass: "bg-[#2dd4bf]", labelKey: "reader.highlight_cyan", defaultName: "Cyan" },
+  {
+    color: "#fef08a",
+    bgClass: "bg-[#facc15]",
+    labelKey: "reader.highlight_yellow",
+    defaultName: "Yellow",
+  },
+  {
+    color: "#bbf7d0",
+    bgClass: "bg-[#4ade80]",
+    labelKey: "reader.highlight_green",
+    defaultName: "Green",
+  },
+  {
+    color: "#bfdbfe",
+    bgClass: "bg-[#60a5fa]",
+    labelKey: "reader.highlight_blue",
+    defaultName: "Blue",
+  },
+  {
+    color: "#fbcfe8",
+    bgClass: "bg-[#f472b6]",
+    labelKey: "reader.highlight_pink",
+    defaultName: "Pink",
+  },
+  {
+    color: "#fed7aa",
+    bgClass: "bg-[#fb923c]",
+    labelKey: "reader.highlight_orange",
+    defaultName: "Orange",
+  },
+  {
+    color: "#e9d5ff",
+    bgClass: "bg-[#c084fc]",
+    labelKey: "reader.highlight_purple",
+    defaultName: "Purple",
+  },
+  {
+    color: "#fecaca",
+    bgClass: "bg-[#f87171]",
+    labelKey: "reader.highlight_red",
+    defaultName: "Red",
+  },
+  {
+    color: "#99f6e4",
+    bgClass: "bg-[#2dd4bf]",
+    labelKey: "reader.highlight_cyan",
+    defaultName: "Cyan",
+  },
 ];
 
 export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
@@ -48,14 +97,14 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
   const [translatedText, setTranslatedText] = useState("");
   const [translating, setTranslating] = useState(false);
   const [targetLang, setTargetLang] = useState(() =>
-    getDefaultTargetLanguage(typeof i18n !== "undefined" ? i18n.language : undefined)
+    getDefaultTargetLanguage(
+      typeof i18n !== "undefined" ? i18n.language : undefined,
+    ),
   );
   const [copiedTrans, setCopiedTrans] = useState(false);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const [computedTop, setComputedTop] = useState(toolbarPos.top);
 
-  // Measure actual toolbar height after render and clamp within viewport bounds
-  // (between header bar and bottom viewport edge) so toolbar is always completely visible.
   useLayoutEffect(() => {
     const el = toolbarRef.current;
     if (!el) return;
@@ -65,11 +114,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
     const vh = window.innerHeight;
 
     let top = toolbarPos.top;
-    // If expanding downwards would overflow the bottom of viewport, shift up just enough
     if (top + height > vh - margin) {
       top = vh - height - margin;
     }
-    // Always keep top below reader header bar
     top = Math.max(topBarHeight + margin, top);
     setComputedTop(top);
   }, [toolbarPos.top, showTranslate, translatedText, translating]);
@@ -83,7 +130,11 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
   };
 
   const handleTranslate = async (lang = targetLang) => {
-    const text = (selectedText || window.getSelection()?.toString() || "").trim();
+    const text = (
+      selectedText ||
+      window.getSelection()?.toString() ||
+      ""
+    ).trim();
     if (!text) return;
     setShowTranslate(true);
     setTranslating(true);
@@ -92,7 +143,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       setTranslatedText(res.text);
       saveTargetLanguagePreference(lang);
     } catch {
-      setTranslatedText(t("common.translate_error", "Could not translate this passage"));
+      setTranslatedText(
+        t("common.translate_error", "Could not translate this passage"),
+      );
     } finally {
       setTranslating(false);
     }
@@ -119,7 +172,10 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
     >
       {/* Top Row: 8 Highlight Colors */}
       {onHighlight && (
-        <div data-reader-toolbar="true" className="flex items-center justify-between gap-1 w-full px-0.5">
+        <div
+          data-reader-toolbar="true"
+          className="flex items-center justify-between gap-1 w-full px-0.5"
+        >
           {HIGHLIGHT_COLOR_OPTIONS.map((item) => (
             <button
               key={item.color}
@@ -144,7 +200,10 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
 
       {/* Action Row 1: Text-to-Speech (TTS) if supported */}
       {isSupported && (
-        <div data-reader-toolbar="true" className="flex items-center gap-1.5 pt-0.5 w-full">
+        <div
+          data-reader-toolbar="true"
+          className="flex items-center gap-1.5 pt-0.5 w-full"
+        >
           <button
             type="button"
             data-reader-toolbar="true"
@@ -162,7 +221,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             aria-label={t("reader.read_selection", "Read Selection")}
           >
             <Volume2 className="h-3.5 w-3.5 text-sky-500 shrink-0" />
-            <span className="truncate">{t("reader.read_selection", "Read Selection")}</span>
+            <span className="truncate">
+              {t("reader.read_selection", "Read Selection")}
+            </span>
           </button>
           <button
             type="button"
@@ -181,13 +242,18 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             aria-label={t("reader.read_from_here", "Read From Here")}
           >
             <Play className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            <span className="truncate">{t("reader.read_from_here", "Read From Here")}</span>
+            <span className="truncate">
+              {t("reader.read_from_here", "Read From Here")}
+            </span>
           </button>
         </div>
       )}
 
       {/* Action Row 2: Copy, Translate & Quote Tools */}
-      <div data-reader-toolbar="true" className="flex items-center gap-1.5 w-full">
+      <div
+        data-reader-toolbar="true"
+        className="flex items-center gap-1.5 w-full"
+      >
         {onCopyText && (
           <button
             type="button"
@@ -248,7 +314,11 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              const textToQuote = (selectedText || window.getSelection()?.toString() || "").trim();
+              const textToQuote = (
+                selectedText ||
+                window.getSelection()?.toString() ||
+                ""
+              ).trim();
               onOpenQuoteCard(textToQuote);
             }}
             className="btn btn-ghost btn-xs h-7 flex-1 min-w-0 px-2 rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) text-(--reader-ui-text) hover:bg-(--reader-ui-hover) gap-1 text-[11px] sm:text-xs font-medium transition-colors"
@@ -296,7 +366,9 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
             </div>
           ) : (
             <div className="flex items-start justify-between gap-2 p-2.5 max-h-48 sm:max-h-56 min-h-0 overflow-y-auto overscroll-contain">
-              <p className="leading-relaxed select-text flex-1 font-medium whitespace-pre-wrap">{translatedText}</p>
+              <p className="leading-relaxed select-text flex-1 font-medium whitespace-pre-wrap">
+                {translatedText}
+              </p>
               {translatedText && (
                 <button
                   type="button"
@@ -308,7 +380,11 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
                   className="btn btn-ghost btn-circle btn-xs shrink-0 sticky top-0"
                   title={t("common.copy", "Copy")}
                 >
-                  {copiedTrans ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                  {copiedTrans ? (
+                    <Check className="w-3 h-3 text-success" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
                 </button>
               )}
             </div>
@@ -318,7 +394,10 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
 
       {/* Bottom Row: Optional Note Input */}
       {onHighlight && (
-        <div data-reader-toolbar="true" className="w-full pt-1 border-t border-(--reader-ui-border)/60">
+        <div
+          data-reader-toolbar="true"
+          className="w-full pt-1 border-t border-(--reader-ui-border)/60"
+        >
           <div className="relative flex items-start">
             <MessageSquarePlus className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-(--reader-ui-muted) pointer-events-none" />
             <textarea
@@ -339,7 +418,10 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
                   handleColorClick(HIGHLIGHT_COLOR_OPTIONS[0].color);
                 }
               }}
-              placeholder={t("reader.add_note_placeholder", "Add a note (optional)...")}
+              placeholder={t(
+                "reader.add_note_placeholder",
+                "Add a note (optional)...",
+              )}
               className="reader-input w-full rounded-xl border border-(--reader-ui-border) bg-(--reader-ui-soft) pl-8 pr-2.5 py-1.5 text-xs text-(--reader-ui-text) placeholder:text-(--reader-ui-muted)/70 focus:border-(--reader-ui-accent) focus:outline-hidden transition-colors resize-none leading-relaxed"
             />
           </div>

@@ -138,4 +138,3 @@ func (c *SystemOperationsController) GetCacheStats(ctx fiber.Ctx) error {
 	stats := c.ramCache.Stats()
 	return ctx.JSON(response.CommonResponse{Status: true, Data: stats})
 }
-

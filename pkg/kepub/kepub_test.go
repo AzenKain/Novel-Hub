@@ -28,7 +28,7 @@ func TestInjectKoboSpans_MultipleBlockElements(t *testing.T) {
 	inputHTML := `<div><p>Paragraph</p><ul><li>List Item 1</li><li>List Item 2</li></ul><blockquote>Quote</blockquote></div>`
 	output := InjectKoboSpans(inputHTML)
 
-	expectedCount := 5 // div, p, li, li, blockquote
+	expectedCount := 5
 	if count := strings.Count(output, `class="koboSpan"`); count != expectedCount {
 		t.Fatalf("expected %d koboSpans, got %d in: %s", expectedCount, count, output)
 	}

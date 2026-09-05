@@ -54,7 +54,6 @@ INSERT INTO permissions (key, description) VALUES
 ON CONFLICT(key) DO UPDATE SET
     description = excluded.description;
 
--- Grant ADMIN all permissions (customization permissions remain off for USER by default)
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r

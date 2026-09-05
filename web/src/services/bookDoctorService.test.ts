@@ -43,12 +43,12 @@ describe("bookDoctorService", () => {
     const res = await bookDoctorService.repairBook(
       "book-123",
       { fix_xhtml: true, normalize_mimetype: true },
-      "file-456"
+      "file-456",
     );
     expect(api.post).toHaveBeenCalledWith(
       "/books/book-123/doctor/repair",
       { fix_xhtml: true, normalize_mimetype: true },
-      { params: { file_id: "file-456" } }
+      { params: { file_id: "file-456" } },
     );
     expect(res).toEqual(mockResult);
   });

@@ -31,13 +31,11 @@ func ProxyAuth(
 	txManager database.TxManager,
 ) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		// 1. Fetch current settings from cache
 		settings, err := settingsService.Admin(c.Context())
 		if err != nil || !settings.ProxyAuth.Enabled {
 			return c.Next()
 		}
 
-		// 2. Verify Trusted Proxy Client IP — use raw socket peer, never proxy-header-resolved IP
 		rawAddr := ""
 		if rctx := c.RequestCtx(); rctx != nil {
 			rawAddr = rctx.RemoteAddr().String()
@@ -65,7 +63,6 @@ func ProxyAuth(
 			return c.Next()
 		}
 
-		// 3. Scan headers for identity
 		var identityValue string
 		for _, headerName := range settings.ProxyAuth.HeaderNames {
 			val := strings.TrimSpace(c.Get(headerName))
@@ -79,13 +76,11 @@ func ProxyAuth(
 			return c.Next()
 		}
 
-		// Normalize to valid email address if it's only a username
 		emailVal := strings.ToLower(identityValue)
 		if !strings.Contains(emailVal, "@") {
 			emailVal = emailVal + "@proxy.local"
 		}
 
-		// 4. Retrieve or Provision User
 		user, err := userRepo.GetByEmail(c.Context(), emailVal)
 		if err != nil && !apperrors.IsNotFound(err) {
 			log.Error().Err(err).Str("email", emailVal).Msg("ProxyAuth: Failed to query user by email")
@@ -101,7 +96,6 @@ func ProxyAuth(
 				})
 			}
 
-			// Auto-provision user
 			user, err = autoProvisionUser(c.Context(), emailVal, userRepo, roleRepo, txManager)
 			if err != nil {
 				log.Error().Err(err).Str("email", emailVal).Msg("ProxyAuth: Failed to auto-provision user")
@@ -120,7 +114,6 @@ func ProxyAuth(
 			})
 		}
 
-		// 5. Generate Auth Tokens and Inject
 		authRes, err := authService.GenToken(user)
 		if err != nil {
 			log.Error().Err(err).Str("user_id", user.ID).Msg("ProxyAuth: Failed to generate authentication token")
@@ -130,10 +123,8 @@ func ProxyAuth(
 			})
 		}
 
-		// Inject Authorization header for downstream JwtAccess middleware
 		c.Request().Header.Set("Authorization", "Bearer "+authRes.AccessToken)
 
-		// Set access/refresh tokens in browser cookies
 		secure := c.Scheme() == "https"
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",
@@ -197,7 +188,6 @@ func autoProvisionUser(
 	userRepoTx := userRepo.WithTx(tx)
 	roleRepoTx := roleRepo.WithTx(tx)
 
-	// Create user with empty password (cannot login via normal password forms)
 	user, err := userRepoTx.UpsertUser(ctx, sqlc.UpsertUserParams{
 		ID:           uuid.Must(uuid.NewV7()).String(),
 		Email:        email,

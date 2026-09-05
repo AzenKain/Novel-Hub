@@ -12,10 +12,6 @@ import (
 	"novelhub/pkg/waxflow/container"
 )
 
-// gapless resolves the audio track's trims in output samples: the iTunes
-// iTunSMPB tag first (exact priming, padding, and length), then an edit
-// list (media_time as priming), else no trim. format.Media consumes
-// Delay/Padding/Samples to deliver the trimmed timeline and to map seeks.
 func (d *Demuxer) gapless(t *track) (delay, padding, samples int64) {
 	totalRaw := t.st.totalDur
 
@@ -29,12 +25,6 @@ func (d *Demuxer) gapless(t *track) (delay, padding, samples int64) {
 		return delay, padding, samples
 	}
 
-	// A nonzero edit-list media_time is the encoder-delay priming. The
-	// progressive path trusts it only for a real (nonzero) delay, falling back
-	// to the stbl raw total for the length; a zero-delay edit is ignored here
-	// because the sample table already gives the exact length. (The fragmented
-	// path in fragdemux.go has no sample table, so it trusts the edit's
-	// duration even at zero delay; both share editListTrims for the rescale.)
 	if t.hasEdit && t.editMedia > 0 {
 		delay, seg, haveSeg := editListTrims(t, d.movieTimescale)
 		delay = clamp(delay, 0, totalRaw)
@@ -53,13 +43,6 @@ func (d *Demuxer) gapless(t *track) (delay, padding, samples int64) {
 	return 0, 0, totalRaw
 }
 
-// editListTrims rescales a track's first real edit into gapless trims in output
-// samples: the front delay from its media_time (media timescale) and the played
-// length from its segment_duration (movie timescale). haveSeg is false when the
-// edit declares no usable duration, leaving the length to the caller's fallback.
-// The progressive (gapless) and fragmented (fragmentedGapless) readers share
-// this rescale and differ only in that fallback (the stbl raw total vs unknown),
-// which each applies around this call.
 func editListTrims(t *track, movieTimescale int64) (delay, segSamples int64, haveSeg bool) {
 	rate := int64(t.fmt.Rate)
 	delay = t.editMedia
@@ -85,19 +68,13 @@ func clamp(v, lo, hi int64) int64 {
 	return v
 }
 
-// mulDivSat computes a*b/c in 128 bits, saturating at math.MaxInt64 so a
-// hostile edit-list time or chapter timescale cannot overflow the product.
-// A non-positive operand yields 0. It backs the movie-timeline rescales,
-// whose results are int64 sample counts or nanosecond durations; the
-// per-sample delta path in stbl.go uses rescaleTicks instead, which caps
-// tighter to keep count*delta from overflowing during PTS accumulation.
 func mulDivSat(a, b, c int64) int64 {
 	if a <= 0 || b <= 0 || c <= 0 {
 		return 0
 	}
 	hi, lo := bits.Mul64(uint64(a), uint64(b))
 	if hi >= uint64(c) {
-		return math.MaxInt64 // quotient would exceed 64 bits
+		return math.MaxInt64
 	}
 	q, _ := bits.Div64(hi, lo, uint64(c))
 	if q > math.MaxInt64 {
@@ -106,28 +83,15 @@ func mulDivSat(a, b, c int64) int64 {
 	return int64(q)
 }
 
-// mulDivRound computes a*b/c like mulDivSat, rounding to nearest rather than
-// truncating, in 128 bits and saturating at math.MaxInt64. A non-positive
-// operand yields 0.
-//
-// It exists for rescales between two grids that do not divide each other, where
-// truncation is a bias and not just a rounding: a chapter track's empty edit is
-// spelled in movie ticks, and at 44.1 kHz a millisecond is 44.1 of them, so
-// converting the edit back to the millisecond grid the chapter was authored on
-// truncates a whole millisecond off the track's anchor. Rounding recovers the
-// authored value exactly, since the movie-tick error is a fraction of a tick and
-// every audio rate makes a tick far shorter than the millisecond it lands in.
 func mulDivRound(a, b, c int64) int64 {
 	if a <= 0 || b <= 0 || c <= 0 {
 		return 0
 	}
 	hi, lo := bits.Mul64(uint64(a), uint64(b))
-	// a and b are int64, so the product is below 2^126 and hi below 2^62: the
-	// half-divisor carry cannot overflow hi.
 	lo, carry := bits.Add64(lo, uint64(c)/2, 0)
 	hi += carry
 	if hi >= uint64(c) {
-		return math.MaxInt64 // quotient would exceed 64 bits
+		return math.MaxInt64
 	}
 	q, _ := bits.Div64(hi, lo, uint64(c))
 	if q > math.MaxInt64 {
@@ -136,10 +100,6 @@ func mulDivRound(a, b, c int64) int64 {
 	return int64(q)
 }
 
-// parseUdta walks the user-data box for Nero chapters (chpl) and the
-// metadata item list (meta > ilst) carrying iTunSMPB. Chapter and tag
-// parsing is tolerant: malformed metadata yields no markers, never an
-// error, since none of it gates playback.
 func (d *Demuxer) parseUdta(body []byte, depth int) error {
 	if depth > maxDepth {
 		return malformed("box nesting deeper than %d", maxDepth)
@@ -155,9 +115,6 @@ func (d *Demuxer) parseUdta(body []byte, depth int) error {
 	})
 }
 
-// parseMeta walks a meta box for its ilst. The box is a FullBox in ISO
-// files but a plain box in some QuickTime files; the hdlr child's position
-// disambiguates.
 func (d *Demuxer) parseMeta(payload []byte, depth int) {
 	if depth > maxDepth {
 		return
@@ -165,11 +122,11 @@ func (d *Demuxer) parseMeta(payload []byte, depth int) {
 	body := payload
 	switch {
 	case len(payload) >= 12 && string(payload[8:12]) == "hdlr":
-		body = payload[4:] // ISO FullBox: skip version/flags
+		body = payload[4:]
 	case len(payload) >= 8 && string(payload[4:8]) == "hdlr":
-		body = payload // QuickTime plain box
+		body = payload
 	case len(payload) >= 4:
-		body = payload[4:] // default to the ISO shape
+		body = payload[4:]
 	}
 	_ = walkBoxes(body, func(typ string, p []byte) error {
 		if typ == "ilst" {
@@ -179,9 +136,6 @@ func (d *Demuxer) parseMeta(payload []byte, depth int) {
 	})
 }
 
-// ilstTextKeys maps the iTunes text atoms onto canonical tag keys. It is
-// the inverse of muxmeta.go's ilstText and bounded by it: what the muxer
-// writes is what the demuxer reads back.
 var ilstTextKeys = map[string]string{
 	"\xa9nam": "TITLE",
 	"\xa9ART": "ARTIST",
@@ -194,10 +148,6 @@ var ilstTextKeys = map[string]string{
 	"\xa9lyr": "LYRICS",
 }
 
-// ilstFreeformKeys are the freeform (----:com.apple.iTunes:KEY) names read
-// back as tags: the ReplayGain fields, muxmeta.go's ilstFreeform. iTunSMPB
-// is freeform too but is muxer-owned gapless state, not tag data, and is
-// handled separately in parseFreeform.
 var ilstFreeformKeys = map[string]bool{
 	"REPLAYGAIN_TRACK_GAIN": true,
 	"REPLAYGAIN_TRACK_PEAK": true,
@@ -205,10 +155,6 @@ var ilstFreeformKeys = map[string]bool{
 	"REPLAYGAIN_ALBUM_PEAK": true,
 }
 
-// parseILST reads the item list: the descriptive text atoms, the trkn/disk
-// number pairs, and the freeform atoms (ReplayGain, plus the iTunSMPB
-// gapless descriptor). Tolerance is the parseUdta contract: a malformed
-// item is skipped, never an error, since none of it gates playback.
 func (d *Demuxer) parseILST(body []byte) {
 	_ = walkBoxes(body, func(typ string, payload []byte) error {
 		switch {
@@ -229,7 +175,6 @@ func (d *Demuxer) parseILST(body []byte) {
 	})
 }
 
-// addTag records one canonical tag value, in file order.
 func (d *Demuxer) addTag(key, value string) {
 	if value == "" {
 		return
@@ -240,20 +185,10 @@ func (d *Demuxer) addTag(key, value string) {
 	d.tags[key] = append(d.tags[key], value)
 }
 
-// itemText reads an ilst item's text value: its data box's UTF-8 payload.
-// The type indicator must say UTF-8 (1), which is what every writer of
-// these atoms sets; a binary payload read as text would land mojibake in
-// the tag map.
-//
-// Multi-valued keys are not split back apart. The muxer joins them with
-// "; " because an ilst data atom holds a single string, so what the file
-// carries is one value, and splitting on a separator a value may itself
-// contain would invent fields the file does not have.
 func itemText(body []byte) (string, bool) {
 	var out string
 	var ok bool
 	_ = walkBoxes(body, func(typ string, p []byte) error {
-		// data box: type_indicator(4) locale(4) value.
 		if typ == "data" && !ok && len(p) >= 8 && be32(p) == 1 {
 			if s := strings.TrimRight(string(p[8:]), "\x00"); utf8.ValidString(s) {
 				out, ok = s, true
@@ -264,18 +199,6 @@ func itemText(body []byte) (string, bool) {
 	return out, ok
 }
 
-// addNumberPair reads a trkn/disk atom back into its two canonical keys:
-// a raw data box holding a 16-bit index then a 16-bit total, either of
-// which is absent when it is zero (the muxer writes no atom at all when
-// both are).
-//
-// The type indicator must say binary (0), the same gate itemText applies
-// for text. This reader runs on every MP4 input, not only files this
-// muxer wrote, and a writer that stored trkn as UTF-8 ("3/9") is not
-// hypothetical: read as big-endian words those bytes become a track
-// number in the thousands, which would then become the container-tag
-// floor and get embedded onto the output. A shape this cannot read is
-// skipped, per the tolerance contract, rather than guessed at.
 func (d *Demuxer) addNumberPair(body []byte, numKey, totalKey string) {
 	_ = walkBoxes(body, func(typ string, p []byte) error {
 		if typ != "data" || len(p) < 14 || be32(p) != 0 {
@@ -292,8 +215,6 @@ func (d *Demuxer) addNumberPair(body []byte, numKey, totalKey string) {
 	})
 }
 
-// parseFreeform reads a '----' freeform atom: the iTunSMPB gapless
-// descriptor, or one of the ReplayGain tag keys.
 func (d *Demuxer) parseFreeform(body []byte) {
 	var name string
 	var data []byte
@@ -304,7 +225,6 @@ func (d *Demuxer) parseFreeform(body []byte) {
 				name = string(rest)
 			}
 		case "data":
-			// data box: type_indicator(4) locale(4) value.
 			if len(p) >= 8 {
 				data = p[8:]
 			}
@@ -325,9 +245,6 @@ func (d *Demuxer) parseFreeform(body []byte) {
 	}
 }
 
-// parseSMPB parses an iTunSMPB value: space-separated hex fields whose
-// second, third, and fourth are the encoder delay, padding, and true
-// sample count.
 func (d *Demuxer) parseSMPB(s string) {
 	fields := strings.Fields(s)
 	if len(fields) < 4 {
@@ -339,19 +256,16 @@ func (d *Demuxer) parseSMPB(s string) {
 	if e1 != nil || e2 != nil || e3 != nil || delay < 0 || padding < 0 || total < 0 {
 		return
 	}
-	// padding is validated above but not retained: gapless derives it from
-	// totalRaw, delay, and the true sample count.
 	d.smpbDelay, d.smpbTotal, d.smpbOK = delay, total, true
 }
 
-// parseChpl reads a Nero chapter list. Times are 100-nanosecond units.
 func (d *Demuxer) parseChpl(payload []byte) {
 	version, _, rest, ok := fullBox(payload)
 	if !ok {
 		return
 	}
 	if version == 1 && len(rest) >= 4 {
-		rest = rest[4:] // some encoders add a reserved word before the count
+		rest = rest[4:]
 	}
 	if len(rest) < 1 {
 		return
@@ -376,23 +290,6 @@ func (d *Demuxer) parseChpl(payload []byte) {
 	}
 }
 
-// resolveChapters picks the chapter source: a text chapter track referenced
-// by the audio track if present, else the Nero chpl list.
-//
-// The text track wins because it is the lossless form: a real track whose
-// sample table is unbounded and whose stts times every chapter to its end.
-// chpl is a Nero extension whose one-byte count caps the list at 255, and
-// whose entries are starts only, ends discarded by construction. A file
-// carrying both (the common case, ours included: the muxer writes every
-// chapter to the text track and the first 255 to chpl) would otherwise read
-// back through chpl and lose everything past chapter 255.
-//
-// A fragmented movie resolves here too, and lands on chpl. Only the text track
-// is out of reach: its samples would live in the fragments, and a fragmented
-// moov's sample tables are empty by design, so chapterTrack passes it over for
-// having no samples. chpl is in the udta, which a fragmented moov carries like
-// any other, and the fragmented muxer writes one. Skipping this whole resolve
-// for a fragmented file threw away chapters the file plainly held.
 func (d *Demuxer) resolveChapters(tracks []*track, audio *track) {
 	if ct := d.chapterTrack(tracks, audio); ct != nil {
 		if chapters := d.readTextChapters(ct); len(chapters) > 0 {
@@ -403,8 +300,6 @@ func (d *Demuxer) resolveChapters(tracks []*track, audio *track) {
 	d.chapters = d.chplChapters
 }
 
-// chapterTrack finds the text track holding chapter titles: one referenced
-// by the audio track's 'chap' tref, or failing that any text track.
 func (d *Demuxer) chapterTrack(tracks []*track, audio *track) *track {
 	byID := func(id int) *track {
 		for _, t := range tracks {
@@ -427,25 +322,12 @@ func (d *Demuxer) chapterTrack(tracks []*track, audio *track) *track {
 	return nil
 }
 
-// readTextChapters reads chapter titles from a QuickTime text track: each
-// sample is a 16-bit length followed by the UTF-8 title, timed by the
-// sample's presentation time.
 func (d *Demuxer) readTextChapters(ct *track) []Chapter {
 	st := &ct.st
 	n := st.total
 	if n > maxChapters {
 		n = maxChapters
 	}
-	// The track's leading empty edit, on the track's own timeline. stts times
-	// the samples as deltas accumulated from zero, so the first chapter's start
-	// is in none of them: it is the edit list's blank presentation time, and a
-	// reader that ignores it reports every chapter in the file early by that
-	// much. A track whose first chapter starts at zero carries no edit and
-	// shifts by nothing.
-	//
-	// The rescale rounds because the two grids do not divide each other: the
-	// edit is in movie ticks, 44.1 of which make a millisecond at 44.1 kHz, and
-	// truncating would move the anchor a millisecond rather than a tick.
 	shift := mulDivRound(ct.emptyEdit, ct.timescale, d.movieTimescale)
 	var out []Chapter
 	for i := int64(0); i < n; i++ {
@@ -462,14 +344,7 @@ func (d *Demuxer) readTextChapters(ct *track) []Chapter {
 			textLen = len(buf) - 2
 		}
 		pts, dur := st.timeOf(i)
-		// pts*time.Second can overflow int64 for a hostile pts or a tiny
-		// timescale; the saturating rescale keeps chapter times from wrapping
-		// negative. mulDivSat returns 0 when ct.timescale is not positive.
 		start := time.Duration(mulDivSat(pts+shift, int64(time.Second), ct.timescale))
-		// A text track times every chapter to its end, which is why this
-		// source outranks chpl: chpl has nowhere to put an end. A
-		// zero-duration sample leaves End zero, which reads as "until the
-		// next chapter" exactly as a chpl entry does.
 		end := time.Duration(0)
 		if dur > 0 {
 			end = time.Duration(mulDivSat(pts+shift+dur, int64(time.Second), ct.timescale))
@@ -479,11 +354,7 @@ func (d *Demuxer) readTextChapters(ct *track) []Chapter {
 	return out
 }
 
-// sanitizeTitle renders a chapter title, dropping a leading UTF-16 BOM's
-// worth of noise and trailing NULs, keeping only printable content.
 func sanitizeTitle(b []byte) string {
-	// A UTF-16 BE BOM marks a wide title; decode it so the common
-	// wide-encoded case is not returned as mojibake.
 	if len(b) >= 2 && b[0] == 0xFE && b[1] == 0xFF {
 		return decodeUTF16BE(b[2:])
 	}
@@ -491,8 +362,6 @@ func sanitizeTitle(b []byte) string {
 	return strings.TrimSpace(s)
 }
 
-// decodeUTF16BE decodes big-endian UTF-16 (chapter titles occasionally use
-// it), pairing surrogates and ignoring a trailing odd byte.
 func decodeUTF16BE(b []byte) string {
 	u := make([]uint16, 0, len(b)/2)
 	for i := 0; i+1 < len(b); i += 2 {

@@ -32,7 +32,7 @@ func AgeRatingRoutes(
 	)
 
 	userGroup := v1.Group(
-		"/user/kids-mode", 
+		"/user/kids-mode",
 		middlewares.JwtAccess(userRepo),
 	)
 	userGroup.Get("/info", controller.GetKidsModeInfo)

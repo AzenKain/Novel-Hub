@@ -32,14 +32,54 @@ type FieldConfig = {
 };
 
 const DEFAULT_FIELDS: FieldConfig[] = [
-  { id: "author", defaultLabel: "👤 Author", customLabel: "👤 Author", enabled: true },
-  { id: "publisher", defaultLabel: "🏢 Publisher", customLabel: "🏢 Publisher", enabled: true },
-  { id: "language", defaultLabel: "🌐 Language", customLabel: "🌐 Language", enabled: true },
-  { id: "series", defaultLabel: "📖 Series", customLabel: "📖 Series", enabled: true },
-  { id: "tags", defaultLabel: "🏷️ Tags", customLabel: "🏷️ Tags", enabled: true },
-  { id: "cover", defaultLabel: "🖼️ Cover Image", customLabel: "🖼️ Cover Image", enabled: true },
-  { id: "description", defaultLabel: "📝 Description", customLabel: "📝 Description", enabled: true },
-  { id: "date", defaultLabel: "📅 Release Date", customLabel: "📅 Release Date", enabled: false },
+  {
+    id: "author",
+    defaultLabel: "👤 Author",
+    customLabel: "👤 Author",
+    enabled: true,
+  },
+  {
+    id: "publisher",
+    defaultLabel: "🏢 Publisher",
+    customLabel: "🏢 Publisher",
+    enabled: true,
+  },
+  {
+    id: "language",
+    defaultLabel: "🌐 Language",
+    customLabel: "🌐 Language",
+    enabled: true,
+  },
+  {
+    id: "series",
+    defaultLabel: "📖 Series",
+    customLabel: "📖 Series",
+    enabled: true,
+  },
+  {
+    id: "tags",
+    defaultLabel: "🏷️ Tags",
+    customLabel: "🏷️ Tags",
+    enabled: true,
+  },
+  {
+    id: "cover",
+    defaultLabel: "🖼️ Cover Image",
+    customLabel: "🖼️ Cover Image",
+    enabled: true,
+  },
+  {
+    id: "description",
+    defaultLabel: "📝 Description",
+    customLabel: "📝 Description",
+    enabled: true,
+  },
+  {
+    id: "date",
+    defaultLabel: "📅 Release Date",
+    customLabel: "📅 Release Date",
+    enabled: false,
+  },
 ];
 
 const COLOR_SWATCHES = [
@@ -69,7 +109,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
   isSaving,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"general" | "customizer">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "customizer">(
+    "general",
+  );
   const [previewEvent, setPreviewEvent] = useState<string>("book.created");
 
   const [form, setForm] = useState<CreateWebhookInput>({
@@ -108,7 +150,8 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
           if (parsed._bot_name) setBotName(parsed._bot_name);
           if (parsed._title_template) setTitleTemplate(parsed._title_template);
 
-          const savedLabels: Record<string, string> = parsed._field_labels || {};
+          const savedLabels: Record<string, string> =
+            parsed._field_labels || {};
 
           const httpHeadersOnly = { ...parsed };
           delete httpHeadersOnly._embed_color;
@@ -176,19 +219,21 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
   const toggleFieldEnabled = (fieldId: string) => {
     setFields((prev) =>
-      prev.map((f) => (f.id === fieldId ? { ...f, enabled: !f.enabled } : f))
+      prev.map((f) => (f.id === fieldId ? { ...f, enabled: !f.enabled } : f)),
     );
   };
 
   const updateFieldLabel = (fieldId: string, label: string) => {
     setFields((prev) =>
-      prev.map((f) => (f.id === fieldId ? { ...f, customLabel: label } : f))
+      prev.map((f) => (f.id === fieldId ? { ...f, customLabel: label } : f)),
     );
   };
 
   const resetFieldLabel = (fieldId: string) => {
     setFields((prev) =>
-      prev.map((f) => (f.id === fieldId ? { ...f, customLabel: f.defaultLabel } : f))
+      prev.map((f) =>
+        f.id === fieldId ? { ...f, customLabel: f.defaultLabel } : f,
+      ),
     );
   };
 
@@ -205,7 +250,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.url.trim()) {
-      toast.error(t("admin.fill_required", "Please fill in all required fields"));
+      toast.error(
+        t("admin.fill_required", "Please fill in all required fields"),
+      );
       return;
     }
 
@@ -250,12 +297,15 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
     language: "English",
     series: "Re:Zero (Vol. 9)",
     tags: ["Isekai", "Fantasy", "Light Novel"],
-    description: "Subaru Natsuki confronts the Witch Cult once again to defend the Roswaal mansion and rescue everyone he holds dear...",
-    cover_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80",
+    description:
+      "Subaru Natsuki confronts the Witch Cult once again to defend the Roswaal mansion and rescue everyone he holds dear...",
+    cover_url:
+      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80",
     date: "2026-07-22",
   };
 
-  const isFieldEnabled = (id: string) => fields.find((f) => f.id === id)?.enabled ?? true;
+  const isFieldEnabled = (id: string) =>
+    fields.find((f) => f.id === id)?.enabled ?? true;
   const getFieldLabel = (id: string) => {
     const f = fields.find((item) => item.id === id);
     return f?.customLabel || f?.defaultLabel || id;
@@ -266,7 +316,6 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
   return (
     <div className="modal modal-open">
       <div className="modal-box max-w-6xl w-11/12 p-0 rounded-3xl bg-base-100 shadow-2xl border border-base-300 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-base-200/60 border-b border-base-300">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
@@ -274,10 +323,15 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-lg leading-tight">
-                {editingWebhook ? t("admin.edit_webhook", "Edit Webhook & Live Builder") : t("admin.create_webhook", "Configure New Webhook")}
+                {editingWebhook
+                  ? t("admin.edit_webhook", "Edit Webhook & Live Builder")
+                  : t("admin.create_webhook", "Configure New Webhook")}
               </h3>
               <p className="text-xs text-base-content/60">
-                {t("admin.webhook_desc", "Customize titles, field labels, embed styles, and test live response preview")}
+                {t(
+                  "admin.webhook_desc",
+                  "Customize titles, field labels, embed styles, and test live response preview",
+                )}
               </p>
             </div>
           </div>
@@ -292,17 +346,19 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
           </button>
         </div>
 
-        {/* Dual Panel Body */}
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden min-h-0">
-          {/* Left Panel: Configuration Form */}
-          <form onSubmit={handleSubmit} className="w-full lg:w-1/2 p-6 overflow-y-auto flex flex-col gap-5 border-r border-base-300">
-            {/* Tabs for Config vs Customizer */}
+          <form
+            onSubmit={handleSubmit}
+            className="w-full lg:w-1/2 p-6 overflow-y-auto flex flex-col gap-5 border-r border-base-300"
+          >
             <div className="flex bg-base-200/70 p-1 rounded-xl gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab("general")}
                 className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "general" ? "bg-base-100 text-primary shadow-sm" : "text-base-content/60 hover:text-base-content"
+                  activeTab === "general"
+                    ? "bg-base-100 text-primary shadow-sm"
+                    : "text-base-content/60 hover:text-base-content"
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -312,7 +368,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 type="button"
                 onClick={() => setActiveTab("customizer")}
                 className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "customizer" ? "bg-base-100 text-primary shadow-sm" : "text-base-content/60 hover:text-base-content"
+                  activeTab === "customizer"
+                    ? "bg-base-100 text-primary shadow-sm"
+                    : "text-base-content/60 hover:text-base-content"
                 }`}
               >
                 <Palette className="w-3.5 h-3.5" />
@@ -324,7 +382,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
               <>
                 {/* Name */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.webhook_name", "Webhook Name")} *</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t("settings.webhook_name", "Webhook Name")} *
+                  </label>
                   <input
                     type="text"
                     required
@@ -346,37 +406,60 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                   <input
                     type={isEmailTemplate ? "text" : "url"}
                     required
-                    placeholder={isEmailTemplate ? "mailto:ops@example.com,team@example.com" : "https://discord.com/api/webhooks/..."}
+                    placeholder={
+                      isEmailTemplate
+                        ? "mailto:ops@example.com,team@example.com"
+                        : "https://discord.com/api/webhooks/..."
+                    }
                     value={form.url}
                     onChange={(e) => setForm({ ...form, url: e.target.value })}
                     className="input input-bordered input-sm w-full font-mono text-xs"
                   />
                   {isEmailTemplate && (
                     <p className="mt-1 text-[11px] text-base-content/50">
-                      {t("settings.email_recipients_hint", "Comma-separated addresses after mailto:. Requires SMTP to be configured.")}
+                      {t(
+                        "settings.email_recipients_hint",
+                        "Comma-separated addresses after mailto:. Requires SMTP to be configured.",
+                      )}
                     </p>
                   )}
                 </div>
 
                 {/* Platform Template */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.payload_format", "Payload Format Platform")}</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t("settings.payload_format", "Payload Format Platform")}
+                  </label>
                   <select
                     value={form.template_type}
-                    onChange={(e) => setForm({ ...form, template_type: e.target.value as any })}
+                    onChange={(e) =>
+                      setForm({ ...form, template_type: e.target.value as any })
+                    }
                     className="select select-bordered select-sm w-full font-medium"
                   >
-                    <option value="discord">{t("settings.webhook_tpl_discord")}</option>
-                    <option value="telegram">{t("settings.webhook_tpl_telegram")}</option>
-                    <option value="slack">{t("settings.webhook_tpl_slack")}</option>
-                    <option value="generic">{t("settings.webhook_tpl_generic")}</option>
-                    <option value="email">{t("settings.template_email", "Email (SMTP)")}</option>
+                    <option value="discord">
+                      {t("settings.webhook_tpl_discord")}
+                    </option>
+                    <option value="telegram">
+                      {t("settings.webhook_tpl_telegram")}
+                    </option>
+                    <option value="slack">
+                      {t("settings.webhook_tpl_slack")}
+                    </option>
+                    <option value="generic">
+                      {t("settings.webhook_tpl_generic")}
+                    </option>
+                    <option value="email">
+                      {t("settings.template_email", "Email (SMTP)")}
+                    </option>
                   </select>
                 </div>
 
                 {/* Subscribed Events Selector */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.subscribed_events", "Subscribed Events")}</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t("settings.subscribed_events", "Subscribed Events")}
+                  </label>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     {AVAILABLE_EVENTS.map((evt) => {
                       const isSelected = form.events.includes(evt.id);
@@ -391,7 +474,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                               : "bg-base-200/70 text-base-content/70 border-base-300 hover:bg-base-300 hover:text-base-content"
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-content" : "bg-base-content/40"}`} />
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-content" : "bg-base-content/40"}`}
+                          />
                           {evt.label}
                         </button>
                       );
@@ -401,19 +486,34 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
                 {/* Secret Key */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.secret_key", "Secret Key (HMAC SHA-256 Signature)")}</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t(
+                      "settings.secret_key",
+                      "Secret Key (HMAC SHA-256 Signature)",
+                    )}
+                  </label>
                   <input
                     type="text"
-                    placeholder={t("settings.secret_key_hint", "Optional secret key for X-NovelHub-Signature header")}
+                    placeholder={t(
+                      "settings.secret_key_hint",
+                      "Optional secret key for X-NovelHub-Signature header",
+                    )}
                     value={form.secret || ""}
-                    onChange={(e) => setForm({ ...form, secret: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, secret: e.target.value })
+                    }
                     className="input input-bordered input-sm w-full font-mono text-xs"
                   />
                 </div>
 
                 {/* Custom HTTP Headers */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.custom_headers", "Custom HTTP Headers (JSON format)")}</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t(
+                      "settings.custom_headers",
+                      "Custom HTTP Headers (JSON format)",
+                    )}
+                  </label>
                   <textarea
                     rows={2}
                     placeholder='{"Authorization": "Bearer token123", "X-Custom-Header": "value"}'
@@ -429,10 +529,17 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     <input
                       type="checkbox"
                       checked={form.is_active}
-                      onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                      onChange={(e) =>
+                        setForm({ ...form, is_active: e.target.checked })
+                      }
                       className="checkbox checkbox-primary checkbox-sm"
                     />
-                    <span className="label-text font-semibold text-xs">{t("settings.enable_webhook", "Enable Webhook Dispatcher")}</span>
+                    <span className="label-text font-semibold text-xs">
+                      {t(
+                        "settings.enable_webhook",
+                        "Enable Webhook Dispatcher",
+                      )}
+                    </span>
                   </label>
                 </div>
               </>
@@ -441,8 +548,12 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 {/* Embed Title Template Format Input */}
                 <div>
                   <label className="label text-xs font-bold text-base-content flex justify-between">
-                    <span>{t("settings.embed_title_format", "Embed Title Format")}</span>
-                    <span className="text-[11px] text-base-content/50 font-mono">Use {"{title}"} placeholder</span>
+                    <span>
+                      {t("settings.embed_title_format", "Embed Title Format")}
+                    </span>
+                    <span className="text-[11px] text-base-content/50 font-mono">
+                      Use {"{title}"} placeholder
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -457,8 +568,16 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 {form.template_type === "discord" && (
                   <div className="flex flex-col gap-2">
                     <label className="label text-xs font-bold text-base-content flex items-center justify-between">
-                      <span>{t("settings.embed_accent_color", "Discord Embed Accent Color")}</span>
-                      <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-base-200" style={{ color: embedColor }}>
+                      <span>
+                        {t(
+                          "settings.embed_accent_color",
+                          "Discord Embed Accent Color",
+                        )}
+                      </span>
+                      <span
+                        className="font-mono text-[11px] px-2 py-0.5 rounded bg-base-200"
+                        style={{ color: embedColor }}
+                      >
                         {embedColor}
                       </span>
                     </label>
@@ -490,7 +609,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
                 {/* Bot Name */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content">{t("settings.webhook_bot_name")}</label>
+                  <label className="label text-xs font-bold text-base-content">
+                    {t("settings.webhook_bot_name")}
+                  </label>
                   <input
                     type="text"
                     value={botName}
@@ -504,7 +625,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 <div className="flex flex-col gap-2">
                   <label className="label text-xs font-bold text-base-content flex justify-between">
                     <span>{t("settings.webhook_edit_fields")}</span>
-                    <span className="text-[11px] text-base-content/60">{t("settings.webhook_edit_fields_hint")}</span>
+                    <span className="text-[11px] text-base-content/60">
+                      {t("settings.webhook_edit_fields_hint")}
+                    </span>
                   </label>
 
                   <div className="flex flex-col gap-2 border border-base-300 rounded-xl p-2.5 bg-base-200/40 max-h-72 overflow-y-auto">
@@ -512,7 +635,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                       <div
                         key={f.id}
                         className={`flex items-center justify-between gap-2 p-2 rounded-lg text-xs transition-all ${
-                          f.enabled ? "bg-base-100 shadow-sm border border-base-200" : "opacity-50 bg-base-200/50"
+                          f.enabled
+                            ? "bg-base-100 shadow-sm border border-base-200"
+                            : "opacity-50 bg-base-200/50"
                         }`}
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -525,7 +650,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                           <input
                             type="text"
                             value={f.customLabel}
-                            onChange={(e) => updateFieldLabel(f.id, e.target.value)}
+                            onChange={(e) =>
+                              updateFieldLabel(f.id, e.target.value)
+                            }
                             className="input input-bordered input-xs font-semibold text-xs text-base-content w-full focus:ring-1 focus:ring-primary"
                             placeholder={f.defaultLabel}
                           />
@@ -568,11 +695,23 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 mt-auto pt-4 border-t border-base-300">
-              <button type="button" onClick={onClose} className="btn btn-ghost btn-sm">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-ghost btn-sm"
+              >
                 {t("common.cancel", "Cancel")}
               </button>
-              <button type="submit" disabled={isSaving} className="btn btn-primary btn-sm px-5">
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.save", "Save Webhook")}
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn btn-primary btn-sm px-5"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  t("common.save", "Save Webhook")
+                )}
               </button>
             </div>
           </form>
@@ -596,7 +735,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     key={evt}
                     onClick={() => setPreviewEvent(evt)}
                     className={`px-2 py-0.5 rounded-md transition-all ${
-                      previewEvent === evt ? "bg-base-100 font-bold shadow-xs text-primary" : "opacity-60 hover:opacity-100"
+                      previewEvent === evt
+                        ? "bg-base-100 font-bold shadow-xs text-primary"
+                        : "opacity-60 hover:opacity-100"
                     }`}
                   >
                     {evt}
@@ -620,7 +761,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     <span className="bg-[#5865F2] text-white text-[10px] px-1.5 py-0.2 rounded font-bold tracking-wider">
                       APP
                     </span>
-                    <span className="text-[11px] text-[#949ba4]">{t("settings.webhook_today_at")}</span>
+                    <span className="text-[11px] text-[#949ba4]">
+                      {t("settings.webhook_today_at")}
+                    </span>
                   </div>
                 </div>
 
@@ -665,49 +808,75 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                         if (f.id === "author")
                           return (
                             <div key={f.id}>
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("author")}</div>
-                              <div className="font-medium text-white">{sampleData.author}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("author")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.author}
+                              </div>
                             </div>
                           );
                         if (f.id === "publisher")
                           return (
                             <div key={f.id}>
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("publisher")}</div>
-                              <div className="font-medium text-white">{sampleData.publisher}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("publisher")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.publisher}
+                              </div>
                             </div>
                           );
                         if (f.id === "language")
                           return (
                             <div key={f.id}>
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("language")}</div>
-                              <div className="font-medium text-white">{sampleData.language}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("language")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.language}
+                              </div>
                             </div>
                           );
                         if (f.id === "series")
                           return (
                             <div key={f.id}>
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("series")}</div>
-                              <div className="font-medium text-white">{sampleData.series}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("series")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.series}
+                              </div>
                             </div>
                           );
                         if (f.id === "tags")
                           return (
                             <div key={f.id} className="col-span-2">
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("tags")}</div>
-                              <div className="font-medium text-white">{sampleData.tags.join(", ")}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("tags")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.tags.join(", ")}
+                              </div>
                             </div>
                           );
                         if (f.id === "date")
                           return (
                             <div key={f.id}>
-                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">{getFieldLabel("date")}</div>
-                              <div className="font-medium text-white">{sampleData.date}</div>
+                              <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                                {getFieldLabel("date")}
+                              </div>
+                              <div className="font-medium text-white">
+                                {sampleData.date}
+                              </div>
                             </div>
                           );
                         return null;
                       })}
                       <div>
-                        <div className="text-[11px] font-bold text-[#949ba4] uppercase">⚡ Event</div>
+                        <div className="text-[11px] font-bold text-[#949ba4] uppercase">
+                          ⚡ Event
+                        </div>
                         <code className="text-[11px] bg-[#1e1f22] text-[#f2f3f5] px-1.5 py-0.5 rounded font-mono">
                           {previewEvent}
                         </code>
@@ -718,7 +887,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                     <div className="text-[11px] text-[#949ba4] pt-1 flex items-center gap-1.5 border-t border-[#35373c]/50">
                       <span>NovelHub</span>
                       <span>•</span>
-                      <span>{t("settings.webhook_event_label")} {previewEvent}</span>
+                      <span>
+                        {t("settings.webhook_event_label")} {previewEvent}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -729,17 +900,41 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             {form.template_type === "telegram" && (
               <div className="bg-[#0f172a] text-slate-200 p-5 rounded-2xl border border-slate-800 font-sans shadow-xl flex flex-col gap-3">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-sky-400">
-                  <MessageSquare className="w-4 h-4" /> Telegram Bot Live Message
+                  <MessageSquare className="w-4 h-4" /> Telegram Bot Live
+                  Message
                 </div>
                 <div className="bg-[#1e293b] p-4 rounded-xl text-xs flex flex-col gap-1.5 font-mono text-slate-100 border border-slate-700">
-                  <div className="font-bold text-sky-400">📚 NovelHub Event: {previewEvent}</div>
-                  <div><b>📖 Book:</b> {sampleData.rawTitle}</div>
-                  {isFieldEnabled("author") && <div><b>{getFieldLabel("author")}:</b> {sampleData.author}</div>}
-                  {isFieldEnabled("publisher") && <div><b>{getFieldLabel("publisher")}:</b> {sampleData.publisher}</div>}
-                  {isFieldEnabled("language") && <div><b>{getFieldLabel("language")}:</b> {sampleData.language}</div>}
-                  {isFieldEnabled("series") && <div><b>{getFieldLabel("series")}:</b> {sampleData.series}</div>}
+                  <div className="font-bold text-sky-400">
+                    📚 NovelHub Event: {previewEvent}
+                  </div>
+                  <div>
+                    <b>📖 Book:</b> {sampleData.rawTitle}
+                  </div>
+                  {isFieldEnabled("author") && (
+                    <div>
+                      <b>{getFieldLabel("author")}:</b> {sampleData.author}
+                    </div>
+                  )}
+                  {isFieldEnabled("publisher") && (
+                    <div>
+                      <b>{getFieldLabel("publisher")}:</b>{" "}
+                      {sampleData.publisher}
+                    </div>
+                  )}
+                  {isFieldEnabled("language") && (
+                    <div>
+                      <b>{getFieldLabel("language")}:</b> {sampleData.language}
+                    </div>
+                  )}
+                  {isFieldEnabled("series") && (
+                    <div>
+                      <b>{getFieldLabel("series")}:</b> {sampleData.series}
+                    </div>
+                  )}
                   {isFieldEnabled("description") && (
-                    <div className="opacity-80 pt-1"><b>📝 Description:</b> {sampleData.description}</div>
+                    <div className="opacity-80 pt-1">
+                      <b>📝 Description:</b> {sampleData.description}
+                    </div>
                   )}
                 </div>
               </div>
@@ -753,14 +948,32 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 </div>
                 <div className="bg-[#222529] p-4 rounded-xl text-xs flex justify-between items-start gap-4 border border-slate-700">
                   <div className="flex flex-col gap-1.5">
-                    <div className="font-bold text-white text-sm">📚 NovelHub Event: {previewEvent}</div>
+                    <div className="font-bold text-white text-sm">
+                      📚 NovelHub Event: {previewEvent}
+                    </div>
                     <div>*Book:* {sampleData.rawTitle}</div>
-                    {isFieldEnabled("author") && <div>*{getFieldLabel("author")}:* {sampleData.author}</div>}
-                    {isFieldEnabled("publisher") && <div>*{getFieldLabel("publisher")}:* {sampleData.publisher}</div>}
-                    {isFieldEnabled("language") && <div>*{getFieldLabel("language")}:* {sampleData.language}</div>}
+                    {isFieldEnabled("author") && (
+                      <div>
+                        *{getFieldLabel("author")}:* {sampleData.author}
+                      </div>
+                    )}
+                    {isFieldEnabled("publisher") && (
+                      <div>
+                        *{getFieldLabel("publisher")}:* {sampleData.publisher}
+                      </div>
+                    )}
+                    {isFieldEnabled("language") && (
+                      <div>
+                        *{getFieldLabel("language")}:* {sampleData.language}
+                      </div>
+                    )}
                   </div>
                   {isFieldEnabled("cover") && (
-                    <img src={sampleData.cover_url} alt={t("common.alt_cover")} className="w-14 h-20 object-cover rounded shadow-sm shrink-0" />
+                    <img
+                      src={sampleData.cover_url}
+                      alt={t("common.alt_cover")}
+                      className="w-14 h-20 object-cover rounded shadow-sm shrink-0"
+                    />
                   )}
                 </div>
               </div>
@@ -769,7 +982,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             {/* Generic JSON Live Preview */}
             {form.template_type === "generic" && (
               <div className="bg-[#090d16] text-emerald-400 p-4 rounded-2xl border border-slate-800 font-mono text-xs shadow-xl flex flex-col gap-2">
-                <div className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">{t("settings.webhook_raw_payload")}</div>
+                <div className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  {t("settings.webhook_raw_payload")}
+                </div>
                 <pre className="overflow-x-auto p-3 bg-black/60 rounded-xl leading-relaxed">
                   {JSON.stringify(
                     {
@@ -778,17 +993,31 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                       data: {
                         id: "book-uuid-12345",
                         title: sampleData.rawTitle,
-                        author: isFieldEnabled("author") ? sampleData.author : undefined,
-                        publisher: isFieldEnabled("publisher") ? sampleData.publisher : undefined,
-                        language: isFieldEnabled("language") ? sampleData.language : undefined,
-                        series: isFieldEnabled("series") ? sampleData.series : undefined,
-                        description: isFieldEnabled("description") ? sampleData.description : undefined,
-                        cover_url: isFieldEnabled("cover") ? sampleData.cover_url : undefined,
-                        tags: isFieldEnabled("tags") ? sampleData.tags : undefined,
+                        author: isFieldEnabled("author")
+                          ? sampleData.author
+                          : undefined,
+                        publisher: isFieldEnabled("publisher")
+                          ? sampleData.publisher
+                          : undefined,
+                        language: isFieldEnabled("language")
+                          ? sampleData.language
+                          : undefined,
+                        series: isFieldEnabled("series")
+                          ? sampleData.series
+                          : undefined,
+                        description: isFieldEnabled("description")
+                          ? sampleData.description
+                          : undefined,
+                        cover_url: isFieldEnabled("cover")
+                          ? sampleData.cover_url
+                          : undefined,
+                        tags: isFieldEnabled("tags")
+                          ? sampleData.tags
+                          : undefined,
                       },
                     },
                     null,
-                    2
+                    2,
                   )}
                 </pre>
               </div>

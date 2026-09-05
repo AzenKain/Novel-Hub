@@ -1,7 +1,5 @@
 package aac
 
-// finishChannel applies TNS and the filterbank, writing the channel's 1024
-// output samples with overlap-add against the previous frame.
 func (d *Decoder) finishChannel(cd *channelData, outCh int) {
 	if cd.hasTNS {
 		applyTNS(cd, d.rateIdx)
@@ -19,8 +17,6 @@ func (d *Decoder) finishChannel(cd *channelData, outCh int) {
 	}
 	out := d.buf.ChanF(outCh)[:1024]
 	ov := &d.overlap[outCh]
-	// AAC dequantization yields integer-PCM-scale samples; normalize to the
-	// pipeline's [-1, 1] float convention.
 	const norm = 1.0 / 32768.0
 	for i := 0; i < 1024; i++ {
 		out[i] = float32((cur[i] + ov[i]) * norm)
@@ -29,11 +25,7 @@ func (d *Decoder) finishChannel(cd *channelData, outCh int) {
 	d.prevWin[outCh] = curShape
 }
 
-// longWindowApply windows a 2048-sample long IMDCT output. The left half
-// uses the previous frame's window shape, the right half the current's;
-// LONG_START and LONG_STOP taper into and out of the short-block region.
 func longWindowApply(z, cur *[2048]float64, seq, prevShape, curShape int) {
-	// Left half [0,1024).
 	if seq == longStop {
 		wl := &shortWindow[prevShape]
 		for n := 0; n < 448; n++ {
@@ -51,7 +43,6 @@ func longWindowApply(z, cur *[2048]float64, seq, prevShape, curShape int) {
 			cur[n] = z[n] * wl[n]
 		}
 	}
-	// Right half [1024,2048).
 	if seq == longStart {
 		for n := 1024; n < 1472; n++ {
 			cur[n] = z[n]
@@ -71,9 +62,6 @@ func longWindowApply(z, cur *[2048]float64, seq, prevShape, curShape int) {
 	}
 }
 
-// shortFilterbank runs the eight short IMDCTs, windows each with the short
-// window, and overlap-adds them into the 2048-sample frame at 128-sample
-// hops starting at offset 448.
 func shortFilterbank(cd *channelData, prevShape, curShape int, cur *[2048]float64) {
 	*cur = [2048]float64{}
 	for i := 0; i < 8; i++ {

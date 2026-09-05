@@ -1,4 +1,10 @@
-import { useCacheStatsQuery, useJobTasksQuery, useJobsQuery, useTriggerJobMutation, useLibrariesQuery } from "@/hooks";
+import {
+  useCacheStatsQuery,
+  useJobTasksQuery,
+  useJobsQuery,
+  useTriggerJobMutation,
+  useLibrariesQuery,
+} from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
 import { libraryService } from "@/services/libraryService";
@@ -77,9 +83,20 @@ export function JobsTab() {
       const res = await libraryService.setupLibraryInbox(selectedInboxLib);
       if (res.status && res.data) {
         setSetupInboxPath(res.data);
-        toast.success(t("admin.operations.inbox_setup_success", "Inbox folder setup successfully!"));
+        toast.success(
+          t(
+            "admin.operations.inbox_setup_success",
+            "Inbox folder setup successfully!",
+          ),
+        );
       } else {
-        toast.error(res.message || t("admin.operations.inbox_setup_failed", "Failed to setup inbox folder."));
+        toast.error(
+          res.message ||
+            t(
+              "admin.operations.inbox_setup_failed",
+              "Failed to setup inbox folder.",
+            ),
+        );
       }
     } catch (err) {
       toast.error(t("admin.operations.action_failed", "Action failed"));
@@ -110,40 +127,57 @@ export function JobsTab() {
 
   return (
     <div className="space-y-3">
-      {/* Cache Performance Cards */}
       {cacheStats.data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.cache_hit_rate")}</span>
+            <span className="text-xs text-base-content/60 font-medium">
+              {t("admin.operations.cache_hit_rate")}
+            </span>
             <div className="text-lg font-bold text-success">
               {(cacheStats.data.hit_rate * 100).toFixed(1)}%
             </div>
             <span className="text-[10px] text-base-content/40 font-mono">
-              {t("admin.operations.cache_hits_misses", { hits: cacheStats.data.hits.toLocaleString(), misses: cacheStats.data.misses.toLocaleString() })}
+              {t("admin.operations.cache_hits_misses", {
+                hits: cacheStats.data.hits.toLocaleString(),
+                misses: cacheStats.data.misses.toLocaleString(),
+              })}
             </span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.cached_entities")}</span>
+            <span className="text-xs text-base-content/60 font-medium">
+              {t("admin.operations.cached_entities")}
+            </span>
             <div className="text-lg font-bold text-primary">
               {cacheStats.data.entry_count.toLocaleString()}
             </div>
-            <span className="text-[10px] text-base-content/40">{t("admin.operations.active_ram_entries")}</span>
+            <span className="text-[10px] text-base-content/40">
+              {t("admin.operations.active_ram_entries")}
+            </span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.ram_budget")}</span>
+            <span className="text-xs text-base-content/60 font-medium">
+              {t("admin.operations.ram_budget")}
+            </span>
             <div className="text-lg font-bold text-info">
               {(cacheStats.data.max_cost / (1024 * 1024)).toFixed(0)} MB
             </div>
-            <span className="text-[10px] text-base-content/40">Theine-Go MaxCost</span>
+            <span className="text-[10px] text-base-content/40">
+              Theine-Go MaxCost
+            </span>
           </div>
           <div className="bg-base-100 border border-base-200 p-3 rounded-2xl shadow-2xs">
-            <span className="text-xs text-base-content/60 font-medium">{t("admin.operations.singleflight_guard")}</span>
-            <div className="text-lg font-bold text-accent">{t("common.active")}</div>
-            <span className="text-[10px] text-base-content/40">{t("admin.operations.stampede_protection")}</span>
+            <span className="text-xs text-base-content/60 font-medium">
+              {t("admin.operations.singleflight_guard")}
+            </span>
+            <div className="text-lg font-bold text-accent">
+              {t("common.active")}
+            </div>
+            <span className="text-[10px] text-base-content/40">
+              {t("admin.operations.stampede_protection")}
+            </span>
           </div>
         </div>
       )}
-      {/* Maintenance Action Buttons Box - Compact & Visible with Icons */}
       {canManage && (
         <div className="border border-base-200 bg-base-100 rounded-2xl p-3 sm:p-3.5 shadow-2xs space-y-2">
           <div className="flex items-center justify-between border-b border-base-200/60 pb-2">
@@ -215,14 +249,26 @@ export function JobsTab() {
           className="btn btn-sm btn-ghost gap-1.5 text-xs h-8 shrink-0"
           disabled={jobs.isFetching}
           onClick={async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] });
-            await queryClient.invalidateQueries({ queryKey: ["admin", "job_tasks"] });
-            await queryClient.invalidateQueries({ queryKey: ["admin", "cache_stats"] });
-            await Promise.all([jobs.refetch(), tasks.refetch(), cacheStats.refetch()]);
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "jobs"],
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "job_tasks"],
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ["admin", "cache_stats"],
+            });
+            await Promise.all([
+              jobs.refetch(),
+              tasks.refetch(),
+              cacheStats.refetch(),
+            ]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${jobs.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${jobs.isFetching ? "animate-spin" : ""}`}
+          />
           {t("admin.operations.refresh")}
         </button>
       </div>
@@ -266,8 +312,15 @@ export function JobsTab() {
               <ListTodo className="h-6 w-6" />
             </div>
             <div>
-              <p className="font-bold text-base text-base-content/80">{t("admin.operations.no_jobs", "No Background Tasks Found")}</p>
-              <p className="text-xs text-base-content/50 mt-1">{t("admin.operations.no_jobs_hint", "Tasks triggered manually or scheduled automatically will appear here.")}</p>
+              <p className="font-bold text-base text-base-content/80">
+                {t("admin.operations.no_jobs", "No Background Tasks Found")}
+              </p>
+              <p className="text-xs text-base-content/50 mt-1">
+                {t(
+                  "admin.operations.no_jobs_hint",
+                  "Tasks triggered manually or scheduled automatically will appear here.",
+                )}
+              </p>
             </div>
           </div>
         )}
@@ -276,18 +329,22 @@ export function JobsTab() {
       {showInboxModal && (
         <div className="modal modal-open">
           <div className="modal-box rounded-3xl border border-base-200 shadow-xl bg-base-100 max-w-lg font-sans">
-            <h3 className="font-bold text-lg">{t("admin.operations.setup_inbox", "Setup Inbox Folder")}</h3>
+            <h3 className="font-bold text-lg">
+              {t("admin.operations.setup_inbox", "Setup Inbox Folder")}
+            </h3>
             <p className="text-xs text-base-content/60 mt-1">
               {t(
                 "admin.operations.setup_inbox_desc",
-                "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning."
+                "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning.",
               )}
             </p>
 
             <div className="mt-4 space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-bold text-xs">{t("admin.operations.select_library", "Select Library")}</span>
+                  <span className="label-text font-bold text-xs">
+                    {t("admin.operations.select_library", "Select Library")}
+                  </span>
                 </label>
                 <select
                   className="select select-bordered w-full rounded-xl bg-base-100"
@@ -297,7 +354,10 @@ export function JobsTab() {
                     setSetupInboxPath("");
                   }}
                 >
-                  <option value="">-- {t("admin.operations.choose_library", "Choose Library")} --</option>
+                  <option value="">
+                    -- {t("admin.operations.choose_library", "Choose Library")}{" "}
+                    --
+                  </option>
                   {(libsData || []).map((lib) => (
                     <option key={lib.id} value={lib.id}>
                       {lib.name} ({lib.id})
@@ -312,13 +372,19 @@ export function JobsTab() {
                     {t("admin.operations.inbox_path", "Inbox Folder Path")}
                   </span>
                   <div className="flex items-center gap-2 bg-base-100 p-2 rounded-xl border border-base-200">
-                    <span className="text-xs font-mono break-all select-all flex-1">{setupInboxPath}</span>
+                    <span className="text-xs font-mono break-all select-all flex-1">
+                      {setupInboxPath}
+                    </span>
                     <button
                       onClick={handleCopyInboxPath}
                       className="btn btn-ghost btn-xs h-7 w-7 p-0 rounded-lg text-primary shrink-0"
                       title={t("common.copy", "Copy")}
                     >
-                      {copiedInboxPath ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedInboxPath ? (
+                        <CheckCheck className="w-3.5 h-3.5" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>

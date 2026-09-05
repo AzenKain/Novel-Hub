@@ -189,10 +189,6 @@ func (p *Parser) defaultSpine(filePath string) []bookparser.ChapterData {
 	}}
 }
 
-// ----------------------------------------------------------------------------
-// PPTX Support
-// ----------------------------------------------------------------------------
-
 func (p *Parser) parsePPTXMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}
 	r, err := zip.OpenReader(filePath)
@@ -259,7 +255,6 @@ func (p *Parser) parsePPTXSpine(filePath string) ([]bookparser.ChapterData, erro
 		}
 	}
 
-	// Sort slides numerically: slide1.xml, slide2.xml, slide10.xml
 	sort.Slice(slideFiles, func(i, j int) bool {
 		numI := extractSlideNumber(slideFiles[i])
 		numJ := extractSlideNumber(slideFiles[j])
@@ -337,7 +332,6 @@ func (p *Parser) getPPTXSlideContent(filePath, contentPath string) (string, erro
 	}
 	defer r.Close()
 
-	// Parse relationships for image embeds
 	relMap := make(map[string]string)
 	relsPath := fmt.Sprintf("ppt/slides/_rels/%s.rels", filepath.Base(contentPath))
 	for _, f := range r.File {
@@ -511,10 +505,6 @@ func (p *Parser) getPPTXSlideContent(filePath, contentPath string) (string, erro
 	return out.String(), nil
 }
 
-// ----------------------------------------------------------------------------
-// ODP (OpenDocument Presentation) Support
-// ----------------------------------------------------------------------------
-
 func (p *Parser) parseODPMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{Title: bookparser.TitleFromPath(filePath)}
 	r, err := zip.OpenReader(filePath)
@@ -620,8 +610,6 @@ func (p *Parser) parseODPSpine(filePath string) ([]bookparser.ChapterData, error
 	}
 	return chapters, nil
 }
-
-
 
 type odpStyle struct {
 	Bold      bool
@@ -884,10 +872,6 @@ func (p *Parser) getODPSlideContent(filePath, contentPath string) (string, error
 	return out.String(), nil
 }
 
-// ----------------------------------------------------------------------------
-// Binary PPT (PowerPoint 97-2003) Support
-// ----------------------------------------------------------------------------
-
 func (p *Parser) parsePPTMetadata(filePath string) (*bookparser.BookMetadata, error) {
 	meta := &bookparser.BookMetadata{
 		Title:       bookparser.TitleFromPath(filePath),
@@ -990,10 +974,6 @@ func (p *Parser) getPPTContent(filePath, contentPath string) (string, error) {
 	return out.String(), nil
 }
 
-// extractPPTSlideContainers returns the byte ranges of the top-level slide
-// containers (RT_SLIDE = 1006). Text records (RT_TextCharsAtom etc.) live
-// inside these containers, so extracting per-container yields per-slide text.
-// Main masters use RT_MAIN_MASTER = 1016 and are excluded.
 func extractPPTSlideContainers(data []byte) [][]byte {
 	var slides [][]byte
 	pos := 0
@@ -1078,7 +1058,6 @@ func extractPPTTextRecords(data []byte) []string {
 			break
 		}
 
-		// RT_TextCharsAtom = 4000 (UTF-16)
 		if recType == 4000 && recLen > 0 {
 			u16 := make([]uint16, recLen/2)
 			for i := range u16 {
@@ -1088,7 +1067,7 @@ func extractPPTTextRecords(data []byte) []string {
 			if txt != "" {
 				results = append(results, txt)
 			}
-		} else if (recType == 4008 || recType == 4010) && recLen > 0 { // RT_TextBytesAtom / RT_CString (ASCII)
+		} else if (recType == 4008 || recType == 4010) && recLen > 0 {
 			txt := strings.TrimSpace(string(data[pos : pos+int(recLen)]))
 			if txt != "" {
 				results = append(results, txt)

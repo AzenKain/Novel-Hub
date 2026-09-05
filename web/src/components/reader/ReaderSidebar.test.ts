@@ -282,11 +282,7 @@ describe("ReaderSidebar getSidebarEntryKind", () => {
     });
 
     it("classifies Chinese chapters", () => {
-      const chapters = [
-        "第一章 初入江湖",
-        "第10章 风云突变",
-        "100章 决战巅峰",
-      ];
+      const chapters = ["第一章 初入江湖", "第10章 风云突变", "100章 决战巅峰"];
 
       for (const title of chapters) {
         expect(getSidebarEntryKind(title)).toBe("chapter");
@@ -332,12 +328,7 @@ describe("ReaderSidebar getSidebarEntryKind", () => {
     });
 
     it("classifies Japanese sections", () => {
-      const sections = [
-        "第1巻",
-        "巻之一",
-        "第1編",
-        "第1部",
-      ];
+      const sections = ["第1巻", "巻之一", "第1編", "第1部"];
 
       for (const title of sections) {
         expect(getSidebarEntryKind(title)).toBe("section");
@@ -345,11 +336,7 @@ describe("ReaderSidebar getSidebarEntryKind", () => {
     });
 
     it("classifies Japanese chapters", () => {
-      const chapters = [
-        "第1話 はじまり",
-        "第2章 旅立ち",
-        "1話",
-      ];
+      const chapters = ["第1話 はじまり", "第2章 旅立ち", "1話"];
 
       for (const title of chapters) {
         expect(getSidebarEntryKind(title)).toBe("chapter");
@@ -387,12 +374,7 @@ describe("ReaderSidebar getSidebarEntryKind", () => {
     });
 
     it("classifies Korean sections", () => {
-      const sections = [
-        "제1권",
-        "1권",
-        "제1부",
-        "1부",
-      ];
+      const sections = ["제1권", "1권", "제1부", "1부"];
 
       for (const title of sections) {
         expect(getSidebarEntryKind(title)).toBe("section");
@@ -400,11 +382,7 @@ describe("ReaderSidebar getSidebarEntryKind", () => {
     });
 
     it("classifies Korean chapters", () => {
-      const chapters = [
-        "1화 시작",
-        "제1장 새로운 시작",
-        "제1화",
-      ];
+      const chapters = ["1화 시작", "제1장 새로운 시작", "제1화"];
 
       for (const title of chapters) {
         expect(getSidebarEntryKind(title)).toBe("chapter");

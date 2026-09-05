@@ -48,7 +48,7 @@ export const WebDAVSyncCard: React.FC = () => {
           <p className="text-xs text-base-content/60 leading-relaxed">
             {t(
               "webdav.subtitle",
-              "Connect Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero, or OS file explorers to browse and download books."
+              "Connect Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero, or OS file explorers to browse and download books.",
             )}
           </p>
         </div>
@@ -79,7 +79,9 @@ export const WebDAVSyncCard: React.FC = () => {
               ) : (
                 <Copy className="h-4 w-4" />
               )}
-              <span className="hidden sm:inline">{t("common.copy", "Copy")}</span>
+              <span className="hidden sm:inline">
+                {t("common.copy", "Copy")}
+              </span>
             </button>
             <button
               type="button"
@@ -109,19 +111,19 @@ export const WebDAVSyncCard: React.FC = () => {
             <li>
               {t(
                 "webdav.step1",
-                "Moon+ Reader / KyBook 3: Open Net Library -> Add WebDAV -> Paste the URL above."
+                "Moon+ Reader / KyBook 3: Open Net Library -> Add WebDAV -> Paste the URL above.",
               )}
             </li>
             <li>
               {t(
                 "webdav.step2",
-                "Authentication: Enter your NovelHub Email/Username and Password (or Magic Code)."
+                "Authentication: Enter your NovelHub Email/Username and Password (or Magic Code).",
               )}
             </li>
             <li>
               {t(
                 "webdav.step3",
-                "Browse your libraries as folders and download books directly to your device."
+                "Browse your libraries as folders and download books directly to your device.",
               )}
             </li>
           </ul>

@@ -20,20 +20,19 @@ import (
 
 // Flashcard represents a single flashcard item derived from a highlight or note.
 type Flashcard struct {
-	Front   string   // Highlighted quote / passage
-	Back    string   // User annotation, note, or translation
-	Context string   // Book title, chapter, author, or page reference
-	Tags    []string // Optional tags
+	Front   string
+	Back    string
+	Context string
+	Tags    []string
 }
 
 // DeckOptions contains metadata for the generated deck.
 type DeckOptions struct {
-	DeckName    string // Name of the deck, e.g. "NovelHub::The Great Gatsby"
-	Description string // Optional description
+	DeckName    string
+	Description string
 }
 
 // GenerateCSV generates an Anki-compatible TSV/CSV format with UTF-8 encoding.
-// It includes Anki import directives (#separator:tab, #html:true, #tags column) for seamless importing.
 func GenerateCSV(cards []Flashcard) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString("#separator:tab\n")
@@ -48,7 +47,6 @@ func GenerateCSV(cards []Flashcard) (string, error) {
 		if front == "" {
 			continue
 		}
-		// Convert newlines in front/back to <br> for HTML rendering in Anki
 		frontHTML := strings.ReplaceAll(html.EscapeString(front), "\n", "<br>")
 		backHTML := strings.ReplaceAll(html.EscapeString(strings.TrimSpace(card.Back)), "\n", "<br>")
 		if backHTML == "" {
@@ -78,7 +76,6 @@ func GenerateApkg(cards []Flashcard, opts DeckOptions) ([]byte, error) {
 		opts.DeckName = "NovelHub Reading Deck"
 	}
 
-	// Create a temporary SQLite database file for collection.anki2
 	tmpFile, err := os.CreateTemp("", "anki-col-*.db")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp sqlite file: %w", err)
@@ -112,7 +109,6 @@ func GenerateApkg(cards []Flashcard, opts DeckOptions) ([]byte, error) {
 		return nil, fmt.Errorf("failed to insert notes and cards: %w", err)
 	}
 
-	// Close database to flush all WAL/data into the single file
 	if err := db.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close sqlite: %w", err)
 	}
@@ -122,7 +118,6 @@ func GenerateApkg(cards []Flashcard, opts DeckOptions) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read sqlite file: %w", err)
 	}
 
-	// Package collection.anki2 and media into a zip archive
 	var zipBuf bytes.Buffer
 	zipWriter := zip.NewWriter(&zipBuf)
 

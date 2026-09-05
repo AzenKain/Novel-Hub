@@ -19,13 +19,13 @@ import (
 	"novelhub/internal/models"
 	"novelhub/internal/repositories"
 	"novelhub/pkg/apperrors"
-	"novelhub/pkg/netx"
 	"novelhub/pkg/jsonx"
-	"novelhub/pkg/worker"
+	"novelhub/pkg/netx"
 	"novelhub/pkg/waxflow"
 	"novelhub/pkg/waxflow/audio"
 	"novelhub/pkg/waxflow/container"
 	"novelhub/pkg/waxflow/format"
+	"novelhub/pkg/worker"
 )
 
 const (
@@ -49,22 +49,20 @@ type mergeAudioPayload struct {
 	Segments []request.MergeAudioSegment `json:"segments"`
 }
 
-// mergeSegment is a resolved timeline member: the file path plus the edit the
-// timeline applies to it (sample window + linear gain).
 type mergeSegment struct {
 	path     string
-	name     string // basename without extension, for the output chapter title
+	name     string
 	startSec float64
 	endSec   float64
 	gain     float64
 }
 
 type audiobookService struct {
-	repo           repositories.AudiobookRepository
-	bookRepo       repositories.BookDBRepository
-	fileRepo       repositories.BookFileRepository
-	jobQueue       *worker.Queue
-	httpClient     *http.Client
+	repo            repositories.AudiobookRepository
+	bookRepo        repositories.BookDBRepository
+	fileRepo        repositories.BookFileRepository
+	jobQueue        *worker.Queue
+	httpClient      *http.Client
 	audnexusBaseURL string
 }
 
@@ -121,8 +119,6 @@ type audnexusChaptersResponse struct {
 }
 
 func (s *audiobookService) LookupChaptersFromAudnexus(ctx context.Context, bookID string, asin string) ([]*response.AudiobookChapterResponse, error) {
-	// ASINs are alphanumeric; rejecting anything else keeps the value from
-	// steering the outbound URL path or query.
 	for _, r := range asin {
 		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
 			return nil, apperrors.New(apperrors.ErrBadRequest, "ASIN must be alphanumeric")
@@ -289,11 +285,6 @@ func (s *audiobookService) resolveMergeSegments(ctx context.Context, segs []requ
 	return out, nil
 }
 
-// openMergeSegment opens one timeline member: the source file, sliced to
-// [startSec, endSec) and scaled by a linear gain. A whole file at unity gain
-// is handed over unwrapped; anything else is a waxflow.Slice (streaming,
-// sample-exact, bounded memory) optionally behind a gainMedia. No temp files:
-// the timeline feeds the transcode directly.
 func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, startSec, endSec float64, gain float64) (waxflow.ConcatSource, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -310,8 +301,6 @@ func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, start
 		return waxflow.ConcatSource{}, err
 	}
 	track := info.Default()
-	// Stream formats with no container (ADTS .aac) declare no length; the
-	// timeline needs it, so measure with a full decode pass.
 	if track.Samples < 0 {
 		f2, err := os.Open(path)
 		if err != nil {
@@ -333,9 +322,6 @@ func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, start
 
 	start := int64(startSec * float64(track.Fmt.Rate))
 	end := int64(endSec * float64(track.Fmt.Rate))
-	// The FE measures duration in the browser, which can round a few samples
-	// past the server's count; clamp both ends so a full-file span stays full
-	// and a split never lands past the file.
 	if track.Samples >= 0 {
 		start = min(start, track.Samples)
 		end = min(end, track.Samples)
@@ -344,7 +330,6 @@ func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, start
 		return waxflow.ConcatSource{}, fmt.Errorf("segment [%.2fs, %.2fs) is empty or past the end of the file", startSec, endSec)
 	}
 
-	// Whole file at unity gain: hand the source over unwrapped.
 	if start == 0 && end >= track.Samples && gain == 1.0 {
 		open := func() (format.Media, error) {
 			f2, err := os.Open(path)
@@ -394,9 +379,6 @@ func openMergeSegment(ctx context.Context, e *waxflow.Engine, path string, start
 	return waxflow.ConcatSource{Track: spanned, Open: open}, nil
 }
 
-// gainMedia scales a Media's samples by a fixed linear factor, clamping to
-// the domain's range. It is the per-segment gain of the merge timeline
-// (1.0 = unchanged), matching the browser editor's gain strip.
 type gainMedia struct {
 	format.Media
 	gain float64

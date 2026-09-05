@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { highlightService } from "@/services";
-import { useExportHighlightsToReadwiseMutation, useTrackerConnectionsQuery } from "@/hooks";
+import {
+  useExportHighlightsToReadwiseMutation,
+  useTrackerConnectionsQuery,
+} from "@/hooks";
 import { useAuthStore } from "@/stores";
 import { hasPermission } from "@/utils/permission";
 
@@ -13,14 +16,20 @@ type HighlightsExportCardProps = {
   book_id: string;
 };
 
-export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book_id }) => {
+export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({
+  book_id,
+}) => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const canHighlight = hasPermission(user, "book.highlight");
-  const { data: connections = [] } = useTrackerConnectionsQuery(!!user && canHighlight);
-  const readwiseConnected = connections.some((c) => c.provider === "readwise" && c.connected);
+  const { data: connections = [] } = useTrackerConnectionsQuery(
+    !!user && canHighlight,
+  );
+  const readwiseConnected = connections.some(
+    (c) => c.provider === "readwise" && c.connected,
+  );
 
   const exportMutation = useExportHighlightsToReadwiseMutation();
 
@@ -30,12 +39,19 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
     exportMutation.mutate(book_id, {
       onSuccess: (data) =>
         toast.success(
-          t("highlights_export.exported", "Exported {{count}} highlights to Readwise", {
-            count: data.exported,
-          })
+          t(
+            "highlights_export.exported",
+            "Exported {{count}} highlights to Readwise",
+            {
+              count: data.exported,
+            },
+          ),
         ),
       onError: (err) =>
-        toast.error(err.message || t("highlights_export.export_failed", "Failed to export highlights")),
+        toast.error(
+          err.message ||
+            t("highlights_export.export_failed", "Failed to export highlights"),
+        ),
     });
   };
 
@@ -66,9 +82,15 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
     } catch (err) {
       const message = await highlightService.extractErrorMessage(
         err,
-        t("highlights_export.export_failed", "Failed to export highlights")
+        t("highlights_export.export_failed", "Failed to export highlights"),
       );
-      toast.error(message || t("highlights_export.no_highlights", "This book has no highlights to export"));
+      toast.error(
+        message ||
+          t(
+            "highlights_export.no_highlights",
+            "This book has no highlights to export",
+          ),
+      );
     } finally {
       setDownloading(null);
     }
@@ -83,11 +105,10 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
       <p className="text-xs text-base-content/60">
         {t(
           "highlights_export.subtitle",
-          "Send highlights to Readwise, export to Anki flashcards, or download as Markdown/CSV."
+          "Send highlights to Readwise, export to Anki flashcards, or download as Markdown/CSV.",
         )}
       </p>
 
-      {/* Readwise connection is managed in Profile; this card only reflects its state. */}
       {readwiseConnected ? (
         <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-xs text-base-content/70">
           <Check className="h-3.5 w-3.5 text-success" />
@@ -101,7 +122,12 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2.5 text-xs text-base-content/70">
-          <span>{t("highlights_export.connect_in_profile_hint", "Connect your Readwise account to export highlights.")}</span>
+          <span>
+            {t(
+              "highlights_export.connect_in_profile_hint",
+              "Connect your Readwise account to export highlights.",
+            )}
+          </span>
           <Link
             to="/profile?tab=trackers"
             className="ml-auto shrink-0 link link-hover text-primary"
@@ -117,7 +143,14 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           onClick={handleExport}
           className="btn btn-primary btn-sm gap-2"
           disabled={!readwiseConnected || exportMutation.isPending}
-          title={readwiseConnected ? undefined : t("highlights_export.connect_in_profile_hint", "Connect your Readwise account to export highlights.")}
+          title={
+            readwiseConnected
+              ? undefined
+              : t(
+                  "highlights_export.connect_in_profile_hint",
+                  "Connect your Readwise account to export highlights.",
+                )
+          }
         >
           {exportMutation.isPending ? (
             <span className="loading loading-spinner loading-xs" />
@@ -132,7 +165,11 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           className="btn btn-outline btn-sm gap-2"
           disabled={downloading !== null}
         >
-          {downloading === "anki" ? <span className="loading loading-spinner loading-xs" /> : <Layers className="h-4 w-4 text-primary" />}
+          {downloading === "anki" ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <Layers className="h-4 w-4 text-primary" />
+          )}
           {t("highlights_export.anki_btn", "Anki Deck (.apkg)")}
         </button>
         <button
@@ -141,7 +178,11 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           className="btn btn-outline btn-sm gap-2"
           disabled={downloading !== null}
         >
-          {downloading === "md" ? <span className="loading loading-spinner loading-xs" /> : <Download className="h-4 w-4" />}
+          {downloading === "md" ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
           {t("highlights_export.markdown_btn", "Markdown (.md)")}
         </button>
         <button
@@ -150,7 +191,11 @@ export const HighlightsExportCard: React.FC<HighlightsExportCardProps> = ({ book
           className="btn btn-outline btn-sm gap-2"
           disabled={downloading !== null}
         >
-          {downloading === "csv" ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet className="h-4 w-4" />}
+          {downloading === "csv" ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <FileSpreadsheet className="h-4 w-4" />
+          )}
           {t("highlights_export.csv_btn", "CSV (.csv)")}
         </button>
       </div>

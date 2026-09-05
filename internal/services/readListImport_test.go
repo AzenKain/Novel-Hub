@@ -75,9 +75,7 @@ const civilWarCBL = `<?xml version="1.0"?>
   </Books>
 </ReadingList>`
 
-// The whole point of an import is that reading order survives it. Document order in the .cbl is the
-// story order, and the list has to come back in exactly that order — with "01" matching a library
-// that stored "1", and the two issues NovelHub does not own reported instead of silently dropped.
+// The whole point of an import is that reading order survives it.
 func TestImportCBLKeepsOrderAndReportsGaps(t *testing.T) {
 	svc, db, claims := newReadListService(t)
 	ctx := context.Background()
@@ -121,8 +119,7 @@ func TestImportCBLKeepsOrderAndReportsGaps(t *testing.T) {
 	}
 }
 
-// "1", "01" and "1.0" name the same issue; "1A" and "1B" do not. Numeric equality has to win over
-// string equality without swallowing the variant letters that distinguish two real books.
+// "1", "01" and "1.0" name the same issue; "1A" and "1B" do not.
 func TestImportCBLNumberMatching(t *testing.T) {
 	svc, db, _ := newReadListService(t)
 	ctx := context.Background()
@@ -149,8 +146,7 @@ func TestImportCBLNumberMatching(t *testing.T) {
 	}
 }
 
-// A .cbl whose series are all missing still produces a list: the user gets an empty shell plus the
-// full report of what to go and add, which is more useful than an error with no detail.
+// A .cbl whose series are all missing still produces a list: the user gets an empty shell plus the full report of what to go and add, which is more useful than an error with no detail.
 func TestImportCBLWithNoMatchesStillReports(t *testing.T) {
 	svc, _, _ := newReadListService(t)
 	ctx := context.Background()
@@ -172,8 +168,7 @@ func TestImportCBLWithNoMatchesStillReports(t *testing.T) {
 	}
 }
 
-// Reorder is the one multi-row write, so it is the one that must be all-or-nothing: an order that
-// does not name every stored book is rejected before a single position is touched.
+// Reorder is the one multi-row write, so it is the one that must be all-or-nothing: an order that does not name every stored book is rejected before a single position is touched.
 func TestReorderRejectsAnIncompleteOrder(t *testing.T) {
 	svc, db, claims := newReadListService(t)
 	ctx := context.Background()
@@ -228,8 +223,7 @@ func TestReorderRejectsAnIncompleteOrder(t *testing.T) {
 	}
 }
 
-// Another user's list is not merely invisible, it is untouchable: every entry point checks ownership
-// before it reads or writes, so a guessed id cannot leak titles or reshuffle someone else's order.
+// Another user's list is not merely invisible, it is untouchable: every entry point checks ownership before it reads or writes, so a guessed id cannot leak titles or reshuffle someone else's order.
 func TestReadListRejectsAnotherUser(t *testing.T) {
 	svc, db, claims := newReadListService(t)
 	ctx := context.Background()
@@ -273,8 +267,7 @@ func TestReadListRejectsAnotherUser(t *testing.T) {
 	}
 }
 
-// Walking off the end is the normal way a read list finishes, so it answers has_next=false rather
-// than an error the reader would have to render as a failure.
+// Walking off the end is the normal way a read list finishes, so it answers has_next=false rather than an error the reader would have to render as a failure.
 func TestNextInOrderWalksToTheEnd(t *testing.T) {
 	svc, db, claims := newReadListService(t)
 	ctx := context.Background()

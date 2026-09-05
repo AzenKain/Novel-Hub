@@ -6,9 +6,7 @@ import (
 	"novelhub/internal/gen/sqlc"
 )
 
-// KoboAuthTokenEntity is the path token a Kobo device authenticates with. The token itself
-// is a credential, so it is never included in a ToResponse payload aimed at anyone other
-// than its owner — see internal/services/koboAuthService.go.
+// KoboAuthTokenEntity is the path token a Kobo device authenticates with.
 type KoboAuthTokenEntity struct {
 	Token      string
 	UserID     string

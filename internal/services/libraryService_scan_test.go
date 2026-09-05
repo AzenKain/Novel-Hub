@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// writeSettledFile creates a file whose mtime is old enough to pass inboxSettleDelay.
 func writeSettledFile(t *testing.T, path string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
@@ -33,13 +32,11 @@ func TestCollectInboxFiles(t *testing.T) {
 	writeSettledFile(t, filepath.Join(root, "Series", "Sub", "vol2.epub"))
 	writeSettledFile(t, filepath.Join(root, "notes.txt"))
 
-	// Fresh file is still being copied in; must be skipped this pass.
 	fresh := filepath.Join(root, "copying.epub")
 	if err := os.WriteFile(fresh, []byte("x"), 0o640); err != nil {
 		t.Fatal(err)
 	}
 
-	// Deeper than inboxMaxDepth (root is depth 0, so the 6th level is out).
 	deep := root
 	for i := 0; i < inboxMaxDepth+1; i++ {
 		deep = filepath.Join(deep, "d")

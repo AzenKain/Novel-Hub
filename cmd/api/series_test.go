@@ -67,8 +67,7 @@ func seriesContext(t *testing.T, app *fiber.App, bookID string) seriesContextBod
 	return decoded
 }
 
-// The chip needs the series id: the catalog filter matches on facet_id and silently returns
-// every book when only a name is supplied, so a name-only response is the bug, not the fix.
+// The chip needs the series id: the catalog filter matches on facet_id and silently returns every book when only a name is supplied, so a name-only response is the bug, not the fix.
 func TestBookSeriesReturnsTheSeriesID(t *testing.T) {
 	app, db, err := setupTestAppWithDB(t)
 	if err != nil {
@@ -130,8 +129,7 @@ func TestNextInSeriesFollowsTheIndexAndStopsAtTheEnd(t *testing.T) {
 	}
 }
 
-// An archived book is hidden from the catalog, so offering it as "next" sends the reader to a
-// page they cannot open.
+// An archived book is hidden from the catalog, so offering it as "next" sends the reader to a page they cannot open.
 func TestNextInSeriesSkipsArchivedBooks(t *testing.T) {
 	app, db, err := setupTestAppWithDB(t)
 	if err != nil {
@@ -159,8 +157,6 @@ func TestNextInSeriesSkipsArchivedBooks(t *testing.T) {
 }
 
 // A guest restricted to one library must not learn the title of the next book in another.
-// The settings cache is loaded during SetupServer, so guest access has to be seeded before the
-// app is built rather than through setupTestAppWithDB.
 func TestNextInSeriesRespectsLibraryVisibility(t *testing.T) {
 	t.Setenv("SQLITE_DB_PATH", filepath.Join(t.TempDir(), "series-visibility.db"))
 	db, err := database.NewSQLiteDB()

@@ -1,5 +1,5 @@
 export interface KoboSetup {
   endpoint_url: string;
-  /** True when the URL points at loopback — a Kobo cannot resolve it, so the UI warns. */
+  /** True when URL points to loopback which Kobo cannot resolve. */
   is_local_address: boolean;
 }

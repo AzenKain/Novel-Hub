@@ -16,7 +16,6 @@ func SyncRoutes(app fiber.Router, syncController *controllers.SyncController, us
 	apiV1.Get("/progress/:bookId", syncController.GetProgress)
 	apiV1.Put("/progress", syncController.UpdateProgress)
 
-	// KOReader Kosync Protocol Endpoints
 	koreader := app.Group("/v1/sync/koreader", middlewares.JwtAccess(userRepo))
 	koreader.Use(middlewares.RequirePermission(permissionCache, constants.PermTrackerSync))
 	koreader.Get("/syncs/progress/:document", syncController.KosyncGetProgress)

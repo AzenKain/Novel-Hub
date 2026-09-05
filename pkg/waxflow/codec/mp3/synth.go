@@ -1,17 +1,5 @@
 package mp3
 
-// Polyphase synthesis filterbank (ISO 11172-3 section 2.4.3.4.10.4, the
-// matrixing form carried by PDMP3): each of the granule's 18 slots turns
-// 32 subband samples into 64 matrixed values pushed onto the V ring,
-// then a windowed sum over V yields 32 PCM samples.
-//
-// The matrixing kernel cos((16+i)(2j+1)pi/64) is computed for half its
-// rows: row 16 is identically zero, rows 17..31 are the negated mirror
-// of 15..1, row 48 is the plain negated sum, and rows 49..63 mirror
-// 47..33. The reflection halves the dominant cost of the whole decoder.
-
-// synth runs one channel's granule through the filterbank, appending 576
-// PCM samples to dst.
 func (d *Decoder) synth(g *granule, ch int, dst []float32) {
 	spec := &g.spec[ch]
 	v := &d.v[ch]

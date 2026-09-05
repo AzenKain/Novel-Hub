@@ -269,7 +269,6 @@ func (r *webhookRepository) Count(ctx context.Context) (int64, error) {
 	return v.(int64), nil
 }
 
-
 func (r *webhookRepository) Update(ctx context.Context, entity *models.WebhookEntity) (*models.WebhookEntity, error) {
 	eventsStr := strings.Join(entity.Events, ",")
 	isActiveInt := int64(0)
