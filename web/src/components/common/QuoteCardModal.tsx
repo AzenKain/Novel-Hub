@@ -391,9 +391,9 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       className="modal modal-open z-60 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
       data-reader-modal="true"
     >
-      <div className="modal-box max-w-lg p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col gap-4">
+      <div className="modal-box w-[calc(100vw-2rem)] max-w-lg p-3.5 sm:p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col gap-3 sm:gap-4 max-h-[92vh] overflow-x-hidden overflow-y-auto">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-(--reader-ui-border,rgba(255,255,255,0.1)) pb-3">
+        <div className="flex items-center justify-between border-b border-(--reader-ui-border,rgba(255,255,255,0.1)) pb-2.5 sm:pb-3">
           <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">
             <Sparkles className="w-4 h-4 text-(--reader-ui-accent,#38bdf8)" />
             <span>{t("reader.quote_card_title", "Create quote image")}</span>
@@ -409,20 +409,20 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
 
         {/* Canvas Preview */}
         <div className="flex justify-center items-center py-1">
-          <div className="relative rounded-xl overflow-hidden shadow-2xl border border-(--reader-ui-border,rgba(255,255,255,0.15)) max-h-[55vh] flex justify-center bg-black/20">
+          <div className="relative rounded-xl overflow-hidden shadow-2xl border border-(--reader-ui-border,rgba(255,255,255,0.15)) max-h-[44vh] sm:max-h-[52vh] flex justify-center bg-black/20 w-full">
             <canvas
               ref={canvasRef}
-              className="max-h-[55vh] w-auto h-auto object-contain rounded-xl"
+              className="max-h-[44vh] sm:max-h-[52vh] max-w-full w-auto h-auto object-contain rounded-xl"
             />
           </div>
         </div>
 
         {/* Theme Selectors */}
-        <div className="flex items-center justify-between gap-2 px-1">
-          <span className="text-xs font-semibold opacity-70">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 px-0.5">
+          <span className="text-xs font-semibold opacity-70 shrink-0">
             {t("reader.quote_theme", "Theme")}:
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             {[
               { id: "aurora", label: "Aurora", bg: "bg-linear-to-r from-purple-900 to-sky-900" },
               { id: "modern", label: "OLED", bg: "bg-[#0c0d12] border border-white/20" },
@@ -433,7 +433,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
                 key={th.id}
                 type="button"
                 onClick={() => setTheme(th.id as CardTheme)}
-                className={`btn btn-xs rounded-lg text-[11px] font-medium px-2.5 transition-all cursor-pointer ${
+                className={`btn btn-xs rounded-lg text-[10px] sm:text-[11px] font-medium px-1 sm:px-2.5 h-7 transition-all cursor-pointer truncate ${
                   theme === th.id
                     ? "ring-2 ring-(--reader-ui-accent,#38bdf8) ring-offset-1 ring-offset-(--reader-ui-surface-strong,#1e202b) opacity-100 font-bold scale-105"
                     : "opacity-60 hover:opacity-100"
@@ -446,30 +446,32 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-(--reader-ui-border,rgba(255,255,255,0.1))">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-(--reader-ui-border,rgba(255,255,255,0.1))">
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-sm rounded-xl bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border)"
+            className="btn btn-sm rounded-xl bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border) w-full sm:w-auto"
           >
             {t("common.cancel", "Cancel")}
           </button>
-          <button
-            type="button"
-            onClick={handleCopyImage}
-            className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border) font-semibold"
-          >
-            {copiedImage ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-            <span>{copiedImage ? t("reader.copied", "Copied") : t("reader.copy_image", "Copy Image")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90 font-bold"
-          >
-            <Download size={14} />
-            <span>{t("reader.download_image", "Download image")}</span>
-          </button>
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 flex-1 sm:flex-initial">
+            <button
+              type="button"
+              onClick={handleCopyImage}
+              className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border) font-semibold text-xs min-w-0"
+            >
+              {copiedImage ? <Check size={14} className="text-success shrink-0" /> : <Copy size={14} className="shrink-0" />}
+              <span className="truncate">{copiedImage ? t("reader.copied", "Copied") : t("reader.copy_image", "Copy Image")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="btn btn-sm rounded-xl gap-1.5 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90 font-bold text-xs min-w-0"
+            >
+              <Download size={14} className="shrink-0" />
+              <span className="truncate">{t("reader.download_image", "Download image")}</span>
+            </button>
+          </div>
         </div>
       </div>
     </dialog>

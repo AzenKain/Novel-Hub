@@ -163,9 +163,9 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
           className="mt-2 mb-3 flex items-center gap-2.5 px-2 hover:opacity-80 transition-opacity cursor-pointer text-left focus:outline-none"
         >
           {siteLogo ? (
-            <img src={siteLogo} alt={t("common.alt_logo", "Logo")} className="h-9 w-9 rounded-lg object-contain shadow-md" />
+            <img src={siteLogo} alt={t("common.alt_logo", "Logo")} className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm" />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-md shadow-primary/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-md shadow-primary/20 shrink-0">
               NH
             </div>
           )}

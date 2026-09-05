@@ -82,6 +82,7 @@ type BookService interface {
 	BulkMoveBooks(ctx context.Context, dto *request.BulkMoveBooksDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 	BulkAssignCollections(ctx context.Context, dto *request.BulkAssignCollectionsDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 	BulkAddTags(ctx context.Context, dto *request.BulkAddTagsDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
+	BulkUpdateMetadata(ctx context.Context, dto *request.BulkUpdateMetadataDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error)
 
 	SetWebhookService(webhook WebhookService)
 

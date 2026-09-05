@@ -39,5 +39,7 @@ func BookRoutes(app fiber.Router, bookController *controllers.BookController, us
 	bookGroup.Post("/bulk-assign-collections", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkAssignCollections)
 	bookGroup.Post("/bulk-convert", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkConvertBooks)
 	bookGroup.Post("/bulk-add-tags", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkAddTags)
+	bookGroup.Post("/bulk-update-metadata", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkUpdateMetadata)
+	bookGroup.Post("/bulk/metadata", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookBulkManage), bookController.BulkUpdateMetadata)
 	bookGroup.Delete("/:id", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDelete, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.DeleteBook)
 }

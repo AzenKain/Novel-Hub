@@ -978,6 +978,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.removeBookFromReadListStmt, err = db.PrepareContext(ctx, removeBookFromReadList); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveBookFromReadList: %w", err)
 	}
+	if q.removeBookTagStmt, err = db.PrepareContext(ctx, removeBookTag); err != nil {
+		return nil, fmt.Errorf("error preparing query RemoveBookTag: %w", err)
+	}
 	if q.repointHighlightChaptersStmt, err = db.PrepareContext(ctx, repointHighlightChapters); err != nil {
 		return nil, fmt.Errorf("error preparing query RepointHighlightChapters: %w", err)
 	}
@@ -2774,6 +2777,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing removeBookFromReadListStmt: %w", cerr)
 		}
 	}
+	if q.removeBookTagStmt != nil {
+		if cerr := q.removeBookTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing removeBookTagStmt: %w", cerr)
+		}
+	}
 	if q.repointHighlightChaptersStmt != nil {
 		if cerr := q.repointHighlightChaptersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing repointHighlightChaptersStmt: %w", cerr)
@@ -3466,6 +3474,7 @@ type Queries struct {
 	releaseJobScheduleClaimStmt        *sql.Stmt
 	removeBookFromCollectionStmt       *sql.Stmt
 	removeBookFromReadListStmt         *sql.Stmt
+	removeBookTagStmt                  *sql.Stmt
 	repointHighlightChaptersStmt       *sql.Stmt
 	repointReadingProgressFileStmt     *sql.Stmt
 	restoreUserStmt                    *sql.Stmt
@@ -3857,6 +3866,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		releaseJobScheduleClaimStmt:        q.releaseJobScheduleClaimStmt,
 		removeBookFromCollectionStmt:       q.removeBookFromCollectionStmt,
 		removeBookFromReadListStmt:         q.removeBookFromReadListStmt,
+		removeBookTagStmt:                  q.removeBookTagStmt,
 		repointHighlightChaptersStmt:       q.repointHighlightChaptersStmt,
 		repointReadingProgressFileStmt:     q.repointReadingProgressFileStmt,
 		restoreUserStmt:                    q.restoreUserStmt,

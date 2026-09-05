@@ -17,6 +17,7 @@
     "daisyui": "^5.7.19",
     "dompurify": "^3.4.14",
     "fast-average-color": "^9.5.2",
+    "html2canvas-pro": "^2.4.1",
     "i18next": "^26.3.6",
     "i18next-browser-languagedetector": "^8.2.1",
     "i18next-http-backend": "^4.0.1",

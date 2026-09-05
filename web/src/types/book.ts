@@ -262,6 +262,28 @@ export interface UpdateBookMetadataRequest {
   rating?: number;
 }
 
+export interface BulkUpdateMetadataItem {
+  book_id: string;
+  title?: string;
+  author?: string;
+  series_index?: string;
+  publisher?: string;
+  language?: string;
+  description?: string;
+}
+
+export interface BulkUpdateMetadataRequest {
+  book_ids: string[];
+  author?: string;
+  series?: string;
+  auto_index_series?: boolean;
+  publisher?: string;
+  language?: string;
+  add_tags?: string[];
+  remove_tags?: string[];
+  items?: BulkUpdateMetadataItem[];
+}
+
 export interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;

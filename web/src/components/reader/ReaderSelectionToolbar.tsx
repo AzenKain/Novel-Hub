@@ -108,6 +108,12 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       onMouseUp={(e) => {
         e.stopPropagation();
       }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+      }}
+      onTouchEnd={(e) => {
+        e.stopPropagation();
+      }}
       className="reader-selection-toolbar fixed z-50 flex w-[calc(100vw-1rem)] max-w-92 sm:max-w-96 max-h-[calc(100vh-5rem)] flex-col gap-2 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in duration-100"
       style={{ top: `${computedTop}px`, left: `${toolbarPos.left}px` }}
     >

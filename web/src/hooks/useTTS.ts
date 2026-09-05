@@ -37,6 +37,58 @@ export function cleanTextForTTS(text: string): string {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ");
 }
 
+export function detectLanguage(text: string): string {
+  if (!text) return "en-US";
+
+  // Vietnamese: Latin with specific tone marks / horn / hook
+  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/i.test(text)) {
+    return "vi-VN";
+  }
+
+  // Japanese: Hiragana or Katakana
+  if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) {
+    return "ja-JP";
+  }
+
+  // Korean: Hangul syllables or Jamo
+  if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(text)) {
+    return "ko-KR";
+  }
+
+  // Chinese: Hanzi
+  if (/[\u4E00-\u9FFF]/.test(text)) {
+    return "zh-CN";
+  }
+
+  // Cyrillic (Russian, etc.)
+  if (/[\u0400-\u04FF]/.test(text)) {
+    return "ru-RU";
+  }
+
+  // Arabic
+  if (/[\u0600-\u06FF]/.test(text)) {
+    return "ar-SA";
+  }
+
+  // Fallback to browser or document locale
+  const docLang = typeof document !== "undefined" ? document.documentElement.lang : "";
+  const navLang = typeof navigator !== "undefined" ? (navigator.language || (navigator as any).userLanguage) : "";
+  const rawLang = (docLang || navLang || "en-US").toLowerCase();
+
+  if (rawLang.startsWith("vi")) return "vi-VN";
+  if (rawLang.startsWith("ja")) return "ja-JP";
+  if (rawLang.startsWith("ko")) return "ko-KR";
+  if (rawLang.startsWith("zh")) return "zh-CN";
+  if (rawLang.startsWith("fr")) return "fr-FR";
+  if (rawLang.startsWith("de")) return "de-DE";
+  if (rawLang.startsWith("es")) return "es-ES";
+  if (rawLang.startsWith("ru")) return "ru-RU";
+  if (rawLang.startsWith("ar")) return "ar-SA";
+  if (rawLang.startsWith("en")) return "en-US";
+
+  return rawLang || "en-US";
+}
+
 export function cleanTextForTTSWithMap(text: string): TextChunk {
   let cleaned = "";
   const cleanToRawMap: number[] = [];
@@ -193,7 +245,21 @@ export function splitTextIntoChunks(fullText: string): TextChunk[] {
 }
 
 export function useTTS(options?: UseTTSOptions) {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported, setIsSupported] = useState(() => {
+    return (
+      typeof window !== "undefined" &&
+      "speechSynthesis" in window &&
+      "SpeechSynthesisUtterance" in window
+    );
+  });
+  const [hasVoices, setHasVoices] = useState<boolean>(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+    try {
+      localStorage.removeItem("novelhub_tts_has_voices");
+    } catch {}
+    const syncVoices = window.speechSynthesis.getVoices?.() || [];
+    return syncVoices.length > 0;
+  });
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -229,28 +295,112 @@ export function useTTS(options?: UseTTSOptions) {
   volumeRef.current = volume;
   const selectedVoiceRef = useRef(selectedVoice);
   selectedVoiceRef.current = selectedVoice;
+  const voicesRef = useRef<SpeechSynthesisVoice[]>(voices);
+  voicesRef.current = voices;
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsSupported(true);
-      
-      if (window.speechSynthesis) {
-        const updateVoices = () => {
-          const availableVoices = window.speechSynthesis.getVoices();
-          setVoices(availableVoices);
-          if (availableVoices.length > 0 && !selectedVoiceRef.current) {
-            setSelectedVoice(availableVoices.find(v => v.default) || availableVoices[0]);
-          }
-        };
-
-        updateVoices();
-        window.speechSynthesis.onvoiceschanged = updateVoices;
-
-        return () => {
-          window.speechSynthesis.onvoiceschanged = null;
-        };
-      }
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      !("SpeechSynthesisUtterance" in window)
+    ) {
+      setIsSupported(false);
+      setHasVoices(false);
+      return;
     }
+
+    setIsSupported(true);
+
+    const updateVoices = () => {
+      try {
+        if (!window.speechSynthesis) return;
+        const availableVoices = window.speechSynthesis.getVoices() || [];
+        setVoices(availableVoices);
+        if (availableVoices.length > 0) {
+          setHasVoices(true);
+          if (!selectedVoiceRef.current) {
+            setSelectedVoice(availableVoices.find((v) => v.default) || availableVoices[0]);
+          }
+        } else {
+          setHasVoices(false);
+        }
+      } catch (err) {
+        console.warn("[useTTS] updateVoices error:", err);
+      }
+    };
+
+    updateVoices();
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+
+    // Mobile browsers (e.g. Android Chrome, Safari) load voices asynchronously or require warm-up.
+    const t1 = setTimeout(updateVoices, 100);
+    const t2 = setTimeout(updateVoices, 300);
+    const t3 = setTimeout(updateVoices, 600);
+    const t4 = setTimeout(updateVoices, 1200);
+    const t5 = setTimeout(updateVoices, 2500);
+    const t6 = setTimeout(updateVoices, 4500);
+
+    const handleFocus = () => updateVoices();
+    const handleVisibilityChange = () => {
+      if (!document.hidden) updateVoices();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+      clearTimeout(t6);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
+
+  // Mobile browsers require an initial user gesture to unlock Web Speech API audio output
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+    const unlockSpeech = () => {
+      try {
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          const silentUtterance = new SpeechSynthesisUtterance("");
+          silentUtterance.volume = 0;
+          silentUtterance.rate = 2;
+          window.speechSynthesis.speak(silentUtterance);
+        }
+      } catch {}
+    };
+
+    const handleUserGesture = () => {
+      unlockSpeech();
+      try {
+        const freshVoices = window.speechSynthesis.getVoices() || [];
+        if (freshVoices.length > 0) {
+          setVoices(freshVoices);
+          setHasVoices(true);
+        }
+      } catch {}
+      window.removeEventListener("touchstart", handleUserGesture, true);
+      window.removeEventListener("touchend", handleUserGesture, true);
+      window.removeEventListener("click", handleUserGesture, true);
+    };
+
+    window.addEventListener("touchstart", handleUserGesture, { capture: true, once: true });
+    window.addEventListener("touchend", handleUserGesture, { capture: true, once: true });
+    window.addEventListener("click", handleUserGesture, { capture: true, once: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleUserGesture, true);
+      window.removeEventListener("touchend", handleUserGesture, true);
+      window.removeEventListener("click", handleUserGesture, true);
+    };
   }, []);
 
   useEffect(() => {
@@ -292,8 +442,26 @@ export function useTTS(options?: UseTTSOptions) {
     activeUtteranceRef.current = utterance;
     (window as any).__novelhub_active_utterance = utterance;
 
-    if (selectedVoiceRef.current) {
-      utterance.voice = selectedVoiceRef.current;
+    const detectedLang = detectLanguage(textToSpeak);
+    utterance.lang = detectedLang;
+
+    const langPrefix = detectedLang.split("-")[0].toLowerCase();
+    let voiceToUse = selectedVoiceRef.current;
+
+    if (voiceToUse && !voiceToUse.lang.toLowerCase().startsWith(langPrefix)) {
+      const allVoices = voicesRef.current.length > 0 ? voicesRef.current : (window.speechSynthesis.getVoices() || []);
+      const match = allVoices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
+      voiceToUse = match || null;
+    } else if (!voiceToUse) {
+      const allVoices = voicesRef.current.length > 0 ? voicesRef.current : (window.speechSynthesis.getVoices() || []);
+      const match = allVoices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
+      if (match) {
+        voiceToUse = match;
+      }
+    }
+
+    if (voiceToUse) {
+      utterance.voice = voiceToUse;
     }
     utterance.rate = rateRef.current;
     utterance.pitch = pitchRef.current;
@@ -338,6 +506,15 @@ export function useTTS(options?: UseTTSOptions) {
           }, 40);
           return;
         }
+      }
+
+      if (e.error === "synthesis-unavailable" || e.error === "voice-unavailable" || e.error === "language-unavailable") {
+        console.warn("[TTS] Voice synthesis error:", e.error);
+        isCanceledRef.current = true;
+        setIsPlaying(false);
+        setIsPaused(false);
+        optionsRef.current?.onError?.(e);
+        return;
       }
 
       savedRemainingTextRef.current = null;
@@ -415,6 +592,12 @@ export function useTTS(options?: UseTTSOptions) {
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !text.trim() || !window.speechSynthesis) return;
+
+    try {
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending || window.speechSynthesis.paused) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {}
 
     const chunks = splitTextIntoChunks(text);
     if (chunks.length === 0) return;
@@ -528,6 +711,7 @@ export function useTTS(options?: UseTTSOptions) {
 
   return {
     isSupported,
+    hasVoices,
     voices,
     selectedVoice,
     setSelectedVoice,

@@ -517,7 +517,8 @@ export const highlightTextRangeFromNode = (
             const rect = range.getBoundingClientRect();
             const containerRect = pagedContainer.getBoundingClientRect();
             const pageGap = 40;
-            const scrollStep = pagedContainer.clientWidth + pageGap;
+            const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+            const scrollStep = containerWidth + pageGap;
             const currentScrollLeft = pagedContainer.scrollLeft;
             const relativeLeft = (rect.left - containerRect.left) + currentScrollLeft;
             const targetPageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
@@ -525,7 +526,7 @@ export const highlightTextRangeFromNode = (
 
             if (targetPageIndex !== currentCalculatedPage && targetPageIndex >= 0) {
               pagedContainer.scrollTo({
-                left: targetPageIndex * scrollStep,
+                left: Math.round(targetPageIndex * scrollStep),
                 behavior: "smooth",
               });
             }
@@ -843,12 +844,13 @@ export const scrollToTextOffset = (container: HTMLElement, startChar: number): b
       const rangeRect = range.getBoundingClientRect();
       const containerRect = pagedContainer.getBoundingClientRect();
       const pageGap = 40;
-      const scrollStep = pagedContainer.clientWidth + pageGap;
+      const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+      const scrollStep = containerWidth + pageGap;
       const currentScrollLeft = pagedContainer.scrollLeft;
       const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
       const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
       pagedContainer.scrollTo({
-        left: pageIndex * scrollStep,
+        left: Math.round(pageIndex * scrollStep),
         behavior: "smooth",
       });
       return true;
@@ -1034,12 +1036,13 @@ export const scrollToSearchMatch = (
       const rangeRect = range.getBoundingClientRect();
       const containerRect = pagedContainer.getBoundingClientRect();
       const pageGap = 40;
-      const scrollStep = pagedContainer.clientWidth + pageGap;
+      const containerWidth = containerRect.width > 0 ? containerRect.width : pagedContainer.clientWidth;
+      const scrollStep = containerWidth + pageGap;
       const currentScrollLeft = pagedContainer.scrollLeft;
       const relativeLeft = (rangeRect.left - containerRect.left) + currentScrollLeft;
       const pageIndex = Math.max(0, Math.floor(relativeLeft / scrollStep));
       pagedContainer.scrollTo({
-        left: pageIndex * scrollStep,
+        left: Math.round(pageIndex * scrollStep),
         behavior: "smooth",
       });
       return true;

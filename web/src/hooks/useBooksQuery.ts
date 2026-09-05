@@ -141,6 +141,21 @@ export function useBulkAddTagsMutation() {
   });
 }
 
+export function useBulkUpdateMetadataMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: import("@/types").BulkUpdateMetadataRequest) => {
+      const res = await bookService.bulkUpdateMetadata(payload);
+      if (!res.status) throw new Error(res.message || "Failed to update metadata");
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+
 export function useBookQuery(book_id: string) {
   return useQuery({
     queryKey: ["book", book_id],

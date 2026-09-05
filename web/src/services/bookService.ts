@@ -327,4 +327,16 @@ export const bookService = {
       throw error;
     }
   },
+
+  async bulkUpdateMetadata(payload: import("@/types").BulkUpdateMetadataRequest): Promise<CommonResponse<import("@/types").BulkOperationResponse>> {
+    try {
+      const res = await api.post(`/books/bulk-update-metadata`, payload);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response)
+        return error.response.data as CommonResponse<import("@/types").BulkOperationResponse>;
+      throw error;
+    }
+  },
 };
+

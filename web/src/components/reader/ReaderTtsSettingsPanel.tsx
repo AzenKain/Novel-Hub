@@ -39,75 +39,88 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
           <Volume2 className="size-4 opacity-80" />
           <span>{t("reader.tts_settings_header", "Voice & Speed Settings")}</span>
         </div>
-        <span className="text-xs opacity-60 font-mono">
-          {ttsVoices.length} {t("reader.voices_count", "voices")}
-        </span>
+        {ttsVoices.length > 0 && (
+          <span className="text-xs opacity-60 font-mono">
+            {ttsVoices.length} {t("reader.voices_count", "voices")}
+          </span>
+        )}
       </div>
 
-      {/* Current Voice Banner */}
-      <div className="rounded-xl border border-current/15 bg-current/5 p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-              {t("reader.current_voice", "Current Voice")}
-            </div>
-            <div className="truncate text-xs font-semibold text-current mt-0.5">
-              {ttsSelectedVoice?.name || t("reader.no_voice_selected", "No voice selected")}
+      {ttsVoices.length > 0 ? (
+        <>
+          {/* Current Voice Banner */}
+          <div className="rounded-xl border border-current/15 bg-current/5 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                  {t("reader.current_voice", "Current Voice")}
+                </div>
+                <div className="truncate text-xs font-semibold text-current mt-0.5">
+                  {ttsSelectedVoice?.name || t("reader.no_voice_selected", "No voice selected")}
+                </div>
+              </div>
+              {ttsSelectedVoice && (
+                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-current/20 bg-current/10 text-current shrink-0">
+                  {ttsSelectedVoice.lang}
+                </span>
+              )}
             </div>
           </div>
-          {ttsSelectedVoice && (
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-current/20 bg-current/10 text-current shrink-0">
-              {ttsSelectedVoice.lang}
-            </span>
-          )}
-        </div>
-      </div>
 
-      {/* Search Input */}
-      <div>
-        <input
-          type="text"
-          placeholder={t("reader.search_voice_or_lang", "Search by name or language...")}
-          value={voiceSearch}
-          onChange={(e) => setVoiceSearch(e.target.value)}
-          className="input input-bordered input-sm w-full text-xs rounded-xl border border-current/20 bg-current/5 text-current placeholder:opacity-40 focus:border-primary focus:outline-hidden"
-        />
-      </div>
+          {/* Search Input */}
+          <div>
+            <input
+              type="text"
+              placeholder={t("reader.search_voice_or_lang", "Search by name or language...")}
+              value={voiceSearch}
+              onChange={(e) => setVoiceSearch(e.target.value)}
+              className="input input-bordered input-sm w-full text-xs rounded-xl border border-current/20 bg-current/5 text-current placeholder:opacity-40 focus:border-primary focus:outline-hidden"
+            />
+          </div>
 
-      {/* Select Voice List */}
-      <div className="space-y-1.5">
-        <div className="text-xs font-medium opacity-80">
-          {t("reader.select_voice", "Select Voice")}
-        </div>
-        <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-current/15 bg-current/5 p-2">
-          {filteredVoices.length === 0 ? (
-            <div className="py-6 text-center text-xs opacity-50">
-              {t("reader.no_voices_found", "No voices matching your search")}
+          {/* Select Voice List */}
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium opacity-80">
+              {t("reader.select_voice", "Select Voice")}
             </div>
-          ) : (
-            filteredVoices.map((voice) => {
-              const isSelected = ttsSelectedVoice?.name === voice.name;
-              return (
-                <button
-                  key={`${voice.name}-${voice.lang}`}
-                  type="button"
-                  onClick={() => setTtsSelectedVoice?.(voice)}
-                  className={`flex w-full items-center justify-between rounded-lg p-2.5 text-left border transition-all ${
-                    isSelected
-                      ? "border-primary bg-primary/15 text-primary shadow-xs font-semibold"
-                      : "border-current/10 bg-current/5 hover:bg-current/10 text-current font-medium"
-                  }`}
-                >
-                  <span className="truncate text-xs pr-2">{voice.name}</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-current/20 bg-current/10 text-current shrink-0">
-                    {voice.lang}
-                  </span>
-                </button>
-              );
-            })
+            <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-current/15 bg-current/5 p-2">
+              {filteredVoices.length === 0 ? (
+                <div className="py-6 text-center text-xs opacity-50">
+                  {t("reader.no_voices_found", "No voices matching your search")}
+                </div>
+              ) : (
+                filteredVoices.map((voice) => {
+                  const isSelected = ttsSelectedVoice?.name === voice.name;
+                  return (
+                    <button
+                      key={`${voice.name}-${voice.lang}`}
+                      type="button"
+                      onClick={() => setTtsSelectedVoice?.(voice)}
+                      className={`flex w-full items-center justify-between rounded-lg p-2.5 text-left border transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/15 text-primary shadow-xs font-semibold"
+                          : "border-current/10 bg-current/5 hover:bg-current/10 text-current font-medium"
+                      }`}
+                    >
+                      <span className="truncate text-xs pr-2">{voice.name}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-current/20 bg-current/10 text-current shrink-0">
+                        {voice.lang}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-xl border border-current/15 bg-current/5 p-3 text-xs text-center leading-relaxed opacity-70">
+          {t(
+            "reader.system_default_voice_active",
+            "Using device system default voice"
           )}
         </div>
-      </div>
+      )}
 
       {/* Playback Speed Slider */}
       <div className="space-y-2 pt-1">

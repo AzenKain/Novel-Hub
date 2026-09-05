@@ -33,6 +33,7 @@ const (
 	AuditActionBackupDelete   = "backup.delete"
 	AuditActionBookBulkDelete = "book.bulk_delete"
 	AuditActionBookBulkMove   = "book.bulk_move"
+	AuditActionBookBulkUpdateMetadata = "book.bulk_update_metadata"
 	AuditActionTOTPEnable     = "totp.enable"
 	AuditActionTOTPDisable    = "totp.disable"
 

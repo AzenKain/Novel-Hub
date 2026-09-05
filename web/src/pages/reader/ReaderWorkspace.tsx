@@ -214,6 +214,11 @@ const ReaderWorkspaceInner = () => {
         handleNextRef.current();
       }
     },
+    onError: (e) => {
+      if (e?.error && e.error !== "interrupted" && e.error !== "canceled") {
+        console.warn("[TTS] Synthesis error:", e.error);
+      }
+    },
     onBoundary: (e) => {
       if (columnsRef.current && (e.name === 'word' || !e.name)) {
         highlightTextRangeFromNode(
@@ -556,7 +561,8 @@ const ReaderWorkspaceInner = () => {
   }, [isPdfAudio, activeFile, rawFileUrl, resolveBlobURL]);
 
   const visiblePages = effectiveReadingMode === "double" ? 2 : 1;
-  const rawFrameWidth = pageFrameWidth > 0 ? pageFrameWidth : (typeof window !== "undefined" ? Math.min(window.innerWidth - 64, maxWidth) : 920);
+  const defaultPadding = typeof window !== "undefined" && window.innerWidth < 640 ? 32 : 160;
+  const rawFrameWidth = pageFrameWidth > 0 ? pageFrameWidth : (typeof window !== "undefined" ? Math.max(0, Math.min(window.innerWidth - defaultPadding, maxWidth)) : 920);
   const pageWidth = scrollLayout
     ? 0
     : Math.max(1, Math.floor((rawFrameWidth - READER_PAGE_GAP * (visiblePages - 1)) / visiblePages));
@@ -789,6 +795,10 @@ const ReaderWorkspaceInner = () => {
       setHtmlContent(await resolveHTML(html));
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
+        contentRef.current.scrollLeft = 0;
+      }
+      if (columnsRef.current) {
+        columnsRef.current.scrollLeft = 0;
       }
       const idx = chapters.findIndex((c) => c.id === chapter.id);
       if (idx >= 0 && idx < chapters.length - 1) {
@@ -802,6 +812,10 @@ const ReaderWorkspaceInner = () => {
         setHtmlContent(await resolveHTML(stored));
         if (contentRef.current) {
           contentRef.current.scrollTop = 0;
+          contentRef.current.scrollLeft = 0;
+        }
+        if (columnsRef.current) {
+          columnsRef.current.scrollLeft = 0;
         }
         return;
       }
@@ -849,15 +863,24 @@ const ReaderWorkspaceInner = () => {
               if (scrollLayout) {
                 el.scrollIntoView({ block: "center", behavior: "auto" });
               } else {
-                const scrollStep = container.clientWidth + READER_PAGE_GAP;
+                const containerRect = container.getBoundingClientRect();
+                const width = containerRect.width > 0 ? containerRect.width : container.clientWidth;
+                const scrollStep = width + READER_PAGE_GAP;
                 if (scrollStep > 0) {
-                  let offsetLeft = el.offsetLeft;
-                  let parent = el.offsetParent as HTMLElement;
-                  while (parent && container.contains(parent) && parent !== container) {
-                    offsetLeft += parent.offsetLeft;
-                    parent = parent.offsetParent as HTMLElement;
+                  const rect = el.getBoundingClientRect();
+                  let relativeLeft = 0;
+                  if (rect.width > 0 || rect.height > 0) {
+                    relativeLeft = (rect.left - containerRect.left) + container.scrollLeft;
+                  } else {
+                    let offsetLeft = el.offsetLeft;
+                    let parent = el.offsetParent as HTMLElement;
+                    while (parent && container.contains(parent) && parent !== container) {
+                      offsetLeft += parent.offsetLeft;
+                      parent = parent.offsetParent as HTMLElement;
+                    }
+                    relativeLeft = offsetLeft;
                   }
-                  const pIndex = Math.floor(offsetLeft / scrollStep);
+                  const pIndex = Math.floor(relativeLeft / scrollStep);
                   scrollToPageIndex(pIndex, true);
                 }
               }
@@ -899,7 +922,10 @@ const ReaderWorkspaceInner = () => {
       requestAnimationFrame(() => {
         const container = columnsRef.current || contentRef.current;
         if (container && scrollToTextOffset(container, offset)) return;
-        if (contentRef.current) contentRef.current.scrollTop = 0;
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+          contentRef.current.scrollLeft = 0;
+        }
       });
     }
   }, [htmlContent]);

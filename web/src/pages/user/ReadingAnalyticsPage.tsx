@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Clock, BookOpen, Flame, ArrowLeft, Headphones } from 'lucide-react';
+import { Clock, BookOpen, Flame, ArrowLeft, Headphones, Sparkles } from 'lucide-react';
 import { TopNav } from '@/components/common/TopNav';
 import { ReadingHeatmap } from '@/components/profile/ReadingHeatmap';
 import { ReadingGoalCard } from '@/components/profile/ReadingGoalCard';
+import { ReadingCardModal } from '@/components/profile/ReadingCardModal';
 import {
   useReadingHeatmapQuery,
   useReadingStatsSummaryQuery,
@@ -48,6 +49,7 @@ export const ReadingAnalyticsPage: React.FC = () => {
   const { data: heatmapData } = useReadingHeatmapQuery();
   const { data: summary } = useReadingStatsSummaryQuery();
   const { data: breakdown } = useLibraryBreakdownQuery();
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   const { totalWords, activeDays, todayWords, weekBars } = useMemo(() => {
     let words = 0;
@@ -81,15 +83,25 @@ export const ReadingAnalyticsPage: React.FC = () => {
       <TopNav showSidebarToggle={false} />
 
       <div className="flex-1 container mx-auto p-4 sm:p-6 max-w-5xl flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black">{t('analytics.title', 'Reading Analytics & Stats')}</h1>
             <p className="text-xs sm:text-sm text-base-content/60">{t('analytics.subtitle', 'Track your reading habits, streaks, and activity over time.')}</p>
           </div>
-          <Link to="/" className="btn btn-ghost btn-sm gap-1 text-primary">
-            <ArrowLeft className="h-4 w-4" />
-            {t('library.back_to_library', 'Back to Library')}
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsCardModalOpen(true)}
+              className="btn btn-primary btn-sm gap-1.5 shadow-sm"
+            >
+              <Sparkles className="h-4 w-4" />
+              {t('analytics.export_card', 'Export Card')}
+            </button>
+            <Link to="/" className="btn btn-ghost btn-sm gap-1 text-primary">
+              <ArrowLeft className="h-4 w-4" />
+              {t('library.back_to_library', 'Back to Library')}
+            </Link>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -185,6 +197,14 @@ export const ReadingAnalyticsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ReadingCardModal
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+        heatmapData={heatmapData}
+        summary={summary}
+        breakdown={breakdown}
+      />
     </div>
   );
 };

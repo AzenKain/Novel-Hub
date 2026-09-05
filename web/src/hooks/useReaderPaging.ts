@@ -66,6 +66,18 @@ export function useReaderPaging({
     if (pendingLandingRef?.current === "end" && isPagedMode) {
       pendingLandingRef.current = null;
 
+      if (contentRef.current) {
+        contentRef.current.scrollLeft = 0;
+        contentRef.current.scrollTop = 0;
+      }
+      if (columnsRef.current) {
+        columnsRef.current.scrollLeft = 0;
+        const body = columnsRef.current.querySelector("body");
+        if (body) {
+          body.scrollLeft = 0;
+        }
+      }
+
       const landAtEnd = () => {
         const metrics = getPagedScrollMetrics();
         if (metrics) {
@@ -315,7 +327,9 @@ export function useReaderPaging({
       cachedNodesContentRef.current = "";
       let targetPage = lastPageIndexRef.current;
 
-      setPageFrameWidth(frame.clientWidth);
+      const frameRect = frame.getBoundingClientRect();
+      const frameWidth = frameRect.width > 0 ? frameRect.width : frame.clientWidth;
+      setPageFrameWidth(frameWidth);
 
       if (frame.clientHeight > 0) {
         frame.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
@@ -337,7 +351,7 @@ export function useReaderPaging({
         if (frame.clientHeight > 0) {
           container.style.setProperty("--reader-page-height", `${frame.clientHeight}px`);
         }
-        const newStep = frame.clientWidth + READER_PAGE_GAP;
+        const newStep = frameWidth + READER_PAGE_GAP;
 
         if (newStep > 0) {
           if (targetPage === 0) {
@@ -346,13 +360,20 @@ export function useReaderPaging({
             const metrics = getPagedScrollMetrics();
 
             if (targetEl && container.contains(targetEl)) {
-              let offsetLeft = targetEl.offsetLeft;
-              let parent = targetEl.offsetParent as HTMLElement | null;
-              while (parent && container.contains(parent) && parent !== container) {
-                offsetLeft += parent.offsetLeft;
-                parent = parent.offsetParent as HTMLElement | null;
+              const targetRect = targetEl.getBoundingClientRect();
+              const containerRect = container.getBoundingClientRect();
+              if (targetRect.width > 0 || targetRect.height > 0) {
+                const relativeLeft = (targetRect.left - containerRect.left) + container.scrollLeft;
+                targetPage = Math.max(0, Math.floor(relativeLeft / newStep));
+              } else {
+                let offsetLeft = targetEl.offsetLeft;
+                let parent = targetEl.offsetParent as HTMLElement | null;
+                while (parent && container.contains(parent) && parent !== container) {
+                  offsetLeft += parent.offsetLeft;
+                  parent = parent.offsetParent as HTMLElement | null;
+                }
+                targetPage = Math.max(0, Math.floor(offsetLeft / newStep));
               }
-              targetPage = Math.max(0, Math.floor(offsetLeft / newStep));
             }
 
             if ((targetPage === 0 || !targetEl) && fraction > 0.05 && metrics && metrics.maxIndex > 0) {
@@ -367,7 +388,7 @@ export function useReaderPaging({
           lastPageIndexRef.current = targetPage;
         }
 
-        const targetLeft = targetPage * newStep * (rtlPaging ? -1 : 1);
+        const targetLeft = Math.round(targetPage * newStep) * (rtlPaging ? -1 : 1);
         if (typeof container.scrollTo === "function") {
           container.scrollTo({ left: targetLeft, behavior: "auto" });
         } else {
@@ -413,7 +434,11 @@ export function useReaderPaging({
     const container = getPagedScrollContainer();
     if (!container) return;
 
-    const scrollStep = container.clientWidth + READER_PAGE_GAP;
+    const containerRect = container.getBoundingClientRect();
+    const width = containerRect.width > 0 ? containerRect.width : container.clientWidth;
+    if (width <= 0) return;
+
+    const scrollStep = width + READER_PAGE_GAP;
     let scrollWidth = container.scrollWidth;
 
     if (cachedNodesContentRef.current !== htmlContent) {
@@ -423,11 +448,26 @@ export function useReaderPaging({
     const allChildren = cachedNodesRef.current || [];
     if (allChildren.length > 0) {
       let maxChildRight = 0;
+      const currentScrollLeft = container.scrollLeft;
       for (let i = allChildren.length - 1; i >= Math.max(0, allChildren.length - 30); i--) {
         const el = allChildren[i];
-        const right = el.offsetLeft + el.offsetWidth;
-        if (right > maxChildRight) {
-          maxChildRight = right;
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 || rect.height > 0) {
+          const right = rect.right - containerRect.left + currentScrollLeft;
+          if (right > maxChildRight) {
+            maxChildRight = right;
+          }
+        } else {
+          let left = el.offsetLeft;
+          let parent = el.offsetParent as HTMLElement | null;
+          while (parent && container.contains(parent) && parent !== container) {
+            left += parent.offsetLeft;
+            parent = parent.offsetParent as HTMLElement | null;
+          }
+          const right = left + el.offsetWidth;
+          if (right > maxChildRight) {
+            maxChildRight = right;
+          }
         }
       }
       if (maxChildRight > scrollWidth) {
@@ -435,7 +475,7 @@ export function useReaderPaging({
       }
     }
 
-    const maxScroll = Math.max(0, scrollWidth - container.clientWidth);
+    const maxScroll = Math.max(0, scrollWidth - width);
     const maxIndex = Math.max(0, Math.round(maxScroll / scrollStep));
     return { container, scrollStep, maxIndex };
   };
@@ -468,7 +508,7 @@ export function useReaderPaging({
     const isSlide = !instant && pageAnimation === "slide";
     const behavior = isSlide ? "smooth" : "auto";
 
-    const targetLeft = nextIndex * scrollStep * (rtlPaging ? -1 : 1);
+    const targetLeft = Math.round(nextIndex * scrollStep) * (rtlPaging ? -1 : 1);
     isResizingRef.current = true;
     if (typeof container.scrollTo === "function") {
       container.scrollTo({
@@ -668,13 +708,14 @@ export function useReaderPaging({
         const container = getPagedScrollContainer();
         if (!container) return;
 
-        const scrollStep = container.clientWidth + READER_PAGE_GAP;
+        const containerRect = container.getBoundingClientRect();
+        const width = containerRect.width > 0 ? containerRect.width : container.clientWidth;
+        const scrollStep = width + READER_PAGE_GAP;
         const metrics = getPagedScrollMetrics();
         let targetIndex = lastPageIndexRef.current;
 
         if (targetIndex === 0) {
           if (targetEl && container.contains(targetEl) && scrollStep > 0) {
-            const containerRect = container.getBoundingClientRect();
             const rect = targetEl.getBoundingClientRect();
             if (rect.width > 0 || rect.height > 0) {
               const relativeLeft = (rect.left - containerRect.left) + container.scrollLeft;

@@ -38,6 +38,9 @@ DELETE FROM book_languages WHERE book_id = ?;
 -- name: ClearBookTags :exec
 DELETE FROM book_tags WHERE book_id = ?;
 
+-- name: RemoveBookTag :exec
+DELETE FROM book_tags WHERE book_id = ? AND tag_id = ?;
+
 -- name: ListAuthorsWithCount :many
 SELECT a.id, a.name, (
     SELECT COUNT(*) FROM books b

@@ -79,6 +79,7 @@ type BookMetadataRepository interface {
 	LinkBookLanguage(ctx context.Context, bookID, languageID string) error
 	ClearBookLanguages(ctx context.Context, bookID string) error
 	ClearBookTags(ctx context.Context, bookID string) error
+	RemoveBookTag(ctx context.Context, bookID, tagID string) error
 	ListAuthorsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	ListSeriesWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)
 	ListPublishersWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error)

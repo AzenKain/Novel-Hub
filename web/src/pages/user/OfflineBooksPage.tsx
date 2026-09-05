@@ -2,7 +2,7 @@ import { TopNav } from "@/components/common/TopNav";
 import { getMediaUrl } from "@/config/api";
 import { offlineStore, type OfflineBook } from "@/lib/offlineStore";
 import { useLibraryStore } from "@/stores";
-import { ArrowLeft, BookOpen, CloudOff, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, CloudDownload, CloudOff, Search, Trash2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -73,26 +73,32 @@ export const OfflineBooksPage: React.FC = () => {
   }, [books, search]);
 
   return (
-    <div className="bg-base-100 min-h-screen flex flex-col font-sans">
+    <div className="bg-base-200/40 min-h-screen flex flex-col font-sans">
       <TopNav showSidebarToggle={false} />
 
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4 border-b border-base-200 pb-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-base-content">{t("offline.title")}</h1>
-            {usage && (
-              <p className="text-xs sm:text-sm text-base-content/60 mt-1">
-                {t("offline.usage", {
-                  used: formatBytes(usage.usage),
-                  quota: formatBytes(usage.quota),
-                })}
-              </p>
-            )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5">
+              <ArrowLeft className="h-4 w-4" />
+              {t("library.back_to_library", "Back to Library")}
+            </Link>
+            <div className="h-6 w-px bg-base-300" />
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+              <h1 className="flex items-center gap-2 text-xl font-black text-base-content">
+                <CloudDownload className="h-5 w-5 text-primary" />
+                {t("offline.title", "Offline Books")}
+              </h1>
+              {usage && (
+                <span className="text-xs text-base-content/60 font-medium">
+                  ({t("offline.usage", {
+                    used: formatBytes(usage.usage),
+                    quota: formatBytes(usage.quota),
+                  })})
+                </span>
+              )}
+            </div>
           </div>
-          <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary">
-            <ArrowLeft className="h-4 w-4" />
-            {t("library.back_to_library", "Back to Library")}
-          </Link>
         </div>
 
         {books.length === 0 ? (

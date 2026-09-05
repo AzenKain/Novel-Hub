@@ -11,14 +11,16 @@ import {
   ArrowDown10,
   Upload,
   Link as LinkIcon,
+  Wand2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { getMediaUrl } from '@/config/api';
 import { bookService } from '@/services';
 import type { Book } from '@/types';
+import { BulkTitleCleanerTab } from './BulkTitleCleanerTab';
 
-interface BulkEditItem {
+export interface BulkEditItem {
   id: string;
   original: Book;
   title: string;
@@ -71,6 +73,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'editor' | 'cleaner'>('editor');
   const [items, setItems] = useState<BulkEditItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<{ current: number; total: number } | null>(null);
@@ -393,6 +396,30 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
     onClose();
   };
 
+  const handleApplyCleanerChanges = (
+    changes: Array<{ id: string; title: string; author: string }>
+  ) => {
+    const changeMap = new Map(changes.map((c) => [c.id, c]));
+    setItems((prev) =>
+      prev.map((it) => {
+        const change = changeMap.get(it.id);
+        if (!change) return it;
+        const titleChanged = change.title !== it.title;
+        const authorChanged = change.author !== it.author;
+        if (titleChanged || authorChanged) {
+          return {
+            ...it,
+            title: change.title,
+            author: change.author,
+            modified: true,
+          };
+        }
+        return it;
+      })
+    );
+    setActiveTab('editor');
+  };
+
   return (
     <>
       <dialog className="modal modal-open z-50">
@@ -420,15 +447,17 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleAutoSequenceSeriesIndex}
-                className="btn btn-sm sm:btn-md btn-outline gap-1.5 text-xs sm:text-sm font-semibold rounded-xl"
-                title={t('library.auto_index_desc', 'Set series index 1, 2, 3... in order')}
-              >
-                <ArrowDown10 className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">1..N {t('library.series_index', 'Index')}</span>
-              </button>
+              {activeTab === 'editor' && (
+                <button
+                  type="button"
+                  onClick={handleAutoSequenceSeriesIndex}
+                  className="btn btn-sm sm:btn-md btn-outline gap-1.5 text-xs sm:text-sm font-semibold rounded-xl"
+                  title={t('library.auto_index_desc', 'Set series index 1, 2, 3... in order')}
+                >
+                  <ArrowDown10 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">1..N {t('library.series_index', 'Index')}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onClose}
@@ -441,8 +470,46 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             </div>
           </header>
 
-          {/* Body: Scrollable list of books */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* Tabs Navigation */}
+          <div className="px-6 bg-base-200/40 border-b border-base-200 shrink-0">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('editor')}
+                className={`flex items-center gap-2 py-3 px-4 font-bold text-sm border-b-2 transition-colors ${
+                  activeTab === 'editor'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-base-content/60 hover:text-base-content'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                {t('library.bulk_edit_metadata_title', 'Bulk Edit Metadata')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('cleaner')}
+                className={`flex items-center gap-2 py-3 px-4 font-bold text-sm border-b-2 transition-colors ${
+                  activeTab === 'cleaner'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-base-content/60 hover:text-base-content'
+                }`}
+              >
+                <Wand2 className="w-4 h-4" />
+                {t('library.tab_title_cleaner', 'Title & Author Cleaner')}
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          {activeTab === 'cleaner' ? (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <BulkTitleCleanerTab
+                items={items}
+                onApplyChanges={handleApplyCleanerChanges}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
             {items.map((item, index) => (
               <div
                 key={item.id}
@@ -736,23 +803,8 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       {t('library.sync_field_to_books', 'Sync')}
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-2 items-center p-3.5 bg-base-200/40 border border-base-200 rounded-xl min-h-13">
-                    {item.subjects.map((sub, sIdx) => (
-                      <span key={sIdx} className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-medium rounded-lg">
-                        {sub}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = item.subjects.filter((_, i) => i !== sIdx);
-                            updateItem(index, { subjects: next });
-                          }}
-                          className="hover:text-error ml-0.5 cursor-pointer font-bold text-xs"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                    <div className="flex items-center gap-2 flex-1 min-w-55">
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex gap-2 w-full">
                       <input
                         type="text"
                         value={item.tagInput}
@@ -770,7 +822,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           }
                         }}
                         placeholder={t('book.add_tag_placeholder', 'Add tag (press Enter)...')}
-                        className="input input-sm input-bordered bg-base-100 text-xs flex-1 rounded-lg"
+                        className="input input-md input-bordered flex-1 bg-base-100 text-sm rounded-xl font-medium"
                       />
                       <button
                         type="button"
@@ -784,12 +836,35 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                           }
                         }}
                         disabled={!item.tagInput.trim()}
-                        className="btn btn-sm btn-primary rounded-lg gap-1 font-bold"
+                        className="btn btn-md btn-primary rounded-xl gap-1.5 font-bold shrink-0 px-4"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
                         {t('common.add', 'Add')}
                       </button>
                     </div>
+
+                    {item.subjects.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {item.subjects.map((sub, sIdx) => (
+                          <span
+                            key={sIdx}
+                            className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-semibold rounded-lg"
+                          >
+                            {sub}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = item.subjects.filter((_, i) => i !== sIdx);
+                                updateItem(index, { subjects: next });
+                              }}
+                              className="hover:text-error ml-0.5 cursor-pointer font-bold text-xs"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -821,6 +896,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             </div>
             ))}
           </div>
+          )}
 
           {/* Footer Actions */}
           <footer className="px-6 py-4 border-t border-base-200 bg-base-200/40 flex items-center justify-between shrink-0">

@@ -8,6 +8,7 @@ import { useShallow } from "zustand/react/shallow";
 import { hasPermission } from "@/utils/permission";
 import { metadataNavIds } from "@/lib/libraryMetadata";
 import { useDebounce } from "@/hooks";
+import { usePublicSettings } from "@/hooks/useSettings";
 import { bookService } from "@/services";
 import { getMediaUrl } from "@/config/api";
 import { useQuery } from "@tanstack/react-query";
@@ -41,6 +42,10 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
       setActiveFacet: state.setActiveFacet,
     }))
   );
+
+  const publicSettings = usePublicSettings();
+  const siteLogo = publicSettings?.site?.logo || "/logo.svg";
+  const siteTitle = publicSettings?.site?.title || "NovelHub";
 
   const [localQuery, setLocalQuery] = useState(search || "");
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -118,18 +123,61 @@ export const TopNav: React.FC<TopNavProps> = ({ showSidebarToggle = false, hideA
 
   return (
     <div className="navbar sticky top-0 z-30 flex-wrap gap-2 backdrop-blur-md bg-base-100/85 shadow-xs border-b border-base-200/80 px-3 sm:px-4 transition-colors duration-200">
-      {showSidebarToggle && (
-        <div className="flex-none lg:hidden">
-          <div className="tooltip tooltip-bottom" data-tip={t("common.toggle_sidebar", "Toggle Sidebar")}>
-            <label
-              htmlFor="main-drawer"
-              aria-label="open sidebar"
-              className="btn btn-square btn-ghost"
-            >
-              <Menu className="w-5 h-5" />
-            </label>
+      {showSidebarToggle ? (
+        <div className="flex items-center gap-1.5 flex-none">
+          <div className="lg:hidden">
+            <div className="tooltip tooltip-bottom" data-tip={t("common.toggle_sidebar", "Toggle Sidebar")}>
+              <label
+                htmlFor="main-drawer"
+                aria-label="open sidebar"
+                className="btn btn-square btn-ghost btn-sm sm:btn-md"
+              >
+                <Menu className="w-5 h-5" />
+              </label>
+            </div>
           </div>
+          <Link
+            to="/"
+            className="flex items-center gap-2 lg:hidden hover:opacity-85 transition-opacity mr-1"
+            title={siteTitle}
+          >
+            {siteLogo ? (
+              <img
+                src={siteLogo}
+                alt={t("common.alt_logo", "Logo")}
+                className="h-8 w-auto max-w-[42px] object-contain drop-shadow-xs"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content text-xs shadow-xs">
+                NH
+              </div>
+            )}
+            <span className="text-base font-black tracking-tight text-base-content hidden sm:inline-block">
+              {siteTitle}
+            </span>
+          </Link>
         </div>
+      ) : (
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 mr-2 shrink-0 hover:opacity-85 transition-opacity"
+          title={siteTitle}
+        >
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={t("common.alt_logo", "Logo")}
+              className="h-9 w-auto max-w-[48px] object-contain drop-shadow-xs"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-xs">
+              NH
+            </div>
+          )}
+          <span className="text-lg font-black tracking-tight text-base-content hidden sm:inline-block">
+            {siteTitle}
+          </span>
+        </Link>
       )}
 
       <div className="min-w-0 flex-1 basis-56 px-1 sm:px-2">

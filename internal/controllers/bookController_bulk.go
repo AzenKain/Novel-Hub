@@ -115,3 +115,30 @@ func (h *BookController) BulkAddTags(c fiber.Ctx) error {
 		Data:   result,
 	})
 }
+
+func (h *BookController) BulkUpdateMetadata(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkUpdateMetadataDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	result, err := h.bookService.BulkUpdateMetadata(ctx, dto, claims)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	h.audit.Record(ctx, services.AuditActionBookBulkUpdateMetadata, "book", "", strconv.Itoa(result.SuccessCount)+" books")
+
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
+		Status: true,
+		Data:   result,
+	})
+}
+

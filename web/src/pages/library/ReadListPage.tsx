@@ -123,7 +123,7 @@ export const ReadListPage: React.FC = () => {
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary">
+            <Link to="/" className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5">
               <ArrowLeft className="h-4 w-4" />
               {t("library.back_to_library", "Back to Library")}
             </Link>
@@ -182,7 +182,7 @@ export const ReadListPage: React.FC = () => {
                         className={`group flex cursor-pointer items-center justify-between gap-2 rounded-xl p-3 text-sm font-medium transition-all ${
                           isActive
                             ? "bg-primary text-primary-content shadow-sm"
-                            : "bg-base-100 hover:bg-base-200 text-base-content"
+                            : "bg-base-100 hover:bg-base-200 text-base-content border border-base-200"
                         }`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5">

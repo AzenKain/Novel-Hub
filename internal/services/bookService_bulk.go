@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -317,6 +319,228 @@ func (s *bookService) BulkAddTags(ctx context.Context, dto *request.BulkAddTagsD
 
 		res.SuccessCount = len(allowedIDs)
 	}
+
+	return res, nil
+}
+
+func (s *bookService) BulkUpdateMetadata(ctx context.Context, dto *request.BulkUpdateMetadataDto, claims *response.JWTClaims) (*response.BulkOperationResponse, error) {
+	if dto == nil || len(dto.BookIDs) == 0 {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "No book IDs provided")
+	}
+
+	books, err := s.bookRepo.GetBooksByIDs(ctx, dto.BookIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	bookByID := make(map[string]*models.BookEntity, len(books))
+	for _, book := range books {
+		if book != nil {
+			bookByID[book.ID] = book
+		}
+	}
+
+	res := &response.BulkOperationResponse{
+		Errors: make(map[string]string),
+	}
+
+	allowedIDs := make([]string, 0, len(books))
+	for _, id := range dto.BookIDs {
+		found := bookByID[id]
+
+		if found == nil {
+			res.FailedCount++
+			res.Errors[id] = "Book not found"
+			continue
+		}
+
+		if !s.CanUpdateBook(ctx, found, claims) {
+			res.FailedCount++
+			res.Errors[id] = "Permission denied"
+			continue
+		}
+
+		allowedIDs = append(allowedIDs, id)
+	}
+
+	if len(allowedIDs) == 0 {
+		return res, nil
+	}
+
+	tx, err := s.txManager.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	txRepo := s.bookRepo.WithTx(tx)
+
+	// Pre-resolve common Author
+	var commonAuthorID *string
+	if dto.Author != nil && strings.TrimSpace(*dto.Author) != "" {
+		if aID, err := ensureAuthor(ctx, txRepo, *dto.Author); err == nil && aID != "" {
+			commonAuthorID = &aID
+		}
+	}
+
+	// Pre-resolve common Series
+	var commonSeriesID string
+	if dto.Series != nil && strings.TrimSpace(*dto.Series) != "" {
+		seriesName := strings.TrimSpace(*dto.Series)
+		sEntity, err := txRepo.GetSeriesByName(ctx, seriesName)
+		if err != nil {
+			commonSeriesID = uuid.Must(uuid.NewV7()).String()
+			_ = txRepo.CreateSeries(ctx, &models.SeriesEntity{ID: commonSeriesID, Name: seriesName})
+		} else if sEntity != nil {
+			commonSeriesID = sEntity.ID
+		}
+	}
+
+	// Pre-resolve common Publisher
+	var commonPublisherID string
+	if dto.Publisher != nil && strings.TrimSpace(*dto.Publisher) != "" {
+		pubName := strings.TrimSpace(*dto.Publisher)
+		pEntity, err := txRepo.GetPublisherByName(ctx, pubName)
+		if err != nil {
+			commonPublisherID = uuid.Must(uuid.NewV7()).String()
+			_ = txRepo.CreatePublisher(ctx, &models.PublisherEntity{ID: commonPublisherID, Name: pubName})
+		} else if pEntity != nil {
+			commonPublisherID = pEntity.ID
+		}
+	}
+
+	// Pre-resolve common Language
+	var commonLanguageID string
+	if dto.Language != nil && strings.TrimSpace(*dto.Language) != "" {
+		langName := strings.TrimSpace(*dto.Language)
+		lEntity, err := txRepo.GetLanguageByName(ctx, langName)
+		if err != nil {
+			commonLanguageID = uuid.Must(uuid.NewV7()).String()
+			_ = txRepo.CreateLanguage(ctx, &models.LanguageEntity{ID: commonLanguageID, Name: langName})
+		} else if lEntity != nil {
+			commonLanguageID = lEntity.ID
+		}
+	}
+
+	// Pre-resolve AddTags
+	addTagIDs := make([]string, 0, len(dto.AddTags))
+	for _, tName := range dto.AddTags {
+		tName = strings.TrimSpace(tName)
+		if tName == "" {
+			continue
+		}
+		if tID, err := ensureTagHelper(ctx, txRepo, tName); err == nil && tID != "" {
+			addTagIDs = append(addTagIDs, tID)
+		}
+	}
+
+	// Pre-resolve RemoveTags
+	removeTagIDs := make([]string, 0, len(dto.RemoveTags))
+	for _, tName := range dto.RemoveTags {
+		tName = strings.TrimSpace(tName)
+		if tName == "" {
+			continue
+		}
+		if t, err := txRepo.GetTagByName(ctx, tName); err == nil && t != nil && t.ID != "" {
+			removeTagIDs = append(removeTagIDs, t.ID)
+		}
+	}
+
+	// Build map for item overrides
+	itemMap := make(map[string]request.BulkUpdateMetadataItemDto, len(dto.Items))
+	for _, it := range dto.Items {
+		itemMap[it.BookID] = it
+	}
+
+	for idx, bookID := range allowedIDs {
+		book := bookByID[bookID]
+		if book == nil {
+			continue
+		}
+
+		item, hasItem := itemMap[bookID]
+		bookChanged := false
+
+		// Title update
+		if hasItem && item.Title != nil && strings.TrimSpace(*item.Title) != "" {
+			book.Title = strings.TrimSpace(*item.Title)
+			bookChanged = true
+		}
+
+		// Description update
+		if hasItem && item.Description != nil {
+			d := strings.TrimSpace(*item.Description)
+			if d != "" {
+				book.Description = &d
+			} else {
+				book.Description = nil
+			}
+			bookChanged = true
+		}
+
+		// Author update: per-item takes precedence over common
+		if hasItem && item.Author != nil && strings.TrimSpace(*item.Author) != "" {
+			if aID, err := ensureAuthor(ctx, txRepo, *item.Author); err == nil && aID != "" {
+				book.AuthorID = &aID
+				bookChanged = true
+			}
+		} else if commonAuthorID != nil {
+			book.AuthorID = commonAuthorID
+			bookChanged = true
+		}
+
+		if bookChanged {
+			if err := txRepo.UpdateBook(ctx, book); err != nil {
+				res.FailedCount++
+				res.Errors[bookID] = err.Error()
+				continue
+			}
+		}
+
+		// Series linkage
+		if commonSeriesID != "" {
+			var seriesIndex *string
+			if hasItem && item.SeriesIndex != nil && strings.TrimSpace(*item.SeriesIndex) != "" {
+				sIdx := strings.TrimSpace(*item.SeriesIndex)
+				seriesIndex = &sIdx
+			} else if dto.AutoIndexSeries {
+				sIdx := strconv.Itoa(idx + 1)
+				seriesIndex = &sIdx
+			}
+			_ = txRepo.LinkBookSeries(ctx, bookID, commonSeriesID, seriesIndex)
+		}
+
+		// Publisher linkage
+		if commonPublisherID != "" {
+			_ = txRepo.ClearBookPublishers(ctx, bookID)
+			_ = txRepo.LinkBookPublisher(ctx, bookID, commonPublisherID)
+		}
+
+		// Language linkage
+		if commonLanguageID != "" {
+			_ = txRepo.ClearBookLanguages(ctx, bookID)
+			_ = txRepo.LinkBookLanguage(ctx, bookID, commonLanguageID)
+		}
+
+		// Add tags
+		for _, tagID := range addTagIDs {
+			_ = txRepo.AddBookTag(ctx, bookID, tagID)
+		}
+
+		// Remove tags
+		for _, tagID := range removeTagIDs {
+			_ = txRepo.RemoveBookTag(ctx, bookID, tagID)
+		}
+
+		res.SuccessCount++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	txRepo.FlushCache(ctx)
 
 	return res, nil
 }

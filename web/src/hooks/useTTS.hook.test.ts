@@ -13,6 +13,7 @@ let synth: {
   cancelCount: number;
   paused: boolean;
   queue: Utterance[];
+  getVoices: () => any[];
   emitBoundary: (u: Utterance, charIndex: number, charLength?: number) => void;
   emitEnd: (u: Utterance) => void;
   emitError: (u: Utterance, error: string, elapsedTime?: number) => void;
@@ -42,7 +43,7 @@ function installFakeSpeechSynthesis() {
     paused: false,
     speakCount: 0,
     cancelCount: 0,
-    getVoices: () => [],
+    getVoices: () => [{ name: "Mock Voice", lang: "vi-VN", default: true } as any],
     speak: (u: Utterance) => {
       fake.speakCount++;
       queue.push(u);
@@ -221,5 +222,56 @@ describe("real useTTS hook, pause/resume offset", () => {
     expect(raw.slice(last.charIndex, last.charIndex + last.charLength)).toBe(resumeWords[0].word);
 
     await h.cleanup();
+  });
+
+  it("plays using system default voice when getVoices returns empty list", async () => {
+    synth.getVoices = () => [];
+    const mod = await import("./useTTS");
+    const React = await import("react");
+    const { createRoot } = await import("react-dom/client");
+
+    let api: ReturnType<typeof mod.useTTS> | null = null;
+    const Harness = () => {
+      api = mod.useTTS({});
+      return null;
+    };
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await new Promise<void>((r) => {
+      root.render(React.createElement(Harness));
+      setTimeout(r, 10);
+    });
+
+    api!.speak("Testing speak with system default voice");
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(synth.queue.length).toBeGreaterThan(0);
+
+    root.unmount();
+    container.remove();
+  });
+});
+
+describe("detectLanguage", () => {
+  it("detects Vietnamese text correctly", async () => {
+    const { detectLanguage } = await import("./useTTS");
+    expect(detectLanguage("Đây là cuốn sách rất hay.")).toBe("vi-VN");
+    expect(detectLanguage("Tuuka nhìn tôi và cười nhẹ nhàng.")).toBe("vi-VN");
+  });
+
+  it("detects Japanese, Chinese, Korean, Cyrillic, Arabic correctly", async () => {
+    const { detectLanguage } = await import("./useTTS");
+    expect(detectLanguage("吾輩は猫である。名前はまだ無い。")).toBe("ja-JP");
+    expect(detectLanguage("你好世界，今天天气真好。")).toBe("zh-CN");
+    expect(detectLanguage("안녕하세요, 반갑습니다.")).toBe("ko-KR");
+    expect(detectLanguage("Привет мир, как дела?")).toBe("ru-RU");
+    expect(detectLanguage("مرحبا بكم في عالم جديد")).toBe("ar-SA");
+  });
+
+  it("falls back to en-US for plain ASCII english text", async () => {
+    const { detectLanguage } = await import("./useTTS");
+    expect(detectLanguage("Once upon a time in a faraway kingdom.")).toBe("en-US");
   });
 });

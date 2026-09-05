@@ -311,4 +311,43 @@ describe("useReaderPaging mode transition tests", () => {
 
     harness.cleanup();
   });
+
+  it("uses subpixel getBoundingClientRect width to accurately target column scroll offsets without drift", () => {
+    const harness = setupHarness({
+      effectiveReadingMode: "single",
+      scrollLayout: false,
+      pageIndex: 0,
+    });
+
+    // Simulate mobile viewport where getBoundingClientRect().width is fractional, e.g. 349.328px
+    // clientWidth would be truncated to 349px.
+    // Across 60 pages, 349 * 60 = 20940 vs 349.328 * 60 = 20959.68 -> ~20px drift if using clientWidth.
+    Object.defineProperty(harness.columns, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        width: 349.328125,
+        height: 600,
+        top: 0,
+        bottom: 600,
+        left: 0,
+        right: 349.328125,
+      }),
+    });
+    Object.defineProperty(harness.columns, "scrollWidth", {
+      configurable: true,
+      value: 30000,
+    });
+
+    act(() => {
+      harness.getApi().scrollToPageIndex(60, true);
+    });
+
+    // scrollStep = 349.328125 + 40 = 389.328125
+    // targetLeft = Math.round(60 * 389.328125) = Math.round(23359.6875) = 23360
+    // If clientWidth (349) was used, scrollStep would be 389, and 60 * 389 = 23340 (20px drift!)
+    expect(harness.columns.scrollLeft).toBe(23360);
+
+    harness.cleanup();
+  });
 });
+

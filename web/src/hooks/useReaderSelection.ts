@@ -165,6 +165,8 @@ export function useReaderSelection({
   }, [selectionRange]);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleSelection = (e: Event) => {
       const targetNode = e.target as Node | null;
       const targetElem = targetNode?.nodeType === Node.ELEMENT_NODE
@@ -174,11 +176,13 @@ export function useReaderSelection({
         '[data-reader-toolbar="true"], [data-reader-modal="true"], .modal, [role="dialog"]'
       );
 
+      // If the user interacted inside the toolbar or modal, do not dismiss
       if (isToolbarOrModal) {
         return;
       }
 
-      setTimeout(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
         const selection = window.getSelection();
 
         if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
@@ -206,17 +210,19 @@ export function useReaderSelection({
             setToolbarPos(getToolbarPosition(rect, window.innerWidth, window.innerHeight));
             return;
           }
-        } else {
-          savedSelectionRef.current = null;
-          setSelectionRange((prev) => (prev !== null ? null : prev));
         }
-      }, 20);
+
+        savedSelectionRef.current = null;
+        setSelectionRange((prev) => (prev !== null ? null : prev));
+      }, 50);
     };
 
     document.addEventListener("mouseup", handleSelection);
     document.addEventListener("touchend", handleSelection);
     document.addEventListener("keyup", handleSelection);
+
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       document.removeEventListener("mouseup", handleSelection);
       document.removeEventListener("touchend", handleSelection);
       document.removeEventListener("keyup", handleSelection);
@@ -279,10 +285,13 @@ export function useReaderSelection({
   const handleReadSelection = () => {
     const container = columnsRef.current || contentRef.current;
     const saved = savedSelectionRef.current;
-    if (container && saved && saved.selectedText) {
-      ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+    const textToRead = saved?.selectedText || selectionRange?.toString();
+    if (container && textToRead && textToRead.trim()) {
+      if (saved) {
+        ttsStartPointRef.current = { textNodeIndex: saved.textNodeIndex, offset: saved.offset };
+      }
       stop();
-      speak(saved.selectedText);
+      speak(textToRead.trim());
       clearActiveSelectionHighlight();
       savedSelectionRef.current = null;
       setSelectionRange(null);

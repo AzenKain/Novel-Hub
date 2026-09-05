@@ -507,23 +507,31 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Mini TTS Controller (when actively playing or paused) */}
-        {ttsSupported && !isAudio && (ttsPlaying || ttsPaused) && (
+        {/* Mobile TTS Controller (Always visible outside on mobile) */}
+        {ttsSupported && !isAudio && !isComic && (
           <div className="flex md:hidden items-center gap-1">
             <button
               onClick={onTtsPlayPause}
-              className="reader-control-btn btn btn-square btn-sm text-primary animate-none"
-              aria-label={t("reader.tts_play_pause")}
+              className={`reader-control-btn btn btn-square btn-sm animate-none ${
+                ttsPlaying || ttsPaused ? "text-primary" : ""
+              }`}
+              aria-label={
+                ttsPlaying
+                  ? t("reader.tts_pause", "Pause")
+                  : t("reader.tts_play", "Read Aloud")
+              }
             >
               {ttsPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
-            <button
-              onClick={onTtsStop}
-              className="reader-control-btn btn btn-square btn-sm text-error animate-none"
-              aria-label={t("reader.tts_stop")}
-            >
-              <Square className="h-5 w-5" />
-            </button>
+            {(ttsPlaying || ttsPaused) && (
+              <button
+                onClick={onTtsStop}
+                className="reader-control-btn btn btn-square btn-sm text-error animate-none"
+                aria-label={t("reader.tts_stop", "Stop")}
+              >
+                <Square className="h-5 w-5" />
+              </button>
+            )}
           </div>
         )}
 

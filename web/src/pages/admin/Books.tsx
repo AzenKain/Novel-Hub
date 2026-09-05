@@ -878,23 +878,8 @@ export function Books() {
                   {/* Tags Chip Editor */}
                   <div className="flex flex-col gap-2 w-full">
                     <label className="text-xs font-bold text-base-content/80 pl-1">{t('book.tags', 'Tags / Subjects')}</label>
-                    <div className="flex flex-wrap gap-2 items-center p-3 bg-base-200/40 border border-base-200 rounded-xl min-h-12">
-                      {formData.subjects.map((sub, sIdx) => (
-                        <span key={sIdx} className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-medium rounded-lg">
-                          {sub}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = formData.subjects.filter((_, i) => i !== sIdx);
-                              setFormData({ subjects: next });
-                            }}
-                            className="hover:text-error ml-0.5 cursor-pointer font-bold text-xs"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                      <div className="flex items-center gap-1.5 flex-1 min-w-50">
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex gap-2 w-full">
                         <input
                           type="text"
                           value={tagInput}
@@ -906,18 +891,41 @@ export function Books() {
                             }
                           }}
                           placeholder={t('book.add_tag_placeholder', 'Add tag and press Enter...')}
-                          className="input input-sm input-bordered bg-base-100 text-xs flex-1 rounded-lg"
+                          className="input input-md input-bordered flex-1 bg-base-100 text-sm rounded-xl font-medium"
                         />
                         <button
                           type="button"
                           onClick={handleAddTag}
                           disabled={!tagInput.trim()}
-                          className="btn btn-sm btn-primary rounded-lg gap-1 font-bold"
+                          className="btn btn-md btn-primary rounded-xl gap-1.5 font-bold shrink-0 px-4"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-4 h-4" />
                           {t('common.add', 'Add')}
                         </button>
                       </div>
+
+                      {formData.subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {formData.subjects.map((sub, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-semibold rounded-lg"
+                            >
+                              {sub}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = formData.subjects.filter((_, i) => i !== sIdx);
+                                  setFormData({ subjects: next });
+                                }}
+                                className="hover:text-error ml-0.5 cursor-pointer font-bold text-xs"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 

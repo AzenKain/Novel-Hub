@@ -60,9 +60,9 @@ export function AdminLayout() {
           <div className="h-20 flex flex-col justify-center px-6 border-b border-base-200">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
               {settings?.site?.logo ? (
-                <img src={settings.site.logo} alt={t("common.alt_logo")} className="w-8 h-8 rounded bg-base-100 object-contain mr-3" />
+                <img src={settings.site.logo} alt={t("common.alt_logo")} className="h-10 w-auto max-w-[50px] object-contain mr-3 shrink-0 drop-shadow-sm" />
               ) : (
-                <div className="w-8 h-8 rounded bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3">NH</div>
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-secondary text-primary-content flex items-center justify-center font-bold mr-3 shrink-0">NH</div>
               )}
               <div className="flex flex-col">
                 <span className="text-xl font-bold leading-tight">{settings?.site?.title || "NovelHub"}</span>

@@ -592,6 +592,19 @@ func (r *bookDBRepository) ClearBookTags(ctx context.Context, bookID string) err
 	return nil
 }
 
+func (r *bookDBRepository) RemoveBookTag(ctx context.Context, bookID, tagID string) error {
+	if err := r.queries.RemoveBookTag(ctx, sqlc.RemoveBookTagParams{BookID: bookID, TagID: tagID}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("book", "id", bookID), constants.CacheKeyLibraryStats)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyMetadataCountPattern)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyBookSearchPattern)
+	}
+	return nil
+}
+
 func (r *bookDBRepository) ListAuthorsWithCount(ctx context.Context, filter MetadataFacetFilter) ([]*models.MetadataCountEntity, error) {
 	key := filter.cacheKey("authors")
 	if r.c != nil && !r.inTx {

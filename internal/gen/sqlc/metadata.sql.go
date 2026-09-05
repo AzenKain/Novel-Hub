@@ -709,3 +709,17 @@ func (q *Queries) ListTagsWithCount(ctx context.Context, arg ListTagsWithCountPa
 	}
 	return items, nil
 }
+
+const removeBookTag = `-- name: RemoveBookTag :exec
+DELETE FROM book_tags WHERE book_id = ? AND tag_id = ?
+`
+
+type RemoveBookTagParams struct {
+	BookID string `json:"book_id"`
+	TagID  string `json:"tag_id"`
+}
+
+func (q *Queries) RemoveBookTag(ctx context.Context, arg RemoveBookTagParams) error {
+	_, err := q.exec(ctx, q.removeBookTagStmt, removeBookTag, arg.BookID, arg.TagID)
+	return err
+}
