@@ -353,7 +353,11 @@
     "book_unarchived": "किताब अनआर्काइव की गई",
     "archive_update_failed": "आर्काइव स्थिति अपडेट करना विफल रहा",
     "file_deleted": "फ़ाइल सफलतापूर्वक हटाई गई!",
-    "file_delete_error": "फ़ाइल हटाने में त्रुटि"
+    "file_delete_error": "फ़ाइल हटाने में त्रुटि",
+    "upload_short": "अपलोड",
+    "calibre_short": "Calibre",
+    "role_effect_label": "प्रभाव",
+    "unsaved_changes": "सहेजे नहीं गए बदलाव"
   },
   "download_manager": {
     "title": "डाउनलोड",
@@ -1878,5 +1882,8 @@
     "step1": "KOReader में मेनू खोलें -> सेटिंग्स -> 'प्रगति सिंक' (Kosync) चुनें।",
     "step2": "'प्रगति सिंक' सक्षम करें -> 'कस्टम सर्वर' -> ऊपर दिया गया सर्वर URL दर्ज करें।",
     "step3": "अपने NovelHub खाते के ईमेल और पासवर्ड से लॉगिन करें।"
-  }
+  },
+  "library_scope_short": "दायरा",
+  "scope_all_short": "सभी",
+  "scope_specific_short": "विशिष्ट"
 }

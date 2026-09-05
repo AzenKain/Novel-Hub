@@ -421,7 +421,7 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40" />
+            <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none z-10" />
             <input
               type="text"
               placeholder={t("common.search", "Filter...")}

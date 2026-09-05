@@ -924,7 +924,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
         {activeTab === "toc" && !singleChapter && chapters.length > 5 && (
           <div className="px-3 pb-2 shrink-0">
             <div className="relative flex items-center">
-              <Search className="w-3.5 h-3.5 absolute left-3 text-(--reader-ui-muted) pointer-events-none" />
+              <Search className="w-3.5 h-3.5 absolute left-3 text-(--reader-ui-muted) pointer-events-none z-10" />
               <input
                 type="text"
                 value={searchQuery}

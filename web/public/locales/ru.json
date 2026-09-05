@@ -353,7 +353,11 @@
     "book_unarchived": "Книга возвращена из архива",
     "archive_update_failed": "Не удалось обновить состояние архива",
     "file_deleted": "Файл успешно удалён!",
-    "file_delete_error": "Ошибка удаления файла"
+    "file_delete_error": "Ошибка удаления файла",
+    "upload_short": "Загрузить",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Действие",
+    "unsaved_changes": "Несохраненные изменения"
   },
   "download_manager": {
     "title": "Загрузки",
@@ -1878,5 +1882,8 @@
     "step1": "Откройте меню в KOReader -> Настройки -> Выберите «Синхронизация прогресса» (Kosync).",
     "step2": "Включите синхронизацию -> «Пользовательский сервер» -> Введите URL сервера выше.",
     "step3": "Войдите, используя адрес электронной почты и пароль учетной записи NovelHub."
-  }
+  },
+  "library_scope_short": "Область",
+  "scope_all_short": "Все",
+  "scope_specific_short": "Выбранные"
 }

@@ -353,7 +353,11 @@
     "book_unarchived": "Book unarchived",
     "archive_update_failed": "Failed to update archive state",
     "file_deleted": "File deleted successfully!",
-    "file_delete_error": "Error deleting file"
+    "file_delete_error": "Error deleting file",
+    "upload_short": "Upload",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Effect",
+    "unsaved_changes": "Unsaved changes"
   },
   "download_manager": {
     "title": "Downloads",
@@ -1878,5 +1882,8 @@
     "step1": "Open top menu in KOReader -> Go to Settings (gear icon) -> Select 'Progress sync' (Kosync).",
     "step2": "Enable 'Progress sync' -> Tap 'Custom server' -> Enter the Sync Server URL above.",
     "step3": "Register or log in using your NovelHub account email and password."
-  }
+  },
+  "library_scope_short": "Scope",
+  "scope_all_short": "All",
+  "scope_specific_short": "Specific"
 }

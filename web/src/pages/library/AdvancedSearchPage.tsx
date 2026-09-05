@@ -312,7 +312,7 @@ export const AdvancedSearchPage: React.FC = () => {
             {/* Main Search Input Form */}
             <form onSubmit={handleSearchSubmit} className="mt-5 relative">
               <div className="relative flex items-center">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base-content/40">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base-content/40 z-10">
                   <Search className="w-5 h-5" />
                 </div>
                 <input

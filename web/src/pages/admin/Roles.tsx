@@ -21,9 +21,10 @@ import {
   RefreshCw,
   Save,
   Shield,
+  ShieldAlert,
   Trash2,
 } from "lucide-react";
-import { SyntheticEvent, useEffect, useState } from "react";
+import { SyntheticEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 interface PermissionAssignment {
@@ -287,17 +288,37 @@ export function Roles() {
     });
   }
 
+  const hasChanges = useMemo(() => {
+    if (!selectedRole || !selectedRole.permissions) return false;
+    const orig = selectedRole.permissions;
+    if (orig.length !== assignments.length) return true;
+    return assignments.some((a) => {
+      const found = orig.find((o) => o.permission_key === a.permission_key);
+      if (!found) return true;
+      if ((found.effect || "allow") !== a.effect) return true;
+      const origLibIds = ((found.conditions?.library_ids as string[]) || [])
+        .slice()
+        .sort()
+        .join(",");
+      const currLibIds = ((a.conditions?.library_ids as string[]) || [])
+        .slice()
+        .sort()
+        .join(",");
+      return origLibIds !== currLibIds;
+    });
+  }, [selectedRole, assignments]);
+
   const canModify =
     selectedRole && !selectedRole.is_admin && !selectedRole.is_banned;
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             {t("admin.role_management", "Role Management")}
           </h1>
-          <p className="text-sm text-base-content/60 mt-1">
+          <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
             {t(
               "admin.role_management_desc",
               "Create, edit roles and manage permissions",
@@ -315,12 +336,12 @@ export function Roles() {
             await Promise.all([refetchRoles(), refetchPermissions()]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
-          className="btn btn-square btn-ghost btn-sm sm:btn-md"
+          className="btn btn-square btn-ghost btn-sm sm:btn-md shrink-0"
           title={t("admin.operations.refresh", "Refresh")}
           disabled={rolesFetching || permissionsFetching}
         >
           <RefreshCw
-            className={`h-5 w-5 ${rolesFetching || permissionsFetching ? "animate-spin" : ""}`}
+            className={`h-4 w-4 sm:h-5 sm:w-5 ${rolesFetching || permissionsFetching ? "animate-spin" : ""}`}
           />
         </button>
       </header>
@@ -640,9 +661,8 @@ export function Roles() {
                             >
                               <div className="bg-base-200/40 px-4 py-2.5 flex items-center justify-between font-semibold text-xs tracking-wide uppercase text-base-content/70">
                                 <span>{category.name}</span>
-                                <span className="badge badge-sm badge-ghost">
-                                  {assignedCount}/{categoryPerms.length}{" "}
-                                  assigned
+                                <span className="badge badge-sm badge-ghost font-mono">
+                                  {assignedCount}/{categoryPerms.length}
                                 </span>
                               </div>
                               <div className="divide-y divide-base-200/60">
@@ -653,38 +673,49 @@ export function Roles() {
                                   return (
                                     <div
                                       key={perm.key}
-                                      className="p-4 flex flex-col gap-3 hover:bg-base-200/20 transition-colors"
+                                      className="p-3.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3 hover:bg-base-200/20 transition-colors"
                                     >
-                                      <div className="flex items-start justify-between gap-4">
-                                        <div className="flex items-start gap-3">
+                                      <div className="flex items-start justify-between gap-3 sm:gap-4">
+                                        <label className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer select-none">
                                           <input
                                             type="checkbox"
                                             checked={assigned}
                                             onChange={() =>
                                               togglePermission(perm.key)
                                             }
-                                            className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                                            className="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
                                           />
-                                          <div>
-                                            <div className="font-bold text-sm flex items-center gap-2">
-                                              <span>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-baseline gap-2 flex-wrap">
+                                              <span
+                                                className={`text-sm leading-snug break-words ${
+                                                  assigned
+                                                    ? "font-bold text-base-content"
+                                                    : "font-medium text-base-content/80"
+                                                }`}
+                                              >
                                                 {perm.description || perm.key}
                                               </span>
-                                              <span className="font-mono text-[10px] bg-base-200 text-base-content/70 px-1.5 py-0.5 rounded">
+                                              <span className="font-mono text-[10px] bg-base-200 text-base-content/60 px-1.5 py-0.5 rounded shrink-0">
                                                 {perm.key}
                                               </span>
                                             </div>
                                           </div>
-                                        </div>
+                                        </label>
 
+                                        {/* Desktop Only: Effect Toggle */}
                                         {assigned && (
-                                          <div className="flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
+                                          <div className="hidden sm:flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
                                             <button
                                               type="button"
                                               onClick={() =>
                                                 setEffect(perm.key, "allow")
                                               }
-                                              className={`btn btn-xs ${assignment?.effect === "allow" ? "btn-success font-bold" : "btn-ghost text-base-content/60"}`}
+                                              className={`btn btn-xs ${
+                                                assignment?.effect === "allow"
+                                                  ? "btn-success font-bold"
+                                                  : "btn-ghost text-base-content/60"
+                                              }`}
                                             >
                                               {t(
                                                 "admin.role_effect_allow",
@@ -696,7 +727,11 @@ export function Roles() {
                                               onClick={() =>
                                                 setEffect(perm.key, "deny")
                                               }
-                                              className={`btn btn-xs ${assignment?.effect === "deny" ? "btn-error font-bold" : "btn-ghost text-base-content/60"}`}
+                                              className={`btn btn-xs ${
+                                                assignment?.effect === "deny"
+                                                  ? "btn-error font-bold"
+                                                  : "btn-ghost text-base-content/60"
+                                              }`}
                                             >
                                               {t(
                                                 "admin.role_effect_deny",
@@ -707,34 +742,85 @@ export function Roles() {
                                         )}
                                       </div>
 
-                                      {/* Conditional Scope */}
+                                      {/* Active Permission Settings (Mobile Effect Toggle + Library Scope) */}
                                       {assigned && (
-                                        <div className="pl-7">
-                                          <LibraryScopeSelector
-                                            selectedLibraryIds={
-                                              (assignment?.conditions
-                                                ?.library_ids as string[]) || []
-                                            }
-                                            onChange={(ids) => {
-                                              setAssignments((prev) =>
-                                                prev.map((a) =>
-                                                  a.permission_key === perm.key
-                                                    ? {
-                                                        ...a,
-                                                        conditions:
-                                                          ids.length > 0
-                                                            ? {
-                                                                library_ids:
-                                                                  ids,
-                                                              }
-                                                            : {},
-                                                      }
-                                                    : a,
-                                                ),
-                                              );
-                                            }}
-                                            libraries={libraries}
-                                          />
+                                        <div className="pl-7 flex flex-col gap-2 pt-0.5">
+                                          {/* Mobile Only: Effect Toggle */}
+                                          <div className="sm:hidden flex items-center justify-between gap-2 py-0.5">
+                                            <span className="text-xs font-semibold text-base-content/70 flex items-center gap-1.5">
+                                              <ShieldAlert className="w-3.5 h-3.5 opacity-70" />
+                                              {t(
+                                                "admin.role_effect_label",
+                                                "Effect",
+                                              )}
+                                              :
+                                            </span>
+                                            <div className="flex items-center gap-1 bg-base-200/90 p-0.5 rounded-lg border border-base-300/40 shrink-0">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setEffect(perm.key, "allow")
+                                                }
+                                                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                                                  assignment?.effect === "allow"
+                                                    ? "bg-success text-success-content font-bold shadow-xs"
+                                                    : "text-base-content/60 hover:text-base-content"
+                                                }`}
+                                              >
+                                                {t(
+                                                  "admin.role_effect_allow",
+                                                  "Allow",
+                                                )}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setEffect(perm.key, "deny")
+                                                }
+                                                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                                                  assignment?.effect === "deny"
+                                                    ? "bg-error text-error-content font-bold shadow-xs"
+                                                    : "text-base-content/60 hover:text-base-content"
+                                                }`}
+                                              >
+                                                {t(
+                                                  "admin.role_effect_deny",
+                                                  "Deny",
+                                                )}
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          {/* Library Scope Selector (Only for non-admin categories) */}
+                                          {category.id !== "admin" && (
+                                            <LibraryScopeSelector
+                                              selectedLibraryIds={
+                                                (assignment?.conditions
+                                                  ?.library_ids as string[]) ||
+                                                []
+                                              }
+                                              onChange={(ids) => {
+                                                setAssignments((prev) =>
+                                                  prev.map((a) =>
+                                                    a.permission_key ===
+                                                    perm.key
+                                                      ? {
+                                                          ...a,
+                                                          conditions:
+                                                            ids.length > 0
+                                                              ? {
+                                                                  library_ids:
+                                                                    ids,
+                                                                }
+                                                              : {},
+                                                        }
+                                                      : a,
+                                                  ),
+                                                );
+                                              }}
+                                              libraries={libraries}
+                                            />
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -763,6 +849,33 @@ export function Roles() {
           </div>
         </div>
       </div>
+
+      {/* Floating Save Action Bar on Mobile */}
+      {hasChanges && canModify && (
+        <div className="fixed sm:hidden bottom-4 left-4 right-4 z-40 bg-base-100/95 backdrop-blur-md border border-primary/30 shadow-2xl rounded-2xl p-3 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+            </span>
+            <span className="text-xs font-semibold truncate text-base-content">
+              {t("admin.unsaved_changes", "Unsaved changes")}
+            </span>
+          </div>
+          <button
+            onClick={savePermissions}
+            disabled={saving}
+            className="btn btn-primary btn-sm shadow-md gap-1.5 shrink-0"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {t("admin.role_save_permissions", "Save Permissions")}
+          </button>
+        </div>
+      )}
 
       {/* Role Create/Edit Modal */}
       {showModal && (

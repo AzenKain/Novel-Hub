@@ -149,21 +149,22 @@ export const WebhooksTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            {t("admin.webhooks", "Webhooks & Outbound Integrations")}
-          </h2>
-          <p className="text-xs text-base-content/60">
-            {t(
-              "admin.webhooks_subtitle",
-              "Configure real-time event notifications for Discord, Telegram, Slack, and automation webhooks.",
-            )}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">
+                {t("admin.webhooks", "Webhooks & Outbound Integrations")}
+              </span>
+            </h2>
+            <p className="text-xs text-base-content/60 mt-0.5 line-clamp-1 sm:line-clamp-none">
+              {t(
+                "admin.webhooks_subtitle",
+                "Configure real-time event notifications for Discord, Telegram, Slack, and automation webhooks.",
+              )}
+            </p>
+          </div>
           <button
             onClick={async () => {
               await queryClient.invalidateQueries({
@@ -172,7 +173,26 @@ export const WebhooksTab: React.FC = () => {
               await refetch();
               toast.info(t("common.refreshed", "Data refreshed"));
             }}
-            className="btn btn-square btn-ghost btn-sm"
+            className="btn btn-square btn-ghost btn-sm sm:hidden shrink-0"
+            title={t("settings.refresh", "Refresh")}
+            disabled={isFetching}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button
+            onClick={async () => {
+              await queryClient.invalidateQueries({
+                queryKey: ["admin", "webhooks"],
+              });
+              await refetch();
+              toast.info(t("common.refreshed", "Data refreshed"));
+            }}
+            className="btn btn-square btn-ghost btn-sm hidden sm:inline-flex shrink-0"
             title={t("settings.refresh", "Refresh")}
             disabled={isFetching}
           >
@@ -182,7 +202,7 @@ export const WebhooksTab: React.FC = () => {
           </button>
           <button
             onClick={openCreateModal}
-            className="btn btn-primary btn-sm gap-2"
+            className="btn btn-primary btn-sm gap-2 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             {t("admin.add_webhook", "Add Webhook")}

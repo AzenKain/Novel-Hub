@@ -353,7 +353,11 @@
     "book_unarchived": "本のアーカイブを解除しました",
     "archive_update_failed": "アーカイブ状態の更新に失敗しました",
     "file_deleted": "ファイルを削除しました！",
-    "file_delete_error": "ファイルの削除中にエラー"
+    "file_delete_error": "ファイルの削除中にエラー",
+    "upload_short": "アップロード",
+    "calibre_short": "Calibre",
+    "role_effect_label": "効力",
+    "unsaved_changes": "未保存の変更"
   },
   "download_manager": {
     "title": "ダウンロード",
@@ -1878,5 +1882,8 @@
     "step1": "KOReader のメニューを開く -> 設定 (歯車) -> 「進捗同期 (Kosync)」を選択します。",
     "step2": "「進捗同期」を有効化 -> 「カスタムサーバー」を選択 -> 上記のサーバー URL を入力します。",
     "step3": "NovelHub のアカウントメールアドレスとパスワードで Kosync にログインします。"
-  }
+  },
+  "library_scope_short": "範囲",
+  "scope_all_short": "すべて",
+  "scope_specific_short": "指定"
 }

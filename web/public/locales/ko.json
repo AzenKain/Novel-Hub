@@ -353,7 +353,11 @@
     "book_unarchived": "책 보관이 해제되었습니다",
     "archive_update_failed": "보관 상태 업데이트 실패",
     "file_deleted": "파일이 삭제되었습니다!",
-    "file_delete_error": "파일 삭제 오류"
+    "file_delete_error": "파일 삭제 오류",
+    "upload_short": "업로드",
+    "calibre_short": "Calibre",
+    "role_effect_label": "효력",
+    "unsaved_changes": "저장되지 않은 변경사항"
   },
   "download_manager": {
     "title": "다운로드",
@@ -1878,5 +1882,8 @@
     "step1": "KOReader 메뉴 열기 -> 설정 (톱니바퀴) -> '진행률 동기화(Kosync)' 선택.",
     "step2": "'진행률 동기화' 활성화 -> '사용자 지정 서버' 선택 -> 위 서버 URL 입력.",
     "step3": "NovelHub 계정 이메일과 비밀번호로 로그인합니다."
-  }
+  },
+  "library_scope_short": "범위",
+  "scope_all_short": "전체",
+  "scope_specific_short": "지정"
 }

@@ -375,13 +375,13 @@ export const TopNav: React.FC<TopNavProps> = ({
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <div
-          className="tooltip tooltip-bottom"
+          className="sm:tooltip sm:tooltip-bottom"
           data-tip={t("common.theme", "Theme")}
         >
           <ThemeController />
         </div>
         <div
-          className="tooltip tooltip-bottom"
+          className="sm:tooltip sm:tooltip-bottom"
           data-tip={t("common.language", "Language")}
         >
           <LanguageSwitcher />
@@ -389,7 +389,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
         {user && (
           <div
-            className="tooltip tooltip-bottom"
+            className="sm:tooltip sm:tooltip-bottom"
             data-tip={t("library.readlists", "Read Lists")}
           >
             <Link
@@ -404,7 +404,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
         {user && hasPermission(user, "podcast.manage") && (
           <div
-            className="tooltip tooltip-bottom"
+            className="sm:tooltip sm:tooltip-bottom"
             data-tip={t("podcasts.title", "Podcasts")}
           >
             <Link
@@ -418,7 +418,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         )}
 
         <div
-          className="tooltip tooltip-bottom"
+          className="sm:tooltip sm:tooltip-bottom"
           data-tip={t("offline.title", "Offline Books")}
         >
           <Link
@@ -434,29 +434,32 @@ export const TopNav: React.FC<TopNavProps> = ({
           <>
             {hasPermission(user, "admin.access") && (
               <div
-                className="tooltip tooltip-bottom"
+                className="sm:tooltip sm:tooltip-bottom"
                 data-tip={t("admin.dashboard", "Admin")}
               >
                 <Link
                   to="/admin"
-                  className="btn btn-ghost btn-sm sm:btn-md gap-2 hidden sm:flex"
+                  className="btn btn-ghost btn-circle sm:btn-square sm:w-auto sm:px-3 btn-sm sm:btn-md gap-2 text-base-content/70 hover:text-primary"
+                  aria-label={t("admin.dashboard", "Admin")}
                 >
-                  <LayoutDashboard className="w-4 h-4" />
-                  {t("admin.dashboard", "Admin")}
+                  <LayoutDashboard className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">
+                    {t("admin.dashboard", "Admin")}
+                  </span>
                 </Link>
               </div>
             )}
             <div className="dropdown dropdown-end">
               <div
-                className="tooltip tooltip-bottom"
+                className="sm:tooltip sm:tooltip-bottom"
                 data-tip={t("user.profile", "Profile")}
               >
                 <div
                   tabIndex={0}
                   role="button"
-                  className="btn btn-ghost btn-circle avatar border border-base-300"
+                  className="btn btn-ghost btn-circle btn-sm sm:btn-md avatar border border-base-300"
                 >
-                  <div className="w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                     {user.avatar_url && (
                       <img
                         src={getMediaUrl(
@@ -476,7 +479,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                       />
                     )}
                     <span
-                      className="text-lg"
+                      className="text-xs sm:text-lg"
                       style={{ display: user.avatar_url ? "none" : "flex" }}
                     >
                       {user.full_name
@@ -488,13 +491,21 @@ export const TopNav: React.FC<TopNavProps> = ({
               </div>
               <ul
                 tabIndex={0}
-                className="mt-3 z-1 p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 border border-base-200"
+                className="mt-3 z-50 p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 border border-base-200"
               >
                 <li>
                   <span className="font-semibold opacity-60 px-4 py-2 truncate block">
                     {user.email}
                   </span>
                 </li>
+                {hasPermission(user, "admin.access") && (
+                  <li>
+                    <Link to="/admin" className="flex items-center gap-2">
+                      <LayoutDashboard className="w-4 h-4 text-primary opacity-80" />
+                      {t("admin.dashboard", "Admin")}
+                    </Link>
+                  </li>
+                )}
                 <li>
                   <Link to="/profile" className="flex items-center gap-2">
                     <User className="w-4 h-4 opacity-70" />

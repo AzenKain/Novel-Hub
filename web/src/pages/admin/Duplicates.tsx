@@ -194,22 +194,40 @@ export const Duplicates: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Header Bar */}
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("admin.duplicates_title", "Duplicate Files Management")}
-          </h1>
-          <p className="text-sm text-base-content/60 mt-1">
-            {t(
-              "admin.duplicates_subtitle",
-              "Detect and clean up identical ebook files uploaded across the library by SHA-256 hash.",
-            )}
-          </p>
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              {t("admin.duplicates_title", "Duplicate Files Management")}
+            </h1>
+            <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
+              {t(
+                "admin.duplicates_subtitle",
+                "Detect and clean up identical ebook files uploaded across the library by SHA-256 hash.",
+              )}
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              await queryClient.invalidateQueries({
+                queryKey: ["admin", "duplicates"],
+              });
+              await refetch();
+              toast.info(t("common.refreshed", "Data refreshed"));
+            }}
+            className="btn btn-square btn-ghost btn-sm sm:hidden shrink-0"
+            title={t("settings.refresh", "Refresh")}
+            disabled={isFetching}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+            />
+          </button>
         </div>
 
         {/* Stats & Refresh Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-base-200/50 border border-base-200 text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-base-200/50 border border-base-200 text-xs">
             <Copy className="w-3.5 h-3.5 text-primary" />
             <span className="text-base-content/60">
               {t("admin.total_groups", "Duplicate Groups")}:
@@ -218,7 +236,7 @@ export const Duplicates: React.FC = () => {
               {duplicateGroups.length}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-base-200/50 border border-base-200 text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-base-200/50 border border-base-200 text-xs">
             <HardDrive className="w-3.5 h-3.5 text-warning" />
             <span className="text-base-content/60">
               {t("admin.space_wasted", "Wasted Space")}:
@@ -235,12 +253,12 @@ export const Duplicates: React.FC = () => {
               await refetch();
               toast.info(t("common.refreshed", "Data refreshed"));
             }}
-            className="btn btn-square btn-ghost btn-sm sm:btn-md"
+            className="btn btn-square btn-ghost btn-sm sm:btn-md hidden sm:inline-flex"
             title={t("settings.refresh", "Refresh")}
             disabled={isFetching}
           >
             <RefreshCw
-              className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+              className={`h-4 w-4 sm:h-5 sm:w-5 ${isFetching ? "animate-spin" : ""}`}
             />
           </button>
         </div>

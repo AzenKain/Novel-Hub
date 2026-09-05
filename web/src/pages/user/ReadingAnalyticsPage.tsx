@@ -128,9 +128,16 @@ export const ReadingAnalyticsPage: React.FC = () => {
               <Sparkles className="h-4 w-4" />
               {t("analytics.export_card", "Export Card")}
             </button>
-            <Link to="/" className="btn btn-ghost btn-sm gap-1 text-primary">
+            <Link
+              to="/"
+              className="btn btn-ghost btn-sm btn-square sm:w-auto sm:px-3 gap-1 text-primary shrink-0"
+              aria-label={t("library.back_to_library", "Back to Library")}
+              title={t("library.back_to_library", "Back to Library")}
+            >
               <ArrowLeft className="h-4 w-4" />
-              {t("library.back_to_library", "Back to Library")}
+              <span className="hidden sm:inline whitespace-nowrap">
+                {t("library.back_to_library", "Back to Library")}
+              </span>
             </Link>
           </div>
         </div>

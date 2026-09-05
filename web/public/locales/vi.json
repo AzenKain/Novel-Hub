@@ -304,7 +304,7 @@
     "reset_password_title": "Đặt lại mật khẩu",
     "search_placeholder": "Tìm sách...",
     "search_users_placeholder": "Tìm người dùng theo tên hoặc email...",
-    "total_loaded": "Người dùng đã tải",
+    "total_loaded": "Đang hiển thị",
     "type_to_confirm": "Vui lòng nhập",
     "unnamed_user": "Không tên",
     "update_password": "Cập nhật mật khẩu",
@@ -353,7 +353,11 @@
     "book_unarchived": "Đã bỏ lưu trữ sách",
     "archive_update_failed": "Không thể cập nhật trạng thái lưu trữ",
     "file_deleted": "Đã xoá tệp thành công!",
-    "file_delete_error": "Lỗi khi xoá tệp"
+    "file_delete_error": "Lỗi khi xoá tệp",
+    "upload_short": "Tải lên",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Hiệu lực",
+    "unsaved_changes": "Thay đổi chưa lưu"
   },
   "download_manager": {
     "title": "Tải xuống",
@@ -1878,5 +1882,8 @@
     "step1": "Mở menu trên KOReader -> Chọn Cài đặt (biểu tượng bánh răng) -> Chọn 'Đồng bộ tiến độ' (Kosync).",
     "step2": "Bật 'Đồng bộ tiến độ' -> Nhấn 'Máy chủ tùy chỉnh' -> Nhập URL máy chủ ở trên.",
     "step3": "Đăng ký hoặc đăng nhập tài khoản Kosync bằng email và mật khẩu tài khoản NovelHub của bạn."
-  }
+  },
+  "library_scope_short": "Phạm vi",
+  "scope_all_short": "Tất cả",
+  "scope_specific_short": "Cụ thể"
 }

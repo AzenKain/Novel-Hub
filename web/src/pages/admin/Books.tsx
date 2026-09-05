@@ -57,6 +57,7 @@ import {
   Layers,
   Plus,
   Download,
+  Library,
   Stethoscope,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -305,19 +306,19 @@ export function Books() {
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Header Bar matching Roles/Users design */}
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             {t("admin.books", "Books")}
           </h1>
-          <p className="text-sm text-base-content/60 mt-1">
+          <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
             {t(
               "admin.books_subtitle",
               "Manage EPUB novel files, libraries, and calibre imports.",
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={async () => {
               await queryClient.invalidateQueries({ queryKey: ["books"] });
@@ -329,7 +330,7 @@ export function Books() {
             disabled={isFetching}
           >
             <RefreshCw
-              className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+              className={`h-4 w-4 sm:h-5 sm:w-5 ${isFetching ? "animate-spin" : ""}`}
             />
           </button>
         </div>
@@ -343,11 +344,11 @@ export function Books() {
             {/* Search, Library Filter & View Switcher */}
             <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 min-w-0">
               <div className="relative flex-1 min-w-50 sm:min-w-60 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none z-10" />
                 <input
                   type="text"
                   placeholder={t("admin.search_placeholder", "Search books...")}
-                  className="input input-bordered input-sm sm:input-md w-full pl-9 bg-base-100 rounded-xl"
+                  className="input input-bordered input-sm sm:input-md w-full pl-9.5 bg-base-100 rounded-xl"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -389,28 +390,47 @@ export function Books() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap xl:flex-nowrap shrink-0 justify-start xl:justify-end">
+            <div className="flex items-center gap-1.5 sm:gap-2 w-full xl:w-auto shrink-0 justify-start xl:justify-end">
               <button
                 onClick={() => setShowLibraryModal(true)}
-                className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl text-xs sm:text-sm"
+                className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 rounded-xl text-xs sm:text-sm flex-1 sm:flex-initial px-2 sm:px-4"
+                title={t("admin.manage_libraries", "Manage Libraries")}
               >
-                {t("admin.manage_libraries", "Manage Libraries")}
+                <Library className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="sm:hidden">
+                  {t("admin.library", "Library")}
+                </span>
+                <span className="hidden sm:inline">
+                  {t("admin.manage_libraries", "Manage Libraries")}
+                </span>
               </button>
               {canImportCalibre && (
                 <button
                   onClick={() => setShowCalibreModal(true)}
-                  className="btn btn-outline btn-sm sm:btn-md gap-2 rounded-xl text-xs sm:text-sm"
+                  className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 rounded-xl text-xs sm:text-sm flex-1 sm:flex-initial px-2 sm:px-4"
+                  title={t("admin.calibre_import", "Import from Calibre")}
                 >
-                  <DatabaseBackup className="w-4 h-4" />
-                  {t("admin.calibre_import", "Import from Calibre")}
+                  <DatabaseBackup className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="sm:hidden">
+                    {t("admin.calibre_short", "Calibre")}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {t("admin.calibre_import", "Import from Calibre")}
+                  </span>
                 </button>
               )}
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="btn btn-primary btn-sm sm:btn-md gap-2 rounded-xl font-medium text-xs sm:text-sm"
+                className="btn btn-primary btn-sm sm:btn-md gap-1.5 sm:gap-2 rounded-xl font-medium text-xs sm:text-sm flex-1 sm:flex-initial px-2 sm:px-4"
+                title={t("admin.upload", "Upload")}
               >
-                <Upload className="w-4 h-4" />
-                {t("admin.upload", "Upload")}
+                <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="sm:hidden">
+                  {t("admin.upload_short", "Upload")}
+                </span>
+                <span className="hidden sm:inline">
+                  {t("admin.upload", "Upload")}
+                </span>
               </button>
             </div>
           </div>

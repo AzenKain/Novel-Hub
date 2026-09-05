@@ -23,7 +23,7 @@ const LANGUAGES: { code: Language; label: string }[] = [
 ];
 
 export function LanguageSwitcher({
-  className = "dropdown-end",
+  className = "dropdown-start sm:dropdown-end",
   buttonClassName,
 }: {
   className?: string;
@@ -42,15 +42,19 @@ export function LanguageSwitcher({
       <div
         tabIndex={0}
         role="button"
-        className={buttonClassName || "btn btn-ghost btn-sm m-1 gap-1"}
-        title={t("common.language")}
+        className={
+          buttonClassName ||
+          "btn btn-ghost btn-sm sm:btn-md px-2 gap-1 text-base-content/70 hover:text-primary rounded-full"
+        }
+        title={t("common.language", "Language")}
+        aria-label={t("common.language", "Language")}
       >
         <Globe className="w-4 h-4" />
         <span className="text-xs font-medium uppercase">{language}</span>
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content z-[2] menu p-2 shadow bg-base-100 rounded-box w-40"
+        className="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-44 max-h-80 overflow-y-auto border border-base-200 flex-nowrap"
       >
         {LANGUAGES.map((lang) => (
           <li key={lang.code}>
@@ -60,7 +64,7 @@ export function LanguageSwitcher({
                 void i18n.changeLanguage(lang.code);
                 (document.activeElement as HTMLElement)?.blur();
               }}
-              className={language === lang.code ? "active" : ""}
+              className={language === lang.code ? "active font-semibold" : ""}
             >
               {lang.label}
             </button>

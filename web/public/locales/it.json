@@ -353,7 +353,11 @@
     "book_unarchived": "Libro rimosso dall'archivio",
     "archive_update_failed": "Aggiornamento dello stato di archiviazione non riuscito",
     "file_deleted": "File eliminato con successo!",
-    "file_delete_error": "Errore nell'eliminazione del file"
+    "file_delete_error": "Errore nell'eliminazione del file",
+    "upload_short": "Carica",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Effetto",
+    "unsaved_changes": "Modifiche non salvate"
   },
   "download_manager": {
     "title": "Download",
@@ -1878,5 +1882,8 @@
     "step1": "Apri il menu in KOReader -> Impostazioni -> Seleziona 'Sincronizzazione avanzamento' (Kosync).",
     "step2": "Abilita sincronizzazione -> 'Server personalizzato' -> Inserisci l'URL del server.",
     "step3": "Accedi utilizzando l'email e la password del tuo account NovelHub."
-  }
+  },
+  "library_scope_short": "Ambito",
+  "scope_all_short": "Tutte",
+  "scope_specific_short": "Specifica"
 }

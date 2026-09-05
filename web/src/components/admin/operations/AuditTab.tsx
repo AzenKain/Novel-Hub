@@ -51,7 +51,7 @@ export function AuditTab() {
           {t("admin.operations.audit_total", { count: logs.data?.total || 0 })}
         </span>
         <button
-          className="btn btn-sm btn-ghost gap-1.5 ml-auto"
+          className="btn btn-sm btn-ghost gap-1.5 ml-auto shrink-0 px-2 sm:px-3"
           disabled={logs.isFetching}
           onClick={async () => {
             await queryClient.invalidateQueries({
@@ -68,7 +68,9 @@ export function AuditTab() {
           <RefreshCw
             className={`w-3.5 h-3.5 ${logs.isFetching ? "animate-spin" : ""}`}
           />
-          <span>{t("admin.operations.refresh")}</span>
+          <span className="hidden sm:inline">
+            {t("admin.operations.refresh")}
+          </span>
         </button>
       </div>
       <div className="overflow-x-auto bg-base-100 rounded-box shadow-sm">

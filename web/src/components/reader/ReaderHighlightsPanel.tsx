@@ -195,7 +195,7 @@ export const ReaderHighlightsPanel: React.FC<ReaderHighlightsPanelProps> = ({
       <div className="p-2.5 border-b border-(--reader-ui-border,rgba(255,255,255,0.12)) flex flex-col gap-2 bg-(--reader-ui-surface-strong,rgba(30,31,41,0.5))">
         {/* Search Input */}
         <div className="relative flex items-center">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 opacity-40 pointer-events-none text-(--reader-ui-text)" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 opacity-40 pointer-events-none text-(--reader-ui-text) z-10" />
           <input
             type="text"
             value={searchQuery}

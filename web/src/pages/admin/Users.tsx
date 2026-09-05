@@ -13,7 +13,7 @@ import {
 import { adminService } from "@/services";
 import { useUserAdminStore, useAuthStore } from "@/stores";
 import type { CreateUserRequest, User } from "@/types";
-import { AlertCircle, RefreshCw, Search, UserPlus } from "lucide-react";
+import { AlertCircle, RefreshCw, Search, UserPlus, X } from "lucide-react";
 import { SyntheticEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -283,19 +283,19 @@ export function Users() {
 
   return (
     <div className="flex flex-col h-full bg-base-100">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             {t("admin.user_management", "User Management")}
           </h1>
-          <p className="text-sm text-base-content/60 mt-1">
+          <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
             {t(
               "admin.user_subtitle",
               "Manage accounts, roles, access levels, and security credentials.",
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={async () => {
               await queryClient.invalidateQueries({
@@ -312,7 +312,7 @@ export function Users() {
             disabled={usersFetching || rolesFetching}
           >
             <RefreshCw
-              className={`h-5 w-5 ${usersFetching || rolesFetching ? "animate-spin" : ""}`}
+              className={`h-4 w-4 sm:h-5 sm:w-5 ${usersFetching || rolesFetching ? "animate-spin" : ""}`}
             />
           </button>
           <button
@@ -320,16 +320,18 @@ export function Users() {
             className="btn btn-primary btn-sm sm:btn-md gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            {t("admin.add_user", "Add User")}
+            <span className="hidden xs:inline">
+              {t("admin.add_user", "Add User")}
+            </span>
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-base-200/40 border border-base-200 p-2.5 rounded-2xl">
-          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+      <div className="flex-1 overflow-auto p-3 sm:p-6 lg:p-8 space-y-3.5 sm:space-y-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-base-200/40 border border-base-200 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl">
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
+              <Search className="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none z-10" />
               <input
                 type="text"
                 value={query}
@@ -341,10 +343,25 @@ export function Users() {
                   "admin.search_users_placeholder",
                   "Search users by name or email...",
                 )}
-                className="input input-bordered w-full pl-10 focus:input-primary h-10 text-sm rounded-xl bg-base-100"
+                className="input input-bordered w-full pl-9 sm:pl-10 pr-8 focus:input-primary h-9 sm:h-10 text-xs sm:text-sm rounded-xl bg-base-100"
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    resetPaging();
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 p-1 text-base-content/40 hover:text-base-content rounded-full cursor-pointer"
+                  title={t("common.clear", "Clear")}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <label className="cursor-pointer flex items-center gap-2 px-3.5 h-10 rounded-xl border border-base-200 bg-base-100 hover:bg-base-200/50 transition-colors shrink-0">
+
+            {/* Desktop show deleted checkbox */}
+            <label className="hidden sm:flex cursor-pointer items-center gap-2 px-3.5 h-10 rounded-xl border border-base-200 bg-base-100 hover:bg-base-200/50 transition-colors shrink-0">
               <input
                 type="checkbox"
                 checked={showDeleted}
@@ -360,8 +377,41 @@ export function Users() {
             </label>
           </div>
 
-          {/* Right: Stats Counters */}
-          <div className="flex items-center gap-2 shrink-0 sm:border-l sm:border-base-200/80 sm:pl-3">
+          {/* Mobile sub-bar: Checkbox on left + Compact stats on right */}
+          <div className="flex sm:hidden items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+            <label className="cursor-pointer flex items-center gap-1.5 font-medium select-none text-base-content/80">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => {
+                  setShowDeleted(e.target.checked);
+                  resetPaging();
+                }}
+                className="checkbox checkbox-primary checkbox-xs rounded"
+              />
+              <span className="text-xs">
+                {t("admin.show_deleted", "Show Deleted")}
+              </span>
+            </label>
+            <div className="flex items-center gap-2 text-base-content/60 font-medium">
+              <span>
+                {t("admin.total_loaded", "Loaded Users")}:{" "}
+                <strong className="text-primary font-bold">
+                  {users.length}
+                </strong>
+              </span>
+              <span className="text-base-content/30">•</span>
+              <span>
+                {t("admin.active_users", "Active")}:{" "}
+                <strong className="text-success font-bold">
+                  {activeUsers}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Desktop Stats Counters */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0 sm:border-l sm:border-base-200/80 sm:pl-3">
             <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-base-100 border border-base-200 text-xs">
               <span className="text-base-content/60 font-medium">
                 {t("admin.total_loaded", "Loaded Users")}:

@@ -353,7 +353,11 @@
     "book_unarchived": "书籍已取消归档",
     "archive_update_failed": "更新归档状态失败",
     "file_deleted": "文件删除成功！",
-    "file_delete_error": "删除文件时出错"
+    "file_delete_error": "删除文件时出错",
+    "upload_short": "上传",
+    "calibre_short": "Calibre",
+    "role_effect_label": "效力",
+    "unsaved_changes": "未保存的更改"
   },
   "download_manager": {
     "title": "下载",
@@ -1878,5 +1882,8 @@
     "step1": "打开 KOReader 菜单 -> 选择设置（齿轮图标）-> 点击「进度同步」(Kosync)。",
     "step2": "启用「进度同步」-> 选择「自定义服务器」-> 输入上方服务器 URL。",
     "step3": "使用您的 NovelHub 账户邮箱和密码注册或登录。"
-  }
+  },
+  "library_scope_short": "范围",
+  "scope_all_short": "全部",
+  "scope_specific_short": "指定"
 }

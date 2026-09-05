@@ -15,6 +15,7 @@ interface HorizontalBookShelfProps {
   emptyMessage?: string;
   itemWidthClass?: string;
   className?: string;
+  noCard?: boolean;
 }
 
 export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
@@ -29,6 +30,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
   emptyMessage,
   itemWidthClass = "w-36 sm:w-44",
   className = "",
+  noCard = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -168,20 +170,22 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
   const content = (
     <>
       {title && (
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="mb-2.5 sm:mb-4 flex items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             {icon}
             <div className="min-w-0">
-              <h3 className="text-lg font-black truncate">{title}</h3>
+              <h3 className="text-base sm:text-lg font-black truncate">
+                {title}
+              </h3>
               {subtitle && (
-                <p className="text-sm text-base-content/50 truncate">
+                <p className="text-xs sm:text-sm text-base-content/50 truncate">
                   {subtitle}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {headerActions}
             {onViewAll && (
               <button
@@ -205,7 +209,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
 
       {!books || books.length === 0 ? (
         emptyMessage ? (
-          <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-sm text-base-content/45 shadow-2xs">
+          <div className="rounded-xl border border-dashed border-base-300 bg-base-100 p-6 sm:p-8 text-center text-sm text-base-content/45 shadow-2xs">
             {emptyMessage}
           </div>
         ) : null
@@ -238,7 +242,7 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
             onScroll={updateScrollButtons}
             onMouseDown={handleMouseDown}
             onDragStart={(e) => e.preventDefault()}
-            className="flex gap-4 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory items-stretch select-none cursor-grab active:cursor-grabbing -mx-1 px-1 touch-pan-x overscroll-x-contain"
+            className="flex gap-3 sm:gap-4 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory items-stretch select-none cursor-grab active:cursor-grabbing -mx-1 px-1"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {books.map((book) => (
@@ -255,10 +259,10 @@ export const HorizontalBookShelf: React.FC<HorizontalBookShelfProps> = ({
     </>
   );
 
-  if (title) {
+  if (title && !noCard) {
     return (
       <section
-        className={`rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5 transition-shadow duration-300 ${className}`}
+        className={`rounded-2xl bg-base-100 shadow-sm border border-base-200 p-3 sm:p-5 transition-shadow duration-300 ${className}`}
       >
         {content}
       </section>

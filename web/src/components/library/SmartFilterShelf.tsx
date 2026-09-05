@@ -46,7 +46,7 @@ export const SmartFilterShelf: React.FC<SmartFilterShelfProps> = ({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className="group/shelf rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5 transition-all hover:border-primary/30"
+      className="group/shelf rounded-2xl bg-base-100 shadow-sm border border-base-200 p-3 sm:p-5 transition-all hover:border-primary/30"
     >
       {isLoading ? (
         <div className="flex gap-4 overflow-x-auto pb-2 items-center justify-center min-h-55">
@@ -54,6 +54,7 @@ export const SmartFilterShelf: React.FC<SmartFilterShelfProps> = ({
         </div>
       ) : (
         <HorizontalBookShelf
+          noCard
           title={filter.name}
           subtitle={t(
             "library.smart_filter_shelf_desc",

@@ -246,7 +246,7 @@ export function JobsTab() {
         </div>
 
         <button
-          className="btn btn-sm btn-ghost gap-1.5 text-xs h-8 shrink-0"
+          className="btn btn-sm btn-ghost gap-1.5 text-xs h-8 shrink-0 px-2 sm:px-3"
           disabled={jobs.isFetching}
           onClick={async () => {
             await queryClient.invalidateQueries({
@@ -265,11 +265,14 @@ export function JobsTab() {
             ]);
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
+          title={t("admin.operations.refresh")}
         >
           <RefreshCw
             className={`w-3.5 h-3.5 ${jobs.isFetching ? "animate-spin" : ""}`}
           />
-          {t("admin.operations.refresh")}
+          <span className="hidden sm:inline">
+            {t("admin.operations.refresh")}
+          </span>
         </button>
       </div>
       <div className="overflow-x-auto bg-base-100 rounded-box shadow-sm">

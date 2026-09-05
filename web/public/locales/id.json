@@ -353,7 +353,11 @@
     "book_unarchived": "Buku dikeluarkan dari arsip",
     "archive_update_failed": "Gagal memperbarui status arsip",
     "file_deleted": "File berhasil dihapus!",
-    "file_delete_error": "Gagal menghapus file"
+    "file_delete_error": "Gagal menghapus file",
+    "upload_short": "Unggah",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Efek",
+    "unsaved_changes": "Perubahan belum disimpan"
   },
   "download_manager": {
     "title": "Unduhan",
@@ -1878,5 +1882,8 @@
     "step1": "Buka menu di KOReader -> Pengaturan -> Pilih 'Sinkronisasi progres' (Kosync).",
     "step2": "Aktifkan sinkronisasi -> 'Server kustom' -> Masukkan URL server di atas.",
     "step3": "Masuk menggunakan email dan kata sandi akun NovelHub Anda."
-  }
+  },
+  "library_scope_short": "Cakupan",
+  "scope_all_short": "Semua",
+  "scope_specific_short": "Khusus"
 }

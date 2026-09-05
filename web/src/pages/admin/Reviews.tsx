@@ -132,12 +132,12 @@ export function Reviews() {
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Header */}
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             {t("admin.review_moderation", "Review Moderation")}
           </h1>
-          <p className="text-sm text-base-content/60 mt-1">
+          <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
             {t(
               "admin.review_moderation_desc",
               "View and manage all user reviews",
@@ -153,12 +153,12 @@ export function Reviews() {
             await refetch();
             toast.info(t("common.refreshed", "Data refreshed"));
           }}
-          className="btn btn-square btn-ghost btn-sm sm:btn-md"
+          className="btn btn-square btn-ghost btn-sm sm:btn-md shrink-0"
           title={t("admin.operations.refresh", "Refresh")}
           disabled={isFetching}
         >
           <RefreshCw
-            className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+            className={`h-4 w-4 sm:h-5 sm:w-5 ${isFetching ? "animate-spin" : ""}`}
           />
         </button>
       </header>

@@ -353,7 +353,11 @@
     "book_unarchived": "تم إلغاء أرشفة الكتاب",
     "archive_update_failed": "فشل تحديث حالة الأرشفة",
     "file_deleted": "تم حذف الملف بنجاح!",
-    "file_delete_error": "خطأ في حذف الملف"
+    "file_delete_error": "خطأ في حذف الملف",
+    "upload_short": "رفع",
+    "calibre_short": "Calibre",
+    "role_effect_label": "التأثير",
+    "unsaved_changes": "تغييرات غير محفوظة"
   },
   "download_manager": {
     "title": "التنزيلات",
@@ -1878,5 +1882,8 @@
     "step1": "افتح القائمة في KOReader -> الإعدادات -> اختر 'مزامنة التقدم' (Kosync).",
     "step2": "قم بتمكين المزامنة -> 'خادم مخصص' -> أدخل عنوان URL للخادم أعلاه.",
     "step3": "سجل الدخول باستخدام البريد الإلكتروني وكلمة المرور لحساب NovelHub الخاص بك."
-  }
+  },
+  "library_scope_short": "النطاق",
+  "scope_all_short": "الكل",
+  "scope_specific_short": "محددة"
 }

@@ -1,29 +1,36 @@
-# NovelHub v1.0.7
+# NovelHub v1.0.8
 
-NovelHub **v1.0.7** introduces a full OPDS 2.0 JSON Catalog implementation, Calibre Content Server API emulation, KOReader Kosync progress sync enhancements, RFC 4918 WebDAV streaming improvements, and guest OPDS acquisition permissions.
+NovelHub **v1.0.8** delivers an extensive mobile and tablet UI/UX overhaul across the library workspace and administration panels, optimizes content hierarchy for reading resumption, resolves touch gestures on book carousels, streamlines roles and permissions matrix interactions, and ensures 100% translation key parity across all 16 supported languages.
 
 ---
 
-## What's New in v1.0.7
+## What's New in v1.0.8
 
-### Full OPDS 2.0 JSON Catalog Specification
-- **OPDS 2.0 Protocol Implementation**: Full support for the modern OPDS 2.0 JSON format (`application/opds+json`) alongside classic OPDS 1.2 Atom XML feeds, fully compatible with Thorium Reader, Cantook, and modern e-readers.
-- **Dedicated Feeds & Facets**: Complete catalog endpoints for recent additions, authors, series, tags/genres, publishers, and languages with dynamic filtering and offset pagination.
-- **Direct Acquisition & Cover Resolution**: Dedicated download and cover endpoints for OPDS v1 and v2 with accurate MIME types and cache validation.
+### Mobile & Tablet Library Workspace Redesign
 
-### Calibre Content Server API Emulation
-- **Ecosystem Compatibility**: Implemented Calibre Content Server JSON/AJAX API endpoints (`/calibre`, `/calibre/ajax/library-info`) allowing Calibre Companion, Aldiko, and Moon+ Reader to query metadata and browse library contents natively.
+- **Reading Resumption First**: Reordered homepage content hierarchy on mobile/tablet viewports (`< xl`) so that **Recently Read (`RecentlyReadPanel`)** appears directly beneath the welcome banner for instantaneous one-tap reading resumption.
+- **Natural Reading Flow**: Restructured sections into a clean progression: Welcome & Quick Stats &rarr; Recently Read &rarr; Random & Top Hot Books &rarr; Reading Activity Heatmap &rarr; Full Book Catalog & Filter Chips at the bottom of the page.
+- **Independent Desktop Layout**: Maintained the optimized two-column desktop layout (`≥ xl`) with sticky sidebar widgets and zero layout regressions.
+- **Bidirectional Touch Navigation**: Enabled smooth dual-axis touch gestures (`touch-pan-y` and horizontal swipe) on `HorizontalBookShelf` and `SmartFilterShelf` carousels.
 
-### KOReader 2-Way Progress Sync (Kosync)
-- **Real-Time Progress Synchronization**: Dedicated Kosync protocol endpoint (`/api/v1/sync/koreader`) for real-time two-way reading progress synchronization across KOReader devices and web readers.
+### Role Detail & Permissions Matrix Mobile Experience
 
-### WebDAV Protocol & Streaming (RFC 4918)
-- **Audio & Media Streaming**: Enhanced range request handling and HTTP Basic Auth verification for seamless streaming of large audiobooks (MP3, M4B, FLAC) and books.
-- **Automated WebDAV Probe**: Added internal WebDAV compliance probe utility (`cmd/webdavprobe`) for connection testing and validation.
+- **Eliminated Vertical Text Wrapping**: Granted full-width flow to permission descriptions and key badges on narrow screens, eliminating awkward single-word wrapping and right-edge button clipping.
+- **Dedicated Mobile Action Rows**: Structured permission effect toggles (`Allow` / `Deny`) and library scoping controls into an indented sub-tier with compact segmented controls and responsive labels.
+- **Floating Save Action Bar**: Introduced a persistent bottom notification bar on mobile when permission modifications are detected (`hasChanges`), allowing administrators to save immediately without scrolling back to the top of long lists.
+- **Scope Context Isolation**: Filtered out library scoping selectors from global system administrative permissions where library boundaries are inapplicable.
 
-### RBAC & Guest Acquisition Permissions
-- **Guest OPDS Download**: Granted `opds.download` permission to the `GUEST` role for public libraries via database migration `99b_guest_opds_download.sql`.
-- **Query Cache Invalidation**: Optimized operations query invalidation keys to ensure cache freshness across background tasks and schedules.
+### Universal Navigation & Component Polish
+
+- **Responsive Back Buttons**: Standardized back-to-library navigation buttons across `OfflineBooksPage`, `ReadListPage`, `PodcastsPage`, and `ReadingAnalyticsPage` with `btn-square sm:w-auto sm:px-3` and `whitespace-nowrap`, rendering an icon-only square button on mobile and an auto-expanding label on desktop.
+- **Admin Header Synchronization**: Removed obsolete back buttons from `OAuthSettings` and aligned header typography and padding with other admin sub-pages.
+- **Action Toolbar Consolidation**: Streamlined action controls on the admin Books management page (`Library`, `Calibre`, `Upload`) into a single unified row with responsive short labels.
+- **Search Icon Layering**: Standardized `z-10 pointer-events-none` layering across all daisyUI search inputs to eliminate click-blocking and visual clipping.
+
+### Complete Internationalization & 16-Language Synchronization
+
+- **100% Translation Parity**: Verified and synchronized exactly 1,797 translation keys across all 16 locale dictionaries (`ar`, `de`, `en`, `es`, `fr`, `hi`, `id`, `it`, `ja`, `ko`, `pt`, `ru`, `th`, `vi`, `zh-CN`, `zh-TW`) with zero missing keys and zero empty values.
+- **New Localization Keys**: Added localized strings for compact library scoping (`library_scope_short`, `scope_all_short`, `scope_specific_short`), admin effect indicators (`admin.role_effect_label`), and mobile unsaved changes notifications (`admin.unsaved_changes`).
 
 ---
 
@@ -31,7 +38,7 @@ NovelHub **v1.0.7** introduces a full OPDS 2.0 JSON Catalog implementation, Cali
 
 ### Docker Compose Update
 
-To upgrade your existing NovelHub instance to **v1.0.7**, run the following commands in the directory containing your `docker-compose.yml`:
+To upgrade your existing NovelHub instance to **v1.0.8**, run the following commands in the directory containing your `docker-compose.yml`:
 
 ```bash
 # 1. Pull the latest image
@@ -69,7 +76,7 @@ docker run -d \
 
 ### Standalone Native Binary Update
 
-1. Download the new executable (`v1.0.7`) matching your OS/Arch from the **Assets** section.
+1. Download the new executable (`v1.0.8`) matching your OS/Arch from the **Assets** section.
 2. Stop the running NovelHub service/process.
 3. Replace the executable with the new binary.
 4. Restart NovelHub (database migrations apply automatically).

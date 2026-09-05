@@ -936,11 +936,11 @@ export const LibraryWorkspace = () => {
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/45" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/45 pointer-events-none z-10" />
           <input
             value={metadataQuery}
             onChange={(event) => setMetadataQuery(event.target.value)}
-            className="input input-bordered input-sm w-full bg-base-100 pl-9"
+            className="input input-bordered input-sm w-full bg-base-100 pl-9.5"
             placeholder={t("library.filter_by_name", "Filter by name...")}
           />
         </div>
@@ -1025,15 +1025,15 @@ export const LibraryWorkspace = () => {
       {!isCatalogPage && (
         <>
           <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 overflow-hidden">
-            <div className="p-5 sm:p-6">
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+            <div className="p-3.5 sm:p-6">
+              <div className="flex flex-col gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
                   {t("library.local_library", "Local library")}
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-black leading-tight">
+                <h2 className="text-xl sm:text-3xl font-black leading-tight">
                   {t("library.hero_title", "Welcome to NovelHub")}
                 </h2>
-                <p className="text-sm sm:text-base text-base-content/70 max-w-3xl">
+                <p className="text-xs sm:text-base text-base-content/70 max-w-3xl">
                   {t(
                     "library.hero_desc",
                     "Your personal, fast, and highly customizable local light novel library.",
@@ -1041,34 +1041,48 @@ export const LibraryWorkspace = () => {
                 </p>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 overflow-hidden rounded-xl border border-base-200 bg-base-100 sm:grid-cols-3 shadow-2xs">
-                <div className="p-3.5 sm:p-4">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-base-content/50">
+              <div className="mt-3.5 sm:mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-base-200 bg-base-100 shadow-2xs">
+                <div className="p-2 sm:p-4 text-center sm:text-left">
+                  <div className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-base-content/50 truncate">
                     {t("library.books_indexed", "books indexed")}
                   </div>
-                  <div className="mt-1.5 text-2xl font-black">
+                  <div className="mt-0.5 sm:mt-1.5 text-lg sm:text-2xl font-black">
                     {stats.total_books || 0}
                   </div>
                 </div>
-                <div className="border-t border-base-200 p-3.5 sm:border-l sm:border-t-0 sm:p-4">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-base-content/50">
+                <div className="border-l border-base-200 p-2 sm:p-4 text-center sm:text-left">
+                  <div className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-base-content/50 truncate">
                     {t("library.series_tracked", "series tracked")}
                   </div>
-                  <div className="mt-1.5 text-2xl font-black">
+                  <div className="mt-0.5 sm:mt-1.5 text-lg sm:text-2xl font-black">
                     {stats.series_tracked || 0}
                   </div>
                 </div>
-                <div className="border-t border-base-200 p-3.5 sm:border-l sm:border-t-0 sm:p-4">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-base-content/50">
+                <div className="border-l border-base-200 p-2 sm:p-4 text-center sm:text-left">
+                  <div className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-base-content/50 truncate">
                     {t("library.need_review", "need review")}
                   </div>
-                  <div className="mt-1.5 text-2xl font-black text-secondary">
+                  <div className="mt-0.5 sm:mt-1.5 text-lg sm:text-2xl font-black text-secondary">
                     {stats.need_review || 0}
                   </div>
                 </div>
               </div>
             </div>
           </section>
+
+          {/* Mobile & Tablet: Recently Read (Option 1) */}
+          <div className="xl:hidden">
+            <RecentlyReadPanel
+              className="mt-0"
+              items={recentReading}
+              onOpen={(item) =>
+                navigate(
+                  `/reader/${item.book_id}${item.file_id ? `?file_id=${encodeURIComponent(item.file_id)}` : ""}`,
+                )
+              }
+              t={t}
+            />
+          </div>
 
           {(!publicSettings ||
             publicSettings.home_sections.random_books !== false) && (
@@ -1079,8 +1093,8 @@ export const LibraryWorkspace = () => {
                 "Refresh the shelf when you want something unexpected.",
               )}
               icon={
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary/10 text-secondary shrink-0">
-                  <Shuffle className="h-5 w-5" />
+                <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl bg-secondary/10 text-secondary shrink-0">
+                  <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
                 </span>
               }
               books={randomBooks}
@@ -1101,8 +1115,8 @@ export const LibraryWorkspace = () => {
                 "Most read books in your library.",
               )}
               icon={
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                  <Flame className="h-5 w-5" />
+                <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl bg-primary/10 text-primary shrink-0">
+                  <Flame className="h-4 w-4 sm:h-5 sm:w-5" />
                 </span>
               }
               onViewAll={() => handleNavClick("hot")}
@@ -1133,16 +1147,35 @@ export const LibraryWorkspace = () => {
                 onDrop={(e) => handleDrop(e, sf.id)}
               />
             ))}
+
+          {/* Mobile & Tablet: Reading Activity / Heatmap (Option 1) */}
+          {hasPermission(user, "user.stats.read") && (
+            <div className="xl:hidden rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h4 className="flex items-center gap-1.5 text-xs font-bold text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <Activity className="h-4 w-4 shrink-0 text-primary" />
+                  <span>{t("analytics.short_title", "Activity")}</span>
+                </h4>
+                <Link
+                  to="/analytics"
+                  className="text-xs font-semibold text-primary hover:underline shrink-0"
+                >
+                  {t("common.view_analytics", "Analytics →")}
+                </Link>
+              </div>
+              <ReadingHeatmap />
+            </div>
+          )}
         </>
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {["All", "Reading", "Unread", "No cover"].map((chip) => (
             <button
               key={chip}
               onClick={() => setActiveChip(chip)}
-              className={`btn btn-sm rounded-full border-base-300 ${activeChip === chip ? "btn-primary" : "btn-ghost bg-base-100 hover:bg-base-200"}`}
+              className={`btn btn-xs sm:btn-sm rounded-full border-base-300 ${activeChip === chip ? "btn-primary" : "btn-ghost bg-base-100 hover:bg-base-200"}`}
             >
               {t(`library.${chip.toLowerCase().replace(" ", "_")}`, chip)}
             </button>
@@ -1198,16 +1231,18 @@ export const LibraryWorkspace = () => {
         </div>
       </div>
 
-      <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-4 sm:p-5">
+      <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-3 sm:p-5">
         {!isCatalogPage && (
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                <LayoutGrid className="h-5 w-5" />
+          <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl bg-primary/10 text-primary shrink-0">
+                <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
               <div>
-                <h3 className="text-lg font-black">{bookListTitle}</h3>
-                <p className="text-sm text-base-content/50">
+                <h3 className="text-base sm:text-lg font-black">
+                  {bookListTitle}
+                </h3>
+                <p className="text-xs sm:text-sm text-base-content/50">
                   {numberFormatter.format(books.length)}{" "}
                   {t("library.books_indexed", "books indexed")}
                 </p>
@@ -1267,11 +1302,11 @@ export const LibraryWorkspace = () => {
       <div className="drawer-content flex flex-col h-screen overflow-hidden">
         <TopNav showSidebarToggle={true} />
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
           <div
-            className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-5 ${isCatalogPage || book_id ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
+            className={`mx-auto grid w-full max-w-[1700px] grid-cols-1 gap-3 sm:gap-5 ${isCatalogPage || book_id ? "" : "xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]"}`}
           >
-            <main className="min-w-0 flex flex-col gap-5 animate-page-enter">
+            <main className="min-w-0 flex flex-col gap-3 sm:gap-5 animate-page-enter">
               {book_id ? (
                 <BookDetailPage />
               ) : isMetadataIndex ? (
@@ -1282,7 +1317,7 @@ export const LibraryWorkspace = () => {
             </main>
 
             {!isCatalogPage && !book_id && (
-              <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start flex flex-col gap-5">
+              <aside className="hidden xl:flex min-w-0 xl:sticky xl:top-0 xl:self-start flex-col gap-5">
                 <RecentlyReadPanel
                   className="mt-0"
                   items={recentReading}

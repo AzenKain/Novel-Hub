@@ -353,7 +353,11 @@
     "book_unarchived": "เลิกเก็บถาวรหนังสือแล้ว",
     "archive_update_failed": "อัปเดตสถานะการเก็บถาวรไม่สำเร็จ",
     "file_deleted": "ลบไฟล์สำเร็จแล้ว!",
-    "file_delete_error": "เกิดข้อผิดพลาดในการลบไฟล์"
+    "file_delete_error": "เกิดข้อผิดพลาดในการลบไฟล์",
+    "upload_short": "อัปโหลด",
+    "calibre_short": "Calibre",
+    "role_effect_label": "ผลบังคับ",
+    "unsaved_changes": "การเปลี่ยนแปลงที่ยังไม่ได้บันทึก"
   },
   "download_manager": {
     "title": "ดาวน์โหลด",
@@ -1878,5 +1882,8 @@
     "step1": "เปิดเมนูใน KOReader -> การตั้งค่า -> เลือก 'การซิงค์ความคืบหน้า' (Kosync)",
     "step2": "เปิดใช้งานการซิงค์ -> 'เซิร์ฟเวอร์แบบกำหนดเอง' -> ป้อน URL เซิร์ฟเวอร์ด้านบน",
     "step3": "เข้าสู่ระบบโดยใช้อีเมลและรหัสผ่านบัญชี NovelHub ของคุณ"
-  }
+  },
+  "library_scope_short": "ขอบเขต",
+  "scope_all_short": "ทั้งหมด",
+  "scope_specific_short": "ระบุ"
 }

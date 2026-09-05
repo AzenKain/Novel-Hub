@@ -353,7 +353,11 @@
     "book_unarchived": "Livro desarquivado",
     "archive_update_failed": "Falha ao atualizar o estado de arquivamento",
     "file_deleted": "Arquivo excluído com sucesso!",
-    "file_delete_error": "Erro ao excluir o arquivo"
+    "file_delete_error": "Erro ao excluir o arquivo",
+    "upload_short": "Carregar",
+    "calibre_short": "Calibre",
+    "role_effect_label": "Efeito",
+    "unsaved_changes": "Alterações não salvas"
   },
   "download_manager": {
     "title": "Transferências",
@@ -1878,5 +1882,8 @@
     "step1": "Abra o menu no KOReader -> Configurações -> Selecione 'Sincronização de progresso' (Kosync).",
     "step2": "Ative 'Sincronização' -> Escolha 'Servidor personalizado' -> Digite a URL acima.",
     "step3": "Faça login com o e-mail e senha da sua conta NovelHub."
-  }
+  },
+  "library_scope_short": "Escopo",
+  "scope_all_short": "Todas",
+  "scope_specific_short": "Específica"
 }

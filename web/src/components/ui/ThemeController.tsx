@@ -19,9 +19,11 @@ import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 export const ThemeController = ({
-  className = "dropdown-end",
+  className = "dropdown-start sm:dropdown-end",
+  buttonClassName,
 }: {
   className?: string;
+  buttonClassName?: string;
 }) => {
   const { t } = useTranslation();
   const { theme, setTheme } = useSettingsStore(
@@ -105,7 +107,12 @@ export const ThemeController = ({
       <div
         tabIndex={0}
         role="button"
-        className="btn btn-ghost btn-sm m-1 flex items-center gap-1"
+        className={
+          buttonClassName ||
+          "btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-primary"
+        }
+        title={t("common.theme", "Theme")}
+        aria-label={t("common.theme", "Theme")}
       >
         {activeIcon}
       </div>
@@ -116,7 +123,10 @@ export const ThemeController = ({
         {themes.map((tItem) => (
           <li key={tItem.value}>
             <button
-              onClick={() => setTheme(tItem.value)}
+              onClick={() => {
+                setTheme(tItem.value);
+                (document.activeElement as HTMLElement)?.blur();
+              }}
               className={`flex items-center gap-2 text-sm ${theme === tItem.value ? "active font-semibold" : ""}`}
             >
               {tItem.icon}

@@ -102,19 +102,23 @@ export const OfflineBooksPage: React.FC = () => {
 
       <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/"
-              className="btn btn-ghost btn-sm gap-1.5 text-primary -ml-2.5"
+              className="btn btn-ghost btn-sm btn-square sm:w-auto sm:px-3 gap-1.5 text-primary -ml-2 sm:-ml-2.5 shrink-0"
+              aria-label={t("library.back_to_library", "Back to Library")}
+              title={t("library.back_to_library", "Back to Library")}
             >
               <ArrowLeft className="h-4 w-4" />
-              {t("library.back_to_library", "Back to Library")}
+              <span className="hidden sm:inline whitespace-nowrap">
+                {t("library.back_to_library", "Back to Library")}
+              </span>
             </Link>
-            <div className="h-6 w-px bg-base-300" />
+            <div className="h-5 sm:h-6 w-px bg-base-300 shrink-0" />
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
-              <h1 className="flex items-center gap-2 text-xl font-black text-base-content">
-                <CloudDownload className="h-5 w-5 text-primary" />
-                {t("offline.title", "Offline Books")}
+              <h1 className="flex items-center gap-2 text-lg sm:text-xl font-black text-base-content">
+                <CloudDownload className="h-5 w-5 text-primary shrink-0" />
+                <span>{t("offline.title", "Offline Books")}</span>
               </h1>
               {usage && (
                 <span className="text-xs text-base-content/60 font-medium">

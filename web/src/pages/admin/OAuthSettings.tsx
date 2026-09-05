@@ -1,17 +1,8 @@
 import { useAdminSettingsQuery, useUpdateAdminSettingsMutation } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
-import {
-  ArrowLeft,
-  Check,
-  Key,
-  Loader2,
-  Save,
-  Shield,
-  HelpCircle,
-} from "lucide-react";
+import { Check, Key, Loader2, Save, Shield, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export function OAuthSettings() {
@@ -156,25 +147,17 @@ export function OAuthSettings() {
 
   return (
     <div className="flex flex-col h-full bg-base-100 font-sans">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/admin/settings"
-            className="btn btn-ghost btn-circle btn-sm"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {t("settings.oauth.title", "OAuth & OIDC Settings")}
-            </h1>
-            <p className="text-sm text-base-content/60 mt-1">
-              {t(
-                "settings.oauth.subtitle",
-                "Configure external identity providers for social and enterprise single sign-on",
-              )}
-            </p>
-          </div>
+      <header className="px-4 py-4 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex items-center justify-between gap-3 sm:gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            {t("settings.oauth.title", "OAuth & OIDC Settings")}
+          </h1>
+          <p className="text-xs sm:text-sm text-base-content/60 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
+            {t(
+              "settings.oauth.subtitle",
+              "Configure external identity providers for social and enterprise single sign-on",
+            )}
+          </p>
         </div>
       </header>
 

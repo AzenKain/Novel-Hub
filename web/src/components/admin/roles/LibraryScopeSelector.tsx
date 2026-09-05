@@ -80,42 +80,56 @@ export function LibraryScopeSelector({
 
   return (
     <div className="flex flex-col gap-2 pt-1">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
         <span className="text-xs font-semibold text-base-content/70 shrink-0 flex items-center gap-1.5">
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          {t("library_scope", "Library Scope")}:
+          <SlidersHorizontal className="w-3.5 h-3.5 opacity-70" />
+          <span className="hidden sm:inline">
+            {t("library_scope", "Library Scope")}:
+          </span>
+          <span className="sm:hidden">
+            {t("library_scope_short", "Scope")}:
+          </span>
         </span>
 
-        <div className="flex items-center gap-1 bg-base-200/80 p-0.5 rounded-lg text-xs font-medium border border-base-300/50">
+        <div className="flex items-center gap-1 bg-base-200/80 p-0.5 rounded-lg text-xs font-medium border border-base-300/50 shrink-0">
           <button
             type="button"
             onClick={() => handleToggleMode(true)}
-            className={`px-3 py-1 rounded-md transition-all ${
+            className={`px-2.5 sm:px-3 py-1 rounded-md transition-all whitespace-nowrap ${
               isAll
                 ? "bg-primary text-primary-content font-bold shadow-xs"
                 : "text-base-content/70 hover:text-base-content"
             }`}
           >
-            {t("scope_all_libraries", "All Libraries")}
+            <span className="hidden sm:inline">
+              {t("scope_all_libraries", "All Libraries")}
+            </span>
+            <span className="sm:hidden">{t("scope_all_short", "All")}</span>
           </button>
           <button
             type="button"
             onClick={() => handleToggleMode(false)}
-            className={`px-3 py-1 rounded-md transition-all ${
+            className={`px-2.5 sm:px-3 py-1 rounded-md transition-all whitespace-nowrap ${
               !isAll
                 ? "bg-primary text-primary-content font-bold shadow-xs"
                 : "text-base-content/70 hover:text-base-content"
             }`}
           >
-            {t("scope_specific_libraries", "Specific Libraries")} (
-            {selectedLibraryIds.length})
+            <span className="hidden sm:inline">
+              {t("scope_specific_libraries", "Specific Libraries")} (
+              {selectedLibraryIds.length})
+            </span>
+            <span className="sm:hidden">
+              {t("scope_specific_short", "Specific")} (
+              {selectedLibraryIds.length})
+            </span>
           </button>
         </div>
       </div>
 
       {/* Specific Libraries Picker Panel */}
       {!isAll && (
-        <div className="bg-base-200/40 border border-base-300/60 rounded-xl p-3 flex flex-col gap-2.5 transition-all animate-fadeIn">
+        <div className="bg-base-200/40 border border-base-300/60 rounded-xl p-2.5 sm:p-3 flex flex-col gap-2.5 transition-all animate-fadeIn">
           {/* Selected Library Chips */}
           <div className="flex flex-wrap items-center gap-1.5 min-h-8">
             {selectedLibraryIds.length === 0 ? (
@@ -134,7 +148,9 @@ export function LibraryScopeSelector({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-100 border border-primary/30 text-xs font-medium text-base-content shadow-xs group"
                   >
                     <LibraryIcon className="w-3 h-3 text-primary shrink-0" />
-                    <span>{lib ? lib.name : id}</span>
+                    <span className="max-w-[130px] sm:max-w-none truncate">
+                      {lib ? lib.name : id}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleRemove(id)}
@@ -163,10 +179,10 @@ export function LibraryScopeSelector({
 
               {/* Popover Menu */}
               {isOpen && (
-                <div className="absolute left-0 mt-1.5 w-72 bg-base-100 border border-base-300 rounded-xl shadow-xl z-50 p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-3rem)] bg-base-100 border border-base-300 rounded-xl shadow-xl z-50 p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95">
                   {/* Search Input */}
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-base-content/40 absolute left-2.5 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-base-content/40 absolute left-2.5 top-2.5 z-10 pointer-events-none" />
                     <input
                       type="text"
                       value={search}
