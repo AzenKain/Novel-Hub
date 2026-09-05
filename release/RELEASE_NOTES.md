@@ -1,33 +1,31 @@
-# NovelHub v1.0.3
+# NovelHub v1.0.4
 
-NovelHub **v1.0.3** introduces the **Book Doctor EPUB Repair Engine**, **Native WebDAV Server**, **AnkiConnect Flashcard Sync**, and **Fluid Multi-Device Bookshelves** with drag-to-scroll.
+NovelHub **v1.0.4** introduces social reading achievement cards, a bulk book title cleaner, Calibre app connectivity, and standalone Anki deck export.
 
 ---
 
-## What's New in v1.0.3
+## What's New in v1.0.4
 
-### Book Doctor & EPUB Repair Engine
+### Shareable Reading & Quote Cards
 
-- **Structural Diagnostics**: Deep inspection of EPUB files (ZIP headers, mimetype, OPF, duplicate manifest IDs/hrefs, missing spine items, broken internal anchor links, unescaped XML entities, missing NCX/Nav TOC).
-- **Automated Repair**: One-click repair to deduplicate manifests, sanitize broken internal links, repair XML namespaces, unescape URL hrefs, rebuild mimetypes, and upgrade EPUB 2.0 to EPUB 3.0.
-- **Admin Tools & Background Maintenance**: Interactive Book Doctor modal in Admin Books table, and scheduled batch repair background job (`repair_books`) with SHA-256 hash recalculation and RAM cache purging.
-- **Permission**: Controlled via `book.doctor` permission.
+- **Achievement Cards**: Generate and share beautiful summary cards of your reading stats, reading streak, and activity heatmap directly from the Analytics page.
+- **Quote Cards**: Highlight any memorable passage in a book and turn it into a styled quote card with book cover and author info.
 
-### Native WebDAV Server (`/webdav`)
+### Bulk Book Title & Author Cleaner
 
-- **Direct Storage Mount**: Mount libraries directly from macOS Finder, Windows File Explorer, Linux, and reader apps (KOReader, Moon+ Reader).
-- **Authentication & Isolation**: HTTP Basic Auth with NovelHub account credentials, gated by `system.webdav` permission.
+- Clean up messy book titles in bulk from the Admin panel: strip tags like `[Light Novel]` or `(2024)`, auto-split author and title names, and preview changes before applying.
 
-### AnkiConnect Integration
+### Calibre App Integration
 
-- **Flashcard Export**: Export reading highlights, vocabulary, and quotes directly to Anki decks via AnkiConnect (`http://127.0.0.1:8765`).
-- **Custom Mapping**: Configurable decks, note models (Basic, Cloze), field mappings, and tags in User Profile.
+- Connect popular e-reader apps (like Calibre Companion or Aldiko) directly to your NovelHub library using Calibre's Content Server protocol.
 
-### Fluid Bookshelf Layout & Pagination
+### Direct Anki Deck Export (.apkg / .csv)
 
-- **Responsive Grid**: Proportional 2 to 6 column layout with larger cover art and 2-line title display.
-- **Mouse & Touch Drag-to-Scroll**: Physics-based drag-to-scroll and horizontal mouse wheel scrolling on carousels.
-- **Page-Aligned Batching**: Optimized fetch pagination ($60$ items) ensuring completely filled rows across all screen breakpoints.
+- Export your highlighted vocabulary and notes directly into ready-to-use `.apkg` deck files to study on Anki Desktop, AnkiMobile, or AnkiDroid without needing extra plugins.
+
+### Performance & Stability
+
+- Improved two-factor authentication (2FA) security, smoother background metadata fetching, and various stability improvements.
 
 ---
 
@@ -35,7 +33,7 @@ NovelHub **v1.0.3** introduces the **Book Doctor EPUB Repair Engine**, **Native 
 
 ### Docker Compose Update
 
-To upgrade your existing NovelHub instance to **v1.0.3**, run the following commands in the directory containing your `docker-compose.yml`:
+To upgrade your existing NovelHub instance to **v1.0.4**, run the following commands in the directory containing your `docker-compose.yml`:
 
 ```bash
 # 1. Pull the latest image
@@ -74,7 +72,7 @@ docker run -d \
 
 ### Standalone Native Binary Update
 
-1. Download the new executable (`v1.0.3`) matching your OS/Arch from the **Assets** section below.
+1. Download the new executable (`v1.0.4`) matching your OS/Arch from the **Assets** section below.
 2. Stop the running NovelHub service/process.
 3. Replace the executable with the new binary.
 4. Restart NovelHub (database migrations apply automatically).

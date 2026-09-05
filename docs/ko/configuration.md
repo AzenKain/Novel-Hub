@@ -257,21 +257,53 @@ NovelHub에는 손상되었거나 표준 규격을 벗어난 EPUB 아카이브�
 - **해시 동기화 및 캐시 무효화**: 복구 완료 후 파일의 SHA-256 해시를 재계산하여 DB를 갱신하고, 연관된 RAM 캐시(`book:*`, `book_file:*`, `chapter:*`)를 즉시 삭제합니다.
 - **일괄 복구 작업**: 관리자는 **관리자 → 운영 → 유지보수**에서 백그라운드 정기 작업(`repair_books`)을 통해 전체 라이브러리를 일괄 복구할 수 있습니다.
 
-### 내장 WebDAV 서버
+### Calibre Content Server API 에뮬레이션
 
-NovelHub 라이브러리를 컴퓨터의 네트워크 드라이브로 직접 연결하여 탐색할 수 있는 WebDAV 서버를 제공합니다:
+NovelHub는 Calibre 생태계의 리더 앱들과 완벽히 호환되는 Calibre Content Server API 에뮬레이션 계층을 제공합니다:
+
+- **엔드포인트**: `/calibre/ajax/*`(카테고리/도서 탐색 및 검색) 및 `/calibre/get/:what/:book_id`(표지 이미지 및 도서 파일 다운로드).
+- **지원 클라이언트**: Calibre Companion, Aldiko 및 Calibre Content Server JSON 프로토콜을 사용하는 e-reader 앱.
+- **인증 방식**: HTTP Basic 인증, Bearer 토큰, URL 쿼리 토큰(`?token=...`), 세션 쿠키 및 게스트 모드를 지원합니다. 차단(banned)된 계정에는 403 Forbidden이 반환됩니다.
+- **접근 제어**: 사용자별 라이브러리 권한(`CanReadBook`, `CanDownloadBook`)에 따라 도서 및 다운로드를 자동 필터링하며, DoS 공격 방지를 위해 검색 페이지네이션을 최대 100건으로 제한합니다.
+
+### 내장 WebDAV 서버 (RFC 4918)
+
+NovelHub 라이브러리를 컴퓨터의 네트워크 드라이브로 직접 연결하거나 모바일 리더 앱과 동기화할 수 있는 WebDAV 서버를 제공합니다:
 
 - **엔드포인트**: `http(s)://<호스트>/webdav`
-- **지원 클라이언트**: macOS Finder("서버에 연결"), Windows 파일 탐색기("네트워크 드라이브 연결"), Linux(Nautilus, Dolphin, `davfs2`), 모바일 및 eReader 리더 앱(KOReader, Moon+ Reader).
-- **인증**: NovelHub 사용자 계정의 이메일 및 비밀번호를 사용하는 HTTP Basic 인증.
+- **지원 메서드**: `OPTIONS`, `PROPFIND`(Depth 0, 1, infinity), `GET`(HTTP 206 Partial Content 바이트 범위 스트리밍 지원), `HEAD`.
+- **지원 클라이언트**: Moon+ Reader, KyBook 3, FBReader, Foliate, Zotero, macOS Finder, Windows 파일 탐색기, Linux 파일 관리자.
+- **인증 및 QR 간편 동기화**: HTTP Basic 인증, Bearer 토큰, URL 토큰 지원. **프로필 → WebDAV 동기화** 카드에서 접속 정보와 QR 코드를 즉시 생성하여 모바일 기기에서 간편하게 연동할 수 있습니다.
 - **권한 관리**: `system.webdav` 권한으로 보호되며, 사용자 역할에 따라 제한된 라이브러리는 WebDAV 폴더 트리에서 자동으로 제외됩니다.
 
-### Anki 연동 (AnkiConnect)
+### Anki 플래시카드 & 하이라이트 내보내기 (.apkg & .csv)
 
-독서 중 하이라이트, 단어, 인용구를 Anki 암기 카드 덱으로 직접 내보낼 수 있습니다:
+독서 중 수집한 하이라이트, 단어 및 인용구를 Anki 암기 카드 덱으로 직접 내보낼 수 있습니다:
 
-- **AnkiConnect 브릿지**: AnkiConnect 플러그인이 설치된 Anki(기본: `http://127.0.0.1:8765`)와 원활하게 연동됩니다.
-- **맞춤형 매핑**: **프로필 → 연동 설정 → Anki**에서 대상 덱, 카드 템플릿/모델(Basic, Cloze 등), 필드 매핑(앞면, 뒷면, 출처, 책 제목, 저자), 태그를 자유롭게 설정할 수 있습니다.
+- **독립 실행형 `.apkg` 덱 패키지**: 별도의 플러그인 없이도 Anki Desktop, AnkiMobile(iOS), AnkiDroid(Android)에서 바로 가져올 수 있는 `.apkg`(Anki SQLite 패키지) 파일로 내보냅니다.
+- **Anki 호환 `.csv` 내보내기**: 앞면(인용문), 뒷면(개인 메모/번역), 문맥(전후 문맥 문장)이 정리된 CSV 파일을 생성합니다.
+- **AnkiConnect 실시간 브릿지**: 실행 중인 Anki 데스크톱 프로그램(기본값: `http://127.0.0.1:8765`)과 실시간으로 연동됩니다.
+
+### 메타데이터 및 도서 제목 일괄 정리 도구 (Bulk Title Cleaner)
+
+**관리자 → 도서 및 라이브러리 → 일괄 제목 정리**에서 사용할 수 있습니다:
+
+- **규칙 기반 일괄 정리**: 대괄호 태그(예: `[라이트노벨]`), 소괄호 부가 정보(`(2024)`), 밑줄(`_`) 공백 치환, 단어 첫 글자 대문자화(Title Case)를 일괄 처리합니다.
+- **제목과 저자 자동 분리**: 구분자(`제목 - 저자` 또는 `저자 - 제목`)가 포함된 파일명을 감지하여 각각의 독립된 필드로 자동 분리 추출합니다.
+- **사용자 정의 정규식(Regex)**: 맞춤형 정규식 치환 규칙을 정의하고 DB에 적용하기 전에 실시간으로 변환 결과를 미리 비교 확인할 수 있습니다.
+
+### 독서 카드 및 인용구 카드 (Reading & Quote Cards)
+
+- **독서 성취 카드 (Reading Cards)**: **독서 통계 및 분석**(`/analytics`)에서 실행할 수 있습니다. 총 읽은 단어 수, 연속 독서일(Streak), 독서 시간, 연간 독서 활동 잔디(Heatmap)를 아름다운 테마(Aurora, Cyberpunk, Sepia, E-ink)와 비율로 고화질 이미지로 렌더링하여 SNS에 공유할 수 있습니다.
+- **인용구 카드 (Quote Cards)**: 뷰어에서 텍스트를 드래그하고 인용구 아이콘을 누르면 책 표지, 챕터, 저자 정보가 포함된 감성적인 인용구 카드를 생성합니다.
+
+### 1-bit 퓨어 E-Ink 모드
+
+전자종이 기기(Kindle, Kobo, Boox, Supernote) 및 방해 없는 독서를 선호하는 사용자를 위해 설계되었습니다:
+
+- **완벽한 고대비**: 순수 흑백 모노크롬 색상(`#000000` 텍스트 / `#ffffff` 배경), 애니메이션 전환 효과 0ms 강제 적용, 그림자 제거로 잔상과 화면 버벅임을 최소화합니다.
+- **화면 깜빡임 리프레시**: 전자책 단말기의 잔상 제거(Ghosting clear) 동작을 모방하는 플래시 페이지 전환 옵션을 지원합니다.
+- **전자책 및 오디오북 동시 지원**: 다기능 뷰어와 전체화면 오디오북 플레이어 모두에서 완벽하게 작동합니다.
 
 ---
 

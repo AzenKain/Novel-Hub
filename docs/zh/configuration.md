@@ -250,21 +250,53 @@ NovelHub 内置了针对损坏或非标准 EPUB 电子书文件的自动化深�
 - **哈希同步与缓存刷新**: 修复完成后,系统自动重新计算文件的 SHA-256 哈希并同步至数据库,同时清理对应的 RAM 内存缓存(`book:*`, `book_file:*`, `chapter:*)。
 - **后台批量修复作业**: 管理员可在 **管理 → 运维 → 维护** 中配置后台定时任务(`repair_books`),一键对全库 EPUB 文件进行批量修复。
 
-### 原生 WebDAV 服务
+### Calibre Content Server API 兼容层
 
-NovelHub 提供原生 WebDAV 服务端点,支持将图书库直接挂载为本地网络驱动器:
+NovelHub 内置了高性能的 Calibre Content Server API 兼容层，可无缝对接 Calibre 生态的电子书阅读器应用：
 
-- **服务地址**: `http(s)://<你的主机>/webdav`
-- **支持客户端**: macOS Finder("连接服务器")、Windows 资源管理器("映射网络驱动器")、Linux (Nautilus/Dolphin/davfs2) 以及各类电子书阅读器应用(KOReader, Moon+ Reader)。
-- **身份认证**: 使用你的 NovelHub 账号邮箱与密码进行 HTTP Basic 认证。
-- **权限隔离**: 受 `system.webdav` 权限管控,当前角色无权访问的图书库将自动从 WebDAV 目录树中剔除。
+- **服务接口**：`/calibre/ajax/*`（AJAX 分类/图书检索与发现）以及 `/calibre/get/:what/:book_id`（封面与图书文件下载）。
+- **兼容客户端**：Calibre Companion、Aldiko 以及其他支持 Calibre Content Server JSON 协议的电子阅读器。
+- **身份认证**：支持 HTTP Basic 认证、Bearer 令牌、URL 查询参数（`?token=...`）、会话 Cookie 以及公开访客模式（若在管理后台开启）。被封禁的账号将收到严格的 403 Forbidden。
+- **权限控制**：依据当前用户的图书库访问权限（`CanReadBook`、`CanDownloadBook`）自动过滤图书与下载行为，并对检索结果实施严格分页限制（上限 100 条）以防范拒绝服务攻击。
 
-### Anki 卡片联动 (AnkiConnect)
+### 原生 WebDAV 服务 (RFC 4918)
 
-支持在阅读时将高亮笔记、生词和精彩摘录直接同步至 Anki 记忆卡片组:
+NovelHub 提供原生 WebDAV 服务端点，支持将图书库直接挂载为本地网络驱动器或与移动端阅读应用实时同步：
 
-- **AnkiConnect 桥接**: 无缝连接安装有 AnkiConnect 插件的 Anki 客户端(默认: `http://127.0.0.1:8765`)。
-- **自定义映射**: 在 **个人资料 → 集成设置 → Anki** 中自由配置目标卡组(Deck)、卡片模板(Basic, Cloze 等)、字段映射(正面, 背面, 来源, 书名, 作者)与标签(Tags)。
+- **服务地址**：`http(s)://<你的主机>/webdav`
+- **支持方法**：`OPTIONS`、`PROPFIND`（Depth 0、1 及 infinity）、`GET`（支持 HTTP 206 Partial Content 分块断点续传/流式传输）以及 `HEAD`。
+- **支持客户端**：Moon+ Reader、KyBook 3、FBReader、Foliate、Zotero、macOS Finder（“连接服务器”）、Windows 资源管理器（“映射网络驱动器”）以及 Linux 文件管理器（Nautilus/Dolphin/davfs2）。
+- **认证与扫码同步**：支持 HTTP Basic 认证、Bearer 令牌或 URL 查询令牌。在 **个人资料 → WebDAV 同步** 卡片中可一键生成移动阅读器适用的连接凭据与快速配置二维码。
+- **安全与权限隔离**：完全隔离沙箱。当前角色无权访问的私有/限制图书库将自动从 WebDAV 目录树中剔除。
+
+### Anki 卡片与高亮导出
+
+支持将阅读高亮笔记、生词和精彩摘录直接导出至 Anki 记忆卡片组：
+
+- **原生 `.apkg` 牌组包**：将所有划线笔记一键打包导出为独立的 `.apkg` SQLite 牌组文件，无需安装桌面端插件即可直接导入 Anki Desktop、AnkiMobile 和 AnkiDroid。
+- **标准 `.csv` 格式导出**：生成结构清晰的逗号分隔文件，自动映射正面（划线原文）、背面（个人笔记/翻译）与上下文（前后文摘录）。
+- **AnkiConnect 实时同步**：无缝直连正在运行 AnkiConnect 插件的 Anki 客户端（默认：`http://127.0.0.1:8765`）。
+
+### 图书元数据与书名批量清理器
+
+位于 **管理后台 → 图书与书库 → 批量清理书名**：
+
+- **基于规则的清理**：一键批量剥离方括号标签（如 `[轻小说]`）、圆括号年份或注解（如 `(2024)`）、下划线并将多余空格规范化。
+- **书名与作者拆分**：根据常见分隔符（`书名 - 作者` 或 `作者 - 书名`）自动将合并文件名智能拆分为独立的书名与作者字段。
+- **自定义正则表达式**：支持输入自定义正则替换规则，并在提交数据库批量变更前提供实时双栏效果对比预览。
+
+### 社交读书卡片与金句卡片
+
+- **阅读成就卡片**：可在 **阅读统计与分析**（`/analytics`）中生成高分辨率社交分享卡片，展示累计阅读字数、连续打卡天数、总阅读时长及年度阅读热力图，支持多种视觉主题（极光 Aurora、赛博朋克 Cyberpunk、复古 Sepia、墨水屏 E-ink）与多种宽高比。
+- **精彩金句卡片**：在阅读器内划选任意文字后点击“引言”图标，即可自动生成排版精美的金句卡片，包含图书封面插画、章节出处与作者元数据。
+
+### 纯黑白 1-Bit 墨水屏模式 (E-Ink Mode)
+
+专为电子纸设备（Kindle、Kobo、文石 BOOX、Supernote 等）及追求极简护眼的桌面/移动阅读打造：
+
+- **极致对比度**：纯黑白双色单色调色板（`#ffffff` 背景与 `#000000` 文字），彻底禁用 0ms CSS 过渡动画，移除所有阴影投射并实现瞬间重排版。
+- **防残影闪烁刷新**：提供可选的黑白全屏翻页闪烁动画，模拟物理电子纸的残影清除机制。
+- **全平台支持**：电子书阅读器（eBook Reader）与沉浸式有声书播放器（Audiobook Player）均全面内置支持。
 
 ---
 

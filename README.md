@@ -16,10 +16,12 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 
 - **Universal Multi-Format Reader**: Render EPUB, KePub, MOBI, AZW, AZW3, PDF, DOCX, DOC, ODT, RTF, FB2, FBZ, Comic CBZ/CBR/CBT/CB7, TXT, MD, HTML, PPTX, PPT, ODP, XLSX, XLS, ODS, CSV, TSV, and LaTeX (`.tex`) natively
 - **High-Fidelity Typography & DTP Layout**: Preserves inline styling (bold, italic, underline, strikethrough, small-caps), paragraph alignment (left, center, right, justify), multi-column responsive tables, presentation slide decks, and embedded audio/video
+- **Pure 1-Bit E-Ink Mode**: High-contrast, zero-transition, flash pagination theme optimized for e-paper displays (Kindle, Kobo, Boox) and distraction-free reading across both eBooks and Audiobooks
+- **Enhanced Text-to-Speech (TTS)**: Multi-voice reader with speech speed control, active sentence and word highlighting, toolbar playback controls, and automatic text-scrolling synchronization
 - **Configurable Text Alignment**: Select between `Original` (preserves publisher's native book CSS), `Left`, `Center`, `Right`, or `Justify`
+- **Quote Card Generator**: Highlight any text passage in the reader to generate beautifully styled quote cards with cover art, author, and multiple aesthetic themes for instant sharing
 - **Book Doctor & EPUB Repair Engine**: Deep structural diagnostic and auto-repair for EPUB files (deduplicates manifests, fixes missing spine refs, resolves unmanifested files, cleans broken links, repairs malformed XHTML/mimetypes, upgrades EPUB2 to EPUB3, and rebuilds TOC/NCX)
 - **eBook Converter**: Built-in pure-Go converter between EPUB, MOBI, KePub, PDF, DOCX, FB2, CBZ, TXT formats
-- **Text-to-Speech (TTS)**: Multi-voice reader with speech speed control and active word highlighting
 - **PWA & Offline Reading**: Progressive Web App with browser-level IndexedDB storage for offline reading
 - **Custom CSS & Fonts**: Support for user-defined CSS styles and custom font file uploads
 - **Highlights & Notes**: Text selection highlights, inline annotations, and Readwise export
@@ -28,14 +30,16 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ### 🎧 Audio & Podcast Support
 
 - **Native Audio Streaming**: Play MP3, M4A, M4B, and FLAC files without FFmpeg or HLS dependencies
+- **Full-Screen Audio Player**: Distraction-free listening canvas with chapter scrubber, skip forward/back (15s), sleep timer, playback speed control, audio bookmarks, and E-ink support
 - **Audiobook Merger**: Combine multiple audio tracks into a chaptered M4B audiobook natively
 - **ASIN Chapter Lookup**: Automatic audiobook chapter metadata lookup via Audnexus API
-- **Podcast Manager**: Subscribe to RSS XML feeds, auto-refresh feeds, and download episodes as books
+- **Podcast Manager**: Subscribe to RSS XML feeds, auto-refresh feeds, and download episodes as books with full transactional database integrity
 
 ### 📱 Integrations & Sync
 
-- **Native WebDAV Server**: Mount and browse your entire library directly from macOS Finder, Windows Explorer, Linux file managers, or third-party reader apps via `/webdav`
-- **AnkiConnect Integration**: Sync vocabulary, highlights, and book quotes directly to Anki decks with tag mapping and model customization
+- **Calibre Content Server API Emulation**: Full compatibility with Calibre ecosystem clients (Calibre Companion, Aldiko, etc.) via `/calibre/ajax/*` and `/calibre/get/:what/:book_id` with HTTP Basic Auth, Bearer token, query `?token=...`, cookie, and guest mode
+- **Native WebDAV Server (RFC 4918)**: Mount and browse your entire library directly from macOS Finder, Windows Explorer, Linux file managers, or third-party reader apps (Moon+ Reader, KyBook 3, FBReader, Foliate, Zotero) via `/webdav`
+- **Anki Flashcard Deck Export**: Export reading highlights and vocabulary directly to `.apkg` (Anki SQLite package) or `.csv` files, alongside live AnkiConnect sync
 - **Kobo Wi-Fi Sync**: Sync library, bookmarks, reading progress, and KePub conversion over Wi-Fi
 - **Mihon / Tachiyomi Sync**: Komga-compatible REST API for comic reading progress sync
 - **VBook Android Integration**: Built-in plugin registry API and downloadable ZIP package for VBook
@@ -47,6 +51,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ### 🔍 Discovery & Organization
 
 - **Fluid Responsive Bookshelves**: Proportional 2/3/4/5/6-column grid with touch & mouse drag-to-scroll momentum, mouse wheel horizontal translation, and page-aligned batching (LCM=60)
+- **Bulk Metadata & Title Cleaner**: Batch cleaning and formatting tool for titles and authors (strip brackets/parentheses, title casing, author/title split rules, custom regex patterns, live preview, and batch apply)
 - **Advanced Faceted Search**: Multi-facet filtering by authors, publishers, languages, formats, tags, series, and ratings
 - **Deep Full-Text Search**: Unicode FTS5 search across all chapter contents of all books
 - **Smart Filters & Collections**: Create rule-based dynamic shelves pinned to home or sidebar
@@ -57,11 +62,14 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 ### 📊 Analytics & Engagement
 
 - **Reading Analytics Dashboard**: Personal heatmaps, sessions, daily/annual goals, and library breakdowns
+- **Shareable Reading Cards**: Generate and export customizable social reading achievement cards (period, aspect ratio, themes like Aurora, Cyberpunk, Sepia, E-ink) with reading stats and GitHub-style heatmaps
 - **Estimated Reading Time (ETA)**: Accurate reading speed calculations per book
 - **Book Reviews & Ratings**: User-written reviews, stars, and shareable public links
 
 ### 🔒 Security & Access
 
+- **Replay-Protected TOTP**: Two-factor authentication with counter tracking, concurrency locking, and replay window validation
+- **CSRF Protection**: Hardened CSRF token validation with automatic client-side sync and exemptions for tokenized mobile/sync APIs
 - **OAuth2 & OIDC Support**: Authenticate using external identity providers (Google, GitHub, Keycloak, Authelia, etc.)
 - **PIN-Protected Kids Mode**: Toggle visibility of mature books based on G/PG/R/R18 ratings
 - **Magic Code Login**: 6-digit passwordless login for e-readers and smart devices
@@ -72,7 +80,7 @@ Self-hosted, local-first digital book, audiobook, and podcast library manager. O
 
 - **Single Binary Deployment**: Frontend and SQLite WAL schema compiled into a single file
 - **Zero-Downtime Backups**: SQLite online snapshots and staged integrity-verified restores
-- **Job Scheduler & Maintenance**: Queue engine with cron-like task schedulers (batch EPUB repair, orphaned upload GC, inbox scanner)
+- **Job Scheduler & Maintenance**: Queue engine with cron-like task schedulers (batch EPUB repair, orphaned upload GC, library inbox scanner, background metadata enrichment)
 - **Admin System Logs**: Live tail log viewer with rotating log files
 - **First-Run Setup Wizard**: Intuitive administrator setup and logo/favicon cropper
 - **Multi-Language UI**: i18n support for 16 languages

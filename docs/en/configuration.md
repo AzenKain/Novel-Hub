@@ -251,21 +251,53 @@ NovelHub features an automated structural diagnostic and repair engine for corru
 - **Cache & Hash Synchronization**: Every successful repair automatically recalculates the file's SHA-256 hash, updates the database, and purges corresponding RAM cache keys (`book:*`, `book_file:*`, `chapter:*`).
 - **Batch Repair Job**: Administrators can trigger library-wide batch EPUB repairs on-demand or schedule them via background maintenance tasks (`repair_books`).
 
-### Native WebDAV Server
+### Calibre Content Server API Emulation
 
-NovelHub exposes a full WebDAV server endpoint for mounting your libraries directly as local network drives:
+NovelHub implements a high-performance, drop-in Calibre Content Server API emulation layer compatible with Calibre ecosystem reader apps:
+
+- **Endpoints**: `/calibre/ajax/*` (AJAX category/book discovery and search) and `/calibre/get/:what/:book_id` (cover and book file downloading).
+- **Supported Clients**: Calibre Companion, Aldiko, and other e-reader apps utilizing Calibre Content Server JSON protocols.
+- **Authentication**: Supports HTTP Basic Auth, Bearer tokens, query tokens (`?token=...`), session cookies, and public Guest Mode (if enabled in Admin Settings). Accounts marked as banned receive a strict 403 Forbidden.
+- **Access Control**: Automatically filters books and download actions according to per-user library access (`CanReadBook`, `CanDownloadBook`) and limits search pagination (up to 100 items) to prevent denial-of-service.
+
+### Native WebDAV Server (RFC 4918)
+
+NovelHub exposes a full WebDAV server endpoint for mounting libraries directly as network storage or syncing with mobile reading applications:
 
 - **Endpoint**: `http(s)://<your-host>/webdav`
-- **Supported Clients**: macOS Finder (`Connect to Server`), Windows File Explorer (`Map Network Drive`), Linux (Nautilus/Dolphin/davfs2), and mobile/e-reader apps (KOReader, Moon+ Reader).
-- **Authentication**: HTTP Basic Auth using your NovelHub user account email and password.
-- **Security & Permissions**: Access is strictly gated by the `system.webdav` permission attribute. Libraries hidden from your role are automatically excluded from the root WebDAV folder hierarchy.
+- **Supported Methods**: `OPTIONS`, `PROPFIND` (Depth 0, 1, and infinity), `GET` (with HTTP 206 Partial Content range byte streaming), and `HEAD`.
+- **Supported Clients**: Moon+ Reader, KyBook 3, FBReader, Foliate, Zotero, macOS Finder, Windows File Explorer, and Linux file managers.
+- **Authentication & QR Sync**: Connect via HTTP Basic Auth, Bearer token, or URL query token. The **User Profile → WebDAV Sync** card generates ready-to-use connection credentials and scanning QR codes for mobile reader apps.
+- **Security & RBAC**: Sandboxed per user. Hidden or restricted libraries are automatically pruned from the WebDAV directory hierarchy.
 
-### Anki Integration (AnkiConnect)
+### Anki Flashcards & Highlights Export
 
-Export reading highlights, new vocabulary, and book quotes directly to Anki flashcard decks:
+Export reading highlights, new vocabulary, and book quotes directly into Anki study decks:
 
-- **AnkiConnect Bridge**: Connects seamlessly to your local or remote Anki instance running the AnkiConnect addon (default: `http://127.0.0.1:8765`).
-- **Custom Mapping**: Configure custom deck destinations, note types (Basic, Cloze, etc.), field mappings (Front, Back, Source, Book Title, Author), and tags in **User Profile → Integrations → Anki**.
+- **Native `.apkg` Deck Package**: Export all annotations and highlights as a standalone `.apkg` SQLite package file compatible with Anki Desktop, AnkiMobile, and AnkiDroid without requiring any desktop add-on.
+- **Anki-Formatted `.csv` Export**: Generates clean comma-separated files mapping Front (highlighted text), Back (personal note/translation), and Context (surrounding book excerpt).
+- **AnkiConnect Bridge**: Real-time live synchronization to a running Anki desktop instance via AnkiConnect (`http://127.0.0.1:8765`).
+
+### Bulk Metadata & Title Cleaner
+
+Located in **Admin → Books & Libraries → Bulk Title Cleaner**:
+
+- **Rule-Based Cleaning**: Strip bracketed tags (e.g. `[Light Novel]`), parenthesized notes (`(2024)`), underscores, and clean extra whitespace in bulk.
+- **Author & Title Splitting**: Automatically parse combined filenames into separated title and author fields using delimiters (`Title - Author` or `Author - Title`).
+- **Custom Regular Expressions**: Define custom regex replacement patterns with live side-by-side preview before committing batch mutations to the database.
+
+### Social Reading Cards & Quote Cards
+
+- **Reading Achievement Cards**: Accessible from **Reading Analytics & Stats** (`/analytics`). Generates high-resolution social share cards displaying total words read, active streak days, reading duration, and annual activity heatmaps across multiple visual themes (Aurora, Cyberpunk, Sepia, E-ink) and aspect ratios.
+- **Reader Quote Cards**: Highlight text inside the reader and click the Quote icon to generate formatted quote graphics complete with book cover art, chapter attribution, and author metadata.
+
+### Pure 1-Bit E-Ink Mode
+
+Designed for e-paper devices (Kindle, Kobo, Boox, Supernote) as well as distraction-free desktop/mobile reading:
+
+- **High Contrast**: Pure monochrome black and white palette (`#000000` text on `#ffffff` background) with 0ms CSS transitions, removed drop shadows, and instant reflow.
+- **Flash Page Animation**: Optional e-ink refresh flash animation simulating e-paper ghosting clearance.
+- **Dual Support**: Fully integrated across both the multi-format eBook Reader and the distraction-free Audiobook Player.
 
 ---
 

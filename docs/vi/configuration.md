@@ -261,21 +261,53 @@ NovelHub tích hợp bộ công cụ phân tích và tự động sửa chữa c
 - **Đồng bộ Hash & Xóa Cache**: Sau khi sửa chữa thành công, hệ thống tự động tính toán lại mã băm SHA-256 của file, cập nhật vào database và xóa toàn bộ RAM cache liên quan (`book:*`, `book_file:*`, `chapter:*`).
 - **Tác vụ Sửa lỗi Hàng loạt**: Quản trị viên có thể quét và tự động sửa lỗi toàn bộ thư viện sách thông qua cron job chạy ngầm (`repair_books`) trong mục **Admin → Operations → Maintenance**.
 
-### Máy chủ WebDAV Tích hợp
+### Giả lập API Calibre Content Server
 
-NovelHub cung cấp máy chủ WebDAV chuẩn cho phép gắn kết thư viện sách trực tiếp như một ổ đĩa mạng trên máy tính:
+NovelHub tích hợp lớp giả lập API máy chủ Calibre Content Server chuẩn xác, cho phép các ứng dụng đọc sách trong hệ sinh thái Calibre kết nối trực tiếp:
+
+- **Endpoint**: `/calibre/ajax/*` (duyệt danh mục, phân loại sách và tìm kiếm) và `/calibre/get/:what/:book_id` (tải ảnh bìa và tải file sách).
+- **Ứng dụng hỗ trợ**: Calibre Companion, Aldiko, và các trình đọc e-reader hỗ trợ chuẩn giao tiếp JSON của Calibre Content Server.
+- **Xác thực linh hoạt**: Hỗ trợ HTTP Basic Auth, Bearer token, query token (`?token=...`), cookie phiên đăng nhập và chế độ Khách (Guest mode nếu được bật trong Admin Settings). Tài khoản bị cấm (banned) sẽ nhận mã lỗi 403 Forbidden.
+- **Kiểm soát truy cập**: Tự động lọc sách và quyền tải xuống theo từng thư viện của người dùng (`CanReadBook`, `CanDownloadBook`) cùng cơ chế giới hạn phân trang tối đa 100 kết quả để phòng chống tấn công DoS.
+
+### Máy chủ WebDAV Chuẩn (RFC 4918)
+
+NovelHub cung cấp máy chủ WebDAV chuẩn IETF RFC 4918 cho phép gắn kết thư viện sách trực tiếp như một ổ đĩa mạng trên máy tính hoặc đồng bộ với ứng dụng đọc sách di động:
 
 - **Endpoint**: `http(s)://<host-của-bạn>/webdav`
-- **Ứng dụng hỗ trợ**: macOS Finder (`Connect to Server`), Windows File Explorer (`Map Network Drive`), Linux (Nautilus/Dolphin/davfs2), cùng các ứng dụng đọc sách di động và máy đọc sách eReader (KOReader, Moon+ Reader).
-- **Xác thực**: Sử dụng HTTP Basic Auth bằng chính email và mật khẩu tài khoản NovelHub của bạn.
-- **Bảo mật & Phân quyền**: Được kiểm soát chặt chẽ thông qua quyền `system.webdav`. Các thư viện bị giới hạn theo vai trò của người dùng sẽ tự động ẩn khỏi cây thư mục WebDAV.
+- **Phương thức hỗ trợ**: `OPTIONS`, `PROPFIND` (Depth 0, 1, và vô hạn), `GET` (hỗ trợ phân luồng đọc phạm vi byte HTTP 206 Partial Content), và `HEAD`.
+- **Ứng dụng hỗ trợ**: Moon+ Reader, KyBook 3, FBReader, Foliate, Zotero, macOS Finder (`Connect to Server`), Windows File Explorer (`Map Network Drive`), Linux (Nautilus/Dolphin/davfs2).
+- **Xác thực & Mã QR Đồng bộ**: Hỗ trợ HTTP Basic Auth, Bearer token và token trên URL. Thẻ **User Profile → WebDAV Sync** tự động tạo sẵn thông tin kết nối và mã QR Code để quét nhanh trên thiết bị đọc sách di động.
+- **Bảo mật & Phân quyền**: Được kiểm soát chặt chẽ thông qua quyền `system.webdav`. Các thư viện bị giới hạn theo vai trò sẽ tự động ẩn khỏi cây thư mục.
 
-### Tích hợp Thẻ ghi nhớ Anki (AnkiConnect)
+### Xuất Thẻ Ghi Nhớ Anki (.apkg & .csv)
 
 Đồng bộ các đoạn trích dẫn, từ vựng và ghi chú khi đọc sách trực tiếp vào bộ thẻ Anki:
 
-- **Kết nối AnkiConnect**: Kết nối liền mạch với ứng dụng Anki trên máy tính thông qua add-on AnkiConnect (mặc định: `http://127.0.0.1:8765`).
-- **Tùy biến ánh xạ**: Cấu hình bộ thẻ mục tiêu (Deck), loại thẻ (Basic, Cloze,...), ánh xạ các trường (Mặt trước, Mặt sau, Tên sách, Tác giả) và gắn thẻ (Tags) trong **User Profile → Integrations → Anki**.
+- **Gói Thẻ Độc Lập `.apkg`**: Xuất toàn bộ trích dẫn và ghi chú ra file gói `.apkg` (chuẩn SQLite Anki) để nhập trực tiếp vào Anki Desktop, AnkiMobile (iOS) hoặc AnkiDroid (Android) mà không cần cài đặt thêm add-on.
+- **Xuất file `.csv` chuẩn Anki**: Xuất dữ liệu dưới dạng bảng CSV phân tách dấu phẩy gồm Mặt trước (câu trích), Mặt sau (ghi chú cá nhân) và Ngữ cảnh (đoạn văn xung quanh trong sách).
+- **Cầu nối AnkiConnect**: Hỗ trợ đồng bộ tức thời hai chiều tới ứng dụng Anki đang mở trên máy tính thông qua add-on AnkiConnect (`http://127.0.0.1:8765`).
+
+### Công Cụ Dọn Dẹp Metadata & Tiêu Đề Hàng Loạt (Bulk Title Cleaner)
+
+Nằm trong mục **Admin → Books & Libraries → Bulk Title Cleaner**:
+
+- **Làm sạch theo quy tắc**: Loại bỏ hàng loạt các thẻ trong ngoặc vuông (như `[Light Novel]`), ngoặc tròn (`(2024)`), đổi dấu gạch dưới thành khoảng trắng và chuẩn hóa khoảng trắng thừa.
+- **Tách Tiêu đề & Tác giả tự động**: Tách tên file gộp thành các trường tiêu đề và tác giả riêng biệt theo ký tự phân tách (`Tên sách - Tác giả` hoặc `Tác giả - Tên sách`).
+- **Biểu thức chính quy tùy chỉnh (Regex)**: Hỗ trợ tạo các quy tắc Regex tùy chỉnh kèm bảng xem trước kết quả trực tiếp trước khi ghi đè vào cơ sở dữ liệu.
+
+### Thẻ Đọc Sách Cá Nhân & Thẻ Trích Dẫn (Reading & Quote Cards)
+
+- **Thẻ Thành Tích Đọc Sách (Reading Cards)**: Mở từ trang **Reading Analytics & Stats** (`/analytics`). Cho phép tạo và xuất ảnh card thành tích cá nhân độ nét cao hiển thị tổng số từ đã đọc, số ngày đọc liên tục (streak), thời gian đọc và bản đồ nhiệt hàng năm với nhiều giao diện màu sắc (Aurora, Cyberpunk, Sepia, E-ink) cùng tỉ lệ khung hình tùy chọn để chia sẻ lên mạng xã hội.
+- **Thẻ Trích Dẫn (Quote Cards)**: Bôi đen đoạn văn trong trình đọc và bấm vào biểu tượng Quote để tạo ảnh trích dẫn nghệ thuật kèm bìa sách, tên chương và tên tác giả.
+
+### Chế Độ Màn Hình Mực Điện Tử (Pure 1-Bit E-Ink Mode)
+
+Thiết kế tối ưu hóa riêng cho các thiết bị e-paper (Kindle, Kobo, Boox, Supernote) cũng như người thích đọc sách tập trung:
+
+- **Độ tương phản cao tuyệt đối**: Bảng màu đen trắng 1-bit thuần túy (chữ `#000000` trên nền `#ffffff`), tắt toàn bộ hiệu ứng chuyển động (0ms transitions) và đổ bóng mờ để tăng tốc độ phản hồi trên màn hình e-ink.
+- **Hiệu ứng Flash làm mới trang**: Tùy chọn chớp sáng trang mô phỏng thao tác xóa bóng mờ (ghosting clearance) của máy đọc sách chuyên dụng.
+- **Hỗ trợ toàn diện**: Áp dụng đồng bộ cho cả Trình đọc sách đa định dạng (eBook Reader) và Trình nghe sách nói (Audiobook Player).
 
 ---
 
