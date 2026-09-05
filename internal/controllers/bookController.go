@@ -69,6 +69,21 @@ func (h *BookController) GetBookSeries(c fiber.Ctx) error {
 	return c.JSON(response.CommonResponse{Status: true, Data: res})
 }
 
+func (h *BookController) GetCover(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	id := c.Params("id")
+	filePath, err := h.bookService.GetBookCoverPath(ctx, id, getOptionalClaims(c))
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	c.Set("Cache-Control", "public, max-age=86400")
+	c.Set("X-Content-Type-Options", "nosniff")
+	return c.SendFile(filePath)
+}
+
 func (h *BookController) DownloadBook(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

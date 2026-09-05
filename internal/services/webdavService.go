@@ -81,9 +81,14 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 
 	cleanPath := webdav.SanitizeWebDAVPath(relativePath)
 
+	basePrefix := "/webdav"
+	if strings.HasPrefix(relativePath, "/api/webdav") {
+		basePrefix = "/api/webdav"
+	}
+
 	if cleanPath == "/" || cleanPath == "" {
 		rootNode := webdav.WebDAVNode{
-			Href:        "/webdav/",
+			Href:        basePrefix + "/",
 			DisplayName: "NovelHub",
 			IsDir:       true,
 			ModTime:     time.Now().UTC(),
@@ -102,7 +107,7 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 		nodes = append(nodes, rootNode)
 
 		for _, lib := range libraries {
-			libHref := fmt.Sprintf("/webdav/%s/", lib.Name)
+			libHref := fmt.Sprintf("%s/%s/", basePrefix, lib.Name)
 			nodes = append(nodes, webdav.WebDAVNode{
 				Href:        libHref,
 				DisplayName: lib.Name,
@@ -135,7 +140,7 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 	}
 
 	if len(parts) == 1 {
-		libHref := fmt.Sprintf("/webdav/%s/", targetLib.Name)
+		libHref := fmt.Sprintf("%s/%s/", basePrefix, targetLib.Name)
 		libraryNode := webdav.WebDAVNode{
 			Href:        libHref,
 			DisplayName: targetLib.Name,
@@ -175,7 +180,7 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 					ext = "." + file.Format
 				}
 				fileName := s.bookService.SafeDownloadFilename(book.Title, ext)
-				fileHref := fmt.Sprintf("/webdav/%s/%s", targetLib.Name, fileName)
+				fileHref := fmt.Sprintf("%s/%s/%s", basePrefix, targetLib.Name, fileName)
 
 				modTime := file.ModTime
 				if modTime.IsZero() {
@@ -225,7 +230,7 @@ func (s *webdavService) ResolvePath(ctx context.Context, relativePath string, cl
 			expectedName := s.bookService.SafeDownloadFilename(book.Title, ext)
 
 			if strings.EqualFold(expectedName, fileName) || strings.EqualFold(file.ID, fileName) {
-				fileHref := fmt.Sprintf("/webdav/%s/%s", targetLib.Name, expectedName)
+				fileHref := fmt.Sprintf("%s/%s/%s", basePrefix, targetLib.Name, expectedName)
 				modTime := file.ModTime
 				if modTime.IsZero() {
 					modTime = book.UpdatedAt

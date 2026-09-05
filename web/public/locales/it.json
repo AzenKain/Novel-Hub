@@ -1381,17 +1381,18 @@
     "token_placeholder": "Incolla il tuo token (eyJ0eXAi...)"
   },
   "opds": {
-    "title": "Catalogo OPDS 2.0 e sincronizzazione dei progressi di lettura",
-    "subtitle": "Collega Moon+ Reader, KOReader, Mihon, Yomu o qualsiasi e-reader per scaricare libri e sincronizzare i progressi di lettura in entrambe le direzioni.",
+    "title": "Feed catalogo OPDS 1.2 e 2.0",
+    "subtitle": "Collega Moon+ Reader, Thorium, Cantook, Yomu o Mihon per sfogliare e scaricare libri.",
     "v1_label": "Feed del catalogo OPDS 1.2 (Moon+, KOReader, Yomu)",
     "opensearch_label": "Modello XML OpenSearch",
-    "v2_label": "Catalogo JSON OPDS 2.0",
+    "v2_label": "Catalogo JSON OPDS 2.0 (Thorium Reader, Cantook)",
     "koreader_sync_label": "URL di sincronizzazione bidirezionale dei progressi KOReader",
     "show_qr": "Mostra codice QR",
-    "guide_title": "Come collegare Moon+ Reader / KOReader / Mihon:",
+    "guide_title": "Come collegare Moon+ Reader / KOReader / Thorium / Mihon:",
     "step1": "Moon+ Reader: apri Net Library -> Aggiungi nuovo catalogo -> Inserisci l'URL del feed OPDS.",
     "step2": "KOReader: apri OPDS Catalog -> Aggiungi l'URL del catalogo oppure imposta l'URL del server dei progressi Kosync.",
-    "step3": "Autenticazione: usa l'email e la password del tuo account NovelHub per l'autenticazione HTTP Basic."
+    "step3": "Autenticazione: usa l'email e la password del tuo account NovelHub per l'autenticazione HTTP Basic.",
+    "step_thorium": "Thorium Reader: Apri Cataloghi -> Aggiungi feed OPDS -> Inserisci URL OPDS 2.0 -> Sfoglia e leggi."
   },
   "kobo": {
     "title": "Sincronizzazione Wi-Fi per e-reader Kobo",
@@ -1858,5 +1859,24 @@
     "step1": "Moon+ Reader / KyBook 3: Apri Libreria di rete -> Aggiungi WebDAV -> Incolla l'URL sopra.",
     "step2": "Autenticazione: Inserisci la tua email/username e password NovelHub (o Magic Code).",
     "step3": "Sfoglia le librerie come cartelle e scarica i libri direttamente sul tuo dispositivo."
+  },
+  "calibre": {
+    "title": "API Calibre Content Server",
+    "subtitle": "Collega Calibre Companion, Aldiko, Moon+ Reader o app dell'ecosistema Calibre per sfogliare e scaricare libri.",
+    "url_label": "URL base Content Server",
+    "ajax_label": "URL AJAX Library Info",
+    "guide_title": "Come connettersi tramite Calibre Content Server:",
+    "step1": "Calibre Companion (Android / E-Reader): Nelle impostazioni di connessione, seleziona 'Calibre Content Server' e inserisci l'URL del server.",
+    "step2": "Autenticazione: Usa la tua email/nome utente e password di NovelHub, o il token Bearer.",
+    "step3": "Calibre Desktop: Usa 'Connetti/condividi' -> 'Connetti a cartella' puntando al mount WebDAV, o usa la CLI 'calibredb'."
+  },
+  "koreader": {
+    "title": "Sincronizzazione bidirezionale KOReader (Kosync)",
+    "subtitle": "Sincronizzazione in tempo reale dell'avanzamento della lettura tra dispositivi KOReader e NovelHub.",
+    "sync_url_label": "URL server di sincronizzazione Kosync",
+    "guide_title": "Come configurare su KOReader:",
+    "step1": "Apri il menu in KOReader -> Impostazioni -> Seleziona 'Sincronizzazione avanzamento' (Kosync).",
+    "step2": "Abilita sincronizzazione -> 'Server personalizzato' -> Inserisci l'URL del server.",
+    "step3": "Accedi utilizzando l'email e la password del tuo account NovelHub."
   }
 }

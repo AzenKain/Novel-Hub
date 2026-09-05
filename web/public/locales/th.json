@@ -1381,17 +1381,18 @@
     "token_placeholder": "วางโทเคนของคุณ (eyJ0eXAi...)"
   },
   "opds": {
-    "title": "แคตตาล็อก OPDS 2.0 และการซิงก์ความคืบหน้าการอ่าน",
-    "subtitle": "เชื่อมต่อ Moon+ Reader, KOReader, Mihon, Yomu หรือเครื่องอ่านอีบุ๊กใดก็ได้ เพื่อดาวน์โหลดหนังสือและซิงก์ความคืบหน้าการอ่านแบบสองทาง",
+    "title": "ฟีดแคตตาล็อก OPDS 1.2 & 2.0",
+    "subtitle": "เชื่อมต่อ Moon+ Reader, Thorium, Cantook, Yomu หรือ Mihon เพื่อค้นหาและดาวน์โหลดหนังสือ",
     "v1_label": "ฟีดแคตตาล็อก OPDS 1.2 (Moon+, KOReader, Yomu)",
     "opensearch_label": "เทมเพลต OpenSearch XML",
-    "v2_label": "แคตตาล็อก JSON แบบ OPDS 2.0",
+    "v2_label": "แคตตาล็อก JSON OPDS 2.0 (Thorium Reader, Cantook)",
     "koreader_sync_label": "URL ซิงก์ความคืบหน้าสองทางของ KOReader",
     "show_qr": "แสดง QR Code",
-    "guide_title": "วิธีเชื่อมต่อ Moon+ Reader / KOReader / Mihon:",
+    "guide_title": "วิธีเชื่อมต่อ Moon+ Reader / KOReader / Thorium / Mihon:",
     "step1": "Moon+ Reader: เปิด Net Library -> เพิ่มแคตตาล็อกใหม่ -> กรอก URL ของฟีด OPDS",
     "step2": "KOReader: เปิด OPDS Catalog -> เพิ่ม URL ของแคตตาล็อก หรือตั้งค่า URL ของ Kosync Progress Server",
-    "step3": "การยืนยันตัวตน: ใช้อีเมลและรหัสผ่านของบัญชี NovelHub สำหรับ HTTP Basic Auth"
+    "step3": "การยืนยันตัวตน: ใช้อีเมลและรหัสผ่านของบัญชี NovelHub สำหรับ HTTP Basic Auth",
+    "step_thorium": "Thorium Reader: เปิดแคตตาล็อก -> เพิ่มฟีด OPDS -> ป้อน URL OPDS 2.0 -> เรียกดูและอ่าน"
   },
   "kobo": {
     "title": "ซิงก์เครื่องอ่าน Kobo ผ่าน Wi-Fi",
@@ -1858,5 +1859,24 @@
     "step1": "Moon+ Reader / KyBook 3: เปิด Net Library -> เพิ่ม WebDAV -> วาง URL ด้านบน",
     "step2": "การยืนยันตัวตน: ป้อนอีเมล/ชื่อผู้ใช้และรหัสผ่าน NovelHub (หรือ Magic Code)",
     "step3": "เรียกดูห้องสมุดในรูปแบบโฟลเดอร์และดาวน์โหลดหนังสือลงอุปกรณ์โดยตรง"
+  },
+  "calibre": {
+    "title": "Calibre Content Server API",
+    "subtitle": "เชื่อมต่อ Calibre Companion, Aldiko, Moon+ Reader หรือแอปในระบบ Calibre เพื่อเรียกดูและดาวน์โหลดหนังสือ",
+    "url_label": "URL หลักของ Content Server",
+    "ajax_label": "URL ของ AJAX Library Info",
+    "guide_title": "วิธีเชื่อมต่อผ่าน Calibre Content Server:",
+    "step1": "Calibre Companion (Android / E-Reader): ในการตั้งค่าการเชื่อมต่อ เลือก 'Calibre Content Server' และป้อน URL เซิร์ฟเวอร์ด้านบน",
+    "step2": "การยืนยันตัวตน: ใช้อีเมล/ชื่อผู้ใช้และรหัสผ่าน NovelHub ของคุณ หรือ Bearer token",
+    "step3": "Calibre Desktop: ใช้ 'เชื่อมต่อ/แชร์' -> 'เชื่อมต่อกับโฟลเดอร์' โดยชี้ไปที่ WebDAV หรือใช้ CLI 'calibredb'"
+  },
+  "koreader": {
+    "title": "การซิงค์ความคืบหน้า KOReader 2 ทาง (Kosync)",
+    "subtitle": "ซิงค์ความคืบหน้าในการอ่านสองทางแบบเรียลไทม์ระหว่างอุปกรณ์ KOReader และ NovelHub",
+    "sync_url_label": "URL เซิร์ฟเวอร์ซิงค์ Kosync",
+    "guide_title": "วิธีตั้งค่าบน KOReader:",
+    "step1": "เปิดเมนูใน KOReader -> การตั้งค่า -> เลือก 'การซิงค์ความคืบหน้า' (Kosync)",
+    "step2": "เปิดใช้งานการซิงค์ -> 'เซิร์ฟเวอร์แบบกำหนดเอง' -> ป้อน URL เซิร์ฟเวอร์ด้านบน",
+    "step3": "เข้าสู่ระบบโดยใช้อีเมลและรหัสผ่านบัญชี NovelHub ของคุณ"
   }
 }

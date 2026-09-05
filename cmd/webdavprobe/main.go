@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -101,7 +102,7 @@ func runDemoProbe() {
 
 	libService := &mockLibService{libs: []*response.LibraryResponse{lib}}
 	bookService := &mockBookService{books: []*models.BookEntity{book}, files: []*models.BookFileEntity{file}}
-	perms := &mockPermCache{}
+	perms := &mockPermCache{allowGuest: false}
 	settings := &mockSettingsService{}
 	auth := &mockAuthService{validUser: "user@novelhub.local", validPass: "pass123"}
 
@@ -116,9 +117,8 @@ func runDemoProbe() {
 
 	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte("user@novelhub.local:pass123"))
 
-	fmt.Println("\n1. Testing HTTP OPTIONS /webdav...")
+	fmt.Println("\n1. Testing Unauthenticated HTTP OPTIONS /webdav (Capability Discovery)...")
 	optReq := httptest.NewRequest("OPTIONS", "/webdav", nil)
-	optReq.Header.Set("Authorization", authHeader)
 	optResp, err := app.Test(optReq)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "OPTIONS test failed: %v\n", err)
@@ -127,8 +127,23 @@ func runDemoProbe() {
 	fmt.Printf("   Status: %d\n", optResp.StatusCode)
 	fmt.Printf("   DAV Header: %s\n", optResp.Header.Get("DAV"))
 	fmt.Printf("   Allow: %s\n", optResp.Header.Get("Allow"))
+	if optResp.StatusCode != 200 {
+		fmt.Fprintf(os.Stderr, "FAILED: Expected 200 OK on unauthenticated OPTIONS\n")
+		return
+	}
 
-	fmt.Println("\n2. Testing PROPFIND /webdav (Root Level, Depth: 1)...")
+	fmt.Println("\n2. Testing Unauthenticated PROPFIND /webdav (401 Challenge Check)...")
+	unauthPropReq := httptest.NewRequest("PROPFIND", "/webdav", nil)
+	unauthPropReq.Header.Set("Depth", "0")
+	unauthPropResp, _ := app.Test(unauthPropReq)
+	fmt.Printf("   Status: %d (Expected 401)\n", unauthPropResp.StatusCode)
+	fmt.Printf("   WWW-Authenticate: %s\n", unauthPropResp.Header.Get("WWW-Authenticate"))
+	if unauthPropResp.StatusCode != 401 || unauthPropResp.Header.Get("WWW-Authenticate") == "" {
+		fmt.Fprintf(os.Stderr, "FAILED: Expected 401 Unauthorized with WWW-Authenticate header\n")
+		return
+	}
+
+	fmt.Println("\n3. Testing Authenticated PROPFIND /webdav (Root Level, Depth: 1)...")
 	propReq1 := httptest.NewRequest("PROPFIND", "/webdav", nil)
 	propReq1.Header.Set("Authorization", authHeader)
 	propReq1.Header.Set("Depth", "1")
@@ -137,7 +152,7 @@ func runDemoProbe() {
 	fmt.Printf("   Status: %d Multi-Status\n", propResp1.StatusCode)
 	fmt.Println(string(body1))
 
-	fmt.Println("\n3. Testing PROPFIND /webdav/General Library/ (Library Level, Depth: 1)...")
+	fmt.Println("\n4. Testing Authenticated PROPFIND /webdav/General Library/ (Library Level, Depth: 1)...")
 	propReq2 := httptest.NewRequest("PROPFIND", "/webdav/General%20Library", nil)
 	propReq2.Header.Set("Authorization", authHeader)
 	propReq2.Header.Set("Depth", "1")
@@ -145,6 +160,24 @@ func runDemoProbe() {
 	body2, _ := io.ReadAll(propResp2.Body)
 	fmt.Printf("   Status: %d Multi-Status\n", propResp2.StatusCode)
 	fmt.Println(string(body2))
+
+	fmt.Println("\n5. Testing /api/webdav Mount (OPTIONS & PROPFIND)...")
+	apiOptReq := httptest.NewRequest("OPTIONS", "/api/webdav", nil)
+	apiOptResp, _ := app.Test(apiOptReq)
+	fmt.Printf("   /api/webdav OPTIONS Status: %d\n", apiOptResp.StatusCode)
+
+	apiPropReq := httptest.NewRequest("PROPFIND", "/api/webdav", nil)
+	apiPropReq.Header.Set("Authorization", authHeader)
+	apiPropReq.Header.Set("Depth", "0")
+	apiPropResp, _ := app.Test(apiPropReq)
+	apiBody, _ := io.ReadAll(apiPropResp.Body)
+	fmt.Printf("   /api/webdav PROPFIND Status: %d\n", apiPropResp.StatusCode)
+	if strings.Contains(string(apiBody), "<D:href>/api/webdav/</D:href>") {
+		fmt.Println("   /api/webdav returned correct /api/webdav/ root href!")
+	} else {
+		fmt.Fprintf(os.Stderr, "FAILED: Expected /api/webdav/ href in response, got:\n%s\n", string(apiBody))
+		return
+	}
 
 	fmt.Println("\n🎉 All WebDAV Protocol Tests Passed Successfully!")
 }
@@ -182,13 +215,23 @@ func (m *mockBookService) SafeDownloadFilename(title string, ext string) string 
 
 type mockPermCache struct {
 	services.PermissionCache
+	allowGuest bool
 }
 
 func (m *mockPermCache) Can(_ context.Context, _ string, _ string, _ map[string]any) bool {
 	return true
 }
 
-func (m *mockPermCache) CanRoles(_ []string, _ []constants.RoleType, _ string, _ map[string]any) bool {
+func (m *mockPermCache) IsAdmin(_ []string, _ []constants.RoleType) bool {
+	return false
+}
+
+func (m *mockPermCache) CanRoles(_ []string, roles []constants.RoleType, _ string, _ map[string]any) bool {
+	for _, r := range roles {
+		if r == constants.RoleTypeGuest {
+			return m.allowGuest
+		}
+	}
 	return true
 }
 

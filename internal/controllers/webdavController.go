@@ -25,6 +25,11 @@ func (h *WebDAVController) HandleOptions(c fiber.Ctx) error {
 	c.Set("DAV", "1, 2")
 	c.Set("MS-Author-Via", "DAV")
 	c.Set("Allow", "OPTIONS, GET, HEAD, PROPFIND")
+	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("Access-Control-Allow-Methods", "OPTIONS, GET, HEAD, PROPFIND")
+	c.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Depth, If-Modified-Since, Range, X-Expected-Entity-Length")
+	c.Set("Access-Control-Expose-Headers", "DAV, Content-Length, Content-Range, Content-Disposition")
+	c.Set("Content-Length", "0")
 	return c.SendStatus(fiber.StatusOK)
 }
 
@@ -47,6 +52,7 @@ func (h *WebDAVController) HandlePropfind(c fiber.Ctx) error {
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrInternalError, fmt.Sprintf("Failed to generate WebDAV XML: %v", err)))
 	}
 
+	c.Set("DAV", "1, 2")
 	c.Set("Content-Type", "application/xml; charset=utf-8")
 	c.Status(207)
 	return c.Send(xmlData)

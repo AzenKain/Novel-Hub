@@ -327,9 +327,9 @@ export function Roles() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto h-full">
+        <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto h-full items-start">
           {/* Roles Sidebar */}
-          <div className="lg:col-span-4 flex flex-col gap-4">
+          <div className="w-full lg:w-[380px] xl:w-[400px] shrink-0 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Roles ({roles.length})</h2>
               <button
@@ -357,33 +357,33 @@ export function Roles() {
                         : "bg-base-100 border-base-200 hover:border-base-300"
                     }`}
                   >
-                    <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 shrink-0 text-base-content/30 cursor-grab active:cursor-grabbing" />
+                    <div className="min-w-0 flex-1 flex items-start gap-2.5">
+                      <GripVertical className="h-4 w-4 shrink-0 text-base-content/30 cursor-grab active:cursor-grabbing mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <Shield
                             className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-base-content/40"}`}
                           />
-                          <span className="font-bold text-sm truncate">
+                          <span className="font-bold text-sm text-base-content shrink-0">
                             {r.name}
                           </span>
-                          <span className="badge badge-ghost badge-xs font-mono">
+                          <span className="badge badge-ghost badge-xs font-mono shrink-0 whitespace-nowrap">
                             {t("admin.role_rank", "Rank #{{n}}", {
                               n: index + 1,
                             })}
                           </span>
                           {r.is_admin && (
-                            <span className="badge badge-error badge-xs">
+                            <span className="badge badge-error badge-xs shrink-0 whitespace-nowrap">
                               {t("admin.role_badge_admin", "Admin")}
                             </span>
                           )}
                           {r.is_system && !r.is_admin && (
-                            <span className="badge badge-neutral badge-xs">
+                            <span className="badge badge-neutral badge-xs shrink-0 whitespace-nowrap">
                               {t("admin.role_badge_system", "System")}
                             </span>
                           )}
                           {r.auto_assign && (
-                            <span className="badge badge-info badge-xs">
+                            <span className="badge badge-info badge-xs shrink-0 whitespace-nowrap">
                               {t("admin.role_badge_auto", "Auto")}
                             </span>
                           )}
@@ -436,7 +436,7 @@ export function Roles() {
           </div>
 
           {/* Permissions Matrix */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
             {selectedRole ? (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-200/50 p-4 rounded-xl border border-base-200">
@@ -586,9 +586,12 @@ export function Roles() {
                             keys: [
                               "opds.read",
                               "opds.download",
+                              "webdav.read",
+                              "webdav.download",
                               "kobo.sync",
                               "komga.sync",
                               "calibre.sync",
+                              "podcast.manage",
                             ],
                           },
                           {

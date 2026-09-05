@@ -63,27 +63,26 @@ export const KidsModePinCard: React.FC = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-200">
-      <div className="card-body p-5">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
-            <Shield className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="card-title text-base">
-              {t(
-                "kids_mode.parental_control_title",
-                "Parental Control & Kids Mode PIN",
-              )}
-            </h3>
-            <p className="text-xs text-base-content/70">
-              {t(
-                "kids_mode.parental_control_desc",
-                "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
-              )}
-            </p>
-          </div>
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+      <div className="flex items-center gap-3 border-b border-base-200 pb-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
+          <Shield className="w-5 h-5" />
         </div>
+        <div>
+          <h3 className="text-base font-bold">
+            {t(
+              "kids_mode.parental_control_title",
+              "Parental Control & Kids Mode PIN",
+            )}
+          </h3>
+          <p className="text-xs text-base-content/70">
+            {t(
+              "kids_mode.parental_control_desc",
+              "Set a secure 6-digit PIN to prevent children from exiting Kids Mode or accessing R17+/R18+ content.",
+            )}
+          </p>
+        </div>
+      </div>
 
         <form onSubmit={handleSetPin} className="mt-3 flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -158,7 +157,6 @@ export const KidsModePinCard: React.FC = () => {
             </button>
           </div>
         </form>
-      </div>
     </div>
   );
 };

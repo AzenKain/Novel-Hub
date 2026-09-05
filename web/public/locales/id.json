@@ -1381,17 +1381,18 @@
     "token_placeholder": "Tempel token Anda (eyJ0eXAi...)"
   },
   "opds": {
-    "title": "Katalog OPDS 2.0 & sinkronisasi kemajuan membaca",
-    "subtitle": "Hubungkan Moon+ Reader, KOReader, Mihon, Yomu, atau e-reader apa pun untuk mengunduh buku dan menyinkronkan kemajuan membaca dua arah.",
+    "title": "Feed Katalog OPDS 1.2 & 2.0",
+    "subtitle": "Hubungkan Moon+ Reader, Thorium, Cantook, Yomu, atau Mihon untuk menjelajahi dan mengunduh buku.",
     "v1_label": "Umpan katalog OPDS 1.2 (Moon+, KOReader, Yomu)",
     "opensearch_label": "Templat XML OpenSearch",
-    "v2_label": "Katalog JSON OPDS 2.0",
+    "v2_label": "Katalog JSON OPDS 2.0 (Thorium Reader, Cantook)",
     "koreader_sync_label": "URL sinkronisasi kemajuan dua arah KOReader",
     "show_qr": "Tampilkan kode QR",
-    "guide_title": "Cara menghubungkan Moon+ Reader / KOReader / Mihon:",
+    "guide_title": "Cara menghubungkan Moon+ Reader / KOReader / Thorium / Mihon:",
     "step1": "Moon+ Reader: buka Net Library -> Tambah katalog baru -> masukkan URL umpan OPDS.",
     "step2": "KOReader: buka OPDS Catalog -> tambahkan URL katalog, atau setel URL server kemajuan kosync.",
-    "step3": "Autentikasi: gunakan email dan kata sandi akun NovelHub Anda untuk HTTP Basic Auth."
+    "step3": "Autentikasi: gunakan email dan kata sandi akun NovelHub Anda untuk HTTP Basic Auth.",
+    "step_thorium": "Thorium Reader: Buka Katalog -> Tambah Feed OPDS -> Masukkan URL OPDS 2.0 -> Jelajahi dan baca."
   },
   "kobo": {
     "title": "Sinkronisasi Wi-Fi e-reader Kobo",
@@ -1858,5 +1859,24 @@
     "step1": "Moon+ Reader / KyBook 3: Buka Net Library -> Tambah WebDAV -> Tempel URL di atas.",
     "step2": "Autentikasi: Masukkan Email/Username dan Kata Sandi NovelHub (atau Kode Ajaib).",
     "step3": "Jelajahi perpustakaan sebagai folder dan unduh buku langsung ke perangkat Anda."
+  },
+  "calibre": {
+    "title": "Calibre Content Server API",
+    "subtitle": "Hubungkan Calibre Companion, Aldiko, Moon+ Reader, atau aplikasi ekosistem Calibre untuk menjelajah dan mengunduh buku.",
+    "url_label": "URL Dasar Content Server",
+    "ajax_label": "URL AJAX Library Info",
+    "guide_title": "Cara terhubung melalui Calibre Content Server:",
+    "step1": "Calibre Companion (Android / E-Reader): Dalam pengaturan koneksi, pilih 'Calibre Content Server' dan masukkan URL server di atas.",
+    "step2": "Autentikasi: Gunakan Email/Nama Pengguna dan Kata Sandi NovelHub Anda, atau token Bearer.",
+    "step3": "Calibre Desktop: Gunakan 'Hubungkan/bagikan' -> 'Hubungkan ke folder' yang mengarah ke mount WebDAV, atau gunakan CLI 'calibredb'."
+  },
+  "koreader": {
+    "title": "Sinkronisasi Progres KOReader 2 Arah (Kosync)",
+    "subtitle": "Sinkronisasi progres membaca dua arah waktu nyata antara perangkat KOReader dan NovelHub.",
+    "sync_url_label": "URL Server Sinkronisasi Kosync",
+    "guide_title": "Cara konfigurasi di KOReader:",
+    "step1": "Buka menu di KOReader -> Pengaturan -> Pilih 'Sinkronisasi progres' (Kosync).",
+    "step2": "Aktifkan sinkronisasi -> 'Server kustom' -> Masukkan URL server di atas.",
+    "step3": "Masuk menggunakan email dan kata sandi akun NovelHub Anda."
   }
 }

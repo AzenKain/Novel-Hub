@@ -2,14 +2,18 @@ package services
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"novelhub/internal/dtos/request"
 	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
+	"novelhub/pkg/apperrors"
 	"novelhub/pkg/constants"
 	"novelhub/pkg/convert"
 	"novelhub/pkg/jsonx"
@@ -17,26 +21,59 @@ import (
 )
 
 type OPDSService interface {
-	GetRootCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error)
-	GetRecentBooks(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetOpenSearchDescription(serverURL string) *opds.OpenSearchDescription
-	SearchBooksOPDS(ctx context.Context, serverURL string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetTagBooks(ctx context.Context, serverURL string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
-	GetOPDS2Catalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (map[string]any, error)
+	GetRootCatalog(ctx context.Context, serverURL, basePath string, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAllBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetRecentBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetHotBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetRandomBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetOpenSearchDescription(serverURL, basePath string) *opds.OpenSearchDescription
+	SearchBooksOPDS(ctx context.Context, serverURL, basePath string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetAuthorBooks(ctx context.Context, serverURL, basePath string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetSeriesBooks(ctx context.Context, serverURL, basePath string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+	GetTagBooks(ctx context.Context, serverURL, basePath string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error)
+
+	GetOPDS2Catalog(ctx context.Context, serverURL, basePath string, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2AllBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2RecentBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2HotBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2RandomBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2AuthorsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2AuthorBooks(ctx context.Context, serverURL, basePath string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2SeriesCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2SeriesBooks(ctx context.Context, serverURL, basePath string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2TagsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2TagBooks(ctx context.Context, serverURL, basePath string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+	GetOPDS2Search(ctx context.Context, serverURL, basePath string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (map[string]any, error)
+
+	GetBookCoverPath(ctx context.Context, bookID string, claims *response.JWTClaims) (string, error)
+	GetBookFileForDownload(ctx context.Context, bookID, fileID string, claims *response.JWTClaims) (string, string, error)
 }
 
 type opdsService struct {
-	books       BookService
-	permissions PermissionCache
+	books           BookService
+	metadataService MetadataService
+	settings        SettingsService
+	permissions     PermissionCache
 }
 
-func NewOPDSService(books BookService, permissions PermissionCache) OPDSService {
-	return &opdsService{books: books, permissions: permissions}
+func NewOPDSService(books BookService, metadataService MetadataService, settings SettingsService, permissions PermissionCache) OPDSService {
+	return &opdsService{
+		books:           books,
+		metadataService: metadataService,
+		settings:        settings,
+		permissions:     permissions,
+	}
+}
+
+func resolveBasePath(basePath string) string {
+	clean := strings.TrimRight(strings.TrimSpace(basePath), "/")
+	if clean == "" {
+		return "/api/opds"
+	}
+	return clean
 }
 
 func parseBookMetadataMap(metadataJSON *string) map[string]any {
@@ -78,26 +115,58 @@ func getBookTags(b *models.BookEntity) []string {
 	return tags
 }
 
-func (s *opdsService) GetRootCatalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetRootCatalog(ctx context.Context, serverURL, basePath string, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	now := time.Now()
-	return &opds.Feed{
+	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:root", Title: "NovelHub OPDS Catalog", Updated: now,
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "search", Href: serverURL + "/api/opds/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
+			{Rel: "self", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "search", Href: serverURL + basePath + "/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
 		},
 		Entries: []opds.Entry{
-			{ID: "novelhub:recent", Title: "Recent Additions", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + "/api/opds/v1/recent", Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"}}, Content: "Recently added books"},
-			{ID: "novelhub:authors", Title: "Authors", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + "/api/opds/v1/authors", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"}}, Content: "Browse books by author"},
-			{ID: "novelhub:series", Title: "Series", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + "/api/opds/v1/series", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"}}, Content: "Browse books by series"},
-			{ID: "novelhub:tags", Title: "Tags & Genres", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + "/api/opds/v1/tags", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"}}, Content: "Browse books by tags"},
+			{ID: "novelhub:books", Title: "All Books", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/books", Type: opds.MimeTypeAcquisition}}, Content: "Browse all books"},
+			{ID: "novelhub:recent", Title: "Recent Additions", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/recent", Type: opds.MimeTypeAcquisition}}, Content: "Recently added books"},
 		},
-	}, nil
+	}
+
+	showHot := false
+	showRandom := false
+	if s.settings != nil {
+		if pub, err := s.settings.Public(ctx); err == nil && pub != nil {
+			showHot = pub.HomeSections.TopBooks
+			showRandom = pub.HomeSections.RandomBooks
+		}
+	}
+
+	if showHot {
+		feed.Entries = append(feed.Entries, opds.Entry{
+			ID: "novelhub:hot", Title: "Hot Books", Updated: now,
+			Links:   []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/hot", Type: opds.MimeTypeAcquisition}},
+			Content: "Popular and trending books",
+		})
+	}
+	if showRandom {
+		feed.Entries = append(feed.Entries, opds.Entry{
+			ID: "novelhub:random", Title: "Random Books", Updated: now,
+			Links:   []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/random", Type: opds.MimeTypeAcquisition}},
+			Content: "Random selection of books",
+		})
+	}
+
+	feed.Entries = append(feed.Entries,
+		opds.Entry{ID: "novelhub:authors", Title: "Authors", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/authors", Type: opds.MimeTypeAtom}}, Content: "Browse books by author"},
+		opds.Entry{ID: "novelhub:series", Title: "Series", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/series", Type: opds.MimeTypeAtom}}, Content: "Browse books by series"},
+		opds.Entry{ID: "novelhub:tags", Title: "Tags & Genres", Updated: now, Links: []opds.Link{{Rel: "subsection", Href: serverURL + basePath + "/v1/tags", Type: opds.MimeTypeAtom}}, Content: "Browse books by tags"},
+	)
+
+	return feed, nil
 }
 
-func (s *opdsService) GetOpenSearchDescription(serverURL string) *opds.OpenSearchDescription {
+func (s *opdsService) GetOpenSearchDescription(serverURL, basePath string) *opds.OpenSearchDescription {
+	basePath = resolveBasePath(basePath)
 	return &opds.OpenSearchDescription{
 		Xmlns:          "http://a9.com/-/spec/opensearch/1.1/",
 		ShortName:      "NovelHub",
@@ -105,8 +174,8 @@ func (s *opdsService) GetOpenSearchDescription(serverURL string) *opds.OpenSearc
 		InputEncoding:  "UTF-8",
 		OutputEncoding: "UTF-8",
 		URL: opds.OpenSearchURL{
-			Type:     "application/atom+xml;profile=opds-catalog;kind=acquisition",
-			Template: serverURL + "/api/opds/v1/search?q={searchTerms}",
+			Type:     opds.MimeTypeAcquisition,
+			Template: serverURL + basePath + "/v1/search?q={searchTerms}",
 		},
 	}
 }
@@ -163,7 +232,7 @@ func (s *opdsService) visibleBooks(ctx context.Context, limit int64, claims *res
 
 func (s *opdsService) visibleBooksPage(ctx context.Context, q request.OPDSPageDto, claims *response.JWTClaims) (visiblePage, error) {
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "", "", "", q.Cursor, q.Limit, claims.UId)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "ExcludeAudiobooks", "", "", "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return visiblePage{}, err
 	}
@@ -172,7 +241,7 @@ func (s *opdsService) visibleBooksPage(ctx context.Context, q request.OPDSPageDt
 
 func (s *opdsService) canAcquire(ctx context.Context, book *models.BookEntity, claims *response.JWTClaims) bool {
 	claims = resolveClaims(claims)
-	return s.permissions.CanRoles(claims.RoleIDs, claims.Roles, constants.PermOPDSDownload, map[string]any{"library_id": book.LibraryID}) && s.books.CanDownloadBook(ctx, book, claims)
+	return s.books.CanReadBook(ctx, book, claims)
 }
 
 func appendNextLink(feed *opds.Feed, serverURL, selfPath, cursor string) {
@@ -186,61 +255,191 @@ func appendNextLink(feed *opds.Feed, serverURL, selfPath, cursor string) {
 	feed.Links = append(feed.Links, opds.Link{
 		Rel:  "next",
 		Href: serverURL + selfPath + separator + "cursor=" + url.QueryEscape(cursor),
-		Type: "application/atom+xml;profile=opds-catalog;kind=acquisition",
+		Type: opds.MimeTypeAcquisition,
 	})
 }
 
-func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAllBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
 	}
 	now := time.Now()
+	selfPath := basePath + "/v1/books"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:books", Title: "All Books", Updated: now,
+		ItemsPerPage: int(q.Limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "search", Href: serverURL + basePath + "/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
+		},
+	}
+	for _, book := range page.Books {
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
+	}
+	appendNextLink(feed, serverURL, selfPath, page.NextCursor)
+	return feed, nil
+}
+
+func (s *opdsService) GetRecentBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	page, err := s.visibleBooksPage(ctx, q, claims)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	selfPath := basePath + "/v1/recent"
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:recent", Title: "Recent Additions", Updated: now,
 		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/recent", Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "search", Href: serverURL + "/api/opds/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "search", Href: serverURL + basePath + "/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
 		},
 	}
 	for _, book := range page.Books {
-		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
 	}
-	appendNextLink(feed, serverURL, "/api/opds/v1/recent", page.NextCursor)
+	appendNextLink(feed, serverURL, selfPath, page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetHotBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, &query, "", "", "", "", "", "", q.Cursor, q.Limit, claims.UId)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "hot", "", "ExcludeAudiobooks", "", "", "", q.Cursor, q.Limit, claims.UId)
+	if err != nil {
+		return nil, err
+	}
+	visible := s.filterVisible(ctx, books, claims)
+	now := time.Now()
+	selfPath := basePath + "/v1/hot"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:hot", Title: "Hot Books", Updated: now,
+		ItemsPerPage: int(q.Limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "search", Href: serverURL + basePath + "/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
+		},
+	}
+	for _, book := range visible {
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
+	}
+	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
+	return feed, nil
+}
+
+func (s *opdsService) GetRandomBooks(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	claims = resolveClaims(claims)
+	limit := q.Limit
+	if limit <= 0 {
+		limit = int64(constants.OPDSDefaultPageSize)
+	}
+	books, err := s.books.SearchBooks(ctx, nil, nil, "random", "", "ExcludeAudiobooks", "", "", "", "", limit, claims.UId)
+	if err != nil {
+		return nil, err
+	}
+	visible := s.filterVisible(ctx, books, claims)
+	now := time.Now()
+	selfPath := basePath + "/v1/random"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:random", Title: "Random Books", Updated: now,
+		ItemsPerPage: int(limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+			{Rel: "search", Href: serverURL + basePath + "/v1/opensearch.xml", Type: "application/opensearchdescription+xml", Title: "Search NovelHub"},
+		},
+	}
+	for _, book := range visible {
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
+	}
+	return feed, nil
+}
+
+func (s *opdsService) SearchBooksOPDS(ctx context.Context, serverURL, basePath string, query string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	claims = resolveClaims(claims)
+	books, err := s.books.SearchBooks(ctx, nil, &query, "", "", "ExcludeAudiobooks", "", "", "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
 	visible := s.filterVisible(ctx, books, claims)
 
 	now := time.Now()
-	selfPath := "/api/opds/v1/search?q=" + url.QueryEscape(query)
+	selfPath := basePath + "/v1/search?q=" + url.QueryEscape(query)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:search:" + query, Title: "Search Results for " + query, Updated: now,
 		ItemsPerPage: int(q.Limit),
 		TotalResults: len(visible),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
 		},
 	}
 	for _, book := range visible {
-		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
 	}
 	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	now := time.Now()
+	limit := q.Limit
+	if limit <= 0 {
+		limit = int64(constants.OPDSDefaultPageSize)
+	}
+	selfPath := basePath + "/v1/authors"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:authors", Title: "Authors", Updated: now,
+		ItemsPerPage: int(limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAtom},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+		},
+	}
+
+	if s.metadataService != nil {
+		res, err := s.metadataService.ListAuthors(ctx, &request.MetadataFacetDto{Limit: int(limit), Cursor: q.Cursor}, claims)
+		if err != nil {
+			return nil, err
+		}
+		if data, ok := res.Data.([]*response.MetadataCountResponse); ok {
+			for _, item := range data {
+				feed.Entries = append(feed.Entries, opds.Entry{
+					ID:      "novelhub:author:" + item.ID,
+					Title:   item.Name,
+					Updated: now,
+					Content: fmt.Sprintf("%d books", item.BookCount),
+					Links: []opds.Link{
+						{Rel: "subsection", Href: serverURL + basePath + "/v1/authors/" + url.PathEscape(item.Name), Type: opds.MimeTypeAcquisition},
+					},
+				})
+			}
+		}
+		if res.Pagination != nil && res.Pagination.NextCursor != "" {
+			feed.Links = append(feed.Links, opds.Link{
+				Rel:  "next",
+				Href: serverURL + selfPath + "?cursor=" + url.QueryEscape(res.Pagination.NextCursor),
+				Type: opds.MimeTypeAtom,
+			})
+		}
+		return feed, nil
+	}
+
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -251,15 +450,6 @@ func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q
 			authorsMap[*b.AuthorName]++
 		}
 	}
-	now := time.Now()
-	feed := &opds.Feed{
-		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
-		ID: "novelhub:authors", Title: "Authors", Updated: now,
-		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/authors", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-		},
-	}
 	for author, count := range authorsMap {
 		feed.Entries = append(feed.Entries, opds.Entry{
 			ID:      "novelhub:author:" + author,
@@ -267,40 +457,86 @@ func (s *opdsService) GetAuthorsCatalog(ctx context.Context, serverURL string, q
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/authors/" + url.PathEscape(author), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + basePath + "/v1/authors/" + url.PathEscape(author), Type: opds.MimeTypeAcquisition},
 			},
 		})
 	}
-	appendNextLink(feed, serverURL, "/api/opds/v1/authors", page.NextCursor)
+	appendNextLink(feed, serverURL, selfPath, page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetAuthorBooks(ctx context.Context, serverURL, basePath string, authorName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "author", authorName, "", q.Cursor, q.Limit, claims.UId)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "ExcludeAudiobooks", "author", authorName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
 	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
-	selfPath := "/api/opds/v1/authors/" + url.PathEscape(authorName)
+	selfPath := basePath + "/v1/authors/" + url.PathEscape(authorName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:author:" + authorName, Title: "Books by " + authorName, Updated: now,
 		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
 		},
 	}
 	for _, book := range visible {
-		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
 	}
 	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	now := time.Now()
+	limit := q.Limit
+	if limit <= 0 {
+		limit = int64(constants.OPDSDefaultPageSize)
+	}
+	selfPath := basePath + "/v1/series"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:series", Title: "Series", Updated: now,
+		ItemsPerPage: int(limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAtom},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+		},
+	}
+
+	if s.metadataService != nil {
+		res, err := s.metadataService.ListSeries(ctx, &request.MetadataFacetDto{Limit: int(limit), Cursor: q.Cursor}, claims)
+		if err != nil {
+			return nil, err
+		}
+		if data, ok := res.Data.([]*response.MetadataCountResponse); ok {
+			for _, item := range data {
+				feed.Entries = append(feed.Entries, opds.Entry{
+					ID:      "novelhub:series:" + item.ID,
+					Title:   item.Name,
+					Updated: now,
+					Content: fmt.Sprintf("%d books", item.BookCount),
+					Links: []opds.Link{
+						{Rel: "subsection", Href: serverURL + basePath + "/v1/series/" + url.PathEscape(item.Name), Type: opds.MimeTypeAcquisition},
+					},
+				})
+			}
+		}
+		if res.Pagination != nil && res.Pagination.NextCursor != "" {
+			feed.Links = append(feed.Links, opds.Link{
+				Rel:  "next",
+				Href: serverURL + selfPath + "?cursor=" + url.QueryEscape(res.Pagination.NextCursor),
+				Type: opds.MimeTypeAtom,
+			})
+		}
+		return feed, nil
+	}
+
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -312,15 +548,6 @@ func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q 
 			seriesMap[series]++
 		}
 	}
-	now := time.Now()
-	feed := &opds.Feed{
-		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
-		ID: "novelhub:series", Title: "Series", Updated: now,
-		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/series", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-		},
-	}
 	for series, count := range seriesMap {
 		feed.Entries = append(feed.Entries, opds.Entry{
 			ID:      "novelhub:series:" + series,
@@ -328,40 +555,86 @@ func (s *opdsService) GetSeriesCatalog(ctx context.Context, serverURL string, q 
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/series/" + url.PathEscape(series), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + basePath + "/v1/series/" + url.PathEscape(series), Type: opds.MimeTypeAcquisition},
 			},
 		})
 	}
-	appendNextLink(feed, serverURL, "/api/opds/v1/series", page.NextCursor)
+	appendNextLink(feed, serverURL, selfPath, page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetSeriesBooks(ctx context.Context, serverURL, basePath string, seriesName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "series", seriesName, "", q.Cursor, q.Limit, claims.UId)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "ExcludeAudiobooks", "series", seriesName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
 	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
-	selfPath := "/api/opds/v1/series/" + url.PathEscape(seriesName)
+	selfPath := basePath + "/v1/series/" + url.PathEscape(seriesName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:series:" + seriesName, Title: "Series: " + seriesName, Updated: now,
 		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
 		},
 	}
 	for _, book := range visible {
-		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
 	}
 	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
 }
 
-func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL, basePath string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
+	now := time.Now()
+	limit := q.Limit
+	if limit <= 0 {
+		limit = int64(constants.OPDSDefaultPageSize)
+	}
+	selfPath := basePath + "/v1/tags"
+	feed := &opds.Feed{
+		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
+		ID: "novelhub:tags", Title: "Tags & Genres", Updated: now,
+		ItemsPerPage: int(limit),
+		Links: []opds.Link{
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAtom},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
+		},
+	}
+
+	if s.metadataService != nil {
+		res, err := s.metadataService.ListTags(ctx, &request.MetadataFacetDto{Limit: int(limit), Cursor: q.Cursor}, claims)
+		if err != nil {
+			return nil, err
+		}
+		if data, ok := res.Data.([]*response.MetadataCountResponse); ok {
+			for _, item := range data {
+				feed.Entries = append(feed.Entries, opds.Entry{
+					ID:      "novelhub:tag:" + item.ID,
+					Title:   item.Name,
+					Updated: now,
+					Content: fmt.Sprintf("%d books", item.BookCount),
+					Links: []opds.Link{
+						{Rel: "subsection", Href: serverURL + basePath + "/v1/tags/" + url.PathEscape(item.Name), Type: opds.MimeTypeAcquisition},
+					},
+				})
+			}
+		}
+		if res.Pagination != nil && res.Pagination.NextCursor != "" {
+			feed.Links = append(feed.Links, opds.Link{
+				Rel:  "next",
+				Href: serverURL + selfPath + "?cursor=" + url.QueryEscape(res.Pagination.NextCursor),
+				Type: opds.MimeTypeAtom,
+			})
+		}
+		return feed, nil
+	}
+
 	page, err := s.visibleBooksPage(ctx, q, claims)
 	if err != nil {
 		return nil, err
@@ -374,15 +647,6 @@ func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q re
 			}
 		}
 	}
-	now := time.Now()
-	feed := &opds.Feed{
-		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
-		ID: "novelhub:tags", Title: "Tags & Genres", Updated: now,
-		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + "/api/opds/v1/tags", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
-		},
-	}
 	for tag, count := range tagsMap {
 		feed.Entries = append(feed.Entries, opds.Entry{
 			ID:      "novelhub:tag:" + tag,
@@ -390,34 +654,35 @@ func (s *opdsService) GetTagsCatalog(ctx context.Context, serverURL string, q re
 			Updated: now,
 			Content: fmt.Sprintf("%d books", count),
 			Links: []opds.Link{
-				{Rel: "subsection", Href: serverURL + "/api/opds/v1/tags/" + url.PathEscape(tag), Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
+				{Rel: "subsection", Href: serverURL + basePath + "/v1/tags/" + url.PathEscape(tag), Type: opds.MimeTypeAcquisition},
 			},
 		})
 	}
-	appendNextLink(feed, serverURL, "/api/opds/v1/tags", page.NextCursor)
+	appendNextLink(feed, serverURL, selfPath, page.NextCursor)
 	return feed, nil
 }
 
-func (s *opdsService) GetTagBooks(ctx context.Context, serverURL string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+func (s *opdsService) GetTagBooks(ctx context.Context, serverURL, basePath string, tagName string, q request.OPDSPageDto, claims *response.JWTClaims) (*opds.Feed, error) {
+	basePath = resolveBasePath(basePath)
 	claims = resolveClaims(claims)
-	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "", "tag", tagName, "", q.Cursor, q.Limit, claims.UId)
+	books, err := s.books.SearchBooks(ctx, nil, nil, "", "", "ExcludeAudiobooks", "tag", tagName, "", q.Cursor, q.Limit, claims.UId)
 	if err != nil {
 		return nil, err
 	}
 	visible := s.filterVisible(ctx, books, claims)
 	now := time.Now()
-	selfPath := "/api/opds/v1/tags/" + url.PathEscape(tagName)
+	selfPath := basePath + "/v1/tags/" + url.PathEscape(tagName)
 	feed := &opds.Feed{
 		Xmlns: opds.NamespaceAtom, XmlnsDc: opds.NamespaceDc, XmlnsOpds: opds.NamespaceOpds, XmlnsOs: opds.NamespaceOs,
 		ID: "novelhub:tag:" + tagName, Title: "Tag: " + tagName, Updated: now,
 		ItemsPerPage: int(q.Limit),
 		Links: []opds.Link{
-			{Rel: "self", Href: serverURL + selfPath, Type: "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-			{Rel: "start", Href: serverURL + "/api/opds/v1", Type: "application/atom+xml;profile=opds-catalog;kind=navigation"},
+			{Rel: "self", Href: serverURL + selfPath, Type: opds.MimeTypeAcquisition},
+			{Rel: "start", Href: serverURL + basePath + "/v1", Type: opds.MimeTypeAtom},
 		},
 	}
 	for _, book := range visible {
-		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, claims))
+		feed.Entries = append(feed.Entries, s.bookToEntry(ctx, book, serverURL, basePath, claims))
 	}
 	appendNextLink(feed, serverURL, selfPath, nextCursor(books, q.Limit))
 	return feed, nil
@@ -450,7 +715,47 @@ func getMimeTypeForFormat(format string) string {
 	}
 }
 
-func (s *opdsService) bookToEntry(ctx context.Context, book *models.BookEntity, serverURL string, claims *response.JWTClaims) opds.Entry {
+func resolveBookCover(serverURL, basePath, bookID string, rawCoverURL *string, updatedAt *time.Time, defaultVersion string) (string, string) {
+	coverExt := ".jpg"
+	if rawCoverURL != nil && strings.TrimSpace(*rawCoverURL) != "" {
+		coverExt = filepath.Ext(*rawCoverURL)
+	}
+	coverMime := "image/jpeg"
+	switch strings.ToLower(coverExt) {
+	case ".png":
+		coverMime = "image/png"
+	case ".webp":
+		coverMime = "image/webp"
+	case ".gif":
+		coverMime = "image/gif"
+	case ".svg":
+		coverMime = "image/svg+xml"
+	}
+
+	if rawCoverURL != nil && strings.TrimSpace(*rawCoverURL) != "" {
+		trimmed := strings.TrimSpace(*rawCoverURL)
+		var u string
+		if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+			u = trimmed
+		} else if strings.HasPrefix(trimmed, "/") {
+			u = serverURL + trimmed
+		} else {
+			u = serverURL + "/" + trimmed
+		}
+		if updatedAt != nil && !updatedAt.IsZero() {
+			sep := "?"
+			if strings.Contains(u, "?") {
+				sep = "&"
+			}
+			u = fmt.Sprintf("%s%st=%d", u, sep, updatedAt.UnixMilli())
+		}
+		return u, coverMime
+	}
+
+	return fmt.Sprintf("%s%s/%s/books/%s/cover", serverURL, basePath, defaultVersion, bookID), coverMime
+}
+
+func (s *opdsService) bookToEntry(ctx context.Context, book *models.BookEntity, serverURL, basePath string, claims *response.JWTClaims) opds.Entry {
 	summary := ""
 	if book.Description != nil {
 		summary = *book.Description
@@ -460,18 +765,22 @@ func (s *opdsService) bookToEntry(ctx context.Context, book *models.BookEntity, 
 		Title:   book.Title,
 		Updated: book.UpdatedAt,
 		Summary: summary,
-		Links: []opds.Link{
-			{Rel: "http://opds-spec.org/image/thumbnail", Href: fmt.Sprintf("%s/api/v1/books/%s/cover", serverURL, book.ID), Type: "image/jpeg"},
-			{Rel: "http://opds-spec.org/image", Href: fmt.Sprintf("%s/api/v1/books/%s/cover", serverURL, book.ID), Type: "image/jpeg"},
-		},
+		Links:   []opds.Link{},
 	}
+
+	coverURL, coverMime := resolveBookCover(serverURL, basePath, book.ID, book.CoverURL, &book.UpdatedAt, "v1")
+	entry.Links = append(entry.Links,
+		opds.Link{Rel: "http://opds-spec.org/image/thumbnail", Href: coverURL, Type: coverMime},
+		opds.Link{Rel: "http://opds-spec.org/image", Href: coverURL, Type: coverMime},
+	)
+
 	if s.canAcquire(ctx, book, claims) {
 		if len(book.Files) > 0 {
 			for _, file := range book.Files {
 				mime := getMimeTypeForFormat(file.Format)
 				entry.Links = append(entry.Links, opds.Link{
 					Rel:   "http://opds-spec.org/acquisition",
-					Href:  fmt.Sprintf("%s/api/v1/books/%s/download?file_id=%s", serverURL, book.ID, file.ID),
+					Href:  fmt.Sprintf("%s%s/v1/books/%s/download?file_id=%s", serverURL, basePath, book.ID, file.ID),
 					Type:  mime,
 					Title: strings.ToUpper(file.Format),
 				})
@@ -479,7 +788,7 @@ func (s *opdsService) bookToEntry(ctx context.Context, book *models.BookEntity, 
 		} else {
 			entry.Links = append(entry.Links, opds.Link{
 				Rel:  "http://opds-spec.org/acquisition",
-				Href: fmt.Sprintf("%s/api/v1/books/%s/download", serverURL, book.ID),
+				Href: fmt.Sprintf("%s%s/v1/books/%s/download", serverURL, basePath, book.ID),
 				Type: "application/epub+zip",
 			})
 		}
@@ -490,67 +799,44 @@ func (s *opdsService) bookToEntry(ctx context.Context, book *models.BookEntity, 
 	return entry
 }
 
-func (s *opdsService) GetOPDS2Catalog(ctx context.Context, serverURL string, claims *response.JWTClaims) (map[string]any, error) {
-	books, err := s.visibleBooks(ctx, 50, claims)
+func (s *opdsService) GetBookCoverPath(ctx context.Context, bookID string, claims *response.JWTClaims) (string, error) {
+	return s.books.GetBookCoverPath(ctx, bookID, claims)
+}
+
+func (s *opdsService) GetBookFileForDownload(ctx context.Context, bookID, fileID string, claims *response.JWTClaims) (string, string, error) {
+	claims = resolveClaims(claims)
+	book, err := s.books.GetBook(ctx, bookID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", apperrors.New(apperrors.ErrNotFound, "Book not found")
+		}
+		return "", "", err
 	}
-	publications := make([]map[string]any, 0, len(books))
-	for _, book := range books {
-		links := []map[string]any{{"rel": "http://opds-spec.org/image", "href": fmt.Sprintf("%s/api/v1/books/%s/cover", serverURL, book.ID), "type": "image/jpeg"}}
-		if s.canAcquire(ctx, book, claims) {
-			if len(book.Files) > 0 {
-				for _, file := range book.Files {
-					mime := getMimeTypeForFormat(file.Format)
-					links = append(links, map[string]any{
-						"rel":   "http://opds-spec.org/acquisition",
-						"href":  fmt.Sprintf("%s/api/v1/books/%s/download?file_id=%s", serverURL, book.ID, file.ID),
-						"type":  mime,
-						"title": strings.ToUpper(file.Format),
-					})
-				}
-			} else {
-				links = append(links, map[string]any{"rel": "http://opds-spec.org/acquisition", "href": fmt.Sprintf("%s/api/v1/books/%s/download", serverURL, book.ID), "type": "application/epub+zip"})
+	if !s.books.CanReadBook(ctx, book, claims) {
+		return "", "", apperrors.New(apperrors.ErrForbidden, "Access denied")
+	}
+
+	var file *models.BookFileEntity
+	if fileID != "" {
+		file, err = s.books.GetBookFile(ctx, bookID, fileID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return "", "", apperrors.New(apperrors.ErrNotFound, "Book file not found")
 			}
+			return "", "", err
 		}
-		metadata := map[string]any{
-			"title":      book.Title,
-			"identifier": "urn:novelhub:book:" + book.ID,
+	} else {
+		files, err := s.books.ListBookFiles(ctx, bookID)
+		if err != nil || len(files) == 0 {
+			return "", "", apperrors.New(apperrors.ErrNotFound, "No files available for this book")
 		}
-		if book.AuthorName != nil && *book.AuthorName != "" {
-			metadata["author"] = *book.AuthorName
-		}
-		if book.Description != nil && *book.Description != "" {
-			metadata["summary"] = *book.Description
-		}
-		if series := getBookSeries(book); series != "" {
-			metadata["belongsTo"] = map[string]any{"series": series}
-		}
-		if tags := getBookTags(book); len(tags) > 0 {
-			metadata["subject"] = tags
-		}
-		publications = append(publications, map[string]any{"metadata": metadata, "links": links})
+		file = files[0]
 	}
 
-	navigation := []map[string]any{
-		{"title": "Recent Additions", "href": serverURL + "/api/opds/v1/recent", "type": "application/atom+xml;profile=opds-catalog;kind=acquisition", "rel": "subsection"},
-		{"title": "Authors", "href": serverURL + "/api/opds/v1/authors", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
-		{"title": "Series", "href": serverURL + "/api/opds/v1/series", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
-		{"title": "Tags & Genres", "href": serverURL + "/api/opds/v1/tags", "type": "application/atom+xml;profile=opds-catalog;kind=navigation", "rel": "subsection"},
+	ext := strings.ToLower(filepath.Ext(file.Path))
+	if ext == "" {
+		ext = "." + strings.ToLower(file.Format)
 	}
-
-	searchURL := serverURL + "/api/opds/v1/search?q={searchTerms}"
-	return map[string]any{
-		"metadata": map[string]any{
-			"title":         "NovelHub OPDS 2.0 Catalog",
-			"numberOfItems": len(publications),
-		},
-		"links": []map[string]any{
-			{"rel": "self", "href": serverURL + "/api/opds/v2/catalog", "type": opds.MimeTypeOPDS2},
-			{"rel": "start", "href": serverURL + "/api/opds/v2/catalog", "type": opds.MimeTypeOPDS2},
-			{"rel": "search", "href": searchURL, "type": "application/atom+xml;profile=opds-catalog;kind=acquisition"},
-		},
-		"navigation":   navigation,
-		"publications": publications,
-	}, nil
+	downloadName := s.books.SafeDownloadFilename(book.Title, ext)
+	return file.Path, downloadName, nil
 }

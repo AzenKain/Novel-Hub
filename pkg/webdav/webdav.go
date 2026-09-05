@@ -149,6 +149,8 @@ func SanitizeWebDAVPath(rawPath string) string {
 	if unescaped, err := url.PathUnescape(rawPath); err == nil {
 		rawPath = unescaped
 	}
+	rawPath = strings.TrimPrefix(rawPath, "/api/webdav")
+	rawPath = strings.TrimPrefix(rawPath, "api/webdav")
 	rawPath = strings.TrimPrefix(rawPath, "/webdav")
 	rawPath = strings.TrimPrefix(rawPath, "webdav")
 	cleaned := path.Clean("/" + rawPath)

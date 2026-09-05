@@ -9,14 +9,19 @@ import {
   Archive,
   CalendarClock,
   ListTodo,
+  RefreshCw,
   ScrollText,
   ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 export function Operations() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: ["operations"] }) > 0;
   const user = useAuthStore((state) => state.user);
   const canReadJobs = hasPermission(user, "job.read");
   const canManageJobs = hasPermission(user, "job.manage");
@@ -33,9 +38,14 @@ export function Operations() {
   ];
   const [active, setActive] = useState(tabs[0]?.id || "jobs");
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["operations"] });
+    toast.info(t("common.refreshed", "Data refreshed"));
+  };
+
   return (
     <div className="flex flex-col h-full bg-base-100 font-sans">
-      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
+      <header className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 border-b border-base-200 flex flex-row items-center justify-between gap-4 bg-base-100/50 backdrop-blur-xl sticky top-0 z-10">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             {t("admin.operations.title")}
@@ -44,6 +54,16 @@ export function Operations() {
             {t("admin.operations.description")}
           </p>
         </div>
+        <button
+          onClick={handleRefresh}
+          className="btn btn-square btn-ghost btn-sm sm:btn-md shrink-0"
+          title={t("admin.operations.refresh", "Refresh")}
+          disabled={isFetching}
+        >
+          <RefreshCw
+            className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+          />
+        </button>
       </header>
 
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">

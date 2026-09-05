@@ -25,11 +25,12 @@ func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 	svc, claims := newOPDSPagingService(t, 7)
 	ctx := context.Background()
 	const serverURL = "http://localhost:3434"
+	const basePath = "/opds"
 
 	seen := map[string]bool{}
 	cursor := ""
 	for page := 0; page < 10; page++ {
-		feed, err := svc.GetRecentBooks(ctx, serverURL, request.OPDSPageDto{Limit: 3, Cursor: cursor}, claims)
+		feed, err := svc.GetRecentBooks(ctx, serverURL, basePath, request.OPDSPageDto{Limit: 3, Cursor: cursor}, claims)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -57,7 +58,7 @@ func TestOPDSFeedPagesThroughEveryBook(t *testing.T) {
 // The last page must not advertise a next link, otherwise a reader loops forever asking for a page that is always empty.
 func TestOPDSLastPageHasNoNextLink(t *testing.T) {
 	svc, claims := newOPDSPagingService(t, 2)
-	feed, err := svc.GetRecentBooks(context.Background(), "http://localhost:3434", request.OPDSPageDto{Limit: 50}, claims)
+	feed, err := svc.GetRecentBooks(context.Background(), "http://localhost:3434", "/opds", request.OPDSPageDto{Limit: 50}, claims)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,6 +108,7 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 	}
 	settingsService := NewSettingsService(repositories.NewSettingsRepository(db, ramCache), database.NewTxManager(db), permissionCache)
 	bookService := NewBookService(bookRepo, nil, nil, nil, bookparser.NewRegistry(), database.NewTxManager(db), settingsService, permissionCache, nil, nil)
+	metadataService := NewMetadataService(bookRepo, nil)
 
 	for i := range books {
 		if _, err := db.Exec(
@@ -118,5 +120,5 @@ func newOPDSPagingService(t *testing.T, books int) (OPDSService, *response.JWTCl
 	}
 
 	claims := &response.JWTClaims{UId: "admin", Roles: []constants.RoleType{constants.RoleTypeAdmin}}
-	return NewOPDSService(bookService, permissionCache), claims
+	return NewOPDSService(bookService, metadataService, settingsService, permissionCache), claims
 }

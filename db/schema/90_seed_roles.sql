@@ -27,7 +27,8 @@ JOIN permissions p ON p.key IN (
     'book.read',
     'book.tts',
     'library.read',
-    'opds.read'
+    'opds.read',
+    'opds.download'
 )
 WHERE r.name = 'GUEST'
 ON CONFLICT(role_id, permission_key) DO NOTHING;

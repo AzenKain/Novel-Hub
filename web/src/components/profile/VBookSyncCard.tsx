@@ -44,7 +44,7 @@ export const VBookSyncCard: React.FC = () => {
             <h3 className="text-base font-bold leading-tight text-base-content">
               {t("vbook.title", "VBook Plugin")}
             </h3>
-            <span className="badge badge-primary badge-sm shrink-0 font-medium">
+            <span className="badge badge-primary badge-sm shrink-0 font-medium whitespace-nowrap">
               {t("common.active", "Active")}
             </span>
           </div>

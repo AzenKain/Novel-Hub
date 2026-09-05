@@ -178,12 +178,14 @@ export function OAuthSettings() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 bg-base-200/20">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="alert alert-info border border-info/25 bg-info/5 rounded-2xl flex gap-3 text-sm text-info">
-            <HelpCircle className="h-5 w-5 shrink-0" />
+          <div className="rounded-2xl border border-info/30 bg-info/5 p-4 flex items-start sm:items-center gap-3 text-sm">
+            <HelpCircle className="h-5 w-5 shrink-0 text-info mt-0.5 sm:mt-0" />
             <div className="flex-1">
-              <p className="font-medium">{t("settings.oauth.setup_info")}</p>
+              <p className="text-sm text-base-content/85 font-medium leading-relaxed">
+                {t("settings.oauth.setup_info")}
+              </p>
             </div>
           </div>
 

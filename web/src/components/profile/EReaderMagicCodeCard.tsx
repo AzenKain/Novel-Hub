@@ -52,66 +52,64 @@ export const EReaderMagicCodeCard: React.FC = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-200">
-      <div className="card-body p-5">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            <QrCode className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="card-title text-base">
-              {t("profile.ereader_login_title", "eReader Quick Login")}
-            </h3>
-            <p className="text-xs text-base-content/70">
-              {t(
-                "profile.ereader_login_desc",
-                "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
-              )}
-            </p>
-          </div>
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="w-10 h-10 shrink-0 aspect-square grid place-items-center rounded-xl bg-primary/10 text-primary mt-0.5">
+          <QrCode className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold leading-tight text-base-content">
+            {t("profile.ereader_login_title", "eReader Quick Login")}
+          </h3>
+          <p className="text-xs text-base-content/60 leading-relaxed mt-1">
+            {t(
+              "profile.ereader_login_desc",
+              "Log in to your Kindle, Kobo, Boox or mobile eReader without typing your password.",
+            )}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleActivate} className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="e.g. 849-102"
+            maxLength={10}
+            className="input input-bordered input-sm flex-1 font-mono tracking-widest text-center uppercase text-xs"
+          />
+          <button
+            type="submit"
+            disabled={activateMutation.isPending || !code.trim()}
+            className="btn btn-primary btn-sm gap-1.5 rounded-xl shrink-0"
+          >
+            {activateMutation.isPending ? (
+              <span className="loading loading-spinner loading-xs"></span>
+            ) : (
+              <>
+                <Smartphone className="w-4 h-4" />
+                {t("profile.activate_device", "Activate Device")}
+              </>
+            )}
+          </button>
         </div>
 
-        <form onSubmit={handleActivate} className="mt-3 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. 849-102"
-              maxLength={10}
-              className="input input-bordered input-sm flex-1 font-mono tracking-widest text-center uppercase"
-            />
-            <button
-              type="submit"
-              disabled={activateMutation.isPending || !code.trim()}
-              className="btn btn-primary btn-sm"
-            >
-              {activateMutation.isPending ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              ) : (
-                <>
-                  <Smartphone className="w-4 h-4" />
-                  {t("profile.activate_device", "Activate Device")}
-                </>
-              )}
-            </button>
+        {successMessage && (
+          <div className="alert alert-success py-2 px-3 text-xs flex items-center gap-2 rounded-xl">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{successMessage}</span>
           </div>
+        )}
 
-          {successMessage && (
-            <div className="alert alert-success py-2 px-3 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className="alert alert-error py-2 px-3 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-        </form>
-      </div>
+        {errorMessage && (
+          <div className="alert alert-error py-2 px-3 text-xs flex items-center gap-2 rounded-xl">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+      </form>
     </div>
   );
 };

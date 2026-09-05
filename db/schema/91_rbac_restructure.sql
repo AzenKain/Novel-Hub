@@ -50,7 +50,7 @@ ON CONFLICT(key) DO UPDATE SET
 INSERT INTO role_permissions (role_id, permission_key, effect, conditions_json)
 SELECT r.id, p.key, 'allow', '{}'
 FROM roles r
-JOIN permissions p ON p.key IN ('book.read', 'book.tts', 'library.read', 'opds.read')
+JOIN permissions p ON p.key IN ('book.read', 'book.tts', 'library.read', 'opds.read', 'opds.download')
 WHERE r.name = 'GUEST'
 ON CONFLICT(role_id, permission_key) DO NOTHING;
 

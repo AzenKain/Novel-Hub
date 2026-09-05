@@ -1381,17 +1381,18 @@
     "token_placeholder": "トークンを貼り付け（eyJ0eXAi...）"
   },
   "opds": {
-    "title": "OPDS 2.0 カタログ & 2方向読書進捗同期",
-    "subtitle": "Moon+ Reader、KOReader、Mihon、Yomu、または任意の電子書籍リーダーを接続して、書籍のダウンロードと読書進捗の2方向同期を行います。",
+    "title": "OPDS 1.2 & 2.0 カタログフィード",
+    "subtitle": "Moon+ Reader、Thorium、Cantook、Yomu、Mihon などのリーダーで本を閲覧・ダウンロードできます。",
     "v1_label": "OPDS 1.2 カタログフィード (Moon+, KOReader, Yomu)",
     "opensearch_label": "OpenSearch XML テンプレート",
-    "v2_label": "OPDS 2.0 JSON カタログ",
+    "v2_label": "OPDS 2.0 JSON カタログ (Thorium Reader, Cantook)",
     "koreader_sync_label": "KOReader 2方向進捗同期 URL",
     "show_qr": "QRコードを表示",
-    "guide_title": "Moon+ Reader / KOReader / Mihon の接続方法:",
+    "guide_title": "Moon+ Reader / KOReader / Thorium / Mihon の接続方法:",
     "step1": "Moon+ Reader: ネットライブラリを開く -> 新しいカタログを追加 -> OPDSフィードURLを入力。",
     "step2": "KOReader: OPDSカタログを開く -> カタログURLを追加、またはKosync進捗サーバーURLを設定。",
-    "step3": "認証: HTTP Basic認証にNovelHubアカウントのメールアドレスとパスワードを使用します。"
+    "step3": "認証: HTTP Basic認証にNovelHubアカウントのメールアドレスとパスワードを使用します。",
+    "step_thorium": "Thorium Reader: カタログを開く -> OPDSフィードを追加 -> OPDS 2.0 URLを入力 -> 閲覧して読書。"
   },
   "kobo": {
     "title": "Kobo 電子書籍リーダー Wi-Fi 同期",
@@ -1858,5 +1859,24 @@
     "step1": "Moon+ Reader / KyBook 3: ネットライブラリを開く -> WebDAV を追加 -> 上記のURLを貼り付けます。",
     "step2": "認証: NovelHub のメールアドレス/ユーザー名とパスワード (またはマジックコード) を入力します。",
     "step3": "ライブラリをフォルダとして閲覧し、本を端末に直接ダウンロードできます。"
+  },
+  "calibre": {
+    "title": "Calibre Content Server API",
+    "subtitle": "Calibre Companion、Aldiko、Moon+ Reader、またはCalibreエコシステムアプリに接続して本を閲覧およびダウンロードします。",
+    "url_label": "Content Server ベース URL",
+    "ajax_label": "AJAX Library Info URL",
+    "guide_title": "Calibre Content Server への接続方法:",
+    "step1": "Calibre Companion (Android / 電子書籍リーダー): 接続設定で「Calibre Content Server」を選択し、上記のサーバーURLを入力します。",
+    "step2": "認証: NovelHub のメール/ユーザー名とパスワード、または Bearer トークンを使用します。",
+    "step3": "Calibre Desktop: WebDAVマウントを指す「接続/共有」->「フォルダーに接続」を使用するか、「calibredb」CLI を使用します。"
+  },
+  "koreader": {
+    "title": "KOReader 双方向読書進捗同期 (Kosync)",
+    "subtitle": "KOReader デバイスと NovelHub 間で読書の進捗状況をリアルタイム双方向同期します。",
+    "sync_url_label": "Kosync 同期サーバー URL",
+    "guide_title": "KOReader での設定方法:",
+    "step1": "KOReader のメニューを開く -> 設定 (歯車) -> 「進捗同期 (Kosync)」を選択します。",
+    "step2": "「進捗同期」を有効化 -> 「カスタムサーバー」を選択 -> 上記のサーバー URL を入力します。",
+    "step3": "NovelHub のアカウントメールアドレスとパスワードで Kosync にログインします。"
   }
 }

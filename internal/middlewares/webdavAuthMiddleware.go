@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"encoding/base64"
+	"net/url"
 	"strings"
 	"time"
 
@@ -12,15 +13,26 @@ import (
 	"novelhub/internal/repositories"
 	"novelhub/internal/services"
 	"novelhub/pkg/apperrors"
+	"novelhub/pkg/constants"
 )
 
-func WebDAVAuth(authService services.AuthService, settingsService services.SettingsService, userRepo ...repositories.UserRepository) fiber.Handler {
+func WebDAVAuth(
+	authService services.AuthService,
+	settingsService services.SettingsService,
+	permissionCache services.PermissionCache,
+	userRepo ...repositories.UserRepository,
+) fiber.Handler {
 	var repo repositories.UserRepository
 	if len(userRepo) > 0 {
 		repo = userRepo[0]
 	}
 
 	return func(c fiber.Ctx) error {
+		// OPTIONS discovery must never require authentication (RFC 4918 §10.1)
+		if c.Method() == fiber.MethodOptions {
+			return c.Next()
+		}
+
 		authHeader := c.Get("Authorization")
 		tokenQuery := strings.TrimSpace(c.Query("token"))
 
@@ -29,6 +41,11 @@ func WebDAVAuth(authService services.AuthService, settingsService services.Setti
 			if err == nil {
 				email, password, found := strings.Cut(string(payload), ":")
 				if found {
+					// Support percent-encoded username/email from client URLs (e.g. user%40example.com)
+					if unescaped, err := url.QueryUnescape(email); err == nil {
+						email = unescaped
+					}
+
 					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 					defer cancel()
 
@@ -44,6 +61,7 @@ func WebDAVAuth(authService services.AuthService, settingsService services.Setti
 				}
 			}
 
+			c.Set("DAV", "1, 2")
 			c.Set("WWW-Authenticate", `Basic realm="NovelHub WebDAV"`)
 			return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Invalid credentials"))
 		}
@@ -59,13 +77,16 @@ func WebDAVAuth(authService services.AuthService, settingsService services.Setti
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		settings, err := settingsService.Public(ctx)
-		if err == nil && !settings.GuestLoginRequired {
-			claims := GuestClaims()
-			c.Locals("user_claims", claims)
-			c.Locals("uid", claims.UId)
-			return c.Next()
+		if err == nil && !settings.GuestLoginRequired && permissionCache != nil {
+			if permissionCache.CanRoles(nil, []constants.RoleType{constants.RoleTypeGuest}, constants.PermWebDAVRead, nil) {
+				claims := GuestClaims()
+				c.Locals("user_claims", claims)
+				c.Locals("uid", claims.UId)
+				return c.Next()
+			}
 		}
 
+		c.Set("DAV", "1, 2")
 		c.Set("WWW-Authenticate", `Basic realm="NovelHub WebDAV"`)
 		return apperrors.HandleError(c, apperrors.New(apperrors.ErrUnauthorized, "Authentication required"))
 	}

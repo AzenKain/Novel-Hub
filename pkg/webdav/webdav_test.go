@@ -84,10 +84,15 @@ func TestSanitizeWebDAVPath(t *testing.T) {
 		{"/", "/"},
 		{"/webdav", "/"},
 		{"/webdav/", "/"},
+		{"/api/webdav", "/"},
+		{"/api/webdav/", "/"},
 		{"/webdav/Default", "/Default"},
+		{"/api/webdav/Default", "/Default"},
 		{"/webdav/Default/Book.epub", "/Default/Book.epub"},
+		{"/api/webdav/Default/Book.epub", "/Default/Book.epub"},
 		{"/webdav/Default/Sub/Book.epub", "/Default/Sub/Book.epub"},
 		{"webdav/Default", "/Default"},
+		{"api/webdav/Default", "/Default"},
 	}
 
 	for _, tt := range tests {

@@ -1381,17 +1381,18 @@
     "token_placeholder": "粘贴你的令牌（eyJ0eXAi...）"
   },
   "opds": {
-    "title": "OPDS 2.0 目录与双向阅读进度同步",
-    "subtitle": "连接 Moon+ Reader、KOReader、Mihon、Yomu 或任何电子书阅读器，下载图书并双向同步阅读进度。",
+    "title": "OPDS 1.2 与 2.0 书籍源目录",
+    "subtitle": "连接 Moon+ Reader、Thorium、Cantook、Yomu 或 Mihon，直接浏览并下载书籍。",
     "v1_label": "OPDS 1.2 目录 Feed (Moon+, KOReader, Yomu)",
     "opensearch_label": "OpenSearch XML 模板",
-    "v2_label": "OPDS 2.0 JSON 目录",
+    "v2_label": "OPDS 2.0 JSON 目录 (Thorium Reader, Cantook)",
     "koreader_sync_label": "KOReader 双向进度同步 URL",
     "show_qr": "显示二维码",
-    "guide_title": "如何连接 Moon+ Reader / KOReader / Mihon：",
+    "guide_title": "如何连接 Moon+ Reader / KOReader / Thorium / Mihon：",
     "step1": "Moon+ Reader：打开网络书库 -> 添加新书库 -> 输入 OPDS Feed URL。",
     "step2": "KOReader：打开 OPDS 目录 -> 添加目录 URL 或设置 Kosync 进度服务器 URL。",
-    "step3": "身份验证：使用您的 NovelHub 账户邮箱和密码进行 HTTP Basic 认证。"
+    "step3": "身份验证：使用您的 NovelHub 账户邮箱和密码进行 HTTP Basic 认证。",
+    "step_thorium": "Thorium Reader：打开目录 -> 添加 OPDS 订阅源 -> 输入 OPDS 2.0 URL -> 浏览并阅读。"
   },
   "kobo": {
     "title": "Kobo 电子书阅读器 Wi-Fi 同步",
@@ -1858,5 +1859,24 @@
     "step1": "Moon+ Reader / KyBook 3：打开网络书库 -> 添加 WebDAV -> 粘贴上方 URL。",
     "step2": "身份验证：输入您的 NovelHub 邮箱/用户名和密码（或 Magic Code）。",
     "step3": "将书库作为文件夹浏览，并直接将图书下载至您的设备。"
+  },
+  "calibre": {
+    "title": "Calibre Content Server API",
+    "subtitle": "连接 Calibre Companion、Aldiko、Moon+ Reader 或 Calibre 生态系统应用以浏览和下载书籍。",
+    "url_label": "Content Server 基础 URL",
+    "ajax_label": "AJAX Library Info URL",
+    "guide_title": "如何通过 Calibre Content Server 连接：",
+    "step1": "Calibre Companion (Android / 电子阅读器)：在连接设置中选择“Calibre Content Server”，输入上方服务器 URL。",
+    "step2": "身份验证：使用您的 NovelHub 邮箱/用户名和密码，或 Bearer 令牌。",
+    "step3": "Calibre Desktop：使用“连接/共享”->“连接到文件夹”指向 WebDAV 挂载，或使用“calibredb”命令行工具。"
+  },
+  "koreader": {
+    "title": "KOReader 双向阅读进度同步 (Kosync)",
+    "subtitle": "在 KOReader 阅读器与 NovelHub 之间实时双向同步阅读进度与书签。",
+    "sync_url_label": "Kosync 同步服务器 URL",
+    "guide_title": "KOReader 设置指南：",
+    "step1": "打开 KOReader 菜单 -> 选择设置（齿轮图标）-> 点击「进度同步」(Kosync)。",
+    "step2": "启用「进度同步」-> 选择「自定义服务器」-> 输入上方服务器 URL。",
+    "step3": "使用您的 NovelHub 账户邮箱和密码注册或登录。"
   }
 }

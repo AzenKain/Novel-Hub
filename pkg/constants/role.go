@@ -89,6 +89,7 @@ func GetDefaultPermissionsForRole(role RoleType) []string {
 			PermBookTTS,
 			PermLibraryRead,
 			PermOPDSRead,
+			PermOPDSDownload,
 		}
 	case RoleTypeUser:
 		return []string{

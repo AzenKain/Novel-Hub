@@ -165,21 +165,21 @@ export const SoundscapesCard: React.FC = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl border border-base-content/10">
+    <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+        <div className="flex items-center justify-between border-b border-base-200 pb-4 gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
               <Sliders className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="card-title text-base sm:text-lg">
+            <div className="min-w-0">
+              <h2 className="card-title text-base sm:text-lg truncate">
                 {t(
                   "soundscape.personal_soundscapes",
                   "Personal Ambient Soundscapes",
                 )}
               </h2>
-              <p className="text-xs opacity-60">
+              <p className="text-xs opacity-60 truncate">
                 {t(
                   "soundscape.personal_desc",
                   "Upload background audio & sound effects to listen while reading novels.",
@@ -187,7 +187,7 @@ export const SoundscapesCard: React.FC = () => {
               </p>
             </div>
           </div>
-          <span className="badge badge-primary badge-outline text-xs">
+          <span className="badge badge-primary badge-outline text-xs shrink-0 whitespace-nowrap h-6 px-2.5 font-medium">
             {soundscapes.length} {t("soundscape.tracks", "Tracks")}
           </span>
         </div>
@@ -195,7 +195,7 @@ export const SoundscapesCard: React.FC = () => {
         {canManage ? (
           <form
             onSubmit={handleUpload}
-            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+            className="mt-4 pt-4 border-t border-base-200 space-y-3"
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
@@ -370,7 +370,7 @@ export const SoundscapesCard: React.FC = () => {
                 return (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-base-content/10 bg-base-200/30 hover:bg-base-200/60 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-base-200/40 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <button

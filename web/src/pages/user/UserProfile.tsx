@@ -3,7 +3,9 @@ import { ImageCropperModal } from "@/components/common/ImageCropperModal";
 import { PasswordStrength } from "@/components/common/PasswordStrength";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
+import { KOReaderSyncCard } from "@/components/profile/KOReaderSyncCard";
 import { WebDAVSyncCard } from "@/components/profile/WebDAVSyncCard";
+import { CalibreSyncCard } from "@/components/profile/CalibreSyncCard";
 import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { EReaderMagicCodeCard } from "@/components/profile/EReaderMagicCodeCard";
@@ -504,11 +506,17 @@ export const UserProfile = () => {
                 {/* Kids Mode & Parental Control PIN Card */}
                 <KidsModePinCard />
 
-                {/* OPDS 2.0 & Progress Sync Card */}
+                {/* OPDS 2.0 Catalog Card */}
                 <OPDSSyncCard />
+
+                {/* KOReader 2-Way Progress Sync Card */}
+                <KOReaderSyncCard />
 
                 {/* WebDAV Server Card */}
                 <WebDAVSyncCard />
+
+                {/* Calibre Content Server Card */}
+                <CalibreSyncCard />
 
                 {/* VBook Plugin Card */}
                 <VBookSyncCard />

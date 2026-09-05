@@ -1,24 +1,17 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, QrCode, HardDrive, FolderSync } from "lucide-react";
+import { Copy, Check, QrCode, RefreshCw, Server } from "lucide-react";
 import { toast } from "react-toastify";
 import { CustomQRCode } from "@/components/common/CustomQRCode";
 import { copyText } from "@/utils/clipboard";
-import { useAuthStore } from "@/stores";
-import { hasPermission } from "@/utils/permission";
 
-export const WebDAVSyncCard: React.FC = () => {
+export const KOReaderSyncCard: React.FC = () => {
   const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [showQr, setShowQr] = useState<boolean>(false);
 
-  if (!hasPermission(user, "webdav.read")) {
-    return null;
-  }
-
   const origin = window.location.origin;
-  const webdavUrl = `${origin}/webdav/`;
+  const koreaderSyncUrl = `${origin}/api/v1/sync/koreader`;
 
   const copyToClipboard = (url: string, label: string) => {
     copyText(url).then((success) => {
@@ -33,48 +26,49 @@ export const WebDAVSyncCard: React.FC = () => {
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
       <div className="flex items-start gap-3 border-b border-base-200 pb-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary/10 text-secondary mt-0.5">
-          <HardDrive className="h-5 w-5" />
+        <div className="w-10 h-10 shrink-0 aspect-square grid place-items-center rounded-xl bg-info/10 text-info mt-0.5">
+          <RefreshCw className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h3 className="text-base font-bold leading-tight text-base-content">
-              {t("webdav.title", "WebDAV Server (RFC 4918)")}
+              {t("koreader.title", "KOReader 2-Way Progress Sync (Kosync)")}
             </h3>
-            <span className="badge badge-secondary badge-sm shrink-0 font-medium whitespace-nowrap">
+            <span className="badge badge-info badge-sm shrink-0 font-medium whitespace-nowrap">
               {t("common.active", "Active")}
             </span>
           </div>
           <p className="text-xs text-base-content/60 leading-relaxed">
             {t(
-              "webdav.subtitle",
-              "Connect Moon+ Reader, KyBook 3, FBReader, Marvin, Foliate, Zotero, or OS file explorers to browse and download books.",
+              "koreader.subtitle",
+              "Real-time two-way reading progress synchronization between KOReader devices and NovelHub.",
             )}
           </p>
         </div>
       </div>
 
       <div className="space-y-3">
+        {/* Kosync Server URL */}
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
-              <FolderSync className="h-3.5 w-3.5 text-secondary" />
-              {t("webdav.url_label", "WebDAV Endpoint URL")}
+              <Server className="h-3.5 w-3.5 text-info" />
+              {t("koreader.sync_url_label", "Kosync Progress Sync Server URL")}
             </label>
           </div>
           <div className="flex gap-2">
             <input
               type="text"
               readOnly
-              value={webdavUrl}
+              value={koreaderSyncUrl}
               className="input input-sm input-bordered font-mono text-xs flex-1 bg-base-200/50"
             />
             <button
               type="button"
-              onClick={() => copyToClipboard(webdavUrl, "WebDAV URL")}
+              onClick={() => copyToClipboard(koreaderSyncUrl, "KOReader Sync URL")}
               className="btn btn-sm btn-outline gap-1 px-3"
             >
-              {copiedUrl === webdavUrl ? (
+              {copiedUrl === koreaderSyncUrl ? (
                 <Check className="h-4 w-4 text-success" />
               ) : (
                 <Copy className="h-4 w-4" />
@@ -86,17 +80,17 @@ export const WebDAVSyncCard: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowQr(!showQr)}
-              className={`btn btn-sm ${showQr ? "btn-secondary" : "btn-outline"} px-3`}
-              title={t("common.show_qr", "Show QR Code")}
+              className={`btn btn-sm ${showQr ? "btn-info" : "btn-outline"} px-3`}
+              title={t("opds.show_qr", "Show QR Code")}
             >
               <QrCode className="h-4 w-4" />
             </button>
           </div>
           {showQr && (
             <div className="mt-3 p-4 bg-base-200/40 rounded-xl flex flex-col items-center justify-center gap-2 border border-base-200">
-              <CustomQRCode value={webdavUrl} size={160} />
+              <CustomQRCode value={koreaderSyncUrl} size={160} />
               <span className="text-[11px] font-mono text-base-content/60 text-center break-all">
-                {webdavUrl}
+                {koreaderSyncUrl}
               </span>
             </div>
           )}
@@ -105,25 +99,25 @@ export const WebDAVSyncCard: React.FC = () => {
         {/* Quick Guide */}
         <div className="rounded-xl bg-base-200/40 p-4 text-xs space-y-1.5 border border-base-200">
           <p className="font-bold text-base-content/80">
-            {t("webdav.guide_title", "How to connect via WebDAV:")}
+            {t("koreader.guide_title", "How to configure on KOReader:")}
           </p>
           <ul className="list-disc list-inside space-y-1 text-base-content/70">
             <li>
               {t(
-                "webdav.step1",
-                "Moon+ Reader / KyBook 3: Open Net Library -> Add WebDAV -> Paste the URL above.",
+                "koreader.step1",
+                "Open top menu in KOReader -> Go to Settings (gear icon) -> Select 'Progress sync' (Kosync).",
               )}
             </li>
             <li>
               {t(
-                "webdav.step2",
-                "Authentication: Enter your NovelHub Email/Username and Password (or Magic Code).",
+                "koreader.step2",
+                "Enable 'Progress sync' -> Tap 'Custom server' -> Enter the Sync Server URL above.",
               )}
             </li>
             <li>
               {t(
-                "webdav.step3",
-                "Browse your libraries as folders and download books directly to your device.",
+                "koreader.step3",
+                "Register or log in using your NovelHub account email and password.",
               )}
             </li>
           </ul>

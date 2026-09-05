@@ -72,18 +72,18 @@ export const CustomThemesCard: React.FC = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl border border-base-content/10">
+    <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+        <div className="flex items-center justify-between border-b border-base-200 pb-4 gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 rounded-xl bg-accent/10 text-accent shrink-0">
               <Palette className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="card-title text-base sm:text-lg">
+            <div className="min-w-0">
+              <h2 className="card-title text-base sm:text-lg truncate">
                 {t("theme.personal_themes", "Reader Themes & Custom CSS")}
               </h2>
-              <p className="text-xs opacity-60">
+              <p className="text-xs opacity-60 truncate">
                 {t(
                   "theme.personal_desc",
                   "Design bespoke color palettes and fine-tuned CSS rules for your reading experience.",
@@ -106,7 +106,7 @@ export const CustomThemesCard: React.FC = () => {
         {isCreating && (
           <form
             onSubmit={handleCreate}
-            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4"
+            className="mt-4 pt-4 border-t border-base-200 space-y-4"
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">

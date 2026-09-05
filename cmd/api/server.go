@@ -481,9 +481,10 @@ func (s *FiberServer) SetupServer(db *sql.DB, ramCache cache.Cache) {
 	routes.CustomizationRoutes(v1, customizationController, userRepo, permissionCache)
 	v1.Post("/calibre/import", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermCalibreSync, middlewares.LibraryIDBody()), calibreController.ImportCalibre)
 
-	opdsService := services.NewOPDSService(bookService, permissionCache)
+	opdsService := services.NewOPDSService(bookService, metadataService, settingsService, permissionCache)
 	opdsController := controllers.NewOPDSController(opdsService, settingsService)
 	routes.OPDSRoutes(api, opdsController, authService, settingsService, userRepo)
+	routes.OPDSRoutes(s.App, opdsController, authService, settingsService, userRepo)
 
 	vbookFS, _ := fs.Sub(embeddedDist, "dist/vbook")
 	vbookService := services.NewVBookService(bookRepo, bookRepo, audiobookRepo, bookService, vbookFS, ramCache)

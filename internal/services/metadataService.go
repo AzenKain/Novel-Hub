@@ -47,12 +47,16 @@ func (s *metadataService) listFacet(
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 20
 	}
-	libraryIDs, err := s.libraries.ReadableLibraryIDs(ctx, claims)
-	if err != nil {
-		return nil, err
-	}
-	if len(libraryIDs) == 0 {
-		return response.BuildCursorPaginatedResponse([]*response.MetadataCountResponse{}, 0, int(limit), ""), nil
+	var libraryIDs []string
+	if s.libraries != nil {
+		var err error
+		libraryIDs, err = s.libraries.ReadableLibraryIDs(ctx, claims)
+		if err != nil {
+			return nil, err
+		}
+		if len(libraryIDs) == 0 {
+			return response.BuildCursorPaginatedResponse([]*response.MetadataCountResponse{}, 0, int(limit), ""), nil
+		}
 	}
 	items, err := fetch(ctx, repositories.MetadataFacetFilter{
 		Cursor:     q.Cursor,

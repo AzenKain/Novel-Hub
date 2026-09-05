@@ -76,40 +76,40 @@ export const UserDevicesCard: React.FC = () => {
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-base-200 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-            <HardDrive className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold">
-              {t("device.management", "Multi-Device Delivery Center")}
-            </h3>
-            <p className="text-xs text-base-content/60">
-              {t(
-                "device.management_desc",
-                "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
-              )}
-            </p>
-          </div>
+      <div className="flex items-start gap-3 border-b border-base-200 pb-3">
+        <div className="w-10 h-10 shrink-0 aspect-square grid place-items-center rounded-xl bg-primary/10 text-primary mt-0.5">
+          <HardDrive className="h-5 w-5" />
         </div>
-        <button
-          className="btn btn-primary btn-sm gap-1.5 rounded-xl"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          <Plus className="h-4 w-4" />
-          {t("device.add_new", "Add Device")}
-        </button>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold leading-tight text-base-content">
+            {t("device.management", "Multi-Device Delivery Center")}
+          </h3>
+          <p className="text-xs text-base-content/60 leading-relaxed mt-1">
+            {t(
+              "device.management_desc",
+              "Manage reading devices for 1-click book delivery (Kindle, PocketBook, KOReader).",
+            )}
+          </p>
+        </div>
       </div>
 
       {showAddForm && (
         <form
           onSubmit={handleCreate}
-          className="p-4 rounded-xl border border-base-200 bg-base-200/40 space-y-3"
+          className="p-4 rounded-xl bg-base-200/40 space-y-3"
         >
-          <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/70">
-            {t("device.register_device", "Register New Reading Device")}
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/70">
+              {t("device.register_device", "Register New Reading Device")}
+            </h4>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={() => setShowAddForm(false)}
+            >
+              {t("common.cancel", "Cancel")}
+            </button>
+          </div>
 
           {errorMsg && (
             <div className="alert alert-error text-xs py-2 px-3 rounded-lg">
@@ -174,7 +174,7 @@ export const UserDevicesCard: React.FC = () => {
               className="btn btn-ghost btn-xs"
               onClick={() => setShowAddForm(false)}
             >
-              {t("admin.cancel", "Cancel")}
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -195,53 +195,70 @@ export const UserDevicesCard: React.FC = () => {
           <span className="loading loading-spinner loading-md text-primary" />
         </div>
       ) : devices.length === 0 ? (
-        <div className="text-center py-8 border border-dashed border-base-200 rounded-xl">
+        <div className="text-center py-6 border border-dashed border-base-200 rounded-xl space-y-3">
           <p className="text-xs text-base-content/60">
             {t("device.no_saved_devices", "No reading devices registered yet.")}
           </p>
-          <p className="text-[11px] text-base-content/40 mt-1">
-            {t(
-              "device.register_tip",
-              "Click 'Add Device' above to connect your Kindle, PocketBook, or KOReader.",
-            )}
-          </p>
+          {!showAddForm && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm gap-1.5 rounded-xl shadow-xs"
+              onClick={() => setShowAddForm(true)}
+            >
+              <Plus className="h-4 w-4" />
+              {t("device.add_new", "Add Device")}
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {devices.map((device) => (
-            <div
-              key={device.id}
-              className="flex items-center justify-between p-3.5 border border-base-200 rounded-xl bg-base-100 hover:border-primary/30 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-base-200/60">
-                  {getDeviceIcon(device.device_type)}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-base-content">
-                      {device.name}
-                    </span>
-                    <span className="badge badge-xs uppercase font-mono tracking-wider font-semibold opacity-70">
-                      {device.device_type}
-                    </span>
-                  </div>
-                  <div className="text-xs font-mono text-base-content/60 mt-0.5 truncate max-w-xs sm:max-w-md">
-                    {device.target_address}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                className="btn btn-ghost btn-sm text-error hover:bg-error/10 btn-square rounded-lg"
-                title={t("common.delete", "Delete")}
-                onClick={() => handleDelete(device.id)}
-                disabled={deleteMutation.isPending}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            {devices.map((device) => (
+              <div
+                key={device.id}
+                className="flex items-center justify-between p-3.5 border border-base-200 rounded-xl bg-base-100 hover:border-primary/30 transition-all"
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="p-2.5 rounded-xl bg-base-200/60 shrink-0">
+                    {getDeviceIcon(device.device_type)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs text-base-content truncate">
+                        {device.name}
+                      </span>
+                      <span className="badge badge-xs uppercase font-mono tracking-wider font-semibold opacity-70 shrink-0">
+                        {device.device_type}
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono text-base-content/60 mt-0.5 truncate">
+                      {device.target_address}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-ghost btn-sm text-error hover:bg-error/10 btn-square rounded-lg shrink-0 ml-2"
+                  title={t("common.delete", "Delete")}
+                  onClick={() => handleDelete(device.id)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {!showAddForm && (
+            <button
+              type="button"
+              className="btn btn-outline btn-primary btn-sm w-full gap-1.5 rounded-xl"
+              onClick={() => setShowAddForm(true)}
+            >
+              <Plus className="h-4 w-4" />
+              {t("device.add_new", "Add Device")}
+            </button>
+          )}
         </div>
       )}
     </div>

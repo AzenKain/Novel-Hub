@@ -6,10 +6,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"novelhub/internal/dtos/request"
+	"novelhub/internal/dtos/response"
 	"novelhub/internal/models"
 	"novelhub/pkg/apperrors"
 	"novelhub/pkg/bookparser"
@@ -37,6 +39,32 @@ func (s *bookService) UpdateCover(ctx context.Context, bookID string, input requ
 		return "", err
 	}
 	return coverURLPath, nil
+}
+
+func (s *bookService) GetBookCoverPath(ctx context.Context, bookID string, claims *response.JWTClaims) (string, error) {
+	book, err := s.GetBook(ctx, bookID)
+	if err != nil {
+		return "", err
+	}
+
+	if !s.CanReadBook(ctx, book, claims) {
+		return "", apperrors.New(apperrors.ErrForbidden, "Access denied")
+	}
+
+	if book.CoverURL == nil || strings.TrimSpace(*book.CoverURL) == "" {
+		return "", apperrors.New(apperrors.ErrNotFound, "Cover not found")
+	}
+
+	resolved, err := s.fileRepo.ResolveCoverPath(ctx, book.ID, *book.CoverURL)
+	if err != nil {
+		return "", apperrors.New(apperrors.ErrNotFound, "Cover not found")
+	}
+
+	if _, err := os.Stat(resolved); err != nil {
+		return "", apperrors.New(apperrors.ErrNotFound, "Cover file missing on disk")
+	}
+
+	return resolved, nil
 }
 
 func (s *bookService) resolveCoverData(ctx context.Context, bookID string, input request.UpdateCoverDto) ([]byte, string, error) {

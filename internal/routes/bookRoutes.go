@@ -20,6 +20,7 @@ func BookRoutes(app fiber.Router, bookController *controllers.BookController, us
 	bookGroup.Post("/merge", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDuplicateManage), bookController.MergeBooks)
 	bookGroup.Delete("/files/:fileID", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookDelete, middlewares.BookFileLibraryAttr(bookRepo, "fileID")), bookController.DeleteBookFile)
 	bookGroup.Get("/:id/download", middlewares.OptionalJwtAccess(userRepo), bookController.DownloadBook)
+	bookGroup.Get("/:id/cover", middlewares.OptionalJwtAccess(userRepo), bookController.GetCover)
 	bookGroup.Get("/:id/files", middlewares.OptionalJwtAccess(userRepo), bookController.ListBookFiles)
 	bookGroup.Post("/:id/files", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.UploadBookFiles)
 	bookGroup.Post("/:id/convert", middlewares.JwtAccess(userRepo), middlewares.RequirePermission(permissionCache, constants.PermBookUpload, middlewares.BookLibraryAttr(bookRepo, "id")), bookController.ConvertBook)

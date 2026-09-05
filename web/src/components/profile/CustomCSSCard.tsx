@@ -27,7 +27,7 @@ export const CustomCSSCard: React.FC = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-200">
+    <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">

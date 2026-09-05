@@ -35,6 +35,8 @@ import { OPDSSyncCard } from "@/components/profile/OPDSSyncCard";
 import { WebDAVSyncCard } from "@/components/profile/WebDAVSyncCard";
 import { KoboSyncCard } from "@/components/profile/KoboSyncCard";
 import { VBookSyncCard } from "@/components/profile/VBookSyncCard";
+import { CalibreSyncCard } from "@/components/profile/CalibreSyncCard";
+import { KOReaderSyncCard } from "@/components/profile/KOReaderSyncCard";
 import { ReadingHeatmap } from "@/components/profile/ReadingHeatmap";
 import { TrackerConnectCard } from "@/components/profile/TrackerConnectCard";
 import { HardcoverTrackerCard } from "@/components/profile/HardcoverTrackerCard";
@@ -209,7 +211,6 @@ export const ProfilePage: React.FC = () => {
       id: "customization",
       label: t("profile.tab_customization", "Customization & Audio"),
       icon: <Palette className="w-4 h-4" />,
-      badge: "NEW",
     },
   ];
 
@@ -327,167 +328,163 @@ export const ProfilePage: React.FC = () => {
         {currentTab === "account" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* General Profile Info Card */}
-            <div className="card bg-base-100 shadow-xl border border-base-content/10">
-              <div className="card-body p-5 sm:p-6">
-                <div className="flex items-center gap-3 border-b border-base-content/10 pb-4">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                    <User className="w-5 h-5" />
+            <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-3 border-b border-base-200 pb-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold">
+                    {t("profile.basic_info", "Basic Information")}
+                  </h2>
+                  <p className="text-xs opacity-60">
+                    {t(
+                      "profile.basic_info_desc",
+                      "Update your display name and public credentials.",
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div>
+                  <label className="label label-text text-xs">
+                    {t("profile.full_name", "Full Name")}
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="input input-bordered input-sm w-full rounded-xl"
+                    placeholder="e.g. John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="label label-text text-xs">
+                    {t("profile.email", "Email Address")}
+                  </label>
+                  <input
+                    type="email"
+                    value={user?.email || ""}
+                    disabled
+                    className="input input-bordered input-sm w-full rounded-xl bg-base-200 opacity-70"
+                  />
+                  <span className="text-[11px] opacity-50 block mt-1">
+                    {t(
+                      "profile.email_immutable",
+                      "Email address is tied to your account authentication.",
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="btn btn-primary btn-sm rounded-xl gap-2"
+                  >
+                    {updateProfileMutation.isPending && (
+                      <span className="loading loading-spinner loading-xs" />
+                    )}
+                    {t("common.save", "Save Changes")}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Change Password Card (Only for LOCAL accounts) */}
+            {user?.auth_provider === "local" || !user?.auth_provider ? (
+              <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-3 border-b border-base-200 pb-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-warning/10 text-warning">
+                    <Key className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="card-title text-base sm:text-lg">
-                      {t("profile.basic_info", "Basic Information")}
+                    <h2 className="text-base font-bold">
+                      {t("profile.change_password", "Change Password")}
                     </h2>
                     <p className="text-xs opacity-60">
                       {t(
-                        "profile.basic_info_desc",
-                        "Update your display name and public credentials.",
+                        "profile.change_password_desc",
+                        "Keep your account secure with a strong password.",
                       )}
                     </p>
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveProfile} className="space-y-4 mt-4">
+                <form
+                  onSubmit={handleChangePassword}
+                  className="space-y-3"
+                >
+                  {passwordError && (
+                    <div className="alert alert-error text-xs p-2 rounded-xl">
+                      {passwordError}
+                    </div>
+                  )}
+                  {passwordSuccess && (
+                    <div className="alert alert-success text-xs p-2 rounded-xl flex items-center gap-2">
+                      <Check className="w-4 h-4" />
+                      {t(
+                        "profile.password_updated",
+                        "Password changed successfully",
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <label className="label label-text text-xs">
-                      {t("profile.full_name", "Full Name")}
+                      {t("profile.current_password", "Current Password")}
                     </label>
                     <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      type="password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
                       className="input input-bordered input-sm w-full rounded-xl"
-                      placeholder="e.g. John Doe"
+                      required
                     />
                   </div>
 
                   <div>
                     <label className="label label-text text-xs">
-                      {t("profile.email", "Email Address")}
+                      {t("profile.new_password", "New Password")}
                     </label>
                     <input
-                      type="email"
-                      value={user?.email || ""}
-                      disabled
-                      className="input input-bordered input-sm w-full rounded-xl bg-base-200 opacity-70"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="input input-bordered input-sm w-full rounded-xl"
+                      required
                     />
-                    <span className="text-[11px] opacity-50 block mt-1">
-                      {t(
-                        "profile.email_immutable",
-                        "Email address is tied to your account authentication.",
-                      )}
-                    </span>
+                    <PasswordStrength password={newPassword} />
+                  </div>
+
+                  <div>
+                    <label className="label label-text text-xs">
+                      {t("profile.confirm_password", "Confirm New Password")}
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="input input-bordered input-sm w-full rounded-xl"
+                      required
+                    />
                   </div>
 
                   <div className="flex justify-end pt-2">
                     <button
                       type="submit"
-                      disabled={updateProfileMutation.isPending}
-                      className="btn btn-primary btn-sm rounded-xl gap-2"
+                      disabled={changePasswordMutation.isPending}
+                      className="btn btn-warning btn-sm rounded-xl gap-2"
                     >
-                      {updateProfileMutation.isPending && (
+                      {changePasswordMutation.isPending && (
                         <span className="loading loading-spinner loading-xs" />
                       )}
-                      {t("common.save", "Save Changes")}
+                      {t("profile.update_password_btn", "Update Password")}
                     </button>
                   </div>
                 </form>
-              </div>
-            </div>
-
-            {/* Change Password Card (Only for LOCAL accounts) */}
-            {user?.auth_provider === "local" || !user?.auth_provider ? (
-              <div className="card bg-base-100 shadow-xl border border-base-content/10">
-                <div className="card-body p-5 sm:p-6">
-                  <div className="flex items-center gap-3 border-b border-base-content/10 pb-4">
-                    <div className="p-2.5 rounded-xl bg-warning/10 text-warning">
-                      <Key className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="card-title text-base sm:text-lg">
-                        {t("profile.change_password", "Change Password")}
-                      </h2>
-                      <p className="text-xs opacity-60">
-                        {t(
-                          "profile.change_password_desc",
-                          "Keep your account secure with a strong password.",
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <form
-                    onSubmit={handleChangePassword}
-                    className="space-y-3 mt-4"
-                  >
-                    {passwordError && (
-                      <div className="alert alert-error text-xs p-2 rounded-xl">
-                        {passwordError}
-                      </div>
-                    )}
-                    {passwordSuccess && (
-                      <div className="alert alert-success text-xs p-2 rounded-xl flex items-center gap-2">
-                        <Check className="w-4 h-4" />
-                        {t(
-                          "profile.password_updated",
-                          "Password changed successfully",
-                        )}
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="label label-text text-xs">
-                        {t("profile.current_password", "Current Password")}
-                      </label>
-                      <input
-                        type="password"
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                        className="input input-bordered input-sm w-full rounded-xl"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label label-text text-xs">
-                        {t("profile.new_password", "New Password")}
-                      </label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="input input-bordered input-sm w-full rounded-xl"
-                        required
-                      />
-                      <PasswordStrength password={newPassword} />
-                    </div>
-
-                    <div>
-                      <label className="label label-text text-xs">
-                        {t("profile.confirm_password", "Confirm New Password")}
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="input input-bordered input-sm w-full rounded-xl"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                      <button
-                        type="submit"
-                        disabled={changePasswordMutation.isPending}
-                        className="btn btn-warning btn-sm rounded-xl gap-2"
-                      >
-                        {changePasswordMutation.isPending && (
-                          <span className="loading loading-spinner loading-xs" />
-                        )}
-                        {t("profile.update_password_btn", "Update Password")}
-                      </button>
-                    </div>
-                  </form>
-                </div>
               </div>
             ) : null}
 
@@ -498,18 +495,15 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {currentTab === "devices" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <EReaderMagicCodeCard />
-              <UserDevicesCard />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <OPDSSyncCard />
-              <WebDAVSyncCard />
-              <KoboSyncCard />
-              <VBookSyncCard />
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EReaderMagicCodeCard />
+            <UserDevicesCard />
+            <OPDSSyncCard />
+            <KOReaderSyncCard />
+            <WebDAVSyncCard />
+            <CalibreSyncCard />
+            <KoboSyncCard />
+            <VBookSyncCard />
           </div>
         )}
 

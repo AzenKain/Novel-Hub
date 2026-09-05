@@ -250,13 +250,13 @@ export function JobsTab() {
           disabled={jobs.isFetching}
           onClick={async () => {
             await queryClient.invalidateQueries({
-              queryKey: ["admin", "jobs"],
+              queryKey: ["operations", "jobs"],
             });
             await queryClient.invalidateQueries({
-              queryKey: ["admin", "job_tasks"],
+              queryKey: ["operations", "tasks"],
             });
             await queryClient.invalidateQueries({
-              queryKey: ["admin", "cache_stats"],
+              queryKey: ["operations", "cache-stats"],
             });
             await Promise.all([
               jobs.refetch(),

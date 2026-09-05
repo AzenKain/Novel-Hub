@@ -45,6 +45,20 @@ func (s *stubWebDAVSettingsService) Public(_ context.Context) (*models.PublicSet
 	}, nil
 }
 
+type stubWebDAVPermCache struct {
+	services.PermissionCache
+	allowGuest bool
+}
+
+func (p *stubWebDAVPermCache) CanRoles(_ []string, roles []constants.RoleType, permission string, _ map[string]any) bool {
+	for _, r := range roles {
+		if r == constants.RoleTypeGuest && permission == constants.PermWebDAVRead {
+			return p.allowGuest
+		}
+	}
+	return false
+}
+
 func TestWebDAVAuthMiddleware(t *testing.T) {
 	claims := &response.JWTClaims{
 		UId:   "user-1",
@@ -61,12 +75,18 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 		guestRequired: true,
 	}
 
+	permCache := &stubWebDAVPermCache{allowGuest: false}
+
 	app := fiber.New()
-	app.Use(WebDAVAuth(authService, settingsService))
+	app.Use(WebDAVAuth(authService, settingsService, permCache))
 	app.Get("/webdav", func(c fiber.Ctx) error {
 		return c.SendString("OK")
 	})
+	app.Add([]string{"OPTIONS"}, "/webdav", func(c fiber.Ctx) error {
+		return c.SendString("OPTIONS OK")
+	})
 
+	// 1. Unauthenticated request when guest has no perm -> 401 with WWW-Authenticate
 	req1 := httptest.NewRequest("GET", "/webdav", nil)
 	resp1, err := app.Test(req1)
 	if err != nil {
@@ -78,7 +98,11 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 	if resp1.Header.Get("WWW-Authenticate") != `Basic realm="NovelHub WebDAV"` {
 		t.Fatalf("expected WWW-Authenticate header, got %q", resp1.Header.Get("WWW-Authenticate"))
 	}
+	if resp1.Header.Get("DAV") != "1, 2" {
+		t.Fatalf("expected DAV header, got %q", resp1.Header.Get("DAV"))
+	}
 
+	// 2. Bad credentials -> 401
 	req2 := httptest.NewRequest("GET", "/webdav", nil)
 	req2.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("bad:pass")))
 	resp2, err := app.Test(req2)
@@ -89,6 +113,7 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 		t.Fatalf("expected 401, got %d", resp2.StatusCode)
 	}
 
+	// 3. Valid credentials -> 200 OK
 	req3 := httptest.NewRequest("GET", "/webdav", nil)
 	req3.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("reader@novelhub.local:secret123")))
 	resp3, err := app.Test(req3)
@@ -97,6 +122,39 @@ func TestWebDAVAuthMiddleware(t *testing.T) {
 	}
 	if resp3.StatusCode != fiber.StatusOK {
 		t.Fatalf("expected 200 OK, got %d", resp3.StatusCode)
+	}
+
+	// 4. OPTIONS request -> should pass through unauthenticated (200 OK)
+	reqOpt := httptest.NewRequest("OPTIONS", "/webdav", nil)
+	respOpt, err := app.Test(reqOpt)
+	if err != nil {
+		t.Fatalf("options request failed: %v", err)
+	}
+	if respOpt.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200 OK for OPTIONS, got %d", respOpt.StatusCode)
+	}
+
+	// 5. Unauthenticated request when guestLoginRequired is false but Guest does NOT have webdav:read -> 401
+	settingsService.guestRequired = false
+	permCache.allowGuest = false
+	req5 := httptest.NewRequest("GET", "/webdav", nil)
+	resp5, err := app.Test(req5)
+	if err != nil {
+		t.Fatalf("request 5 failed: %v", err)
+	}
+	if resp5.StatusCode != fiber.StatusUnauthorized {
+		t.Fatalf("expected 401 challenge when Guest lacks webdav:read, got %d", resp5.StatusCode)
+	}
+
+	// 6. Unauthenticated request when guestLoginRequired is false and Guest DOES have webdav:read -> 200 OK
+	permCache.allowGuest = true
+	req6 := httptest.NewRequest("GET", "/webdav", nil)
+	resp6, err := app.Test(req6)
+	if err != nil {
+		t.Fatalf("request 6 failed: %v", err)
+	}
+	if resp6.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200 OK when Guest has webdav:read, got %d", resp6.StatusCode)
 	}
 }
 
@@ -154,7 +212,7 @@ func TestWebDAVAuthMiddleware_TokenAuth(t *testing.T) {
 	settingsService := &stubWebDAVSettingsService{guestRequired: true}
 
 	app := fiber.New()
-	app.Use(WebDAVAuth(authService, settingsService, userRepo))
+	app.Use(WebDAVAuth(authService, settingsService, nil, userRepo))
 	app.Get("/webdav", func(c fiber.Ctx) error {
 		return c.SendString("OK")
 	})

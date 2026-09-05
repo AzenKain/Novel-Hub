@@ -63,6 +63,7 @@ type BookService interface {
 	GetAsset(ctx context.Context, bookID string, assetPath string, fileID string) (*models.ReaderAssetEntity, error)
 	ListImages(ctx context.Context, bookID string, fileID string) ([]string, error)
 	UpdateCover(ctx context.Context, bookID string, input request.UpdateCoverDto) (string, error)
+	GetBookCoverPath(ctx context.Context, bookID string, claims *response.JWTClaims) (string, error)
 	ValidateBookEPUB(ctx context.Context, bookID string, fileID string, claims *response.JWTClaims) (*response.ValidationReportResponse, error)
 	RepairBookEPUB(ctx context.Context, bookID string, fileID string, req *request.RepairBookRequest, claims *response.JWTClaims) (*response.BookRepairResponse, error)
 	ExecuteBatchRepairBooksJob(ctx context.Context, payloadJSON string) error
