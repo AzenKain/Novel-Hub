@@ -1,6 +1,7 @@
 import { offlineStore } from "@/lib/offlineStore";
 import { authService, featureService, settingsService } from "@/services";
 import { useAuthStore, useGuestStore } from "@/stores";
+import { isBannedUser } from "@/utils/permission";
 import type {
   ChangePasswordRequest,
   OTPPurpose,
@@ -22,6 +23,12 @@ export function useCurrentUserQuery() {
       try {
         const me = await authService.me();
         const user = me.data || null;
+        if (user && isBannedUser(user)) {
+          setUser(null);
+          setBooted(true);
+          window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+          return null;
+        }
         setUser(user);
         setBooted(true);
         return user;

@@ -1,5 +1,6 @@
 import { authService } from "@/services";
 import type { User } from "@/types";
+import { isBannedUser } from "@/utils/permission";
 import { create } from "zustand";
 
 type AuthStore = {
@@ -26,7 +27,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isProfileModalOpen: false,
 
   setUser: (user) => set({ user }),
-  setBooted: (booted) => set({ booted: true }),
+  setBooted: (booted) => set({ booted }),
   setLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
   setRegisterModalOpen: (open) => set({ isRegisterModalOpen: open }),
   setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
@@ -41,7 +42,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
   bootstrap: async () => {
     try {
       const me = await authService.me();
-      set({ user: me.data || null, booted: true });
+      const user = me.data || null;
+      if (user && isBannedUser(user)) {
+        set({ user: null, booted: true });
+        return;
+      }
+      set({ user, booted: true });
     } catch {
       set({ user: null, booted: true });
     }

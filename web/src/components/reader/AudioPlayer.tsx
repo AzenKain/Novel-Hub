@@ -311,6 +311,31 @@ export function AudioPlayer({
     setPrefs((p) => ({ ...p, volume: Math.min(1, Math.max(0, value)) }));
   };
 
+  // Apply volume and playbackRate to audio element and persist
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = prefs.volume;
+      audioRef.current.playbackRate = prefs.rate;
+    }
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {}
+  }, [prefs]);
+
+  // Cleanup audio element on unmount to prevent audio decoder pipeline leaks
+  useEffect(() => {
+    return () => {
+      const el = audioRef.current;
+      if (el) {
+        try {
+          el.pause();
+          el.src = "";
+          el.load();
+        } catch {}
+      }
+    };
+  }, []);
+
   const seekToRatio = useCallback((ratio: number) => {
     const el = audioRef.current;
     if (!el || !Number.isFinite(el.duration) || el.duration <= 0) return;
@@ -358,7 +383,7 @@ export function AudioPlayer({
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePlay, skip]);
 
-  // Lock-screen / OS media controls.
+  // Lock-screen / OS media controls with cleanup on unmount
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -378,6 +403,20 @@ export function AudioPlayer({
       jumpChapter(-1),
     );
     navigator.mediaSession.setActionHandler("nexttrack", () => jumpChapter(1));
+
+    return () => {
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = null;
+        try {
+          navigator.mediaSession.setActionHandler("play", null);
+          navigator.mediaSession.setActionHandler("pause", null);
+          navigator.mediaSession.setActionHandler("seekbackward", null);
+          navigator.mediaSession.setActionHandler("seekforward", null);
+          navigator.mediaSession.setActionHandler("previoustrack", null);
+          navigator.mediaSession.setActionHandler("nexttrack", null);
+        } catch {}
+      }
+    };
   }, [title, author, cover_url, togglePlay, skip, jumpChapter, t]);
 
   const progress = duration > 0 ? currentTime / duration : 0;
@@ -640,7 +679,7 @@ export function AudioPlayer({
           )}
 
           {/* Transport dock, pinned to the bottom, full width */}
-          <div className="sticky bottom-0 w-full border-t border-(--reader-ui-border) bg-(--reader-ui-surface-strong) px-4 pb-4 pt-3 backdrop-blur sm:px-8">
+          <div className="sticky bottom-0 w-full border-t border-(--reader-ui-border) bg-(--reader-ui-surface-strong) px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 backdrop-blur sm:px-8">
             <div className="mx-auto w-full max-w-4xl">
               {/* Timeline */}
               <div className="flex select-none items-center justify-between gap-3 text-xs font-medium tabular-nums opacity-80">

@@ -137,7 +137,7 @@ export const SmartFilterBuilderModal: React.FC<
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-2xl bg-base-100 border border-base-300 shadow-xl rounded-2xl p-6">
+      <div className="modal-box max-w-2xl bg-base-100 border border-base-300 shadow-xl rounded-2xl p-4 sm:p-6">
         <div className="flex justify-between items-center border-b border-base-200 pb-3 mb-4">
           <h3 className="font-extrabold text-xl flex items-center gap-2">
             <span>
@@ -289,7 +289,7 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, onChange, onRemove, t }) => {
     <div className="flex gap-2 items-center bg-base-100 border border-base-200 p-2.5 rounded-xl shadow-xs">
       {/* Field Selector */}
       <select
-        className="select select-bordered select-sm rounded-lg shrink-0 w-32"
+        className="select select-bordered select-sm rounded-lg shrink-0 w-28 sm:w-32"
         value={rule.field}
         onChange={(e) => onChange("field", e.target.value)}
       >

@@ -152,7 +152,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   // Visual/Comic Reader Settings (Comic / Manga / CBZ)
   if (isVisualContent) {
     return (
-      <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-84 sm:w-96 md:w-[440px] overflow-y-auto rounded-2xl border p-5 shadow-2xl transition-colors duration-300">
+      <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-84 max-w-[calc(100vw-2rem)] sm:w-96 md:w-[440px] overflow-y-auto rounded-2xl border p-5 shadow-2xl transition-colors duration-300">
         <h3 className="mb-4 text-xs font-bold uppercase tracking-wider opacity-50">
           {t("reader.comic_settings", "Comic / Manga Settings")}
         </h3>
@@ -489,7 +489,7 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
 
   // Standard Text Novel / EBook Reader Settings
   return (
-    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-84 sm:w-96 md:w-[440px] overflow-y-auto rounded-2xl border p-5 shadow-2xl transition-colors duration-300">
+    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-84 max-w-[calc(100vw-2rem)] sm:w-96 md:w-[440px] overflow-y-auto rounded-2xl border p-5 shadow-2xl transition-colors duration-300">
       <h3 className="mb-4 text-xs font-bold uppercase tracking-wider opacity-50">
         {t("reader.settings", "Reader Settings")}
       </h3>

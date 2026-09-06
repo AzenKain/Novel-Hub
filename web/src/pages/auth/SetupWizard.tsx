@@ -98,10 +98,10 @@ export function SetupWizard() {
       if (res.status && res.data?.url) {
         setForm({ ...form, [type]: res.data.url });
       } else {
-        setError(res.message || `Failed to fetch ${type}`);
+        setError(res.message || t("setup.unexpected_error"));
       }
     } catch {
-      setError(`Failed to fetch ${type}`);
+      setError(t("setup.unexpected_error"));
     } finally {
       if (type === "logo") setUploadingLogo(false);
       else setUploadingFavicon(false);
@@ -147,10 +147,10 @@ export function SetupWizard() {
       if (res.status && res.data?.url) {
         setForm({ ...form, [target]: res.data.url });
       } else {
-        setError(res.message || `Failed to upload ${target}`);
+        setError(res.message || t("setup.unexpected_error"));
       }
     } catch {
-      setError(`Failed to upload ${target}`);
+      setError(t("setup.unexpected_error"));
     } finally {
       if (target === "logo") setUploadingLogo(false);
       else setUploadingFavicon(false);

@@ -31,7 +31,7 @@ export const ReaderTtsSettingsPanel: React.FC<ReaderTtsSettingsPanelProps> = ({
   }, [ttsVoices, voiceSearch]);
 
   return (
-    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-80 sm:w-96 rounded-2xl border p-4 shadow-2xl space-y-4 animate-in fade-in duration-150 backdrop-blur-md">
+    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] sm:w-96 rounded-2xl border p-4 shadow-2xl space-y-4 animate-in fade-in duration-150 backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-current/10 pb-2.5">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-current">
           <Volume2 className="size-4 opacity-80" />

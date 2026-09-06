@@ -122,7 +122,7 @@ export const ActivateMagicCodePage: React.FC = () => {
                 )}
               </p>
               <button
-                onClick={() => navigate("/library")}
+                onClick={() => navigate("/")}
                 className="btn btn-outline btn-sm gap-2 mt-4"
               >
                 <ArrowLeft className="w-4 h-4" />

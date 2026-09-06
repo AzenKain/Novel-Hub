@@ -33,7 +33,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />
-      <section className="relative z-10 w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-5 shadow-2xl space-y-4">
+      <section className="relative z-10 w-full max-w-md max-h-[88dvh] overflow-y-auto rounded-2xl border border-base-300 bg-base-100 p-5 shadow-2xl space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-black">

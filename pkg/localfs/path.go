@@ -37,9 +37,32 @@ func IsValidFile(path string) bool {
 	return !info.IsDir()
 }
 
+func isSubpath(base, target string) bool {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
 func ResolveBookFilePath(bookID string, rawPath string) string {
 	if strings.TrimSpace(rawPath) == "" {
 		return rawPath
+	}
+
+	dataDir := config.GetConfigWithDefault("DATA_DIR", "./data")
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		absDataDir = dataDir
+	}
+	booksDir := filepath.Join(dataDir, "books")
+	absBooksDir, err := filepath.Abs(booksDir)
+	if err != nil {
+		absBooksDir = booksDir
+	}
+	absTempDir, err := filepath.Abs(os.TempDir())
+	if err != nil {
+		absTempDir = os.TempDir()
 	}
 
 	normalizedRaw := rawPath
@@ -49,22 +72,24 @@ func ResolveBookFilePath(bookID string, rawPath string) string {
 		normalizedRaw = strings.ReplaceAll(rawPath, "/", "\\")
 	}
 
-	if _, err := os.Stat(normalizedRaw); err == nil {
-		return normalizedRaw
+	if absNormalized, err := filepath.Abs(normalizedRaw); err == nil {
+		if isSubpath(absDataDir, absNormalized) || isSubpath(absTempDir, absNormalized) {
+			if _, err := os.Stat(absNormalized); err == nil {
+				return absNormalized
+			}
+		}
 	}
 
 	slashNormalized := strings.ReplaceAll(rawPath, "\\", "/")
-	parts := strings.Split(slashNormalized, "/")
-	filename := parts[len(parts)-1]
-	if filename == "" || filename == "." {
-		return rawPath
+	filename := filepath.Base(slashNormalized)
+	if filename == "" || filename == "." || filename == ".." || filename == "/" || filename == "\\" {
+		return ""
 	}
 
-	booksDir := filepath.Join(config.GetConfigWithDefault("DATA_DIR", "./data"), "books")
-	absBooksDir, err := filepath.Abs(booksDir)
+	safePath, err := SafeJoin(absBooksDir, bookID, filename)
 	if err != nil {
-		absBooksDir = booksDir
+		return ""
 	}
 
-	return filepath.Join(absBooksDir, bookID, filename)
+	return safePath
 }

@@ -363,8 +363,8 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <React.Suspense
         fallback={
-          <div className="flex h-screen items-center justify-center bg-base-100 text-base-content/60">
-            Loading translations...
+          <div className="flex h-screen items-center justify-center bg-base-100 text-base-content">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
         }
       >

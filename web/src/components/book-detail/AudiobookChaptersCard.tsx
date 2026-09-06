@@ -191,7 +191,7 @@ export const AudiobookChaptersCard: React.FC<AudiobookChaptersCardProps> = ({
           {t("audiobook.no_chapters", "No chapters yet")}
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-x-auto pb-1">
           {rows.map(([key, row]) => (
             <div key={key} className="flex items-center gap-2 text-sm">
               <span className="badge badge-outline badge-sm w-10 justify-center shrink-0">

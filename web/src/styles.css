@@ -29,8 +29,6 @@
     silk;
 }
 
-@tailwind utilities;
-
 :root {
   color-scheme: light dark;
   -webkit-font-smoothing: antialiased;

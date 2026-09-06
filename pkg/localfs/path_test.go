@@ -59,7 +59,24 @@ func TestResolveBookFilePath(t *testing.T) {
 			rawPath: "invalid/path/file.epub",
 			want:    filepath.Join(tempDir, "books", bookID, "file.epub"),
 		},
+		{
+			name:    "External system file traversal attempt",
+			rawPath: "/etc/passwd",
+			want:    filepath.Join(tempDir, "books", bookID, "passwd"),
+		},
+		{
+			name:    "Relative traversal path",
+			rawPath: "../../../../etc/passwd",
+			want:    filepath.Join(tempDir, "books", bookID, "passwd"),
+		},
 	}
+
+	t.Run("Malicious bookID traversal attempt", func(t *testing.T) {
+		got := ResolveBookFilePath("../../etc", "book.epub")
+		if got != "" {
+			t.Errorf("ResolveBookFilePath with traversal bookID should return empty, got %v", got)
+		}
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

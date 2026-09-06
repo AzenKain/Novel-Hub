@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 export const API_ROOT = API_BASE.replace(/\/api\/v1\/?$/, "");
@@ -107,15 +108,29 @@ const REFRESH_COOLDOWN_MS = 30_000;
 function handleAuthFailure() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("auth:unauthorized"));
-  const publicPaths = [
+
+  const currentPath = window.location.pathname;
+  const guestAllowedPaths = [
+    "/",
+    "/search",
+    "/books",
+    "/reader",
+    "/offline",
+    "/read-lists",
     "/login",
     "/register",
     "/forgot-password",
     "/activate",
     "/setup",
   ];
-  const currentPath = window.location.pathname;
-  if (!publicPaths.some((p) => currentPath.startsWith(p))) {
+  const isGuestAllowed = guestAllowedPaths.some((p) =>
+    p === "/" ? currentPath === "/" : currentPath.startsWith(p),
+  );
+
+  const settings = useSettingsStore.getState().publicSettings;
+  const guestRequired = settings?.guest_login_required ?? false;
+
+  if (guestRequired || !isGuestAllowed) {
     const redirectUrl =
       currentPath !== "/"
         ? `?redirect=${encodeURIComponent(currentPath + window.location.search)}`
@@ -139,6 +154,17 @@ api.interceptors.response.use(
 
     const shouldSkip = skipRefreshUrls?.some((path) => url?.includes(path));
 
+    const errData = err.response?.data as { message?: string } | undefined;
+    const isBanned =
+      err.response?.status === 403 &&
+      typeof errData?.message === "string" &&
+      errData.message.toLowerCase().includes("banned");
+
+    if (isBanned) {
+      handleAuthFailure();
+      return Promise.reject(err);
+    }
+
     const inCooldown =
       refreshFailedAt > 0 && Date.now() - refreshFailedAt < REFRESH_COOLDOWN_MS;
 
@@ -155,6 +181,7 @@ api.interceptors.response.use(
       !inCooldown
     ) {
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           queue.push({
             resolve: () => resolve(api(originalRequest)),

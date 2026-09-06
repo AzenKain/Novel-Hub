@@ -129,7 +129,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />
-      <section className="relative z-10 w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl space-y-4">
+      <section className="relative z-10 w-full max-w-md max-h-[88dvh] overflow-y-auto rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">

@@ -53,14 +53,6 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(
       maxWidth,
     } = useReaderStore();
 
-    const isWebtoon = readingMode === "webtoon" || readingMode === "scroll";
-    const isDouble = readingMode === "double";
-    const isRtl = readingDirection === "rtl";
-    const [internalPage, setInternalPage] = useState(0);
-    const currentPage = propPage !== undefined ? propPage : internalPage;
-    const leftPageIdx = isDouble && isRtl ? currentPage + 1 : currentPage;
-    const rightPageIdx = isDouble && isRtl ? currentPage : currentPage + 1;
-
     const [windowWidth, setWindowWidth] = useState<number>(() =>
       typeof window !== "undefined" ? window.innerWidth : 1024,
     );
@@ -72,6 +64,15 @@ export const ComicReader: React.FC<ComicReaderProps> = React.memo(
       window.addEventListener("resize", handleResize);
       return () => window.removeEventListener("resize", handleResize);
     }, []);
+
+    const isWebtoon = readingMode === "webtoon" || readingMode === "scroll";
+    const isMobile = windowWidth < 768;
+    const isDouble = readingMode === "double" && !isMobile;
+    const isRtl = readingDirection === "rtl";
+    const [internalPage, setInternalPage] = useState(0);
+    const currentPage = propPage !== undefined ? propPage : internalPage;
+    const leftPageIdx = isDouble && isRtl ? currentPage + 1 : currentPage;
+    const rightPageIdx = isDouble && isRtl ? currentPage : currentPage + 1;
 
     const sideTapRatio = getSideTapRatio(windowWidth);
     const sideWidthPercent = Math.round(sideTapRatio * 100);
