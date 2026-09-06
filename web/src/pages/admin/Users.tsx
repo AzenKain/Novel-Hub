@@ -769,7 +769,7 @@ export function Users() {
       {/* Modals */}
       {modal === "create" && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
             <h3 className="font-bold text-lg mb-4">
               {t("admin.create_user_title", "Create New User")}
             </h3>
@@ -859,7 +859,7 @@ export function Users() {
                     {t("admin.assign_roles", "Assign Roles")}
                   </span>
                 </label>
-                <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
+                <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200 max-h-36 sm:max-h-48 overflow-y-auto pr-1">
                   {roles.map((role) => (
                     <label
                       key={role.id}
@@ -895,7 +895,7 @@ export function Users() {
                 </div>
               </div>
 
-              <div className="modal-action">
+              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
                 <button
                   type="button"
                   onClick={() => setModal(null)}
@@ -925,7 +925,7 @@ export function Users() {
 
       {modal === "edit" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
+          <div className="modal-box max-w-md max-h-[80svh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
             <h3 className="font-bold text-lg mb-4">
               {t("admin.edit_user_title", "Edit Profile")}
             </h3>
@@ -1123,7 +1123,7 @@ export function Users() {
                 </label>
               </div>
 
-              <div className="modal-action">
+              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -1153,7 +1153,7 @@ export function Users() {
 
       {modal === "password" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
             <h3 className="font-bold text-lg mb-2">
               {t("admin.reset_password_title", "Reset Password")}
             </h3>
@@ -1207,7 +1207,7 @@ export function Users() {
                 />
               </div>
 
-              <div className="modal-action">
+              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
                 <button
                   type="button"
                   onClick={() => {
@@ -1249,7 +1249,7 @@ export function Users() {
 
       {modal === "roles" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-lg p-6">
+          <div className="modal-box max-w-lg p-4 sm:p-6 max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto pb-6">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <h3 className="font-bold text-lg flex items-center gap-2">
@@ -1293,7 +1293,7 @@ export function Users() {
             )}
 
             <form onSubmit={handleRoles} className="space-y-4">
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-48 sm:max-h-80 overflow-y-auto pr-1">
                 {roles.map((role) => {
                   const isChecked = roleIDs.includes(role.id);
                   const isOwnerTarget = Boolean(selected.is_owner);
@@ -1381,7 +1381,7 @@ export function Users() {
                 })}
               </div>
 
-              <div className="modal-action pt-2">
+              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
                 <button
                   type="button"
                   onClick={() => setModal(null)}

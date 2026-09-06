@@ -25,7 +25,7 @@ export function HomeView() {
             <img
               src={siteLogo}
               alt={t("common.alt_logo", "Logo")}
-              className="h-11 w-auto max-w-[56px] object-contain shrink-0 drop-shadow-sm"
+              className="h-11 w-auto max-w-14 object-contain shrink-0 drop-shadow-sm"
             />
           ) : (
             <div className="home-brand-mark"></div>

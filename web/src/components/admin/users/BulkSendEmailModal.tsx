@@ -447,7 +447,7 @@ export const BulkSendEmailModal: React.FC<BulkSendEmailModalProps> = ({
 
   return (
     <dialog className="modal modal-open z-50">
-      <div className="modal-box max-w-2xl w-11/12 p-0 rounded-2xl shadow-2xl border border-base-300 bg-base-100 flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="modal-box max-w-2xl w-11/12 p-0 rounded-2xl shadow-2xl border border-base-300 bg-base-100 flex flex-col max-h-[82dvh] sm:max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Window Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-base-200/50 border-b border-base-200">
           <div className="flex items-center gap-2.5">
@@ -514,7 +514,7 @@ export const BulkSendEmailModal: React.FC<BulkSendEmailModalProps> = ({
 
             {/* Placeholders Quick Insertion */}
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-base-content/50 text-[11px] mr-0.5 hidden sm:inline flex items-center gap-1">
+              <span className="text-base-content/50 text-[11px] mr-0.5 hidden sm:inline items-center gap-1">
                 <Sparkles className="w-3 h-3 text-primary" />
                 <span>{t("admin.insert_placeholder", "Insert:")}</span>
               </span>

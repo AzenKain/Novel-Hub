@@ -87,7 +87,7 @@ export const BulkDeleteUsersModal: React.FC<BulkDeleteUsersModalProps> = ({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative border border-error/30 shadow-2xl max-w-lg">
+      <div className="modal-box relative border border-error/30 shadow-2xl max-w-lg max-h-[80dvh] max-h-[80svh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
         <h3 className="font-bold text-lg text-error flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
           {t("admin.bulk_delete_title", "Delete Selected Users")}
@@ -132,7 +132,7 @@ export const BulkDeleteUsersModal: React.FC<BulkDeleteUsersModalProps> = ({
           )}
         </div>
 
-        <div className="modal-action">
+        <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
           <button
             type="button"
             className="btn btn-ghost btn-sm"

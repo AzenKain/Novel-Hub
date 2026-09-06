@@ -1096,7 +1096,7 @@ export function Roles() {
       {/* Role Create/Edit Modal */}
       {showModal && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
             <h3 className="font-bold text-lg mb-4">
               {modalMode === "create"
                 ? t("admin.role_create_title", "Create New Role")
@@ -1170,7 +1170,7 @@ export function Roles() {
                 </div>
               )}
 
-              <div className="modal-action">
+              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

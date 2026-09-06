@@ -66,7 +66,7 @@ export function RegisterView() {
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-md">
+      <div className="modal-box max-w-md max-h-[82dvh] sm:max-h-[85vh] overflow-y-auto">
         <button
           onClick={() => setRegisterModalOpen(false)}
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"

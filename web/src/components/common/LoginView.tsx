@@ -40,7 +40,7 @@ export function LoginView() {
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box">
+      <div className="modal-box max-h-[82dvh] sm:max-h-[85vh] overflow-y-auto">
         <button
           onClick={() => setLoginModalOpen(false)}
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
