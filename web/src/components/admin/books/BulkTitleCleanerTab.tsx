@@ -271,8 +271,8 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
   }, [items, cleanedState]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="bg-base-200/50 p-3.5 rounded-2xl border border-base-300">
+    <div className="flex flex-col gap-3 sm:gap-4 p-1 sm:p-2">
+      <div className="bg-base-200/50 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-base-300">
         <div className="flex items-center gap-2 mb-2.5">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-base-content/70">
@@ -359,14 +359,14 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
             )}
             value={regexPattern}
             onChange={(e) => setRegexPattern(e.target.value)}
-            className="input input-xs input-bordered w-48 font-mono"
+            className="input input-xs input-bordered flex-1 sm:flex-none sm:w-48 font-mono min-w-30"
           />
           <input
             type="text"
             placeholder={t("library.cleaner_regex_replace", "Replacement")}
             value={regexReplace}
             onChange={(e) => setRegexReplace(e.target.value)}
-            className="input input-xs input-bordered w-32 font-mono"
+            className="input input-xs input-bordered flex-1 sm:flex-none sm:w-32 font-mono min-w-22.5"
           />
           <select
             value={regexTarget}
@@ -385,7 +385,7 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
             type="button"
             onClick={handleApplyRegex}
             disabled={!regexPattern}
-            className="btn btn-xs btn-primary gap-1"
+            className="btn btn-xs btn-primary gap-1 whitespace-nowrap shrink-0"
           >
             <Wand2 className="h-3 w-3" />
             {t("common.apply", "Apply")}
@@ -393,7 +393,7 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -419,21 +419,21 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none z-10" />
             <input
               type="text"
               placeholder={t("common.search", "Filter...")}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              className="input input-xs input-bordered pl-8 w-44"
+              className="input input-xs input-bordered pl-8 w-full sm:w-44"
             />
           </div>
           <button
             type="button"
             onClick={handleApplyToBooks}
-            className="btn btn-xs btn-primary gap-1 shadow-sm"
+            className="btn btn-xs btn-primary gap-1 shadow-sm whitespace-nowrap shrink-0"
           >
             <Check className="h-3.5 w-3.5" />
             {t("library.cleaner_apply_all", "Apply Cleaned Data")}
@@ -514,7 +514,7 @@ export const BulkTitleCleanerTab: React.FC<BulkTitleCleanerTabProps> = ({
                             [item.id]: { ...p[item.id], title: e.target.value },
                           }))
                         }
-                        className={`input input-xs input-bordered w-full font-medium ${isModified ? "border-primary/40 bg-primary/[0.02]" : ""}`}
+                        className={`input input-xs input-bordered w-full font-medium ${isModified ? "border-primary/40 bg-primary/2" : ""}`}
                       />
                       <input
                         type="text"

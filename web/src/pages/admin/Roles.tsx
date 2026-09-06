@@ -12,17 +12,26 @@ import { LibraryScopeSelector } from "@/components/admin";
 import type { CreateRoleRequest } from "@/types";
 import {
   AlertCircle,
+  BookOpen,
   ChevronDown,
   ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  FolderArchive,
   GripVertical,
+  Library,
   Loader2,
+  MessageSquare,
   Pencil,
   Plus,
   RefreshCw,
   Save,
+  Search,
+  Settings,
   Shield,
   ShieldAlert,
   Trash2,
+  X,
 } from "lucide-react";
 import { SyntheticEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -32,6 +41,101 @@ interface PermissionAssignment {
   effect: "allow" | "deny";
   conditions: Record<string, unknown>;
 }
+
+const PERM_CATEGORIES = [
+  {
+    id: "reading",
+    name: "Book Reading & Discovery",
+    titleKey: "admin.perm_cat_reading",
+    icon: BookOpen,
+    keys: [
+      "book.read",
+      "book.tts",
+      "book.search.deep",
+      "book.download",
+      "book.offline",
+      "book.send_email",
+      "book.share",
+    ],
+  },
+  {
+    id: "interactions",
+    name: "Interactions & Personal Features",
+    titleKey: "admin.perm_cat_interactions",
+    icon: MessageSquare,
+    keys: [
+      "book.bookmark",
+      "book.collection",
+      "book.highlight",
+      "book.review.create",
+      "book.review.delete",
+      "user.stats.read",
+      "tracker.sync",
+      "user.font.manage",
+      "user.soundscape.manage",
+      "user.theme.manage",
+    ],
+  },
+  {
+    id: "content",
+    name: "Book Content Management",
+    titleKey: "admin.perm_cat_content",
+    icon: FolderArchive,
+    keys: [
+      "book.upload",
+      "book.edit",
+      "book.metadata.fetch",
+      "book.repair",
+      "book.delete",
+      "book.duplicate.manage",
+      "book.archive",
+      "book.bulk.manage",
+    ],
+  },
+  {
+    id: "library",
+    name: "Library Management",
+    titleKey: "admin.perm_cat_library",
+    icon: Library,
+    keys: ["library.read", "library.manage"],
+  },
+  {
+    id: "integration",
+    name: "External Sync & Integration",
+    titleKey: "admin.perm_cat_integration",
+    icon: RefreshCw,
+    keys: [
+      "opds.read",
+      "opds.download",
+      "webdav.read",
+      "webdav.download",
+      "kobo.sync",
+      "komga.sync",
+      "calibre.sync",
+      "podcast.manage",
+    ],
+  },
+  {
+    id: "admin",
+    name: "System Administration",
+    titleKey: "admin.perm_cat_admin",
+    icon: Settings,
+    keys: [
+      "admin.access",
+      "user.manage",
+      "role.manage",
+      "setting.manage",
+      "job.read",
+      "job.manage",
+      "system.log.read",
+      "system.backup",
+      "webhook.manage",
+      "admin.soundscape.manage",
+      "admin.font.manage",
+      "admin.theme.manage",
+    ],
+  },
+];
 
 import { useRoleAdminStore } from "@/stores";
 import { Trans, useTranslation } from "react-i18next";
@@ -142,6 +246,44 @@ export function Roles() {
     updateRoleMutation.isPending ||
     deleteRoleMutation.isPending ||
     assignPermissionsMutation.isPending;
+
+  const getPermissionDescription = (perm: {
+    key: string;
+    description?: string;
+  }) => {
+    const key = `admin.perm_${perm.key.replace(/\./g, "_")}`;
+    const translated = t(key);
+    const raw =
+      translated && translated !== key
+        ? translated
+        : perm.description || perm.key;
+    return raw.replace(/[\p{Emoji}\u200d\ufe0f]/gu, "").trim();
+  };
+
+  const [permSearch, setPermSearch] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleCategory = (id: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const allExpanded =
+    PERM_CATEGORIES.length > 0 &&
+    PERM_CATEGORIES.every((cat) => !!expandedCategories[cat.id]);
+
+  const toggleAllCategories = () => {
+    const nextState = !allExpanded;
+    const newMap: Record<string, boolean> = {};
+    PERM_CATEGORIES.forEach((cat) => {
+      newMap[cat.id] = nextState;
+    });
+    setExpandedCategories(newMap);
+  };
 
   useEffect(() => {
     if (roles.length > 0) {
@@ -350,9 +492,11 @@ export function Roles() {
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto h-full items-start">
           {/* Roles Sidebar */}
-          <div className="w-full lg:w-[380px] xl:w-[400px] shrink-0 flex flex-col gap-4">
+          <div className="w-full lg:w-95 xl:w-100 shrink-0 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Roles ({roles.length})</h2>
+              <h2 className="text-lg font-bold">
+                {t("admin.roles", "Roles")} ({roles.length})
+              </h2>
               <button
                 onClick={openCreate}
                 className="btn btn-primary btn-sm gap-1.5"
@@ -539,297 +683,369 @@ export function Roles() {
                   </div>
                 ) : (
                   <div className="bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-base-200 bg-base-200/30 font-bold text-sm flex items-center justify-between">
-                      <span>
-                        {t(
-                          "admin.role_permissions_count",
-                          "Permissions ({{n}})",
-                          { n: permissions.length },
-                        )}
-                      </span>
-                      <span className="text-xs font-normal text-base-content/60">
-                        {t("admin.role_assigned_count", "{{n}} assigned", {
-                          n: assignments.length,
-                        })}
-                      </span>
+                    {/* Header + Search Bar + Expand/Collapse All */}
+                    <div className="p-3 sm:p-4 border-b border-base-200 bg-base-200/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-bold text-sm">
+                          {t(
+                            "admin.role_permissions_count",
+                            "Permissions ({{n}})",
+                            { n: permissions.length },
+                          )}
+                        </span>
+                        <span className="badge badge-sm badge-neutral font-mono">
+                          {t("admin.role_assigned_count", "{{n}} assigned", {
+                            n: assignments.length,
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Discord-style Search Input */}
+                        <div className="relative flex-1 sm:w-60">
+                          <Search className="w-3.5 h-3.5 text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={permSearch}
+                            onChange={(e) => setPermSearch(e.target.value)}
+                            placeholder={t(
+                              "admin.search_permissions",
+                              "Search permissions...",
+                            )}
+                            className="input input-xs sm:input-sm input-bordered w-full pl-8 pr-7"
+                          />
+                          {permSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setPermSearch("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Expand / Collapse All Button */}
+                        <button
+                          type="button"
+                          onClick={toggleAllCategories}
+                          className="btn btn-ghost btn-xs sm:btn-sm gap-1 text-xs font-medium shrink-0"
+                          title={
+                            allExpanded
+                              ? t("admin.collapse_all", "Collapse All")
+                              : t("admin.expand_all", "Expand All")
+                          }
+                        >
+                          {allExpanded ? (
+                            <>
+                              <ChevronsUp className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">
+                                {t("admin.collapse_all", "Collapse All")}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <ChevronsDown className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">
+                                {t("admin.expand_all", "Expand All")}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="divide-y divide-base-200">
                       {(() => {
-                        const categories = [
-                          {
-                            id: "reading",
-                            name: "📖 Book Reading & Discovery",
-                            keys: [
-                              "book.read",
-                              "book.tts",
-                              "book.search.deep",
-                              "book.download",
-                              "book.offline",
-                              "book.send_email",
-                              "book.share",
-                            ],
-                          },
-                          {
-                            id: "interactions",
-                            name: "💬 Interactions & Personal Features",
-                            keys: [
-                              "book.bookmark",
-                              "book.collection",
-                              "book.highlight",
-                              "book.review.create",
-                              "book.review.delete",
-                              "user.stats.read",
-                              "tracker.sync",
-                            ],
-                          },
-                          {
-                            id: "content",
-                            name: "📦 Book Content Management",
-                            keys: [
-                              "book.upload",
-                              "book.edit",
-                              "book.metadata.fetch",
-                              "book.delete",
-                              "book.duplicate.manage",
-                              "book.archive",
-                              "book.bulk.manage",
-                            ],
-                          },
-                          {
-                            id: "library",
-                            name: "📚 Library Management",
-                            keys: ["library.read", "library.manage"],
-                          },
-                          {
-                            id: "integration",
-                            name: "🔄 External Sync & Integration",
-                            keys: [
-                              "opds.read",
-                              "opds.download",
-                              "webdav.read",
-                              "webdav.download",
-                              "kobo.sync",
-                              "komga.sync",
-                              "calibre.sync",
-                              "podcast.manage",
-                            ],
-                          },
-                          {
-                            id: "admin",
-                            name: "⚙️ System Administration",
-                            keys: [
-                              "admin.access",
-                              "user.manage",
-                              "role.manage",
-                              "setting.manage",
-                              "job.read",
-                              "job.manage",
-                              "system.log.read",
-                              "system.backup",
-                              "webhook.manage",
-                            ],
-                          },
-                        ];
-                        const allCategoryKeys = categories.flatMap(
+                        const query = permSearch.trim().toLowerCase();
+                        const allCategoryKeys = PERM_CATEGORIES.flatMap(
                           (cat) => cat.keys,
                         );
 
-                        return categories.map((category) => {
-                          const categoryPerms = permissions.filter((p) =>
-                            category.keys.includes(p.key),
-                          );
-                          const otherPerms = permissions.filter(
-                            (p) => !allCategoryKeys.includes(p.key),
-                          );
-                          if (
-                            category.id === "admin" &&
-                            otherPerms.length > 0
-                          ) {
-                            categoryPerms.push(...otherPerms);
-                          }
-                          if (categoryPerms.length === 0) return null;
+                        let totalMatches = 0;
 
-                          const assignedCount = categoryPerms.filter((p) =>
-                            isAssigned(p.key),
-                          ).length;
+                        const renderedCategories = PERM_CATEGORIES.map(
+                          (category) => {
+                            let categoryPerms = permissions.filter((p) =>
+                              category.keys.includes(p.key),
+                            );
+                            const otherPerms = permissions.filter(
+                              (p) => !allCategoryKeys.includes(p.key),
+                            );
+                            if (
+                              category.id === "admin" &&
+                              otherPerms.length > 0
+                            ) {
+                              categoryPerms = [
+                                ...categoryPerms,
+                                ...otherPerms,
+                              ];
+                            }
+                            if (categoryPerms.length === 0) return null;
 
-                          return (
-                            <div
-                              key={category.id}
-                              className="border-b border-base-200 last:border-b-0"
-                            >
-                              <div className="bg-base-200/40 px-4 py-2.5 flex items-center justify-between font-semibold text-xs tracking-wide uppercase text-base-content/70">
-                                <span>{category.name}</span>
-                                <span className="badge badge-sm badge-ghost font-mono">
-                                  {assignedCount}/{categoryPerms.length}
-                                </span>
-                              </div>
-                              <div className="divide-y divide-base-200/60">
-                                {categoryPerms.map((perm) => {
-                                  const assigned = isAssigned(perm.key);
-                                  const assignment = getAssignment(perm.key);
+                            const totalCategoryPerms = categoryPerms.length;
+                            const assignedCount = categoryPerms.filter((p) =>
+                              isAssigned(p.key),
+                            ).length;
 
-                                  return (
-                                    <div
-                                      key={perm.key}
-                                      className="p-3.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3 hover:bg-base-200/20 transition-colors"
+                            if (query) {
+                              categoryPerms = categoryPerms.filter((p) => {
+                                const desc = getPermissionDescription(
+                                  p,
+                                ).toLowerCase();
+                                const k = p.key.toLowerCase();
+                                return (
+                                  desc.includes(query) || k.includes(query)
+                                );
+                              });
+                              if (categoryPerms.length === 0) return null;
+                            }
+
+                            totalMatches += categoryPerms.length;
+                            const isExpanded = query
+                              ? true
+                              : !!expandedCategories[category.id];
+
+                            return (
+                              <div
+                                key={category.id}
+                                className="border-b border-base-200 last:border-b-0"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCategory(category.id)}
+                                  className="w-full bg-base-200/30 hover:bg-base-200/60 px-4 py-3 flex items-center justify-between text-left transition-colors select-none group cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <ChevronDown
+                                      className={`w-4 h-4 text-base-content/50 group-hover:text-base-content transition-transform duration-200 shrink-0 ${
+                                        isExpanded ? "rotate-0" : "-rotate-90"
+                                      }`}
+                                    />
+                                    <category.icon className="w-4 h-4 text-primary shrink-0" />
+                                    <span className="font-semibold text-xs tracking-wide uppercase text-base-content/80 group-hover:text-base-content truncate">
+                                      {t(category.titleKey, category.name)
+                                        .replace(/[\p{Emoji}\u200d\ufe0f]/gu, "")
+                                        .trim()}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                                    <span
+                                      className={`badge badge-sm font-mono ${
+                                        assignedCount > 0
+                                          ? "badge-primary font-semibold"
+                                          : "badge-ghost opacity-70"
+                                      }`}
                                     >
-                                      <div className="flex items-start justify-between gap-3 sm:gap-4">
-                                        <label className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer select-none">
-                                          <input
-                                            type="checkbox"
-                                            checked={assigned}
-                                            onChange={() =>
-                                              togglePermission(perm.key)
-                                            }
-                                            className="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
-                                          />
-                                          <div className="min-w-0 flex-1">
-                                            <div className="flex items-baseline gap-2 flex-wrap">
-                                              <span
-                                                className={`text-sm leading-snug break-words ${
-                                                  assigned
-                                                    ? "font-bold text-base-content"
-                                                    : "font-medium text-base-content/80"
-                                                }`}
-                                              >
-                                                {perm.description || perm.key}
-                                              </span>
-                                              <span className="font-mono text-[10px] bg-base-200 text-base-content/60 px-1.5 py-0.5 rounded shrink-0">
-                                                {perm.key}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </label>
+                                      {assignedCount}/{totalCategoryPerms}
+                                    </span>
+                                  </div>
+                                </button>
 
-                                        {/* Desktop Only: Effect Toggle */}
-                                        {assigned && (
-                                          <div className="hidden sm:flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setEffect(perm.key, "allow")
-                                              }
-                                              className={`btn btn-xs ${
-                                                assignment?.effect === "allow"
-                                                  ? "btn-success font-bold"
-                                                  : "btn-ghost text-base-content/60"
-                                              }`}
-                                            >
-                                              {t(
-                                                "admin.role_effect_allow",
-                                                "Allow",
-                                              )}
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setEffect(perm.key, "deny")
-                                              }
-                                              className={`btn btn-xs ${
-                                                assignment?.effect === "deny"
-                                                  ? "btn-error font-bold"
-                                                  : "btn-ghost text-base-content/60"
-                                              }`}
-                                            >
-                                              {t(
-                                                "admin.role_effect_deny",
-                                                "Deny",
-                                              )}
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
+                                {isExpanded && (
+                                  <div className="divide-y divide-base-200/60 bg-base-100/50">
+                                    {categoryPerms.map((perm) => {
+                                      const assigned = isAssigned(perm.key);
+                                      const assignment = getAssignment(
+                                        perm.key,
+                                      );
 
-                                      {/* Active Permission Settings (Mobile Effect Toggle + Library Scope) */}
-                                      {assigned && (
-                                        <div className="pl-7 flex flex-col gap-2 pt-0.5">
-                                          {/* Mobile Only: Effect Toggle */}
-                                          <div className="sm:hidden flex items-center justify-between gap-2 py-0.5">
-                                            <span className="text-xs font-semibold text-base-content/70 flex items-center gap-1.5">
-                                              <ShieldAlert className="w-3.5 h-3.5 opacity-70" />
-                                              {t(
-                                                "admin.role_effect_label",
-                                                "Effect",
-                                              )}
-                                              :
-                                            </span>
-                                            <div className="flex items-center gap-1 bg-base-200/90 p-0.5 rounded-lg border border-base-300/40 shrink-0">
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  setEffect(perm.key, "allow")
+                                      return (
+                                        <div
+                                          key={perm.key}
+                                          className="p-3.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3 hover:bg-base-200/20 transition-colors"
+                                        >
+                                          <div className="flex items-start justify-between gap-3 sm:gap-4">
+                                            <label className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer select-none">
+                                              <input
+                                                type="checkbox"
+                                                checked={assigned}
+                                                onChange={() =>
+                                                  togglePermission(perm.key)
                                                 }
-                                                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                                                  assignment?.effect === "allow"
-                                                    ? "bg-success text-success-content font-bold shadow-xs"
-                                                    : "text-base-content/60 hover:text-base-content"
-                                                }`}
-                                              >
-                                                {t(
-                                                  "admin.role_effect_allow",
-                                                  "Allow",
-                                                )}
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  setEffect(perm.key, "deny")
-                                                }
-                                                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                                                  assignment?.effect === "deny"
-                                                    ? "bg-error text-error-content font-bold shadow-xs"
-                                                    : "text-base-content/60 hover:text-base-content"
-                                                }`}
-                                              >
-                                                {t(
-                                                  "admin.role_effect_deny",
-                                                  "Deny",
-                                                )}
-                                              </button>
-                                            </div>
+                                                className="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
+                                              />
+                                              <div className="min-w-0 flex-1">
+                                                <div className="flex items-baseline gap-2 flex-wrap">
+                                                  <span
+                                                    className={`text-sm leading-snug wrap-break-word ${
+                                                      assigned
+                                                        ? "font-bold text-base-content"
+                                                        : "font-medium text-base-content/80"
+                                                    }`}
+                                                  >
+                                                    {getPermissionDescription(
+                                                      perm,
+                                                    )}
+                                                  </span>
+                                                  <span className="font-mono text-[10px] bg-base-200 text-base-content/60 px-1.5 py-0.5 rounded shrink-0">
+                                                    {perm.key}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </label>
+
+                                            {/* Desktop Only: Effect Toggle */}
+                                            {assigned && (
+                                              <div className="hidden sm:flex items-center gap-1 bg-base-200 p-1 rounded-lg shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setEffect(
+                                                      perm.key,
+                                                      "allow",
+                                                    )
+                                                  }
+                                                  className={`btn btn-xs ${
+                                                    assignment?.effect ===
+                                                    "allow"
+                                                      ? "btn-success font-bold"
+                                                      : "btn-ghost text-base-content/60"
+                                                  }`}
+                                                >
+                                                  {t(
+                                                    "admin.role_effect_allow",
+                                                    "Allow",
+                                                  )}
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setEffect(
+                                                      perm.key,
+                                                      "deny",
+                                                    )
+                                                  }
+                                                  className={`btn btn-xs ${
+                                                    assignment?.effect ===
+                                                    "deny"
+                                                      ? "btn-error font-bold"
+                                                      : "btn-ghost text-base-content/60"
+                                                  }`}
+                                                >
+                                                  {t(
+                                                    "admin.role_effect_deny",
+                                                    "Deny",
+                                                  )}
+                                                </button>
+                                              </div>
+                                            )}
                                           </div>
 
-                                          {/* Library Scope Selector (Only for non-admin categories) */}
-                                          {category.id !== "admin" && (
-                                            <LibraryScopeSelector
-                                              selectedLibraryIds={
-                                                (assignment?.conditions
-                                                  ?.library_ids as string[]) ||
-                                                []
-                                              }
-                                              onChange={(ids) => {
-                                                setAssignments((prev) =>
-                                                  prev.map((a) =>
-                                                    a.permission_key ===
-                                                    perm.key
-                                                      ? {
-                                                          ...a,
-                                                          conditions:
-                                                            ids.length > 0
-                                                              ? {
-                                                                  library_ids:
-                                                                    ids,
-                                                                }
-                                                              : {},
-                                                        }
-                                                      : a,
-                                                  ),
-                                                );
-                                              }}
-                                              libraries={libraries}
-                                            />
+                                          {/* Active Permission Settings (Mobile Effect Toggle + Library Scope) */}
+                                          {assigned && (
+                                            <div className="sm:pl-7 pl-1.5 flex flex-col gap-2 pt-0.5">
+                                              {/* Mobile Only: Effect Toggle */}
+                                              <div className="sm:hidden flex items-center justify-between gap-2 py-0.5">
+                                                <span className="text-xs font-semibold text-base-content/70 flex items-center gap-1.5">
+                                                  <ShieldAlert className="w-3.5 h-3.5 opacity-70" />
+                                                  {t(
+                                                    "admin.role_effect_label",
+                                                    "Effect",
+                                                  )}
+                                                  :
+                                                </span>
+                                                <div className="flex items-center gap-1 bg-base-200/90 p-0.5 rounded-lg border border-base-300/40 shrink-0">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setEffect(
+                                                        perm.key,
+                                                        "allow",
+                                                      )
+                                                    }
+                                                    className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                                                      assignment?.effect ===
+                                                      "allow"
+                                                        ? "bg-success text-success-content font-bold shadow-xs"
+                                                        : "text-base-content/60 hover:text-base-content"
+                                                    }`}
+                                                  >
+                                                    {t(
+                                                      "admin.role_effect_allow",
+                                                      "Allow",
+                                                    )}
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setEffect(
+                                                        perm.key,
+                                                        "deny",
+                                                      )
+                                                    }
+                                                    className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                                                      assignment?.effect ===
+                                                      "deny"
+                                                        ? "bg-error text-error-content font-bold shadow-xs"
+                                                        : "text-base-content/60 hover:text-base-content"
+                                                    }`}
+                                                  >
+                                                    {t(
+                                                      "admin.role_effect_deny",
+                                                      "Deny",
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              </div>
+
+                                              {/* Library Scope Selector (Only for non-admin categories) */}
+                                              {category.id !== "admin" && (
+                                                <LibraryScopeSelector
+                                                  selectedLibraryIds={
+                                                    (assignment?.conditions
+                                                      ?.library_ids as string[]) ||
+                                                    []
+                                                  }
+                                                  onChange={(ids) => {
+                                                    setAssignments((prev) =>
+                                                      prev.map((a) =>
+                                                        a.permission_key ===
+                                                        perm.key
+                                                          ? {
+                                                              ...a,
+                                                              conditions:
+                                                                ids.length > 0
+                                                                  ? {
+                                                                      library_ids:
+                                                                        ids,
+                                                                    }
+                                                                  : {},
+                                                            }
+                                                          : a,
+                                                      ),
+                                                    );
+                                                  }}
+                                                  libraries={libraries}
+                                                />
+                                              )}
+                                            </div>
                                           )}
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
+                            );
+                          },
+                        );
+
+                        if (query && totalMatches === 0) {
+                          return (
+                            <div className="p-8 text-center text-sm text-base-content/60 flex flex-col items-center gap-2">
+                              <Search className="w-8 h-8 opacity-40" />
+                              <p>
+                                {t(
+                                  "admin.no_perms_found",
+                                  "No permissions match your search",
+                                )}
+                              </p>
                             </div>
                           );
-                        });
+                        }
+
+                        return renderedCategories;
                       })()}
                     </div>
                   </div>
@@ -979,7 +1195,9 @@ export function Roles() {
             </form>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setShowModal(false)}>close</button>
+            <button onClick={() => setShowModal(false)}>
+              {t("common.close", "close")}
+            </button>
           </form>
         </dialog>
       )}
@@ -1025,7 +1243,9 @@ export function Roles() {
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setRoleToDelete(null)}>close</button>
+            <button onClick={() => setRoleToDelete(null)}>
+              {t("common.close", "close")}
+            </button>
           </form>
         </dialog>
       )}

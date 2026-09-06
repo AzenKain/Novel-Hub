@@ -121,7 +121,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
       <div className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-md w-full flex flex-col items-center gap-4">
         <h4 className="font-bold text-lg">
           {t("common.crop_image", "Crop & Adjust Photo")}

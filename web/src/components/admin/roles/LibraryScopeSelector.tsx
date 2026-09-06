@@ -130,46 +130,14 @@ export function LibraryScopeSelector({
       {/* Specific Libraries Picker Panel */}
       {!isAll && (
         <div className="bg-base-200/40 border border-base-300/60 rounded-xl p-2.5 sm:p-3 flex flex-col gap-2.5 transition-all animate-fadeIn">
-          {/* Selected Library Chips */}
+          {/* Selected Library Chips & Selector Button */}
           <div className="flex flex-wrap items-center gap-1.5 min-h-8">
-            {selectedLibraryIds.length === 0 ? (
-              <span className="text-xs text-warning flex items-center gap-1 italic">
-                {t(
-                  "no_libraries_selected",
-                  "No libraries selected (Permission will not match any library)",
-                )}
-              </span>
-            ) : (
-              selectedLibraryIds.map((id) => {
-                const lib = libraries.find((l) => l.id === id);
-                return (
-                  <span
-                    key={id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-100 border border-primary/30 text-xs font-medium text-base-content shadow-xs group"
-                  >
-                    <LibraryIcon className="w-3 h-3 text-primary shrink-0" />
-                    <span className="max-w-[130px] sm:max-w-none truncate">
-                      {lib ? lib.name : id}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(id)}
-                      className="hover:bg-error/20 hover:text-error rounded-full p-0.5 transition-colors"
-                      title={t("remove", "Remove")}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                );
-              })
-            )}
-
             {/* Dropdown Button */}
-            <div className="relative inline-block" ref={dropdownRef}>
+            <div className="relative inline-block shrink-0" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="btn btn-xs btn-outline btn-primary gap-1 font-normal"
+                className="btn btn-xs btn-outline btn-primary gap-1 font-normal shadow-2xs"
               >
                 <span>{t("select_libraries", "Select Libraries")}</span>
                 <ChevronDown
@@ -179,7 +147,7 @@ export function LibraryScopeSelector({
 
               {/* Popover Menu */}
               {isOpen && (
-                <div className="absolute left-0 mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-3rem)] bg-base-100 border border-base-300 rounded-xl shadow-xl z-50 p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-4.5rem)] bg-base-100 border border-base-300 rounded-xl shadow-xl z-50 p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95">
                   {/* Search Input */}
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-base-content/40 absolute left-2.5 top-2.5 z-10 pointer-events-none" />
@@ -249,6 +217,38 @@ export function LibraryScopeSelector({
                 </div>
               )}
             </div>
+
+            {selectedLibraryIds.length === 0 ? (
+              <span className="text-xs text-warning flex items-center gap-1 italic">
+                {t(
+                  "no_libraries_selected",
+                  "No libraries selected (Permission will not match any library)",
+                )}
+              </span>
+            ) : (
+              selectedLibraryIds.map((id) => {
+                const lib = libraries.find((l) => l.id === id);
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-100 border border-primary/30 text-xs font-medium text-base-content shadow-xs group"
+                  >
+                    <LibraryIcon className="w-3 h-3 text-primary shrink-0" />
+                    <span className="max-w-32.5 sm:max-w-none truncate">
+                      {lib ? lib.name : id}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(id)}
+                      className="hover:bg-error/20 hover:text-error rounded-full p-0.5 transition-colors"
+                      title={t("remove", "Remove")}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                );
+              })
+            )}
           </div>
         </div>
       )}

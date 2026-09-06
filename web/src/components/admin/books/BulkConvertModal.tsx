@@ -154,14 +154,19 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-3xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            {t("book.bulk_convert_title", "Bulk Convert Books")}
-          </h3>
+      <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-base-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-base-content truncate">
+              {t("book.bulk_convert_title", "Bulk Convert Books")}
+            </h3>
+          </div>
           <button
-            className="btn btn-square btn-sm btn-ghost"
+            className="btn btn-circle btn-xs sm:btn-sm btn-ghost shrink-0"
             onClick={onClose}
             aria-label={t("common.close")}
           >
@@ -171,20 +176,20 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Global Target Format Selection */}
-          <div className="p-3 bg-base-200/50 rounded-2xl border border-base-300">
+          <div className="p-3 sm:p-3.5 bg-base-200/50 rounded-xl sm:rounded-2xl border border-base-300">
             <label className="text-xs font-bold text-base-content/80 block mb-2">
               {t(
                 "book.bulk_convert_global_format",
                 "Set target format for all selected books:",
               )}
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {CONVERT_TARGETS.map((target) => (
                 <button
                   key={target}
                   type="button"
                   onClick={() => handleSetGlobalFormat(target)}
-                  className="btn btn-xs sm:btn-sm btn-outline btn-primary uppercase font-bold"
+                  className="btn btn-xs sm:btn-sm btn-outline btn-primary uppercase font-bold rounded-lg"
                 >
                   {target}
                 </button>
@@ -193,7 +198,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
           </div>
 
           {/* Individual Book List Settings */}
-          <div className="max-h-96 overflow-y-auto space-y-3.5 pr-1">
+          <div className="max-h-[50vh] sm:max-h-96 overflow-y-auto space-y-3 pr-1">
             {books.map((book) => {
               const state = states[book.id];
               if (!state) return null;
@@ -210,111 +215,106 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
               return (
                 <div
                   key={book.id}
-                  className="p-3 border border-base-200 bg-base-100/50 rounded-xl flex flex-col gap-2 shadow-xs"
+                  className="p-3 sm:p-3.5 border border-base-200 bg-base-100/60 rounded-xl sm:rounded-2xl flex flex-col gap-2.5 shadow-xs"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    {/* Book Info */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {book.cover_url ? (
-                        <img
-                          src={getMediaUrl(book.cover_url)}
-                          alt={book.title}
-                          className="w-10 h-14 object-cover rounded shadow-xs shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-14 bg-base-200 rounded flex items-center justify-center text-[10px] font-bold text-base-content/50 border border-base-300 shrink-0">
-                          NO COVER
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <h4
-                          className="text-sm font-bold truncate text-base-content"
-                          title={book.title}
-                        >
-                          {book.title}
-                        </h4>
-                        <p className="text-xs text-base-content/60 truncate">
-                          {book.author_name ||
-                            t("library.unknown_author", "Unknown")}
-                        </p>
+                  {/* Book Info Row */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    {book.cover_url ? (
+                      <img
+                        src={getMediaUrl(book.cover_url)}
+                        alt={book.title}
+                        className="w-10 h-14 sm:w-11 sm:h-16 object-cover rounded-lg shadow-xs border border-base-200 shrink-0 aspect-2/3"
+                      />
+                    ) : (
+                      <div className="w-10 h-14 sm:w-11 sm:h-16 bg-base-200 rounded-lg flex items-center justify-center text-[9px] font-bold text-base-content/50 border border-base-300 shrink-0 aspect-2/3">
+                        NO COVER
                       </div>
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      {hasFiles ? (
-                        <>
-                          {/* Source File */}
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">
-                              {t("book.select_source_file")}
-                            </label>
-                            <select
-                              value={state.selectedFileId}
-                              onChange={(e) =>
-                                updateBookState(book.id, {
-                                  selectedFileId: e.target.value,
-                                })
-                              }
-                              className="select select-bordered select-xs max-w-30"
-                            >
-                              {book.files?.map((f) => (
-                                <option key={f.id} value={f.id}>
-                                  {f.format.toUpperCase()} (
-                                  {formatBytes(f.size_bytes)})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Target Format */}
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase opacity-50">
-                              {t("book.select_target_format")}
-                            </label>
-                            <select
-                              value={state.targetFormat}
-                              onChange={(e) =>
-                                updateBookState(book.id, {
-                                  targetFormat: e.target.value,
-                                  overwriteChecked: false,
-                                })
-                              }
-                              className="select select-bordered select-xs uppercase font-bold text-primary"
-                            >
-                              {CONVERT_TARGETS.map((t) => (
-                                <option key={t} value={t}>
-                                  {t.toUpperCase()}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-xs text-error font-medium">
-                          {t("book.no_files_convert", "No files to convert")}
-                        </span>
-                      )}
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h4
+                        className="text-xs sm:text-sm font-bold truncate text-base-content"
+                        title={book.title}
+                      >
+                        {book.title}
+                      </h4>
+                      <p className="text-[11px] sm:text-xs text-base-content/60 truncate mt-0.5">
+                        {book.author_name ||
+                          t("library.unknown_author", "Unknown")}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Controls Row: 2-column on mobile */}
+                  {hasFiles ? (
+                    <div className="grid grid-cols-2 gap-2 w-full pt-2 border-t border-base-200/70">
+                      {/* Source File */}
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-base-content/60 truncate">
+                          {t("book.select_source_file", "Source file")}
+                        </label>
+                        <select
+                          value={state.selectedFileId}
+                          onChange={(e) =>
+                            updateBookState(book.id, {
+                              selectedFileId: e.target.value,
+                            })
+                          }
+                          className="select select-bordered select-xs sm:select-sm w-full font-medium rounded-lg text-xs"
+                        >
+                          {book.files?.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.format.toUpperCase()} ({formatBytes(f.size_bytes)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Target Format */}
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-base-content/60 truncate">
+                          {t("book.select_target_format", "Target format")}
+                        </label>
+                        <select
+                          value={state.targetFormat}
+                          onChange={(e) =>
+                            updateBookState(book.id, {
+                              targetFormat: e.target.value,
+                              overwriteChecked: false,
+                            })
+                          }
+                          className="select select-bordered select-xs sm:select-sm w-full font-bold uppercase text-primary rounded-lg text-xs"
+                        >
+                          {CONVERT_TARGETS.map((t) => (
+                            <option key={t} value={t}>
+                              {t.toUpperCase()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-error font-medium pt-1">
+                      {t("book.no_files_convert", "No files to convert")}
+                    </div>
+                  )}
+
                   {/* Duplicate Alert Row */}
                   {hasDuplicate && (
-                    <div className="alert bg-warning/10 border border-warning/30 text-xs p-2 rounded-lg flex items-center justify-between gap-4 mt-1">
-                      <div className="flex items-center gap-1.5 text-base-content">
-                        <span className="font-bold text-warning">⚠️</span>
+                    <div className="bg-warning/10 border border-warning/30 text-xs p-2.5 sm:p-3 rounded-xl flex flex-col gap-2">
+                      <div className="flex items-start gap-2 text-base-content leading-snug">
+                        <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                         <span>
                           {t(
                             "book.convert_replace_warning",
-                            "This book already has a {{format}} file.",
+                            "This book already has a {{format}} file. Continuing will overwrite the existing file.",
                             { format: state.targetFormat.toUpperCase() },
                           )}
                         </span>
                       </div>
-                      <label className="flex items-center gap-1.5 cursor-pointer font-semibold select-none text-base-content shrink-0">
+                      <label className="flex items-center gap-2 cursor-pointer font-semibold select-none text-base-content self-start bg-warning/15 hover:bg-warning/25 px-2.5 py-1.5 rounded-lg transition-colors text-xs">
                         <input
                           type="checkbox"
-                          className="checkbox checkbox-xs checkbox-warning"
+                          className="checkbox checkbox-xs checkbox-warning rounded"
                           checked={state.overwriteChecked}
                           onChange={(e) =>
                             updateBookState(book.id, {
@@ -322,7 +322,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
                             })
                           }
                         />
-                        <span>
+                        <span className="whitespace-nowrap">
                           {t("book.convert_confirm_replace", "Yes, replace")}
                         </span>
                       </label>
@@ -333,27 +333,27 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
             })}
           </div>
 
-          <div className="modal-action">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-base-200 mt-4">
             <button
               type="button"
-              className="btn btn-ghost"
+              className="btn btn-ghost btn-xs sm:btn-md rounded-lg sm:rounded-xl font-semibold px-3 sm:px-4"
               onClick={onClose}
               disabled={bulkConvertMutation.isPending}
             >
-              {t("common.cancel")}
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
-              className="btn btn-primary min-w-30"
+              className="btn btn-primary btn-xs sm:btn-md gap-1.5 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-4 sm:px-6 shadow-md shadow-primary/20 text-xs sm:text-sm whitespace-nowrap"
               disabled={bulkConvertMutation.isPending || needsConfirmation}
             >
               {bulkConvertMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                  {t("common.loading")}
+                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                  <span>{t("common.loading", "Loading...")}</span>
                 </>
               ) : (
-                t("book.bulk_convert_start", "Start bulk conversion")
+                <span>{t("book.bulk_convert_start", "Start bulk conversion")}</span>
               )}
             </button>
           </div>

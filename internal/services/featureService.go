@@ -47,7 +47,7 @@ type FeatureService interface {
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
 	DeleteReviewByAdmin(ctx context.Context, targetUserID string, bookID string) error
 	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*response.BookReviewResponse, error)
-	ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error)
+	ListAllReviews(ctx context.Context, limit, offset int64, search string, rating int64, hasText string) ([]*response.BookReviewResponse, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*response.BookRatingSummaryResponse, error)
 	AddBookToCollection(ctx context.Context, userID string, collectionID string, bookID string) error
 	RemoveBookFromCollection(ctx context.Context, userID string, collectionID string, bookID string) error
@@ -512,11 +512,11 @@ func (s *featureService) DeleteReviewByAdmin(ctx context.Context, targetUserID s
 	return s.repo.DeleteBookReview(ctx, targetUserID, bookID)
 }
 
-func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64) ([]*response.BookReviewResponse, error) {
+func (s *featureService) ListAllReviews(ctx context.Context, limit, offset int64, search string, rating int64, hasText string) ([]*response.BookReviewResponse, error) {
 	if limit <= 0 || limit > constants.MaxPaginationLimit {
 		limit = 50
 	}
-	reviews, err := s.repo.ListAllReviews(ctx, limit, offset)
+	reviews, err := s.repo.ListAllReviews(ctx, limit, offset, search, rating, hasText)
 	if err != nil {
 		return nil, err
 	}

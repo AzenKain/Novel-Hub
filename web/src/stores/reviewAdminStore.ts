@@ -8,6 +8,9 @@ interface ReviewAdminState {
   reviewToDelete: AdminReview | null;
   page: number;
   hasMore: boolean;
+  search: string;
+  rating: number;
+  hasText: string;
 
   setReviews: (
     reviews: AdminReview[] | ((prev: AdminReview[]) => AdminReview[]),
@@ -17,6 +20,10 @@ interface ReviewAdminState {
   setReviewToDelete: (review: AdminReview | null) => void;
   setPage: (page: number) => void;
   setHasMore: (hasMore: boolean) => void;
+  setSearch: (search: string) => void;
+  setRating: (rating: number) => void;
+  setHasText: (hasText: string) => void;
+  resetFilters: () => void;
 
   reset: () => void;
 }
@@ -28,6 +35,9 @@ const initialState = {
   reviewToDelete: null,
   page: 0,
   hasMore: true,
+  search: "",
+  rating: 0,
+  hasText: "all",
 };
 
 export const useReviewAdminStore = create<ReviewAdminState>((set) => ({
@@ -42,5 +52,9 @@ export const useReviewAdminStore = create<ReviewAdminState>((set) => ({
   setReviewToDelete: (reviewToDelete) => set({ reviewToDelete }),
   setPage: (page) => set({ page }),
   setHasMore: (hasMore) => set({ hasMore }),
+  setSearch: (search) => set({ search }),
+  setRating: (rating) => set({ rating }),
+  setHasText: (hasText) => set({ hasText }),
+  resetFilters: () => set({ search: "", rating: 0, hasText: "all", page: 0 }),
   reset: () => set(initialState),
 }));

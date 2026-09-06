@@ -66,6 +66,14 @@ WHERE u.is_deleted = 0 AND r.is_deleted = 0 AND (r.name = 'ADMIN' OR r.is_admin 
 DELETE FROM user_roles
 WHERE user_id = ?;
 
+-- name: BulkDeleteRolesFromUsers :exec
+DELETE FROM user_roles
+WHERE user_id IN (sqlc.slice('user_ids'));
+
+-- name: BulkRemoveRoleFromUsers :exec
+DELETE FROM user_roles
+WHERE role_id = ? AND user_id IN (sqlc.slice('user_ids'));
+
 -- name: ListPermissions :many
 SELECT key, description, created_at, updated_at FROM permissions
 ORDER BY key ASC;

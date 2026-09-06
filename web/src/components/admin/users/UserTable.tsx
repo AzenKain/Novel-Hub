@@ -1,5 +1,6 @@
 import {
   KeyRound,
+  LogOut,
   Mail,
   RotateCcw,
   Shield,
@@ -19,10 +20,15 @@ type UserTableProps = {
   onPassword: (user: User) => void;
   onRoles: (user: User) => void;
   onEmail: (user: User) => void;
+  onRevokeSessions?: (user: User) => void;
   onDelete: (user: User) => void;
   onRestore: (user: User) => void;
   currentUserId?: string;
   isCallerOwner?: boolean;
+  selectedUserIds?: string[];
+  onToggleSelectAll?: () => void;
+  onToggleSelectUser?: (id: string) => void;
+  isAllSelected?: boolean;
 };
 
 export const UserTable: React.FC<UserTableProps> = ({
@@ -32,29 +38,45 @@ export const UserTable: React.FC<UserTableProps> = ({
   onPassword,
   onRoles,
   onEmail,
+  onRevokeSessions,
   onDelete,
   onRestore,
   currentUserId,
   isCallerOwner = false,
+  selectedUserIds = [],
+  onToggleSelectAll,
+  onToggleSelectUser,
+  isAllSelected = false,
 }) => (
   <div className="card overflow-hidden border border-base-200 bg-base-100 shadow-sm">
     <div className="overflow-x-auto">
-      <table className="table">
+      <table className="table min-w-full">
         <thead>
           <tr className="bg-base-200/50">
-            <th className="text-xs font-semibold uppercase tracking-wider opacity-70">
+            {onToggleSelectAll && (
+              <th className="w-10 px-3">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-primary checkbox-xs"
+                  checked={isAllSelected}
+                  onChange={onToggleSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
+            )}
+            <th className="text-xs font-semibold uppercase tracking-wider opacity-70 whitespace-nowrap">
               {t("admin.users", "User")}
             </th>
-            <th className="text-xs font-semibold uppercase tracking-wider opacity-70">
+            <th className="text-xs font-semibold uppercase tracking-wider opacity-70 whitespace-nowrap">
               {t("admin.role", "Roles")}
             </th>
-            <th className="text-xs font-semibold uppercase tracking-wider opacity-70">
+            <th className="text-xs font-semibold uppercase tracking-wider opacity-70 whitespace-nowrap">
               {t("admin.status", "Status")}
             </th>
-            <th className="text-xs font-semibold uppercase tracking-wider opacity-70">
+            <th className="text-xs font-semibold uppercase tracking-wider opacity-70 whitespace-nowrap">
               {t("admin.joined", "Joined")}
             </th>
-            <th className="text-right text-xs font-semibold uppercase tracking-wider opacity-70">
+            <th className="text-right text-xs font-semibold uppercase tracking-wider opacity-70 whitespace-nowrap">
               {t("admin.actions", "Actions")}
             </th>
           </tr>
@@ -62,7 +84,7 @@ export const UserTable: React.FC<UserTableProps> = ({
         <tbody>
           {users.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-12 text-center opacity-50">
+              <td colSpan={onToggleSelectAll ? 6 : 5} className="py-12 text-center opacity-50">
                 {t(
                   "admin.no_users",
                   "No users found. Try adjusting your search.",
@@ -79,14 +101,28 @@ export const UserTable: React.FC<UserTableProps> = ({
                 !isOwner && !isSelf && (!isAdmin || isCallerOwner);
               const canManage =
                 isCallerOwner || isSelf || (!isAdmin && !isOwner);
+              const isSelected = selectedUserIds.includes(item.id);
 
               return (
                 <tr
                   key={item.id}
-                  className={`hover ${item.is_deleted ? "bg-base-200 opacity-60" : ""}`}
+                  className={`hover ${item.is_deleted ? "bg-base-200 opacity-60" : ""} ${
+                    isSelected ? "bg-primary/5" : ""
+                  }`}
                 >
+                  {onToggleSelectUser && (
+                    <td className="w-10 px-3">
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-primary checkbox-xs"
+                        checked={isSelected}
+                        onChange={() => onToggleSelectUser(item.id)}
+                        aria-label={`Select ${item.full_name || item.email}`}
+                      />
+                    </td>
+                  )}
                   <td>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 min-w-40">
                       <div className="avatar">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden ring-1 ring-base-content/10">
                           {item.avatar_url ? (
@@ -111,50 +147,55 @@ export const UserTable: React.FC<UserTableProps> = ({
                           )}
                         </div>
                       </div>
-                      <div>
-                        <div className="font-bold">
+                      <div className="min-w-0">
+                        <div className="font-bold truncate">
                           {item.full_name || t("admin.unnamed_user", "Unnamed")}
                         </div>
-                        <div className="text-sm opacity-60">{item.email}</div>
+                        <div className="text-sm opacity-60 truncate">{item.email}</div>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 min-w-25">
                       {item.roles.map((role) => (
                         <span
                           key={role.id}
-                          className="badge badge-primary badge-outline badge-sm font-semibold"
+                          className="badge badge-primary badge-outline badge-sm font-semibold whitespace-nowrap"
                         >
                           {role.name}
                         </span>
                       ))}
                       {item.roles.length === 0 && (
-                        <span className="text-sm opacity-50">
+                        <span className="text-sm opacity-50 whitespace-nowrap">
                           {t("admin.no_role", "No role")}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td>
+                  <td className="whitespace-nowrap">
                     <span
-                      className={`badge badge-sm font-medium ${
+                      className={`badge badge-sm font-medium whitespace-nowrap inline-flex items-center gap-1.5 ${
                         item.is_deleted
                           ? "badge-error badge-outline"
                           : "badge-success badge-outline"
                       }`}
                     >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          item.is_deleted ? "bg-error" : "bg-success"
+                        }`}
+                      />
                       {item.is_deleted
                         ? t("admin.deleted", "Deleted")
                         : t("admin.active", "Active")}
                     </span>
                   </td>
-                  <td className="text-sm opacity-70">
+                  <td className="text-sm opacity-70 whitespace-nowrap">
                     {item.created_at
                       ? new Date(item.created_at).toLocaleDateString()
                       : "-"}
                   </td>
-                  <td className="text-right">
+                  <td className="text-right whitespace-nowrap">
                     <div className="join justify-end">
                       {!item.is_deleted ? (
                         <>
@@ -189,6 +230,18 @@ export const UserTable: React.FC<UserTableProps> = ({
                               )}
                             >
                               <Shield className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canManage && onRevokeSessions && (
+                            <button
+                              onClick={() => onRevokeSessions(item)}
+                              className="btn btn-ghost join-item btn-sm text-warning hover:bg-warning/10"
+                              title={t(
+                                "admin.action_revoke_sessions",
+                                "Revoke all sessions",
+                              )}
+                            >
+                              <LogOut className="h-4 w-4" />
                             </button>
                           )}
                           <button

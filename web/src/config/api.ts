@@ -104,6 +104,26 @@ const authActionPatterns = [
 
 const REFRESH_COOLDOWN_MS = 30_000;
 
+function handleAuthFailure() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+  const publicPaths = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/activate",
+    "/setup",
+  ];
+  const currentPath = window.location.pathname;
+  if (!publicPaths.some((p) => currentPath.startsWith(p))) {
+    const redirectUrl =
+      currentPath !== "/"
+        ? `?redirect=${encodeURIComponent(currentPath + window.location.search)}`
+        : "";
+    window.location.href = `/login${redirectUrl}`;
+  }
+}
+
 api.interceptors.response.use(
   (res) => {
     const url = res.config.url || "";
@@ -121,6 +141,11 @@ api.interceptors.response.use(
 
     const inCooldown =
       refreshFailedAt > 0 && Date.now() - refreshFailedAt < REFRESH_COOLDOWN_MS;
+
+    if (inCooldown && err.response?.status === 401 && !shouldSkip) {
+      handleAuthFailure();
+      return Promise.reject(err);
+    }
 
     if (
       err.response?.status === 401 &&
@@ -164,6 +189,7 @@ api.interceptors.response.use(
         const status = (refreshErr as AxiosError)?.response?.status;
         if (status === 400 || status === 401 || status === 403) {
           refreshFailedAt = Date.now();
+          handleAuthFailure();
         }
         isRefreshing = false;
         processQueue(refreshErr);

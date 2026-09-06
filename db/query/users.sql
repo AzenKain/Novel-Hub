@@ -22,9 +22,22 @@ UPDATE users
 SET
     full_name = COALESCE(sqlc.narg('full_name'), full_name),
     avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
-    oauth2_id = COALESCE(sqlc.narg('oauth2_id'), oauth2_id)
+    oauth2_id = COALESCE(sqlc.narg('oauth2_id'), oauth2_id),
+    max_allowed_age_rating = COALESCE(sqlc.narg('max_allowed_age_rating'), max_allowed_age_rating),
+    is_kids_mode = COALESCE(sqlc.narg('is_kids_mode'), is_kids_mode),
+    token_version = CASE WHEN sqlc.arg('revoke_sessions') = 1 THEN token_version + 1 ELSE token_version END,
+    refresh_token = CASE WHEN sqlc.arg('revoke_sessions') = 1 THEN NULL ELSE refresh_token END,
+    updated_at = datetime('now')
 WHERE id = sqlc.arg('id') AND is_deleted = 0
 RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at;
+
+-- name: RevokeUserSessions :exec
+UPDATE users
+SET
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id = ? AND is_deleted = 0;
 
 -- name: UpdateUserPassword :exec
 UPDATE users
@@ -48,10 +61,44 @@ UPDATE users
 SET is_deleted = 1
 WHERE id = ?;
 
+-- name: BulkDeleteUsers :exec
+UPDATE users
+SET is_deleted = 1,
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: RestoreUser :exec
 UPDATE users
 SET is_deleted = 0
 WHERE id = ?;
+
+-- name: BulkRestoreUsers :exec
+UPDATE users
+SET is_deleted = 0,
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: BulkRevokeUserSessions :exec
+UPDATE users
+SET token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: BulkUpdateUserInfo :exec
+UPDATE users
+SET
+    max_allowed_age_rating = COALESCE(sqlc.narg('max_allowed_age_rating'), max_allowed_age_rating),
+    is_kids_mode = COALESCE(sqlc.narg('is_kids_mode'), is_kids_mode),
+    avatar_url = CASE WHEN sqlc.arg('reset_avatar') = 1 THEN NULL ELSE avatar_url END,
+    token_version = CASE WHEN sqlc.arg('revoke_sessions') = 1 THEN token_version + 1 ELSE token_version END,
+    refresh_token = CASE WHEN sqlc.arg('revoke_sessions') = 1 THEN NULL ELSE refresh_token END,
+    updated_at = datetime('now')
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetUserTokenVersion :one
 SELECT token_version

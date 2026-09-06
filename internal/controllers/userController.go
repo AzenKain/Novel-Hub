@@ -26,12 +26,17 @@ func (h *UserController) CreateUser(c fiber.Ctx) error {
 	ctx, cancel := auditContext(c, 10*time.Second)
 	defer cancel()
 
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
 	dto := &request.CreateUserDto{}
 	if err := validator.ValidateBodyDto(c, dto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	res, err := h.service.CreateUser(ctx, dto)
+	res, err := h.service.CreateUser(ctx, claims, dto)
 	if err != nil {
 		return apperrors.HandleError(c, err)
 	}
@@ -168,6 +173,27 @@ func (h *UserController) AdminResetPassword(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "Password reset successfully"})
 }
 
+func (h *UserController) RevokeUserSessions(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 10*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	targetID := c.Params("id")
+	if targetID == "current" || targetID == "" {
+		targetID = claims.UId
+	}
+
+	if err := h.service.RevokeUserSessions(ctx, targetID, claims); err != nil {
+		return apperrors.HandleError(c, err)
+	}
+	h.audit.Record(ctx, services.AuditActionUserRevokeSessions, "user", targetID, "")
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Message: "User sessions revoked successfully"})
+}
+
 func (h *UserController) SendUserEmail(c fiber.Ctx) error {
 	ctx, cancel := auditContext(c, 45*time.Second)
 	defer cancel()
@@ -267,3 +293,151 @@ func (h *UserController) UploadAvatar(c fiber.Ctx) error {
 		Data:   map[string]string{"url": avatarURL},
 	})
 }
+
+func (h *UserController) AdminUploadAvatar(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 10*time.Second)
+	defer cancel()
+
+	targetUserID := c.Params("id")
+	if targetUserID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "Invalid user ID"})
+	}
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Message: "No file uploaded"})
+	}
+
+	avatarURL, err := h.service.AdminUploadAvatar(ctx, targetUserID, claims, fileHeader)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", targetUserID, "Avatar uploaded")
+
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{
+		Status: true,
+		Data:   map[string]string{"url": avatarURL},
+	})
+}
+
+func (h *UserController) BulkDeleteUsers(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkUserActionDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.BulkDeleteUsers(ctx, claims, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserDelete, "user", "bulk", "")
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *UserController) BulkRestoreUsers(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkUserActionDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.BulkRestoreUsers(ctx, claims, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", "bulk_restore", "")
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *UserController) BulkChangeUserRoles(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkChangeUserRolesDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.BulkChangeUserRoles(ctx, claims, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", "bulk_roles", dto.Action)
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *UserController) BulkUpdateUserInfo(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkUpdateUserInfoDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.BulkUpdateUserInfo(ctx, claims, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", "bulk_info", "")
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+
+func (h *UserController) BulkSendEmail(c fiber.Ctx) error {
+	ctx, cancel := auditContext(c, 30*time.Second)
+	defer cancel()
+
+	claims, ok := getUserClaims(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{Status: false, Message: "Unauthorized"})
+	}
+
+	dto := &request.BulkSendUserEmailDto{}
+	if err := validator.ValidateBodyDto(c, dto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
+	}
+
+	res, err := h.service.BulkSendEmail(ctx, claims, dto)
+	if err != nil {
+		return apperrors.HandleError(c, err)
+	}
+
+	h.audit.Record(ctx, services.AuditActionUserUpdate, "user", "bulk_email", dto.Subject)
+	return c.Status(fiber.StatusOK).JSON(response.CommonResponse{Status: true, Data: res})
+}
+

@@ -56,6 +56,8 @@ export type User = {
   token_version: number;
   is_deleted: boolean;
   is_owner?: boolean;
+  is_kids_mode?: boolean;
+  max_allowed_age_rating?: string;
   created_at?: string;
   updated_at?: string;
   roles: RoleSimple[];
@@ -83,11 +85,16 @@ export type CreateUserRequest = {
   full_name: string;
   avatar_url?: string;
   role_ids?: string[];
+  is_kids_mode?: boolean;
+  max_allowed_age_rating?: string;
 };
 
 export type UpdateProfileRequest = {
   full_name?: string;
   avatar_url?: string;
+  is_kids_mode?: boolean;
+  max_allowed_age_rating?: string;
+  revoke_sessions?: boolean;
 };
 
 export type ChangePasswordRequest = {

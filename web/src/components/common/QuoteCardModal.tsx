@@ -460,7 +460,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
 
   return (
     <dialog
-      className="modal modal-open z-60 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="modal modal-open z-60 bg-black/50 animate-in fade-in duration-200"
       data-reader-modal="true"
     >
       <div className="modal-box w-[calc(100vw-2rem)] max-w-lg p-3.5 sm:p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col gap-3 sm:gap-4 max-h-[92vh] overflow-x-hidden overflow-y-auto">

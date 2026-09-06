@@ -4,13 +4,11 @@ import {
   Edit2,
   Filter,
   Trash2,
-  LayoutDashboard,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { featureService } from "@/services";
-import { hasPermission } from "@/utils/permission";
 import { toast } from "react-toastify";
 import { DeleteConfirmModal } from "@/components/admin/books/DeleteConfirmModal";
 import { usePublicSettings } from "@/hooks/useSettings";
@@ -231,17 +229,6 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               </li>
             ))}
             {secondaryNavItems.map(renderNavButton)}
-            {user && hasPermission(user, "admin.access") && (
-              <li>
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-2 text-base-content/80 hover:text-primary font-medium"
-                >
-                  <LayoutDashboard className="w-5 h-5 text-primary opacity-80" />
-                  {t("admin.dashboard", "Admin")}
-                </Link>
-              </li>
-            )}
           </ul>
         </div>
 
@@ -521,7 +508,7 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       {editingCollection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
-            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+            className="absolute inset-0 bg-black/50"
             onClick={() => setEditingCollection(null)}
           />
           <form

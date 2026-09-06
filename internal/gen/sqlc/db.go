@@ -54,8 +54,26 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.bulkDeleteRolesFromUserStmt, err = db.PrepareContext(ctx, bulkDeleteRolesFromUser); err != nil {
 		return nil, fmt.Errorf("error preparing query BulkDeleteRolesFromUser: %w", err)
 	}
+	if q.bulkDeleteRolesFromUsersStmt, err = db.PrepareContext(ctx, bulkDeleteRolesFromUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkDeleteRolesFromUsers: %w", err)
+	}
+	if q.bulkDeleteUsersStmt, err = db.PrepareContext(ctx, bulkDeleteUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkDeleteUsers: %w", err)
+	}
+	if q.bulkRemoveRoleFromUsersStmt, err = db.PrepareContext(ctx, bulkRemoveRoleFromUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkRemoveRoleFromUsers: %w", err)
+	}
+	if q.bulkRestoreUsersStmt, err = db.PrepareContext(ctx, bulkRestoreUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkRestoreUsers: %w", err)
+	}
+	if q.bulkRevokeUserSessionsStmt, err = db.PrepareContext(ctx, bulkRevokeUserSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkRevokeUserSessions: %w", err)
+	}
 	if q.bulkUpdateBookLibraryStmt, err = db.PrepareContext(ctx, bulkUpdateBookLibrary); err != nil {
 		return nil, fmt.Errorf("error preparing query BulkUpdateBookLibrary: %w", err)
+	}
+	if q.bulkUpdateUserInfoStmt, err = db.PrepareContext(ctx, bulkUpdateUserInfo); err != nil {
+		return nil, fmt.Errorf("error preparing query BulkUpdateUserInfo: %w", err)
 	}
 	if q.claimInitialSetupStmt, err = db.PrepareContext(ctx, claimInitialSetup); err != nil {
 		return nil, fmt.Errorf("error preparing query ClaimInitialSetup: %w", err)
@@ -786,6 +804,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listFilteredJobIDsStmt, err = db.PrepareContext(ctx, listFilteredJobIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFilteredJobIDs: %w", err)
 	}
+	if q.listFilteredReviewsStmt, err = db.PrepareContext(ctx, listFilteredReviews); err != nil {
+		return nil, fmt.Errorf("error preparing query ListFilteredReviews: %w", err)
+	}
 	if q.listFormatsWithCountStmt, err = db.PrepareContext(ctx, listFormatsWithCount); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFormatsWithCount: %w", err)
 	}
@@ -989,6 +1010,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.restoreUserStmt, err = db.PrepareContext(ctx, restoreUser); err != nil {
 		return nil, fmt.Errorf("error preparing query RestoreUser: %w", err)
+	}
+	if q.revokeUserSessionsStmt, err = db.PrepareContext(ctx, revokeUserSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeUserSessions: %w", err)
 	}
 	if q.rotateUserRefreshTokenStmt, err = db.PrepareContext(ctx, rotateUserRefreshToken); err != nil {
 		return nil, fmt.Errorf("error preparing query RotateUserRefreshToken: %w", err)
@@ -1237,9 +1261,39 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing bulkDeleteRolesFromUserStmt: %w", cerr)
 		}
 	}
+	if q.bulkDeleteRolesFromUsersStmt != nil {
+		if cerr := q.bulkDeleteRolesFromUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkDeleteRolesFromUsersStmt: %w", cerr)
+		}
+	}
+	if q.bulkDeleteUsersStmt != nil {
+		if cerr := q.bulkDeleteUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkDeleteUsersStmt: %w", cerr)
+		}
+	}
+	if q.bulkRemoveRoleFromUsersStmt != nil {
+		if cerr := q.bulkRemoveRoleFromUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkRemoveRoleFromUsersStmt: %w", cerr)
+		}
+	}
+	if q.bulkRestoreUsersStmt != nil {
+		if cerr := q.bulkRestoreUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkRestoreUsersStmt: %w", cerr)
+		}
+	}
+	if q.bulkRevokeUserSessionsStmt != nil {
+		if cerr := q.bulkRevokeUserSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkRevokeUserSessionsStmt: %w", cerr)
+		}
+	}
 	if q.bulkUpdateBookLibraryStmt != nil {
 		if cerr := q.bulkUpdateBookLibraryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing bulkUpdateBookLibraryStmt: %w", cerr)
+		}
+	}
+	if q.bulkUpdateUserInfoStmt != nil {
+		if cerr := q.bulkUpdateUserInfoStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing bulkUpdateUserInfoStmt: %w", cerr)
 		}
 	}
 	if q.claimInitialSetupStmt != nil {
@@ -2457,6 +2511,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listFilteredJobIDsStmt: %w", cerr)
 		}
 	}
+	if q.listFilteredReviewsStmt != nil {
+		if cerr := q.listFilteredReviewsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listFilteredReviewsStmt: %w", cerr)
+		}
+	}
 	if q.listFormatsWithCountStmt != nil {
 		if cerr := q.listFormatsWithCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listFormatsWithCountStmt: %w", cerr)
@@ -2795,6 +2854,11 @@ func (q *Queries) Close() error {
 	if q.restoreUserStmt != nil {
 		if cerr := q.restoreUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing restoreUserStmt: %w", cerr)
+		}
+	}
+	if q.revokeUserSessionsStmt != nil {
+		if cerr := q.revokeUserSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeUserSessionsStmt: %w", cerr)
 		}
 	}
 	if q.rotateUserRefreshTokenStmt != nil {
@@ -3166,7 +3230,13 @@ type Queries struct {
 	bulkDeleteBookTagsStmt             *sql.Stmt
 	bulkDeleteBooksStmt                *sql.Stmt
 	bulkDeleteRolesFromUserStmt        *sql.Stmt
+	bulkDeleteRolesFromUsersStmt       *sql.Stmt
+	bulkDeleteUsersStmt                *sql.Stmt
+	bulkRemoveRoleFromUsersStmt        *sql.Stmt
+	bulkRestoreUsersStmt               *sql.Stmt
+	bulkRevokeUserSessionsStmt         *sql.Stmt
 	bulkUpdateBookLibraryStmt          *sql.Stmt
+	bulkUpdateUserInfoStmt             *sql.Stmt
 	claimInitialSetupStmt              *sql.Stmt
 	claimJobScheduleStmt               *sql.Stmt
 	clearBookContentWarningsStmt       *sql.Stmt
@@ -3410,6 +3480,7 @@ type Queries struct {
 	listEpisodesByPodcastStmt          *sql.Stmt
 	listFileIDsByBookIdStmt            *sql.Stmt
 	listFilteredJobIDsStmt             *sql.Stmt
+	listFilteredReviewsStmt            *sql.Stmt
 	listFormatsWithCountStmt           *sql.Stmt
 	listJobScheduleIDsStmt             *sql.Stmt
 	listJobsStmt                       *sql.Stmt
@@ -3478,6 +3549,7 @@ type Queries struct {
 	repointHighlightChaptersStmt       *sql.Stmt
 	repointReadingProgressFileStmt     *sql.Stmt
 	restoreUserStmt                    *sql.Stmt
+	revokeUserSessionsStmt             *sql.Stmt
 	rotateUserRefreshTokenStmt         *sql.Stmt
 	searchBookIDsStmt                  *sql.Stmt
 	searchBookIDsOrderBySeriesStmt     *sql.Stmt
@@ -3558,7 +3630,13 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		bulkDeleteBookTagsStmt:             q.bulkDeleteBookTagsStmt,
 		bulkDeleteBooksStmt:                q.bulkDeleteBooksStmt,
 		bulkDeleteRolesFromUserStmt:        q.bulkDeleteRolesFromUserStmt,
+		bulkDeleteRolesFromUsersStmt:       q.bulkDeleteRolesFromUsersStmt,
+		bulkDeleteUsersStmt:                q.bulkDeleteUsersStmt,
+		bulkRemoveRoleFromUsersStmt:        q.bulkRemoveRoleFromUsersStmt,
+		bulkRestoreUsersStmt:               q.bulkRestoreUsersStmt,
+		bulkRevokeUserSessionsStmt:         q.bulkRevokeUserSessionsStmt,
 		bulkUpdateBookLibraryStmt:          q.bulkUpdateBookLibraryStmt,
+		bulkUpdateUserInfoStmt:             q.bulkUpdateUserInfoStmt,
 		claimInitialSetupStmt:              q.claimInitialSetupStmt,
 		claimJobScheduleStmt:               q.claimJobScheduleStmt,
 		clearBookContentWarningsStmt:       q.clearBookContentWarningsStmt,
@@ -3802,6 +3880,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listEpisodesByPodcastStmt:          q.listEpisodesByPodcastStmt,
 		listFileIDsByBookIdStmt:            q.listFileIDsByBookIdStmt,
 		listFilteredJobIDsStmt:             q.listFilteredJobIDsStmt,
+		listFilteredReviewsStmt:            q.listFilteredReviewsStmt,
 		listFormatsWithCountStmt:           q.listFormatsWithCountStmt,
 		listJobScheduleIDsStmt:             q.listJobScheduleIDsStmt,
 		listJobsStmt:                       q.listJobsStmt,
@@ -3870,6 +3949,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		repointHighlightChaptersStmt:       q.repointHighlightChaptersStmt,
 		repointReadingProgressFileStmt:     q.repointReadingProgressFileStmt,
 		restoreUserStmt:                    q.restoreUserStmt,
+		revokeUserSessionsStmt:             q.revokeUserSessionsStmt,
 		rotateUserRefreshTokenStmt:         q.rotateUserRefreshTokenStmt,
 		searchBookIDsStmt:                  q.searchBookIDsStmt,
 		searchBookIDsOrderBySeriesStmt:     q.searchBookIDsOrderBySeriesStmt,

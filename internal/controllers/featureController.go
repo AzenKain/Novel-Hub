@@ -542,12 +542,13 @@ func (c *FeatureController) ListAllReviews(ctx fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	dto := &request.PaginationDto{Limit: 50}
+	dto := &request.ListAdminReviewsDto{}
+	dto.Limit = 50
 	if err := validator.ValidateQueryDto(ctx, dto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{Status: false, Errors: err})
 	}
 
-	reviews, err := c.service.ListAllReviews(reqCtx, int64(dto.Limit), int64(dto.Offset))
+	reviews, err := c.service.ListAllReviews(reqCtx, int64(dto.Limit), int64(dto.Offset), dto.Search, dto.Rating, dto.HasText)
 	if err != nil {
 		return apperrors.HandleError(ctx, err)
 	}

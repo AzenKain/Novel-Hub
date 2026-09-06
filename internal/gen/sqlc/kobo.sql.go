@@ -60,7 +60,6 @@ SELECT token, user_id, created_at, last_used_at FROM kobo_auth_tokens
 WHERE token = ? LIMIT 1
 `
 
-// The hot path: every device request resolves its path token to a user.
 func (q *Queries) GetKoboUserByToken(ctx context.Context, token string) (KoboAuthToken, error) {
 	row := q.queryRow(ctx, q.getKoboUserByTokenStmt, getKoboUserByToken, token)
 	var i KoboAuthToken

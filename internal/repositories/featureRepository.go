@@ -40,7 +40,7 @@ type FeatureRepository interface {
 	DeleteBookReview(ctx context.Context, userID string, bookID string) error
 	GetBookReview(ctx context.Context, userID string, bookID string) (*models.BookReviewEntity, error)
 	ListBookReviews(ctx context.Context, bookID string, cursor *time.Time, cursorID string, limit int64) ([]*models.BookReviewEntity, error)
-	ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error)
+	ListAllReviews(ctx context.Context, limit, offset int64, search string, rating int64, hasText string) ([]*models.BookReviewEntity, error)
 	GetBookRatingSummary(ctx context.Context, bookID string) (*models.BookRatingSummaryEntity, error)
 	GetBookSocialStats(ctx context.Context, bookID string) (*models.BookSocialStatsEntity, error)
 	CreateBookShareEvent(ctx context.Context, bookID string, actorKey string, windowBucket int64) (bool, error)
@@ -1039,8 +1039,45 @@ func (r *featureRepository) getBookReviewsByCompositeKeys(ctx context.Context, k
 	return ordered, true
 }
 
-func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset int64) ([]*models.BookReviewEntity, error) {
-	key := cache.BuildKey("feature", "all_reviews", "limit", limit, "offset", offset)
+func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset int64, search string, rating int64, hasText string) ([]*models.BookReviewEntity, error) {
+	search = strings.TrimSpace(search)
+	hasText = strings.TrimSpace(strings.ToLower(hasText))
+	if hasText != "true" && hasText != "false" {
+		hasText = ""
+	}
+
+	if search == "" && rating == 0 && hasText == "" {
+		key := cache.BuildKey("feature", "all_reviews", "limit", limit, "offset", offset)
+		if r.c != nil && !r.inTx {
+			var reviews []*models.BookReviewEntity
+			if err := r.c.Get(ctx, key, &reviews); err == nil {
+				return reviews, nil
+			}
+		}
+
+		v, err, _ := r.sfg.Do(key, func() (any, error) {
+			rows, err := r.queries.ListAllReviews(ctx, sqlc.ListAllReviewsParams{
+				Limit:  limit,
+				Offset: offset,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			reviews := (&models.BookReviewEntities{}).FromListAllReviewsSqlc(rows)
+
+			if r.c != nil && !r.inTx {
+				_ = r.c.Set(ctx, key, reviews, constants.ListCacheDuration)
+			}
+			return reviews, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return v.([]*models.BookReviewEntity), nil
+	}
+
+	key := cache.BuildKey("feature", "filtered_reviews", "limit", limit, "offset", offset, "s", search, "r", rating, "t", hasText)
 	if r.c != nil && !r.inTx {
 		var reviews []*models.BookReviewEntity
 		if err := r.c.Get(ctx, key, &reviews); err == nil {
@@ -1049,15 +1086,31 @@ func (r *featureRepository) ListAllReviews(ctx context.Context, limit, offset in
 	}
 
 	v, err, _ := r.sfg.Do(key, func() (any, error) {
-		rows, err := r.queries.ListAllReviews(ctx, sqlc.ListAllReviewsParams{
-			Limit:  limit,
-			Offset: offset,
+		var ratingParam any
+		if rating > 0 {
+			ratingParam = rating
+		}
+		var searchParam any
+		if search != "" {
+			searchParam = search
+		}
+		var hasTextParam any
+		if hasText != "" {
+			hasTextParam = hasText
+		}
+
+		rows, err := r.queries.ListFilteredReviews(ctx, sqlc.ListFilteredReviewsParams{
+			Rating:  ratingParam,
+			Search:  searchParam,
+			HasText: hasTextParam,
+			Offset:  offset,
+			Limit:   limit,
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		reviews := (&models.BookReviewEntities{}).FromListAllReviewsSqlc(rows)
+		reviews := (&models.BookReviewEntities{}).FromListFilteredReviewsSqlc(rows)
 
 		if r.c != nil && !r.inTx {
 			_ = r.c.Set(ctx, key, reviews, constants.ListCacheDuration)

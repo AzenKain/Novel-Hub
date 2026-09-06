@@ -965,7 +965,7 @@ export function AudioPlayer({
 
           {/* Add Bookmark Modal Dialog */}
           {showAddBookmarkModal && (
-            <dialog className="modal modal-open z-60 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <dialog className="modal modal-open z-60 bg-black/50 animate-in fade-in duration-150">
               <div className="modal-box max-w-sm p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0)">
                 <div className="flex items-center justify-between pb-2 mb-3 border-b border-(--reader-ui-border,rgba(255,255,255,0.12))">
                   <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">

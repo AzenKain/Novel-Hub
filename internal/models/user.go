@@ -20,11 +20,13 @@ type UserEntity struct {
 	TokenVersion int32         `json:"token_version"`
 	AuthProvider string        `json:"auth_provider"`
 	Oauth2ID     string        `json:"oauth2_id"`
-	RefreshToken string        `json:"-"`
-	IsDeleted    bool          `json:"is_deleted"`
-	CreatedAt    string        `json:"created_at"`
-	UpdatedAt    string        `json:"updated_at"`
-	Roles        []*RoleSimple `json:"roles"`
+	RefreshToken        string        `json:"-"`
+	IsDeleted           bool          `json:"is_deleted"`
+	IsKidsMode          bool          `json:"is_kids_mode"`
+	MaxAllowedAgeRating string        `json:"max_allowed_age_rating"`
+	CreatedAt           string        `json:"created_at"`
+	UpdatedAt           string        `json:"updated_at"`
+	Roles               []*RoleSimple `json:"roles"`
 }
 
 func (u *UserEntity) ParseRoles(data []byte) error {
@@ -40,17 +42,19 @@ func (u *UserEntity) ToResponse() *response.UserResponse {
 		return nil
 	}
 	return &response.UserResponse{
-		ID:           u.ID,
-		Email:        u.Email,
-		TokenVersion: u.TokenVersion,
-		FullName:     u.FullName,
-		AvatarUrl:    u.AvatarUrl,
-		AuthProvider: u.AuthProvider,
-		Oauth2ID:     u.Oauth2ID,
-		IsDeleted:    u.IsDeleted,
-		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.UpdatedAt,
-		Roles:        RolesToResponse(u.Roles),
+		ID:                  u.ID,
+		Email:               u.Email,
+		TokenVersion:        u.TokenVersion,
+		FullName:            u.FullName,
+		AvatarUrl:           u.AvatarUrl,
+		AuthProvider:        u.AuthProvider,
+		Oauth2ID:            u.Oauth2ID,
+		IsDeleted:           u.IsDeleted,
+		IsKidsMode:          u.IsKidsMode,
+		MaxAllowedAgeRating: u.MaxAllowedAgeRating,
+		CreatedAt:           u.CreatedAt,
+		UpdatedAt:           u.UpdatedAt,
+		Roles:               RolesToResponse(u.Roles),
 	}
 }
 
@@ -87,6 +91,8 @@ func (u *UserEntity) FromSqlc(row sqlc.User) *UserEntity {
 	u.TokenVersion = int32(row.TokenVersion)
 	u.RefreshToken = convert.NullStringToString(row.RefreshToken)
 	u.IsDeleted = row.IsDeleted != 0
+	u.IsKidsMode = row.IsKidsMode != 0
+	u.MaxAllowedAgeRating = row.MaxAllowedAgeRating
 	u.CreatedAt = row.CreatedAt
 	u.UpdatedAt = row.UpdatedAt
 	u.Roles = []*RoleSimple{}

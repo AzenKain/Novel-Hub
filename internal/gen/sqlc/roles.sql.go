@@ -20,6 +20,52 @@ func (q *Queries) BulkDeleteRolesFromUser(ctx context.Context, userID string) er
 	return err
 }
 
+const bulkDeleteRolesFromUsers = `-- name: BulkDeleteRolesFromUsers :exec
+DELETE FROM user_roles
+WHERE user_id IN (/*SLICE:user_ids*/?)
+`
+
+func (q *Queries) BulkDeleteRolesFromUsers(ctx context.Context, userIds []string) error {
+	query := bulkDeleteRolesFromUsers
+	var queryParams []interface{}
+	if len(userIds) > 0 {
+		for _, v := range userIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", strings.Repeat(",?", len(userIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkRemoveRoleFromUsers = `-- name: BulkRemoveRoleFromUsers :exec
+DELETE FROM user_roles
+WHERE role_id = ? AND user_id IN (/*SLICE:user_ids*/?)
+`
+
+type BulkRemoveRoleFromUsersParams struct {
+	RoleID  string   `json:"role_id"`
+	UserIds []string `json:"user_ids"`
+}
+
+func (q *Queries) BulkRemoveRoleFromUsers(ctx context.Context, arg BulkRemoveRoleFromUsersParams) error {
+	query := bulkRemoveRoleFromUsers
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.RoleID)
+	if len(arg.UserIds) > 0 {
+		for _, v := range arg.UserIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", strings.Repeat(",?", len(arg.UserIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
 const countActiveAdminUsers = `-- name: CountActiveAdminUsers :one
 SELECT COUNT(DISTINCT u.id)
 FROM users u

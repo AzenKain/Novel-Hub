@@ -11,6 +11,7 @@ import {
   ZoomIn,
   ZoomOut,
   GripVertical,
+  Loader2,
 } from "lucide-react";
 import React, {
   useState,
@@ -274,6 +275,21 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   const [segments, setSegments] = useState<TimelineSegment[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
 
+  const activeFiles = useMemo(() => {
+    return orderedFiles.filter((f) => selected.has(f.id));
+  }, [orderedFiles, selected]);
+
+  const isDecoding = useMemo(() => {
+    if (activeFiles.length === 0) return false;
+    const hasUnfinishedFiles = activeFiles.some(
+      (f) => !decodedBuffers[f.id] && decodingStatus[f.id] !== "error",
+    );
+    const hasZeroDurationSegments = segments.some(
+      (s) => s.duration <= 0 && decodingStatus[s.fileId] !== "error",
+    );
+    return hasUnfinishedFiles || hasZeroDurationSegments;
+  }, [activeFiles, decodedBuffers, decodingStatus, segments]);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pendingSeekTime = useRef<number | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -291,7 +307,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
 
   const handleTrackPointerDown = useCallback(
     (e: React.PointerEvent, index: number) => {
-      if (e.button !== 0) return;
+      if (isDecoding || e.button !== 0) return;
       dragState.current = {
         sourceIndex: index,
         active: false,
@@ -300,7 +316,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
         didMove: false,
       };
     },
-    [],
+    [isDecoding],
   );
 
   useEffect(() => {
@@ -414,10 +430,6 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
     };
   }, [orderedFiles]);
 
-  const activeFiles = useMemo(() => {
-    return orderedFiles.filter((f) => selected.has(f.id));
-  }, [orderedFiles, selected]);
-
   useEffect(() => {
     const nextSegments = activeFiles.map((f) => {
       const buffer = decodedBuffers[f.id];
@@ -506,6 +518,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   };
 
   const handleScrub = (newGlobalTime: number) => {
+    if (isDecoding || totalDuration <= 0) return;
     const clampedTime = Math.max(0, Math.min(newGlobalTime, totalDuration));
     setCurrentTime(clampedTime);
     if (audioRef.current) {
@@ -536,6 +549,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   };
 
   const handlePlayheadMouseDown = (e: React.MouseEvent) => {
+    if (isDecoding || totalDuration <= 0) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingPlayhead(true);
@@ -564,7 +578,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   }, [isDraggingPlayhead, totalDuration]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (isDecoding || totalDuration <= 0 || !audioRef.current) return;
     if (playing) {
       audioRef.current.pause();
       setPlaying(false);
@@ -599,6 +613,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   };
 
   const handleSplitAtPlayhead = () => {
+    if (isDecoding || totalDuration <= 0) return;
     const activeRange =
       segmentRanges.find(
         (r) => currentTime >= r.start && currentTime < r.end,
@@ -798,7 +813,8 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setZoomLevel((z) => Math.max(1, z - 0.5))}
-                  className="btn btn-ghost btn-xs btn-circle"
+                  disabled={isDecoding || totalDuration <= 0}
+                  className="btn btn-ghost btn-xs btn-circle disabled:opacity-30"
                   title={t("audiobook.zoom_out", "Zoom Out")}
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
@@ -809,13 +825,15 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                   max={10}
                   step={0.1}
                   value={zoomLevel}
+                  disabled={isDecoding || totalDuration <= 0}
                   onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
-                  className="range range-primary range-xs w-24"
+                  className="range range-primary range-xs w-24 disabled:opacity-30 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={() => setZoomLevel((z) => Math.min(10, z + 0.5))}
-                  className="btn btn-ghost btn-xs btn-circle"
+                  disabled={isDecoding || totalDuration <= 0}
+                  className="btn btn-ghost btn-xs btn-circle disabled:opacity-30"
                   title={t("audiobook.zoom_in", "Zoom In")}
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
@@ -827,6 +845,21 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
             </div>
 
             <div className="relative border border-base-300 rounded-2xl bg-base-200/20 overflow-x-auto overflow-y-hidden shadow-xs">
+              {/* Calculating / decoding overlay */}
+              {isDecoding && (
+                <div className="absolute inset-0 z-40 bg-base-300/80 flex flex-col items-center justify-center gap-2 rounded-2xl pointer-events-auto select-none">
+                  <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-base-100/95 shadow-md border border-base-300 text-xs sm:text-sm font-medium text-base-content">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                    <span>
+                      {t(
+                        "audiobook.calculating_timeline",
+                        "Calculating audio timeline...",
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div
                 ref={timelineRef}
                 className="flex items-stretch relative select-none cursor-pointer"
@@ -836,7 +869,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                   height: "180px",
                 }}
                 onClick={(e) => {
-                  if (totalDuration <= 0 || isDraggingPlayhead) return;
+                  if (isDecoding || totalDuration <= 0 || isDraggingPlayhead) return;
                   if (dragState.current?.didMove) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
@@ -881,9 +914,13 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                         width:
                           totalDuration > 0
                             ? `${(range.segment.duration / totalDuration) * 100}%`
-                            : "0%",
+                            : `${100 / Math.max(1, segmentRanges.length)}%`,
                         minWidth: "80px",
-                        cursor: dragState.current?.active ? "grabbing" : "grab",
+                        cursor: isDecoding
+                          ? "default"
+                          : dragState.current?.active
+                            ? "grabbing"
+                            : "grab",
                       }}
                     >
                       {/* Inner card containing the visual track */}
@@ -909,8 +946,9 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                                 e.stopPropagation();
                                 removeSegment(range.segment.id);
                               }}
+                              disabled={isDecoding}
                               onPointerDown={(e) => e.stopPropagation()}
-                              className="btn btn-ghost btn-circle btn-xs h-3.5 w-3.5 min-h-0 p-0 text-error/60 hover:text-error hover:bg-error/10"
+                              className="btn btn-ghost btn-circle btn-xs h-3.5 w-3.5 min-h-0 p-0 text-error/60 hover:text-error hover:bg-error/10 disabled:opacity-30 disabled:cursor-not-allowed"
                               title={t(
                                 "audiobook.remove_segment",
                                 "Remove segment",
@@ -945,7 +983,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                 })}
 
                 {/* Absolute playhead overlay */}
-                {totalDuration > 0 && (
+                {totalDuration > 0 && !isDecoding && (
                   <div
                     onMouseDown={handlePlayheadMouseDown}
                     className="absolute top-0 bottom-0 w-5 -ml-2.5 z-30 cursor-ew-resize group/playhead pointer-events-auto"
@@ -966,7 +1004,8 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="btn btn-primary btn-xs btn-circle text-white shadow-xs"
+                  disabled={isDecoding || totalDuration <= 0}
+                  className="btn btn-primary btn-xs btn-circle text-white shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                   title={
                     playing
                       ? t("audiobook.pause", "Pause")
@@ -985,20 +1024,19 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                {totalDuration > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleSplitAtPlayhead}
-                    className="btn btn-error btn-xs gap-1 text-white shadow-xs"
-                    title={t(
-                      "audiobook.split_track_desc",
-                      "Split track at current playhead position",
-                    )}
-                  >
-                    <Scissors className="w-3 h-3" />
-                    {t("audiobook.split_track", "Split Track")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleSplitAtPlayhead}
+                  disabled={isDecoding || totalDuration <= 0}
+                  className="btn btn-error btn-xs gap-1 text-white shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={t(
+                    "audiobook.split_track_desc",
+                    "Split track at current playhead position",
+                  )}
+                >
+                  <Scissors className="w-3 h-3" />
+                  {t("audiobook.split_track", "Split Track")}
+                </button>
                 <span>
                   {t("audiobook.total_duration", "Total Duration")}:{" "}
                   {formatTime(totalDuration)}
@@ -1007,17 +1045,16 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
             </div>
 
             {/* Range slider for scrubber */}
-            {totalDuration > 0 && (
-              <input
-                type="range"
-                min={0}
-                max={totalDuration}
-                step={0.01}
-                value={currentTime}
-                onChange={(e) => handleScrub(parseFloat(e.target.value))}
-                className="range range-primary range-xs mt-1"
-              />
-            )}
+            <input
+              type="range"
+              min={0}
+              max={Math.max(totalDuration, 1)}
+              step={0.01}
+              value={currentTime}
+              disabled={isDecoding || totalDuration <= 0}
+              onChange={(e) => handleScrub(parseFloat(e.target.value))}
+              className="range range-primary range-xs mt-1 disabled:opacity-30 disabled:cursor-not-allowed"
+            />
           </div>
 
           {/* Invisible Audio Element */}
@@ -1138,11 +1175,21 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
             <button
               type="submit"
               className="btn btn-primary min-w-30"
-              disabled={merge.isPending || selected.size < 2}
+              disabled={merge.isPending || selected.size < 2 || isDecoding}
             >
-              {merge.isPending
-                ? t("common.loading")
-                : t("audiobook.start_merge", "Start merge")}
+              {merge.isPending ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t("common.loading")}
+                </span>
+              ) : isDecoding ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t("audiobook.calculating", "Calculating...")}
+                </span>
+              ) : (
+                t("audiobook.start_merge", "Start merge")
+              )}
             </button>
           </div>
         </form>

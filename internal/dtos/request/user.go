@@ -11,8 +11,11 @@ type CreateUserDto struct {
 }
 
 type UpdateProfileDto struct {
-	FullName  *string `json:"full_name,omitempty" validate:"omitempty,min=2,max=100"`
-	AvatarUrl *string `json:"avatar_url,omitempty" validate:"omitempty,image_url"`
+	FullName            *string `json:"full_name,omitempty" validate:"omitempty,min=2,max=100"`
+	AvatarUrl           *string `json:"avatar_url,omitempty" validate:"omitempty,image_url"`
+	MaxAllowedAgeRating *string `json:"max_allowed_age_rating,omitempty" validate:"omitempty,oneof=G PG PG-13 R15+ R18+"`
+	IsKidsMode          *bool   `json:"is_kids_mode,omitempty" validate:"omitempty"`
+	RevokeSessions      *bool   `json:"revoke_sessions,omitempty" validate:"omitempty"`
 }
 
 type ChangePasswordDto struct {
@@ -52,4 +55,28 @@ type SetKidsModePinDto struct {
 type ToggleKidsModeDto struct {
 	Enable bool   `json:"enable"`
 	Pin    string `json:"pin,omitempty" validate:"omitempty,len=6,numeric"`
+}
+
+type BulkUserActionDto struct {
+	UserIDs []string `json:"user_ids" validate:"required,min=1,max=100,dive,uuid"`
+}
+
+type BulkChangeUserRolesDto struct {
+	UserIDs []string `json:"user_ids" validate:"required,min=1,max=100,dive,uuid"`
+	Action  string   `json:"action" validate:"required,oneof=assign unassign replace"`
+	RoleIDs []string `json:"role_ids" validate:"required,min=1,max=20,dive,uuid"`
+}
+
+type BulkUpdateUserInfoDto struct {
+	UserIDs             []string `json:"user_ids" validate:"required,min=1,max=100,dive,uuid"`
+	MaxAllowedAgeRating *string  `json:"max_allowed_age_rating,omitempty" validate:"omitempty,oneof=G PG PG-13 R15+ R18+"`
+	IsKidsMode          *bool    `json:"is_kids_mode,omitempty" validate:"omitempty"`
+	ResetAvatar         *bool    `json:"reset_avatar,omitempty" validate:"omitempty"`
+	RevokeSessions      *bool    `json:"revoke_sessions,omitempty" validate:"omitempty"`
+}
+
+type BulkSendUserEmailDto struct {
+	UserIDs []string `json:"user_ids" validate:"required,min=1,max=100,dive,uuid"`
+	Subject string   `json:"subject" validate:"required,min=1,max=200"`
+	Body    string   `json:"body" validate:"required,min=1,max=10000"`
 }

@@ -68,6 +68,36 @@ export type SendUserEmailRequest = {
   body: string;
 };
 
+export type BulkUserActionRequest = {
+  user_ids: string[];
+};
+
+export type BulkChangeUserRolesRequest = {
+  user_ids: string[];
+  action: "assign" | "unassign" | "replace";
+  role_ids: string[];
+};
+
+export type BulkUpdateUserInfoRequest = {
+  user_ids: string[];
+  max_allowed_age_rating?: string;
+  is_kids_mode?: boolean;
+  reset_avatar?: boolean;
+  revoke_sessions?: boolean;
+};
+
+export type BulkSendUserEmailRequest = {
+  user_ids: string[];
+  subject: string;
+  body: string;
+};
+
+export type BulkActionResultResponse = {
+  affected_count: number;
+  skipped_count: number;
+  skipped_reasons?: string[];
+};
+
 export interface AdminReview {
   user_id: string;
   book_id: string;

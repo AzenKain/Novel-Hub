@@ -3,7 +3,7 @@ import { useSetupStatusQuery } from "@/hooks";
 import { invalidatePublicSettings } from "@/hooks/useSettings";
 import { useTranslation } from "react-i18next";
 import { settingsService } from "@/services";
-import { BookOpen, Loader2, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Loader2, Image as ImageIcon, Upload, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImageCropperModal, PasswordStrength } from "@/components/common";
@@ -286,7 +286,8 @@ export function SetupWizard() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <label className="btn btn-outline cursor-pointer font-normal">
+                      <label className="btn btn-outline btn-primary gap-1.5 font-medium cursor-pointer shadow-xs">
+                        <Upload className="w-4 h-4 shrink-0" />
                         {t("setup.upload_logo")}
                         <input
                           type="file"
@@ -297,9 +298,10 @@ export function SetupWizard() {
                       </label>
                       <button
                         type="button"
-                        className="btn btn-ghost font-normal"
+                        className="btn bg-base-200 hover:bg-base-300 text-base-content border border-base-content/20 gap-1.5 font-medium shadow-xs"
                         onClick={() => setForm({ ...form, logo: "/logo.svg" })}
                       >
+                        <RotateCcw className="w-4 h-4 shrink-0 opacity-70" />
                         {t("setup.use_default")}
                       </button>
                     </div>

@@ -2,6 +2,11 @@ import { adminService, webhookService } from "@/services";
 import type {
   AdminReview,
   AdminSettings,
+  BulkActionResultResponse,
+  BulkChangeUserRolesRequest,
+  BulkSendUserEmailRequest,
+  BulkUpdateUserInfoRequest,
+  BulkUserActionRequest,
   CalibreImportResult,
   CreateRoleRequest,
   CreateUserRequest,
@@ -11,6 +16,7 @@ import type {
   SearchUserParams,
   SendUserEmailRequest,
   SmtpTestRequest,
+  UpdateProfileRequest,
   UpdateRoleRequest,
   User,
   Webhook,
@@ -123,7 +129,7 @@ export function useUpdateUserMutation() {
       data,
     }: {
       id: string;
-      data: { full_name: string; avatar_url?: string };
+      data: UpdateProfileRequest;
     }) => {
       const res = await adminService.updateUser(id, data);
       if (!res.status) throw new Error(res.message || "Failed to update user");
@@ -135,6 +141,17 @@ export function useUpdateUserMutation() {
   });
 }
 
+export function useAdminUploadAvatarMutation() {
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File | Blob }) => {
+      const res = await adminService.uploadUserAvatar(id, file);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to upload avatar");
+      return res.data.url;
+    },
+  });
+}
+
 export function useResetUserPasswordMutation() {
   return useMutation({
     mutationFn: async ({ id, password }: { id: string; password: string }) => {
@@ -142,6 +159,21 @@ export function useResetUserPasswordMutation() {
       if (!res.status)
         throw new Error(res.message || "Failed to reset password");
       return res;
+    },
+  });
+}
+
+export function useRevokeUserSessionsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await adminService.revokeUserSessions(id);
+      if (!res.status)
+        throw new Error(res.message || "Failed to revoke sessions");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -187,6 +219,101 @@ export function useDeleteUserMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useRestoreUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await adminService.restoreUser(id);
+      if (!res.status) throw new Error(res.message || "Failed to restore user");
+      return res;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useBulkDeleteUsersMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      data: BulkUserActionRequest,
+    ): Promise<BulkActionResultResponse> => {
+      const res = await adminService.bulkDeleteUsers(data);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to delete users");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useBulkRestoreUsersMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      data: BulkUserActionRequest,
+    ): Promise<BulkActionResultResponse> => {
+      const res = await adminService.bulkRestoreUsers(data);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to restore users");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useBulkChangeUserRolesMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      data: BulkChangeUserRolesRequest,
+    ): Promise<BulkActionResultResponse> => {
+      const res = await adminService.bulkChangeUserRoles(data);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to change user roles");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useBulkUpdateUserInfoMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      data: BulkUpdateUserInfoRequest,
+    ): Promise<BulkActionResultResponse> => {
+      const res = await adminService.bulkUpdateUserInfo(data);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to update user information");
+      return res.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useBulkSendUserEmailMutation() {
+  return useMutation({
+    mutationFn: async (
+      data: BulkSendUserEmailRequest,
+    ): Promise<BulkActionResultResponse> => {
+      const res = await adminService.bulkSendUserEmail(data);
+      if (!res.status || !res.data)
+        throw new Error(res.message || "Failed to send emails");
+      return res.data;
     },
   });
 }
@@ -300,11 +427,23 @@ export function useAssignRolePermissionsMutation() {
   });
 }
 
-export function useReviewsQuery(page: number, limit = 20) {
+export function useReviewsQuery(
+  page: number,
+  limit = 20,
+  search = "",
+  rating = 0,
+  hasText = "all",
+) {
   return useQuery<AdminReview[]>({
-    queryKey: ["admin", "reviews", page, limit],
+    queryKey: ["admin", "reviews", page, limit, search, rating, hasText],
     queryFn: async () => {
-      const res = await adminService.listAllReviews(limit, page * limit);
+      const res = await adminService.listAllReviews(
+        limit,
+        page * limit,
+        search,
+        rating,
+        hasText,
+      );
       if (!res.status)
         throw new Error(res.message || "Failed to fetch reviews");
       return res.data || [];

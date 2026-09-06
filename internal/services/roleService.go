@@ -77,10 +77,40 @@ func (r *roleService) GetPermissions(ctx context.Context) ([]*response.Permissio
 	return models.PermissionsToResponse(permissions), nil
 }
 
+var administrativePermissions = map[string]struct{}{
+	constants.PermAdminAccess:           {},
+	constants.PermAdminSoundscapeManage: {},
+	constants.PermAdminFontManage:       {},
+	constants.PermAdminThemeManage:      {},
+	constants.PermUserManage:            {},
+	constants.PermRoleManage:            {},
+	constants.PermSettingManage:         {},
+	constants.PermJobManage:             {},
+	constants.PermSystemLogRead:         {},
+	constants.PermSystemBackup:          {},
+	constants.PermWebhookManage:         {},
+}
+
+func isAdministrativePermission(key string) bool {
+	_, ok := administrativePermissions[key]
+	return ok
+}
+
 func (r *roleService) CreateRole(ctx context.Context, dto *request.CreateRoleDto) (*response.RoleResponse, error) {
 	name := strings.ToUpper(strings.TrimSpace(dto.Name))
 	if name == "" {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Role name is required")
+	}
+	if name == constants.RoleTypeAdmin.String() || name == constants.RoleTypeBanned.String() || name == constants.RoleTypeGuest.String() || name == constants.RoleTypeUser.String() || name == constants.RoleTypeMod.String() {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Cannot use reserved system role name")
+	}
+
+	if dto.AutoAssign {
+		for _, item := range dto.Permissions {
+			if (item.Effect == "" || item.Effect == "allow") && isAdministrativePermission(item.PermissionKey) {
+				return nil, apperrors.New(apperrors.ErrBadRequest, "Auto-assign roles cannot be granted administrative permissions")
+			}
+		}
 	}
 
 	tx, err := r.txManager.BeginTx(ctx, nil)
@@ -139,9 +169,31 @@ func (r *roleService) UpdateRole(ctx context.Context, id string, dto *request.Up
 	defer func() { _ = tx.Rollback() }()
 	txRepo := r.roleRepo.WithTx(tx)
 
+	newName := strings.ToUpper(strings.TrimSpace(dto.Name))
+	if !existing.IsSystem && (newName == constants.RoleTypeAdmin.String() || newName == constants.RoleTypeBanned.String() || newName == constants.RoleTypeGuest.String() || newName == constants.RoleTypeUser.String() || newName == constants.RoleTypeMod.String()) {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Cannot use reserved system role name")
+	}
+
 	autoAssign := dto.AutoAssign
 	if existing.IsBanned || strings.EqualFold(existing.Name, string(constants.RoleTypeGuest)) {
 		autoAssign = false
+	}
+
+	if autoAssign {
+		if !existing.IsSystem && len(dto.Permissions) > 0 {
+			for _, item := range dto.Permissions {
+				if (item.Effect == "" || item.Effect == "allow") && isAdministrativePermission(item.PermissionKey) {
+					return nil, apperrors.New(apperrors.ErrBadRequest, "Auto-assign roles cannot be granted administrative permissions")
+				}
+			}
+		} else {
+			perms, _ := r.roleRepo.GetRolePermissions(ctx, existing.ID)
+			for _, item := range perms {
+				if item.Effect == "allow" && isAdministrativePermission(item.PermissionKey) {
+					return nil, apperrors.New(apperrors.ErrBadRequest, "Roles with administrative permissions cannot be set to auto-assign")
+				}
+			}
+		}
 	}
 
 	var role *models.RoleEntity
@@ -191,8 +243,16 @@ func (r *roleService) UpdateRolePermissions(ctx context.Context, id string, dto 
 		return nil, apperrors.New(apperrors.ErrNotFound, "Role not found")
 	}
 
-	if role.IsAdmin || role.IsBanned {
-		return nil, apperrors.New(apperrors.ErrForbidden, "Permissions of Admin or Banned roles cannot be modified")
+	if role.IsSystem || role.IsAdmin || role.IsBanned {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Permissions of system, admin, or banned roles cannot be modified")
+	}
+
+	if role.AutoAssign {
+		for _, item := range dto.Permissions {
+			if (item.Effect == "" || item.Effect == "allow") && isAdministrativePermission(item.PermissionKey) {
+				return nil, apperrors.New(apperrors.ErrBadRequest, "Auto-assign roles cannot be granted administrative permissions")
+			}
+		}
 	}
 
 	tx, err := r.txManager.BeginTx(ctx, nil)

@@ -204,3 +204,52 @@ func TestRestoreUserDoesNotResurrectCredentials(t *testing.T) {
 		t.Fatalf("refresh_token = %q after restore, want cleared (stolen-rt must not survive)", rt.String)
 	}
 }
+
+func TestCreateUserSecurity_OnlyOwnerCanGrantAdmin(t *testing.T) {
+	svc, db := newUserSvc(t)
+	seedOwner(t, db)
+	ctx := context.Background()
+
+	staff := &response.JWTClaims{UId: "staff", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1}
+	owner := &response.JWTClaims{UId: "01920000-0000-7000-8000-000000000bbb", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1}
+
+	// Non-owner admin attempts to create an ADMIN user -> must be forbidden
+	_, err := svc.CreateUser(ctx, staff, &request.CreateUserDto{
+		Email:    "newadmin@example.com",
+		Password: "Password123!",
+		RoleIDs:  []string{seedRoleAdmin},
+	})
+	if err == nil {
+		t.Fatal("expected error when non-owner creates user with ADMIN role, got nil")
+	}
+
+	// Owner creates an ADMIN user -> must succeed
+	user, err := svc.CreateUser(ctx, owner, &request.CreateUserDto{
+		Email:    "newadmin@example.com",
+		Password: "Password123!",
+		RoleIDs:  []string{seedRoleAdmin},
+	})
+	if err != nil {
+		t.Fatalf("owner should be able to create user with ADMIN role: %v", err)
+	}
+	if user == nil || user.Email != "newadmin@example.com" {
+		t.Fatalf("unexpected user response: %+v", user)
+	}
+}
+
+func TestCreateUserSecurity_CannotCreateBannedUser(t *testing.T) {
+	svc, db := newUserSvc(t)
+	seedOwner(t, db)
+	ctx := context.Background()
+
+	owner := &response.JWTClaims{UId: "01920000-0000-7000-8000-000000000bbb", Roles: []constants.RoleType{constants.RoleTypeAdmin}, TokenVersion: 1}
+
+	_, err := svc.CreateUser(ctx, owner, &request.CreateUserDto{
+		Email:    "banned@n.h",
+		Password: "Password123!",
+		RoleIDs:  []string{seedRoleBanned},
+	})
+	if err == nil {
+		t.Fatal("expected error when creating user with BANNED role, got nil")
+	}
+}

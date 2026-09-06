@@ -830,6 +830,89 @@ func (q *Queries) ListBookReviews(ctx context.Context, arg ListBookReviewsParams
 	return items, nil
 }
 
+const listFilteredReviews = `-- name: ListFilteredReviews :many
+SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,
+       u.full_name as user_name, u.email as user_email,
+       b.title as book_title
+FROM book_reviews br
+JOIN users u ON u.id = br.user_id
+JOIN books b ON b.id = br.book_id
+WHERE (?1 IS NULL OR br.rating = ?1)
+  AND (
+    ?2 IS NULL 
+    OR b.title LIKE '%' || ?2 || '%'
+    OR u.full_name LIKE '%' || ?2 || '%'
+    OR u.email LIKE '%' || ?2 || '%'
+    OR br.review LIKE '%' || ?2 || '%'
+  )
+  AND (
+    ?3 IS NULL 
+    OR (?3 = 'true' AND br.review IS NOT NULL AND length(trim(br.review)) > 0)
+    OR (?3 = 'false' AND (br.review IS NULL OR length(trim(br.review)) = 0))
+  )
+ORDER BY br.updated_at DESC
+LIMIT ?5 OFFSET ?4
+`
+
+type ListFilteredReviewsParams struct {
+	Rating  interface{} `json:"rating"`
+	Search  interface{} `json:"search"`
+	HasText interface{} `json:"has_text"`
+	Offset  int64       `json:"offset"`
+	Limit   int64       `json:"limit"`
+}
+
+type ListFilteredReviewsRow struct {
+	UserID    string         `json:"user_id"`
+	BookID    string         `json:"book_id"`
+	Rating    int64          `json:"rating"`
+	Review    sql.NullString `json:"review"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	UserName  sql.NullString `json:"user_name"`
+	UserEmail string         `json:"user_email"`
+	BookTitle string         `json:"book_title"`
+}
+
+func (q *Queries) ListFilteredReviews(ctx context.Context, arg ListFilteredReviewsParams) ([]ListFilteredReviewsRow, error) {
+	rows, err := q.query(ctx, q.listFilteredReviewsStmt, listFilteredReviews,
+		arg.Rating,
+		arg.Search,
+		arg.HasText,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFilteredReviewsRow{}
+	for rows.Next() {
+		var i ListFilteredReviewsRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.BookID,
+			&i.Rating,
+			&i.Review,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserName,
+			&i.UserEmail,
+			&i.BookTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const refreshBookBookmarkStats = `-- name: RefreshBookBookmarkStats :exec
 INSERT INTO book_social_stats (
     book_id,

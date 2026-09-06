@@ -63,6 +63,28 @@ func (e *BookReviewEntities) FromListAllReviewsSqlc(rows []sqlc.ListAllReviewsRo
 	return slice
 }
 
+func (e *BookReviewEntity) FromListFilteredReviewsSqlc(res sqlc.ListFilteredReviewsRow) *BookReviewEntity {
+	e.UserID = res.UserID
+	e.BookID = res.BookID
+	e.Rating = res.Rating
+	e.Review = convert.NullStringToStrPtr(res.Review)
+	e.CreatedAt = &res.CreatedAt
+	e.UpdatedAt = &res.UpdatedAt
+	e.UserName = convert.NullStringToString(res.UserName)
+	e.UserEmail = res.UserEmail
+	e.BookTitle = res.BookTitle
+	return e
+}
+
+func (e *BookReviewEntities) FromListFilteredReviewsSqlc(rows []sqlc.ListFilteredReviewsRow) []*BookReviewEntity {
+	slice := make([]*BookReviewEntity, len(rows))
+	flat := make([]BookReviewEntity, len(rows))
+	for i, row := range rows {
+		slice[i] = flat[i].FromListFilteredReviewsSqlc(row)
+	}
+	return slice
+}
+
 func (e *BookReviewEntity) ToResponse() *response.BookReviewResponse {
 	if e == nil {
 		return nil

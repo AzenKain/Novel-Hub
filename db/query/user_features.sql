@@ -325,6 +325,29 @@ JOIN users u ON u.id = br.user_id
 JOIN books b ON b.id = br.book_id
 ORDER BY br.updated_at DESC;
 
+-- name: ListFilteredReviews :many
+SELECT br.user_id, br.book_id, br.rating, br.review, br.created_at, br.updated_at,
+       u.full_name as user_name, u.email as user_email,
+       b.title as book_title
+FROM book_reviews br
+JOIN users u ON u.id = br.user_id
+JOIN books b ON b.id = br.book_id
+WHERE (sqlc.narg('rating') IS NULL OR br.rating = sqlc.narg('rating'))
+  AND (
+    sqlc.narg('search') IS NULL 
+    OR b.title LIKE '%' || sqlc.narg('search') || '%'
+    OR u.full_name LIKE '%' || sqlc.narg('search') || '%'
+    OR u.email LIKE '%' || sqlc.narg('search') || '%'
+    OR br.review LIKE '%' || sqlc.narg('search') || '%'
+  )
+  AND (
+    sqlc.narg('has_text') IS NULL 
+    OR (sqlc.narg('has_text') = 'true' AND br.review IS NOT NULL AND length(trim(br.review)) > 0)
+    OR (sqlc.narg('has_text') = 'false' AND (br.review IS NULL OR length(trim(br.review)) = 0))
+  )
+ORDER BY br.updated_at DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
 -- name: GetRecentReadingHistoryBookIDs :many
 SELECT rp.book_id FROM reading_progress rp
 WHERE rp.user_id = ? AND

@@ -340,7 +340,12 @@ export const BookDetailPage: React.FC = () => {
     <div className="w-full pb-8 animate-page-enter">
       {/* Action Bar */}
       <div className="flex items-center justify-between mb-4 mt-2">
-        <button onClick={() => navigate("/")} className="btn btn-ghost btn-sm">
+        <button
+          onClick={() => navigate("/")}
+          className="btn btn-ghost btn-sm"
+          title={t("common.back", "Back")}
+          aria-label={t("common.back", "Back")}
+        >
           <ArrowLeft className="w-4 h-4 mr-1" />
           {t("common.back", "Back")}
         </button>
@@ -352,6 +357,8 @@ export const BookDetailPage: React.FC = () => {
                 tabIndex={0}
                 role="button"
                 className={`btn btn-ghost btn-sm ${(userState?.collections?.length || 0) > 0 ? "text-primary" : ""}`}
+                title={t("book.collection", "Collection")}
+                aria-label={t("book.collection", "Collection")}
               >
                 {(userState?.collections?.length || 0) > 0 ? (
                   <FolderCheck className="w-4 h-4" />
@@ -422,7 +429,13 @@ export const BookDetailPage: React.FC = () => {
           )}
           {allowCollection && (
             <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="btn btn-ghost btn-sm">
+              <div
+                tabIndex={0}
+                role="button"
+                className="btn btn-ghost btn-sm"
+                title={t("library.readlists", "Read Lists")}
+                aria-label={t("library.readlists", "Read Lists")}
+              >
                 <ListOrdered className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">
                   {t("library.readlists", "Read Lists")}
@@ -492,6 +505,16 @@ export const BookDetailPage: React.FC = () => {
               }}
               className={`btn btn-ghost btn-sm ${isBookmarked ? "text-primary" : ""}`}
               disabled={user ? toggleBookmarkMutation.isPending : false}
+              title={
+                isBookmarked
+                  ? t("book.remove_bookmark", "Remove Bookmark")
+                  : t("book.add_bookmark", "Bookmark")
+              }
+              aria-label={
+                isBookmarked
+                  ? t("book.remove_bookmark", "Remove Bookmark")
+                  : t("book.add_bookmark", "Bookmark")
+              }
             >
               {isBookmarked ? (
                 <BookmarkMinus className="w-4 h-4" />
@@ -509,15 +532,26 @@ export const BookDetailPage: React.FC = () => {
             <button
               onClick={() => setSendModalOpen(true)}
               className="btn btn-ghost btn-sm"
+              title={t("send_to_device", "Send to Device")}
+              aria-label={t("send_to_device", "Send to Device")}
             >
-              <Send className="w-4 h-4 mr-1" />
-              {t("send_to_device", "Send to Device")}
+              <Send className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">
+                {t("send_to_device", "Send to Device")}
+              </span>
             </button>
           )}
           {allowShare && (
-            <button onClick={handleShare} className="btn btn-ghost btn-sm">
-              <Share2 className="w-4 h-4 mr-1" />
-              {t("common.share", "Share")}
+            <button
+              onClick={handleShare}
+              className="btn btn-ghost btn-sm"
+              title={t("common.share", "Share")}
+              aria-label={t("common.share", "Share")}
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">
+                {t("common.share", "Share")}
+              </span>
             </button>
           )}
         </div>

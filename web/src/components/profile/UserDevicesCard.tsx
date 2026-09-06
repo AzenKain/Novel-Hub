@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Cpu, Plus, Smartphone, Tablet, Trash2, HardDrive } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
+import { ConfirmModal } from "@/components/common";
 import {
   useCreateDeviceMutation,
   useDeleteDeviceMutation,
@@ -70,8 +72,20 @@ export const UserDevicesCard: React.FC = () => {
     );
   };
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+  const [deviceToDelete, setDeviceToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const confirmDelete = () => {
+    if (!deviceToDelete) return;
+    deleteMutation.mutate(deviceToDelete.id, {
+      onSuccess: () => {
+        toast.success(t("device.deleted", "Device removed successfully"));
+        setDeviceToDelete(null);
+      },
+      onError: () => {
+        toast.error(t("device.delete_failed", "Failed to remove device"));
+        setDeviceToDelete(null);
+      },
+    });
   };
 
   return (
@@ -240,7 +254,9 @@ export const UserDevicesCard: React.FC = () => {
                 <button
                   className="btn btn-ghost btn-sm text-error hover:bg-error/10 btn-square rounded-lg shrink-0 ml-2"
                   title={t("common.delete", "Delete")}
-                  onClick={() => handleDelete(device.id)}
+                  onClick={() =>
+                    setDeviceToDelete({ id: device.id, name: device.name })
+                  }
                   disabled={deleteMutation.isPending}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -260,6 +276,24 @@ export const UserDevicesCard: React.FC = () => {
             </button>
           )}
         </div>
+      )}
+
+      {deviceToDelete && (
+        <ConfirmModal
+          open={Boolean(deviceToDelete)}
+          title={t("device.delete_confirm_title", "Remove Device?")}
+          message={t(
+            "device.delete_confirm_msg",
+            'Are you sure you want to remove device "{{name}}"? You will no longer be able to deliver books to this device with 1-click.',
+            { name: deviceToDelete.name },
+          )}
+          confirmText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          variant="danger"
+          loading={deleteMutation.isPending}
+          onConfirm={confirmDelete}
+          onClose={() => setDeviceToDelete(null)}
+        />
       )}
     </div>
   );

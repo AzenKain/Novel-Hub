@@ -23,6 +23,7 @@ const (
 	AuditActionUserRoleChange         = "user.role_change"
 	AuditActionUserResetPass          = "user.reset_password"
 	AuditActionUserSendEmail          = "user.send_email"
+	AuditActionUserRevokeSessions     = "user.revoke_sessions"
 	AuditActionRoleCreate             = "role.create"
 	AuditActionRoleUpdate             = "role.update"
 	AuditActionRoleDelete             = "role.delete"

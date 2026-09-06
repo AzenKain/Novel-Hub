@@ -27,6 +27,8 @@ interface UserAdminState {
   newPassword: string;
   roleIDs: string[];
   userToDelete: User | null;
+  selectedUserIds: string[];
+  bulkModal: "delete" | "restore" | "roles" | "info" | "email" | null;
 
   setUsers: (users: User[]) => void;
   setRoles: (roles: Role[]) => void;
@@ -49,6 +51,13 @@ interface UserAdminState {
   setNewPassword: (password: string) => void;
   setRoleIDs: (ids: string[] | ((prev: string[]) => string[])) => void;
   setUserToDelete: (user: User | null) => void;
+  setSelectedUserIds: (
+    ids: string[] | ((prev: string[]) => string[]),
+  ) => void;
+  clearSelection: () => void;
+  setBulkModal: (
+    modal: "delete" | "restore" | "roles" | "info" | "email" | null,
+  ) => void;
   reset: () => void;
 }
 
@@ -68,6 +77,8 @@ const initialState = {
   newPassword: "",
   roleIDs: [],
   userToDelete: null,
+  selectedUserIds: [] as string[],
+  bulkModal: null as "delete" | "restore" | "roles" | "info" | "email" | null,
 };
 
 export const useUserAdminStore = create<UserAdminState>((set) => ({
@@ -109,5 +120,14 @@ export const useUserAdminStore = create<UserAdminState>((set) => ({
       roleIDs: typeof roleIDs === "function" ? roleIDs(state.roleIDs) : roleIDs,
     })),
   setUserToDelete: (userToDelete) => set({ userToDelete }),
+  setSelectedUserIds: (selectedUserIds) =>
+    set((state) => ({
+      selectedUserIds:
+        typeof selectedUserIds === "function"
+          ? selectedUserIds(state.selectedUserIds)
+          : selectedUserIds,
+    })),
+  clearSelection: () => set({ selectedUserIds: [] }),
+  setBulkModal: (bulkModal) => set({ bulkModal }),
   reset: () => set(initialState),
 }));

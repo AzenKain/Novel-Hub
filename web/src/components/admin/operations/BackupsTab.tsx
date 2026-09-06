@@ -100,20 +100,22 @@ export function BackupsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body p-4 flex-row items-center justify-between flex-wrap gap-3">
-          <label className="label cursor-pointer gap-3">
+      <div className="card bg-base-100 border border-base-200 shadow-sm">
+        <div className="card-body p-3 sm:p-4 flex-row items-center justify-between gap-2">
+          <label className="label cursor-pointer gap-2 p-0 select-none shrink min-w-0">
             <input
               type="checkbox"
-              className="checkbox checkbox-sm"
+              className="checkbox checkbox-xs sm:checkbox-sm shrink-0"
               checked={includeBooks}
               onChange={(e) => setIncludeBooks(e.target.checked)}
             />
-            <span>{t("admin.operations.include_books")}</span>
+            <span className="text-xs sm:text-sm truncate">
+              {t("admin.operations.include_books")}
+            </span>
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
-              className="btn btn-sm btn-ghost gap-1.5"
+              className="btn btn-sm btn-ghost btn-square sm:btn-md sm:w-auto gap-1.5 h-8 min-h-8 w-8 px-0 sm:px-3 shrink-0"
               disabled={backups.isFetching}
               onClick={async () => {
                 await queryClient.invalidateQueries({
@@ -132,7 +134,7 @@ export function BackupsTab() {
               </span>
             </button>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm h-8 min-h-8 text-xs font-semibold px-2.5 sm:px-4 shrink-0 rounded-lg"
               disabled={create.isPending}
               onClick={createBackup}
             >
@@ -149,9 +151,9 @@ export function BackupsTab() {
           <thead>
             <tr>
               <th>{t("admin.operations.backup")}</th>
-              <th>{t("admin.operations.scope")}</th>
-              <th>{t("admin.operations.size")}</th>
-              <th>{t("admin.operations.created")}</th>
+              <th className="whitespace-nowrap">{t("admin.operations.scope")}</th>
+              <th className="whitespace-nowrap">{t("admin.operations.size")}</th>
+              <th className="whitespace-nowrap">{t("admin.operations.created")}</th>
               <th></th>
             </tr>
           </thead>
@@ -159,14 +161,14 @@ export function BackupsTab() {
             {(backups.data || []).map((item) => (
               <tr key={item.name}>
                 <td className="font-mono text-xs">{item.name}</td>
-                <td>
+                <td className="whitespace-nowrap">
                   {item.includeBooks
                     ? t("admin.operations.db_and_books")
                     : t("admin.operations.database_only")}
                 </td>
-                <td>{formatBytes(item.size_bytes, t)}</td>
-                <td>{new Date(item.created_at).toLocaleString()}</td>
-                <td className="flex justify-end gap-1">
+                <td className="whitespace-nowrap">{formatBytes(item.size_bytes, t)}</td>
+                <td className="whitespace-nowrap">{new Date(item.created_at).toLocaleString()}</td>
+                <td className="flex justify-end gap-1 whitespace-nowrap">
                   <a
                     className="btn btn-xs"
                     href={operationsService.backupDownloadUrl(item.name)}

@@ -2,6 +2,11 @@ import { api, toQuery } from "@/config/api";
 import type {
   AdminReview,
   AdminSettings,
+  BulkActionResultResponse,
+  BulkChangeUserRolesRequest,
+  BulkSendUserEmailRequest,
+  BulkUpdateUserInfoRequest,
+  BulkUserActionRequest,
   CalibreImportResult,
   CommonResponse,
   CreateRoleRequest,
@@ -62,6 +67,23 @@ export const adminService = {
     }
   },
 
+  async uploadUserAvatar(
+    id: string,
+    file: File | Blob,
+  ): Promise<CommonResponse<{ url: string }>> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post(`/users/${id}/avatar`, formData);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<{ url: string }>;
+      }
+      throw error;
+    }
+  },
+
   async resetPassword(
     id: string,
     newPassword: string,
@@ -70,6 +92,18 @@ export const adminService = {
       const res = await api.patch(`/users/${id}/password`, {
         new_password: newPassword,
       });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as CommonResponse<unknown>;
+      }
+      throw error;
+    }
+  },
+
+  async revokeUserSessions(id: string): Promise<CommonResponse<unknown>> {
+    try {
+      const res = await api.post(`/users/${id}/revoke-sessions`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -128,6 +162,81 @@ export const adminService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         return error.response.data as CommonResponse<User>;
+      }
+      throw error;
+    }
+  },
+
+  async bulkDeleteUsers(
+    data: BulkUserActionRequest,
+  ): Promise<CommonResponse<BulkActionResultResponse>> {
+    try {
+      const res = await api.post("/users/bulk/delete", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response
+          .data as CommonResponse<BulkActionResultResponse>;
+      }
+      throw error;
+    }
+  },
+
+  async bulkRestoreUsers(
+    data: BulkUserActionRequest,
+  ): Promise<CommonResponse<BulkActionResultResponse>> {
+    try {
+      const res = await api.post("/users/bulk/restore", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response
+          .data as CommonResponse<BulkActionResultResponse>;
+      }
+      throw error;
+    }
+  },
+
+  async bulkChangeUserRoles(
+    data: BulkChangeUserRolesRequest,
+  ): Promise<CommonResponse<BulkActionResultResponse>> {
+    try {
+      const res = await api.post("/users/bulk/roles", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response
+          .data as CommonResponse<BulkActionResultResponse>;
+      }
+      throw error;
+    }
+  },
+
+  async bulkUpdateUserInfo(
+    data: BulkUpdateUserInfoRequest,
+  ): Promise<CommonResponse<BulkActionResultResponse>> {
+    try {
+      const res = await api.patch("/users/bulk/info", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response
+          .data as CommonResponse<BulkActionResultResponse>;
+      }
+      throw error;
+    }
+  },
+
+  async bulkSendUserEmail(
+    data: BulkSendUserEmailRequest,
+  ): Promise<CommonResponse<BulkActionResultResponse>> {
+    try {
+      const res = await api.post("/users/bulk/email", data);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response
+          .data as CommonResponse<BulkActionResultResponse>;
       }
       throw error;
     }
@@ -264,11 +373,20 @@ export const adminService = {
   async listAllReviews(
     limit = 50,
     offset = 0,
+    search = "",
+    rating = 0,
+    hasText = "all",
   ): Promise<CommonResponse<AdminReview[]>> {
     try {
-      const res = await api.get(
-        `/admin/reviews?limit=${limit}&offset=${offset}`,
-      );
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(offset),
+      });
+      if (search.trim()) params.append("search", search.trim());
+      if (rating > 0) params.append("rating", String(rating));
+      if (hasText && hasText !== "all") params.append("has_text", hasText);
+
+      const res = await api.get(`/admin/reviews?${params.toString()}`);
       return res.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

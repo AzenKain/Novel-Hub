@@ -25,6 +25,7 @@ import { toast } from "react-toastify";
 import { useCustomization } from "@/hooks/useCustomization";
 import { hasPermission } from "@/utils/permission";
 import { useAuthStore } from "@/stores";
+import { ConfirmModal } from "@/components/common";
 
 export const SoundscapesCard: React.FC = () => {
   const { t } = useTranslation();
@@ -37,6 +38,11 @@ export const SoundscapesCard: React.FC = () => {
     deleteSoundscape,
   } = useCustomization();
 
+  const [soundscapeToDelete, setSoundscapeToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [mode, setMode] = useState<"file" | "url">("file");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("ambient");
@@ -112,23 +118,24 @@ export const SoundscapesCard: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (
-      !window.confirm(t("soundscape.delete_confirm", "Delete this soundscape?"))
-    )
-      return;
+  const confirmDelete = async () => {
+    if (!soundscapeToDelete) return;
     try {
-      if (playingId === id) {
+      setIsDeleting(true);
+      if (playingId === soundscapeToDelete.id) {
         audioPlayer?.pause();
         setPlayingId(null);
       }
-      await deleteSoundscape(id);
+      await deleteSoundscape(soundscapeToDelete.id);
       toast.success(t("soundscape.delete_success", "Soundscape deleted"));
+      setSoundscapeToDelete(null);
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message ||
           t("soundscape.delete_failed", "Failed to delete"),
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -167,29 +174,29 @@ export const SoundscapesCard: React.FC = () => {
   return (
     <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-base-200 pb-4 gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-              <Sliders className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="card-title text-base sm:text-lg truncate">
+        <div className="flex items-start gap-3 border-b border-base-200 pb-3 sm:pb-4">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
+            <Sliders className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+              <span>
                 {t(
                   "soundscape.personal_soundscapes",
                   "Personal Ambient Soundscapes",
                 )}
-              </h2>
-              <p className="text-xs opacity-60 truncate">
-                {t(
-                  "soundscape.personal_desc",
-                  "Upload background audio & sound effects to listen while reading novels.",
-                )}
-              </p>
-            </div>
+              </span>{" "}
+              <span className="badge badge-primary badge-outline badge-xs font-normal align-middle ml-1.5 shrink-0">
+                {soundscapes.length} {t("soundscape.tracks", "Tracks")}
+              </span>
+            </h2>
+            <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
+              {t(
+                "soundscape.personal_desc",
+                "Upload background audio & sound effects to listen while reading novels.",
+              )}
+            </p>
           </div>
-          <span className="badge badge-primary badge-outline text-xs shrink-0 whitespace-nowrap h-6 px-2.5 font-medium">
-            {soundscapes.length} {t("soundscape.tracks", "Tracks")}
-          </span>
         </div>
 
         {canManage ? (
@@ -386,20 +393,18 @@ export const SoundscapesCard: React.FC = () => {
                       </button>
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="opacity-70">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="opacity-70 shrink-0">
                             {getIconEl(s.icon || s.category)}
                           </span>
                           <span className="font-semibold text-xs truncate">
                             {s.name}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="badge badge-ghost badge-xs text-[9px] uppercase">
+                          <span className="badge badge-ghost badge-xs text-[9px] uppercase shrink-0">
                             {s.category}
                           </span>
                           {s.is_system && (
-                            <span className="badge badge-info badge-xs text-[9px]">
+                            <span className="badge badge-info badge-xs text-[9px] shrink-0">
                               {t("common.system", "System")}
                             </span>
                           )}
@@ -411,7 +416,9 @@ export const SoundscapesCard: React.FC = () => {
                       hasPermission(user, "admin.soundscape.manage")) && (
                       <button
                         type="button"
-                        onClick={() => handleDelete(s.id)}
+                        onClick={() =>
+                          setSoundscapeToDelete({ id: s.id, name: s.name })
+                        }
                         className="btn btn-ghost btn-circle btn-xs text-error opacity-60 hover:opacity-100 ml-2"
                         title={t("common.delete", "Delete")}
                       >
@@ -425,6 +432,32 @@ export const SoundscapesCard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {soundscapeToDelete && (
+        <ConfirmModal
+          open={Boolean(soundscapeToDelete)}
+          title={t("soundscape.delete_title", "Delete Soundscape?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "soundscape.delete_confirm",
+                  "Are you sure you want to delete this soundscape?",
+                )}
+              </p>
+              <div className="p-3 rounded-xl bg-base-200/60 font-semibold text-base-content">
+                {soundscapeToDelete.name}
+              </div>
+            </div>
+          }
+          variant="danger"
+          loading={isDeleting}
+          confirmText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmDelete}
+          onClose={() => setSoundscapeToDelete(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,12 +1,18 @@
-import { useDeleteReviewMutation, useReviewsQuery } from "@/hooks";
+import {
+  useDeleteReviewMutation,
+  useReviewsQuery,
+  useDebounce,
+} from "@/hooks";
 import { useReviewAdminStore } from "@/stores";
 import {
   AlertCircle,
   Loader2,
   MessageSquareText,
   RefreshCw,
+  Search,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +37,13 @@ export function Reviews() {
     setPage,
     hasMore,
     setHasMore,
+    search,
+    setSearch,
+    rating,
+    setRating,
+    hasText,
+    setHasText,
+    resetFilters,
     reset,
   } = useReviewAdminStore(
     useShallow((state) => ({
@@ -46,16 +59,32 @@ export function Reviews() {
       setPage: state.setPage,
       hasMore: state.hasMore,
       setHasMore: state.setHasMore,
+      search: state.search,
+      setSearch: state.setSearch,
+      rating: state.rating,
+      setRating: state.setRating,
+      hasText: state.hasText,
+      setHasText: state.setHasText,
+      resetFilters: state.resetFilters,
       reset: state.reset,
     })),
   );
+
+  const debouncedSearch = useDebounce(search, 350);
+  const isFiltered = Boolean(
+    debouncedSearch.trim() || rating > 0 || hasText !== "all",
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, rating, hasText, setPage]);
 
   const {
     data: pageData,
     isLoading,
     isFetching,
     refetch,
-  } = useReviewsQuery(page);
+  } = useReviewsQuery(page, 20, debouncedSearch, rating, hasText);
   const deleteReviewMutation = useDeleteReviewMutation();
 
   useEffect(() => {
@@ -78,8 +107,8 @@ export function Reviews() {
   }, [pageData, page, setReviews, setHasMore]);
 
   useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading, setLoading]);
+    setLoading(isLoading || isFetching);
+  }, [isLoading, isFetching, setLoading]);
 
   useEffect(() => {
     return () => {
@@ -129,6 +158,8 @@ export function Reviews() {
     );
   }
 
+  const isInitialLoading = isFetching && page === 0;
+
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Header */}
@@ -166,28 +197,126 @@ export function Reviews() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto w-full space-y-6">
-          {loading && reviews.length === 0 ? (
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 sm:gap-3 bg-base-200/40 border border-base-200 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none z-10" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t(
+                  "admin.search_reviews_placeholder",
+                  "Search by book title, user, email, or content...",
+                )}
+                className="input input-bordered w-full min-w-0 pl-9 sm:pl-10 pr-8 focus:input-primary h-9 sm:h-10 text-xs sm:text-sm rounded-xl bg-base-100"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 p-1 text-base-content/40 hover:text-base-content rounded-full cursor-pointer"
+                  title={t("common.clear", "Clear")}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdowns & Controls */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap w-full lg:w-auto">
+              {/* Rating filter dropdown */}
+              <select
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+                className="select select-bordered select-sm sm:select-md h-9 sm:h-10 text-xs sm:text-sm rounded-xl bg-base-100 flex-1 sm:flex-none sm:w-auto min-w-0"
+                aria-label={t("admin.filter_rating", "Rating")}
+              >
+                <option value={0}>{t("admin.filter_all_ratings", "All ratings")}</option>
+                <option value={5}>5 ★★★★★</option>
+                <option value={4}>4 ★★★★☆</option>
+                <option value={3}>3 ★★★☆☆</option>
+                <option value={2}>2 ★★☆☆☆</option>
+                <option value={1}>1 ★☆☆☆☆</option>
+              </select>
+
+              {/* Content type dropdown */}
+              <select
+                value={hasText}
+                onChange={(e) => setHasText(e.target.value)}
+                className="select select-bordered select-sm sm:select-md h-9 sm:h-10 text-xs sm:text-sm rounded-xl bg-base-100 flex-1 sm:flex-none sm:w-auto min-w-0"
+                aria-label={t("admin.filter_has_text", "Type")}
+              >
+                <option value="all">{t("admin.filter_all_types", "All types")}</option>
+                <option value="true">{t("admin.filter_with_text", "With text")}</option>
+                <option value="false">{t("admin.filter_rating_only", "Rating only")}</option>
+              </select>
+
+              {/* Reset filters button */}
+              {isFiltered && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="btn btn-ghost btn-sm sm:btn-md h-9 sm:h-10 gap-1.5 text-xs sm:text-sm text-base-content/70 hover:text-base-content shrink-0 px-2.5 sm:px-3"
+                  title={t("admin.clear_filters", "Clear filters")}
+                >
+                  <X className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("admin.clear_filters", "Clear filters")}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isInitialLoading ? (
             <div className="flex items-center justify-center py-20 opacity-50">
               <Loader2 className="animate-spin h-8 w-8 text-primary mr-3" />
               <span className="text-lg">{t("admin.loading_reviews")}</span>
             </div>
           ) : reviews.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-1">
-                <MessageSquareText className="h-7 w-7" />
+            isFiltered ? (
+              <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-1">
+                  <Search className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-base-content">
+                    {t("admin.no_filtered_reviews", "No reviews match your filters")}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">
+                    {t(
+                      "admin.no_reviews_hint",
+                      "User reviews submitted for library books will appear here.",
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="btn btn-outline btn-sm mt-2 gap-1.5"
+                >
+                  <X className="w-4 h-4" />
+                  {t("admin.clear_filters", "Clear filters")}
+                </button>
               </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-base-content">
-                  {t("admin.no_reviews", "No user reviews found")}
-                </h3>
-                <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">
-                  {t(
-                    "admin.no_reviews_hint",
-                    "User reviews submitted for library books will appear here.",
-                  )}
-                </p>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 p-12 sm:p-16 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-1">
+                  <MessageSquareText className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-base-content">
+                    {t("admin.no_reviews", "No user reviews found")}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-base-content/60 mt-1 max-w-sm">
+                    {t(
+                      "admin.no_reviews_hint",
+                      "User reviews submitted for library books will appear here.",
+                    )}
+                  </p>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <div className="flex flex-col gap-3">
               {reviews.map((review, idx) => (

@@ -32,7 +32,7 @@ import (
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, dto *request.CreateUserDto) (*response.UserResponse, error)
+	CreateUser(ctx context.Context, claims *response.JWTClaims, dto *request.CreateUserDto) (*response.UserResponse, error)
 	GetUserCurrent(ctx context.Context, userID string) (*response.UserResponse, error)
 	UpdateProfile(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.UpdateProfileDto) (*response.UserResponse, error)
 	ChangePassword(ctx context.Context, userID string, dto *request.ChangePasswordDto) error
@@ -42,10 +42,17 @@ type UserService interface {
 	GetUserByID(ctx context.Context, userID string) (*response.UserResponse, error)
 	SearchUser(ctx context.Context, dto *request.SearchUserDto) (*response.PaginatedResponse, error)
 	AdminResetPassword(ctx context.Context, userID string, claims *response.JWTClaims, dto *request.ResetPasswordDto) error
+	RevokeUserSessions(ctx context.Context, userID string, claims *response.JWTClaims) error
 	SendEmail(ctx context.Context, userID string, dto *request.SendUserEmailDto) error
 	ExecuteSendUserEmailJob(ctx context.Context, payloadJSON string) error
 	SetJobQueue(jobQueue *worker.Queue)
 	UploadAvatar(ctx context.Context, userID string, fileHeader *multipart.FileHeader) (string, error)
+	AdminUploadAvatar(ctx context.Context, targetUserID string, claims *response.JWTClaims, fileHeader *multipart.FileHeader) (string, error)
+	BulkDeleteUsers(ctx context.Context, claims *response.JWTClaims, dto *request.BulkUserActionDto) (*response.BulkActionResultResponse, error)
+	BulkRestoreUsers(ctx context.Context, claims *response.JWTClaims, dto *request.BulkUserActionDto) (*response.BulkActionResultResponse, error)
+	BulkChangeUserRoles(ctx context.Context, claims *response.JWTClaims, dto *request.BulkChangeUserRolesDto) (*response.BulkActionResultResponse, error)
+	BulkUpdateUserInfo(ctx context.Context, claims *response.JWTClaims, dto *request.BulkUpdateUserInfoDto) (*response.BulkActionResultResponse, error)
+	BulkSendEmail(ctx context.Context, claims *response.JWTClaims, dto *request.BulkSendUserEmailDto) (*response.BulkActionResultResponse, error)
 }
 
 type userService struct {
@@ -113,7 +120,7 @@ func (u *userService) resolveRoles(ctx context.Context, roleIDs []string) ([]*mo
 	return roles, nil
 }
 
-func (u *userService) CreateUser(ctx context.Context, dto *request.CreateUserDto) (*response.UserResponse, error) {
+func (u *userService) CreateUser(ctx context.Context, claims *response.JWTClaims, dto *request.CreateUserDto) (*response.UserResponse, error) {
 	if !constants.EMAIL_REGEX.MatchString(dto.Email) {
 		return nil, apperrors.New(apperrors.ErrBadRequest, "Invalid email format")
 	}
@@ -132,6 +139,27 @@ func (u *userService) CreateUser(ctx context.Context, dto *request.CreateUserDto
 	roles, ferr := u.resolveRoles(ctx, dto.RoleIDs)
 	if ferr != nil {
 		return nil, ferr
+	}
+
+	rootID := u.rootAdminID(ctx)
+	isRoot := claims != nil && rootID != "" && claims.UId == rootID
+
+	hasAdmin := false
+	hasBanned := false
+	for _, role := range roles {
+		if role.IsAdmin || role.Name == constants.RoleTypeAdmin.String() {
+			hasAdmin = true
+		}
+		if role.Name == constants.RoleTypeBanned.String() {
+			hasBanned = true
+		}
+	}
+
+	if hasAdmin && !isRoot {
+		return nil, apperrors.New(apperrors.ErrForbidden, "Only the owner can grant the ADMIN role")
+	}
+	if hasBanned {
+		return nil, apperrors.New(apperrors.ErrBadRequest, "Cannot create a user with the BANNED role directly")
 	}
 
 	tx, err := u.txManager.BeginTx(ctx, nil)
@@ -209,10 +237,27 @@ func (u *userService) UpdateProfile(ctx context.Context, userID string, claims *
 		}
 	}
 
+	var isKidsMode sql.NullInt64
+	if dto.IsKidsMode != nil {
+		if *dto.IsKidsMode {
+			isKidsMode = sql.NullInt64{Int64: 1, Valid: true}
+		} else {
+			isKidsMode = sql.NullInt64{Int64: 0, Valid: true}
+		}
+	}
+
+	var revokeSessions int64
+	if dto.RevokeSessions != nil && *dto.RevokeSessions {
+		revokeSessions = 1
+	}
+
 	user, err := u.userRepo.UpdateProfile(ctx, sqlc.UpdateProfileParams{
-		ID:        id,
-		FullName:  convert.StrPtrToNullString(dto.FullName),
-		AvatarUrl: convert.StrPtrToNullString(dto.AvatarUrl),
+		ID:                  id,
+		FullName:            convert.StrPtrToNullString(dto.FullName),
+		AvatarUrl:           convert.StrPtrToNullString(dto.AvatarUrl),
+		MaxAllowedAgeRating: convert.StrPtrToNullString(dto.MaxAllowedAgeRating),
+		IsKidsMode:          isKidsMode,
+		RevokeSessions:      revokeSessions,
 	})
 	if err != nil {
 		return nil, apperrors.New(apperrors.ErrInternalError, "Failed to update profile")
@@ -309,6 +354,33 @@ func (u *userService) AdminResetPassword(ctx context.Context, userID string, cla
 	}
 	if err := tx.Commit(); err != nil {
 		return apperrors.New(apperrors.ErrInternalError, "Failed to commit password reset")
+	}
+	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
+	return nil
+}
+
+func (u *userService) RevokeUserSessions(ctx context.Context, userID string, claims *response.JWTClaims) error {
+	id, ferr := convert.ParseID(userID)
+	if ferr != nil {
+		return apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
+	}
+	user, err := u.userRepo.GetByID(ctx, id)
+	if err != nil || user == nil {
+		return apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	rootID := u.rootAdminID(ctx)
+	isRoot := rootID != "" && claims.UId == rootID
+	if rootID != "" && id == rootID && !isRoot {
+		return apperrors.New(apperrors.ErrForbidden, "Only the owner can revoke sessions of the owner account")
+	}
+
+	if user.IsAdmin() && !isRoot && userID != claims.UId {
+		return apperrors.New(apperrors.ErrForbidden, "Only the owner can revoke sessions of other admin accounts")
+	}
+
+	if err := u.userRepo.RevokeSessions(ctx, id); err != nil {
+		return apperrors.New(apperrors.ErrInternalError, "Failed to revoke user sessions")
 	}
 	u.userRepo.InvalidateUserCache(ctx, id, user.Email)
 	return nil
@@ -711,4 +783,28 @@ func (s *userService) UploadAvatar(ctx context.Context, userID string, fileHeade
 	}
 
 	return "/public/" + outFilename, nil
+}
+
+func (s *userService) AdminUploadAvatar(ctx context.Context, targetUserID string, claims *response.JWTClaims, fileHeader *multipart.FileHeader) (string, error) {
+	id, ferr := convert.ParseID(targetUserID)
+	if ferr != nil {
+		return "", apperrors.New(apperrors.ErrBadRequest, "Invalid ID")
+	}
+
+	rootID := s.rootAdminID(ctx)
+	isRoot := rootID != "" && claims.UId == rootID
+	if rootID != "" && id == rootID && !isRoot {
+		return "", apperrors.New(apperrors.ErrForbidden, "Only the owner can modify the owner account")
+	}
+
+	userObj, err := s.userRepo.GetByID(ctx, id)
+	if err != nil || userObj == nil {
+		return "", apperrors.New(apperrors.ErrNotFound, "User not found")
+	}
+
+	if userObj.IsAdmin() && !isRoot && targetUserID != claims.UId {
+		return "", apperrors.New(apperrors.ErrForbidden, "Only the owner can modify other admin accounts")
+	}
+
+	return s.UploadAvatar(ctx, targetUserID, fileHeader)
 }

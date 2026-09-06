@@ -125,7 +125,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />

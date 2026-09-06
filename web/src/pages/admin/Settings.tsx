@@ -16,8 +16,10 @@ import {
   Layout,
   Loader2,
   RefreshCw,
+  RotateCcw,
   Save,
   Sparkles,
+  Upload,
   UserPlus,
   Shield,
 } from "lucide-react";
@@ -467,7 +469,8 @@ export function Settings() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
+                          <label className="btn btn-sm btn-outline btn-primary gap-1.5 font-medium cursor-pointer shadow-xs">
+                            <Upload className="w-3.5 h-3.5 shrink-0" />
                             {t("settings.upload_logo", "Upload Logo")}
                             <input
                               type="file"
@@ -478,11 +481,12 @@ export function Settings() {
                           </label>
                           <button
                             type="button"
-                            className="btn btn-sm btn-ghost font-normal"
+                            className="btn btn-sm bg-base-200 hover:bg-base-300 text-base-content border border-base-content/20 gap-1.5 font-medium shadow-xs"
                             onClick={() =>
                               setSite({ ...site, logo: "/logo.svg" })
                             }
                           >
+                            <RotateCcw className="w-3.5 h-3.5 shrink-0 opacity-70" />
                             {t("settings.use_default", "Use Default")}
                           </button>
                         </div>
@@ -557,7 +561,8 @@ export function Settings() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="btn btn-sm btn-outline cursor-pointer font-normal border-base-300">
+                          <label className="btn btn-sm btn-outline btn-primary gap-1.5 font-medium cursor-pointer shadow-xs">
+                            <Upload className="w-3.5 h-3.5 shrink-0" />
                             {t("settings.upload_favicon", "Upload Favicon")}
                             <input
                               type="file"
@@ -568,11 +573,12 @@ export function Settings() {
                           </label>
                           <button
                             type="button"
-                            className="btn btn-sm btn-ghost font-normal"
+                            className="btn btn-sm bg-base-200 hover:bg-base-300 text-base-content border border-base-content/20 gap-1.5 font-medium shadow-xs"
                             onClick={() =>
                               setSite({ ...site, favicon: "/favicon.ico" })
                             }
                           >
+                            <RotateCcw className="w-3.5 h-3.5 shrink-0 opacity-70" />
                             {t("settings.use_default", "Use Default")}
                           </button>
                         </div>
@@ -901,6 +907,10 @@ export function Settings() {
                         className="input input-bordered input-sm w-full mt-1"
                         value={hardcoverClientId}
                         onChange={(e) => setHardcoverClientId(e.target.value)}
+                        placeholder={t(
+                          "settings.hardcover_client_id_placeholder",
+                          "e.g. hc_app_01j7abc123 or Client ID",
+                        )}
                       />
                     </label>
                     <label className="block">

@@ -94,6 +94,13 @@ type UpsertBookReviewDto struct {
 	Review string `json:"review" validate:"omitempty,max=4000"`
 }
 
+type ListAdminReviewsDto struct {
+	PaginationDto
+	Search  string `json:"search,omitempty" query:"search" validate:"omitempty,max=200"`
+	Rating  int64  `json:"rating,omitempty" query:"rating" validate:"omitempty,min=0,max=5"`
+	HasText string `json:"has_text,omitempty" query:"has_text" validate:"omitempty,oneof=all true false"`
+}
+
 type CollectionBookDto struct {
 	BookID string `json:"book_id" validate:"required"`
 }

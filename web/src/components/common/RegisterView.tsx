@@ -21,6 +21,8 @@ export function RegisterView() {
   const registerMutation = useRegisterMutation();
 
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [validationError, setValidationError] = useState("");
   const [ticket, setTicket] = useState("");
 
   const verifyRequired = settings?.require_email_verify ?? false;
@@ -28,6 +30,17 @@ export function RegisterView() {
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    setValidationError("");
+    if (form.password.length < 8) {
+      setValidationError(t("auth.password_min", "Minimum 8 characters"));
+      return;
+    }
+    if (form.password !== confirmPassword) {
+      setValidationError(
+        t("auth.passwords_do_not_match", "New passwords do not match"),
+      );
+      return;
+    }
     registerMutation.mutate(
       {
         email: form.email,
@@ -38,6 +51,7 @@ export function RegisterView() {
       {
         onSuccess: () => {
           setRegisterModalOpen(false);
+          setConfirmPassword("");
         },
       },
     );
@@ -157,12 +171,34 @@ export function RegisterView() {
                   )}
                 </div>
 
-                {registerMutation.error && (
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      {t("settings.confirm_password", "Confirm new password")}
+                    </span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={t("auth.password_min", "Minimum 8 characters")}
+                    className="input input-bordered w-full focus:input-primary"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setValidationError("");
+                    }}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                {(validationError || registerMutation.error) && (
                   <div className="alert alert-error py-2 text-sm rounded-lg">
                     <span>
-                      {registerMutation.error instanceof Error
-                        ? registerMutation.error.message
-                        : String(registerMutation.error)}
+                      {validationError ||
+                        (registerMutation.error instanceof Error
+                          ? registerMutation.error.message
+                          : String(registerMutation.error))}
                     </span>
                   </div>
                 )}

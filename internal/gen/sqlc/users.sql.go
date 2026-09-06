@@ -11,6 +11,116 @@ import (
 	"strings"
 )
 
+const bulkDeleteUsers = `-- name: BulkDeleteUsers :exec
+UPDATE users
+SET is_deleted = 1,
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) BulkDeleteUsers(ctx context.Context, ids []string) error {
+	query := bulkDeleteUsers
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkRestoreUsers = `-- name: BulkRestoreUsers :exec
+UPDATE users
+SET is_deleted = 0,
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) BulkRestoreUsers(ctx context.Context, ids []string) error {
+	query := bulkRestoreUsers
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkRevokeUserSessions = `-- name: BulkRevokeUserSessions :exec
+UPDATE users
+SET token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) BulkRevokeUserSessions(ctx context.Context, ids []string) error {
+	query := bulkRevokeUserSessions
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
+const bulkUpdateUserInfo = `-- name: BulkUpdateUserInfo :exec
+UPDATE users
+SET
+    max_allowed_age_rating = COALESCE(?1, max_allowed_age_rating),
+    is_kids_mode = COALESCE(?2, is_kids_mode),
+    avatar_url = CASE WHEN ?3 = 1 THEN NULL ELSE avatar_url END,
+    token_version = CASE WHEN ?4 = 1 THEN token_version + 1 ELSE token_version END,
+    refresh_token = CASE WHEN ?4 = 1 THEN NULL ELSE refresh_token END,
+    updated_at = datetime('now')
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+type BulkUpdateUserInfoParams struct {
+	MaxAllowedAgeRating sql.NullString `json:"max_allowed_age_rating"`
+	IsKidsMode          sql.NullInt64  `json:"is_kids_mode"`
+	ResetAvatar         interface{}    `json:"reset_avatar"`
+	RevokeSessions      interface{}    `json:"revoke_sessions"`
+	Ids                 []string       `json:"ids"`
+}
+
+func (q *Queries) BulkUpdateUserInfo(ctx context.Context, arg BulkUpdateUserInfoParams) error {
+	query := bulkUpdateUserInfo
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.MaxAllowedAgeRating)
+	queryParams = append(queryParams, arg.IsKidsMode)
+	queryParams = append(queryParams, arg.ResetAvatar)
+	queryParams = append(queryParams, arg.RevokeSessions)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.exec(ctx, nil, query, queryParams...)
+	return err
+}
+
 const countUsers = `-- name: CountUsers :one
 SELECT count(*)
 FROM users u
@@ -333,6 +443,20 @@ func (q *Queries) RestoreUser(ctx context.Context, id string) error {
 	return err
 }
 
+const revokeUserSessions = `-- name: RevokeUserSessions :exec
+UPDATE users
+SET
+    token_version = token_version + 1,
+    refresh_token = NULL,
+    updated_at = datetime('now')
+WHERE id = ? AND is_deleted = 0
+`
+
+func (q *Queries) RevokeUserSessions(ctx context.Context, id string) error {
+	_, err := q.exec(ctx, q.revokeUserSessionsStmt, revokeUserSessions, id)
+	return err
+}
+
 const rotateUserRefreshToken = `-- name: RotateUserRefreshToken :execrows
 UPDATE users
 SET refresh_token = ?1
@@ -496,16 +620,24 @@ UPDATE users
 SET
     full_name = COALESCE(?1, full_name),
     avatar_url = COALESCE(?2, avatar_url),
-    oauth2_id = COALESCE(?3, oauth2_id)
-WHERE id = ?4 AND is_deleted = 0
+    oauth2_id = COALESCE(?3, oauth2_id),
+    max_allowed_age_rating = COALESCE(?4, max_allowed_age_rating),
+    is_kids_mode = COALESCE(?5, is_kids_mode),
+    token_version = CASE WHEN ?6 = 1 THEN token_version + 1 ELSE token_version END,
+    refresh_token = CASE WHEN ?6 = 1 THEN NULL ELSE refresh_token END,
+    updated_at = datetime('now')
+WHERE id = ?7 AND is_deleted = 0
 RETURNING id, email, full_name, avatar_url, password_hash, auth_provider, oauth2_id, max_allowed_age_rating, kids_mode_pin_hash, is_kids_mode, is_deleted, token_version, refresh_token, created_at, updated_at
 `
 
 type UpdateProfileParams struct {
-	FullName  sql.NullString `json:"full_name"`
-	AvatarUrl sql.NullString `json:"avatar_url"`
-	Oauth2ID  sql.NullString `json:"oauth2_id"`
-	ID        string         `json:"id"`
+	FullName            sql.NullString `json:"full_name"`
+	AvatarUrl           sql.NullString `json:"avatar_url"`
+	Oauth2ID            sql.NullString `json:"oauth2_id"`
+	MaxAllowedAgeRating sql.NullString `json:"max_allowed_age_rating"`
+	IsKidsMode          sql.NullInt64  `json:"is_kids_mode"`
+	RevokeSessions      interface{}    `json:"revoke_sessions"`
+	ID                  string         `json:"id"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (User, error) {
@@ -513,6 +645,9 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (U
 		arg.FullName,
 		arg.AvatarUrl,
 		arg.Oauth2ID,
+		arg.MaxAllowedAgeRating,
+		arg.IsKidsMode,
+		arg.RevokeSessions,
 		arg.ID,
 	)
 	var i User

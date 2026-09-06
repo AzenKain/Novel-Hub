@@ -453,21 +453,23 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
   return (
     <>
       <dialog className="modal modal-open z-50">
-        <div className="modal-box w-11/12 max-w-[96vw] 2xl:max-w-[1700px] h-[95vh] max-h-[96vh] bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col rounded-2xl">
+        <div className="modal-box w-[96vw] sm:w-11/12 max-w-[96vw] 2xl:max-w-[1700px] h-[95vh] max-h-[96vh] bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col rounded-2xl">
           {/* Header */}
-          <header className="px-6 py-4 border-b border-base-200 bg-base-200/40 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                <Layers className="w-6 h-6" />
+          <header className="px-3 sm:px-6 py-2.5 sm:py-4 border-b border-base-200 bg-base-200/40 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                <Layers className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h3 className="text-xl font-black text-base-content flex items-center gap-2">
-                  {t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}
-                  <span className="badge badge-primary badge-md font-bold">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-sm sm:text-xl font-black text-base-content leading-tight">
+                    {t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}
+                  </h3>
+                  <span className="badge badge-primary badge-xs sm:badge-sm font-bold shrink-0">
                     {items.length} {t("library.selected", "books")}
                   </span>
-                </h3>
-                <p className="text-xs sm:text-sm text-base-content/60 mt-0.5">
+                </div>
+                <p className="text-[11px] sm:text-xs text-base-content/60 mt-0.5 truncate hidden sm:block">
                   {t(
                     "library.bulk_edit_metadata_desc",
                     "Edit and synchronize fields across multiple books simultaneously",
@@ -476,18 +478,18 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {activeTab === "editor" && (
                 <button
                   type="button"
                   onClick={handleAutoSequenceSeriesIndex}
-                  className="btn btn-sm sm:btn-md btn-outline gap-1.5 text-xs sm:text-sm font-semibold rounded-xl"
+                  className="btn btn-xs sm:btn-sm btn-outline gap-1 text-[11px] sm:text-xs font-semibold rounded-lg sm:rounded-xl px-2 sm:px-3 h-7 sm:h-9 min-h-0 shrink-0"
                   title={t(
                     "library.auto_index_desc",
                     "Set series index 1, 2, 3... in order",
                   )}
                 >
-                  <ArrowDown10 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <ArrowDown10 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">
                     1..N {t("library.series_index", "Index")}
                   </span>
@@ -497,89 +499,89 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
               </button>
             </div>
           </header>
 
           {/* Tabs Navigation */}
-          <div className="px-6 bg-base-200/40 border-b border-base-200 shrink-0">
-            <div className="flex gap-2">
+          <div className="px-2.5 sm:px-6 bg-base-200/40 border-b border-base-200 shrink-0">
+            <div className="grid grid-cols-2 gap-1 sm:gap-2 w-full sm:w-auto sm:flex">
               <button
                 type="button"
                 onClick={() => setActiveTab("editor")}
-                className={`flex items-center gap-2 py-3 px-4 font-bold text-sm border-b-2 transition-colors ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-4 font-bold text-xs sm:text-sm border-b-2 transition-colors text-center ${
                   activeTab === "editor"
                     ? "border-primary text-primary"
                     : "border-transparent text-base-content/60 hover:text-base-content"
                 }`}
               >
-                <Layers className="w-4 h-4" />
-                {t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}
+                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate">{t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("cleaner")}
-                className={`flex items-center gap-2 py-3 px-4 font-bold text-sm border-b-2 transition-colors ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-4 font-bold text-xs sm:text-sm border-b-2 transition-colors text-center ${
                   activeTab === "cleaner"
                     ? "border-primary text-primary"
                     : "border-transparent text-base-content/60 hover:text-base-content"
                 }`}
               >
-                <Wand2 className="w-4 h-4" />
-                {t("library.tab_title_cleaner", "Title & Author Cleaner")}
+                <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate">{t("library.tab_title_cleaner", "Title & Author Cleaner")}</span>
               </button>
             </div>
           </div>
 
           {/* Body */}
           {activeTab === "cleaner" ? (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6">
               <BulkTitleCleanerTab
                 items={items}
                 onApplyChanges={handleApplyCleanerChanges}
               />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
               {items.map((item, index) => (
                 <div
                   key={item.id}
-                  className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                  className={`rounded-xl sm:rounded-2xl border p-3.5 sm:p-6 transition-all ${
                     item.modified
                       ? "border-primary/50 bg-base-100 shadow-md ring-2 ring-primary/20"
                       : "border-base-300/80 bg-base-200/25"
                   }`}
                 >
                   {/* Book Card Header */}
-                  <div className="flex items-center justify-between gap-3 pb-3 mb-5 border-b border-base-200/80">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+                  <div className="flex items-center justify-between gap-3 pb-2.5 mb-3.5 sm:pb-3 sm:mb-5 border-b border-base-200/80">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
                         #{index + 1}
                       </span>
                       <span
-                        className="text-sm font-bold text-base-content truncate"
+                        className="text-xs sm:text-sm font-bold text-base-content truncate"
                         title={item.original.title}
                       >
                         {item.original.title}
                       </span>
                     </div>
                     {item.modified && (
-                      <span className="badge badge-sm badge-warning font-semibold text-[11px] gap-1 shrink-0">
-                        <Check className="w-3 h-3" />
+                      <span className="badge badge-xs sm:badge-sm badge-warning font-semibold text-[10px] sm:text-[11px] gap-1 shrink-0 whitespace-nowrap">
+                        <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         {t("common.modified", "Modified")}
                       </span>
                     )}
                   </div>
 
                   {/* Main Content: Left Column (Cover) & Right Column (Form Fields) */}
-                  <div className="flex flex-col md:flex-row items-start gap-6">
+                  <div className="flex flex-col md:flex-row items-start gap-4 sm:gap-6">
                     {/* Left Column: Cover Image & Actions */}
-                    <div className="w-full md:w-36 shrink-0 flex flex-col items-center gap-3">
-                      <div className="w-32 h-44 sm:w-36 sm:h-50 rounded-2xl bg-base-300 border border-base-300/80 overflow-hidden shadow-md relative group flex items-center justify-center">
+                    <div className="w-full md:w-36 shrink-0 flex flex-row md:flex-col items-center md:items-stretch gap-3">
+                      <div className="w-20 h-28 sm:w-28 sm:h-38 md:w-36 md:h-50 rounded-xl sm:rounded-2xl bg-base-300 border border-base-300/80 overflow-hidden shadow-md relative group shrink-0 flex items-center justify-center">
                         {item.coverPreview ? (
                           <img
                             src={
@@ -596,17 +598,17 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="flex flex-col items-center gap-1.5 text-base-content/40">
-                            <ImageIcon className="w-8 h-8" />
-                            <span className="text-[10px] font-bold uppercase">
+                          <div className="flex flex-col items-center gap-1 text-base-content/40">
+                            <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8" />
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase">
                               {t("library.no_cover")}
                             </span>
                           </div>
                         )}
                         {/* Hover Overlay */}
-                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-opacity text-white p-2">
-                          <Upload className="w-5 h-5 text-primary" />
-                          <span className="text-[11px] font-bold text-center leading-tight">
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 cursor-pointer transition-opacity text-white p-2">
+                          <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                          <span className="text-[10px] sm:text-[11px] font-bold text-center leading-tight">
                             {t("library.change_image")}
                           </span>
                           <input
@@ -628,14 +630,14 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       </div>
 
                       {/* Cover Actions Button Group */}
-                      <div className="flex flex-col gap-1.5 w-full">
+                      <div className="flex flex-col gap-1.5 flex-1 md:w-full min-w-0 justify-center">
                         <div className="grid grid-cols-2 gap-1.5 w-full">
                           <label
-                            className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg"
+                            className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg justify-center whitespace-nowrap"
                             title={t("library.upload_image_title")}
                           >
-                            <Upload className="w-3 h-3" />
-                            <span>{t("library.upload_image")}</span>
+                            <Upload className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{t("library.upload_image")}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -663,10 +665,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                   : "",
                               });
                             }}
-                            className="btn btn-xs btn-ghost border border-base-300 gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold rounded-lg hover:bg-base-200"
+                            className="btn btn-xs btn-ghost border border-base-300 gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold rounded-lg hover:bg-base-200 justify-center whitespace-nowrap"
                             title={t("admin.paste_image_url")}
                           >
-                            <LinkIcon className="w-3 h-3" />
+                            <LinkIcon className="w-3 h-3 shrink-0" />
                             <span>{t("common.url")}</span>
                           </button>
                         </div>
@@ -674,11 +676,11 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenSyncModal(index, "cover")}
-                          className="btn btn-xs btn-outline btn-secondary gap-1 h-7 min-h-0 text-[11px] font-semibold rounded-lg w-full"
+                          className="btn btn-xs btn-outline btn-secondary gap-1 h-7 min-h-0 text-[11px] font-semibold rounded-lg w-full justify-center whitespace-nowrap"
                           title={t("library.apply_cover_to_others")}
                         >
-                          <Copy className="w-3 h-3" />
-                          <span>{t("library.sync_cover", "Sync cover")}</span>
+                          <Copy className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{t("library.sync_cover", "Sync cover")}</span>
                         </button>
                       </div>
                     </div>
@@ -700,12 +702,12 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             "book.title_placeholder",
                             "Book title",
                           )}
-                          className="input input-md input-bordered w-full font-bold text-sm bg-base-100 rounded-xl"
+                          className="input input-sm sm:input-md input-bordered w-full font-bold text-xs sm:text-sm bg-base-100 rounded-lg sm:rounded-xl"
                         />
                       </div>
 
                       {/* Form Fields Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
                         {/* Author */}
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center justify-between h-7">
@@ -717,7 +719,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               onClick={() =>
                                 handleOpenSyncModal(index, "author")
                               }
-                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2 sm:px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               {t("library.sync_field_to_books", "Sync")}
@@ -730,7 +732,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               updateItem(index, { author: e.target.value })
                             }
                             placeholder="e.g. J.K. Rowling"
-                            className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
+                            className="input input-sm sm:input-md input-bordered w-full bg-base-100 text-xs sm:text-sm rounded-lg sm:rounded-xl font-medium"
                           />
                         </div>
 
@@ -745,7 +747,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               onClick={() =>
                                 handleOpenSyncModal(index, "publisher")
                               }
-                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               {t("library.sync_field_to_books", "Sync")}
@@ -758,7 +760,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               updateItem(index, { publisher: e.target.value })
                             }
                             placeholder="e.g. Bloomsbury"
-                            className="input input-md input-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
+                            className="input input-sm sm:input-md input-bordered w-full bg-base-100 text-xs sm:text-sm rounded-lg sm:rounded-xl font-medium"
                           />
                         </div>
 
@@ -773,7 +775,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               onClick={() =>
                                 handleOpenSyncModal(index, "language")
                               }
-                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               {t("library.sync_field_to_books", "Sync")}
@@ -786,7 +788,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               updateItem(index, { language: e.target.value })
                             }
                             placeholder="vi, en, ja..."
-                            className="input input-md input-bordered w-full bg-base-100 text-sm font-mono rounded-xl font-medium"
+                            className="input input-sm sm:input-md input-bordered w-full bg-base-100 text-xs sm:text-sm font-mono rounded-lg sm:rounded-xl font-medium"
                           />
                         </div>
 
@@ -802,13 +804,13 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                 onClick={() =>
                                   handleOpenSyncModal(index, "series")
                                 }
-                                className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                                className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                               >
                                 <Copy className="w-3.5 h-3.5" />
                                 {t("library.sync_field_to_books", "Sync")}
                               </button>
                             </div>
-                            <span className="text-xs font-bold text-base-content/80 w-24 pl-2 border-l border-base-300">
+                            <span className="text-xs font-bold text-base-content/80 w-20 sm:w-24 pl-2 border-l border-base-300">
                               {t("book.series_index", "Index")}
                             </span>
                           </div>
@@ -820,7 +822,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                 updateItem(index, { series: e.target.value })
                               }
                               placeholder="e.g. Harry Potter"
-                              className="input input-md input-bordered flex-1 bg-base-100 text-sm rounded-xl min-w-0 font-medium"
+                              className="input input-sm sm:input-md input-bordered flex-1 bg-base-100 text-xs sm:text-sm rounded-lg sm:rounded-xl min-w-0 font-medium"
                             />
                             <input
                               type="text"
@@ -830,8 +832,8 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                   series_index: e.target.value,
                                 })
                               }
-                              placeholder="1, 2, 3..."
-                              className="input input-md input-bordered w-24 bg-base-100 text-sm font-mono rounded-xl shrink-0 text-center font-medium"
+                              placeholder="1, 2..."
+                              className="input input-sm sm:input-md input-bordered w-20 sm:w-24 bg-base-100 text-xs sm:text-sm font-mono rounded-lg sm:rounded-xl shrink-0 text-center font-medium"
                             />
                           </div>
                         </div>
@@ -847,7 +849,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               onClick={() =>
                                 handleOpenSyncModal(index, "age_rating")
                               }
-                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                              className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               {t("library.sync_field_to_books", "Sync")}
@@ -858,7 +860,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             onChange={(e) =>
                               updateItem(index, { age_rating: e.target.value })
                             }
-                            className="select select-md select-bordered w-full bg-base-100 text-sm rounded-xl font-medium"
+                            className="select select-sm sm:select-md select-bordered w-full bg-base-100 text-xs sm:text-sm rounded-lg sm:rounded-xl font-medium"
                           >
                             <option value="">{t("common.none", "None")}</option>
                             <option value="safe">{t("book.age_safe")}</option>
@@ -874,7 +876,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       </div>
 
                       {/* Subjects / Tags row */}
-                      <div className="mt-5 pt-4 border-t border-base-200/80">
+                      <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-base-200/80">
                         <div className="flex items-center justify-between h-7 mb-2">
                           <span className="text-xs font-bold text-base-content/80">
                             {t("book.tags", "Tags / Subjects")}
@@ -884,7 +886,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             onClick={() =>
                               handleOpenSyncModal(index, "subjects")
                             }
-                            className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                            className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                           >
                             <Copy className="w-3.5 h-3.5" />
                             {t("library.sync_field_to_books", "Sync")}
@@ -916,7 +918,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                 "book.add_tag_placeholder",
                                 "Add tag (press Enter)...",
                               )}
-                              className="input input-md input-bordered flex-1 bg-base-100 text-sm rounded-xl font-medium"
+                              className="input input-sm sm:input-md input-bordered flex-1 bg-base-100 text-xs sm:text-sm rounded-lg sm:rounded-xl font-medium"
                             />
                             <button
                               type="button"
@@ -932,9 +934,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                 }
                               }}
                               disabled={!item.tagInput.trim()}
-                              className="btn btn-md btn-primary rounded-xl gap-1.5 font-bold shrink-0 px-4"
+                              className="btn btn-sm sm:btn-md btn-primary rounded-lg sm:rounded-xl gap-1.5 font-bold shrink-0 px-3 sm:px-4 text-xs sm:text-sm"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               {t("common.add", "Add")}
                             </button>
                           </div>
@@ -944,7 +946,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                               {item.subjects.map((sub, sIdx) => (
                                 <span
                                   key={sIdx}
-                                  className="badge badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-3 px-3 text-xs font-semibold rounded-lg"
+                                  className="badge badge-sm sm:badge-md badge-primary/10 text-primary border border-primary/20 gap-1.5 py-2 sm:py-3 px-2.5 sm:px-3 text-[11px] sm:text-xs font-semibold rounded-lg"
                                 >
                                   {sub}
                                   <button
@@ -967,7 +969,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       </div>
 
                       {/* Description row */}
-                      <div className="mt-4">
+                      <div className="mt-3.5 sm:mt-4">
                         <div className="flex items-center justify-between h-7 mb-2">
                           <span className="text-xs font-bold text-base-content/80">
                             {t("book.description", "Description")}
@@ -977,7 +979,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             onClick={() =>
                               handleOpenSyncModal(index, "description")
                             }
-                            className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10"
+                            className="btn btn-ghost btn-xs text-primary gap-1 h-7 min-h-0 px-2.5 text-xs font-semibold rounded-lg hover:bg-primary/10 whitespace-nowrap shrink-0"
                           >
                             <Copy className="w-3.5 h-3.5" />
                             {t("library.sync_field_to_books", "Sync")}
@@ -993,7 +995,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                             "book.description_placeholder",
                             "Book summary / description...",
                           )}
-                          className="textarea textarea-bordered textarea-md w-full bg-base-100 text-sm leading-relaxed rounded-xl resize-y"
+                          className="textarea textarea-bordered textarea-sm sm:textarea-md w-full bg-base-100 text-xs sm:text-sm leading-relaxed rounded-lg sm:rounded-xl resize-y"
                         />
                       </div>
                     </div>
@@ -1004,30 +1006,32 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
           )}
 
           {/* Footer Actions */}
-          <footer className="px-6 py-4 border-t border-base-200 bg-base-200/40 flex items-center justify-between shrink-0">
-            <div className="text-xs sm:text-sm text-base-content/70">
+          <footer className="px-3 sm:px-6 py-2.5 sm:py-4 border-t border-base-200 bg-base-200/40 flex items-center justify-between gap-2 shrink-0">
+            <div className="text-[11px] sm:text-sm text-base-content/70 min-w-0 truncate">
               {saveProgress ? (
-                <span className="flex items-center gap-2 font-bold text-primary">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t(
-                    "library.saving_progress",
-                    "Saving {{current}} of {{total}} books...",
-                    {
-                      current: saveProgress.current,
-                      total: saveProgress.total,
-                    },
-                  )}
+                <span className="flex items-center gap-1.5 sm:gap-2 font-bold text-primary truncate">
+                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin shrink-0" />
+                  <span className="truncate">
+                    {t(
+                      "library.saving_progress",
+                      "Saving {{current}} of {{total}} books...",
+                      {
+                        current: saveProgress.current,
+                        total: saveProgress.total,
+                      },
+                    )}
+                  </span>
                 </span>
               ) : (
-                <span>
+                <span className="truncate block">
                   {items.filter((it) => it.modified).length > 0 ? (
-                    <span className="text-warning font-semibold">
+                    <span className="text-warning font-semibold truncate">
                       {t("library.modified_count", "{{count}} books modified", {
                         count: items.filter((it) => it.modified).length,
                       })}
                     </span>
                   ) : (
-                    <span className="text-base-content/50">
+                    <span className="text-base-content/50 truncate">
                       {t("library.no_changes_yet", "No changes made yet")}
                     </span>
                   )}
@@ -1035,12 +1039,12 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="btn btn-ghost btn-sm sm:btn-md rounded-xl font-semibold"
+                className="btn btn-ghost btn-xs sm:btn-md rounded-lg sm:rounded-xl font-semibold px-2.5 sm:px-4 h-8 sm:h-11 min-h-0 whitespace-nowrap"
               >
                 {t("common.cancel", "Cancel")}
               </button>
@@ -1051,14 +1055,14 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 disabled={
                   isSaving || items.filter((it) => it.modified).length === 0
                 }
-                className="btn btn-primary btn-sm sm:btn-md gap-2 font-bold rounded-xl px-6 shadow-lg shadow-primary/20"
+                className="btn btn-primary btn-xs sm:btn-md gap-1 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-2.5 sm:px-6 h-8 sm:h-11 min-h-0 text-xs sm:text-sm shadow-md sm:shadow-lg shadow-primary/20 whitespace-nowrap shrink-0"
               >
                 {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin shrink-0" />
                 ) : (
-                  <Save className="w-4 h-4" />
+                  <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 )}
-                {t("common.save_all", "Save All Changes")}
+                <span>{t("common.save_all", "Save All Changes")}</span>
               </button>
             </div>
           </footer>
@@ -1067,16 +1071,16 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
 
       {/* ======================= SYNC FIELD POPUP MODAL ======================= */}
       {syncState.isOpen && (
-        <dialog className="modal modal-open z-60 bg-black/60 backdrop-blur-sm">
-          <div className="modal-box w-11/12 max-w-2xl 2xl:max-w-3xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] rounded-3xl border border-base-300">
+        <dialog className="modal modal-open z-60 bg-black/50">
+          <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl 2xl:max-w-3xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl sm:rounded-3xl border border-base-300">
             {/* Sync Header */}
-            <header className="px-6 py-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                  <Copy className="w-5 h-5" />
+            <header className="px-4 sm:px-6 py-3 sm:py-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                  <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h4 className="font-black text-lg text-base-content">
+                <div className="min-w-0">
+                  <h4 className="font-black text-sm sm:text-lg text-base-content truncate">
                     {t(
                       "library.sync_field_title",
                       "Sync {{field}} to other books",
@@ -1085,7 +1089,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       },
                     )}
                   </h4>
-                  <p className="text-xs text-base-content/60 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-base-content/60 mt-0.5 truncate">
                     {t(
                       "library.sync_modal_subtitle",
                       "Choose which books will receive this value",
@@ -1098,15 +1102,15 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 onClick={() =>
                   setSyncState((prev) => ({ ...prev, isOpen: false }))
                 }
-                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
               </button>
             </header>
 
             {/* Sync Body */}
-            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+            <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
               {/* Value Preview Banner */}
               <div className="rounded-2xl bg-primary/5 border border-primary/15 p-4.5">
                 <span className="text-xs font-bold text-primary block uppercase tracking-wider mb-1.5">
@@ -1370,13 +1374,13 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
             </div>
 
             {/* Sync Footer */}
-            <footer className="px-6 py-4 border-t border-base-200 bg-base-200/50 flex items-center justify-end gap-3 shrink-0">
+            <footer className="px-4 sm:px-6 py-3 sm:py-4 border-t border-base-200 bg-base-200/50 flex items-center justify-end gap-2 sm:gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() =>
                   setSyncState((prev) => ({ ...prev, isOpen: false }))
                 }
-                className="btn btn-md btn-ghost rounded-xl font-semibold"
+                className="btn btn-xs sm:btn-md btn-ghost rounded-lg sm:rounded-xl font-semibold px-2.5 sm:px-4"
               >
                 {t("common.cancel", "Cancel")}
               </button>
@@ -1384,9 +1388,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={handleApplySync}
                 disabled={syncState.selectedBookIds.size === 0}
-                className="btn btn-md btn-primary gap-2 font-bold rounded-xl px-6 shadow-md shadow-primary/20"
+                className="btn btn-xs sm:btn-md btn-primary gap-1.5 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-3 sm:px-6 shadow-md shadow-primary/20 text-xs sm:text-sm"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {t("common.apply", "Apply")} ({syncState.selectedBookIds.size})
               </button>
             </footer>
@@ -1396,18 +1400,18 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
 
       {/* ======================= COVER URL INPUT MODAL ======================= */}
       {coverUrlModal.isOpen && coverUrlModal.bookIndex !== null && (
-        <dialog className="modal modal-open z-70 bg-black/60 backdrop-blur-xs">
-          <div className="modal-box max-w-md p-6 rounded-3xl border border-base-300 shadow-2xl bg-base-100 animate-in fade-in zoom-in-95 duration-150">
+        <dialog className="modal modal-open z-70 bg-black/50">
+          <div className="modal-box w-[94vw] sm:max-w-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl bg-base-100 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-base-200">
-              <div className="flex items-center gap-2.5 font-bold text-base text-base-content">
-                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex items-center gap-2.5 font-bold text-base text-base-content min-w-0">
+                <div className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                   <LinkIcon className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="font-bold text-base leading-tight">
+                <div className="min-w-0">
+                  <div className="font-bold text-sm sm:text-base leading-tight truncate">
                     {t("admin.cover_url_title", "Enter cover image link")}
                   </div>
-                  <div className="text-xs text-base-content/50 font-normal mt-0.5">
+                  <div className="text-[11px] sm:text-xs text-base-content/50 font-normal mt-0.5 truncate">
                     {t("library.book_num", { n: coverUrlModal.bookIndex + 1 })}:{" "}
                     {items[coverUrlModal.bookIndex]?.title}
                   </div>
@@ -1418,10 +1422,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 onClick={() =>
                   setCoverUrlModal({ isOpen: false, bookIndex: null, url: "" })
                 }
-                className="btn btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105"
+                className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-4 h-4 text-base-content stroke-[2.5]" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
               </button>
             </div>
 

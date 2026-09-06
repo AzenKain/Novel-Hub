@@ -59,6 +59,7 @@ import {
   Download,
   Library,
   Stethoscope,
+  X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -436,21 +437,22 @@ export function Books() {
           </div>
 
           {selectedBookIds.length > 0 && (
-            <div className="mb-3 px-3 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-primary">
+            <div className="mb-3 px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+                <span className="font-bold text-primary whitespace-nowrap">
                   {t("admin.selected_books", "Selected {{count}} books", {
                     count: selectedBookIds.length,
                   })}
                 </span>
                 <button
                   onClick={() => setSelectedBookIds([])}
-                  className="btn btn-ghost btn-xs text-xs opacity-70 hover:opacity-100 h-6 min-h-0"
+                  className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1"
                 >
-                  {t("common.deselect_all", "Clear selection")}
+                  <X className="w-3 h-3" />
+                  <span>{t("common.deselect_all", "Clear selection")}</span>
                 </button>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-1.5 w-full sm:w-auto pt-2 sm:pt-0 border-t border-primary/15 sm:border-t-0 shrink-0">
                 {canBulkMerge && (
                   <button
                     onClick={() => {
@@ -462,10 +464,10 @@ export function Books() {
                         });
                       }
                     }}
-                    className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                    className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
                   >
-                    <AudioLines className="w-3.5 h-3.5" />
-                    {t("audiobook.merge", "Merge into audiobook")}
+                    <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{t("audiobook.merge", "Merge into audiobook")}</span>
                   </button>
                 )}
                 <button
@@ -495,36 +497,40 @@ export function Books() {
                       ),
                     );
                   }}
-                  className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                  className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
                   disabled={
                     !selectedBooks.some((b) => b.files && b.files.length > 0)
                   }
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  {t("admin.bulk_download", "Bulk Download")}
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t("admin.bulk_download", "Bulk Download")}</span>
                 </button>
                 <button
                   onClick={() => setShowBulkEditModal(true)}
-                  className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                  className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
                 >
-                  <Layers className="w-3.5 h-3.5" />
-                  {t("library.bulk_edit_metadata_title", "Edit Metadata")}
+                  <Layers className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t("library.bulk_edit_metadata_title", "Edit Metadata")}</span>
                 </button>
                 {canBulkConvert && (
                   <button
                     onClick={() => setShowBulkConvertModal(true)}
-                    className="btn btn-outline btn-xs gap-1.5 h-7 min-h-0"
+                    className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
                   >
-                    <FileText className="w-3.5 h-3.5" />
-                    {t("book.convert_format", "Convert format")}
+                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{t("book.convert_format", "Convert format")}</span>
                   </button>
                 )}
                 <button
                   onClick={() => setShowBulkDeleteModal(true)}
-                  className="btn btn-error btn-xs gap-1.5 h-7 min-h-0"
+                  className={`btn btn-error btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center ${
+                    ((canBulkMerge ? 1 : 0) + (canBulkConvert ? 1 : 0)) % 2 === 0
+                      ? "col-span-2 sm:col-span-1"
+                      : ""
+                  }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {t("admin.delete_selected_books", "Delete selected")}
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t("admin.delete_selected_books", "Delete selected")}</span>
                 </button>
               </div>
             </div>
@@ -1105,35 +1111,49 @@ export function Books() {
                 </div>
 
                 {/* ========== RIGHT COLUMN: Metadata Form ========== */}
-                <div className="flex flex-col gap-6 p-6 overflow-y-auto">
-                  {/* Online Search Widget */}
-                  <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 sm:p-5">
-                    <h4 className="font-bold text-sm text-primary mb-3 flex items-center gap-2">
-                      <Globe size={18} />
-                      {t("admin.search_online_title")}
-                    </h4>
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                      <select
-                        className="select select-bordered select-md bg-base-100 shrink-0 rounded-xl text-sm font-medium"
-                        value={searchSource}
-                        onChange={(e) => setSearchSource(e.target.value)}
-                      >
-                        <option value="fallback">
-                          {t("admin.source_auto")}
-                        </option>
-                        <option value="anilist">
-                          {t("admin.source_anilist")}
-                        </option>
-                        <option value="google">
-                          {t("admin.source_google")}
-                        </option>
-                        <option value="openlibrary">
-                          {t("admin.source_openlibrary")}
-                        </option>
-                      </select>
+                <div className="flex flex-col gap-5 p-4 sm:p-6 overflow-y-auto">
+                  {/* Online Search Widget - Flat & Spacious */}
+                  <div className="space-y-3 pb-5 border-b border-base-200">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                          <Globe size={16} />
+                        </div>
+                        <span className="font-bold text-sm text-base-content">
+                          {t("admin.search_online_title")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs text-base-content/50 hidden sm:inline">
+                          {t("admin.source", "Source")}:
+                        </span>
+                        <select
+                          className="select select-bordered select-xs sm:select-sm bg-base-100 rounded-lg text-xs font-medium h-7 sm:h-8"
+                          value={searchSource}
+                          onChange={(e) => setSearchSource(e.target.value)}
+                          aria-label={t("admin.source", "Source")}
+                        >
+                          <option value="fallback">
+                            {t("admin.source_auto")}
+                          </option>
+                          <option value="anilist">
+                            {t("admin.source_anilist")}
+                          </option>
+                          <option value="google">
+                            {t("admin.source_google")}
+                          </option>
+                          <option value="openlibrary">
+                            {t("admin.source_openlibrary")}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="relative flex items-center w-full">
+                      <Search className="absolute left-3.5 w-4 h-4 text-base-content/40 pointer-events-none" />
                       <input
                         type="text"
-                        className="input input-bordered input-md flex-1 bg-base-100 min-w-0 rounded-xl text-sm"
+                        className="input input-bordered w-full h-11 sm:h-12 pl-10 pr-24 sm:pr-28 text-sm rounded-xl bg-base-100 font-medium focus:border-primary transition-all"
                         placeholder={t("admin.online_search_placeholder")}
                         value={onlineSearchQuery}
                         onChange={(e) => setOnlineSearchQuery(e.target.value)}
@@ -1148,27 +1168,25 @@ export function Books() {
                         type="button"
                         onClick={handleSearchOnline}
                         disabled={searching}
-                        className="btn btn-md btn-primary gap-1.5 shrink-0 rounded-xl font-bold"
+                        className="btn btn-sm sm:btn-md btn-primary absolute right-1.5 h-8 sm:h-9 min-h-8 sm:min-h-9 px-3 sm:px-4 rounded-lg font-bold gap-1.5 text-xs sm:text-sm shadow-xs"
                       >
                         {searching ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Search className="w-4 h-4" />
+                          <Search className="w-3.5 h-3.5 hidden sm:inline" />
                         )}
                         {searching ? t("admin.searching") : t("common.search")}
                       </button>
                     </div>
 
                     {searchResults.length > 0 && (
-                      <div className="mt-3.5 border border-base-200 bg-base-100 rounded-xl max-h-56 overflow-y-auto shadow-inner p-2.5 flex flex-col gap-1.5">
-                        <div className="flex justify-between items-center px-2 py-1">
-                          <span className="text-xs font-bold text-base-content/60">
-                            {t("admin.select_result_hint")}
-                          </span>
+                      <div className="border border-base-200 rounded-xl bg-base-100 overflow-hidden divide-y divide-base-200 max-h-64 overflow-y-auto shadow-sm">
+                        <div className="flex justify-between items-center px-3 py-2 bg-base-200/40 text-xs font-semibold text-base-content/70">
+                          <span>{t("admin.select_result_hint")}</span>
                           <button
                             type="button"
                             onClick={() => setSearchResults([])}
-                            className="text-xs text-error font-bold hover:underline"
+                            className="text-xs text-error font-semibold hover:underline cursor-pointer"
                           >
                             {t("common.close")}
                           </button>
@@ -1177,7 +1195,7 @@ export function Books() {
                           <div
                             key={idx}
                             onClick={() => handleSelectResult(res)}
-                            className="flex gap-3 p-2.5 rounded-xl hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors"
+                            className="flex items-center gap-3 p-3 hover:bg-base-200/60 cursor-pointer transition-colors"
                           >
                             {res.cover_image ? (
                               <img
@@ -1186,22 +1204,23 @@ export function Books() {
                                   editingBook?.id,
                                 )}
                                 loading="lazy"
-                                className="w-10 h-14 object-cover rounded-lg bg-base-200 border border-base-200 shrink-0"
+                                alt={res.title}
+                                className="w-10 h-14 object-cover rounded-lg bg-base-200 border border-base-200 shrink-0 shadow-2xs"
                               />
                             ) : (
                               <div className="w-10 h-14 rounded-lg bg-base-200 border border-base-200 flex items-center justify-center text-[9px] text-base-content/40 font-bold shrink-0">
                                 —
                               </div>
                             )}
-                            <div className="flex flex-col justify-center min-w-0">
-                              <strong className="text-sm text-primary truncate leading-tight">
+                            <div className="flex flex-col justify-center min-w-0 flex-1">
+                              <strong className="text-sm font-semibold text-base-content hover:text-primary truncate leading-snug">
                                 {res.title}
                               </strong>
-                              <span className="text-xs opacity-60 truncate">
+                              <span className="text-xs text-base-content/60 truncate mt-0.5">
                                 {res.creator || "Unknown author"}
                               </span>
                               {res.publisher && (
-                                <span className="text-[11px] opacity-40 truncate">
+                                <span className="text-[11px] text-base-content/40 truncate">
                                   {res.publisher}
                                 </span>
                               )}

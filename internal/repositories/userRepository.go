@@ -35,6 +35,11 @@ type UserRepository interface {
 	UpdateTokenVersion(ctx context.Context, id string, tokenVersion int64) error
 	Delete(ctx context.Context, id string) error
 	Restore(ctx context.Context, id string) error
+	BulkDelete(ctx context.Context, ids []string) error
+	BulkRestore(ctx context.Context, ids []string) error
+	RevokeSessions(ctx context.Context, id string) error
+	BulkRevokeSessions(ctx context.Context, ids []string) error
+	BulkUpdateInfo(ctx context.Context, params sqlc.BulkUpdateUserInfoParams) error
 	InvalidateUserCache(ctx context.Context, id, email string)
 	WithTx(tx *sql.Tx) UserRepository
 }
@@ -219,7 +224,7 @@ func (r *userRepository) UpdateProfile(ctx context.Context, params sqlc.UpdatePr
 		return nil, err
 	}
 	if r.c != nil {
-		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID))
+		_ = r.c.Del(ctx, cache.BuildKey("user", "email", user.Email), cache.BuildKey("user", "id", user.ID), cache.BuildKey("user", "token", user.ID))
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}
@@ -450,6 +455,76 @@ func (r *userRepository) Restore(ctx context.Context, id string) error {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
+	}
+	return nil
+}
+
+func (r *userRepository) BulkDelete(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := r.q.BulkDeleteUsers(ctx, ids); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
+	}
+	return nil
+}
+
+func (r *userRepository) BulkRestore(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := r.q.BulkRestoreUsers(ctx, ids); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
+	}
+	return nil
+}
+
+func (r *userRepository) RevokeSessions(ctx context.Context, id string) error {
+	if err := r.q.RevokeUserSessions(ctx, id); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id))
+	}
+	return nil
+}
+
+func (r *userRepository) BulkRevokeSessions(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := r.q.BulkRevokeUserSessions(ctx, ids); err != nil {
+		return err
+	}
+	if r.c != nil {
+		keys := make([]string, 0, len(ids)*2)
+		for _, id := range ids {
+			keys = append(keys, cache.BuildKey("user", "id", id), cache.BuildKey("user", "token", id))
+		}
+		_ = r.c.Del(ctx, keys...)
+	}
+	return nil
+}
+
+func (r *userRepository) BulkUpdateInfo(ctx context.Context, params sqlc.BulkUpdateUserInfoParams) error {
+	if len(params.Ids) == 0 {
+		return nil
+	}
+	if err := r.q.BulkUpdateUserInfo(ctx, params); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 	}
 	return nil
 }

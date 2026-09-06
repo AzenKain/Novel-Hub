@@ -280,8 +280,8 @@ export function JobsTab() {
           <thead>
             <tr>
               <th>{t("admin.operations.task")}</th>
-              <th>{t("admin.operations.status")}</th>
-              <th>{t("admin.operations.created")}</th>
+              <th className="whitespace-nowrap">{t("admin.operations.status")}</th>
+              <th className="whitespace-nowrap">{t("admin.operations.created")}</th>
               <th>{t("admin.operations.error")}</th>
             </tr>
           </thead>
@@ -292,16 +292,23 @@ export function JobsTab() {
                   <div className="font-medium">
                     {t(`admin.operations.tasks.${job.type}`)}
                   </div>
-                  <div className="text-xs opacity-50 font-mono">{job.id}</div>
+                  <div
+                    className="text-xs opacity-50 font-mono truncate max-w-36 sm:max-w-none"
+                    title={job.id}
+                  >
+                    {job.id}
+                  </div>
                 </td>
-                <td>
+                <td className="whitespace-nowrap">
                   <span
-                    className={`badge badge-sm ${job.status === "completed" ? "badge-success" : job.status === "failed" ? "badge-error" : job.status === "running" ? "badge-info" : "badge-warning"}`}
+                    className={`badge badge-sm whitespace-nowrap shrink-0 ${job.status === "completed" ? "badge-success" : job.status === "failed" ? "badge-error" : job.status === "running" ? "badge-info" : "badge-warning"}`}
                   >
                     {t(`admin.operations.statuses.${job.status || "pending"}`)}
                   </span>
                 </td>
-                <td>{new Date(job.created_at).toLocaleString()}</td>
+                <td className="whitespace-nowrap">
+                  {new Date(job.created_at).toLocaleString()}
+                </td>
                 <td className="max-w-xs truncate text-error">
                   {job.errorMsg || "—"}
                 </td>

@@ -187,6 +187,16 @@ function App() {
   usePodcastDownloadWatcher();
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      useAuthStore.getState().setUser(null);
+    };
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, []);
+
+  useEffect(() => {
     return initOfflineSyncManager();
   }, []);
 

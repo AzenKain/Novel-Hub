@@ -31,6 +31,8 @@ type RoleRepository interface {
 	ReplaceRolePermissions(ctx context.Context, roleID string, permissions []*models.RolePermissionEntity) error
 	CreateUserRole(ctx context.Context, userID, roleID string) error
 	BulkDeleteRolesFromUser(ctx context.Context, userID string) error
+	BulkDeleteRolesFromUsers(ctx context.Context, userIDs []string) error
+	BulkRemoveRoleFromUsers(ctx context.Context, roleID string, userIDs []string) error
 	GetAutoAssignRoleIDs(ctx context.Context) ([]string, error)
 	CountActiveAdminUsers(ctx context.Context) (int64, error)
 	UpdateRolePositions(ctx context.Context, roleIDs []string) error
@@ -570,6 +572,39 @@ func (r *roleRepository) BulkDeleteRolesFromUser(ctx context.Context, userID str
 	}
 	if r.c != nil {
 		_ = r.c.Del(ctx, cache.BuildKey("user", "id", userID), cache.BuildKey("user", "token", userID), cache.BuildKey("user", "roles", userID), constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
+	}
+	return nil
+}
+
+func (r *roleRepository) BulkDeleteRolesFromUsers(ctx context.Context, userIDs []string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	if err := r.q.BulkDeleteRolesFromUsers(ctx, userIDs); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
+		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
+	}
+	return nil
+}
+
+func (r *roleRepository) BulkRemoveRoleFromUsers(ctx context.Context, roleID string, userIDs []string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	if err := r.q.BulkRemoveRoleFromUsers(ctx, sqlc.BulkRemoveRoleFromUsersParams{
+		RoleID:  roleID,
+		UserIds: userIDs,
+	}); err != nil {
+		return err
+	}
+	if r.c != nil {
+		_ = r.c.Del(ctx, constants.CacheKeyRoleCountActiveAdminUsers, constants.CacheKeySettingsAdminCount)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserSearch)
 		_ = r.c.DelByPattern(context.Background(), constants.CacheKeyUserCount)
 	}

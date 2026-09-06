@@ -14,9 +14,22 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [ticket, setTicket] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    setValidationError("");
+    if (password.length < 8) {
+      setValidationError(t("auth.password_min", "Minimum 8 characters"));
+      return;
+    }
+    if (password !== confirmPassword) {
+      setValidationError(
+        t("auth.passwords_do_not_match", "New passwords do not match"),
+      );
+      return;
+    }
     resetMutation.mutate(
       { email, otp_ticket: ticket, new_password: password },
       { onSuccess: () => navigate("/login", { replace: true }) },
@@ -119,11 +132,33 @@ export function ForgotPasswordPage() {
                   )}
                 </div>
 
-                {resetMutation.error && (
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      {t("settings.confirm_password", "Confirm new password")}
+                    </span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={t("auth.password_min", "Minimum 8 characters")}
+                    className="input input-bordered w-full"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setValidationError("");
+                    }}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                {(validationError || resetMutation.error) && (
                   <div className="alert alert-error py-2 text-sm rounded-lg">
-                    {resetMutation.error instanceof Error
-                      ? resetMutation.error.message
-                      : String(resetMutation.error)}
+                    {validationError ||
+                      (resetMutation.error instanceof Error
+                        ? resetMutation.error.message
+                        : String(resetMutation.error))}
                   </div>
                 )}
 

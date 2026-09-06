@@ -1,10 +1,21 @@
-import { UserTable } from "@/components/admin";
-import { PasswordStrength } from "@/components/common";
 import {
+  UserTable,
+  SendEmailModal,
+  BulkDeleteUsersModal,
+  BulkRestoreUsersModal,
+  BulkChangeRolesModal,
+  BulkEditUsersModal,
+  BulkSendEmailModal,
+} from "@/components/admin";
+import { PasswordStrength, ImageCropperModal, ConfirmModal } from "@/components/common";
+import { getMediaUrl } from "@/config/api";
+import {
+  useAdminUploadAvatarMutation,
   useChangeUserRolesMutation,
   useCreateUserMutation,
   useDeleteUserMutation,
   useResetUserPasswordMutation,
+  useRevokeUserSessionsMutation,
   useRolesQuery,
   useSendUserEmailMutation,
   useUpdateUserMutation,
@@ -13,13 +24,29 @@ import {
 import { adminService } from "@/services";
 import { useUserAdminStore, useAuthStore } from "@/stores";
 import type { CreateUserRequest, User } from "@/types";
-import { AlertCircle, RefreshCw, Search, UserPlus, X } from "lucide-react";
-import { SyntheticEvent, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  Lock,
+  LogOut,
+  Mail,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Shield,
+  ShieldAlert,
+  Trash2,
+  UserCog,
+  UserPlus,
+  X,
+} from "lucide-react";
+import { SyntheticEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
+
+const AGE_RATINGS = ["G", "PG", "PG-13", "R15+", "R18+"] as const;
 
 const emptyCreate: CreateUserRequest = {
   email: "",
@@ -53,6 +80,11 @@ export function Users() {
     setRoleIDs,
     userToDelete,
     setUserToDelete,
+    selectedUserIds,
+    setSelectedUserIds,
+    clearSelection,
+    bulkModal,
+    setBulkModal,
   } = useUserAdminStore(
     useShallow((state) => ({
       selectedUser: state.selectedUser,
@@ -73,6 +105,11 @@ export function Users() {
       setRoleIDs: state.setRoleIDs,
       userToDelete: state.userToDelete,
       setUserToDelete: state.setUserToDelete,
+      selectedUserIds: state.selectedUserIds,
+      setSelectedUserIds: state.setSelectedUserIds,
+      clearSelection: state.clearSelection,
+      bulkModal: state.bulkModal,
+      setBulkModal: state.setBulkModal,
     })),
   );
   const debouncedSearch = useDebounce(query || "", 400);
@@ -110,6 +147,7 @@ export function Users() {
   const changeRolesMutation = useChangeUserRolesMutation();
   const deleteUserMutation = useDeleteUserMutation();
   const sendEmailMutation = useSendUserEmailMutation();
+  const revokeUserSessionsMutation = useRevokeUserSessionsMutation();
 
   const users = usersData?.users || [];
   const loading = usersLoading || rolesLoading;
@@ -119,19 +157,140 @@ export function Users() {
     resetPasswordMutation.isPending ||
     changeRolesMutation.isPending ||
     deleteUserMutation.isPending ||
-    sendEmailMutation.isPending;
+    sendEmailMutation.isPending ||
+    revokeUserSessionsMutation.isPending;
 
   const activeUsers = useMemo(
     () => users.filter((item) => !item.is_deleted).length,
     [users],
   );
+
+  const selectedUsers = useMemo(() => {
+    return users.filter((u) => selectedUserIds.includes(u.id));
+  }, [users, selectedUserIds]);
+
+  const isAllSelected =
+    users.length > 0 && users.every((u) => selectedUserIds.includes(u.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      clearSelection();
+    } else {
+      setSelectedUserIds(users.map((u) => u.id));
+    }
+  };
+
+  const handleToggleSelectUser = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  useEffect(() => {
+    clearSelection();
+  }, [debouncedSearch, showDeleted, cursor, clearSelection]);
   const [emailForm, setEmailForm] = useState({ subject: "", body: "" });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmCreatePassword, setConfirmCreatePassword] = useState("");
+  const [userToRestore, setUserToRestore] = useState<User | null>(null);
+  const [userToRevoke, setUserToRevoke] = useState<User | null>(null);
+  const [urlInputOpen, setUrlInputOpen] = useState(false);
+  const [tempUrl, setTempUrl] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const adminUploadAvatarMutation = useAdminUploadAvatarMutation();
+
+  const base64ToBlob = (base64: string): Blob => {
+    const parts = base64.split(";base64,");
+    const contentType = parts[0].split(":")[1];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setSelectedImage(event.target.result as string);
+          setUrlInputOpen(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleUrlSubmit = async () => {
+    const trimmed = tempUrl.trim();
+    if (!trimmed) return;
+    try {
+      const res = await fetch(trimmed);
+      if (!res.ok) throw new Error("Fetch failed");
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setSelectedImage(event.target.result as string);
+          setUrlInputOpen(false);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch {
+      setSelectedImage(trimmed);
+      setUrlInputOpen(false);
+    }
+  };
+
+  const handleCropApply = async (base64: string) => {
+    if (!selected) return;
+    setSelectedImage(null);
+    setUploadingAvatar(true);
+    try {
+      const blob = base64ToBlob(base64);
+      const file = new File([blob], "avatar.png", { type: blob.type });
+      const uploadedUrl = await adminUploadAvatarMutation.mutateAsync({
+        id: selected.id,
+        file,
+      });
+      setForm((prev) => ({ ...prev, avatar_url: uploadedUrl }));
+      toast.success(
+        t("user.avatar_updated_success", "Avatar updated successfully!"),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("user.avatar_upload_failed", "Failed to upload avatar"),
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setForm((prev) => ({ ...prev, avatar_url: "" }));
+  };
+
+  function closeModal() {
+    setModal(null);
+    setSelectedImage(null);
+    setUrlInputOpen(false);
+    setTempUrl("");
+  }
 
   function openCreate() {
     setForm({
       ...emptyCreate,
       role_ids: roles.filter((role) => role.auto_assign).map((role) => role.id),
     });
+    setConfirmCreatePassword("");
     setModal("create");
     setError("");
   }
@@ -144,7 +303,12 @@ export function Users() {
       full_name: target.full_name,
       avatar_url: target.avatar_url,
       role_ids: target.roles.map((role) => role.id),
+      is_kids_mode: Boolean(target.is_kids_mode),
+      max_allowed_age_rating: target.max_allowed_age_rating || "R18+",
     });
+    setSelectedImage(null);
+    setUrlInputOpen(false);
+    setTempUrl("");
     setModal("edit");
     setError("");
   }
@@ -152,6 +316,7 @@ export function Users() {
   function openPassword(target: User) {
     setSelected(target);
     setNewPassword("");
+    setConfirmPassword("");
     setModal("password");
     setError("");
   }
@@ -190,10 +355,19 @@ export function Users() {
   function handleCreate(event: SyntheticEvent) {
     event.preventDefault();
     setError("");
+    if (form.password.length < 8) {
+      setError(t("auth.password_min", "Minimum 8 characters"));
+      return;
+    }
+    if (form.password !== confirmCreatePassword) {
+      setError(t("auth.passwords_do_not_match", "New passwords do not match"));
+      return;
+    }
     createUserMutation.mutate(form, {
       onSuccess: () => {
         toast.success(t("common.success", "Success"));
         setModal(null);
+        setConfirmCreatePassword("");
       },
       onError: (err) =>
         setError(err instanceof Error ? err.message : String(err)),
@@ -209,13 +383,15 @@ export function Users() {
         id: selected.id,
         data: {
           full_name: form.full_name,
-          avatar_url: form.avatar_url || undefined,
+          avatar_url: form.avatar_url,
+          is_kids_mode: form.is_kids_mode,
+          max_allowed_age_rating: form.max_allowed_age_rating,
         },
       },
       {
         onSuccess: () => {
           toast.success(t("common.success", "Success"));
-          setModal(null);
+          closeModal();
         },
         onError: (err) =>
           setError(err instanceof Error ? err.message : String(err)),
@@ -223,16 +399,50 @@ export function Users() {
     );
   }
 
+  function handleRevokeSessions(targetUser: User) {
+    setUserToRevoke(targetUser);
+  }
+
+  function confirmRevokeSessions() {
+    if (!userToRevoke) return;
+    const targetUser = userToRevoke;
+    revokeUserSessionsMutation.mutate(targetUser.id, {
+      onSuccess: () => {
+        toast.success(
+          t(
+            "admin.revoke_sessions_success",
+            "User sessions revoked successfully across all devices",
+          ),
+        );
+        setUserToRevoke(null);
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : String(err));
+        setUserToRevoke(null);
+      },
+    });
+  }
+
   function handlePassword(event: SyntheticEvent) {
     event.preventDefault();
     if (!selected) return;
     setError("");
+    if (newPassword.length < 8) {
+      setError(t("auth.password_min", "Minimum 8 characters"));
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError(t("auth.passwords_do_not_match", "New passwords do not match"));
+      return;
+    }
     resetPasswordMutation.mutate(
       { id: selected.id, password: newPassword },
       {
         onSuccess: () => {
           toast.success(t("common.success", "Success"));
           setModal(null);
+          setNewPassword("");
+          setConfirmPassword("");
         },
         onError: (err) =>
           setError(err instanceof Error ? err.message : String(err)),
@@ -270,11 +480,17 @@ export function Users() {
     });
   }
 
-  async function handleRestore(target: User) {
+  function handleRestore(target: User) {
+    setUserToRestore(target);
+  }
+
+  async function confirmRestoreUser() {
+    if (!userToRestore) return;
     setError("");
     try {
-      await adminService.restoreUser(target.id);
+      await adminService.restoreUser(userToRestore.id);
       toast.success(t("common.success", "Success"));
+      setUserToRestore(null);
       void refetchUsers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -431,6 +647,77 @@ export function Users() {
           </div>
         </div>
 
+        {/* Bulk User Actions Toolbar */}
+        {selectedUserIds.length > 0 && (
+          <div className="mb-3 px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+              <span className="font-bold text-primary whitespace-nowrap">
+                {t("admin.selected_users", "Selected {{count}} users", {
+                  count: selectedUserIds.length,
+                })}
+              </span>
+              <button
+                onClick={clearSelection}
+                className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1"
+              >
+                <X className="w-3 h-3" />
+                <span>{t("common.deselect_all", "Clear selection")}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-1.5 w-full sm:w-auto pt-2 sm:pt-0 border-t border-primary/15 sm:border-t-0 shrink-0">
+              {/* Email */}
+              <button
+                onClick={() => setBulkModal("email")}
+                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+              >
+                <Mail className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{t("admin.bulk_email", "Send Email")}</span>
+              </button>
+
+              {/* Change Roles */}
+              <button
+                onClick={() => setBulkModal("roles")}
+                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+              >
+                <Shield className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{t("admin.bulk_roles", "Change Roles")}</span>
+              </button>
+
+              {/* Edit Info */}
+              <button
+                onClick={() => setBulkModal("info")}
+                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+              >
+                <UserCog className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{t("admin.bulk_info", "Edit Info")}</span>
+              </button>
+
+              {/* Restore (visible if any selected user is deleted) */}
+              {selectedUsers.some((u) => u.is_deleted) && (
+                <button
+                  onClick={() => setBulkModal("restore")}
+                  className="btn btn-success btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t("admin.bulk_restore", "Restore")}</span>
+                </button>
+              )}
+
+              {/* Delete (visible if any selected user is active) */}
+              {selectedUsers.some((u) => !u.is_deleted) && (
+                <button
+                  onClick={() => setBulkModal("delete")}
+                  className="btn btn-error btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                >
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t("admin.bulk_delete", "Delete selected")}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* User Table */}
         <UserTable
           users={users}
@@ -439,10 +726,15 @@ export function Users() {
           onPassword={openPassword}
           onRoles={openRoles}
           onEmail={openEmail}
+          onRevokeSessions={handleRevokeSessions}
           onDelete={setUserToDelete}
           onRestore={handleRestore}
           currentUserId={currentUser?.id}
           isCallerOwner={Boolean(currentUser?.is_owner)}
+          selectedUserIds={selectedUserIds}
+          onToggleSelectAll={handleToggleSelectAll}
+          onToggleSelectUser={handleToggleSelectUser}
+          isAllSelected={isAllSelected}
         />
 
         {(cursorHistory.length > 0 || usersData?.nextCursor) && (
@@ -531,14 +823,34 @@ export function Users() {
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={form.password}
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
                   }
-                  placeholder="••••••••"
+                  placeholder={t("auth.password_min", "Minimum 8 characters")}
                   className="input input-bordered w-full focus:input-primary"
+                  autoComplete="new-password"
                 />
                 <PasswordStrength password={form.password} />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    {t("settings.confirm_password", "Confirm new password")}
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmCreatePassword}
+                  onChange={(e) => setConfirmCreatePassword(e.target.value)}
+                  placeholder={t("auth.password_min", "Minimum 8 characters")}
+                  className="input input-bordered w-full focus:input-primary"
+                  autoComplete="new-password"
+                />
               </div>
 
               <div className="form-control">
@@ -658,31 +970,170 @@ export function Users() {
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
-                    {t("user.avatar_url", "Avatar URL")}
+                    {t("user.avatar", "Avatar")}
                   </span>
                 </label>
-                <input
-                  type="text"
-                  value={form.avatar_url || ""}
+                <div className="flex items-center gap-4 p-3 rounded-xl border border-base-200 bg-base-200/30">
+                  <div className="avatar">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold text-xl overflow-hidden shadow-sm shrink-0">
+                      {form.avatar_url ? (
+                        <img
+                          src={getMediaUrl(
+                            form.avatar_url,
+                            undefined,
+                            selected.updated_at,
+                          )}
+                          alt={t("common.alt_avatar", "Avatar")}
+                          loading="lazy"
+                          className="object-cover w-full h-full animate-in fade-in duration-300"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) {
+                              (fallback as HTMLElement).style.display = "flex";
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        className="w-full h-full flex items-center justify-center font-bold text-xl text-primary"
+                        style={{ display: form.avatar_url ? "none" : "flex" }}
+                      >
+                        {form.full_name
+                          ? form.full_name.charAt(0).toUpperCase()
+                          : selected.email.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <label
+                        className={`btn btn-xs btn-primary cursor-pointer ${
+                          uploadingAvatar ? "btn-disabled" : ""
+                        }`}
+                      >
+                        <span className="font-medium">
+                          {uploadingAvatar ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            t("user.upload_avatar", "Upload Photo")
+                          )}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingAvatar}
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setUrlInputOpen(!urlInputOpen)}
+                        className="btn btn-xs btn-outline"
+                        disabled={uploadingAvatar}
+                      >
+                        {t("user.load_url", "From URL")}
+                      </button>
+                      {form.avatar_url && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="btn btn-xs btn-ghost text-error"
+                          disabled={uploadingAvatar}
+                        >
+                          {t("user.remove_avatar", "Remove")}
+                        </button>
+                      )}
+                    </div>
+
+                    {urlInputOpen && (
+                      <div className="flex gap-1.5 items-center">
+                        <input
+                          type="text"
+                          placeholder="https://example.com/avatar.png"
+                          value={tempUrl}
+                          onChange={(e) => setTempUrl(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void handleUrlSubmit();
+                            }
+                          }}
+                          className="input input-bordered input-xs flex-1 focus:input-primary font-mono text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleUrlSubmit()}
+                          className="btn btn-xs btn-primary font-bold shrink-0"
+                        >
+                          {t("common.ok", "OK")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Max Allowed Age Rating */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    {t("admin.bulk_field_age_rating", "Max Allowed Age Rating")}
+                  </span>
+                </label>
+                <select
+                  value={form.max_allowed_age_rating || "R18+"}
                   onChange={(e) =>
-                    setForm({ ...form, avatar_url: e.target.value })
+                    setForm({ ...form, max_allowed_age_rating: e.target.value })
                   }
-                  placeholder="https://example.com/avatar.jpg"
-                  className="input input-bordered w-full focus:input-primary"
-                />
+                  className="select select-bordered w-full focus:select-primary"
+                >
+                  {AGE_RATINGS.map((rating) => (
+                    <option key={rating} value={rating}>
+                      {rating}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Kids Mode Toggle */}
+              <div className="form-control">
+                <label className="label cursor-pointer justify-between py-2">
+                  <div>
+                    <span className="label-text font-semibold block">
+                      {t("admin.bulk_field_kids_mode", "Kids Mode")}
+                    </span>
+                    <span className="text-xs text-base-content/60">
+                      {t(
+                        "admin.kids_mode_desc",
+                        "Enforce filtered child-friendly library interface.",
+                      )}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={Boolean(form.is_kids_mode)}
+                    onChange={(e) =>
+                      setForm({ ...form, is_kids_mode: e.target.checked })
+                    }
+                  />
+                </label>
               </div>
 
               <div className="modal-action">
                 <button
                   type="button"
-                  onClick={() => setModal(null)}
+                  onClick={closeModal}
                   className="btn btn-ghost"
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || uploadingAvatar}
                   className="btn btn-primary"
                 >
                   {saving ? (
@@ -695,7 +1146,7 @@ export function Users() {
             </form>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setModal(null)}>close</button>
+            <button onClick={closeModal}>close</button>
           </form>
         </dialog>
       )}
@@ -728,25 +1179,49 @@ export function Users() {
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={t("auth.password_min", "Minimum 8 characters")}
                   className="input input-bordered w-full focus:input-primary"
+                  autoComplete="new-password"
                 />
                 <PasswordStrength password={newPassword} />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    {t("settings.confirm_password", "Confirm new password")}
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t("auth.password_min", "Minimum 8 characters")}
+                  className="input input-bordered w-full focus:input-primary"
+                  autoComplete="new-password"
+                />
               </div>
 
               <div className="modal-action">
                 <button
                   type="button"
-                  onClick={() => setModal(null)}
+                  onClick={() => {
+                    setModal(null);
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
                   className="btn btn-ghost"
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !newPassword}
+                  disabled={saving || !newPassword || !confirmPassword}
                   className="btn btn-primary"
                 >
                   {saving ? (
@@ -759,65 +1234,154 @@ export function Users() {
             </form>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setModal(null)}>close</button>
+            <button
+              onClick={() => {
+                setModal(null);
+                setNewPassword("");
+                setConfirmPassword("");
+              }}
+            >
+              close
+            </button>
           </form>
         </dialog>
       )}
 
       {modal === "roles" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-2">
-              {t("admin.manage_user_roles", "Manage User Roles")}
-            </h3>
-            <p className="text-xs text-base-content/60 mb-4">
-              {t(
-                "admin.manage_user_roles_desc",
-                "Select active security roles for:",
-              )}{" "}
-              <span className="font-bold text-base-content">
-                {selected.email}
-              </span>
-            </p>
+          <div className="modal-box max-w-lg p-6">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  {t("admin.manage_user_roles", "Manage User Roles")}
+                </h3>
+                <p className="text-xs text-base-content/70 mt-1">
+                  {t(
+                    "admin.manage_user_roles_desc",
+                    "Select active security roles for:",
+                  )}{" "}
+                  <span className="font-semibold text-base-content">
+                    {selected.email}
+                  </span>
+                </p>
+              </div>
+              {selected.is_owner && (
+                <span className="badge badge-warning text-xs font-bold shrink-0">
+                  {t("admin.role_owner", "Owner")}
+                </span>
+              )}
+            </div>
+
+            {selected.is_owner && !currentUser?.is_owner && (
+              <div className="alert alert-warning py-2 px-3 text-xs rounded-xl mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>
+                  {t(
+                    "admin.owner_role_protected",
+                    "Owner account roles cannot be modified.",
+                  )}
+                </span>
+              </div>
+            )}
+
             {error && (
-              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+              <div className="alert alert-error mb-3 py-2 px-3 text-xs rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
+
             <form onSubmit={handleRoles} className="space-y-4">
-              <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
-                {roles.map((role) => (
-                  <label
-                    key={role.id}
-                    className="label cursor-pointer justify-start gap-3 py-1"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={roleIDs.includes(role.id)}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setRoleIDs((prev) =>
-                          checked
-                            ? [...prev, role.id]
-                            : prev.filter((id) => id !== role.id),
-                        );
-                      }}
-                      className="checkbox checkbox-primary checkbox-sm"
-                    />
-                    <div>
-                      <span className="font-semibold text-sm">{role.name}</span>
-                      {role.description && (
-                        <p className="text-xs text-base-content/60">
-                          {role.description}
-                        </p>
-                      )}
-                    </div>
-                  </label>
-                ))}
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {roles.map((role) => {
+                  const isChecked = roleIDs.includes(role.id);
+                  const isOwnerTarget = Boolean(selected.is_owner);
+                  const isSelf = selected.id === currentUser?.id;
+                  const isRoleAdmin = role.is_admin || role.name === "ADMIN";
+                  const isDisabled =
+                    (isOwnerTarget && !currentUser?.is_owner) ||
+                    (isSelf && isRoleAdmin && isChecked) ||
+                    (!currentUser?.is_owner && isRoleAdmin);
+
+                  let roleBadgeClass = "badge-ghost";
+                  if (role.is_admin || role.name === "ADMIN") {
+                    roleBadgeClass = "badge-error text-white font-semibold";
+                  } else if (role.is_banned || role.name === "BANNED") {
+                    roleBadgeClass = "badge-warning text-black font-semibold";
+                  } else if (role.name === "MOD") {
+                    roleBadgeClass = "badge-info text-white font-semibold";
+                  } else if (role.name === "USER") {
+                    roleBadgeClass = "badge-ghost font-medium";
+                  }
+
+                  return (
+                    <label
+                      key={role.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                        isChecked
+                          ? "border-primary/50 bg-primary/5 shadow-sm"
+                          : "border-base-300 dark:border-base-700 hover:border-base-content/20 bg-base-100"
+                      } ${isDisabled ? "opacity-60 cursor-not-allowed bg-base-200/40" : ""}`}
+                    >
+                      <div className="flex items-start gap-3 min-w-0 pr-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={isDisabled}
+                          onChange={(e) => {
+                            if (isDisabled) return;
+                            const checked = e.target.checked;
+                            setRoleIDs((prev) =>
+                              checked
+                                ? [...prev, role.id]
+                                : prev.filter((id) => id !== role.id),
+                            );
+                          }}
+                          className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm leading-tight text-base-content">
+                              {role.name}
+                            </span>
+                            <span className={`badge badge-sm ${roleBadgeClass}`}>
+                              {role.name}
+                            </span>
+                            {role.is_system && (
+                              <span className="badge badge-xs badge-outline opacity-70">
+                                {t("admin.system_role", "System")}
+                              </span>
+                            )}
+                            {role.auto_assign && (
+                              <span className="badge badge-xs badge-outline badge-primary opacity-80">
+                                {t("admin.auto_assign", "Auto-assign")}
+                              </span>
+                            )}
+                          </div>
+                          {role.description && (
+                            <p className="text-xs text-base-content/60 mt-1 line-clamp-2">
+                              {role.description}
+                            </p>
+                          )}
+                          {isDisabled && (
+                            <p className="text-[11px] text-warning mt-1 flex items-center gap-1">
+                              <Lock className="w-3 h-3 shrink-0" />
+                              {isOwnerTarget
+                                ? t("admin.role_protected_owner", "Protected: Owner account")
+                                : isSelf && isRoleAdmin
+                                  ? t("admin.cannot_remove_own_admin", "Cannot remove your own Admin role")
+                                  : t("admin.only_owner_assign_admin", "Only the owner can assign this role")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
 
-              <div className="modal-action">
+              <div className="modal-action pt-2">
                 <button
                   type="button"
                   onClick={() => setModal(null)}
@@ -827,7 +1391,7 @@ export function Users() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || (selected.is_owner && !currentUser?.is_owner)}
                   className="btn btn-primary"
                 >
                   {saving ? (
@@ -845,136 +1409,195 @@ export function Users() {
         </dialog>
       )}
 
-      {modal === "email" && selected && (
-        <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-2">
-              {t("admin.send_email_title", "Send Email")}
-            </h3>
-            <p className="text-xs text-base-content/60 mb-4">
-              {t(
-                "admin.send_email_desc",
-                "This message goes to the address on file:",
-              )}{" "}
-              <span className="font-bold text-base-content">
-                {selected.email}
-              </span>
-            </p>
-            {error && (
-              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-            <form onSubmit={handleSendEmail} className="space-y-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">
-                    {t("admin.email_subject", "Subject")}
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={200}
-                  value={emailForm.subject}
-                  onChange={(e) =>
-                    setEmailForm({ ...emailForm, subject: e.target.value })
-                  }
-                  className="input input-bordered w-full focus:input-primary"
-                />
-              </div>
+      {/* Send Email Modal */}
+      <SendEmailModal
+        open={modal === "email" && Boolean(selected)}
+        user={selected}
+        onClose={() => setModal(null)}
+        onSend={(data) => {
+          if (!selected) return;
+          setError("");
+          sendEmailMutation.mutate(
+            { id: selected.id, data },
+            {
+              onSuccess: () => {
+                toast.success(t("admin.email_sent", "Email sent"));
+                setModal(null);
+              },
+              onError: (err) =>
+                setError(err instanceof Error ? err.message : String(err)),
+            },
+          );
+        }}
+        sending={sendEmailMutation.isPending}
+        error={error}
+        initialSubject={emailForm.subject}
+        initialBody={emailForm.body}
+      />
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">
-                    {t("admin.email_body", "Message")}
-                  </span>
-                </label>
-                <textarea
-                  required
-                  rows={6}
-                  maxLength={10000}
-                  value={emailForm.body}
-                  onChange={(e) =>
-                    setEmailForm({ ...emailForm, body: e.target.value })
-                  }
-                  className="textarea textarea-bordered w-full focus:textarea-primary"
-                />
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <ConfirmModal
+          open={Boolean(userToDelete)}
+          title={t("admin.delete_user_confirm", "Delete User Account?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "admin.delete_user_desc",
+                  "This user account will be soft-deleted. They will immediately lose access to NovelHub.",
+                )}
+              </p>
+              <div className="p-3 rounded-xl bg-error/10 border border-error/20 font-semibold text-error flex items-center gap-2">
+                <span>{userToDelete.full_name || userToDelete.email}</span>
+                <span className="text-xs opacity-60 font-normal">({userToDelete.email})</span>
               </div>
-
-              <div className="modal-action">
-                <button
-                  type="button"
-                  onClick={() => setModal(null)}
-                  className="btn btn-ghost"
-                >
-                  {t("common.cancel", "Cancel")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    saving ||
-                    !emailForm.subject.trim() ||
-                    !emailForm.body.trim()
-                  }
-                  className="btn btn-primary"
-                >
-                  {saving ? (
-                    <span className="loading loading-spinner"></span>
-                  ) : (
-                    t("admin.send_email", "Send")
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setModal(null)}>close</button>
-          </form>
-        </dialog>
+            </div>
+          }
+          variant="danger"
+          loading={saving}
+          confirmText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmDeleteUser}
+          onClose={() => setUserToDelete(null)}
+        />
       )}
 
-      {/* Delete User Modal */}
-      {userToDelete && (
-        <dialog className="modal modal-open">
-          <div className="modal-box max-w-sm text-center">
-            <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg">
-              {t("admin.delete_user_confirm", "Delete User Account?")}
-            </h3>
-            <p className="text-xs text-base-content/60 mt-1 mb-6">
-              {t(
-                "admin.delete_user_desc",
-                "This user account will be soft-deleted. They will immediately lose access to NovelHub.",
-              )}
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setUserToDelete(null)}
-                className="btn btn-ghost flex-1"
-              >
-                {t("common.cancel", "Cancel")}
-              </button>
-              <button
-                onClick={confirmDeleteUser}
-                disabled={saving}
-                className="btn btn-error text-white flex-1"
-              >
-                {saving ? (
-                  <span className="loading loading-spinner"></span>
-                ) : (
-                  t("common.delete", "Delete")
+      {/* Restore User Confirmation Modal */}
+      {userToRestore && (
+        <ConfirmModal
+          open={Boolean(userToRestore)}
+          title={t("admin.restore_user_title", "Restore User Account?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "admin.restore_user_confirm_msg",
+                  "Are you sure you want to restore access for user:",
                 )}
-              </button>
+              </p>
+              <div className="p-3 rounded-xl bg-base-200/60 font-semibold text-base-content flex items-center gap-2">
+                <span>{userToRestore.full_name || userToRestore.email}</span>
+                <span className="text-xs opacity-60 font-normal">({userToRestore.email})</span>
+              </div>
+              <p className="text-xs opacity-70">
+                {t(
+                  "admin.restore_user_note",
+                  "This account will be reactivated and will be able to log in to NovelHub again.",
+                )}
+              </p>
             </div>
-          </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setUserToDelete(null)}>close</button>
-          </form>
-        </dialog>
+          }
+          variant="success"
+          confirmText={t("admin.restore_action", "Restore User")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmRestoreUser}
+          onClose={() => setUserToRestore(null)}
+        />
+      )}
+
+      {/* Revoke User Sessions Confirmation Modal */}
+      {userToRevoke && (
+        <ConfirmModal
+          open={Boolean(userToRevoke)}
+          title={t("admin.revoke_sessions_confirm_title", "Revoke User Sessions?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "admin.confirm_revoke_sessions",
+                  "Are you sure you want to force this user to log out from all devices?",
+                )}
+              </p>
+              <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 font-semibold text-warning-content flex items-center gap-2">
+                <span>{userToRevoke.full_name || userToRevoke.email}</span>
+                <span className="text-xs opacity-60 font-normal">({userToRevoke.email})</span>
+              </div>
+            </div>
+          }
+          variant="warning"
+          loading={revokeUserSessionsMutation.isPending}
+          confirmText={t("admin.revoke_sessions", "Revoke Sessions")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmRevokeSessions}
+          onClose={() => setUserToRevoke(null)}
+        />
+      )}
+
+      {selectedImage && (
+        <ImageCropperModal
+          imageSrc={selectedImage}
+          onCrop={handleCropApply}
+          onCancel={() => setSelectedImage(null)}
+          cropSize={200}
+        />
+      )}
+
+      {bulkModal === "delete" && (
+        <BulkDeleteUsersModal
+          isOpen={bulkModal === "delete"}
+          selectedUsers={selectedUsers}
+          currentUserId={currentUser?.id}
+          isCallerOwner={Boolean(currentUser?.is_owner)}
+          onClose={() => setBulkModal(null)}
+          onSuccess={() => {
+            clearSelection();
+            void refetchUsers();
+          }}
+        />
+      )}
+
+      {bulkModal === "restore" && (
+        <BulkRestoreUsersModal
+          isOpen={bulkModal === "restore"}
+          selectedUsers={selectedUsers}
+          isCallerOwner={Boolean(currentUser?.is_owner)}
+          onClose={() => setBulkModal(null)}
+          onSuccess={() => {
+            clearSelection();
+            void refetchUsers();
+          }}
+        />
+      )}
+
+      {bulkModal === "roles" && (
+        <BulkChangeRolesModal
+          isOpen={bulkModal === "roles"}
+          selectedUsers={selectedUsers}
+          roles={roles}
+          currentUserId={currentUser?.id}
+          isCallerOwner={Boolean(currentUser?.is_owner)}
+          onClose={() => setBulkModal(null)}
+          onSuccess={() => {
+            clearSelection();
+            void refetchUsers();
+          }}
+        />
+      )}
+
+      {bulkModal === "info" && (
+        <BulkEditUsersModal
+          isOpen={bulkModal === "info"}
+          selectedUsers={selectedUsers}
+          currentUserId={currentUser?.id}
+          isCallerOwner={Boolean(currentUser?.is_owner)}
+          onClose={() => setBulkModal(null)}
+          onSuccess={() => {
+            clearSelection();
+            void refetchUsers();
+          }}
+        />
+      )}
+
+      {bulkModal === "email" && (
+        <BulkSendEmailModal
+          isOpen={bulkModal === "email"}
+          selectedUsers={selectedUsers}
+          onClose={() => setBulkModal(null)}
+          onSuccess={() => {
+            clearSelection();
+          }}
+        />
       )}
     </div>
   );

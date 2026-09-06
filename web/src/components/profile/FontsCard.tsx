@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { useCustomization } from "@/hooks/useCustomization";
 import { hasPermission } from "@/utils/permission";
 import { useAuthStore } from "@/stores";
+import { ConfirmModal } from "@/components/common";
 
 const cleanFontNameFromFile = (filename: string) => {
   const base = filename.replace(/\.(woff2|woff|ttf|otf)$/i, "");
@@ -32,6 +33,11 @@ export const FontsCard: React.FC = () => {
     deleteCustomFont,
   } = useCustomization();
 
+  const [fontToDelete, setFontToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [sourceType, setSourceType] = useState<"file" | "url">("file");
   const [name, setName] = useState("");
   const [fontFamily, setFontFamily] = useState("");
@@ -99,43 +105,44 @@ export const FontsCard: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t("font.delete_confirm", "Delete this custom font?")))
-      return;
+  const confirmDelete = async () => {
+    if (!fontToDelete) return;
     try {
-      await deleteCustomFont(id);
+      setIsDeleting(true);
+      await deleteCustomFont(fontToDelete.id);
       toast.success(t("font.delete_success", "Font deleted"));
+      setFontToDelete(null);
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message ||
           t("font.delete_failed", "Failed to delete font"),
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-base-200 pb-4 gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2.5 rounded-xl bg-secondary/10 text-secondary shrink-0">
-              <Type className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="card-title text-base sm:text-lg truncate">
-                {t("font.personal_fonts", "Personal Reader Fonts")}
-              </h2>
-              <p className="text-xs opacity-60 truncate">
-                {t(
-                  "font.personal_desc",
-                  "Upload custom typography files (WOFF2, TTF, OTF) or import Google Fonts.",
-                )}
-              </p>
-            </div>
+        <div className="flex items-start gap-3 border-b border-base-200 pb-3 sm:pb-4">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-secondary/10 text-secondary shrink-0 mt-0.5">
+            <Type className="w-5 h-5" />
           </div>
-          <span className="badge badge-secondary badge-outline text-xs shrink-0 whitespace-nowrap h-6 px-2.5 font-medium">
-            {customFonts.length} {t("font.fonts", "Fonts")}
-          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+              <span>{t("font.personal_fonts", "Personal Reader Fonts")}</span>{" "}
+              <span className="badge badge-secondary badge-outline badge-xs font-normal align-middle ml-1.5 shrink-0">
+                {customFonts.length} {t("font.fonts", "Fonts")}
+              </span>
+            </h2>
+            <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
+              {t(
+                "font.personal_desc",
+                "Upload custom typography files (WOFF2, TTF, OTF) or import Google Fonts.",
+              )}
+            </p>
+          </div>
         </div>
 
         {canManage ? (
@@ -282,7 +289,7 @@ export const FontsCard: React.FC = () => {
                     className="p-3.5 rounded-xl hover:bg-base-200/40 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm">{f.name}</span>
                         <code className="text-[11px] px-1.5 py-0.5 rounded bg-base-300 opacity-80">
                           {f.font_family}
@@ -301,7 +308,9 @@ export const FontsCard: React.FC = () => {
                         hasPermission(user, "admin.font.manage")) && (
                         <button
                           type="button"
-                          onClick={() => handleDelete(f.id)}
+                          onClick={() =>
+                            setFontToDelete({ id: f.id, name: f.name })
+                          }
                           className="btn btn-ghost btn-circle btn-xs text-error opacity-60 hover:opacity-100"
                           title={t("common.delete", "Delete")}
                         >
@@ -336,6 +345,32 @@ export const FontsCard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {fontToDelete && (
+        <ConfirmModal
+          open={Boolean(fontToDelete)}
+          title={t("font.delete_title", "Delete Custom Font?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "font.delete_confirm",
+                  "Are you sure you want to delete this custom font?",
+                )}
+              </p>
+              <div className="p-3 rounded-xl bg-base-200/60 font-semibold text-base-content">
+                {fontToDelete.name}
+              </div>
+            </div>
+          }
+          variant="danger"
+          loading={isDeleting}
+          confirmText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmDelete}
+          onClose={() => setFontToDelete(null)}
+        />
+      )}
     </div>
   );
 };

@@ -227,22 +227,29 @@ export const CustomizationTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="card bg-base-100 shadow-xl border border-base-content/10">
-        <div className="card-body p-5 sm:p-6">
-          <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+    <div className="space-y-3">
+      {/* 1. System Default Soundscapes */}
+      <div className="card bg-base-100 border border-base-200 shadow-sm">
+        <div className="card-body p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 border-b border-base-200 pb-3">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
                 <Sliders className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
-                  {t("admin.system_soundscapes", "System Default Soundscapes")}
-                  <span className="badge badge-primary badge-xs">
-                    {t("common.system")}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+                  <span>{t("admin.system_soundscapes", "System Default Soundscapes")}</span>{" "}
+                  <span className="inline-flex items-center gap-1.5 align-middle ml-1.5">
+                    <span className="badge badge-primary badge-xs font-normal">
+                      {t("common.system")}
+                    </span>
+                    <span className="badge badge-primary badge-outline badge-xs font-normal">
+                      {soundscapes.filter((s) => s.is_system).length}{" "}
+                      {t("soundscape.tracks", "Tracks")}
+                    </span>
                   </span>
                 </h2>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
                   {t(
                     "admin.system_soundscapes_desc",
                     "Soundscapes managed here are instantly available to all users across the platform.",
@@ -250,21 +257,17 @@ export const CustomizationTab: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="badge badge-primary badge-outline text-xs">
-              {soundscapes.filter((s) => s.is_system).length}{" "}
-              {t("soundscape.tracks", "Tracks")}
-            </span>
           </div>
 
           <form
             onSubmit={handleUploadSoundscape}
-            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+            className="mt-4 p-3.5 sm:p-4 rounded-xl bg-base-200/40 border border-base-200 space-y-3"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("admin.add_system_soundscape", "Add System Soundscape")}
               </span>
-              <div className="join">
+              <div className="join self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setSoundMode("file")}
@@ -387,7 +390,7 @@ export const CustomizationTab: React.FC = () => {
               <button
                 type="submit"
                 disabled={isUploadingSoundscape}
-                className="btn btn-primary btn-sm rounded-xl gap-2"
+                className="btn btn-primary btn-sm rounded-lg gap-2 w-full sm:w-auto"
               >
                 {isUploadingSoundscape ? (
                   <span className="loading loading-spinner loading-xs" />
@@ -411,7 +414,7 @@ export const CustomizationTab: React.FC = () => {
                 return (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-base-content/10 bg-base-200/30"
+                    className="flex items-center justify-between p-3 rounded-xl border border-base-200 bg-base-200/30"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <button
@@ -426,17 +429,17 @@ export const CustomizationTab: React.FC = () => {
                         )}
                       </button>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="opacity-70">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="opacity-70 shrink-0">
                             {getIconEl(s.category)}
                           </span>
                           <span className="font-semibold text-xs truncate">
                             {s.name}
                           </span>
+                          <span className="badge badge-ghost badge-xs text-[9px] uppercase shrink-0">
+                            {s.category}
+                          </span>
                         </div>
-                        <span className="badge badge-ghost badge-xs text-[9px] uppercase">
-                          {s.category}
-                        </span>
                       </div>
                     </div>
 
@@ -456,21 +459,27 @@ export const CustomizationTab: React.FC = () => {
       </div>
 
       {/* 2. System Default Reader Fonts */}
-      <div className="card bg-base-100 shadow-xl border border-base-content/10">
-        <div className="card-body p-5 sm:p-6">
-          <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-secondary/10 text-secondary">
+      <div className="card bg-base-100 border border-base-200 shadow-sm">
+        <div className="card-body p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 border-b border-base-200 pb-3">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-secondary/10 text-secondary shrink-0 mt-0.5">
                 <Type className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
-                  {t("admin.system_fonts", "System Default Reader Fonts")}
-                  <span className="badge badge-secondary badge-xs">
-                    {t("common.system")}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+                  <span>{t("admin.system_fonts", "System Default Reader Fonts")}</span>{" "}
+                  <span className="inline-flex items-center gap-1.5 align-middle ml-1.5">
+                    <span className="badge badge-secondary badge-xs font-normal">
+                      {t("common.system")}
+                    </span>
+                    <span className="badge badge-secondary badge-outline badge-xs font-normal">
+                      {customFonts.filter((f) => f.is_system).length}{" "}
+                      {t("font.fonts", "Fonts")}
+                    </span>
                   </span>
                 </h2>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
                   {t(
                     "admin.system_fonts_desc",
                     "Fonts configured here appear in the font selector for all readers.",
@@ -478,22 +487,18 @@ export const CustomizationTab: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="badge badge-secondary badge-outline text-xs">
-              {customFonts.filter((f) => f.is_system).length}{" "}
-              {t("font.fonts", "Fonts")}
-            </span>
           </div>
 
           {/* Admin Font Upload Form */}
           <form
             onSubmit={handleUploadFont}
-            className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-3"
+            className="mt-4 p-3.5 sm:p-4 rounded-xl bg-base-200/40 border border-base-200 space-y-3"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                 {t("admin.add_system_font", "Add System Font")}
               </span>
-              <div className="join">
+              <div className="join self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setFontMode("file")}
@@ -508,7 +513,10 @@ export const CustomizationTab: React.FC = () => {
                   className={`btn btn-xs join-item ${fontMode === "url" ? "btn-secondary" : "btn-ghost"}`}
                 >
                   <LinkIcon className="w-3 h-3 mr-1" />
-                  {t("font.google_url", "Google Font / Web URL")}
+                  <span className="hidden sm:inline">
+                    {t("font.google_url", "Google Font / Web URL")}
+                  </span>
+                  <span className="sm:hidden">URL</span>
                 </button>
               </div>
             </div>
@@ -583,7 +591,7 @@ export const CustomizationTab: React.FC = () => {
               <button
                 type="submit"
                 disabled={isUploadingFont}
-                className="btn btn-secondary btn-sm rounded-xl gap-2"
+                className="btn btn-secondary btn-sm rounded-lg gap-2 w-full sm:w-auto"
               >
                 {isUploadingFont ? (
                   <span className="loading loading-spinner loading-xs" />
@@ -602,10 +610,10 @@ export const CustomizationTab: React.FC = () => {
               .map((f) => (
                 <div
                   key={f.id}
-                  className="p-3.5 rounded-xl border border-base-content/10 bg-base-200/30"
+                  className="p-3.5 rounded-xl border border-base-200 bg-base-200/30"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
                       <span className="font-bold text-sm">{f.name}</span>
                       <code className="text-[11px] px-1.5 py-0.5 rounded bg-base-300 opacity-80">
                         {f.font_family}
@@ -618,7 +626,7 @@ export const CustomizationTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => deleteCustomFont(f.id)}
-                      className="btn btn-ghost btn-circle btn-xs text-error opacity-60 hover:opacity-100"
+                      className="btn btn-ghost btn-circle btn-xs text-error opacity-60 hover:opacity-100 shrink-0"
                       title={t("common.delete", "Delete")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -626,7 +634,7 @@ export const CustomizationTab: React.FC = () => {
                   </div>
 
                   <div
-                    className="p-2.5 rounded-lg bg-base-100 border border-base-content/5 text-sm"
+                    className="p-2.5 rounded-lg bg-base-100 border border-base-200 text-sm"
                     style={{ fontFamily: `'${f.font_family}', sans-serif` }}
                   >
                     <p className="text-sm line-clamp-1">
@@ -641,21 +649,27 @@ export const CustomizationTab: React.FC = () => {
       </div>
 
       {/* 3. System Default Themes */}
-      <div className="card bg-base-100 shadow-xl border border-base-content/10">
-        <div className="card-body p-5 sm:p-6">
-          <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+      <div className="card bg-base-100 border border-base-200 shadow-sm">
+        <div className="card-body p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 border-b border-base-200 pb-3">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-accent/10 text-accent shrink-0 mt-0.5">
                 <Palette className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="card-title text-base sm:text-lg flex items-center gap-2">
-                  {t("admin.system_themes", "System Default Themes")}
-                  <span className="badge badge-accent badge-xs">
-                    {t("common.system")}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+                  <span>{t("admin.system_themes", "System Default Themes")}</span>{" "}
+                  <span className="inline-flex items-center gap-1.5 align-middle ml-1.5">
+                    <span className="badge badge-accent badge-xs font-normal">
+                      {t("common.system")}
+                    </span>
+                    <span className="badge badge-accent badge-outline badge-xs font-normal">
+                      {customThemes.filter((th) => th.is_system).length}{" "}
+                      {t("theme.themes", "Themes")}
+                    </span>
                   </span>
                 </h2>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
                   {t(
                     "admin.system_themes_desc",
                     "Pre-built color themes available to all readers.",
@@ -667,10 +681,13 @@ export const CustomizationTab: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCreatingTheme(true)}
-                className="btn btn-primary btn-sm rounded-xl gap-1.5"
+                className="btn btn-primary btn-sm rounded-lg gap-1.5 shrink-0"
+                title={t("theme.new_theme", "New Theme")}
               >
                 <Plus className="w-4 h-4" />
-                {t("theme.new_theme", "New Theme")}
+                <span className="hidden sm:inline">
+                  {t("theme.new_theme", "New Theme")}
+                </span>
               </button>
             )}
           </div>
@@ -678,16 +695,16 @@ export const CustomizationTab: React.FC = () => {
           {isCreatingTheme && (
             <form
               onSubmit={handleCreateTheme}
-              className="mt-4 p-4 rounded-2xl bg-base-200/50 border border-base-content/5 space-y-4"
+              className="mt-4 p-3.5 sm:p-4 rounded-xl bg-base-200/40 border border-base-200 space-y-4"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70 truncate">
                   {t("admin.create_system_theme", "Create System Theme Preset")}
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsCreatingTheme(false)}
-                  className="btn btn-ghost btn-xs"
+                  className="btn btn-ghost btn-xs shrink-0"
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
@@ -717,13 +734,13 @@ export const CustomizationTab: React.FC = () => {
                       type="color"
                       value={themeBg}
                       onChange={(e) => setThemeBg(e.target.value)}
-                      className="w-8 h-8 rounded border border-base-content/20 cursor-pointer p-0"
+                      className="w-9 h-9 rounded-lg border border-base-content/20 cursor-pointer p-0 shrink-0"
                     />
                     <input
                       type="text"
                       value={themeBg}
                       onChange={(e) => setThemeBg(e.target.value)}
-                      className="input input-bordered input-sm font-mono flex-1 uppercase"
+                      className="input input-bordered input-sm font-mono flex-1 uppercase h-9"
                     />
                   </div>
                 </div>
@@ -737,13 +754,13 @@ export const CustomizationTab: React.FC = () => {
                       type="color"
                       value={themeText}
                       onChange={(e) => setThemeText(e.target.value)}
-                      className="w-8 h-8 rounded border border-base-content/20 cursor-pointer p-0"
+                      className="w-9 h-9 rounded-lg border border-base-content/20 cursor-pointer p-0 shrink-0"
                     />
                     <input
                       type="text"
                       value={themeText}
                       onChange={(e) => setThemeText(e.target.value)}
-                      className="input input-bordered input-sm font-mono flex-1 uppercase"
+                      className="input input-bordered input-sm font-mono flex-1 uppercase h-9"
                     />
                   </div>
                 </div>
@@ -757,29 +774,29 @@ export const CustomizationTab: React.FC = () => {
                       type="color"
                       value={themeAccent}
                       onChange={(e) => setThemeAccent(e.target.value)}
-                      className="w-8 h-8 rounded border border-base-content/20 cursor-pointer p-0"
+                      className="w-9 h-9 rounded-lg border border-base-content/20 cursor-pointer p-0 shrink-0"
                     />
                     <input
                       type="text"
                       value={themeAccent}
                       onChange={(e) => setThemeAccent(e.target.value)}
-                      className="input input-bordered input-sm font-mono flex-1 uppercase"
+                      className="input input-bordered input-sm font-mono flex-1 uppercase h-9"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsCreatingTheme(false)}
-                  className="btn btn-ghost btn-sm"
+                  className="btn btn-ghost btn-sm w-full sm:w-auto"
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary btn-sm rounded-xl gap-1.5"
+                  className="btn btn-primary btn-sm rounded-lg gap-1.5 w-full sm:w-auto"
                 >
                   <Sparkles className="w-4 h-4" />
                   {t("admin.publish_system_theme", "Publish System Theme")}
@@ -794,7 +811,7 @@ export const CustomizationTab: React.FC = () => {
               .map((th) => (
                 <div
                   key={th.id}
-                  className="p-4 rounded-xl border shadow-2xs transition-all relative"
+                  className="p-3.5 rounded-xl border border-base-200 shadow-2xs transition-all relative"
                   style={{
                     backgroundColor: th.bg_color,
                     color: th.text_color,

@@ -371,18 +371,18 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
   const remainingMins = stats.minutes % 60;
 
   return (
-    <dialog className="modal modal-open">
-      <div className="modal-box max-w-5xl p-4 sm:p-6 bg-base-100 border border-base-300">
-        <div className="flex items-center justify-between pb-3 border-b border-base-200">
+    <dialog className="modal modal-open items-center justify-items-center p-2.5 sm:p-4 z-50">
+      <div className="modal-box max-w-5xl w-11/12 sm:w-full p-3.5 sm:p-6 bg-base-100 border border-base-300 max-h-[76dvh] max-h-[76svh] sm:max-h-[85vh] my-auto pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-y-auto">
+        <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-base-200 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-              <Sparkles className="h-5 w-5" />
+            <div className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-lg">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">
+              <h3 className="font-bold text-base sm:text-lg leading-tight">
                 {t("analytics.card_title", "Reading Wrapped")}
               </h3>
-              <p className="text-xs text-base-content/60">
+              <p className="text-[11px] sm:text-xs text-base-content/60">
                 {t(
                   "analytics.card_subtitle",
                   "Share your reading achievements",
@@ -393,40 +393,40 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-ghost btn-sm btn-square"
+            className="btn btn-ghost btn-xs sm:btn-sm btn-square"
             aria-label={t("common.close", "Close")}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="mt-3 sm:mt-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-6 items-start">
           {/* Controls Column */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="lg:col-span-5 flex flex-col gap-2.5 sm:gap-4">
             {/* Period selector */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 block">
+              <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-base-content/60 mb-1 sm:mb-2 block">
                 {t("analytics.card_period", "Time Range")}
               </label>
               <div className="join w-full grid grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setPeriod("month")}
-                  className={`btn btn-sm join-item ${period === "month" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${period === "month" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_period_month", "This Month")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPeriod("year")}
-                  className={`btn btn-sm join-item ${period === "year" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${period === "year" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_period_year", "This Year")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPeriod("all")}
-                  className={`btn btn-sm join-item ${period === "all" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${period === "all" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_period_all", "All Time")}
                 </button>
@@ -435,28 +435,28 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
 
             {/* Ratio selector */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 block">
+              <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-base-content/60 mb-1 sm:mb-2 block">
                 {t("analytics.card_aspect_ratio", "Format")}
               </label>
               <div className="join w-full grid grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setRatio("story")}
-                  className={`btn btn-sm join-item ${ratio === "story" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${ratio === "story" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_ratio_story", "Story (9:16)")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRatio("square")}
-                  className={`btn btn-sm join-item ${ratio === "square" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${ratio === "square" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_ratio_square", "Square (1:1)")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRatio("wide")}
-                  className={`btn btn-sm join-item ${ratio === "wide" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn btn-xs sm:btn-sm join-item ${ratio === "wide" ? "btn-primary" : "btn-outline"}`}
                 >
                   {t("analytics.card_ratio_wide", "Wide (16:9)")}
                 </button>
@@ -465,7 +465,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
 
             {/* Theme selector */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 block">
+              <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-base-content/60 mb-1 sm:mb-2 block">
                 {t("analytics.card_theme", "Visual Theme")}
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -475,12 +475,14 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                       key={thm}
                       type="button"
                       onClick={() => setTheme(thm)}
-                      className={`btn btn-sm justify-start gap-2 capitalize ${theme === thm ? "btn-primary" : "btn-outline"}`}
+                      className={`btn btn-xs sm:btn-sm justify-start gap-1.5 sm:gap-2 capitalize text-xs px-2 sm:px-3 min-w-0 overflow-hidden ${theme === thm ? "btn-primary" : "btn-outline"}`}
                     >
                       <div
-                        className={`w-3 h-3 rounded-full border ${thm === "aurora" ? "bg-indigo-600" : thm === "cyberpunk" ? "bg-amber-400" : thm === "sepia" ? "bg-[#c5a880]" : "bg-black border-white"}`}
+                        className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border shrink-0 ${thm === "aurora" ? "bg-indigo-600" : thm === "cyberpunk" ? "bg-amber-400" : thm === "sepia" ? "bg-[#c5a880]" : "bg-black border-white"}`}
                       />
-                      {t(`analytics.card_theme_${thm}`, thm)}
+                      <span className="truncate block min-w-0 text-[11px] sm:text-xs">
+                        {t(`analytics.card_theme_${thm}`, thm)}
+                      </span>
                     </button>
                   ),
                 )}
@@ -489,8 +491,8 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
 
             {/* Custom Quote / Message input */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-base-content/60 block">
+              <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-base-content/60 block">
                   {t(
                     "analytics.card_custom_quote_label",
                     "Custom Quote / Message",
@@ -513,15 +515,15 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                 onChange={(e) => setCustomQuote(e.target.value)}
                 placeholder={defaultQuote}
                 maxLength={120}
-                className="input input-sm input-bordered w-full text-xs rounded-xl"
+                className="input input-xs sm:input-sm input-bordered w-full text-xs rounded-xl"
               />
             </div>
 
             {/* Show NovelHub Logo Watermark Toggle */}
-            <div className="flex items-center justify-between p-2.5 bg-base-200/50 rounded-xl border border-base-300">
+            <div className="flex items-center justify-between p-2 sm:p-2.5 bg-base-200/50 rounded-xl border border-base-300">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold text-base-content/80">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
+                <span className="text-[11px] sm:text-xs font-bold text-base-content/80">
                   {t("analytics.card_show_logo", "Show NovelHub Logo")}
                 </span>
               </div>
@@ -529,43 +531,47 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                 type="checkbox"
                 checked={showLogo}
                 onChange={(e) => setShowLogo(e.target.checked)}
-                className="toggle toggle-primary toggle-sm"
+                className="toggle toggle-primary toggle-xs sm:toggle-sm"
               />
             </div>
 
             {/* Action buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+            <div className="pt-1 sm:pt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={handleDownload}
                 disabled={isExporting}
-                className="btn btn-primary flex-1 gap-2"
+                className="btn btn-sm sm:btn-md btn-primary gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold px-2 sm:px-4 min-w-0"
               >
                 {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin shrink-0" />
                 ) : (
-                  <Download className="h-4 w-4" />
+                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                 )}
-                {t("analytics.card_download_png", "Download Image")}
+                <span className="truncate">
+                  {t("analytics.card_download_png", "Download Image")}
+                </span>
               </button>
               <button
                 type="button"
                 onClick={handleCopy}
                 disabled={isExporting}
-                className="btn btn-outline gap-2"
+                className="btn btn-sm sm:btn-md btn-outline gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold px-2 sm:px-4 min-w-0"
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-success" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success shrink-0" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                 )}
-                {t("analytics.card_copy_image", "Copy")}
+                <span className="truncate">
+                  {t("analytics.card_copy_image", "Copy")}
+                </span>
               </button>
             </div>
           </div>
 
           {/* Card Preview Column */}
-          <div className="lg:col-span-7 flex justify-center items-center overflow-auto p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-110">
+          <div className="lg:col-span-7 flex justify-center items-center overflow-auto p-2.5 sm:p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-0 lg:min-h-110">
             <div
               ref={cardRef}
               className={`p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 ${themeStyles.container}`}

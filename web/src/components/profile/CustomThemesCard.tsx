@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useCustomization } from "@/hooks/useCustomization";
 import { hasPermission } from "@/utils/permission";
 import { useAuthStore } from "@/stores";
+import { ConfirmModal } from "@/components/common";
 
 export const CustomThemesCard: React.FC = () => {
   const { t } = useTranslation();
@@ -16,6 +17,11 @@ export const CustomThemesCard: React.FC = () => {
     deleteCustomTheme,
   } = useCustomization();
 
+  const [themeToDelete, setThemeToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState("");
   const [bgColor, setBgColor] = useState("#1e1e2e");
@@ -57,33 +63,39 @@ export const CustomThemesCard: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t("theme.delete_confirm", "Delete this custom theme?")))
-      return;
+  const confirmDelete = async () => {
+    if (!themeToDelete) return;
     try {
-      await deleteCustomTheme(id);
+      setIsDeleting(true);
+      await deleteCustomTheme(themeToDelete.id);
       toast.success(t("theme.delete_success", "Custom theme deleted"));
+      setThemeToDelete(null);
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message ||
           t("theme.delete_failed", "Failed to delete theme"),
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <div className="card bg-base-100 shadow-sm border border-base-300">
       <div className="card-body p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-base-200 pb-4 gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2.5 rounded-xl bg-accent/10 text-accent shrink-0">
+        <div className="flex items-start justify-between border-b border-base-200 pb-3 sm:pb-4 gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-accent/10 text-accent shrink-0 mt-0.5">
               <Palette className="w-5 h-5" />
             </div>
-            <div className="min-w-0">
-              <h2 className="card-title text-base sm:text-lg truncate">
-                {t("theme.personal_themes", "Reader Themes & Custom CSS")}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-bold text-base-content leading-snug">
+                <span>{t("theme.personal_themes", "Reader Themes & Custom CSS")}</span>{" "}
+                <span className="badge badge-accent badge-outline badge-xs font-normal align-middle ml-1.5 shrink-0">
+                  {customThemes.length} {t("theme.themes", "Themes")}
+                </span>
               </h2>
-              <p className="text-xs opacity-60 truncate">
+              <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
                 {t(
                   "theme.personal_desc",
                   "Design bespoke color palettes and fine-tuned CSS rules for your reading experience.",
@@ -95,10 +107,13 @@ export const CustomThemesCard: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCreating(true)}
-              className="btn btn-primary btn-sm rounded-xl gap-1.5"
+              className="btn btn-primary btn-sm rounded-lg gap-1.5 shrink-0"
+              title={t("theme.new_theme", "New Theme")}
             >
               <Plus className="w-4 h-4" />
-              {t("theme.new_theme", "New Theme")}
+              <span className="hidden sm:inline">
+                {t("theme.new_theme", "New Theme")}
+              </span>
             </button>
           )}
         </div>
@@ -287,7 +302,7 @@ export const CustomThemesCard: React.FC = () => {
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm">{th.name}</span>
                         {th.is_system && (
                           <span className="badge badge-info badge-xs text-[9px]">
@@ -300,7 +315,9 @@ export const CustomThemesCard: React.FC = () => {
                         hasPermission(user, "admin.theme.manage")) && (
                         <button
                           type="button"
-                          onClick={() => handleDelete(th.id)}
+                          onClick={() =>
+                            setThemeToDelete({ id: th.id, name: th.name })
+                          }
                           className="btn btn-ghost btn-circle btn-xs text-error opacity-60 hover:opacity-100"
                           title={t("common.delete", "Delete")}
                         >
@@ -343,6 +360,32 @@ export const CustomThemesCard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {themeToDelete && (
+        <ConfirmModal
+          open={Boolean(themeToDelete)}
+          title={t("theme.delete_title", "Delete Custom Theme?")}
+          message={
+            <div className="space-y-2">
+              <p>
+                {t(
+                  "theme.delete_confirm",
+                  "Are you sure you want to delete this custom theme?",
+                )}
+              </p>
+              <div className="p-3 rounded-xl bg-base-200/60 font-semibold text-base-content">
+                {themeToDelete.name}
+              </div>
+            </div>
+          }
+          variant="danger"
+          loading={isDeleting}
+          confirmText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          onConfirm={confirmDelete}
+          onClose={() => setThemeToDelete(null)}
+        />
+      )}
     </div>
   );
 };
