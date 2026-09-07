@@ -98,9 +98,11 @@ button:active:not(:disabled),
 
 @media (max-width: 768px), (max-height: 850px) {
   .modal-box {
-    max-height: min(calc(100dvh - 3.5rem), calc(100svh - 3.5rem), 80dvh) !important;
-    overflow-y: auto !important;
+    max-height: min(calc(100dvh - 3.5rem), 80dvh) !important;
     overscroll-behavior: contain;
+  }
+  .modal-box:not(.overflow-hidden) {
+    overflow-y: auto !important;
   }
 }
 

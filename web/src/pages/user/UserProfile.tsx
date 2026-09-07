@@ -208,29 +208,30 @@ export const UserProfile = () => {
         className={`modal ${isProfileModalOpen && user ? "modal-open" : ""}`}
       >
         {user && (
-          <div className="modal-box max-w-4xl w-11/12 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border border-base-300 bg-base-100">
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-base-100/95 backdrop-blur-md border-b border-base-200">
+          <div className="modal-box max-w-4xl w-11/12 max-h-[80dvh] sm:max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border border-base-300 bg-base-100">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-base-100 border-b border-base-200 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
                   <User className="h-5 w-5" />
                 </div>
-                <h3 className="font-bold text-lg text-base-content">
+                <h3 className="font-bold text-lg text-base-content leading-tight">
                   {t("user.profile_title", "Your Profile")}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="btn btn-md btn-circle btn-ghost text-base-content/70 hover:text-base-content hover:bg-base-200"
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
                 title={t("common.close", "Close")}
+                aria-label={t("common.close", "Close")}
               >
-                <X className="h-6 w-6" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               </button>
             </div>
 
             {/* Scrollable Body Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar">
               {updateProfileMutation.error && (
                 <div className="alert alert-error py-2 text-sm rounded-xl">
                   <span>
@@ -539,8 +540,8 @@ export const UserProfile = () => {
             </div>
           </div>
         )}
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={closeModal}>close</button>
+        <form method="dialog" className="modal-backdrop" onClick={closeModal}>
+          <button type="button">{t("common.close", "Close")}</button>
         </form>
       </dialog>
 

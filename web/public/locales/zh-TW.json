@@ -279,7 +279,7 @@
     "cover_url_hint": "支援直接圖片格式（JPG、PNG、WEBP、GIF）",
     "cover_url_title": "輸入封面圖片連結",
     "create_user_title": "建立新使用者",
-    "create_webhook": "設定新 Webhook",
+    "create_webhook": "建立 Webhook",
     "danger_warning": "危險警告：",
     "delete_library_confirm_msg": "您確定要刪除書庫 {{name}} 嗎？",
     "delete_library_danger_desc": "這將永久刪除屬於本書庫的所有書籍、章節、檔案與閱讀資料。資料無法復原！",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "刪除使用者帳號？",
     "delete_user_desc": "此使用者帳號將被軟刪除。他們將立即失去對 NovelHub 的存取權限。",
     "edit_user_title": "編輯個人資料",
-    "edit_webhook": "編輯 Webhook 與即時建構器",
-    "embed_customizer": "標題、標籤與嵌入樣式",
+    "edit_webhook": "編輯 Webhook",
+    "embed_customizer": "自訂",
     "fill_required": "請填寫所有必填欄位",
-    "general_config": "一般設定",
+    "general_config": "一般",
     "image_url_label": "線上封面圖片網址",
     "library_delete_queued": "已收到書庫刪除請求。處理程序正在背景執行。",
     "manage_user_roles": "管理使用者角色",
@@ -310,7 +310,7 @@
     "update_password": "更新密碼",
     "user_management": "使用者管理",
     "user_subtitle": "管理帳號、角色、存取層級與安全憑證。",
-    "webhook_desc": "自訂標題、欄位標籤、嵌入樣式並測試即時回應預覽。",
+    "webhook_desc": "自訂通知與即時預覽",
     "webhooks": "Webhooks 與外部整合",
     "webhooks_subtitle": "為 Discord、Telegram、Slack 與自動化 Webhooks 設定即時事件通知。",
     "default_font_note": "(NovelHub 預設字型)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "您已修改郵件內容。更改範本語言將重新載入範本並覆蓋您的自訂修改。確定要繼續嗎？",
     "template_lang_overwrite_confirm_btn": "更改語言並覆蓋",
     "markdown_supported": "支援 Markdown 格式",
-    "preview_mode_active": "即時預覽模式"
+    "preview_mode_active": "即時預覽模式",
+    "bulk_download_short": "下載",
+    "bulk_edit_short": "編輯元數據",
+    "live_preview": "預覽"
   },
   "download_manager": {
     "title": "下載",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "標題和作者相同但有些微差異的書籍 — 將重複項合併為一本書。",
     "rename_smart_collection": "重新命名智慧收藏",
     "smart_collection_update_failed": "無法更新智慧收藏",
-    "bulk_edit_metadata_title": "批次編輯元數據",
+    "bulk_edit_metadata_title": "編輯元數據",
     "bulk_edit_metadata_desc": "同時編輯和同步多本書籍的元數據",
     "sync_field_to_books": "同步",
     "sync_field_title": "同步{{field}}至其他書籍",
@@ -1000,7 +1003,7 @@
     "author_only": "僅作者",
     "both_fields": "全部",
     "cleaner_selected_count": "已啟用 {{count}} 本書進行清洗",
-    "cleaner_apply_all": "套用清洗結果",
+    "cleaner_apply_all": "套用",
     "original_metadata": "原始書名與作者",
     "cleaned_metadata": "清洗預覽 (可編輯)",
     "cleaner_preset_applied": "已更新 {{count}} 本書",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "正規表示式不合法",
     "cleaner_applied_success": "已將清洗後的書名與作者套用到 {{count}} 本書",
     "items_modified_notice": "{{count}} 本書修改待儲存",
-    "bulk_save_failed": "批次更新元資料失敗"
+    "bulk_save_failed": "批次更新元資料失敗",
+    "cleaner_footer_tip": "點擊「套用」將變更同步至編輯器",
+    "use_raw_value": "使用此值"
   },
   "user": {
     "profile": "個人資料",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "使用系統預設語音",
     "tts_no_voices_alert": "裝置上找不到語音朗讀引擎。請在裝置設定中安裝 Google 語音服務以啟用朗讀。",
     "tts_no_voices_warning": "裝置上找不到可用語音。如需使用此功能，請在裝置設定中安裝「Google 語音服務」。",
-    "back_to_book_detail": "返回書籍詳情"
+    "back_to_book_detail": "返回書籍詳情",
+    "words": "字",
+    "selection_label": "選取內容"
   },
   "analytics": {
     "title": "閱讀分析與統計",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "發生未知的錯誤",
     "book_not_found": "找不到書籍",
-    "book_not_found_desc": "這本書可能已被刪除或目前無法使用。"
+    "book_not_found_desc": "這本書可能已被刪除或目前無法使用。",
+    "page_not_found": "找不到頁面",
+    "page_not_found_desc": "您存取的頁面不存在或已被移除。",
+    "go_to_library": "返回書庫",
+    "search_books": "搜尋",
+    "looking_for_other_books": "尋找其他書籍？"
   },
   "book": {
     "bookmark_updated": "已成功更新書籤",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "請選擇要轉換的文件",
     "convert_replace_warning": "該圖書已有關聯的 {{format}} 文件。繼續操作將替換現有文件。",
     "convert_confirm_replace": "是的，替換現有文件",
-    "bulk_convert_title": "批量轉換圖書",
+    "bulk_convert_title": "批次格式轉換",
     "bulk_convert_global_format": "設置所有已選圖書的目标格式：",
-    "bulk_convert_start": "開始批量轉換",
+    "bulk_convert_start": "開始",
     "bulk_convert_success": "成功將 {{count}} 個轉換任務加入隊列",
     "bulk_convert_failed": "部分轉換任務啟動失敗",
     "no_files_convert": "沒有可轉換的文件",
@@ -1395,7 +1407,13 @@
     "merge": "合併",
     "unarchive": "取消歸檔",
     "archive": "歸檔",
-    "novel_label": "小說"
+    "novel_label": "小說",
+    "convert_format_short": "格式轉換",
+    "status_unread": "未讀",
+    "status_reading": "正在閱讀",
+    "status_read": "已讀",
+    "status_completed": "已完成",
+    "status_abandoned": "已棄讀"
   },
   "settings": {
     "title": "設定",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "原始 HTTP POST 負載 (JSON)",
     "webhook_generic_json": "通用 JSON",
     "webhook_hmac_enabled": "已啟用 HMAC 签名",
-    "hardcover_client_id_placeholder": "例如: hc_app_01j7abc123 或用戶端 ID"
+    "hardcover_client_id_placeholder": "例如: hc_app_01j7abc123 或用戶端 ID",
+    "event_book_created": "新增書籍",
+    "event_book_deleted": "刪除書籍",
+    "event_metadata_updated": "中繼資料已更新",
+    "event_reading_completed": "閱讀完成",
+    "event_job_failed": "工作失敗"
   },
   "email": {
     "invalid": "請輸入有效的電子郵件地址",
@@ -1873,7 +1896,8 @@
     "pause": "暫停",
     "play": "播放",
     "calculating_timeline": "正在計算時間線...",
-    "calculating": "正在計算..."
+    "calculating": "正在計算...",
+    "merge_short": "合併有聲書"
   },
   "podcasts": {
     "title": "播客",

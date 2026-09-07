@@ -98,22 +98,23 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            {t("book.convert_title", "Convert Book Format")}
+      <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-lg font-semibold flex items-center gap-2 leading-tight">
+            <FileText className="w-5 h-5 text-primary shrink-0" />
+            <span>{t("book.convert_title", "Convert Book Format")}</span>
           </h3>
           <button
-            className="btn btn-square btn-sm btn-ghost"
+            type="button"
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
             onClick={onClose}
-            aria-label={t("common.close")}
+            aria-label={t("common.close", "Close")}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
           <div>
             <label className="label label-text">
               {t("book.select_source_file", "Source file")}
@@ -187,7 +188,7 @@ export const ConvertBookModal: React.FC<ConvertBookModalProps> = ({
             </div>
           )}
 
-          <div className="modal-action">
+          <div className="modal-action border-t border-base-200 pt-4 mt-6">
             <button type="button" className="btn btn-ghost" onClick={onClose}>
               {t("common.cancel")}
             </button>

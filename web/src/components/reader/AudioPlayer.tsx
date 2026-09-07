@@ -1005,72 +1005,81 @@ export function AudioPlayer({
           {/* Add Bookmark Modal Dialog */}
           {showAddBookmarkModal && (
             <dialog className="modal modal-open z-60 bg-black/50 animate-in fade-in duration-150">
-              <div className="modal-box max-w-sm p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0)">
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-(--reader-ui-border,rgba(255,255,255,0.12))">
-                  <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">
-                    <BookmarkPlus className="w-4 h-4 text-(--reader-ui-accent,#38bdf8)" />
-                    <span>
+              <div className="modal-box max-w-sm max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0)">
+                {/* Fixed Header */}
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-(--reader-ui-border,rgba(255,255,255,0.12)) flex items-center justify-between gap-2 shrink-0 bg-(--reader-ui-surface-strong,#1e202b)">
+                  <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text) min-w-0">
+                    <BookmarkPlus className="w-4 h-4 text-(--reader-ui-accent,#38bdf8) shrink-0" />
+                    <span className="truncate">
                       {t("reader.add_bookmark", "Bookmark current position")}
                     </span>
                   </div>
                   <button
-                    onClick={() => setShowAddBookmarkModal(false)}
-                    className="btn btn-xs btn-circle bg-(--reader-ui-soft,rgba(255,255,255,0.06)) hover:bg-(--reader-ui-hover,rgba(255,255,255,0.1)) text-(--reader-ui-text) border border-(--reader-ui-border)"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="p-3 bg-(--reader-ui-soft,rgba(255,255,255,0.06)) border border-(--reader-ui-border) rounded-xl mb-3 flex items-center justify-between">
-                  <span className="text-xs opacity-70">
-                    {t("reader.timestamp", "Timestamp")}:
-                  </span>
-                  <span className="font-mono font-bold text-(--reader-ui-accent,#38bdf8) text-sm">
-                    {formatTime(currentTime)}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5 mb-4">
-                  <label className="text-xs font-semibold opacity-80">
-                    {t("reader.bookmark_note", "Note (optional)")}:
-                  </label>
-                  <textarea
-                    autoFocus
-                    rows={3}
-                    value={bookmarkNote}
-                    onChange={(e) => setBookmarkNote(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                        e.preventDefault();
-                        handleAddBookmark(bookmarkNote);
-                      }
-                    }}
-                    placeholder={t(
-                      "reader.bookmark_note_ph",
-                      "Enter a note for this bookmark...",
-                    )}
-                    className="textarea textarea-bordered textarea-sm w-full rounded-xl text-xs resize-none bg-(--reader-ui-soft) border-(--reader-ui-border) text-(--reader-ui-text) focus:border-(--reader-ui-accent)"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
-                  <button
                     type="button"
                     onClick={() => setShowAddBookmarkModal(false)}
-                    className="btn btn-sm rounded-xl bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border)"
+                    className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-(--reader-ui-text) opacity-70 hover:opacity-100 shrink-0"
+                    aria-label={t("common.close", "Close")}
                   >
-                    {t("common.cancel", "Cancel")}
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddBookmark(bookmarkNote)}
-                    className="btn btn-sm rounded-xl font-bold gap-1 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90"
-                  >
-                    <Check size={14} />
-                    {t("common.save", "Save")}
-                  </button>
+                </div>
+
+                {/* Scrollable Body */}
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-3">
+                  <div className="p-3 bg-(--reader-ui-soft,rgba(255,255,255,0.06)) border border-(--reader-ui-border) rounded-xl flex items-center justify-between">
+                    <span className="text-xs opacity-70">
+                      {t("reader.timestamp", "Timestamp")}:
+                    </span>
+                    <span className="font-mono font-bold text-(--reader-ui-accent,#38bdf8) text-sm">
+                      {formatTime(currentTime)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold opacity-80 block">
+                      {t("reader.bookmark_note", "Note (optional)")}:
+                    </label>
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      value={bookmarkNote}
+                      onChange={(e) => setBookmarkNote(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          handleAddBookmark(bookmarkNote);
+                        }
+                      }}
+                      placeholder={t(
+                        "reader.bookmark_note_ph",
+                        "Enter a note for this bookmark...",
+                      )}
+                      className="textarea textarea-bordered textarea-sm w-full rounded-xl text-xs resize-none bg-(--reader-ui-soft) border-(--reader-ui-border) text-(--reader-ui-text) focus:border-(--reader-ui-accent)"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-(--reader-ui-border,rgba(255,255,255,0.12)) mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddBookmarkModal(false)}
+                      className="btn btn-sm rounded-xl bg-(--reader-ui-soft) hover:bg-(--reader-ui-hover) text-(--reader-ui-text) border border-(--reader-ui-border)"
+                    >
+                      {t("common.cancel", "Cancel")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBookmark(bookmarkNote)}
+                      className="btn btn-sm rounded-xl font-bold gap-1 bg-(--reader-ui-accent,#38bdf8) text-(--reader-ui-accent-text,#08111d) border-0 hover:opacity-90"
+                    >
+                      <Check size={14} />
+                      {t("common.save", "Save")}
+                    </button>
+                  </div>
                 </div>
               </div>
+              <form method="dialog" className="modal-backdrop" onClick={() => setShowAddBookmarkModal(false)}>
+                <button type="button">{t("common.close", "Close")}</button>
+              </form>
             </dialog>
           )}
         </>

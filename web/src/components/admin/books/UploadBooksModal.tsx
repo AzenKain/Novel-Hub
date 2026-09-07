@@ -1,4 +1,4 @@
-import { Loader2, Upload, Zap } from "lucide-react";
+import { Loader2, Upload, Zap, X } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
@@ -49,18 +49,22 @@ export const UploadBooksModal: React.FC<UploadBooksModalProps> = ({
 
   return (
     <dialog className={`modal ${open ? "modal-open" : ""}`}>
-      <div className="modal-box max-w-lg">
-        <button
-          onClick={onClose}
-          disabled={uploading}
-          className="btn btn-ghost btn-circle btn-sm absolute right-2 top-2"
-        >
-          ✕
-        </button>
-        <h3 className="mb-4 border-b border-base-200 pb-4 text-lg font-bold">
-          {t("admin.upload")}
-        </h3>
-        <div className="flex flex-col gap-4">
+      <div className="modal-box max-w-lg max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-lg font-bold leading-tight">
+            {t("admin.upload")}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={uploading}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
+        </div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
           <div className="flex w-full flex-col gap-1.5">
             <label className="pl-1 text-sm font-medium">
               {t("admin.target_library")}

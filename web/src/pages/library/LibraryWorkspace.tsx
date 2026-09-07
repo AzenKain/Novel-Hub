@@ -63,6 +63,11 @@ import {
 } from "@/lib/libraryMetadata";
 import { hasPermission } from "@/utils/permission";
 import {
+  getAvailableChips,
+  sanitizeChip,
+  isCatalogView,
+} from "@/utils/libraryFilter";
+import {
   Activity,
   AlertCircle,
   Archive,
@@ -84,6 +89,7 @@ import {
   Shuffle,
   Star,
   Users,
+  X,
 } from "lucide-react";
 
 function isItemVisible(visibleKeys: string[] | undefined, id: string): boolean {
@@ -371,7 +377,15 @@ export const LibraryWorkspace = () => {
   const effectiveFacetId = urlFacetId || (urlName ? urlName : activeFacet?.id);
   const effectiveCollection =
     urlCollection || (urlNav || urlFacet ? "" : activeCollection);
-  const effectiveChip = urlChip || activeChip;
+  const availableChips = useMemo(
+    () => getAvailableChips(effectiveNav, activeSmartFilterId),
+    [effectiveNav, activeSmartFilterId],
+  );
+
+  const effectiveChip = useMemo(
+    () => sanitizeChip(urlChip || activeChip, availableChips),
+    [urlChip, activeChip, availableChips],
+  );
   const effectiveSort = (urlSort as any) || sort;
 
   const isMetadataNav =
@@ -449,7 +463,7 @@ export const LibraryWorkspace = () => {
     isFetchingNextPage: isFetchingMoreBooks,
   } = useBooksQuery(
     searchParams,
-    !isMetadataNav && effectiveNav !== "bookmarks" && !activeSmartFilterId,
+    !isMetadataNav && (effectiveNav !== "bookmarks" || !!user) && !activeSmartFilterId,
   );
   const booksData = useMemo(() => {
     if (!booksDataRaw) return EMPTY_ARRAY;
@@ -555,27 +569,43 @@ export const LibraryWorkspace = () => {
       setBooks([]);
     } else if (effectiveNav === "bookmarks") {
       if (user) {
-        if (bookmarkedBooksData) {
-          setBooks(bookmarkedBooksData);
-          if (bookmarkedBooksData.length > 0 && !selectedBook) {
-            setSelectedBook(bookmarkedBooksData[0]);
+        if (booksData) {
+          setBooks(booksData);
+          if (booksData.length > 0 && !selectedBook) {
+            setSelectedBook(booksData[0]);
           }
         }
       } else {
         if (guestBookmarkIds.length === 0) {
           setBooks([]);
         } else if (guestBookmarkedBooks) {
-          setBooks(guestBookmarkedBooks);
-          if (guestBookmarkedBooks.length > 0 && !selectedBook) {
-            setSelectedBook(guestBookmarkedBooks[0]);
+          let list = guestBookmarkedBooks;
+          if (debouncedSearch) {
+            const q = debouncedSearch.toLowerCase();
+            list = list.filter(
+              (b) =>
+                b.title.toLowerCase().includes(q) ||
+                b.author_name?.toLowerCase().includes(q),
+            );
+          }
+          if (effectiveChip === "No cover") {
+            list = list.filter((b) => !b.cover_url);
+          }
+          setBooks(list);
+          if (list.length > 0 && !selectedBook) {
+            setSelectedBook(list[0]);
           }
         }
       }
     } else if (activeSmartFilterId) {
       if (smartFilterBooksData) {
-        setBooks(smartFilterBooksData);
-        if (smartFilterBooksData.length > 0 && !selectedBook) {
-          setSelectedBook(smartFilterBooksData[0]);
+        let list = smartFilterBooksData;
+        if (effectiveChip === "No cover") {
+          list = list.filter((b) => !b.cover_url);
+        }
+        setBooks(list);
+        if (list.length > 0 && !selectedBook) {
+          setSelectedBook(list[0]);
         }
       }
     } else {
@@ -591,17 +621,20 @@ export const LibraryWorkspace = () => {
     effectiveNav,
     activeSmartFilterId,
     booksData,
-    bookmarkedBooksData,
     smartFilterBooksData,
     guestBookmarkedBooks,
     guestBookmarkIds,
+    user,
+    debouncedSearch,
+    effectiveChip,
+    selectedBook,
     setBooks,
     setSelectedBook,
   ]);
 
   useEffect(() => {
     if (effectiveNav === "bookmarks") {
-      setLoading(user ? bookmarksLoading : guestBookmarksLoading);
+      setLoading(user ? normalLoading : guestBookmarksLoading);
     } else if (activeSmartFilterId) {
       setLoading(sfLoading);
     } else {
@@ -609,10 +642,10 @@ export const LibraryWorkspace = () => {
     }
   }, [
     effectiveNav,
-    bookmarksLoading,
     guestBookmarksLoading,
     user,
     normalLoading,
+    sfLoading,
     setLoading,
   ]);
 
@@ -788,10 +821,23 @@ export const LibraryWorkspace = () => {
   );
   const isMetadataIndex =
     !!currentFacetSection && !effectiveFacetType && !effectiveFacetId;
-  const isCatalogPage =
-    !!currentFacetSection ||
-    !!activeSmartFilterId ||
-    effectiveNav === "bookmarks";
+  const isCatalogPage = useMemo(
+    () =>
+      isCatalogView({
+        hasFacetSection: !!currentFacetSection,
+        activeSmartFilterId,
+        effectiveCollection,
+        debouncedSearch,
+        effectiveNav,
+      }),
+    [
+      currentFacetSection,
+      activeSmartFilterId,
+      effectiveCollection,
+      debouncedSearch,
+      effectiveNav,
+    ],
+  );
   const activeNavLabel =
     primaryNavItems.find((item) => item.id === effectiveNav)?.label ||
     currentFacetSection?.label ||
@@ -825,7 +871,10 @@ export const LibraryWorkspace = () => {
       setSearch(searchParam);
     }
     if (chipParam !== activeChip) {
-      setActiveChip(chipParam || "All");
+      const sanitizedChip = availableChips.includes(chipParam)
+        ? chipParam
+        : "All";
+      setActiveChip(sanitizedChip);
     }
     if (sortParam !== sort) {
       setSort(sortParam as any);
@@ -930,7 +979,13 @@ export const LibraryWorkspace = () => {
         setActiveFacet(null);
       }
     }
-  }, [location.search, facetSections]);
+  }, [location.search, facetSections, availableChips, activeChip, setActiveChip]);
+
+  useEffect(() => {
+    if (!availableChips.includes(activeChip)) {
+      setActiveChip("All");
+    }
+  }, [availableChips, activeChip, setActiveChip]);
 
   const metadataControls = (
     <div className="flex flex-col gap-3">
@@ -1171,11 +1226,22 @@ export const LibraryWorkspace = () => {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
         <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {["All", "Reading", "Unread", "No cover"].map((chip) => (
+          {availableChips.map((chip) => (
             <button
               key={chip}
-              onClick={() => setActiveChip(chip)}
-              className={`btn btn-xs sm:btn-sm rounded-full border-base-300 ${activeChip === chip ? "btn-primary" : "btn-ghost bg-base-100 hover:bg-base-200"}`}
+              onClick={() => {
+                setActiveChip(chip);
+                const params = new URLSearchParams(location.search);
+                if (chip === "All") {
+                  params.delete("chip");
+                } else {
+                  params.set("chip", chip);
+                }
+                navigate(`/${params.toString() ? `?${params.toString()}` : ""}`, {
+                  replace: true,
+                });
+              }}
+              className={`btn btn-xs sm:btn-sm rounded-full border-base-300 ${effectiveChip === chip ? "btn-primary" : "btn-ghost bg-base-100 hover:bg-base-200"}`}
             >
               {t(`library.${chip.toLowerCase().replace(" ", "_")}`, chip)}
             </button>
@@ -1232,7 +1298,7 @@ export const LibraryWorkspace = () => {
       </div>
 
       <section className="rounded-2xl bg-base-100 shadow-sm border border-base-200 p-3 sm:p-5">
-        {!isCatalogPage && (
+        {!activeFacet && (
           <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl bg-primary/10 text-primary shrink-0">
@@ -1256,13 +1322,13 @@ export const LibraryWorkspace = () => {
         ) : books.length > 0 ? (
           <>
             <BookGrid books={books} onBookClick={openBookDetail} />
-            {((activeNav === "bookmarks" && hasMoreBookmarks) ||
-              (activeNav !== "bookmarks" && hasMoreBooks)) && (
+            {((activeNav === "bookmarks" && !user && hasMoreBookmarks) ||
+              ((activeNav !== "bookmarks" || !!user) && hasMoreBooks)) && (
               <div className="mt-8 flex justify-center">
                 <button
                   className="btn btn-primary btn-outline"
                   onClick={() =>
-                    activeNav === "bookmarks"
+                    activeNav === "bookmarks" && !user
                       ? fetchNextBookmarks()
                       : fetchNextBooks()
                   }
@@ -1406,20 +1472,33 @@ export const LibraryWorkspace = () => {
       <UserProfile />
       {showNewCollectionModal && (
         <dialog className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
-              {t("library.new_collection", "New Collection")}
-            </h3>
-            {collectionError && (
-              <div className="alert alert-error mb-4 py-2 rounded-lg text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {collectionError}
-              </div>
-            )}
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+                {t("library.new_collection", "New Collection")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewCollectionModal(false)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
             <form
               onSubmit={handleCreateCollection}
-              className="flex flex-col gap-4"
+              className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4"
             >
+              {collectionError && (
+                <div className="alert alert-error py-2 rounded-lg text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {collectionError}
+                </div>
+              )}
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-sm font-medium pl-1">
                   {t("library.enter_collection_name", "Enter collection name")}
@@ -1437,7 +1516,7 @@ export const LibraryWorkspace = () => {
                   autoFocus
                 />
               </div>
-              <div className="modal-action">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowNewCollectionModal(false)}
@@ -1455,20 +1534,31 @@ export const LibraryWorkspace = () => {
               </div>
             </form>
           </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setShowNewCollectionModal(false)}>
-              close
-            </button>
+          <form method="dialog" className="modal-backdrop" onClick={() => setShowNewCollectionModal(false)}>
+            <button type="button">{t("common.close", "Close")}</button>
           </form>
         </dialog>
       )}
 
       {showSaveSearchModal && (
         <dialog className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg border-b border-base-200 pb-4 mb-4">
-              {t("library.save_search", "Save current search")}
-            </h3>
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+                {t("library.save_search", "Save current search")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSaveSearchModal(false)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1479,7 +1569,7 @@ export const LibraryWorkspace = () => {
                   { onSuccess: () => setShowSaveSearchModal(false) },
                 );
               }}
-              className="flex flex-col gap-4"
+              className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4"
             >
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-sm font-medium pl-1">
@@ -1500,7 +1590,7 @@ export const LibraryWorkspace = () => {
                   )}
                 </span>
               </div>
-              <div className="modal-action">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowSaveSearchModal(false)}
@@ -1521,8 +1611,8 @@ export const LibraryWorkspace = () => {
               </div>
             </form>
           </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setShowSaveSearchModal(false)}>close</button>
+          <form method="dialog" className="modal-backdrop" onClick={() => setShowSaveSearchModal(false)}>
+            <button type="button">{t("common.close", "Close")}</button>
           </form>
         </dialog>
       )}

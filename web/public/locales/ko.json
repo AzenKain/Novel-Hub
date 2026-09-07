@@ -279,7 +279,7 @@
     "cover_url_hint": "직접 이미지 형식 지원 (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "표지 이미지 링크 입력",
     "create_user_title": "새 사용자 만들기",
-    "create_webhook": "새 웹훅 설정",
+    "create_webhook": "웹훅 생성",
     "danger_warning": "위험 경고:",
     "delete_library_confirm_msg": "{{name}} 라이브러리를 삭제하시겠습니까?",
     "delete_library_danger_desc": "이 라이브러리에 속한 모든 책, 챕터, 파일 및 읽기 데이터가 영구적으로 삭제됩니다. 이 데이터는 복구할 수 없습니다!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "사용자 계정을 삭제하시겠습니까?",
     "delete_user_desc": "이 사용자 계정은 소프트 삭제됩니다. 즉시 NovelHub 접근 권한을 잃습니다.",
     "edit_user_title": "프로필 편집",
-    "edit_webhook": "웹훅 및 라이브 빌더 편집",
-    "embed_customizer": "제목, 라벨 및 임베드 스타일",
+    "edit_webhook": "웹훅 수정",
+    "embed_customizer": "사용자 정의",
     "fill_required": "모든 필수 항목을 입력하세요",
-    "general_config": "일반 설정",
+    "general_config": "일반",
     "image_url_label": "온라인 표지 이미지 URL",
     "library_delete_queued": "라이브러리 삭제 요청이 접수되었습니다. 백그라운드에서 실행 중입니다.",
     "manage_user_roles": "사용자 역할 관리",
@@ -310,7 +310,7 @@
     "update_password": "비밀번호 업데이트",
     "user_management": "사용자 관리",
     "user_subtitle": "계정, 역할, 접근 수준 및 보안 자격 증명을 관리합니다.",
-    "webhook_desc": "제목, 필드 라벨, 임베드 스타일을 사용자 지정하고 라이브 응답 미리보기를 테스트하세요.",
+    "webhook_desc": "알림 맞춤설정 및 미리보기",
     "webhooks": "웹훅 및 발신 통합",
     "webhooks_subtitle": "Discord, Telegram, Slack 및 자동화 웹훅의 실시간 이벤트 알림을 설정하세요.",
     "default_font_note": "(NovelHub 기본 글꼴)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "이메일 내용이 수정되었습니다. 언어를 변경하면 템플릿이 다시 로드되어 수정한 내용이 덮어쓰여집니다. 계속하시겠습니까?",
     "template_lang_overwrite_confirm_btn": "언어 변경 및 덮어쓰기",
     "markdown_supported": "마크다운 서식 지원",
-    "preview_mode_active": "실시간 미리보기 활성"
+    "preview_mode_active": "실시간 미리보기 활성",
+    "bulk_download_short": "다운로드",
+    "bulk_edit_short": "메타데이터 수정",
+    "live_preview": "미리보기"
   },
   "download_manager": {
     "title": "다운로드",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "제목과 저자가 같고 세부 차이가 있는 항목 — 중복을 한 권으로 병합합니다.",
     "rename_smart_collection": "스마트 컬렉션 이름 바꾸기",
     "smart_collection_update_failed": "스마트 컬렉션을 업데이트할 수 없습니다",
-    "bulk_edit_metadata_title": "메타데이터 일괄 편집",
+    "bulk_edit_metadata_title": "메타데이터 편집",
     "bulk_edit_metadata_desc": "여러 도서의 메타데이터를 동시에 편집 및 동기화",
     "sync_field_to_books": "동기화",
     "sync_field_title": "다른 책에 {{field}} 동기화",
@@ -1000,7 +1003,7 @@
     "author_only": "저자만",
     "both_fields": "둘 다",
     "cleaner_selected_count": "{{count}}권의 책이 정리 대상으로 활성화됨",
-    "cleaner_apply_all": "정리된 데이터 적용",
+    "cleaner_apply_all": "적용",
     "original_metadata": "원본 제목 및 저자",
     "cleaned_metadata": "정리 후 미리보기 (수정 가능)",
     "cleaner_preset_applied": "{{count}}권의 책이 업데이트되었습니다",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "유효하지 않은 정규식입니다",
     "cleaner_applied_success": "{{count}}권의 책에 정리된 제목/저자를 적용했습니다",
     "items_modified_notice": "{{count}}개의 변경 사항 저장 준비 완료",
-    "bulk_save_failed": "메타데이터 일괄 업데이트 실패"
+    "bulk_save_failed": "메타데이터 일괄 업데이트 실패",
+    "cleaner_footer_tip": "'적용'을 클릭하여 편집기에 반영",
+    "use_raw_value": "값 사용"
   },
   "user": {
     "profile": "프로필",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "기기 기본 음성 사용 중",
     "tts_no_voices_alert": "기기에서 TTS 음성을 찾을 수 없습니다. 기기 설정에서 Google 음성 서비스를 설치해 주세요.",
     "tts_no_voices_warning": "기기에 설치된 음성이 없습니다. 이 기능을 사용하려면 기기 설정에서 'Google 음성 서비스'를 설치해 주세요.",
-    "back_to_book_detail": "책 상세 정보로 돌아가기"
+    "back_to_book_detail": "책 상세 정보로 돌아가기",
+    "words": "단어",
+    "selection_label": "선택 영역"
   },
   "analytics": {
     "title": "독서 분석 및 통계",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "알 수 없는 오류가 발생했습니다",
     "book_not_found": "책을 찾을 수 없습니다",
-    "book_not_found_desc": "이 책은 삭제되었거나 사용할 수 없습니다."
+    "book_not_found_desc": "이 책은 삭제되었거나 사용할 수 없습니다.",
+    "page_not_found": "페이지를 찾을 수 없습니다",
+    "page_not_found_desc": "요청하신 페이지가 존재하지 않거나 이동되었습니다.",
+    "go_to_library": "서재로 이동",
+    "search_books": "검색",
+    "looking_for_other_books": "다른 도서를 찾으시나요?"
   },
   "book": {
     "bookmark_updated": "북마크가 성공적으로 업데이트되었습니다",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "변환할 파일을 선택하십시오",
     "convert_replace_warning": "이 책에는 이미 {{format}} 파일이 있습니다. 계속하면 기존 파일이 대체됩니다.",
     "convert_confirm_replace": "예, 기존 파일 교체",
-    "bulk_convert_title": "일괄 도서 변환",
+    "bulk_convert_title": "형식 일괄 변환",
     "bulk_convert_global_format": "선택한 모든 도서의 대상 형식 설정:",
-    "bulk_convert_start": "일괄 변환 시작",
+    "bulk_convert_start": "시작",
     "bulk_convert_success": "{{count}}개의 변환 작업이 대기열에 성공적으로 추가되었습니다",
     "bulk_convert_failed": "일부 변환 작업을 시작하지 못했습니다",
     "no_files_convert": "변환할 수 있는 파일이 없습니다",
@@ -1395,7 +1407,13 @@
     "merge": "병합",
     "unarchive": "보관 해제",
     "archive": "보관",
-    "novel_label": "소설"
+    "novel_label": "소설",
+    "convert_format_short": "변환",
+    "status_unread": "읽지 않음",
+    "status_reading": "읽는 중",
+    "status_read": "완독",
+    "status_completed": "완료됨",
+    "status_abandoned": "중단됨"
   },
   "settings": {
     "title": "설정",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "원시 HTTP POST 페이로드 (JSON)",
     "webhook_generic_json": "일반 JSON",
     "webhook_hmac_enabled": "HMAC 서명 활성화",
-    "hardcover_client_id_placeholder": "예: hc_app_01j7abc123 또는 클라이언트 ID"
+    "hardcover_client_id_placeholder": "예: hc_app_01j7abc123 또는 클라이언트 ID",
+    "event_book_created": "책 추가",
+    "event_book_deleted": "책 삭제",
+    "event_metadata_updated": "메타데이터 업데이트",
+    "event_reading_completed": "독서 완료",
+    "event_job_failed": "작업 실패"
   },
   "email": {
     "invalid": "유효한 이메일 주소를 입력해 주세요",
@@ -1873,7 +1896,8 @@
     "pause": "일시정지",
     "play": "재생",
     "calculating_timeline": "타임라인 계산 중...",
-    "calculating": "계산 중..."
+    "calculating": "계산 중...",
+    "merge_short": "병합"
   },
   "podcasts": {
     "title": "팟캐스트",

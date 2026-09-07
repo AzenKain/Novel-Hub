@@ -51,6 +51,7 @@ import {
 import {
   OfflineWarningModal,
   offlineWarningSuppressed,
+  NotFoundView,
 } from "@/components/common";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { hasPermission } from "@/utils/permission";
@@ -317,22 +318,16 @@ export const BookDetailPage: React.FC = () => {
 
   if (bookError || !book) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center text-center p-6 bg-base-100">
-        <Info className="w-12 h-12 text-error mb-4" />
-        <h3 className="text-xl font-bold mb-2">
-          {t("error.book_not_found", "Book not found")}
-        </h3>
-        <p className="text-base-content/60 mb-6">
-          {t(
-            "error.book_not_found_desc",
-            "This book might have been deleted or is unavailable.",
-          )}
-        </p>
-        <button className="btn btn-primary" onClick={() => navigate("/")}>
-          <ArrowLeft className="w-5 h-5 mr-1" />
-          {t("common.back", "Go Back")}
-        </button>
-      </div>
+      <NotFoundView
+        type="book"
+        onGoBack={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate("/");
+          }
+        }}
+      />
     );
   }
 
@@ -352,7 +347,7 @@ export const BookDetailPage: React.FC = () => {
 
         <div className="flex items-center gap-1">
           {allowCollection && (
-            <div className="dropdown dropdown-end">
+            <div className="dropdown dropdown-center sm:dropdown-end">
               <div
                 tabIndex={0}
                 role="button"
@@ -371,7 +366,7 @@ export const BookDetailPage: React.FC = () => {
               </div>
               <ul
                 tabIndex={0}
-                className="dropdown-content z-20 menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto"
+                className="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-2xl w-52 sm:w-56 max-w-[calc(100vw-2rem)] border border-base-200 mt-1.5 max-h-60 overflow-y-auto"
               >
                 {collections.length === 0 && (
                   <li className="px-4 py-2 text-sm text-base-content/50 text-center">
@@ -428,7 +423,7 @@ export const BookDetailPage: React.FC = () => {
             </div>
           )}
           {allowCollection && (
-            <div className="dropdown dropdown-end">
+            <div className="dropdown dropdown-center sm:dropdown-end">
               <div
                 tabIndex={0}
                 role="button"
@@ -443,7 +438,7 @@ export const BookDetailPage: React.FC = () => {
               </div>
               <ul
                 tabIndex={0}
-                className="dropdown-content z-20 menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200 mt-1 max-h-60 overflow-y-auto"
+                className="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-2xl w-52 sm:w-56 max-w-[calc(100vw-2rem)] border border-base-200 mt-1.5 max-h-60 overflow-y-auto"
               >
                 {readLists.length === 0 && (
                   <li className="px-4 py-2 text-sm text-base-content/50 text-center">

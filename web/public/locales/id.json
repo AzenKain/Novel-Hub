@@ -279,7 +279,7 @@
     "cover_url_hint": "Mendukung format gambar langsung (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Masukkan tautan gambar sampul",
     "create_user_title": "Buat Pengguna Baru",
-    "create_webhook": "Konfigurasi Webhook Baru",
+    "create_webhook": "Webhook Baru",
     "danger_warning": "Peringatan bahaya:",
     "delete_library_confirm_msg": "Anda yakin ingin menghapus perpustakaan {{name}}?",
     "delete_library_danger_desc": "Ini akan menghapus permanen semua buku, bab, file, dan data baca milik perpustakaan ini. Data ini TIDAK dapat dipulihkan!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Hapus Akun Pengguna?",
     "delete_user_desc": "Akun pengguna ini akan dihapus sementara. Mereka akan langsung kehilangan akses ke NovelHub.",
     "edit_user_title": "Edit Profil",
-    "edit_webhook": "Edit Webhook & Builder Langsung",
-    "embed_customizer": "Judul, Label & Gaya Sematan",
+    "edit_webhook": "Edit Webhook",
+    "embed_customizer": "Kustomisasi",
     "fill_required": "Harap isi semua kolom wajib",
-    "general_config": "Pengaturan Umum",
+    "general_config": "Umum",
     "image_url_label": "URL gambar sampul daring",
     "library_delete_queued": "Permintaan penghapusan perpustakaan diterima. Proses sedang berjalan di latar belakang.",
     "manage_user_roles": "Kelola Peran Pengguna",
@@ -310,7 +310,7 @@
     "update_password": "Perbarui Kata Sandi",
     "user_management": "Manajemen Pengguna",
     "user_subtitle": "Kelola akun, peran, tingkat akses, dan kredensial keamanan.",
-    "webhook_desc": "Sesuaikan judul, label kolom, gaya sematan, dan uji pratinjau respons langsung.",
+    "webhook_desc": "Sesuaikan pemberitahuan dan pratinjau langsung",
     "webhooks": "Webhook & Integrasi Keluar",
     "webhooks_subtitle": "Konfigurasi notifikasi peristiwa real-time untuk Discord, Telegram, Slack, dan webhook otomasi.",
     "default_font_note": "(Font default NovelHub)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "Anda telah mengubah konten email. Mengubah bahasa template akan memuat ulang template dan menimpa perubahan Anda. Yakin ingin melanjutkan?",
     "template_lang_overwrite_confirm_btn": "Ubah Bahasa & Timpa",
     "markdown_supported": "Mendukung format Markdown",
-    "preview_mode_active": "Pratinjau langsung aktif"
+    "preview_mode_active": "Pratinjau langsung aktif",
+    "bulk_download_short": "Unduh",
+    "bulk_edit_short": "Edit metadata",
+    "live_preview": "Pratinjau"
   },
   "download_manager": {
     "title": "Unduhan",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Judul dan penulis sama dengan perbedaan kecil — gabungkan duplikat menjadi satu buku.",
     "rename_smart_collection": "Ganti nama koleksi pintar",
     "smart_collection_update_failed": "Gagal memperbarui koleksi pintar",
-    "bulk_edit_metadata_title": "Edit Metadata Massal",
+    "bulk_edit_metadata_title": "Edit Metadata",
     "bulk_edit_metadata_desc": "Edit dan sinkronkan bidang di beberapa buku secara bersamaan",
     "sync_field_to_books": "Sinkron",
     "sync_field_title": "Sinkronkan {{field}} ke buku lain",
@@ -973,7 +976,7 @@
     "collection_options": "Opsi koleksi",
     "book_grid": "Kisi buku",
     "tab_batch_fields": "Atribut Massal",
-    "tab_title_cleaner": "Pembersih Judul",
+    "tab_title_cleaner": "Bersihkan Judul",
     "batch_fields_title": "Terapkan Massal ke Semua Buku yang Dipilih",
     "batch_author_applied": "Penulis diterapkan ke semua buku",
     "batch_series_applied": "Seri diterapkan ke semua buku",
@@ -1000,7 +1003,7 @@
     "author_only": "Hanya Penulis",
     "both_fields": "Keduanya",
     "cleaner_selected_count": "{{count}} buku diaktifkan untuk dibersihkan",
-    "cleaner_apply_all": "Terapkan Data Bersih",
+    "cleaner_apply_all": "Terapkan",
     "original_metadata": "Judul & Penulis Asli",
     "cleaned_metadata": "Pratinjau Bersih (Dapat diedit)",
     "cleaner_preset_applied": "{{count}} buku diperbarui",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Ekspresi reguler tidak valid",
     "cleaner_applied_success": "Judul & penulis yang dibersihkan diterapkan ke {{count}} buku",
     "items_modified_notice": "{{count}} item siap disimpan",
-    "bulk_save_failed": "Gagal memperbarui metadata"
+    "bulk_save_failed": "Gagal memperbarui metadata",
+    "cleaner_footer_tip": "Klik 'Terapkan' untuk memindahkan perubahan ke editor",
+    "use_raw_value": "Gunakan nilai"
   },
   "user": {
     "profile": "Profil",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "Menggunakan suara default perangkat",
     "tts_no_voices_alert": "Tidak ada suara TTS yang ditemukan di perangkat Anda. Silakan pasang Google Speech Services di pengaturan perangkat.",
     "tts_no_voices_warning": "Tidak ada suara yang ditemukan di perangkat Anda. Silakan pasang 'Google Speech Services' di pengaturan perangkat untuk menggunakan fitur ini.",
-    "back_to_book_detail": "Kembali ke detail buku"
+    "back_to_book_detail": "Kembali ke detail buku",
+    "words": "kata",
+    "selection_label": "Pilihan"
   },
   "analytics": {
     "title": "Analitik & statistik bacaan",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "Terjadi kesalahan yang tidak diketahui",
     "book_not_found": "Buku tidak ditemukan",
-    "book_not_found_desc": "Buku ini mungkin telah dihapus atau tidak tersedia."
+    "book_not_found_desc": "Buku ini mungkin telah dihapus atau tidak tersedia.",
+    "page_not_found": "Halaman tidak ditemukan",
+    "page_not_found_desc": "Halaman yang Anda cari tidak ada atau telah dipindahkan.",
+    "go_to_library": "Ke Perpustakaan",
+    "search_books": "Cari",
+    "looking_for_other_books": "Mencari buku lain?"
   },
   "book": {
     "bookmark_updated": "Penanda berhasil diperbarui",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Silakan pilih berkas untuk dikonversi",
     "convert_replace_warning": "Buku ini sudah memiliki berkas {{format}}. Melanjutkan akan menggantikan berkas yang ada.",
     "convert_confirm_replace": "Ya, ganti berkas yang sudah ada",
-    "bulk_convert_title": "Konversi Buku Massal",
+    "bulk_convert_title": "Konversi Format",
     "bulk_convert_global_format": "Tetapkan format target untuk semua buku yang dipilih:",
-    "bulk_convert_start": "Mulai konversi massal",
+    "bulk_convert_start": "Mulai",
     "bulk_convert_success": "Berhasil memasukkan {{count}} tugas konversi ke antrean",
     "bulk_convert_failed": "Beberapa tugas konversi gagal dimulai",
     "no_files_convert": "Tidak ada berkas yang tersedia untuk dikonversi",
@@ -1395,7 +1407,13 @@
     "merge": "Gabungkan",
     "unarchive": "Keluarkan dari arsip",
     "archive": "Arsipkan",
-    "novel_label": "NOVEL"
+    "novel_label": "NOVEL",
+    "convert_format_short": "Konversi",
+    "status_unread": "Belum dibaca",
+    "status_reading": "Sedang dibaca",
+    "status_read": "Selesai dibaca",
+    "status_completed": "Selesai",
+    "status_abandoned": "Ditinggalkan"
   },
   "settings": {
     "title": "Pengaturan",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Payload HTTP POST mentah (JSON)",
     "webhook_generic_json": "JSON generik",
     "webhook_hmac_enabled": "Tanda tangan HMAC aktif",
-    "hardcover_client_id_placeholder": "contoh: hc_app_01j7abc123 atau Client ID"
+    "hardcover_client_id_placeholder": "contoh: hc_app_01j7abc123 atau Client ID",
+    "event_book_created": "Buku Dibuat",
+    "event_book_deleted": "Buku Dihapus",
+    "event_metadata_updated": "Metadata Diperbarui",
+    "event_reading_completed": "Membaca Selesai",
+    "event_job_failed": "Tugas Gagal"
   },
   "email": {
     "invalid": "Masukkan alamat email yang valid",
@@ -1873,7 +1896,8 @@
     "pause": "Jeda",
     "play": "Putar",
     "calculating_timeline": "Menghitung garis waktu...",
-    "calculating": "Menghitung..."
+    "calculating": "Menghitung...",
+    "merge_short": "Gabung audio"
   },
   "podcasts": {
     "title": "Podcast",

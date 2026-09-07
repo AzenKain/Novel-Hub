@@ -108,9 +108,10 @@ export const setActiveSelectionHighlight = (
   ) {
     ensureHighlightStyle();
     try {
-      if (range && !range.collapsed) {
+      if (range) {
         let liveRange = range;
         if (
+          liveRange.collapsed &&
           container &&
           saved &&
           typeof saved.startIndex === "number" &&
@@ -125,9 +126,13 @@ export const setActiveSelectionHighlight = (
             liveRange = fresh;
           }
         }
-        const activeSelHl = new (window as any).Highlight(liveRange);
-        activeSelHl.priority = 1;
-        (CSS as any).highlights.set("reader-active-selection", activeSelHl);
+        if (!liveRange.collapsed) {
+          const activeSelHl = new (window as any).Highlight(liveRange);
+          activeSelHl.priority = 1;
+          (CSS as any).highlights.set("reader-active-selection", activeSelHl);
+        } else {
+          (CSS as any).highlights.delete("reader-active-selection");
+        }
       } else {
         (CSS as any).highlights.delete("reader-active-selection");
       }
@@ -314,11 +319,117 @@ export const resolveToTextNode = (
   return null;
 };
 
+/**
+ * Extracts text from a DOM Range while preserving paragraph breaks and newlines.
+ * Standard Range.toString() merges all text nodes without newlines between block elements.
+ */
+export const extractRangeText = (range: Range): string => {
+  if (typeof window !== "undefined") {
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const selText = sel.toString();
+        if (selText && selText.includes("\n")) {
+          return selText.trim();
+        }
+      }
+    } catch {
+      // Ignore errors in environments where getSelection is not available
+    }
+  }
+
+  try {
+    const fragment = range.cloneContents();
+    const chunks: string[] = [];
+
+    const isBlockTag = (tag: string) =>
+      [
+        "p",
+        "div",
+        "br",
+        "li",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "blockquote",
+        "section",
+        "article",
+        "tr",
+      ].includes(tag);
+
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || "";
+        if (text) chunks.push(text);
+        return;
+      }
+
+      if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          walk(node.childNodes[i]);
+        }
+        return;
+      }
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        const tag = el.tagName.toLowerCase();
+
+        if (tag === "br") {
+          chunks.push("\n");
+          return;
+        }
+
+        const isBlock = isBlockTag(tag);
+        if (
+          isBlock &&
+          chunks.length > 0 &&
+          !chunks[chunks.length - 1].endsWith("\n")
+        ) {
+          chunks.push("\n\n");
+        }
+
+        for (let i = 0; i < el.childNodes.length; i++) {
+          walk(el.childNodes[i]);
+        }
+
+        if (
+          isBlock &&
+          chunks.length > 0 &&
+          !chunks[chunks.length - 1].endsWith("\n")
+        ) {
+          chunks.push("\n\n");
+        }
+      }
+    };
+
+    walk(fragment);
+    const combined = chunks
+      .join("")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    if (combined) {
+      return combined;
+    }
+  } catch {
+    // Fallback to range.toString()
+  }
+
+  return (range.toString() || "").trim();
+};
+
 export const saveSelection = (
   container: HTMLElement,
   range: Range,
 ): SavedSelection | null => {
-  const selectedText = range.toString().trim();
+  const selectedText = extractRangeText(range);
   if (!selectedText) return null;
 
   const offsets = getCharacterOffsetOfRange(container, range);

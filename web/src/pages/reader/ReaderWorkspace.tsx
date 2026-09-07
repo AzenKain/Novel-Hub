@@ -8,7 +8,7 @@ import {
   ReaderTopBar,
 } from "@/components/reader";
 import { ReaderInBookSearch } from "@/components/reader/ReaderInBookSearch";
-import { QuoteCardModal } from "@/components/common";
+import { QuoteCardModal, NotFoundView } from "@/components/common";
 import { API_BASE, getMediaUrl } from "@/config/api";
 import { getReaderThemeClasses } from "@/config/readerTheme";
 import { offlineStore } from "@/lib/offlineStore";
@@ -47,6 +47,7 @@ import {
   clearHighlight,
   highlightTextRangeFromNode,
   extractTextFromHtml,
+  extractRangeText,
   scrollToTextOffset,
   scrollToSearchMatch,
   getVisibleTtsStartPoint,
@@ -1516,14 +1517,16 @@ const ReaderWorkspaceInner = () => {
 
   if (!book) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-base-100 text-base-content">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("reader.book_not_found", "Book not found")}
-        </h2>
-        <button className="btn btn-primary" onClick={() => navigate("/")}>
-          {t("reader.go_back", "Go Back")}
-        </button>
-      </div>
+      <NotFoundView
+        type="book"
+        onGoBack={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate("/");
+          }
+        }}
+      />
     );
   }
 
@@ -1948,7 +1951,7 @@ const ReaderWorkspaceInner = () => {
           isSupported={isSupported && allowTTS}
           selectedText={
             savedSelectionRef.current?.selectedText ||
-            selectionRange?.toString() ||
+            (selectionRange ? extractRangeText(selectionRange) : "") ||
             window.getSelection()?.toString() ||
             ""
           }
@@ -1960,7 +1963,7 @@ const ReaderWorkspaceInner = () => {
             const txt = (
               text ||
               savedSelectionRef.current?.selectedText ||
-              selectionRange?.toString() ||
+              (selectionRange ? extractRangeText(selectionRange) : "") ||
               window.getSelection()?.toString() ||
               ""
             ).trim();

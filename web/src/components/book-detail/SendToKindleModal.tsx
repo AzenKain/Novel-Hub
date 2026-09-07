@@ -129,27 +129,32 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />
-      <section className="relative z-10 w-full max-w-md max-h-[88dvh] overflow-y-auto rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Send className="h-5 w-5" />
+      <section className="relative z-10 w-full max-w-md max-h-[80dvh] sm:max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border border-base-300 bg-base-100 p-0 shadow-2xl overflow-hidden">
+        {/* Fixed Header */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold leading-tight truncate">
                 {t("library.send_to_device", "Send to Device")}
               </h2>
-              <p className="text-xs text-base-content/60">{book.title}</p>
+              <p className="text-xs text-base-content/60 truncate mt-0.5">{book.title}</p>
             </div>
           </div>
           <button
-            className="btn btn-ghost btn-circle btn-sm text-base-content hover:bg-base-200 border border-base-300 shadow-xs"
+            type="button"
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
             onClick={onClose}
             aria-label={t("common.close", "Close")}
           >
-            <X className="h-4 w-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
+
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
 
         {/* Tab Selection */}
         <div className="flex border-b border-base-200 text-xs font-semibold">
@@ -180,7 +185,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
         )}
 
         {activeTab === "saved" && (
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="space-y-2">
             {devices.length === 0 ? (
               <div className="text-center py-6 border border-dashed border-base-200 rounded-xl">
                 <p className="text-xs text-base-content/60">
@@ -207,7 +212,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
                       <div className="font-semibold text-xs text-base-content">
                         {device.name}
                       </div>
-                      <div className="text-[10px] text-base-content/50 font-mono truncate max-w-[180px]">
+                      <div className="text-[10px] text-base-content/50 font-mono truncate max-w-45">
                         {device.target_address}
                       </div>
                     </div>
@@ -287,6 +292,7 @@ export const SendToKindleModal: React.FC<SendToKindleModalProps> = ({
             </div>
           </form>
         )}
+        </div>
       </section>
     </div>,
     document.body,

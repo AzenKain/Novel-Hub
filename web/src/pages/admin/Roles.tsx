@@ -1096,13 +1096,23 @@ export function Roles() {
       {/* Role Create/Edit Modal */}
       {showModal && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
-            <h3 className="font-bold text-lg mb-4">
-              {modalMode === "create"
-                ? t("admin.role_create_title", "Create New Role")
-                : t("admin.role_edit", "Edit Role")}
-            </h3>
-            <form onSubmit={handleSave} className="space-y-4">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-lg leading-tight">
+                {modalMode === "create"
+                  ? t("admin.role_create_title", "Create New Role")
+                  : t("admin.role_edit", "Edit Role")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+            <form onSubmit={handleSave} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
@@ -1170,7 +1180,7 @@ export function Roles() {
                 </div>
               )}
 
-              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -1205,47 +1215,68 @@ export function Roles() {
       {/* Delete Confirmation Modal */}
       {roleToDelete && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-sm text-center">
-            <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg">
-              {t("admin.role_delete_title", "Delete Role?")}
-            </h3>
-            <p className="text-xs text-base-content/60 mt-1 mb-6">
-              <Trans
-                i18nKey="admin.role_delete_confirm"
-                values={{ name: roleToDelete.name }}
-                defaults="Are you sure you want to delete role <bold>{{name}}</bold>? Users assigned this role will lose its permissions."
-                components={{
-                  bold: <span className="font-bold text-base-content" />,
-                }}
-              />
-            </p>
-            <div className="flex gap-2 justify-end">
+          <div className="modal-box max-w-sm max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl sm:rounded-3xl border border-error/20 bg-base-100 shadow-2xl">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+                  {t("admin.role_delete_title", "Delete Role?")}
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setRoleToDelete(null)}
-                className="btn btn-ghost flex-1"
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
               >
-                {t("common.cancel", "Cancel")}
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               </button>
-              <button
-                onClick={confirmDelete}
-                disabled={saving}
-                className="btn btn-error text-white flex-1"
-              >
-                {saving ? (
-                  <span className="loading loading-spinner"></span>
-                ) : (
-                  t("common.delete", "Delete")
-                )}
-              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              <p className="text-sm text-base-content/70">
+                <Trans
+                  i18nKey="admin.role_delete_confirm"
+                  values={{ name: roleToDelete.name }}
+                  defaults="Are you sure you want to delete role <bold>{{name}}</bold>? Users assigned this role will lose its permissions."
+                  components={{
+                    bold: <span className="font-bold text-base-content" />,
+                  }}
+                />
+              </p>
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setRoleToDelete(null)}
+                  className="btn btn-ghost flex-1"
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={saving}
+                  className="btn btn-error text-white flex-1"
+                >
+                  {saving ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    t("common.delete", "Delete")
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setRoleToDelete(null)}>
-              {t("common.close", "close")}
-            </button>
+          <form
+            method="dialog"
+            className="modal-backdrop"
+            onClick={() => setRoleToDelete(null)}
+          >
+            <button type="button">{t("common.close", "close")}</button>
           </form>
         </dialog>
       )}

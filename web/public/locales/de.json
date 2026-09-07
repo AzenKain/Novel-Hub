@@ -279,7 +279,7 @@
     "cover_url_hint": "Unterstützt direkte Bildformate (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Coverbild-Link eingeben",
     "create_user_title": "Neuen Benutzer erstellen",
-    "create_webhook": "Neuen Webhook konfigurieren",
+    "create_webhook": "Neuer Webhook",
     "danger_warning": "Gefahrenwarnung:",
     "delete_library_confirm_msg": "Möchtest du die Bibliothek {{name}} wirklich löschen?",
     "delete_library_danger_desc": "Dadurch werden alle Bücher, Kapitel, Dateien und Lesedaten dieser Bibliothek dauerhaft gelöscht. Diese Daten können NICHT wiederhergestellt werden!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Benutzerkonto löschen?",
     "delete_user_desc": "Dieses Benutzerkonto wird soft-gelöscht. Der Zugriff auf NovelHub geht sofort verloren.",
     "edit_user_title": "Profil bearbeiten",
-    "edit_webhook": "Webhook & Live-Builder bearbeiten",
-    "embed_customizer": "Titel, Beschriftungen & Embed-Styling",
+    "edit_webhook": "Webhook bearbeiten",
+    "embed_customizer": "Anpassen",
     "fill_required": "Bitte fülle alle Pflichtfelder aus",
-    "general_config": "Allgemeine Einstellungen",
+    "general_config": "Allgemein",
     "image_url_label": "Online-Coverbild-URL",
     "library_delete_queued": "Bibliotheks-Löschungsanfrage erhalten. Der Vorgang läuft im Hintergrund.",
     "manage_user_roles": "Benutzerrollen verwalten",
@@ -310,7 +310,7 @@
     "update_password": "Passwort aktualisieren",
     "user_management": "Benutzerverwaltung",
     "user_subtitle": "Verwalte Konten, Rollen, Zugriffsstufen und Sicherheitsdaten.",
-    "webhook_desc": "Passe Titel, Feldbeschriftungen und Embed-Stile an und teste die Live-Antwortvorschau.",
+    "webhook_desc": "Benachrichtigungen anpassen und Vorschau",
     "webhooks": "Webhooks & ausgehende Integrationen",
     "webhooks_subtitle": "Konfiguriere Echtzeit-Ereignisbenachrichtigungen für Discord, Telegram, Slack und Automatisierungs-Webhooks.",
     "default_font_note": "(NovelHub-Standardschriftart)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "Sie haben den E-Mail-Inhalt bearbeitet. Beim Ändern der Sprache wird die Vorlage neu geladen und Ihre Änderungen überschrieben. Möchten Sie fortfahren?",
     "template_lang_overwrite_confirm_btn": "Sprache ändern & überschreiben",
     "markdown_supported": "Markdown-Formatierung unterstützt",
-    "preview_mode_active": "Live-Vorschau aktiv"
+    "preview_mode_active": "Live-Vorschau aktiv",
+    "bulk_download_short": "Herunterladen",
+    "bulk_edit_short": "Metadaten bearbeiten",
+    "live_preview": "Vorschau"
   },
   "download_manager": {
     "title": "Downloads",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Gleicher Titel und Autor mit kleineren Unterschieden — führe die Duplikate zu einem Buch zusammen.",
     "rename_smart_collection": "Smart-Collection umbenennen",
     "smart_collection_update_failed": "Smart-Collection konnte nicht aktualisiert werden",
-    "bulk_edit_metadata_title": "Metadaten massenhaft bearbeiten",
+    "bulk_edit_metadata_title": "Metadaten bearbeiten",
     "bulk_edit_metadata_desc": "Metadaten für mehrere Bücher gleichzeitig bearbeiten und synchronisieren",
     "sync_field_to_books": "Sync",
     "sync_field_title": "{{field}} mit anderen Büchern synchronisieren",
@@ -973,7 +976,7 @@
     "collection_options": "Sammlungsoptionen",
     "book_grid": "Buchraster",
     "tab_batch_fields": "Stapelfelder",
-    "tab_title_cleaner": "Titel-Bereinigung",
+    "tab_title_cleaner": "Titel bereinigen",
     "batch_fields_title": "Stapelweise auf alle ausgewählten Bücher anwenden",
     "batch_author_applied": "Autor auf alle Bücher angewendet",
     "batch_series_applied": "Serie auf alle Bücher angewendet",
@@ -1000,7 +1003,7 @@
     "author_only": "Nur Autor",
     "both_fields": "Beide",
     "cleaner_selected_count": "{{count}} Bücher zur Bereinigung aktiviert",
-    "cleaner_apply_all": "Bereinigte Daten anwenden",
+    "cleaner_apply_all": "Anwenden",
     "original_metadata": "Ursprünglicher Titel & Autor",
     "cleaned_metadata": "Bereinigte Vorschau (Bearbeitbar)",
     "cleaner_preset_applied": "{{count}} Bücher aktualisiert",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Ungültiger regulärer Ausdruck",
     "cleaner_applied_success": "Bereinigte Titel & Autoren auf {{count}} Bücher angewendet",
     "items_modified_notice": "{{count}} Elemente bereit zum Speichern",
-    "bulk_save_failed": "Fehler beim Aktualisieren der Metadaten"
+    "bulk_save_failed": "Fehler beim Aktualisieren der Metadaten",
+    "cleaner_footer_tip": "Klicken Sie auf 'Anwenden', um Änderungen zu übernehmen",
+    "use_raw_value": "Wert verwenden"
   },
   "user": {
     "profile": "Profil",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "System-Standardstimme wird verwendet",
     "tts_no_voices_alert": "Keine TTS-Stimmen auf Ihrem Gerät gefunden. Bitte installieren Sie Google Speech Services in Ihren Geräteeinstellungen.",
     "tts_no_voices_warning": "Keine Stimmen auf Ihrem Gerät gefunden. Bitte installieren Sie 'Google Speech Services' in den Geräteeinstellungen, um diese Funktion zu nutzen.",
-    "back_to_book_detail": "Zurück zu den Buchdetails"
+    "back_to_book_detail": "Zurück zu den Buchdetails",
+    "words": "Wörter",
+    "selection_label": "Auswahl"
   },
   "analytics": {
     "title": "Leseanalysen & Statistiken",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "Ein unbekannter Fehler ist aufgetreten",
     "book_not_found": "Buch nicht gefunden",
-    "book_not_found_desc": "Dieses Buch wurde möglicherweise gelöscht oder ist nicht verfügbar."
+    "book_not_found_desc": "Dieses Buch wurde möglicherweise gelöscht oder ist nicht verfügbar.",
+    "page_not_found": "Seite nicht gefunden",
+    "page_not_found_desc": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "go_to_library": "Zur Bibliothek",
+    "search_books": "Suchen",
+    "looking_for_other_books": "Nach anderen Büchern suchen?"
   },
   "book": {
     "bookmark_updated": "Lesezeichen erfolgreich aktualisiert",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Bitte wählen Sie eine Datei zum Konvertieren aus",
     "convert_replace_warning": "Dieses Buch hat bereits eine {{format}}-Datei. Fortfahren wird die vorhandene Datei ersetzen.",
     "convert_confirm_replace": "Ja, die vorhandene Datei ersetzen",
-    "bulk_convert_title": "Bücher massenhaft konvertieren",
+    "bulk_convert_title": "Format konvertieren",
     "bulk_convert_global_format": "Zielformat für alle ausgewählten Bücher festlegen:",
-    "bulk_convert_start": "Massenkonvertierung starten",
+    "bulk_convert_start": "Starten",
     "bulk_convert_success": "{{count}} Konvertierungsaufträge erfolgreich in die Warteschlange eingereiht",
     "bulk_convert_failed": "Einige Konvertierungsaufträge konnten nicht gestartet werden",
     "no_files_convert": "Keine Dateien zum Konvertieren verfügbar",
@@ -1395,7 +1407,13 @@
     "merge": "Zusammenführen",
     "unarchive": "Archivierung aufheben",
     "archive": "Archivieren",
-    "novel_label": "ROMAN"
+    "novel_label": "ROMAN",
+    "convert_format_short": "Konvertieren",
+    "status_unread": "Ungelesen",
+    "status_reading": "Am Lesen",
+    "status_read": "Gelesen",
+    "status_completed": "Abgeschlossen",
+    "status_abandoned": "Abgebrochen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Rohe HTTP-POST-Nutzlast (JSON)",
     "webhook_generic_json": "Generisches JSON",
     "webhook_hmac_enabled": "HMAC-Signatur aktiviert",
-    "hardcover_client_id_placeholder": "z. B. hc_app_01j7abc123 oder Client-ID"
+    "hardcover_client_id_placeholder": "z. B. hc_app_01j7abc123 oder Client-ID",
+    "event_book_created": "Buch erstellt",
+    "event_book_deleted": "Buch gelöscht",
+    "event_metadata_updated": "Metadaten aktualisiert",
+    "event_reading_completed": "Lesen abgeschlossen",
+    "event_job_failed": "Auftrag fehlgeschlagen"
   },
   "email": {
     "invalid": "Bitte gib eine gültige E-Mail-Adresse ein",
@@ -1873,7 +1896,8 @@
     "pause": "Pausieren",
     "play": "Abspielen",
     "calculating_timeline": "Zeitachse wird berechnet...",
-    "calculating": "Wird berechnet..."
+    "calculating": "Wird berechnet...",
+    "merge_short": "Audio zusammenführen"
   },
   "podcasts": {
     "title": "Podcasts",

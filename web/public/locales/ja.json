@@ -279,7 +279,7 @@
     "cover_url_hint": "直接画像形式に対応（JPG、PNG、WEBP、GIF）",
     "cover_url_title": "カバー画像のリンクを入力",
     "create_user_title": "新規ユーザーを作成",
-    "create_webhook": "新しい Webhook を設定",
+    "create_webhook": "Webhook作成",
     "danger_warning": "危険な警告：",
     "delete_library_confirm_msg": "ライブラリ {{name}} を削除してもよろしいですか？",
     "delete_library_danger_desc": "このライブラリに属するすべての書籍、章、ファイル、閲覧データが完全に削除されます。このデータは復元できません！",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "ユーザーアカウントを削除しますか？",
     "delete_user_desc": "このユーザーアカウントは論理削除されます。すぐに NovelHub へのアクセスを失います。",
     "edit_user_title": "プロフィールを編集",
-    "edit_webhook": "Webhook とライブビルダーを編集",
-    "embed_customizer": "タイトル、ラベル、埋め込みスタイル",
+    "edit_webhook": "Webhook編集",
+    "embed_customizer": "カスタマイズ",
     "fill_required": "すべての必須項目を入力してください",
-    "general_config": "一般設定",
+    "general_config": "一般",
     "image_url_label": "オンラインカバー画像の URL",
     "library_delete_queued": "ライブラリ削除リクエストを受け付けました。バックグラウンドで処理中です。",
     "manage_user_roles": "ユーザーロールを管理",
@@ -310,7 +310,7 @@
     "update_password": "パスワードを更新",
     "user_management": "ユーザー管理",
     "user_subtitle": "アカウント、ロール、アクセスレベル、セキュリティ認証情報を管理します。",
-    "webhook_desc": "タイトル、フィールドラベル、埋め込みスタイルをカスタマイズし、ライブ応答プレビューをテストします。",
+    "webhook_desc": "通知のカスタマイズとプレビュー",
     "webhooks": "Webhook と送信統合",
     "webhooks_subtitle": "Discord、Telegram、Slack、自動化 Webhook のリアルタイムイベント通知を設定します。",
     "default_font_note": "(NovelHub の既定フォント)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "メール内容が変更されています。言語を変更するとテンプレートが再読み込みされ、変更内容が上書きされます。続行しますか？",
     "template_lang_overwrite_confirm_btn": "言語を変更して上書き",
     "markdown_supported": "Markdown記法対応",
-    "preview_mode_active": "プレビュー表示中"
+    "preview_mode_active": "プレビュー表示中",
+    "bulk_download_short": "ダウンロード",
+    "bulk_edit_short": "メタデータ編集",
+    "live_preview": "プレビュー"
   },
   "download_manager": {
     "title": "ダウンロード",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "タイトルと著者が同じで細部が異なる項目 — 重複を1冊にまとめます。",
     "rename_smart_collection": "スマートコレクションの名前を変更",
     "smart_collection_update_failed": "スマートコレクションを更新できませんでした",
-    "bulk_edit_metadata_title": "メタデータ一括編集",
+    "bulk_edit_metadata_title": "メタデータ編集",
     "bulk_edit_metadata_desc": "複数の書籍のメタデータを同時に編集・同期",
     "sync_field_to_books": "同期",
     "sync_field_title": "他の本に{{field}}を同期",
@@ -1000,7 +1003,7 @@
     "author_only": "著者のみ",
     "both_fields": "両方",
     "cleaner_selected_count": "{{count}}冊の本が整形対象です",
-    "cleaner_apply_all": "整形データを適用",
+    "cleaner_apply_all": "適用",
     "original_metadata": "元のタイトルと著者",
     "cleaned_metadata": "整形プレビュー (編集可)",
     "cleaner_preset_applied": "{{count}}冊の本を更新しました",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "無効な正規表現です",
     "cleaner_applied_success": "{{count}}冊の本に整形データを適用しました",
     "items_modified_notice": "{{count}}冊の変更が保存可能です",
-    "bulk_save_failed": "メタデータの一括更新に失敗しました"
+    "bulk_save_failed": "メタデータの一括更新に失敗しました",
+    "cleaner_footer_tip": "「適用」をクリックしてエディタに反映",
+    "use_raw_value": "値を使用"
   },
   "user": {
     "profile": "プロフィール",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "端末のデフォルト音声を使用中",
     "tts_no_voices_alert": "端末に音声合成エンジンが見つかりません。端末設定でGoogle音声サービスをインストールしてください。",
     "tts_no_voices_warning": "端末に音声が見つかりません。この機能を利用するには端末設定でGoogle音声サービスをインストールしてください。",
-    "back_to_book_detail": "本の詳細に戻る"
+    "back_to_book_detail": "本の詳細に戻る",
+    "words": "単語",
+    "selection_label": "選択範囲"
   },
   "analytics": {
     "title": "読書分析と統計",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "不明なエラーが発生しました",
     "book_not_found": "本が見つかりません",
-    "book_not_found_desc": "この本は削除されたか、利用できません。"
+    "book_not_found_desc": "この本は削除されたか、利用できません。",
+    "page_not_found": "ページが見つかりません",
+    "page_not_found_desc": "お探しのページは存在しないか、移動された可能性があります。",
+    "go_to_library": "ライブラリへ戻る",
+    "search_books": "検索",
+    "looking_for_other_books": "他の本をお探しですか？"
   },
   "book": {
     "bookmark_updated": "ブックマークが正常に更新されました",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "変換するファイルを選択してください",
     "convert_replace_warning": "この本にはすでに {{format}} ファイルがあります。続行すると、既存のファイルが置き換えられます。",
     "convert_confirm_replace": "はい、既存のファイルを置き換えます",
-    "bulk_convert_title": "一括変換書籍",
+    "bulk_convert_title": "形式一括変換",
     "bulk_convert_global_format": "選択したすべての書籍の出力フォーマットを設定する：",
-    "bulk_convert_start": "一括変換を開始",
+    "bulk_convert_start": "開始",
     "bulk_convert_success": "{{count}}件の変換ジョブがキューに追加されました",
     "bulk_convert_failed": "一部の変換ジョブの開始に失敗しました",
     "no_files_convert": "変換できるファイルがありません",
@@ -1395,7 +1407,13 @@
     "merge": "統合",
     "unarchive": "アーカイブ解除",
     "archive": "アーカイブ",
-    "novel_label": "小説"
+    "novel_label": "小説",
+    "convert_format_short": "変換",
+    "status_unread": "未読",
+    "status_reading": "読書中",
+    "status_read": "既読",
+    "status_completed": "完了",
+    "status_abandoned": "中断"
   },
   "settings": {
     "title": "設定",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "生 HTTP POST ペイロード (JSON)",
     "webhook_generic_json": "汎用 JSON",
     "webhook_hmac_enabled": "HMAC 署名有効",
-    "hardcover_client_id_placeholder": "例: hc_app_01j7abc123 または クライアントID"
+    "hardcover_client_id_placeholder": "例: hc_app_01j7abc123 または クライアントID",
+    "event_book_created": "書籍追加",
+    "event_book_deleted": "書籍削除",
+    "event_metadata_updated": "メタデータ更新",
+    "event_reading_completed": "読書完了",
+    "event_job_failed": "ジョブ失敗"
   },
   "email": {
     "invalid": "有効なメールアドレスを入力してください",
@@ -1873,7 +1896,8 @@
     "pause": "一時停止",
     "play": "再生",
     "calculating_timeline": "タイムラインを計算中...",
-    "calculating": "計算中..."
+    "calculating": "計算中...",
+    "merge_short": "結合"
   },
   "podcasts": {
     "title": "ポッドキャスト",

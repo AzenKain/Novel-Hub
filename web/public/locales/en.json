@@ -279,7 +279,7 @@
     "cover_url_hint": "Supports direct image formats (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Enter cover image link",
     "create_user_title": "Create New User",
-    "create_webhook": "Configure New Webhook",
+    "create_webhook": "New Webhook",
     "danger_warning": "Danger warning:",
     "delete_library_confirm_msg": "Are you sure you want to delete the library {{name}}?",
     "delete_library_danger_desc": "This will permanently delete all books, chapters, files and reading data belonging to this library. This data CANNOT be recovered!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Delete User Account?",
     "delete_user_desc": "This user account will be soft-deleted. They will immediately lose access to NovelHub.",
     "edit_user_title": "Edit Profile",
-    "edit_webhook": "Edit Webhook & Live Builder",
-    "embed_customizer": "Titles, Labels & Embed Styling",
+    "edit_webhook": "Edit Webhook",
+    "embed_customizer": "Customize",
     "fill_required": "Please fill in all required fields",
-    "general_config": "General Settings",
+    "general_config": "General",
     "image_url_label": "Online cover image URL",
     "library_delete_queued": "Library deletion request received. The process is running in the background.",
     "manage_user_roles": "Manage User Roles",
@@ -310,7 +310,7 @@
     "update_password": "Update Password",
     "user_management": "User Management",
     "user_subtitle": "Manage accounts, roles, access levels, and security credentials.",
-    "webhook_desc": "Customize titles, field labels, embed styles, and test live response preview",
+    "webhook_desc": "Customize notifications and live response preview",
     "webhooks": "Webhooks & Outbound Integrations",
     "webhooks_subtitle": "Configure real-time event notifications for Discord, Telegram, Slack, and automation webhooks.",
     "default_font_note": "(NovelHub default font)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "You have modified the email content. Changing the template language will reload the template and overwrite your custom changes. Are you sure you want to continue?",
     "template_lang_overwrite_confirm_btn": "Change Language & Overwrite",
     "markdown_supported": "Markdown formatting supported",
-    "preview_mode_active": "Live preview active"
+    "preview_mode_active": "Live preview active",
+    "bulk_download_short": "Download",
+    "bulk_edit_short": "Edit metadata",
+    "live_preview": "Preview"
   },
   "download_manager": {
     "title": "Downloads",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Same title and author with minor differences — merge the duplicates into one book.",
     "rename_smart_collection": "Rename smart collection",
     "smart_collection_update_failed": "Could not update the smart collection",
-    "bulk_edit_metadata_title": "Bulk Edit Metadata",
+    "bulk_edit_metadata_title": "Edit Metadata",
     "bulk_edit_metadata_desc": "Edit and synchronize fields across multiple books simultaneously",
     "sync_field_to_books": "Sync",
     "sync_field_title": "Sync {{field}} to other books",
@@ -1000,7 +1003,7 @@
     "author_only": "Author Only",
     "both_fields": "Both",
     "cleaner_selected_count": "{{count}} books enabled for cleanup",
-    "cleaner_apply_all": "Apply Cleaned Data",
+    "cleaner_apply_all": "Apply",
     "original_metadata": "Original Title & Author",
     "cleaned_metadata": "Cleaned Preview (Editable)",
     "cleaner_preset_applied": "Updated {{count}} books",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Invalid Regular Expression",
     "cleaner_applied_success": "Applied cleaned titles and authors to {{count}} books",
     "items_modified_notice": "{{count}} items ready to save",
-    "bulk_save_failed": "Failed to update metadata"
+    "bulk_save_failed": "Failed to update metadata",
+    "cleaner_footer_tip": "Click 'Apply' to transfer changes to editor",
+    "use_raw_value": "Use value"
   },
   "user": {
     "profile": "Profile",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "Using device system default voice",
     "tts_no_voices_alert": "No TTS voices found on your device. Please install Google Speech Services in your device settings to enable text-to-speech.",
     "tts_no_voices_warning": "No TTS voices found on your device. Please install 'Google Speech Services' in your device settings to use this feature.",
-    "back_to_book_detail": "Back to book details"
+    "back_to_book_detail": "Back to book details",
+    "words": "words",
+    "selection_label": "Selection"
   },
   "analytics": {
     "title": "Reading Analytics & Stats",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "An unknown error occurred",
     "book_not_found": "Book not found",
-    "book_not_found_desc": "This book might have been deleted or is unavailable."
+    "book_not_found_desc": "This book might have been deleted or is unavailable.",
+    "page_not_found": "Page not found",
+    "page_not_found_desc": "The page you are looking for doesn't exist or has been moved.",
+    "go_to_library": "Go to Library",
+    "search_books": "Search",
+    "looking_for_other_books": "Looking for other books?"
   },
   "book": {
     "bookmark_updated": "Bookmark updated successfully",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Please select a file to convert",
     "convert_replace_warning": "This book already has a {{format}} file. Proceeding will replace the existing file.",
     "convert_confirm_replace": "Yes, replace the existing file",
-    "bulk_convert_title": "Bulk Convert Books",
+    "bulk_convert_title": "Convert Books",
     "bulk_convert_global_format": "Set target format for all selected books:",
-    "bulk_convert_start": "Start bulk conversion",
+    "bulk_convert_start": "Start",
     "bulk_convert_success": "Enqueued {{count}} conversion jobs successfully",
     "bulk_convert_failed": "Some conversion jobs failed to start",
     "no_files_convert": "No files available to convert",
@@ -1395,7 +1407,13 @@
     "merge": "Merge",
     "unarchive": "Unarchive",
     "archive": "Archive",
-    "novel_label": "NOVEL"
+    "novel_label": "NOVEL",
+    "convert_format_short": "Convert",
+    "status_unread": "Unread",
+    "status_reading": "Reading",
+    "status_read": "Read",
+    "status_completed": "Completed",
+    "status_abandoned": "Abandoned"
   },
   "settings": {
     "title": "Settings",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Raw HTTP POST Payload (JSON)",
     "webhook_generic_json": "Generic JSON",
     "webhook_hmac_enabled": "HMAC Signature enabled",
-    "hardcover_client_id_placeholder": "e.g. hc_app_01j7abc123 or Client ID"
+    "hardcover_client_id_placeholder": "e.g. hc_app_01j7abc123 or Client ID",
+    "event_book_created": "Book Created",
+    "event_book_deleted": "Book Deleted",
+    "event_metadata_updated": "Metadata Updated",
+    "event_reading_completed": "Reading Completed",
+    "event_job_failed": "Job Failed"
   },
   "email": {
     "invalid": "Please enter a valid email address",
@@ -1873,7 +1896,8 @@
     "pause": "Pause",
     "play": "Play",
     "calculating_timeline": "Calculating audio timeline...",
-    "calculating": "Calculating..."
+    "calculating": "Calculating...",
+    "merge_short": "Merge audio"
   },
   "podcasts": {
     "title": "Podcasts",

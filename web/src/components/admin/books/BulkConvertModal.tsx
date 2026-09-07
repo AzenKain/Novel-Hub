@@ -154,9 +154,9 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl">
+      <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-base-200">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
               <FileText className="w-5 h-5" />
@@ -166,15 +166,16 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
             </h3>
           </div>
           <button
-            className="btn btn-circle btn-xs sm:btn-sm btn-ghost shrink-0"
+            type="button"
+            className="btn btn-circle btn-sm btn-ghost -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
             onClick={onClose}
-            aria-label={t("common.close")}
+            aria-label={t("common.close", "Close")}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
           {/* Global Target Format Selection */}
           <div className="p-3 sm:p-3.5 bg-base-200/50 rounded-xl sm:rounded-2xl border border-base-300">
             <label className="text-xs font-bold text-base-content/80 block mb-2">
@@ -198,7 +199,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
           </div>
 
           {/* Individual Book List Settings */}
-          <div className="max-h-[50vh] sm:max-h-96 overflow-y-auto space-y-3 pr-1">
+          <div className="space-y-3">
             {books.map((book) => {
               const state = states[book.id];
               if (!state) return null;
@@ -336,7 +337,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-base-200 mt-4">
             <button
               type="button"
-              className="btn btn-ghost btn-xs sm:btn-md rounded-lg sm:rounded-xl font-semibold px-3 sm:px-4"
+              className="btn btn-ghost btn-sm sm:btn-md rounded-lg sm:rounded-xl font-semibold px-3 sm:px-4"
               onClick={onClose}
               disabled={bulkConvertMutation.isPending}
             >
@@ -344,7 +345,7 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
             </button>
             <button
               type="submit"
-              className="btn btn-primary btn-xs sm:btn-md gap-1.5 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-4 sm:px-6 shadow-md shadow-primary/20 text-xs sm:text-sm whitespace-nowrap"
+              className="btn btn-primary btn-sm sm:btn-md gap-1.5 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-4 sm:px-6 shadow-md shadow-primary/20 text-xs sm:text-sm whitespace-nowrap"
               disabled={bulkConvertMutation.isPending || needsConfirmation}
             >
               {bulkConvertMutation.isPending ? (
@@ -353,12 +354,15 @@ export const BulkConvertModal: React.FC<BulkConvertModalProps> = ({
                   <span>{t("common.loading", "Loading...")}</span>
                 </>
               ) : (
-                <span>{t("book.bulk_convert_start", "Start bulk conversion")}</span>
+                <span>{t("book.bulk_convert_start", "Start")}</span>
               )}
             </button>
           </div>
         </form>
       </div>
+      <form method="dialog" className="modal-backdrop" onClick={onClose}>
+        <button type="button">{t("common.close", "Close")}</button>
+      </form>
     </dialog>
   );
 };

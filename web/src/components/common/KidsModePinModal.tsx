@@ -62,77 +62,83 @@ export const KidsModePinModal: React.FC<KidsModePinModalProps> = ({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative max-w-sm p-6 text-center">
-        <button
-          onClick={onClose}
-          className="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-3">
-          <ShieldCheck className="h-7 w-7" />
+      <div className="modal-box max-w-sm max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col text-center">
+        <div className="px-5 py-3.5 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-base font-bold leading-tight">
+            {title || t("kids_mode.enter_pin_title", "Enter 6-Digit PIN")}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
         </div>
 
-        <h3 className="text-lg font-bold">
-          {title || t("kids_mode.enter_pin_title", "Enter 6-Digit PIN")}
-        </h3>
-
-        <p className="text-xs text-base-content/70 mt-1">
-          {description ||
-            t(
-              "kids_mode.enter_pin_desc",
-              "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
-            )}
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) =>
-                setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-              placeholder="••••••"
-              maxLength={6}
-              className="input input-bordered w-full text-center font-mono text-2xl tracking-[0.5em] font-bold"
-              autoFocus
-            />
+        <div className="p-5 overflow-y-auto flex-1 min-h-0 text-center">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary mb-3">
+            <ShieldCheck className="h-7 w-7" />
           </div>
 
-          {error && (
-            <div className="alert alert-error py-2 px-3 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-ghost btn-sm flex-1"
-            >
-              {t("common.cancel", "Cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={toggleMutation.isPending || pin.length !== 6}
-              className="btn btn-primary btn-sm flex-1 gap-1"
-            >
-              {toggleMutation.isPending ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  {t("kids_mode.unlock", "Unlock")}
-                </>
+          <p className="text-xs text-base-content/70">
+            {description ||
+              t(
+                "kids_mode.enter_pin_desc",
+                "Enter your 6-digit PIN to exit Kids Mode and access restricted content.",
               )}
-            </button>
-          </div>
-        </form>
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <div>
+              <input
+                type="password"
+                value={pin}
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="••••••"
+                maxLength={6}
+                className="input input-bordered w-full text-center font-mono text-2xl tracking-[0.5em] font-bold"
+                autoFocus
+              />
+            </div>
+
+            {error && (
+              <div className="alert alert-error py-2 px-3 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-ghost btn-sm flex-1"
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={toggleMutation.isPending || pin.length !== 6}
+                className="btn btn-primary btn-sm flex-1 gap-1"
+              >
+                {toggleMutation.isPending ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    {t("kids_mode.unlock", "Unlock")}
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+      <div className="modal-backdrop" onClick={onClose} />
     </div>
   );
 };

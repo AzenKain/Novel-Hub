@@ -279,7 +279,7 @@
     "cover_url_hint": "รองรับรูปแบบภาพโดยตรง (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "ป้อนลิงก์ภาพหน้าปก",
     "create_user_title": "สร้างผู้ใช้ใหม่",
-    "create_webhook": "กำหนดค่า Webhook ใหม่",
+    "create_webhook": "สร้าง Webhook",
     "danger_warning": "คำเตือนอันตราย:",
     "delete_library_confirm_msg": "คุณแน่ใจหรือว่าต้องการลบห้องสมุด {{name}}?",
     "delete_library_danger_desc": "การดำเนินการนี้จะลบหนังสือ ตอน ไฟล์ และข้อมูลการอ่านทั้งหมดของห้องสมุดนี้อย่างถาวร ข้อมูลนี้ไม่สามารถกู้คืนได้!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "ลบบัญชีผู้ใช้?",
     "delete_user_desc": "บัญชีผู้ใช้นี้จะถูกลบแบบชั่วคราว พวกเขาจะสูญเสียการเข้าถึง NovelHub ทันที",
     "edit_user_title": "แก้ไขโปรไฟล์",
-    "edit_webhook": "แก้ไข Webhook และตัวสร้างสด",
-    "embed_customizer": "ชื่อ ป้ายกำกับ และรูปแบบการฝัง",
+    "edit_webhook": "แก้ไข Webhook",
+    "embed_customizer": "ปรับแต่ง",
     "fill_required": "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน",
-    "general_config": "การตั้งค่าทั่วไป",
+    "general_config": "ทั่วไป",
     "image_url_label": "URL ภาพหน้าปกออนไลน์",
     "library_delete_queued": "ได้รับคำขอลบห้องสมุดแล้ว กระบวนการกำลังทำงานอยู่เบื้องหลัง",
     "manage_user_roles": "จัดการบทบาทผู้ใช้",
@@ -310,7 +310,7 @@
     "update_password": "อัปเดตรหัสผ่าน",
     "user_management": "การจัดการผู้ใช้",
     "user_subtitle": "จัดการบัญชี บทบาท ระดับการเข้าถึง และข้อมูลรับรองความปลอดภัย",
-    "webhook_desc": "ปรับแต่งชื่อ ป้ายกำกับฟิลด์ รูปแบบการฝัง และทดสอบตัวอย่างการตอบสนองสด",
+    "webhook_desc": "ปรับแต่งการแจ้งเตือนและดูตัวอย่างสด",
     "webhooks": "เว็บฮุคและการเชื่อมต่อขาออก",
     "webhooks_subtitle": "กำหนดค่าการแจ้งเตือนเหตุการณ์แบบเรียลไทม์สำหรับ Discord, Telegram, Slack และเว็บฮุคอัตโนมัติ",
     "default_font_note": "(ฟอนต์เริ่มต้นของ NovelHub)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "คุณได้แก้ไขเนื้อหาอีเมลแล้ว การเปลี่ยนภาษาจะโหลดเทมเพลตใหม่และเขียนทับสิ่งที่คุณแก้ไข คุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?",
     "template_lang_overwrite_confirm_btn": "เปลี่ยนภาษาและเขียนทับ",
     "markdown_supported": "รองรับรูปแบบ Markdown",
-    "preview_mode_active": "กำลังแสดงตัวอย่างแบบสด"
+    "preview_mode_active": "กำลังแสดงตัวอย่างแบบสด",
+    "bulk_download_short": "ดาวน์โหลด",
+    "bulk_edit_short": "แก้ไขข้อมูลกำกับ",
+    "live_preview": "ดูตัวอย่าง"
   },
   "download_manager": {
     "title": "ดาวน์โหลด",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "ชื่อและผู้แต่งเหมือนกันแต่ต่างกันเล็กน้อย — รวมรายการที่ซ้ำกันเป็นเล่มเดียว",
     "rename_smart_collection": "เปลี่ยนชื่อคอลเลกชันอัจฉริยะ",
     "smart_collection_update_failed": "ไม่สามารถอัปเดตคอลเลกชันอัจฉริยะได้",
-    "bulk_edit_metadata_title": "แก้ไขข้อมูลเมทาดาทาพร้อมกันหลายเล่ม",
+    "bulk_edit_metadata_title": "แก้ไขข้อมูลกำกับ",
     "bulk_edit_metadata_desc": "แก้ไขและซิงค์ข้อมูลในหนังสือหลายเล่มพร้อมกัน",
     "sync_field_to_books": "ซิงค์",
     "sync_field_title": "ซิงค์{{field}}กับหนังสือเล่มอื่น",
@@ -973,7 +976,7 @@
     "collection_options": "ตัวเลือกคอลเลกชัน",
     "book_grid": "ตารางหนังสือ",
     "tab_batch_fields": "แอตทริบิวต์แบบกลุ่ม",
-    "tab_title_cleaner": "เครื่องมือทำความสะอาดชื่อเรื่อง",
+    "tab_title_cleaner": "จัดระเบียบชื่อ",
     "batch_fields_title": "นำไปใช้กับหนังสือที่เลือกทั้งหมด",
     "batch_author_applied": "นำผู้แต่งไปใช้กับหนังสือทั้งหมดแล้ว",
     "batch_series_applied": "นำซีรีส์ไปใช้กับหนังสือทั้งหมดแล้ว",
@@ -1000,7 +1003,7 @@
     "author_only": "เฉพาะผู้แต่ง",
     "both_fields": "ทั้งสองอย่าง",
     "cleaner_selected_count": "เปิดใช้งานทำความสะอาด {{count}} เล่ม",
-    "cleaner_apply_all": "นำข้อมูลที่ทำความสะอาดไปใช้",
+    "cleaner_apply_all": "นำไปใช้",
     "original_metadata": "ชื่อเรื่องและผู้แต่งเดิม",
     "cleaned_metadata": "ตัวอย่างหลังทำความสะอาด (แก้ไขได้)",
     "cleaner_preset_applied": "อัปเดตหนังสือ {{count}} เล่มแล้ว",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "นิพจน์ทั่วไป (Regex) ไม่ถูกต้อง",
     "cleaner_applied_success": "นำชื่อเรื่องและผู้แต่งที่ทำความสะอาดไปใช้กับหนังสือ {{count}} เล่มแล้ว",
     "items_modified_notice": "พร้อมบันทึกการแก้ไข {{count}} รายการ",
-    "bulk_save_failed": "อัปเดตข้อมูลเมตาแบบกลุ่มไม่สำเร็จ"
+    "bulk_save_failed": "อัปเดตข้อมูลเมตาแบบกลุ่มไม่สำเร็จ",
+    "cleaner_footer_tip": "คลิก 'นำไปใช้' เพื่อส่งการเปลี่ยนแปลงไปยังตัวแก้ไข",
+    "use_raw_value": "ใช้ค่านี้"
   },
   "user": {
     "profile": "โปรไฟล์",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "ใช้เสียงเริ่มต้นของอุปกรณ์",
     "tts_no_voices_alert": "ไม่พบเสียงสังเคราะห์ (TTS) บนอุปกรณ์ของคุณ โปรดติดตั้ง Google Speech Services ในการตั้งค่าอุปกรณ์เพื่ออ่านออกเสียง",
     "tts_no_voices_warning": "ไม่พบเสียงใดๆ บนอุปกรณ์ของคุณ โปรดติดตั้ง 'Google Speech Services' ในการตั้งค่าอุปกรณ์เพื่อใช้งานฟีเจอร์นี้",
-    "back_to_book_detail": "กลับไปที่รายละเอียดหนังสือ"
+    "back_to_book_detail": "กลับไปที่รายละเอียดหนังสือ",
+    "words": "คำ",
+    "selection_label": "ข้อความที่เลือก"
   },
   "analytics": {
     "title": "สถิติและการวิเคราะห์การอ่าน",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
     "book_not_found": "ไม่พบหนังสือ",
-    "book_not_found_desc": "หนังสือเล่มนี้อาจถูกลบไปแล้วหรือไม่พร้อมใช้งาน"
+    "book_not_found_desc": "หนังสือเล่มนี้อาจถูกลบไปแล้วหรือไม่พร้อมใช้งาน",
+    "page_not_found": "ไม่พบหน้านี้",
+    "page_not_found_desc": "หน้าที่คุณกำลังค้นหาไม่มีอยู่หรืออาจถูกย้ายไปแล้ว",
+    "go_to_library": "ไปยังคลังหนังสือ",
+    "search_books": "ค้นหา",
+    "looking_for_other_books": "กำลังมองหาหนังสือเล่มอื่นอยู่ใช่ไหม?"
   },
   "book": {
     "bookmark_updated": "อัปเดตบุ๊กมาร์กสำเร็จแล้ว",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "กรุณาเลือกไฟล์ที่ต้องการแปลง",
     "convert_replace_warning": "หนังสือเล่มนี้มีไฟล์ {{format}} อยู่แล้ว การดำเนินการต่อจะแทนที่ไฟล์เดิม",
     "convert_confirm_replace": "ใช่ แทนที่ไฟล์เดิม",
-    "bulk_convert_title": "แปลงรูปแบบหนังสือจำนวนมาก",
+    "bulk_convert_title": "แปลงรูปแบบไฟล์",
     "bulk_convert_global_format": "กำหนดรูปแบบเป้าหมายสำหรับหนังสือที่เลือกทั้งหมด:",
-    "bulk_convert_start": "เริ่มการแปลงรูปแบบจำนวนมาก",
+    "bulk_convert_start": "เริ่ม",
     "bulk_convert_success": "เพิ่มงานแปลงรูปแบบ {{count}} งานเข้าคิวสำเร็จแล้ว",
     "bulk_convert_failed": "งานแปลงรูปแบบบางงานไม่สามารถเริ่มได้",
     "no_files_convert": "ไม่มีไฟล์ที่สามารถแปลงรูปแบบได้",
@@ -1395,7 +1407,13 @@
     "merge": "รวม",
     "unarchive": "เลิกเก็บถาวร",
     "archive": "เก็บถาวร",
-    "novel_label": "นิยาย"
+    "novel_label": "นิยาย",
+    "convert_format_short": "แปลงไฟล์",
+    "status_unread": "ยังไม่ได้อ่าน",
+    "status_reading": "กำลังอ่าน",
+    "status_read": "อ่านแล้ว",
+    "status_completed": "เสร็จสิ้น",
+    "status_abandoned": "เลิกอ่าน"
   },
   "settings": {
     "title": "การตั้งค่า",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "เพย์โหลด HTTP POST ดิบ (JSON)",
     "webhook_generic_json": "JSON ทั่วไป",
     "webhook_hmac_enabled": "เปิดใช้ HMAC signature",
-    "hardcover_client_id_placeholder": "เช่น hc_app_01j7abc123 หรือ Client ID"
+    "hardcover_client_id_placeholder": "เช่น hc_app_01j7abc123 หรือ Client ID",
+    "event_book_created": "เพิ่มหนังสือใหม่",
+    "event_book_deleted": "ลบหนังสือ",
+    "event_metadata_updated": "อัปเดตข้อมูลเมตา",
+    "event_reading_completed": "อ่านจบแล้ว",
+    "event_job_failed": "งานล้มเหลว"
   },
   "email": {
     "invalid": "กรุณากรอกที่อยู่อีเมลให้ถูกต้อง",
@@ -1873,7 +1896,8 @@
     "pause": "หยุดชั่วคราว",
     "play": "เล่น",
     "calculating_timeline": "กำลังคำนวณไทม์ไลน์...",
-    "calculating": "กำลังคำนวณ..."
+    "calculating": "กำลังคำนวณ...",
+    "merge_short": "รวมไฟล์เสียง"
   },
   "podcasts": {
     "title": "พอดแคสต์",

@@ -230,7 +230,7 @@ func (r *bookDBRepository) SearchBooks(ctx context.Context, libraryID *string, s
 		return r.GetBooksByIDs(ctx, value.([]string))
 	}
 
-	if chip != "" && chip != "All" && chip != "No cover" && chip != "Duplicates" && chip != "Reading" && chip != "Unread" && chip != "ExcludeAudiobooks" {
+	if chip != "" && chip != "All" && chip != "No cover" && chip != "Duplicates" && chip != "Reading" && chip != "Read" && chip != "Unread" && chip != "ExcludeAudiobooks" {
 		return []*models.BookEntity{}, nil
 	}
 
@@ -634,6 +634,8 @@ func buildBookSearchFilters(nav, collection, chip, facet, facetID string, userID
 		set(&filters.HasFormats)
 	case "archived":
 		set(&filters.Archived)
+	case "bookmarks":
+		set(&filters.Bookmarked)
 	default:
 		filters.Valid = false
 	}
@@ -646,6 +648,8 @@ func buildBookSearchFilters(nav, collection, chip, facet, facetID string, userID
 		set(&filters.NoCover)
 	case "Reading":
 		set(&filters.Reading)
+	case "Read":
+		set(&filters.Read)
 	case "Unread":
 		set(&filters.Unread)
 	case "ExcludeAudiobooks":

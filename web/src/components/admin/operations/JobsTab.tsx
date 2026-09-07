@@ -24,6 +24,7 @@ import {
   Trash2,
   Wrench,
   Zap,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -338,18 +339,34 @@ export function JobsTab() {
 
       {showInboxModal && (
         <div className="modal modal-open">
-          <div className="modal-box rounded-3xl border border-base-200 shadow-xl bg-base-100 max-w-lg font-sans">
-            <h3 className="font-bold text-lg">
-              {t("admin.operations.setup_inbox", "Setup Inbox Folder")}
-            </h3>
-            <p className="text-xs text-base-content/60 mt-1">
-              {t(
-                "admin.operations.setup_inbox_desc",
-                "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning.",
-              )}
-            </p>
+          <div className="modal-box rounded-2xl sm:rounded-3xl border border-base-200 shadow-xl bg-base-100 max-w-lg max-h-[80dvh] sm:max-h-[85vh] font-sans p-0 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <div>
+                <h3 className="font-bold text-lg leading-tight">
+                  {t("admin.operations.setup_inbox", "Setup Inbox Folder")}
+                </h3>
+                <p className="text-xs text-base-content/60 mt-1">
+                  {t(
+                    "admin.operations.setup_inbox_desc",
+                    "Select a library to verify or create its dedicated /inbox/<library_id> folder for background scanning.",
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInboxModal(false);
+                  setSelectedInboxLib("");
+                  setSetupInboxPath("");
+                }}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-bold text-xs">
@@ -399,28 +416,36 @@ export function JobsTab() {
                   </div>
                 </div>
               )}
-            </div>
 
-            <div className="modal-action gap-2">
-              <button
-                className="btn btn-ghost rounded-xl btn-sm"
-                onClick={() => {
-                  setShowInboxModal(false);
-                  setSelectedInboxLib("");
-                  setSetupInboxPath("");
-                }}
-              >
-                {t("common.close", "Close")}
-              </button>
-              <button
-                className={`btn btn-primary rounded-xl btn-sm ${settingUpInbox ? "loading" : ""}`}
-                disabled={!selectedInboxLib || settingUpInbox}
-                onClick={handleSetupInbox}
-              >
-                {t("admin.operations.setup", "Setup")}
-              </button>
+              <div className="modal-action border-t border-base-200 pt-4 mt-6 gap-2">
+                <button
+                  className="btn btn-ghost rounded-xl btn-sm"
+                  onClick={() => {
+                    setShowInboxModal(false);
+                    setSelectedInboxLib("");
+                    setSetupInboxPath("");
+                  }}
+                >
+                  {t("common.close", "Close")}
+                </button>
+                <button
+                  className={`btn btn-primary rounded-xl btn-sm ${settingUpInbox ? "loading" : ""}`}
+                  disabled={!selectedInboxLib || settingUpInbox}
+                  onClick={handleSetupInbox}
+                >
+                  {t("admin.operations.setup", "Setup")}
+                </button>
+              </div>
             </div>
           </div>
+          <div
+            className="modal-backdrop"
+            onClick={() => {
+              setShowInboxModal(false);
+              setSelectedInboxLib("");
+              setSetupInboxPath("");
+            }}
+          />
         </div>
       )}
     </div>

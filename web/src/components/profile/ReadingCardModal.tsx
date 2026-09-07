@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import html2canvas from "html2canvas-pro";
 import { toast } from "react-toastify";
@@ -46,6 +46,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
   const { t } = useTranslation();
   const { user } = useAuthStore(useShallow((s) => ({ user: s.user })));
   const cardRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const publicSettings = usePublicSettings();
 
   const siteLogo = publicSettings?.site?.logo || "/logo.svg";
@@ -62,6 +63,30 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
   const [showLogo, setShowLogo] = useState<boolean>(true);
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [scale, setScale] = useState(1);
+
+  const cardWidth = ratio === "story" ? 380 : ratio === "wide" ? 540 : 400;
+  const cardHeight = ratio === "story" ? 640 : ratio === "wide" ? 340 : 400;
+
+  useEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el) return;
+
+    const calculateScale = () => {
+      const containerWidth = el.clientWidth;
+      const availableWidth = containerWidth - 16;
+      if (availableWidth > 0 && availableWidth < cardWidth) {
+        setScale(Math.min(1, availableWidth / cardWidth));
+      } else {
+        setScale(1);
+      }
+    };
+
+    calculateScale();
+    const ro = new ResizeObserver(() => calculateScale());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cardWidth, isOpen]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -299,13 +324,20 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
 
   const generateCanvas = async (): Promise<HTMLCanvasElement | null> => {
     if (!cardRef.current) return null;
-    return await html2canvas(cardRef.current, {
-      scale: 3,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: null,
-      logging: false,
-    });
+    const el = cardRef.current;
+    const prevTransform = el.style.transform;
+    el.style.transform = "none";
+    try {
+      return await html2canvas(el, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        logging: false,
+      });
+    } finally {
+      el.style.transform = prevTransform;
+    }
   };
 
   const handleDownload = async () => {
@@ -371,18 +403,19 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
   const remainingMins = stats.minutes % 60;
 
   return (
-    <dialog className="modal modal-open items-center justify-items-center p-2.5 sm:p-4 z-50">
-      <div className="modal-box max-w-5xl w-11/12 sm:w-full p-3.5 sm:p-6 bg-base-100 border border-base-300 max-h-[76dvh] max-h-[76svh] sm:max-h-[85vh] my-auto pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-base-200 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-lg">
+    <div className="modal modal-open z-50">
+      <div className="modal-box max-w-5xl w-11/12 sm:w-full p-0 bg-base-100 border border-base-300 max-h-[80dvh] sm:max-h-[85vh] rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+        {/* Fixed Top Header */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-lg shrink-0">
               <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <h3 className="font-bold text-base sm:text-lg leading-tight">
+            <div className="min-w-0">
+              <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
                 {t("analytics.card_title", "Reading Wrapped")}
               </h3>
-              <p className="text-[11px] sm:text-xs text-base-content/60">
+              <p className="text-[11px] sm:text-xs text-base-content/60 truncate">
                 {t(
                   "analytics.card_subtitle",
                   "Share your reading achievements",
@@ -393,14 +426,16 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-ghost btn-xs sm:btn-sm btn-square"
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
             aria-label={t("common.close", "Close")}
           >
-            <X className="h-4 w-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 
-        <div className="mt-3 sm:mt-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-6 items-start">
+        {/* Scrollable Body */}
+        <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 min-h-0 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-6 items-start">
           {/* Controls Column */}
           <div className="lg:col-span-5 flex flex-col gap-2.5 sm:gap-4">
             {/* Period selector */}
@@ -520,10 +555,10 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
             </div>
 
             {/* Show NovelHub Logo Watermark Toggle */}
-            <div className="flex items-center justify-between p-2 sm:p-2.5 bg-base-200/50 rounded-xl border border-base-300">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 bg-base-200/50 rounded-xl border border-base-300">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
-                <span className="text-[11px] sm:text-xs font-bold text-base-content/80">
+                <span className="text-[11px] sm:text-xs font-bold text-base-content/80 truncate">
                   {t("analytics.card_show_logo", "Show NovelHub Logo")}
                 </span>
               </div>
@@ -531,7 +566,7 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                 type="checkbox"
                 checked={showLogo}
                 onChange={(e) => setShowLogo(e.target.checked)}
-                className="toggle toggle-primary toggle-xs sm:toggle-sm"
+                className="toggle toggle-primary toggle-xs sm:toggle-sm shrink-0"
               />
             </div>
 
@@ -571,25 +606,31 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
           </div>
 
           {/* Card Preview Column */}
-          <div className="lg:col-span-7 flex justify-center items-center overflow-auto p-2.5 sm:p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-0 lg:min-h-110">
+          <div
+            ref={previewContainerRef}
+            className="lg:col-span-7 flex justify-center items-center overflow-hidden p-2.5 sm:p-4 bg-base-200/60 rounded-2xl border border-base-300 min-h-0 lg:min-h-110"
+          >
             <div
-              ref={cardRef}
-              className={`p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 ${themeStyles.container}`}
               style={{
-                width:
-                  ratio === "story"
-                    ? "380px"
-                    : ratio === "wide"
-                      ? "540px"
-                      : "400px",
-                minHeight:
-                  ratio === "story"
-                    ? "640px"
-                    : ratio === "wide"
-                      ? "340px"
-                      : "400px",
+                width: `${cardWidth * scale}px`,
+                height: `${cardHeight * scale}px`,
+                position: "relative",
+                overflow: "hidden",
+                flexShrink: 0,
+                transition: "width 0.2s ease, height 0.2s ease",
               }}
             >
+              <div
+                ref={cardRef}
+                className={`p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 ${themeStyles.container}`}
+                style={{
+                  width: `${cardWidth}px`,
+                  minHeight: `${cardHeight}px`,
+                  height: `${cardHeight}px`,
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top left",
+                }}
+              >
               {/* Header */}
               <div>
                 <div className="flex items-center justify-between gap-3">
@@ -1040,12 +1081,12 @@ export const ReadingCardModal: React.FC<ReadingCardModalProps> = ({
                 )}
               </div>
             </div>
+            </div>
           </div>
         </div>
+        </div>
       </div>
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="button">{t("common.close", "Close")}</button>
-      </form>
-    </dialog>
+      <div className="modal-backdrop" onClick={onClose} />
+    </div>
   );
 };

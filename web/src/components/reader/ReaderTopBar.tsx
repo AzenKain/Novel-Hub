@@ -346,10 +346,16 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
 
             {/* Dropdown Panel with Image Preview & Bookmark/Quote Actions */}
             {imageDropdownOpen && (
-              <div
-                className="absolute right-0 mt-2 z-50 flex flex-col gap-2.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-32px)] w-80"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <>
+                {/* Mobile Backdrop to click outside and close */}
+                <div
+                  className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs sm:hidden"
+                  onClick={() => setImageDropdownOpen(false)}
+                />
+                <div
+                  className="fixed left-3 right-3 top-16 mx-auto max-w-sm sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-none z-50 flex flex-col gap-2.5 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
                 {/* Small Image Preview */}
                 <div className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-(--reader-ui-soft) border border-(--reader-ui-border)">
                   <img
@@ -483,7 +489,8 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
                   />
                 </div>
               </div>
-            )}
+            </>
+          )}
           </div>
         )}
 
@@ -674,7 +681,7 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
           </div>
 
           {moreMenuOpen && (
-            <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border p-3 shadow-2xl space-y-1.5 animate-in fade-in duration-150">
+            <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 w-64 max-w-[80vw] max-h-[80dvh] overflow-y-auto rounded-2xl border p-3 shadow-2xl space-y-1.5 animate-in fade-in duration-150">
               <h4 className="text-[11px] font-bold uppercase tracking-wider opacity-50 px-2 pt-1 pb-1">
                 {t("reader.tools", "Tools & Media")}
               </h4>

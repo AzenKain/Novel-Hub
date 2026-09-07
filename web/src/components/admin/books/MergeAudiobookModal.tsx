@@ -786,22 +786,23 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
   return (
     <dialog className="modal modal-open">
       {/* Near full-screen modal */}
-      <div className="modal-box max-w-[95vw] w-full max-h-[92vh] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <AudioLines className="w-5 h-5 text-primary" />
-            {t("audiobook.merge_into", "Merge & Timeline Editor")}
+      <div className="modal-box max-w-[95vw] w-full max-h-[92vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-lg font-semibold flex items-center gap-2 leading-tight">
+            <AudioLines className="w-5 h-5 text-primary shrink-0" />
+            <span>{t("audiobook.merge_into", "Merge & Timeline Editor")}</span>
           </h3>
           <button
-            className="btn btn-square btn-sm btn-ghost"
+            type="button"
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
             onClick={onClose}
-            aria-label={t("common.close")}
+            aria-label={t("common.close", "Close")}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-5">
           {/* ═══ Audio Timeline ═══ */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -1104,7 +1105,7 @@ export const MergeAudiobookModal: React.FC<MergeAudiobookModalProps> = ({
                 )}
               </p>
             ) : (
-              <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-box border border-base-300 p-2">
+              <div className="space-y-1.5 rounded-box border border-base-300 p-2">
                 {orderedFiles.map((f, index) => {
                   return (
                     <div

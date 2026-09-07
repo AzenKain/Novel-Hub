@@ -98,6 +98,7 @@ const OfflineBooksPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import("@/pages/user/ProfilePage").then((m) => ({ default: m.ProfilePage })),
 );
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
   const { theme, customCss } = useSettingsStore(
@@ -339,7 +340,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </SetupGuard>

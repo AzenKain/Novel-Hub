@@ -1,4 +1,4 @@
-import { DatabaseBackup, Loader2 } from "lucide-react";
+import { DatabaseBackup, Loader2, X } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,18 +31,22 @@ export const CalibreImportModal: React.FC<CalibreImportModalProps> = ({
 
   return (
     <dialog className={`modal ${open ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <button
-          onClick={onClose}
-          className="btn btn-ghost btn-circle btn-sm absolute right-2 top-2"
-        >
-          ✕
-        </button>
-        <h3 className="mb-4 border-b border-base-200 pb-4 text-lg font-bold">
-          {t("admin.calibre_import", "Import from Calibre")}
-        </h3>
+      <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-lg font-bold leading-tight">
+            {t("admin.calibre_import", "Import from Calibre")}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
+        </div>
 
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
           <div className="flex w-full flex-col gap-1.5">
             <label className="pl-1 text-sm font-medium" htmlFor="calibre-path">
               {t("admin.calibre_path", "Calibre library folder path")}

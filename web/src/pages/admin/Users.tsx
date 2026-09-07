@@ -649,16 +649,17 @@ export function Users() {
 
         {/* Bulk User Actions Toolbar */}
         {selectedUserIds.length > 0 && (
-          <div className="mb-3 px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="mb-3 px-3 py-2 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-sm">
             <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
-              <span className="font-bold text-primary whitespace-nowrap">
+              <span className="font-semibold text-primary whitespace-nowrap">
                 {t("admin.selected_users", "Selected {{count}} users", {
                   count: selectedUserIds.length,
                 })}
               </span>
               <button
+                type="button"
                 onClick={clearSelection}
-                className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1"
+                className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1 px-1.5"
               >
                 <X className="w-3 h-3" />
                 <span>{t("common.deselect_all", "Clear selection")}</span>
@@ -668,50 +669,68 @@ export function Users() {
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-1.5 w-full sm:w-auto pt-2 sm:pt-0 border-t border-primary/15 sm:border-t-0 shrink-0">
               {/* Email */}
               <button
+                type="button"
+                title={t("admin.bulk_email", "Send Email")}
                 onClick={() => setBulkModal("email")}
-                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
               >
                 <Mail className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{t("admin.bulk_email", "Send Email")}</span>
+                <span className="truncate whitespace-nowrap">{t("admin.bulk_email", "Send Email")}</span>
               </button>
 
               {/* Change Roles */}
               <button
+                type="button"
+                title={t("admin.bulk_roles", "Change Roles")}
                 onClick={() => setBulkModal("roles")}
-                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
               >
                 <Shield className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{t("admin.bulk_roles", "Change Roles")}</span>
+                <span className="truncate whitespace-nowrap">{t("admin.bulk_roles", "Change Roles")}</span>
               </button>
 
               {/* Edit Info */}
               <button
+                type="button"
+                title={t("admin.bulk_info", "Edit Info")}
                 onClick={() => setBulkModal("info")}
-                className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                className={`btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap ${
+                  !selectedUsers.some((u) => u.is_deleted) && !selectedUsers.some((u) => !u.is_deleted)
+                    ? "col-span-2 sm:col-span-1"
+                    : ""
+                }`}
               >
                 <UserCog className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{t("admin.bulk_info", "Edit Info")}</span>
+                <span className="truncate whitespace-nowrap">{t("admin.bulk_info", "Edit Info")}</span>
               </button>
 
               {/* Restore (visible if any selected user is deleted) */}
               {selectedUsers.some((u) => u.is_deleted) && (
                 <button
+                  type="button"
+                  title={t("admin.bulk_restore", "Restore")}
                   onClick={() => setBulkModal("restore")}
-                  className="btn btn-success btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                  className={`btn btn-success btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap ${
+                    !selectedUsers.some((u) => !u.is_deleted) ? "col-span-2 sm:col-span-1" : ""
+                  }`}
                 >
                   <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{t("admin.bulk_restore", "Restore")}</span>
+                  <span className="truncate whitespace-nowrap">{t("admin.bulk_restore", "Restore")}</span>
                 </button>
               )}
 
               {/* Delete (visible if any selected user is active) */}
               {selectedUsers.some((u) => !u.is_deleted) && (
                 <button
+                  type="button"
+                  title={t("admin.bulk_delete", "Delete selected")}
                   onClick={() => setBulkModal("delete")}
-                  className="btn btn-error btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                  className={`btn btn-error btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap text-error-content ${
+                    selectedUsers.some((u) => u.is_deleted) ? "col-span-2 sm:col-span-1" : ""
+                  }`}
                 >
                   <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{t("admin.bulk_delete", "Delete selected")}</span>
+                  <span className="truncate whitespace-nowrap">{t("common.delete", "Xóa")}</span>
                 </button>
               )}
             </div>
@@ -769,17 +788,27 @@ export function Users() {
       {/* Modals */}
       {modal === "create" && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
-            <h3 className="font-bold text-lg mb-4">
-              {t("admin.create_user_title", "Create New User")}
-            </h3>
-            {error && (
-              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-            <form onSubmit={handleCreate} className="space-y-4">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-lg leading-tight">
+                {t("admin.create_user_title", "Create New User")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+            <form onSubmit={handleCreate} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {error && (
+                <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
@@ -859,7 +888,7 @@ export function Users() {
                     {t("admin.assign_roles", "Assign Roles")}
                   </span>
                 </label>
-                <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200 max-h-36 sm:max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2 bg-base-200/50 p-3 rounded-xl border border-base-200">
                   {roles.map((role) => (
                     <label
                       key={role.id}
@@ -895,7 +924,7 @@ export function Users() {
                 </div>
               </div>
 
-              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={() => setModal(null)}
@@ -925,17 +954,27 @@ export function Users() {
 
       {modal === "edit" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md max-h-[80svh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
-            <h3 className="font-bold text-lg mb-4">
-              {t("admin.edit_user_title", "Edit Profile")}
-            </h3>
-            {error && (
-              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-            <form onSubmit={handleEdit} className="space-y-4">
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-lg leading-tight">
+                {t("admin.edit_user_title", "Edit Profile")}
+              </h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+            <form onSubmit={handleEdit} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {error && (
+                <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
@@ -1100,12 +1139,12 @@ export function Users() {
 
               {/* Kids Mode Toggle */}
               <div className="form-control">
-                <label className="label cursor-pointer justify-between py-2">
-                  <div>
-                    <span className="label-text font-semibold block">
+                <label className="flex items-center justify-between gap-3 cursor-pointer select-none py-1">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <span className="label-text font-semibold text-sm block text-base-content">
                       {t("admin.bulk_field_kids_mode", "Kids Mode")}
                     </span>
-                    <span className="text-xs text-base-content/60">
+                    <span className="text-xs text-base-content/60 leading-relaxed block">
                       {t(
                         "admin.kids_mode_desc",
                         "Enforce filtered child-friendly library interface.",
@@ -1114,7 +1153,7 @@ export function Users() {
                   </div>
                   <input
                     type="checkbox"
-                    className="toggle toggle-primary"
+                    className="toggle toggle-primary toggle-sm shrink-0"
                     checked={Boolean(form.is_kids_mode)}
                     onChange={(e) =>
                       setForm({ ...form, is_kids_mode: e.target.checked })
@@ -1123,7 +1162,7 @@ export function Users() {
                 </label>
               </div>
 
-              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -1153,23 +1192,39 @@ export function Users() {
 
       {modal === "password" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
-            <h3 className="font-bold text-lg mb-2">
-              {t("admin.reset_password_title", "Reset Password")}
-            </h3>
-            <p className="text-xs text-base-content/60 mb-4">
-              {t("admin.reset_password_desc", "Set a new password for user:")}{" "}
-              <span className="font-bold text-base-content">
-                {selected.email}
-              </span>
-            </p>
-            {error && (
-              <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+          <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <div>
+                <h3 className="font-bold text-lg leading-tight">
+                  {t("admin.reset_password_title", "Reset Password")}
+                </h3>
+                <p className="text-xs text-base-content/60 mt-0.5">
+                  {t("admin.reset_password_desc", "Set a new password for user:")}{" "}
+                  <span className="font-bold text-base-content">
+                    {selected.email}
+                  </span>
+                </p>
               </div>
-            )}
-            <form onSubmit={handlePassword} className="space-y-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setModal(null);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
+            </div>
+            <form onSubmit={handlePassword} className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {error && (
+                <div className="alert alert-error mb-4 py-2 text-sm rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
@@ -1207,7 +1262,7 @@ export function Users() {
                 />
               </div>
 
-              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -1249,14 +1304,21 @@ export function Users() {
 
       {modal === "roles" && selected && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-lg p-4 sm:p-6 max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto pb-6">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  {t("admin.manage_user_roles", "Manage User Roles")}
-                </h3>
-                <p className="text-xs text-base-content/70 mt-1">
+          <div className="modal-box max-w-lg w-11/12 sm:w-full p-0 h-[72dvh] sm:h-auto sm:min-h-125 max-h-[82dvh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-start justify-between gap-3 shrink-0 bg-base-100">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-lg flex items-center gap-2 leading-tight">
+                    <Shield className="w-5 h-5 text-primary shrink-0" />
+                    {t("admin.manage_user_roles", "Manage User Roles")}
+                  </h3>
+                  {selected.is_owner && (
+                    <span className="badge badge-warning text-xs font-bold shrink-0">
+                      {t("admin.role_owner", "Owner")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-base-content/70 mt-0.5 truncate">
                   {t(
                     "admin.manage_user_roles_desc",
                     "Select active security roles for:",
@@ -1266,34 +1328,38 @@ export function Users() {
                   </span>
                 </p>
               </div>
-              {selected.is_owner && (
-                <span className="badge badge-warning text-xs font-bold shrink-0">
-                  {t("admin.role_owner", "Owner")}
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </button>
             </div>
 
-            {selected.is_owner && !currentUser?.is_owner && (
-              <div className="alert alert-warning py-2 px-3 text-xs rounded-xl mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>
-                  {t(
-                    "admin.owner_role_protected",
-                    "Owner account roles cannot be modified.",
-                  )}
-                </span>
-              </div>
-            )}
+            <div className="p-4 sm:p-6 flex flex-col flex-1 min-h-0">
+              {selected.is_owner && !currentUser?.is_owner && (
+                <div className="alert alert-warning py-2 px-3 text-xs rounded-xl mb-3 flex items-center gap-2 shrink-0">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>
+                    {t(
+                      "admin.owner_role_protected",
+                      "Owner account roles cannot be modified.",
+                    )}
+                  </span>
+                </div>
+              )}
 
-            {error && (
-              <div className="alert alert-error mb-3 py-2 px-3 text-xs rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+              {error && (
+                <div className="alert alert-error mb-3 py-2 px-3 text-xs rounded-xl flex items-center gap-2 shrink-0">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <form onSubmit={handleRoles} className="space-y-4">
-              <div className="space-y-2.5 max-h-48 sm:max-h-80 overflow-y-auto pr-1">
+              <form onSubmit={handleRoles} className="flex flex-col flex-1 min-h-0">
+              <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1">
                 {roles.map((role) => {
                   const isChecked = roleIDs.includes(role.id);
                   const isOwnerTarget = Boolean(selected.is_owner);
@@ -1381,7 +1447,7 @@ export function Users() {
                 })}
               </div>
 
-              <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
+              <div className="modal-action shrink-0 pt-3 border-t border-base-200 mt-3 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setModal(null)}
@@ -1403,7 +1469,8 @@ export function Users() {
               </div>
             </form>
           </div>
-          <form method="dialog" className="modal-backdrop">
+        </div>
+        <form method="dialog" className="modal-backdrop">
             <button onClick={() => setModal(null)}>close</button>
           </form>
         </dialog>
@@ -1448,9 +1515,11 @@ export function Users() {
                   "This user account will be soft-deleted. They will immediately lose access to NovelHub.",
                 )}
               </p>
-              <div className="p-3 rounded-xl bg-error/10 border border-error/20 font-semibold text-error flex items-center gap-2">
-                <span>{userToDelete.full_name || userToDelete.email}</span>
-                <span className="text-xs opacity-60 font-normal">({userToDelete.email})</span>
+              <div className="p-3 rounded-xl bg-error/10 border border-error/20 text-error flex flex-col gap-0.5 min-w-0">
+                <span className="font-semibold wrap-break-word">{userToDelete.full_name || userToDelete.email}</span>
+                {userToDelete.full_name && userToDelete.email && (
+                  <span className="text-xs opacity-70 font-normal break-all">{userToDelete.email}</span>
+                )}
               </div>
             </div>
           }
@@ -1476,9 +1545,11 @@ export function Users() {
                   "Are you sure you want to restore access for user:",
                 )}
               </p>
-              <div className="p-3 rounded-xl bg-base-200/60 font-semibold text-base-content flex items-center gap-2">
-                <span>{userToRestore.full_name || userToRestore.email}</span>
-                <span className="text-xs opacity-60 font-normal">({userToRestore.email})</span>
+              <div className="p-3 rounded-xl bg-base-200/60 text-base-content flex flex-col gap-0.5 min-w-0">
+                <span className="font-semibold wrap-break-word">{userToRestore.full_name || userToRestore.email}</span>
+                {userToRestore.full_name && userToRestore.email && (
+                  <span className="text-xs opacity-60 font-normal break-all">{userToRestore.email}</span>
+                )}
               </div>
               <p className="text-xs opacity-70">
                 {t(
@@ -1509,9 +1580,11 @@ export function Users() {
                   "Are you sure you want to force this user to log out from all devices?",
                 )}
               </p>
-              <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 font-semibold text-warning-content flex items-center gap-2">
-                <span>{userToRevoke.full_name || userToRevoke.email}</span>
-                <span className="text-xs opacity-60 font-normal">({userToRevoke.email})</span>
+              <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 text-base-content flex flex-col gap-0.5 min-w-0">
+                <span className="font-semibold wrap-break-word">{userToRevoke.full_name || userToRevoke.email}</span>
+                {userToRevoke.full_name && userToRevoke.email && (
+                  <span className="text-xs opacity-70 font-normal break-all">{userToRevoke.email}</span>
+                )}
               </div>
             </div>
           }

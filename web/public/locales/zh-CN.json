@@ -279,7 +279,7 @@
     "cover_url_hint": "支持直接图片格式（JPG、PNG、WEBP、GIF）",
     "cover_url_title": "输入封面图片链接",
     "create_user_title": "创建新用户",
-    "create_webhook": "配置新 Webhook",
+    "create_webhook": "创建 Webhook",
     "danger_warning": "危险警告：",
     "delete_library_confirm_msg": "您确定要删除书库 {{name}} 吗？",
     "delete_library_danger_desc": "这将永久删除属于本书库的所有书籍、章节、文件和阅读数据。数据无法恢复！",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "删除用户账户？",
     "delete_user_desc": "此用户账户将被软删除。他们将立即失去对 NovelHub 的访问权限。",
     "edit_user_title": "编辑资料",
-    "edit_webhook": "编辑 Webhook 和实时构建器",
-    "embed_customizer": "标题、标签和嵌入样式",
+    "edit_webhook": "编辑 Webhook",
+    "embed_customizer": "自定义",
     "fill_required": "请填写所有必填字段",
-    "general_config": "常规设置",
+    "general_config": "常规",
     "image_url_label": "在线封面图片 URL",
     "library_delete_queued": "已收到书库删除请求。进程正在后台运行。",
     "manage_user_roles": "管理用户角色",
@@ -310,7 +310,7 @@
     "update_password": "更新密码",
     "user_management": "用户管理",
     "user_subtitle": "管理账户、角色、访问级别和安全凭据。",
-    "webhook_desc": "自定义标题、字段标签、嵌入样式，并测试实时响应预览。",
+    "webhook_desc": "自定义通知与实时预览",
     "webhooks": "Webhooks 和出站集成",
     "webhooks_subtitle": "为 Discord、Telegram、Slack 和自动化 Webhooks 配置实时事件通知。",
     "default_font_note": "(NovelHub 默认字体)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "您已修改邮件内容。更改模板语言将重新加载模板并覆盖您的自定义修改。确定要继续吗？",
     "template_lang_overwrite_confirm_btn": "更改语言并覆盖",
     "markdown_supported": "支持 Markdown 格式",
-    "preview_mode_active": "实时预览模式"
+    "preview_mode_active": "实时预览模式",
+    "bulk_download_short": "下载",
+    "bulk_edit_short": "编辑元数据",
+    "live_preview": "预览"
   },
   "download_manager": {
     "title": "下载",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "标题和作者相同但有细微差异的书籍 — 将重复项合并为一本书。",
     "rename_smart_collection": "重命名智能收藏",
     "smart_collection_update_failed": "无法更新智能收藏",
-    "bulk_edit_metadata_title": "批量编辑元数据",
+    "bulk_edit_metadata_title": "编辑元数据",
     "bulk_edit_metadata_desc": "同时编辑和同步多本书籍的元数据",
     "sync_field_to_books": "同步",
     "sync_field_title": "同步{{field}}至其他书籍",
@@ -1000,7 +1003,7 @@
     "author_only": "仅作者",
     "both_fields": "全部",
     "cleaner_selected_count": "已启用 {{count}} 本书进行清洗",
-    "cleaner_apply_all": "应用清洗结果",
+    "cleaner_apply_all": "应用",
     "original_metadata": "原始书名与作者",
     "cleaned_metadata": "清洗预览 (可编辑)",
     "cleaner_preset_applied": "已更新 {{count}} 本书",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "正则表达式不合法",
     "cleaner_applied_success": "已将清洗后的书名与作者应用到 {{count}} 本书",
     "items_modified_notice": "{{count}} 本书修改待保存",
-    "bulk_save_failed": "批量更新元数据失败"
+    "bulk_save_failed": "批量更新元数据失败",
+    "cleaner_footer_tip": "点击“应用”将更改同步至编辑器",
+    "use_raw_value": "使用此值"
   },
   "user": {
     "profile": "资料",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "使用系统默认语音",
     "tts_no_voices_alert": "设备上未找到语音朗读引擎。请在设备设置中安装 Google 语音服务以启用朗读。",
     "tts_no_voices_warning": "设备上未找到可用语音。如需使用此功能，请在设备设置中安装“Google 语音服务”。",
-    "back_to_book_detail": "返回书籍详情"
+    "back_to_book_detail": "返回书籍详情",
+    "words": "字",
+    "selection_label": "选中内容"
   },
   "analytics": {
     "title": "阅读分析与统计",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "发生未知错误",
     "book_not_found": "未找到书籍",
-    "book_not_found_desc": "此书可能已被删除或不可用。"
+    "book_not_found_desc": "此书可能已被删除或不可用。",
+    "page_not_found": "页面未找到",
+    "page_not_found_desc": "您访问的页面不存在或已被移除。",
+    "go_to_library": "返回书库",
+    "search_books": "搜索",
+    "looking_for_other_books": "寻找其他图书？"
   },
   "book": {
     "bookmark_updated": "书签已成功更新",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "请选择要转换的文件",
     "convert_replace_warning": "该图书已有关联的 {{format}} 文件。继续操作将替换现有文件。",
     "convert_confirm_replace": "是的，替换现有文件",
-    "bulk_convert_title": "批量转换图书",
+    "bulk_convert_title": "批量格式转换",
     "bulk_convert_global_format": "设置所有已选图书的目标格式：",
-    "bulk_convert_start": "开始批量转换",
+    "bulk_convert_start": "开始",
     "bulk_convert_success": "成功将 {{count}} 个转换任务加入队列",
     "bulk_convert_failed": "部分转换任务启动失败",
     "no_files_convert": "没有可转换的文件",
@@ -1395,7 +1407,13 @@
     "merge": "合并",
     "unarchive": "取消归档",
     "archive": "归档",
-    "novel_label": "小说"
+    "novel_label": "小说",
+    "convert_format_short": "格式转换",
+    "status_unread": "未读",
+    "status_reading": "正在阅读",
+    "status_read": "已读",
+    "status_completed": "已完成",
+    "status_abandoned": "已弃读"
   },
   "settings": {
     "title": "设置",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "原始 HTTP POST 负载 (JSON)",
     "webhook_generic_json": "通用 JSON",
     "webhook_hmac_enabled": "已启用 HMAC 签名",
-    "hardcover_client_id_placeholder": "例如: hc_app_01j7abc123 或客户端 ID"
+    "hardcover_client_id_placeholder": "例如: hc_app_01j7abc123 或客户端 ID",
+    "event_book_created": "添加书籍",
+    "event_book_deleted": "删除书籍",
+    "event_metadata_updated": "元数据已更新",
+    "event_reading_completed": "阅读完成",
+    "event_job_failed": "任务失败"
   },
   "email": {
     "invalid": "请输入有效的邮箱地址",
@@ -1873,7 +1896,8 @@
     "pause": "暂停",
     "play": "播放",
     "calculating_timeline": "正在计算时间线...",
-    "calculating": "正在计算..."
+    "calculating": "正在计算...",
+    "merge_short": "合并有声书"
   },
   "podcasts": {
     "title": "播客",

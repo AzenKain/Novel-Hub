@@ -461,9 +461,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 <Layers className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <h3 className="text-sm sm:text-xl font-black text-base-content leading-tight">
-                    {t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h3 className="text-sm sm:text-xl font-black text-base-content leading-tight truncate">
+                    {t("library.bulk_edit_metadata_title", "Edit Metadata")}
                   </h3>
                   <span className="badge badge-primary badge-xs sm:badge-sm font-bold shrink-0">
                     {items.length} {t("library.selected", "books")}
@@ -502,7 +502,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-base-content stroke-[2.5]" />
               </button>
             </div>
           </header>
@@ -520,7 +520,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="truncate">{t("library.bulk_edit_metadata_title", "Bulk Edit Metadata")}</span>
+                <span className="truncate whitespace-nowrap">{t("library.bulk_edit_metadata_title", "Edit Metadata")}</span>
               </button>
               <button
                 type="button"
@@ -532,7 +532,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 }`}
               >
                 <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="truncate">{t("library.tab_title_cleaner", "Title & Author Cleaner")}</span>
+                <span className="truncate whitespace-nowrap">{t("library.tab_title_cleaner", "Title Cleaner")}</span>
               </button>
             </div>
           </div>
@@ -633,11 +633,11 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       <div className="flex flex-col gap-1.5 flex-1 md:w-full min-w-0 justify-center">
                         <div className="grid grid-cols-2 gap-1.5 w-full">
                           <label
-                            className="btn btn-xs btn-outline btn-primary gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold cursor-pointer rounded-lg justify-center whitespace-nowrap"
+                            className="btn btn-xs btn-outline btn-primary gap-1 h-auto min-h-7 py-1 px-1.5 text-[11px] font-semibold cursor-pointer rounded-lg justify-center text-center"
                             title={t("library.upload_image_title")}
                           >
                             <Upload className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{t("library.upload_image")}</span>
+                            <span className="whitespace-normal text-wrap leading-tight text-center">{t("library.upload_image")}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -665,7 +665,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                                   : "",
                               });
                             }}
-                            className="btn btn-xs btn-ghost border border-base-300 gap-1 h-7 min-h-0 px-1 text-[11px] font-semibold rounded-lg hover:bg-base-200 justify-center whitespace-nowrap"
+                            className="btn btn-xs btn-ghost border border-base-300 gap-1 h-auto min-h-7 py-1 px-1.5 text-[11px] font-semibold rounded-lg hover:bg-base-200 justify-center text-center"
                             title={t("admin.paste_image_url")}
                           >
                             <LinkIcon className="w-3 h-3 shrink-0" />
@@ -676,11 +676,11 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenSyncModal(index, "cover")}
-                          className="btn btn-xs btn-outline btn-secondary gap-1 h-7 min-h-0 text-[11px] font-semibold rounded-lg w-full justify-center whitespace-nowrap"
+                          className="btn btn-xs btn-outline btn-secondary gap-1 h-auto min-h-7 py-1 px-1.5 text-[11px] font-semibold rounded-lg w-full justify-center text-center"
                           title={t("library.apply_cover_to_others")}
                         >
                           <Copy className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{t("library.sync_cover", "Sync cover")}</span>
+                          <span className="whitespace-normal text-wrap leading-tight text-center">{t("library.sync_cover", "Sync cover")}</span>
                         </button>
                       </div>
                     </div>
@@ -1007,7 +1007,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
 
           {/* Footer Actions */}
           <footer className="px-3 sm:px-6 py-2.5 sm:py-4 border-t border-base-200 bg-base-200/40 flex items-center justify-between gap-2 shrink-0">
-            <div className="text-[11px] sm:text-sm text-base-content/70 min-w-0 truncate">
+            <div className="text-[11px] sm:text-sm text-base-content/70 min-w-0 flex-1 leading-snug">
               {saveProgress ? (
                 <span className="flex items-center gap-1.5 sm:gap-2 font-bold text-primary truncate">
                   <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin shrink-0" />
@@ -1021,6 +1021,13 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                       },
                     )}
                   </span>
+                </span>
+              ) : activeTab === "cleaner" ? (
+                <span className="text-[11px] sm:text-xs text-base-content/70 leading-snug block">
+                  {t(
+                    "library.cleaner_footer_tip",
+                    "Click 'Apply' to transfer changes to editor",
+                  )}
                 </span>
               ) : (
                 <span className="truncate block">
@@ -1044,26 +1051,28 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="btn btn-ghost btn-xs sm:btn-md rounded-lg sm:rounded-xl font-semibold px-2.5 sm:px-4 h-8 sm:h-11 min-h-0 whitespace-nowrap"
+                className="btn btn-ghost btn-sm sm:btn-md rounded-lg sm:rounded-xl font-semibold px-3 sm:px-4 h-9 sm:h-11 min-h-0 whitespace-nowrap"
               >
                 {t("common.cancel", "Cancel")}
               </button>
 
-              <button
-                type="button"
-                onClick={handleSaveAll}
-                disabled={
-                  isSaving || items.filter((it) => it.modified).length === 0
-                }
-                className="btn btn-primary btn-xs sm:btn-md gap-1 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-2.5 sm:px-6 h-8 sm:h-11 min-h-0 text-xs sm:text-sm shadow-md sm:shadow-lg shadow-primary/20 whitespace-nowrap shrink-0"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin shrink-0" />
-                ) : (
-                  <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                )}
-                <span>{t("common.save_all", "Save All Changes")}</span>
-              </button>
+              {activeTab === "editor" && (
+                <button
+                  type="button"
+                  onClick={handleSaveAll}
+                  disabled={
+                    isSaving || items.filter((it) => it.modified).length === 0
+                  }
+                  className="btn btn-primary btn-sm sm:btn-md gap-1.5 sm:gap-2 font-bold rounded-lg sm:rounded-xl px-3 sm:px-6 h-9 sm:h-11 min-h-0 text-xs sm:text-sm shadow-md sm:shadow-lg shadow-primary/20 whitespace-nowrap shrink-0"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin shrink-0" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  )}
+                  <span>{t("common.save_all", "Save All Changes")}</span>
+                </button>
+              )}
             </div>
           </footer>
         </div>
@@ -1072,7 +1081,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
       {/* ======================= SYNC FIELD POPUP MODAL ======================= */}
       {syncState.isOpen && (
         <dialog className="modal modal-open z-60 bg-black/50">
-          <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl 2xl:max-w-3xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl sm:rounded-3xl border border-base-300">
+          <div className="modal-box w-[96vw] sm:w-11/12 max-w-2xl 2xl:max-w-3xl bg-base-100 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[80dvh] sm:max-h-[85vh] rounded-2xl sm:rounded-3xl border border-base-300">
             {/* Sync Header */}
             <header className="px-4 sm:px-6 py-3 sm:py-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -1105,7 +1114,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-base-content stroke-[2.5]" />
               </button>
             </header>
 
@@ -1401,8 +1410,9 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
       {/* ======================= COVER URL INPUT MODAL ======================= */}
       {coverUrlModal.isOpen && coverUrlModal.bookIndex !== null && (
         <dialog className="modal modal-open z-70 bg-black/50">
-          <div className="modal-box w-[94vw] sm:max-w-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl bg-base-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-base-200">
+          <div className="modal-box w-[94vw] sm:max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl bg-base-100 animate-in fade-in zoom-in-95 duration-150">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-2 shrink-0 bg-base-100">
               <div className="flex items-center gap-2.5 font-bold text-base text-base-content min-w-0">
                 <div className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                   <LinkIcon className="w-4 h-4" />
@@ -1422,10 +1432,10 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 onClick={() =>
                   setCoverUrlModal({ isOpen: false, bookIndex: null, url: "" })
                 }
-                className="btn btn-xs sm:btn-sm btn-circle bg-base-200 hover:bg-base-300 text-base-content border border-base-300 shadow-sm flex items-center justify-center transition-all hover:scale-105 shrink-0"
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
                 aria-label={t("common.close", "Close")}
               >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content stroke-[2.5]" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-base-content stroke-[2.5]" />
               </button>
             </div>
 
@@ -1446,7 +1456,7 @@ export const BulkEditMetadataModal: React.FC<BulkEditMetadataModalProps> = ({
                 }
                 setCoverUrlModal({ isOpen: false, bookIndex: null, url: "" });
               }}
-              className="space-y-4"
+              className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4"
             >
               <div>
                 <label className="text-xs font-bold text-base-content/80 mb-1.5 block">

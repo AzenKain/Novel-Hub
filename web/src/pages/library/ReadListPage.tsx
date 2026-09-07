@@ -14,7 +14,7 @@ import {
 import { useAuthStore, useDownloadManagerStore } from "@/stores";
 import type { ImportCBLResult, ReadList } from "@/types";
 import { hasPermission } from "@/utils/permission";
-import { ArrowLeft, ListOrdered, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, ListOrdered, Plus, Trash2, Upload, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -303,40 +303,61 @@ export const ReadListPage: React.FC = () => {
       </div>
 
       <dialog className={`modal ${isCreateOpen ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <h3 className="text-lg font-bold">
-            {t("library.readlist_new", "New read list")}
-          </h3>
-          <input
-            type="text"
-            className="input input-bordered mt-4 w-full"
-            placeholder={t(
-              "library.readlist_name_placeholder",
-              "e.g. Civil War reading order",
-            )}
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-          />
-          <div className="modal-action">
+        <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+          {/* Fixed Header */}
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+            <h3 className="text-lg font-bold truncate">
+              {t("library.readlist_new", "New read list")}
+            </h3>
             <button
-              className="btn btn-ghost"
+              type="button"
               onClick={() => setIsCreateOpen(false)}
+              className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+              aria-label={t("common.close", "Close")}
             >
-              {t("common.cancel", "Cancel")}
-            </button>
-            <button
-              className="btn btn-primary"
-              disabled={!newName.trim() || createMutation.isPending}
-              onClick={handleCreate}
-            >
-              {createMutation.isPending && (
-                <span className="loading loading-spinner loading-xs"></span>
-              )}
-              {t("common.create", "Create")}
+              <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
             </button>
           </div>
+
+          {/* Scrollable Body */}
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              placeholder={t(
+                "library.readlist_name_placeholder",
+                "e.g. Civil War reading order",
+              )}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              autoFocus
+            />
+            <div className="modal-action border-t border-base-200 pt-4 mt-6">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!newName.trim() || createMutation.isPending}
+                onClick={handleCreate}
+              >
+                {createMutation.isPending && (
+                  <span className="loading loading-spinner loading-xs"></span>
+                )}
+                {t("common.create", "Create")}
+              </button>
+            </div>
+          </div>
         </div>
+        <form method="dialog" className="modal-backdrop" onClick={() => setIsCreateOpen(false)}>
+          <button type="button">{t("common.close", "Close")}</button>
+        </form>
       </dialog>
 
       <DeleteConfirmModal

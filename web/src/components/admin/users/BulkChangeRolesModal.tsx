@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, Loader2, ShieldCheck, ShieldX, ShieldAlert } from "lucide-react";
+import { Shield, Loader2, ShieldCheck, ShieldX, ShieldAlert, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useBulkChangeUserRolesMutation } from "@/hooks/useAdminQueries";
 import type { Role, User } from "@/types";
@@ -109,13 +109,23 @@ export const BulkChangeRolesModal: React.FC<BulkChangeRolesModalProps> = ({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative border border-primary/30 shadow-2xl max-w-lg max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 pb-6">
-        <h3 className="font-bold text-lg text-primary flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          {t("admin.bulk_change_roles_title", "Bulk Change Roles")}
-        </h3>
+      <div className="modal-box border border-primary/30 shadow-2xl max-w-lg max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="font-bold text-lg text-primary flex items-center gap-2 leading-tight">
+            <Shield className="h-5 w-5 shrink-0" />
+            <span>{t("admin.bulk_change_roles_title", "Bulk Change Roles")}</span>
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
+        </div>
 
-        <div className="py-4 space-y-4 text-sm">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4 text-sm">
           {/* Action mode selector */}
           <div className="form-control">
             <label className="label">
@@ -181,7 +191,7 @@ export const BulkChangeRolesModal: React.FC<BulkChangeRolesModalProps> = ({
                 {t("admin.roles", "Roles")} ({selectedRoleIds.length} {t("admin.selected", "selected")})
               </span>
             </label>
-            <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            <div className="space-y-1.5">
               {roles.map((role) => {
                 const isAdminRole = role.is_admin || role.name === "ADMIN";
                 const isBannedRole = role.is_banned || role.name === "BANNED";
@@ -256,34 +266,34 @@ export const BulkChangeRolesModal: React.FC<BulkChangeRolesModalProps> = ({
               <span>{t("admin.bulk_none_eligible_roles", "None of the selected accounts can be modified.")}</span>
             </div>
           )}
-        </div>
 
-        <div className="modal-action sticky bottom-0 bg-base-100/95 backdrop-blur-xs py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-base-200 mt-4 z-10">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onClose}
-            disabled={changeRolesMutation.isPending}
-          >
-            {t("common.cancel", "Cancel")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm gap-2"
-            onClick={handleSave}
-            disabled={
-              changeRolesMutation.isPending ||
-              selectedRoleIds.length === 0 ||
-              eligibleUsers.length === 0
-            }
-          >
-            {changeRolesMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Shield className="h-4 w-4" />
-            )}
-            {t("admin.apply_count", "Apply ({{count}})", { count: eligibleUsers.length })}
-          </button>
+          <div className="modal-action border-t border-base-200 pt-4 mt-6">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={onClose}
+              disabled={changeRolesMutation.isPending}
+            >
+              {t("common.cancel", "Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm gap-2"
+              onClick={handleSave}
+              disabled={
+                changeRolesMutation.isPending ||
+                selectedRoleIds.length === 0 ||
+                eligibleUsers.length === 0
+              }
+            >
+              {changeRolesMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Shield className="h-4 w-4" />
+              )}
+              {t("admin.apply_count", "Apply ({{count}})", { count: eligibleUsers.length })}
+            </button>
+          </div>
         </div>
       </div>
       <div className="modal-backdrop" onClick={onClose} />

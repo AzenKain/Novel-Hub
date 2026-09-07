@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Pencil, Target } from "lucide-react";
+import { Loader2, Pencil, Target, X } from "lucide-react";
 import {
   useReadingGoalQuery,
   useUpsertReadingGoalMutation,
@@ -65,61 +65,76 @@ export const ReadingGoalCard: React.FC<{ todayWords: number }> = ({
 
       {editing && (
         <dialog className="modal modal-open">
-          <div className="modal-box max-w-sm">
-            <h3 className="font-bold text-lg mb-4">
-              {t("analytics.goal_edit", "Edit reading goal")}
-            </h3>
-            <label className="flex flex-col gap-1.5 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider opacity-60">
-                {t("analytics.goal_words_per_day", "Words per day")}
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={1000000}
-                className="input input-bordered w-full"
-                value={wordsPerDay}
-                onChange={(event) =>
-                  setWordsPerDay(event.currentTarget.valueAsNumber || 0)
-                }
-              />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider opacity-60">
-                {t("analytics.goal_books_per_year", "Books per year")}
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={10000}
-                className="input input-bordered w-full"
-                value={booksPerYear}
-                onChange={(event) =>
-                  setBooksPerYear(event.currentTarget.valueAsNumber || 0)
-                }
-              />
-            </label>
-            <div className="modal-action">
+          <div className="modal-box max-w-sm max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+                {t("analytics.goal_edit", "Edit reading goal")}
+              </h3>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
                 onClick={() => setEditing(false)}
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+                aria-label={t("common.close", "Close")}
               >
-                {t("common.cancel", "Cancel")}
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm gap-1"
-                disabled={
-                  mutation.isPending || wordsPerDay < 1 || booksPerYear < 1
-                }
-                onClick={save}
-              >
-                {mutation.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                {t("common.save", "Save")}
-              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-60">
+                  {t("analytics.goal_words_per_day", "Words per day")}
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={1000000}
+                  className="input input-bordered w-full"
+                  value={wordsPerDay}
+                  onChange={(event) =>
+                    setWordsPerDay(event.currentTarget.valueAsNumber || 0)
+                  }
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-60">
+                  {t("analytics.goal_books_per_year", "Books per year")}
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  className="input input-bordered w-full"
+                  value={booksPerYear}
+                  onChange={(event) =>
+                    setBooksPerYear(event.currentTarget.valueAsNumber || 0)
+                  }
+                />
+              </label>
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditing(false)}
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-1"
+                  disabled={
+                    mutation.isPending || wordsPerDay < 1 || booksPerYear < 1
+                  }
+                  onClick={save}
+                >
+                  {mutation.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {t("common.save", "Save")}
+                </button>
+              </div>
             </div>
           </div>
           <form

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -87,55 +88,60 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/50 cursor-default"
         aria-label={t("common.close", "Close")}
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between pb-4 border-b border-base-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-              <Stethoscope className="h-6 w-6" />
+      <div className="relative z-10 w-full max-w-2xl max-h-[80dvh] sm:max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border border-base-300 bg-base-100 p-0 shadow-2xl overflow-hidden">
+        {/* Fixed Header */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+              <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                {t("doctor.modal_title", "Book Doctor")}
-                <span className="badge badge-sm badge-outline">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+                  {t("doctor.modal_title", "Book Doctor")}
+                </h3>
+                <span className="badge badge-xs sm:badge-sm badge-outline whitespace-nowrap shrink-0">
                   EPUB Repair
                 </span>
-              </h3>
-              <p className="text-xs text-base-content/60 truncate max-w-md">
+              </div>
+              <p className="text-xs text-base-content/60 truncate mt-0.5 max-w-full">
                 {bookTitle || bookId}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={() => refetch()}
-              className="btn btn-ghost btn-circle btn-sm"
+              className="btn btn-ghost btn-circle btn-sm text-base-content/70 hover:text-base-content"
               disabled={isLoading || isRefetching}
               title={t("common.refresh", "Refresh")}
+              aria-label={t("common.refresh", "Refresh")}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isLoading || isRefetching ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isLoading || isRefetching ? "animate-spin" : ""}`}
               />
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-ghost btn-circle btn-sm"
+              className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+              aria-label={t("common.close", "Close")}
             >
-              ✕
+              <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
             </button>
           </div>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-3">
               <span className="loading loading-spinner loading-lg text-primary" />
@@ -229,7 +235,7 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
                       },
                     )}
                   </h4>
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {report.issues.map((issue, idx) => (
                       <div
                         key={idx}
@@ -378,30 +384,30 @@ export const BookDoctorModal: React.FC<BookDoctorModalProps> = ({
               )}
             </>
           ) : null}
-        </div>
 
-        {/* Footer Actions */}
-        <div className="modal-action border-t border-base-200 pt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-ghost btn-sm"
-          >
-            {t("common.close", "Close")}
-          </button>
-          <button
-            type="button"
-            onClick={handleRepair}
-            className="btn btn-primary btn-sm gap-2"
-            disabled={repairMutation.isPending || isLoading}
-          >
-            {repairMutation.isPending ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : (
-              <Wrench className="h-4 w-4" />
-            )}
-            {t("doctor.start_repair_btn", "Auto-Repair EPUB")}
-          </button>
+          {/* Footer Actions inside scroll body */}
+          <div className="modal-action border-t border-base-200 pt-4 mt-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-ghost btn-sm"
+            >
+              {t("common.close", "Close")}
+            </button>
+            <button
+              type="button"
+              onClick={handleRepair}
+              className="btn btn-primary btn-sm gap-2"
+              disabled={repairMutation.isPending || isLoading}
+            >
+              {repairMutation.isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <Wrench className="h-4 w-4" />
+              )}
+              {t("doctor.start_repair_btn", "Auto-Repair EPUB")}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

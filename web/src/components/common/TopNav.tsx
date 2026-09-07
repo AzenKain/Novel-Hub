@@ -31,11 +31,13 @@ import type { Book } from "@/types";
 interface TopNavProps {
   showSidebarToggle?: boolean;
   hideAuthButtons?: boolean;
+  alwaysShowLogo?: boolean;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
   showSidebarToggle = false,
   hideAuthButtons = false,
+  alwaysShowLogo = false,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -170,7 +172,9 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
           <Link
             to="/"
-            className="flex items-center gap-2.5 lg:hidden hover:opacity-85 transition-opacity mr-1"
+            className={`flex items-center gap-2.5 hover:opacity-85 transition-opacity mr-1 ${
+              !alwaysShowLogo && location.pathname === "/" ? "lg:hidden" : ""
+            }`}
             title={siteTitle}
           >
             {siteLogo ? (

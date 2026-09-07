@@ -54,4 +54,46 @@ describe("getToolbarPosition", () => {
       placement: "below",
     });
   });
+
+  it("follows lastRect below when tall selection ends mid-screen", () => {
+    const lastRect = {
+      left: 100,
+      right: 300,
+      width: 200,
+      top: 500,
+      bottom: 520,
+      height: 20,
+    } as DOMRect;
+    const pos = getToolbarPosition(
+      { left: 100, width: 800, top: 70, bottom: 520, height: 450, lastRect },
+      1024,
+      800,
+    );
+    expect(pos).toEqual({
+      top: 528,
+      left: 10,
+      placement: "below",
+    });
+  });
+
+  it("follows lastRect above when tall selection ends near bottom of viewport", () => {
+    const lastRect = {
+      left: 200,
+      right: 400,
+      width: 200,
+      top: 720,
+      bottom: 740,
+      height: 20,
+    } as DOMRect;
+    const pos = getToolbarPosition(
+      { left: 100, width: 800, top: 70, bottom: 740, height: 670, lastRect },
+      1024,
+      800,
+    );
+    expect(pos).toEqual({
+      top: 537,
+      left: 110,
+      placement: "above",
+    });
+  });
 });

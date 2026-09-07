@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 
 import type { Library } from "@/types";
 import { copyText } from "@/utils/clipboard";
@@ -57,18 +57,23 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
 
   return (
     <dialog className={`modal ${open ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <button
-          onClick={onClose}
-          className="btn btn-ghost btn-circle btn-sm absolute right-2 top-2"
-        >
-          ✕
-        </button>
-        <h3 className="mb-4 border-b border-base-200 pb-4 text-lg font-bold">
-          {t("admin.manage_libraries", "Manage Libraries")}
-        </h3>
+      <div className="modal-box max-w-lg max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="text-lg font-bold leading-tight">
+            {t("admin.manage_libraries", "Manage Libraries")}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
+        </div>
 
-        <form onSubmit={onCreate} className="mb-6 flex gap-2">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
+          <form onSubmit={onCreate} className="mb-6 flex gap-2">
           <input
             type="text"
             placeholder={t(
@@ -88,7 +93,7 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
           </button>
         </form>
 
-        <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+        <div className="flex flex-col gap-2">
           {libraries.length === 0 ? (
             <p className="py-4 text-center text-base-content/50">
               {t("admin.no_libraries", "No libraries found.")}
@@ -116,7 +121,7 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
                     <span className="font-medium truncate">{library.name}</span>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-base-content/50">
                       <span
-                        className="font-mono text-[10px] select-all truncate max-w-[150px] sm:max-w-[200px]"
+                        className="font-mono text-[10px] select-all truncate max-w-37.5 sm:max-w-50"
                         title={library.id}
                       >
                         {library.id}
@@ -159,6 +164,7 @@ export const ManageLibrariesModal: React.FC<ManageLibrariesModalProps> = ({
               </div>
             ))
           )}
+        </div>
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

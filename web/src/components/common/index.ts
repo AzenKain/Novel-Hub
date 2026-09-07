@@ -13,3 +13,4 @@ export * from "./ConfirmModal";
 export * from "./DiscordMarkdown";
 export * from "./QuoteCardModal";
 export * from "./DownloadManagerPanel";
+export * from "./NotFoundView";

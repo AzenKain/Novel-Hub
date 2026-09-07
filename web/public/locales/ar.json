@@ -279,7 +279,7 @@
     "cover_url_hint": "يدعم تنسيقات الصور المباشرة (JPG، PNG، WEBP، GIF)",
     "cover_url_title": "أدخل رابط صورة الغلاف",
     "create_user_title": "إنشاء مستخدم جديد",
-    "create_webhook": "تكوين Webhook جديد",
+    "create_webhook": "خطاف ويب جديد",
     "danger_warning": "تحذير خطر:",
     "delete_library_confirm_msg": "هل أنت متأكد أنك تريد حذف المكتبة {{name}}؟",
     "delete_library_danger_desc": "سيؤدي هذا إلى حذف جميع الكتب والفصول والملفات وبيانات القراءة الخاصة بهذه المكتبة نهائيًا. لا يمكن استعادة هذه البيانات!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "حذف حساب المستخدم؟",
     "delete_user_desc": "سيتم حذف هذا الحساب حذفًا مؤقتًا. سيفقد الوصول إلى NovelHub فورًا.",
     "edit_user_title": "تعديل الملف الشخصي",
-    "edit_webhook": "تعديل Webhook والمنشئ المباشر",
-    "embed_customizer": "العناوين والتسميات وأنماط التضمين",
+    "edit_webhook": "تعديل خطاف الويب",
+    "embed_customizer": "تخصيص",
     "fill_required": "يرجى ملء جميع الحقول المطلوبة",
-    "general_config": "الإعدادات العامة",
+    "general_config": "عام",
     "image_url_label": "رابط صورة الغلاف عبر الإنترنت",
     "library_delete_queued": "تم استلام طلب حذف المكتبة. العملية قيد التشغيل في الخلفية.",
     "manage_user_roles": "إدارة أدوار المستخدم",
@@ -310,7 +310,7 @@
     "update_password": "تحديث كلمة المرور",
     "user_management": "إدارة المستخدمين",
     "user_subtitle": "إدارة الحسابات والأدوار ومستويات الوصول وبيانات الاعتماد الأمنية.",
-    "webhook_desc": "خصص العناوين وتسميات الحقول وأنماط التضمين واختبر معاينة الاستجابة المباشرة",
+    "webhook_desc": "تخصيص الإشعارات والمعاينة المباشرة",
     "webhooks": "ويب هوك والتكاملات الصادرة",
     "webhooks_subtitle": "قم بتكوين إشعارات الأحداث الفورية لـ Discord وTelegram وSlack وويب هوك الأتمتة.",
     "default_font_note": "(خط NovelHub الافتراضي)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "لقد قمت بتعديل محتوى البريد الإلكتروني. سيؤدي تغيير لغة القالب إلى إعادة تحميله واستبدال تعديلاتك. هل أنت متأكد من المتابعة؟",
     "template_lang_overwrite_confirm_btn": "تغيير اللغة والاستبدال",
     "markdown_supported": "يدعم تنسيق Markdown",
-    "preview_mode_active": "المعاينة المباشرة نشطة"
+    "preview_mode_active": "المعاينة المباشرة نشطة",
+    "bulk_download_short": "تحميل",
+    "bulk_edit_short": "تعديل البيانات",
+    "live_preview": "معاينة"
   },
   "download_manager": {
     "title": "التنزيلات",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "نفس العنوان والمؤلف مع اختلافات طفيفة — ادمج النسخ المكررة في كتاب واحد.",
     "rename_smart_collection": "إعادة تسمية المجموعة الذكية",
     "smart_collection_update_failed": "تعذّر تحديث المجموعة الذكية",
-    "bulk_edit_metadata_title": "تعديل البيانات الوصفية مجمعة",
+    "bulk_edit_metadata_title": "تعديل البيانات",
     "bulk_edit_metadata_desc": "تعديل ومزامنة الحقول عبر كتب متعددة في وقت واحد",
     "sync_field_to_books": "مزامنة",
     "sync_field_title": "مزامنة {{field}} مع الكتب الأخرى",
@@ -1000,7 +1003,7 @@
     "author_only": "المؤلف فقط",
     "both_fields": "كلاهما",
     "cleaner_selected_count": "تم تفعيل {{count}} كتاب للتنظيف",
-    "cleaner_apply_all": "تطبيق البيانات المنظفة",
+    "cleaner_apply_all": "تطبيق",
     "original_metadata": "العنوان والمؤلف الأصليان",
     "cleaned_metadata": "معاينة نظيفة (قابلة للتعديل)",
     "cleaner_preset_applied": "تم تحديث {{count}} كتاب",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "تعبير نمطي غير صالح",
     "cleaner_applied_success": "تم تطبيق العناوين والمؤلفين المنظفة على {{count}} كتاب",
     "items_modified_notice": "{{count}} عناصر جاهزة للحفظ",
-    "bulk_save_failed": "فشل في تحديث البيانات الوصفية"
+    "bulk_save_failed": "فشل في تحديث البيانات الوصفية",
+    "cleaner_footer_tip": "انقر على 'تطبيق' لنقل التغييرات إلى المحرر",
+    "use_raw_value": "استخدام القيمة"
   },
   "user": {
     "profile": "الملف الشخصي",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "استخدام الصوت الافتراضي للجهاز",
     "tts_no_voices_alert": "لم يتم العثور على أصوات تحويل النص إلى كلام على جهازك. يُرجى تثبيت خدمات Google الصوتية من إعدادات الجهاز.",
     "tts_no_voices_warning": "لم يتم العثور على أصوات على جهازك. يُرجى تثبيت 'خدمات Google الصوتية' في إعدادات الجهاز لاستخدام هذه الميزة.",
-    "back_to_book_detail": "العودة إلى تفاصيل الكتاب"
+    "back_to_book_detail": "العودة إلى تفاصيل الكتاب",
+    "words": "كلمات",
+    "selection_label": "المقطع المحدد"
   },
   "analytics": {
     "title": "تحليلات القراءة وإحصاءاتها",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "حدث خطأ غير معروف",
     "book_not_found": "لم يُعثر على الكتاب",
-    "book_not_found_desc": "ربما حُذف هذا الكتاب أو أنه غير متاح."
+    "book_not_found_desc": "ربما حُذف هذا الكتاب أو أنه غير متاح.",
+    "page_not_found": "الصفحة غير موجودة",
+    "page_not_found_desc": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "go_to_library": "الذهاب إلى المكتبة",
+    "search_books": "بحث",
+    "looking_for_other_books": "هل تبحث عن كتب أخرى؟"
   },
   "book": {
     "bookmark_updated": "تم تحديث الإشارة المرجعية بنجاح",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "يرجى تحديد ملف لتحويله",
     "convert_replace_warning": "يحتوي هذا الكتاب بالفعل على ملف {{format}}. المتابعة ستستبدل الملف الحالي.",
     "convert_confirm_replace": "نعم، استبدل الملف الحالي",
-    "bulk_convert_title": "تحويل الكتب بالجملة",
+    "bulk_convert_title": "تحويل التنسيقات",
     "bulk_convert_global_format": "تعيين التنسيق المستهدف لجميع الكتب المحددة:",
-    "bulk_convert_start": "بدء التحويل بالجملة",
+    "bulk_convert_start": "بدء",
     "bulk_convert_success": "تمت إضافة {{count}} من مهام التحويل إلى قائمة الانتظار بنجاح",
     "bulk_convert_failed": "فشل بدء بعض مهام التحويل",
     "no_files_convert": "لا توجد ملفات متاحة للتحويل",
@@ -1395,7 +1407,13 @@
     "merge": "دمج",
     "unarchive": "إلغاء الأرشفة",
     "archive": "أرشفة",
-    "novel_label": "رواية"
+    "novel_label": "رواية",
+    "convert_format_short": "تحويل",
+    "status_unread": "غير مقروء",
+    "status_reading": "قيد القراءة",
+    "status_read": "تمت القراءة",
+    "status_completed": "مكتمل",
+    "status_abandoned": "متروك"
   },
   "settings": {
     "title": "الإعدادات",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "حمولة HTTP POST الخام (JSON)",
     "webhook_generic_json": "JSON عام",
     "webhook_hmac_enabled": "توقيع HMAC مفعّل",
-    "hardcover_client_id_placeholder": "مثال: hc_app_01j7abc123 أو Client ID"
+    "hardcover_client_id_placeholder": "مثال: hc_app_01j7abc123 أو Client ID",
+    "event_book_created": "تمت إضافة كتاب",
+    "event_book_deleted": "تم حذف الكتاب",
+    "event_metadata_updated": "تم تحديث البيانات الوصفية",
+    "event_reading_completed": "اكتملت القراءة",
+    "event_job_failed": "فشل المهمة"
   },
   "email": {
     "invalid": "يرجى إدخال عنوان بريد إلكتروني صالح",
@@ -1873,7 +1896,8 @@
     "pause": "إيقاف مؤقت",
     "play": "تشغيل",
     "calculating_timeline": "جارٍ حساب الخط الزمني...",
-    "calculating": "جارٍ الحساب..."
+    "calculating": "جارٍ الحساب...",
+    "merge_short": "دمج صوتي"
   },
   "podcasts": {
     "title": "البودكاست",

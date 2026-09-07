@@ -409,13 +409,23 @@ export function Reviews() {
 
       {/* Delete Confirmation Modal */}
       <dialog className={`modal ${reviewToDelete ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <h3 className="font-bold text-lg text-error flex items-center gap-2">
-            <AlertCircle className="w-6 h-6" />
-            {t("admin.review_delete_title", "Delete Review")}
-          </h3>
-          <div className="py-4">
-            <p className="text-sm opacity-80 mb-3">
+        <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+            <h3 className="font-bold text-lg text-error flex items-center gap-2 leading-tight">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{t("admin.review_delete_title", "Delete Review")}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => setReviewToDelete(null)}
+              className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+              aria-label={t("common.close", "Close")}
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+            </button>
+          </div>
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+            <p className="text-sm opacity-80">
               {t(
                 "admin.review_delete_confirm",
                 "Are you sure you want to delete this review? This action cannot be undone.",
@@ -444,25 +454,25 @@ export function Reviews() {
                 </p>
               )}
             </div>
-          </div>
-          <div className="modal-action">
-            <button
-              onClick={() => setReviewToDelete(null)}
-              className="btn btn-ghost"
-            >
-              {t("common.cancel", "Cancel")}
-            </button>
-            <button
-              onClick={confirmDelete}
-              className="btn btn-error"
-              disabled={deleting !== null}
-            >
-              {deleting !== null ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              ) : (
-                t("admin.review_delete_title", "Delete Review")
-              )}
-            </button>
+            <div className="modal-action border-t border-base-200 pt-4 mt-6">
+              <button
+                onClick={() => setReviewToDelete(null)}
+                className="btn btn-ghost"
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="btn btn-error"
+                disabled={deleting !== null}
+              >
+                {deleting !== null ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  t("admin.review_delete_title", "Delete Review")
+                )}
+              </button>
+            </div>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">

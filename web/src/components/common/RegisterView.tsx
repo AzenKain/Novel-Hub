@@ -1,7 +1,7 @@
 import { OTPCodeStep, PasswordStrength } from "@/components/common";
 import { usePublicSettings, useRegisterMutation } from "@/hooks";
 import { useAuthStore } from "@/stores";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, X } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
@@ -66,27 +66,40 @@ export function RegisterView() {
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-md max-h-[82dvh] sm:max-h-[85vh] overflow-y-auto">
-        <button
-          onClick={() => setRegisterModalOpen(false)}
-          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-        >
-          ✕
-        </button>
-        <div className="flex flex-col items-center gap-2 mb-6 mt-2 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <BookOpen size={28} className="text-primary" />
+      <div className="modal-box max-w-md max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl sm:rounded-3xl border border-base-300 shadow-2xl bg-base-100">
+        {/* Fixed Header */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <BookOpen size={16} className="text-primary" />
+            </div>
+            <h3 className="font-bold text-base sm:text-lg leading-tight truncate">
+              {t("auth.create_account", "Create Account")}
+            </h3>
           </div>
-          <h3 className="text-2xl font-bold">
-            {t("auth.create_account", "Create Account")}
-          </h3>
-          <p className="text-xs text-base-content/60">
-            {t(
-              "auth.register_desc",
-              "Register to access the library features.",
-            )}
-          </p>
+          <button
+            type="button"
+            onClick={() => setRegisterModalOpen(false)}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
         </div>
+
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+          <div className="text-center mb-1">
+            <h4 className="text-xl font-bold">
+              {t("auth.create_account", "Create Account")}
+            </h4>
+            <p className="text-xs text-base-content/60 mt-0.5">
+              {t(
+                "auth.register_desc",
+                "Register to access the library features.",
+              )}
+            </p>
+          </div>
 
         {settings && !settings.registration_enabled ? (
           <div className="text-center py-6">
@@ -228,9 +241,10 @@ export function RegisterView() {
             {t("auth.sign_in", "Sign in")}
           </button>
         </div>
+        </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={() => setRegisterModalOpen(false)}>close</button>
+      <form method="dialog" className="modal-backdrop" onClick={() => setRegisterModalOpen(false)}>
+        <button type="button">{t("common.close", "Close")}</button>
       </form>
     </dialog>
   );

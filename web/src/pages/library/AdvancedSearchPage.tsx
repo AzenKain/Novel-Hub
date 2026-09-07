@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useShallow } from "zustand/react/shallow";
 import {
   Search,
   Filter,
@@ -19,37 +18,16 @@ import {
 } from "lucide-react";
 
 import { TopNav } from "@/components/common/TopNav";
-import { LibrarySidebar } from "@/components/library/LibrarySidebar";
 import { BookGrid } from "@/components/ui/BookGrid";
 import { useBooksQuery } from "@/hooks/useBooksQuery";
 import { useAdvancedSearchFacets } from "@/hooks/useAdvancedSearchQueries";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useAuthStore, useLibraryStore } from "@/stores";
 import type { MetadataCount } from "@/types";
 
 export const AdvancedSearchPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const user = useAuthStore((state) => state.user);
-  const {
-    activeNav,
-    setActiveNav,
-    activeFacet,
-    setActiveFacet,
-    activeCollection,
-    setActiveCollection,
-  } = useLibraryStore(
-    useShallow((state) => ({
-      activeNav: state.activeNav,
-      setActiveNav: state.setActiveNav,
-      activeFacet: state.activeFacet,
-      setActiveFacet: state.setActiveFacet,
-      activeCollection: state.activeCollection,
-      setActiveCollection: state.setActiveCollection,
-    })),
-  );
 
   const [queryInput, setQueryInput] = useState(
     searchParams.get("q") || searchParams.get("search") || "",
@@ -224,128 +202,108 @@ export const AdvancedSearchPage: React.FC = () => {
     updateUrlParams({ q: queryInput.trim() });
   };
 
-  const primaryNavItems = [
-    {
-      id: "",
-      label: t("library.all_books", "All Books"),
-      icon: <BookOpen className="w-4 h-4" />,
-    },
-  ];
-
   return (
-    <div className="drawer min-h-screen bg-base-200/40 text-base-content">
-      <input id="main-drawer" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content flex flex-col min-h-screen">
-        <TopNav showSidebarToggle={true} />
+    <div className="min-h-screen bg-base-200/40 flex flex-col font-sans text-base-content">
+      <TopNav showSidebarToggle={false} />
 
-        <div className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto space-y-4">
-          {/* Back Button */}
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="btn btn-ghost btn-sm rounded-xl gap-1.5 text-base-content/70 hover:text-base-content -mb-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t("common.back", "Back")}
-          </button>
-
-          {/* Header Section */}
-          <div className="bg-base-100 border border-base-200 shadow-sm rounded-3xl p-5 sm:p-7 transition-all">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="badge badge-primary badge-sm font-bold uppercase tracking-wider">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    {t("search.advanced_title", "Advanced Search")}
+      <div className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full flex flex-col gap-4 sm:gap-6">
+          {/* Page Header — matches PodcastsPage / OfflineBooksPage pattern */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                to="/"
+                className="btn btn-ghost btn-sm btn-square sm:w-auto sm:px-3 gap-1.5 text-primary -ml-2 sm:-ml-2.5 shrink-0"
+                aria-label={t("library.back_to_library", "Back to Library")}
+                title={t("library.back_to_library", "Back to Library")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline whitespace-nowrap">
+                  {t("library.back_to_library", "Back to Library")}
+                </span>
+              </Link>
+              <div className="h-5 sm:h-6 w-px bg-base-300 shrink-0" />
+              <h1 className="flex items-center gap-2 text-lg sm:text-xl font-black text-base-content">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <span>{t("search.advanced_title", "Advanced Search")}</span>
+                {books.length > 0 && (
+                  <span className="badge badge-ghost badge-sm font-semibold">
+                    {books.length}
                   </span>
-                  {books.length > 0 && (
-                    <span className="badge badge-ghost badge-sm font-semibold">
-                      {books.length} {t("search.results_suffix", "results")}
-                    </span>
-                  )}
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-base-content">
-                  {t("search.header_title", "Search Library")}
-                </h1>
-                <p className="text-xs sm:text-sm text-base-content/60">
-                  {t(
-                    "search.header_subtitle",
-                    "Find any book by title, author, format, language, or series.",
-                  )}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                  className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all ${
-                    isFilterPanelOpen
-                      ? "btn-primary"
-                      : "btn-outline btn-neutral"
-                  }`}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  <span>{t("search.filters", "Filters")}</span>
-                  {hasActiveFilters && (
-                    <span className="badge badge-xs badge-secondary font-bold">
-                      !
-                    </span>
-                  )}
-                </button>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="btn btn-ghost btn-sm sm:btn-md text-error hover:bg-error/10 rounded-xl gap-1.5"
-                    title={t("search.reset_filters", "Reset Filters")}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span className="hidden sm:inline">
-                      {t("search.reset_filters", "Reset")}
-                    </span>
-                  </button>
                 )}
-              </div>
+              </h1>
             </div>
 
-            {/* Main Search Input Form */}
-            <form onSubmit={handleSearchSubmit} className="mt-5 relative">
-              <div className="relative flex items-center">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base-content/40 z-10">
-                  <Search className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder={t(
-                    "search.input_placeholder",
-                    "Enter title, author, description, or keyword...",
-                  )}
-                  className="input input-bordered input-md sm:input-lg w-full pl-12 pr-28 rounded-2xl bg-base-200/40 focus:bg-base-100 font-medium text-sm sm:text-base transition-all"
-                  value={queryInput}
-                  onChange={(e) => setQueryInput(e.target.value)}
-                />
-                {queryInput && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQueryInput("");
-                      updateUrlParams({ q: "" });
-                    }}
-                    className="absolute right-24 text-base-content/40 hover:text-base-content p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all ${
+                  isFilterPanelOpen
+                    ? "btn-primary"
+                    : "btn-outline btn-neutral"
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>{t("search.filters", "Filters")}</span>
+                {hasActiveFilters && (
+                  <span className="badge badge-xs badge-secondary font-bold">
+                    !
+                  </span>
                 )}
+              </button>
+              {hasActiveFilters && (
                 <button
-                  type="submit"
-                  className="absolute right-2 btn btn-primary btn-sm sm:btn-md rounded-xl font-bold px-4"
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="btn btn-ghost btn-sm sm:btn-md text-error hover:bg-error/10 rounded-xl gap-1.5"
+                  title={t("search.reset_filters", "Reset Filters")}
                 >
-                  {t("common.search", "Search")}
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {t("search.reset_filters", "Reset")}
+                  </span>
                 </button>
-              </div>
-            </form>
+              )}
+            </div>
           </div>
+
+          {/* Search Input — flex row, no absolute overlap */}
+          <form onSubmit={handleSearchSubmit} className="flex gap-2 sm:gap-3 w-full">
+            <div className="relative flex-1 min-w-0">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base-content/40 z-10">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                placeholder={t(
+                  "search.input_placeholder",
+                  "Enter title, author, description, or keyword...",
+                )}
+                className="input input-bordered input-md w-full pl-12 pr-10 rounded-xl bg-base-100 shadow-2xs font-medium text-sm transition-all"
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+              />
+              {queryInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQueryInput("");
+                    updateUrlParams({ q: "" });
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-base-content/40 hover:text-base-content transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="btn btn-primary btn-md rounded-xl font-bold px-5 shrink-0"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("common.search", "Search")}</span>
+            </button>
+          </form>
 
           {/* Filter Panel (Collapsible) */}
           {isFilterPanelOpen && (
@@ -418,7 +376,7 @@ export const AdvancedSearchPage: React.FC = () => {
                     {t("library.facets.series", "Series")}
                   </label>
                   <select
-                    className="select select-bordered select-sm w-full rounded-xl bg-base-200/40 text-xs font-medium"
+                    className="select select-bordered select-md w-full rounded-xl bg-base-100 shadow-2xs text-sm font-medium"
                     value={selectedSeries}
                     onChange={(e) => {
                       setSelectedSeries(e.target.value);
@@ -443,7 +401,7 @@ export const AdvancedSearchPage: React.FC = () => {
                     {t("library.facets.authors", "Author")}
                   </label>
                   <select
-                    className="select select-bordered select-sm w-full rounded-xl bg-base-200/40 text-xs font-medium"
+                    className="select select-bordered select-md w-full rounded-xl bg-base-100 shadow-2xs text-sm font-medium"
                     value={selectedAuthor}
                     onChange={(e) => {
                       setSelectedAuthor(e.target.value);
@@ -468,7 +426,7 @@ export const AdvancedSearchPage: React.FC = () => {
                     {t("library.facets.publishers", "Publisher")}
                   </label>
                   <select
-                    className="select select-bordered select-sm w-full rounded-xl bg-base-200/40 text-xs font-medium"
+                    className="select select-bordered select-md w-full rounded-xl bg-base-100 shadow-2xs text-sm font-medium"
                     value={selectedPublisher}
                     onChange={(e) => {
                       setSelectedPublisher(e.target.value);
@@ -493,7 +451,7 @@ export const AdvancedSearchPage: React.FC = () => {
                     {t("library.facets.languages", "Language")}
                   </label>
                   <select
-                    className="select select-bordered select-sm w-full rounded-xl bg-base-200/40 text-xs font-medium"
+                    className="select select-bordered select-md w-full rounded-xl bg-base-100 shadow-2xs text-sm font-medium"
                     value={selectedLanguage}
                     onChange={(e) => {
                       setSelectedLanguage(e.target.value);
@@ -676,28 +634,5 @@ export const AdvancedSearchPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Sidebar Drawer */}
-      <LibrarySidebar
-        t={t}
-        user={user}
-        primaryNavItems={primaryNavItems}
-        facetSections={[]}
-        secondaryNavItems={[]}
-        collections={[]}
-        activeNav={activeNav}
-        activeFacet={activeFacet}
-        activeCollection={activeCollection}
-        onNavClick={(nav) => {
-          setActiveNav(nav);
-          navigate("/");
-        }}
-        onCollectionClick={(coll) => {
-          setActiveCollection(coll);
-          navigate("/");
-        }}
-        onNewCollection={() => {}}
-      />
-    </div>
   );
 };

@@ -11,6 +11,7 @@ import {
   Download,
   ExternalLink,
   Stethoscope,
+  X,
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -70,8 +71,8 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
   const canMerge = mergeableFiles.length >= 2;
   return (
     <dialog className={`modal ${book ? "modal-open" : ""}`}>
-      <div className="modal-box max-w-lg overflow-hidden p-0">
-        <header className="flex items-start justify-between gap-4 border-b border-base-200 bg-base-200/30 px-5 py-4">
+      <div className="modal-box max-w-lg max-h-[80dvh] sm:max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <header className="px-5 py-4 border-b border-base-200 flex items-start justify-between gap-4 shrink-0 bg-base-100">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-wider text-primary">
               Book actions
@@ -81,11 +82,16 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
               {book?.author_name || book?.author_id || "Unknown author"}
             </p>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm">
-            ✕
+          <button
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </header>
-        <div className="grid gap-4 p-5 sm:grid-cols-[120px_1fr]">
+        <div className="overflow-y-auto flex-1 min-h-0">
+          <div className="grid gap-4 p-5 sm:grid-cols-[120px_1fr]">
           <div className="aspect-[3/4.12] overflow-hidden rounded-lg border border-base-200 bg-base-200 shadow-sm">
             {book?.cover_url ? (
               <img
@@ -131,16 +137,16 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
         <footer className="grid grid-cols-2 gap-2 border-t border-base-200 bg-base-100 p-3 sm:p-4">
           <button
             type="button"
-            className="btn btn-primary btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-primary btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book}
             onClick={() => book && onRead(book)}
           >
             <BookOpen className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("reader.read")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("reader.read")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book || !book.files?.length}
             onClick={() => {
               if (!book) return;
@@ -159,11 +165,11 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
             }}
           >
             <Download className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("common.download", "Download")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("common.download", "Download")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book}
             onClick={() => {
               if (book) {
@@ -173,78 +179,79 @@ export const BookActionModal: React.FC<BookActionModalProps> = ({
             }}
           >
             <ExternalLink className="h-4 w-4 shrink-0" />
-            <span className="truncate">
+            <span className="whitespace-normal text-wrap leading-tight text-center">
               {t("admin.view_detail", "View Detail")}
             </span>
           </button>
           <button
             type="button"
-            className="btn btn-secondary btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-secondary btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book}
             onClick={() => book && onEdit(book)}
           >
             <Settings className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("common.edit")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("common.edit")}</span>
           </button>
           {hasEpub && onDoctor && (
             <button
               type="button"
-              className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 text-primary"
+              className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 text-primary h-auto min-h-9 py-2"
               disabled={!book}
               onClick={() => book && onDoctor(book)}
             >
               <Stethoscope className="h-4 w-4 shrink-0" />
-              <span className="truncate">
+              <span className="whitespace-normal text-wrap leading-tight text-center">
                 {t("doctor.button", "Book Doctor")}
               </span>
             </button>
           )}
           <button
             type="button"
-            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book || !book.files?.length}
             onClick={() => book && onConvert(book)}
           >
             <FileText className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("book.convert")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("book.convert")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!canMerge}
             onClick={() => book && onMerge(book)}
           >
             <AudioLines className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("book.merge")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("book.merge")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book}
             onClick={() => book && onArchive(book, !isArchived)}
           >
             {isArchived ? (
               <>
                 <ArchiveRestore className="h-4 w-4 shrink-0" />
-                <span className="truncate">{t("book.unarchive")}</span>
+                <span className="whitespace-normal text-wrap leading-tight text-center">{t("book.unarchive")}</span>
               </>
             ) : (
               <>
                 <Archive className="h-4 w-4 shrink-0" />
-                <span className="truncate">{t("book.archive")}</span>
+                <span className="whitespace-normal text-wrap leading-tight text-center">{t("book.archive")}</span>
               </>
             )}
           </button>
           <button
             type="button"
-            className="btn btn-error btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+            className="btn btn-error btn-outline btn-sm sm:btn-md gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 h-auto min-h-9 py-2"
             disabled={!book}
             onClick={() => book && onDelete(book)}
           >
             <Trash2 className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("common.delete")}</span>
+            <span className="whitespace-normal text-wrap leading-tight text-center">{t("common.delete")}</span>
           </button>
         </footer>
+        </div>
       </div>
       <form method="dialog" className="modal-backdrop">
         <button onClick={onClose}>close</button>

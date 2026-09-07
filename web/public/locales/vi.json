@@ -279,7 +279,7 @@
     "cover_url_hint": "Hỗ trợ các định dạng ảnh trực tiếp (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Nhập liên kết ảnh bìa",
     "create_user_title": "Tạo người dùng mới",
-    "create_webhook": "Cấu hình Webhook mới",
+    "create_webhook": "Tạo Webhook",
     "danger_warning": "Cảnh báo nguy hiểm:",
     "delete_library_confirm_msg": "Bạn có chắc chắn muốn xoá thư viện {{name}}?",
     "delete_library_danger_desc": "Tiến trình sẽ xoá ngầm toàn bộ sách, chương, tệp tin và dữ liệu đọc thuộc thư viện này. Dữ liệu KHÔNG THỂ khôi phục!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Xoá tài khoản người dùng?",
     "delete_user_desc": "Tài khoản người dùng này sẽ bị xoá tạm thời. Họ sẽ mất quyền truy cập NovelHub ngay lập tức.",
     "edit_user_title": "Sửa hồ sơ",
-    "edit_webhook": "Sửa Webhook & trình dựng trực tiếp",
-    "embed_customizer": "Tiêu đề, nhãn & kiểu nhúng",
+    "edit_webhook": "Sửa Webhook",
+    "embed_customizer": "Tùy chỉnh",
     "fill_required": "Vui lòng điền tất cả các trường bắt buộc",
-    "general_config": "Cài đặt chung",
+    "general_config": "Chung",
     "image_url_label": "Đường dẫn ảnh bìa trực tuyến (URL)",
     "library_delete_queued": "Đã tiếp nhận yêu cầu xoá thư viện. Tiến trình đang chạy ngầm.",
     "manage_user_roles": "Quản lý vai trò người dùng",
@@ -310,7 +310,7 @@
     "update_password": "Cập nhật mật khẩu",
     "user_management": "Quản lý người dùng",
     "user_subtitle": "Quản lý tài khoản, vai trò, mức truy cập và thông tin bảo mật.",
-    "webhook_desc": "Tùy chỉnh tiêu đề, nhãn trường, kiểu nhúng và xem trước phản hồi trực tiếp",
+    "webhook_desc": "Tùy chỉnh thông báo và xem trước phản hồi",
     "webhooks": "Webhook & tích hợp gửi đi",
     "webhooks_subtitle": "Cấu hình thông báo sự kiện thời gian thực cho Discord, Telegram, Slack và webhook tự động hoá.",
     "default_font_note": "(Hệ thống chữ mặc định NovelHub)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "Bạn đã chỉnh sửa nội dung thư. Việc đổi ngôn ngữ mẫu sẽ tải lại mẫu và ghi đè các thay đổi của bạn. Bạn có chắc chắn muốn tiếp tục?",
     "template_lang_overwrite_confirm_btn": "Đổi ngôn ngữ & Ghi đè",
     "markdown_supported": "Hỗ trợ định dạng Markdown",
-    "preview_mode_active": "Chế độ xem trước trực tiếp"
+    "preview_mode_active": "Chế độ xem trước trực tiếp",
+    "bulk_download_short": "Tải về",
+    "bulk_edit_short": "Sửa metadata",
+    "live_preview": "Xem trước"
   },
   "download_manager": {
     "title": "Tải xuống",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Cùng tiêu đề và tác giả với khác biệt nhỏ — gộp các bản trùng thành một cuốn sách.",
     "rename_smart_collection": "Đổi tên bộ sưu tập thông minh",
     "smart_collection_update_failed": "Không cập nhật được bộ sưu tập thông minh",
-    "bulk_edit_metadata_title": "Chỉnh sửa metadata hàng loạt",
+    "bulk_edit_metadata_title": "Sửa metadata",
     "bulk_edit_metadata_desc": "Chỉnh sửa và đồng bộ các trường dữ liệu cho nhiều sách cùng lúc",
     "sync_field_to_books": "Đồng bộ",
     "sync_field_title": "Đồng bộ {{field}} sang các sách khác",
@@ -973,7 +976,7 @@
     "collection_options": "Tuỳ chọn bộ sưu tập",
     "book_grid": "Lưới sách",
     "tab_batch_fields": "Thuộc tính chung",
-    "tab_title_cleaner": "Làm sạch tiêu đề & tác giả",
+    "tab_title_cleaner": "Làm sạch tiêu đề",
     "batch_fields_title": "Áp dụng hàng loạt cho tất cả sách đã chọn",
     "batch_author_applied": "Đã gán tác giả cho tất cả sách",
     "batch_series_applied": "Đã gán bộ truyện cho tất cả sách",
@@ -1000,7 +1003,7 @@
     "author_only": "Chỉ tác giả",
     "both_fields": "Cả hai",
     "cleaner_selected_count": "{{count}} cuốn sách được bật để làm sạch",
-    "cleaner_apply_all": "Áp dụng dữ liệu đã làm sạch",
+    "cleaner_apply_all": "Áp dụng",
     "original_metadata": "Tiêu đề & Tác giả ban đầu",
     "cleaned_metadata": "Xem trước sau làm sạch (Có thể sửa)",
     "cleaner_preset_applied": "Đã cập nhật {{count}} sách",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Biểu thức regex không hợp lệ",
     "cleaner_applied_success": "Đã áp dụng tiêu đề & tác giả mới cho {{count}} cuốn sách",
     "items_modified_notice": "{{count}} cuốn sách đã sửa sẵn sàng lưu",
-    "bulk_save_failed": "Lưu cập nhật thất bại"
+    "bulk_save_failed": "Lưu cập nhật thất bại",
+    "cleaner_footer_tip": "Bấm 'Áp dụng' để chuyển thay đổi sang trình sửa",
+    "use_raw_value": "Sử dụng giá trị"
   },
   "user": {
     "profile": "Hồ sơ",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "Sử dụng giọng đọc mặc định của thiết bị",
     "tts_no_voices_alert": "Không tìm thấy giọng đọc TTS trên thiết bị. Vui lòng cài đặt Google Speech Services trong Cài đặt thiết bị để nghe đọc.",
     "tts_no_voices_warning": "Không tìm thấy giọng đọc nào trên thiết bị. Vui lòng cài đặt 'Google Speech Services' (Google TTS) trong Cài đặt thiết bị để sử dụng tính năng này.",
-    "back_to_book_detail": "Quay lại chi tiết sách"
+    "back_to_book_detail": "Quay lại chi tiết sách",
+    "words": "từ",
+    "selection_label": "Đoạn đã chọn"
   },
   "analytics": {
     "title": "Thống kê & tiến trình đọc",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "Đã xảy ra lỗi không xác định",
     "book_not_found": "Không tìm thấy sách",
-    "book_not_found_desc": "Sách này có thể đã bị xóa hoặc không còn tồn tại."
+    "book_not_found_desc": "Sách này có thể đã bị xóa hoặc không còn tồn tại.",
+    "page_not_found": "Không tìm thấy trang",
+    "page_not_found_desc": "Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.",
+    "go_to_library": "Về thư viện",
+    "search_books": "Tìm kiếm",
+    "looking_for_other_books": "Tìm kiếm sách khác?"
   },
   "book": {
     "bookmark_updated": "Cập nhật dấu trang thành công",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Vui lòng chọn một tệp để chuyển đổi",
     "convert_replace_warning": "Sách này đã có tệp {{format}}. Tiếp tục sẽ ghi đè lên tệp cũ.",
     "convert_confirm_replace": "Tôi đồng ý ghi đè lên tệp cũ",
-    "bulk_convert_title": "Chuyển đổi định dạng hàng loạt",
+    "bulk_convert_title": "Đổi định dạng",
     "bulk_convert_global_format": "Thiết lập định dạng đầu ra cho tất cả các sách đã chọn:",
-    "bulk_convert_start": "Bắt đầu chuyển đổi hàng loạt",
+    "bulk_convert_start": "Bắt đầu",
     "bulk_convert_success": "Đã thêm thành công {{count}} yêu cầu chuyển đổi vào hàng chờ",
     "bulk_convert_failed": "Một số yêu cầu chuyển đổi không thể bắt đầu",
     "no_files_convert": "Không có tệp sách để chuyển đổi",
@@ -1395,7 +1407,13 @@
     "merge": "Gộp",
     "unarchive": "Bỏ lưu trữ",
     "archive": "Lưu trữ",
-    "novel_label": "TIỂU THUYẾT"
+    "novel_label": "TIỂU THUYẾT",
+    "convert_format_short": "Đổi định dạng",
+    "status_unread": "Chưa đọc",
+    "status_reading": "Đang đọc",
+    "status_read": "Đã đọc",
+    "status_completed": "Hoàn thành",
+    "status_abandoned": "Bỏ dở"
   },
   "settings": {
     "title": "Cài đặt",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Dữ liệu thô HTTP POST (JSON)",
     "webhook_generic_json": "JSON chung",
     "webhook_hmac_enabled": "Đã bật chữ ký HMAC",
-    "hardcover_client_id_placeholder": "Ví dụ: hc_app_01j7abc123 hoặc Client ID"
+    "hardcover_client_id_placeholder": "Ví dụ: hc_app_01j7abc123 hoặc Client ID",
+    "event_book_created": "Thêm sách mới",
+    "event_book_deleted": "Xóa sách",
+    "event_metadata_updated": "Cập nhật metadata",
+    "event_reading_completed": "Đọc xong sách",
+    "event_job_failed": "Tác vụ thất bại"
   },
   "email": {
     "invalid": "Vui lòng nhập địa chỉ email hợp lệ",
@@ -1873,7 +1896,8 @@
     "pause": "Tạm dừng",
     "play": "Phát",
     "calculating_timeline": "Đang tính toán dòng thời gian...",
-    "calculating": "Đang tính toán..."
+    "calculating": "Đang tính toán...",
+    "merge_short": "Gộp audiobook"
   },
   "podcasts": {
     "title": "Podcast",

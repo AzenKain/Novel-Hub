@@ -235,51 +235,126 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       ctx.restore();
 
       const safeQuote = (quote || "").trim() || "...";
-      const maxTextWidth = width - 200;
-      let fontSize = 46;
-      if (safeQuote.length > 250) fontSize = 36;
-      if (safeQuote.length > 450) fontSize = 30;
-      if (safeQuote.length < 80) fontSize = 56;
+      // Split into paragraphs preserving newline separation
+      const paragraphs = safeQuote
+        .replace(/\r\n/g, "\n")
+        .split(/\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
 
-      ctx.font = `italic 500 ${fontSize}px "Georgia", "Merriweather", "Noto Serif", serif`;
+      if (paragraphs.length === 0) {
+        paragraphs.push("...");
+      }
+
+      const maxTextWidth = width - 200;
+      const startY = 220;
+      const maxTextZoneHeight = bottomCardY - 260;
+
+      let baseFontSize = 46;
+      if (paragraphs.length > 3 || safeQuote.length > 450) {
+        baseFontSize = 30;
+      } else if (paragraphs.length > 2 || safeQuote.length > 280) {
+        baseFontSize = 34;
+      } else if (paragraphs.length > 1 || safeQuote.length > 160) {
+        baseFontSize = 40;
+      } else if (safeQuote.length < 80) {
+        baseFontSize = 54;
+      }
+
+      const computeLayout = (testFontSize: number) => {
+        ctx.font = `italic 500 ${testFontSize}px "Georgia", "Merriweather", "Noto Serif", serif`;
+        const testLineHeight = Math.round(testFontSize * 1.5);
+        const testParaGap = Math.round(testFontSize * 0.65);
+
+        const computedParagraphs: string[][] = [];
+        let totalH = 0;
+
+        for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+          const p = paragraphs[pIdx];
+          const words = p.split(/[ \t]+/);
+          const pLines: string[] = [];
+          let currentLine = "";
+
+          for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxTextWidth && currentLine) {
+              pLines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) {
+            pLines.push(currentLine);
+          }
+
+          computedParagraphs.push(pLines);
+          totalH += pLines.length * testLineHeight;
+          if (pIdx < paragraphs.length - 1) {
+            totalH += testParaGap;
+          }
+        }
+
+        return {
+          computedParagraphs,
+          totalH,
+          lineHeight: testLineHeight,
+          paraGap: testParaGap,
+        };
+      };
+
+      let currentFontSize = baseFontSize;
+      let layout = computeLayout(currentFontSize);
+
+      while (layout.totalH > maxTextZoneHeight && currentFontSize > 22) {
+        currentFontSize -= 2;
+        layout = computeLayout(currentFontSize);
+      }
+
+      ctx.font = `italic 500 ${currentFontSize}px "Georgia", "Merriweather", "Noto Serif", serif`;
       ctx.fillStyle = theme === "vintage" ? "#382818" : "#f1f5f9";
       ctx.textBaseline = "top";
 
-      const words = safeQuote.split(/\s+/);
-      const lines: string[] = [];
-      let currentLine = "";
+      let currentY = startY;
+      let isTruncated = false;
 
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxTextWidth) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
+      for (let pIdx = 0; pIdx < layout.computedParagraphs.length; pIdx++) {
+        if (isTruncated) break;
+        const pLines = layout.computedParagraphs[pIdx];
+        const isLastPara = pIdx === layout.computedParagraphs.length - 1;
+
+        for (let lIdx = 0; lIdx < pLines.length; lIdx++) {
+          const line = pLines[lIdx];
+          const isOverallLast = isLastPara && lIdx === pLines.length - 1;
+          const nextBottom = currentY + layout.lineHeight;
+
+          if (nextBottom > startY + maxTextZoneHeight) {
+            isTruncated = true;
+            break;
+          }
+
+          const wouldOverflowNext =
+            nextBottom + layout.lineHeight > startY + maxTextZoneHeight;
+
+          if (wouldOverflowNext && !isOverallLast) {
+            ctx.fillText(line + "...", 100, currentY);
+            currentY += layout.lineHeight;
+            isTruncated = true;
+            break;
+          } else {
+            ctx.fillText(line, 100, currentY);
+            currentY += layout.lineHeight;
+          }
+        }
+
+        if (!isTruncated && !isLastPara) {
+          currentY += layout.paraGap;
         }
       }
-      if (currentLine) lines.push(currentLine);
-
-      // Limit maximum lines to fit comfortably above bottom card
-      const maxTextZoneHeight = bottomCardY - 260;
-      const lineHeight = fontSize * 1.5;
-      const maxLines = Math.floor(maxTextZoneHeight / lineHeight);
-      const displayedLines = lines.slice(0, maxLines);
-      if (lines.length > maxLines) {
-        displayedLines[maxLines - 1] += "...";
-      }
-
-      const startY = 220;
-      displayedLines.forEach((line, i) => {
-        ctx.fillText(line, 100, startY + i * lineHeight);
-      });
 
       // Divider Line
-      const dividerY = Math.min(
-        startY + displayedLines.length * lineHeight + 35,
-        bottomCardY - 30,
-      );
+      const dividerY = Math.min(currentY + 25, bottomCardY - 30);
       ctx.beginPath();
       ctx.moveTo(100, dividerY);
       ctx.lineTo(240, dividerY);
@@ -463,9 +538,9 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
       className="modal modal-open z-60 bg-black/50 animate-in fade-in duration-200"
       data-reader-modal="true"
     >
-      <div className="modal-box w-[calc(100vw-2rem)] max-w-lg p-3.5 sm:p-5 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col gap-3 sm:gap-4 max-h-[92vh] overflow-x-hidden overflow-y-auto">
+      <div className="modal-box w-[calc(100vw-2rem)] max-w-lg max-h-[82dvh] sm:max-h-[88vh] p-0 rounded-2xl border border-(--reader-ui-border,rgba(255,255,255,0.12)) shadow-2xl bg-(--reader-ui-surface-strong,#1e202b) text-(--reader-ui-text,#e2e8f0) flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-(--reader-ui-border,rgba(255,255,255,0.1)) pb-2.5 sm:pb-3">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-(--reader-ui-border,rgba(255,255,255,0.1)) flex items-center justify-between shrink-0 bg-(--reader-ui-surface-strong,#1e202b)">
           <div className="flex items-center gap-2 font-bold text-sm text-(--reader-ui-text)">
             <Sparkles className="w-4 h-4 text-(--reader-ui-accent,#38bdf8)" />
             <span>{t("reader.quote_card_title", "Create quote image")}</span>
@@ -473,11 +548,14 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-xs btn-circle bg-(--reader-ui-soft,rgba(255,255,255,0.06)) hover:bg-(--reader-ui-hover,rgba(255,255,255,0.1)) text-(--reader-ui-text) border border-(--reader-ui-border)"
+            className="btn btn-xs btn-circle bg-(--reader-ui-soft,rgba(255,255,255,0.06)) hover:bg-(--reader-ui-hover,rgba(255,255,255,0.1)) text-(--reader-ui-text) border border-(--reader-ui-border) shrink-0"
+            aria-label={t("common.close", "Close")}
           >
-            <X size={14} />
+            <X className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
+
+        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 min-h-0 flex flex-col gap-3 sm:gap-4">
 
         {/* Canvas Preview */}
         <div className="flex justify-center items-center py-1">
@@ -570,6 +648,7 @@ export const QuoteCardModal: React.FC<QuoteCardModalProps> = ({
               </span>
             </button>
           </div>
+        </div>
         </div>
       </div>
     </dialog>

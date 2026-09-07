@@ -94,11 +94,11 @@ const COLOR_SWATCHES = [
 ];
 
 const AVAILABLE_EVENTS = [
-  { id: "book.created", label: "book.created" },
-  { id: "book.deleted", label: "book.deleted" },
-  { id: "metadata.updated", label: "metadata.updated" },
-  { id: "reading.completed", label: "reading.completed" },
-  { id: "job.failed", label: "job.failed" },
+  { id: "book.created", key: "event_book_created" },
+  { id: "book.deleted", key: "event_book_deleted" },
+  { id: "metadata.updated", key: "event_metadata_updated" },
+  { id: "reading.completed", key: "event_reading_completed" },
+  { id: "job.failed", key: "event_job_failed" },
 ];
 
 export const WebhookModal: React.FC<WebhookModalProps> = ({
@@ -109,9 +109,9 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
   isSaving,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"general" | "customizer">(
-    "general",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "general" | "customizer" | "preview"
+  >("general");
   const [previewEvent, setPreviewEvent] = useState<string>("book.created");
 
   const [form, setForm] = useState<CreateWebhookInput>({
@@ -315,7 +315,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box max-w-6xl w-11/12 p-0 rounded-3xl bg-base-100 shadow-2xl border border-base-300 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="modal-box max-w-6xl w-11/12 p-0 rounded-3xl bg-base-100 shadow-2xl border border-base-300 overflow-hidden flex flex-col max-h-[80dvh] sm:max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 bg-base-200/60 border-b border-base-300">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
@@ -324,13 +324,13 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
             <div>
               <h3 className="font-bold text-lg leading-tight">
                 {editingWebhook
-                  ? t("admin.edit_webhook", "Edit Webhook & Live Builder")
-                  : t("admin.create_webhook", "Configure New Webhook")}
+                  ? t("admin.edit_webhook", "Edit Webhook")
+                  : t("admin.create_webhook", "New Webhook")}
               </h3>
               <p className="text-xs text-base-content/60">
                 {t(
                   "admin.webhook_desc",
-                  "Customize titles, field labels, embed styles, and test live response preview",
+                  "Customize notifications and live response preview",
                 )}
               </p>
             </div>
@@ -346,39 +346,56 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
           </button>
         </div>
 
+        {/* Top Navigation Tabs */}
+        <div className="px-4 sm:px-6 pt-3 pb-2 bg-base-100 border-b border-base-200 shrink-0">
+          <div className="flex bg-base-200/70 p-1 rounded-xl gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("general")}
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center whitespace-nowrap truncate ${
+                activeTab === "general"
+                  ? "bg-base-100 text-primary shadow-sm"
+                  : "text-base-content/60 hover:text-base-content"
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t("admin.general_config", "General")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("customizer")}
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center whitespace-nowrap truncate ${
+                activeTab === "customizer"
+                  ? "bg-base-100 text-primary shadow-sm"
+                  : "text-base-content/60 hover:text-base-content"
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t("admin.embed_customizer", "Customize")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("preview")}
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center whitespace-nowrap truncate lg:hidden ${
+                activeTab === "preview"
+                  ? "bg-base-100 text-primary shadow-sm"
+                  : "text-base-content/60 hover:text-base-content"
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t("admin.live_preview", "Preview")}</span>
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden min-h-0">
           <form
             onSubmit={handleSubmit}
-            className="w-full lg:w-1/2 p-6 overflow-y-auto flex flex-col gap-5 border-r border-base-300"
+            className={`w-full lg:w-1/2 p-4 sm:p-6 overflow-y-auto flex-col gap-5 border-r border-base-300 ${
+              activeTab === "preview" ? "hidden lg:flex" : "flex"
+            }`}
           >
-            <div className="flex bg-base-200/70 p-1 rounded-xl gap-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab("general")}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "general"
-                    ? "bg-base-100 text-primary shadow-sm"
-                    : "text-base-content/60 hover:text-base-content"
-                }`}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                {t("admin.general_config", "General Settings")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("customizer")}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "customizer"
-                    ? "bg-base-100 text-primary shadow-sm"
-                    : "text-base-content/60 hover:text-base-content"
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5" />
-                {t("admin.embed_customizer", "Titles, Labels & Embed Styling")}
-              </button>
-            </div>
-
-            {activeTab === "general" ? (
+            {activeTab !== "customizer" ? (
               <>
                 {/* Name */}
                 <div>
@@ -468,7 +485,8 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                           type="button"
                           key={evt.id}
                           onClick={() => toggleEvent(evt.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 border select-none ${
+                          title={evt.id}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 border select-none ${
                             isSelected
                               ? "bg-primary text-primary-content border-primary shadow-sm ring-2 ring-primary/20 scale-[1.02]"
                               : "bg-base-200/70 text-base-content/70 border-base-300 hover:bg-base-300 hover:text-base-content"
@@ -477,7 +495,10 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-content" : "bg-base-content/40"}`}
                           />
-                          {evt.label}
+                          <span>{t(`settings.${evt.key}`, evt.id)}</span>
+                          <span className="text-[10px] font-mono opacity-50 hidden sm:inline">
+                            ({evt.id})
+                          </span>
                         </button>
                       );
                     })}
@@ -547,7 +568,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
               <>
                 {/* Embed Title Template Format Input */}
                 <div>
-                  <label className="label text-xs font-bold text-base-content flex justify-between">
+                  <label className="label text-xs font-bold text-base-content flex flex-wrap justify-between gap-1 leading-tight">
                     <span>
                       {t("settings.embed_title_format", "Embed Title Format")}
                     </span>
@@ -567,7 +588,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 {/* Embed Color Picker (for Discord) */}
                 {form.template_type === "discord" && (
                   <div className="flex flex-col gap-2">
-                    <label className="label text-xs font-bold text-base-content flex items-center justify-between">
+                    <label className="label text-xs font-bold text-base-content flex flex-wrap items-center justify-between gap-1 leading-tight">
                       <span>
                         {t(
                           "settings.embed_accent_color",
@@ -623,7 +644,7 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
 
                 {/* Edit Field Labels & Order */}
                 <div className="flex flex-col gap-2">
-                  <label className="label text-xs font-bold text-base-content flex justify-between">
+                  <label className="label text-xs font-bold text-base-content flex flex-wrap justify-between gap-1 leading-tight">
                     <span>{t("settings.webhook_edit_fields")}</span>
                     <span className="text-[11px] text-base-content/60">
                       {t("settings.webhook_edit_fields_hint")}
@@ -717,7 +738,11 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
           </form>
 
           {/* Right Panel: Live Real-Time Interactive Preview */}
-          <div className="w-full lg:w-1/2 p-6 bg-base-200/60 flex flex-col gap-4 overflow-y-auto">
+          <div
+            className={`w-full lg:w-1/2 p-4 sm:p-6 bg-base-200/60 flex-col gap-4 overflow-y-auto ${
+              activeTab === "preview" ? "flex" : "hidden lg:flex"
+            }`}
+          >
             {/* Preview Header Bar */}
             <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-base-300">
               <div className="flex items-center gap-2">
@@ -728,19 +753,19 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
               </div>
 
               {/* Sample Event Switcher */}
-              <div className="flex bg-base-300/60 p-0.5 rounded-lg gap-1 text-[11px] font-mono">
-                {["book.created", "book.deleted"].map((evt) => (
+              <div className="flex bg-base-300/60 p-0.5 rounded-lg gap-1 text-[11px]">
+                {AVAILABLE_EVENTS.slice(0, 2).map((evt) => (
                   <button
                     type="button"
-                    key={evt}
-                    onClick={() => setPreviewEvent(evt)}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      previewEvent === evt
+                    key={evt.id}
+                    onClick={() => setPreviewEvent(evt.id)}
+                    className={`px-2 py-0.5 rounded-md transition-all font-medium ${
+                      previewEvent === evt.id
                         ? "bg-base-100 font-bold shadow-xs text-primary"
                         : "opacity-60 hover:opacity-100"
                     }`}
                   >
-                    {evt}
+                    {t(`settings.${evt.key}`, evt.id)}
                   </button>
                 ))}
               </div>
@@ -1022,9 +1047,33 @@ export const WebhookModal: React.FC<WebhookModalProps> = ({
                 </pre>
               </div>
             )}
+
+            {/* Mobile Action Bar inside Preview Tab */}
+            <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-base-300 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setActiveTab("customizer")}
+                className="btn btn-ghost btn-sm"
+              >
+                {t("common.back", "Back to Edit")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="btn btn-primary btn-sm px-5"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  t("common.save", "Save Webhook")
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      <div className="modal-backdrop" onClick={onClose} />
     </div>
   );
 };

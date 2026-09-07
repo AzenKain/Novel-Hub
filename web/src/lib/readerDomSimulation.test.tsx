@@ -589,8 +589,8 @@ describe("Reader DOM Simulations (Selection, Highlights, TTS & Placement)", () =
 
       const toolbarPos = getToolbarPosition(visibleRect, 1200, 900);
 
-      expect(toolbarPos.placement).toBe("below");
-      expect(toolbarPos.top).toBe(72);
+      expect(toolbarPos.placement).toBe("above");
+      expect(toolbarPos.top).toBe(617);
 
       expect(toolbarPos.left).toBeGreaterThanOrEqual(8);
       expect(toolbarPos.left).toBeLessThanOrEqual(812);

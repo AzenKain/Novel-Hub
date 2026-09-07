@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  X,
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -61,30 +62,43 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <dialog className={`modal ${open ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h3 className="flex items-center gap-2 text-lg font-bold">
-          {getIcon()}
-          {title}
-        </h3>
-        <div className="py-4 text-sm opacity-80">{message}</div>
-        <div className="modal-action">
+      <div className="modal-box max-w-md w-11/12 sm:w-full max-h-[85vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+          <h3 className="flex items-center gap-2 text-lg font-bold leading-tight">
+            {getIcon()}
+            <span>{title}</span>
+          </h3>
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
-            className="btn btn-ghost"
+            className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
+            aria-label={t("common.close", "Close")}
           >
-            {cancelText || t("common.cancel", "Cancel")}
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
-          <button
-            onClick={() => {
-              onConfirm();
-            }}
-            disabled={loading}
-            className={`btn ${getConfirmBtnClass()} flex items-center gap-2`}
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {confirmText || t("common.confirm", "Confirm")}
-          </button>
+        </div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
+          <div className="text-sm opacity-80 wrap-break-word min-w-0">{message}</div>
+          <div className="modal-action border-t border-base-200 pt-4 mt-6">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="btn btn-ghost"
+            >
+              {cancelText || t("common.cancel", "Cancel")}
+            </button>
+            <button
+              onClick={() => {
+                onConfirm();
+              }}
+              disabled={loading}
+              className={`btn ${getConfirmBtnClass()} flex items-center gap-2`}
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {confirmText || t("common.confirm", "Confirm")}
+            </button>
+          </div>
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

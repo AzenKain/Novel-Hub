@@ -9,6 +9,7 @@ import {
   Sparkles,
   Loader2,
   Check,
+  Quote,
 } from "lucide-react";
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
@@ -104,6 +105,17 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
   const [copiedTrans, setCopiedTrans] = useState(false);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const [computedTop, setComputedTop] = useState(toolbarPos.top);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const prevTextRef = React.useRef(selectedText);
+
+  useEffect(() => {
+    if (prevTextRef.current !== selectedText) {
+      prevTextRef.current = selectedText;
+      setJustUpdated(true);
+      const timer = setTimeout(() => setJustUpdated(false), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedText]);
 
   useLayoutEffect(() => {
     const el = toolbarRef.current;
@@ -119,11 +131,7 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
     }
     top = Math.max(topBarHeight + margin, top);
     setComputedTop(top);
-  }, [toolbarPos.top, showTranslate, translatedText, translating]);
-
-  useEffect(() => {
-    setComputedTop(toolbarPos.top);
-  }, [toolbarPos.top]);
+  }, [toolbarPos.top, showTranslate, translatedText, translating, selectedText]);
 
   const handleColorClick = (color: string) => {
     onHighlight?.(color, note);
@@ -151,6 +159,15 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
     }
   };
 
+  const cleanSelectedText = (selectedText || "").trim();
+  const selectedExcerpt =
+    cleanSelectedText.length > 28
+      ? `${cleanSelectedText.slice(0, 28)}…`
+      : cleanSelectedText;
+  const wordCount = cleanSelectedText
+    ? cleanSelectedText.split(/\s+/).filter(Boolean).length
+    : 0;
+
   return (
     <div
       ref={toolbarRef}
@@ -167,9 +184,50 @@ export const ReaderSelectionToolbar: React.FC<ReaderSelectionToolbarProps> = ({
       onTouchEnd={(e) => {
         e.stopPropagation();
       }}
-      className="reader-selection-toolbar fixed z-50 flex w-[calc(100vw-1rem)] max-w-92 sm:max-w-96 max-h-[calc(100vh-5rem)] flex-col gap-2 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in duration-100"
-      style={{ top: `${computedTop}px`, left: `${toolbarPos.left}px` }}
+      className={`reader-selection-toolbar fixed z-50 flex w-[calc(100vw-1rem)] max-w-92 sm:max-w-96 max-h-[calc(100vh-5rem)] flex-col gap-2 rounded-2xl border border-(--reader-ui-border) bg-(--reader-ui-surface-strong) p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in duration-100 ${
+        justUpdated
+          ? "ring-2 ring-primary/40 shadow-primary/20 scale-[1.015]"
+          : ""
+      }`}
+      style={{
+        top: `${computedTop}px`,
+        left: `${toolbarPos.left}px`,
+        transition:
+          "top 0.22s cubic-bezier(0.16, 1, 0.3, 1), left 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease, box-shadow 0.2s ease, ring-color 0.2s ease",
+      }}
     >
+      {/* Top Header Row: Selection Excerpt & Word Count */}
+      <div
+        data-reader-toolbar="true"
+        className={`flex items-center justify-between gap-2 px-1 pb-1 border-b border-(--reader-ui-border)/60 transition-colors duration-200 ${
+          justUpdated
+            ? "text-primary border-primary/40"
+            : "text-(--reader-ui-muted)"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <Quote
+            className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
+              justUpdated ? "scale-110 text-primary" : "opacity-60"
+            }`}
+          />
+          <span
+            className="truncate text-[11px] font-medium text-(--reader-ui-text) select-none italic"
+            title={cleanSelectedText}
+          >
+            &ldquo;{selectedExcerpt}&rdquo;
+          </span>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 ${
+            justUpdated
+              ? "bg-primary text-primary-content scale-105 shadow-xs"
+              : "bg-(--reader-ui-soft) text-(--reader-ui-muted) border border-(--reader-ui-border)"
+          }`}
+        >
+          {wordCount} {t("reader.words", "words")}
+        </span>
+      </div>
       {/* Top Row: 8 Highlight Colors */}
       {onHighlight && (
         <div

@@ -279,7 +279,7 @@
     "cover_url_hint": "Поддерживаются прямые форматы изображений (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Введите ссылку на обложку",
     "create_user_title": "Создать нового пользователя",
-    "create_webhook": "Настроить новый вебхук",
+    "create_webhook": "Новый вебхук",
     "danger_warning": "Предупреждение об опасности:",
     "delete_library_confirm_msg": "Вы уверены, что хотите удалить библиотеку {{name}}?",
     "delete_library_danger_desc": "Это навсегда удалит все книги, главы, файлы и данные чтения этой библиотеки. Эти данные НЕВОЗМОЖНО восстановить!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Удалить учётную запись пользователя?",
     "delete_user_desc": "Эта учётная запись будет мягко удалена. Пользователь сразу потеряет доступ к NovelHub.",
     "edit_user_title": "Редактировать профиль",
-    "edit_webhook": "Редактировать вебхук и живой конструктор",
-    "embed_customizer": "Заголовки, метки и стиль встраивания",
+    "edit_webhook": "Изменить вебхук",
+    "embed_customizer": "Настройка",
     "fill_required": "Пожалуйста, заполните все обязательные поля",
-    "general_config": "Общие настройки",
+    "general_config": "Общие",
     "image_url_label": "URL онлайн-обложки",
     "library_delete_queued": "Запрос на удаление библиотеки принят. Процесс выполняется в фоновом режиме.",
     "manage_user_roles": "Управление ролями пользователя",
@@ -310,7 +310,7 @@
     "update_password": "Обновить пароль",
     "user_management": "Управление пользователями",
     "user_subtitle": "Управление учётными записями, ролями, уровнями доступа и учётными данными.",
-    "webhook_desc": "Настраивайте заголовки, метки полей, стили встраивания и тестируйте живой предпросмотр ответа.",
+    "webhook_desc": "Настройка уведомлений и просмотр",
     "webhooks": "Вебхуки и исходящие интеграции",
     "webhooks_subtitle": "Настройте уведомления о событиях в реальном времени для Discord, Telegram, Slack и вебхуков автоматизации.",
     "default_font_note": "(шрифт NovelHub по умолчанию)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "Вы изменили содержимое письма. Смена языка перезагрузит шаблон и перезапишет ваши изменения. Вы уверены, что хотите продолжить?",
     "template_lang_overwrite_confirm_btn": "Изменить язык и перезаписать",
     "markdown_supported": "Поддерживается разметка Markdown",
-    "preview_mode_active": "Режим живого предпросмотра"
+    "preview_mode_active": "Режим живого предпросмотра",
+    "bulk_download_short": "Скачать",
+    "bulk_edit_short": "Изм. метаданные",
+    "live_preview": "Просмотр"
   },
   "download_manager": {
     "title": "Загрузки",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Одинаковые название и автор с небольшими различиями — объедините дубликаты в одну книгу.",
     "rename_smart_collection": "Переименовать умную коллекцию",
     "smart_collection_update_failed": "Не удалось обновить умную коллекцию",
-    "bulk_edit_metadata_title": "Массовое редактирование метаданных",
+    "bulk_edit_metadata_title": "Изм. метаданные",
     "bulk_edit_metadata_desc": "Редактирование и синхронизация метаданных для нескольких книг одновременно",
     "sync_field_to_books": "Синхронизировать",
     "sync_field_title": "Синхронизировать {{field}} с другими книгами",
@@ -1000,7 +1003,7 @@
     "author_only": "Только автор",
     "both_fields": "Оба поля",
     "cleaner_selected_count": "{{count}} книг выбрано для очистки",
-    "cleaner_apply_all": "Применить очищенные данные",
+    "cleaner_apply_all": "Применить",
     "original_metadata": "Исходное название и автор",
     "cleaned_metadata": "Очищенный вид (Редактируемый)",
     "cleaner_preset_applied": "Обновлено {{count}} книг",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Недопустимое регулярное выражение",
     "cleaner_applied_success": "Очищенные названия и авторы применены к {{count}} книгам",
     "items_modified_notice": "{{count}} элементов готово к сохранению",
-    "bulk_save_failed": "Не удалось обновить метаданные"
+    "bulk_save_failed": "Не удалось обновить метаданные",
+    "cleaner_footer_tip": "Нажмите «Применить», чтобы перенести изменения в редактор",
+    "use_raw_value": "Использовать значение"
   },
   "user": {
     "profile": "Профиль",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "Используется системный голос по умолчанию",
     "tts_no_voices_alert": "На вашем устройстве не найдены голоса TTS. Пожалуйста, установите Google Speech Services в настройках устройства.",
     "tts_no_voices_warning": "На вашем устройстве не найдены голоса. Пожалуйста, установите 'Google Speech Services' в настройках устройства для использования этой функции.",
-    "back_to_book_detail": "Назад к сведениям о книге"
+    "back_to_book_detail": "Назад к сведениям о книге",
+    "words": "слов",
+    "selection_label": "Выделение"
   },
   "analytics": {
     "title": "Аналитика и статистика чтения",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "Произошла неизвестная ошибка",
     "book_not_found": "Книга не найдена",
-    "book_not_found_desc": "Возможно, эта книга была удалена или недоступна."
+    "book_not_found_desc": "Возможно, эта книга была удалена или недоступна.",
+    "page_not_found": "Страница не найдена",
+    "page_not_found_desc": "Запрошенная страница не существует или была перемещена.",
+    "go_to_library": "В библиотеку",
+    "search_books": "Поиск",
+    "looking_for_other_books": "Ищете другие книги?"
   },
   "book": {
     "bookmark_updated": "Закладка успешно обновлена",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Пожалуйста, выберите файл для конвертации",
     "convert_replace_warning": "У этой книги уже есть файл {{format}}. Продолжение заменит существующий файл.",
     "convert_confirm_replace": "Да, заменить существующий файл",
-    "bulk_convert_title": "Пакетное конвертирование книг",
+    "bulk_convert_title": "Конвертация форматов",
     "bulk_convert_global_format": "Установить целевой формат для всех выбранных книг:",
-    "bulk_convert_start": "Начать пакетное конвертирование",
+    "bulk_convert_start": "Начать",
     "bulk_convert_success": "Успешно добавлено в очередь {{count}} задач на конвертирование",
     "bulk_convert_failed": "Не удалось запустить некоторые задачи на конвертирование",
     "no_files_convert": "Нет доступных файлов для конвертирования",
@@ -1395,7 +1407,13 @@
     "merge": "Объединить",
     "unarchive": "Вернуть из архива",
     "archive": "В архив",
-    "novel_label": "РОМАН"
+    "novel_label": "РОМАН",
+    "convert_format_short": "Конвертация",
+    "status_unread": "Не прочитано",
+    "status_reading": "Читаю",
+    "status_read": "Прочитано",
+    "status_completed": "Завершено",
+    "status_abandoned": "Заброшено"
   },
   "settings": {
     "title": "Настройки",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Исходная нагрузка HTTP POST (JSON)",
     "webhook_generic_json": "Общий JSON",
     "webhook_hmac_enabled": "Подпись HMAC включена",
-    "hardcover_client_id_placeholder": "напр. hc_app_01j7abc123 или Client ID"
+    "hardcover_client_id_placeholder": "напр. hc_app_01j7abc123 или Client ID",
+    "event_book_created": "Книга добавлена",
+    "event_book_deleted": "Книга удалена",
+    "event_metadata_updated": "Метаданные обновлены",
+    "event_reading_completed": "Чтение завершено",
+    "event_job_failed": "Сбой задачи"
   },
   "email": {
     "invalid": "Введите действительный адрес электронной почты",
@@ -1873,7 +1896,8 @@
     "pause": "Пауза",
     "play": "Воспроизвести",
     "calculating_timeline": "Вычисление шкалы времени...",
-    "calculating": "Вычисление..."
+    "calculating": "Вычисление...",
+    "merge_short": "Объединить аудио"
   },
   "podcasts": {
     "title": "Подкасты",

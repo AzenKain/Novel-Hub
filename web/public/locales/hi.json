@@ -279,7 +279,7 @@
     "cover_url_hint": "सीधे छवि प्रारूप समर्थित (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "कवर छवि लिंक दर्ज करें",
     "create_user_title": "नया उपयोगकर्ता बनाएँ",
-    "create_webhook": "नया वेबहुक कॉन्फ़िगर करें",
+    "create_webhook": "नया वेबहुक",
     "danger_warning": "खतरे की चेतावनी:",
     "delete_library_confirm_msg": "क्या आप वाकई लाइब्रेरी {{name}} हटाना चाहते हैं?",
     "delete_library_danger_desc": "यह इस लाइब्रेरी की सभी पुस्तकें, अध्याय, फ़ाइलें और पठन डेटा स्थायी रूप से हटा देगा। यह डेटा पुनर्प्राप्त नहीं किया जा सकता!",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "उपयोगकर्ता खाता हटाएँ?",
     "delete_user_desc": "यह उपयोगकर्ता खाता सॉफ्ट-डिलीट किया जाएगा। वे तुरंत NovelHub की पहुँच खो देंगे।",
     "edit_user_title": "प्रोफ़ाइल संपादित करें",
-    "edit_webhook": "वेबहुक और लाइव बिल्डर संपादित करें",
-    "embed_customizer": "शीर्षक, लेबल और एम्बेड स्टाइलिंग",
+    "edit_webhook": "वेबहुक संपादित करें",
+    "embed_customizer": "अनुकूलित करें",
     "fill_required": "कृपया सभी आवश्यक फ़ील्ड भरें",
-    "general_config": "सामान्य सेटिंग्स",
+    "general_config": "सामान्य",
     "image_url_label": "ऑनलाइन कवर छवि URL",
     "library_delete_queued": "लाइब्रेरी हटाने का अनुरोध प्राप्त हुआ। प्रक्रिया पृष्ठभूमि में चल रही है।",
     "manage_user_roles": "उपयोगकर्ता भूमिकाएँ प्रबंधित करें",
@@ -310,7 +310,7 @@
     "update_password": "पासवर्ड अपडेट करें",
     "user_management": "उपयोगकर्ता प्रबंधन",
     "user_subtitle": "खाते, भूमिकाएँ, पहुँच स्तर और सुरक्षा क्रेडेंशियल प्रबंधित करें।",
-    "webhook_desc": "शीर्षक, फ़ील्ड लेबल, एम्बेड स्टाइल अनुकूलित करें और लाइव प्रतिक्रिया पूर्वावलोकन आज़माएँ।",
+    "webhook_desc": "सूचनाएं अनुकूलित करें और पूर्वावलोकन",
     "webhooks": "वेबहुक और आउटबाउंड इंटीग्रेशन",
     "webhooks_subtitle": "Discord, Telegram, Slack और ऑटोमेशन वेबहुक के लिए रीयल-टाइम इवेंट सूचनाएँ कॉन्फ़िगर करें।",
     "default_font_note": "(NovelHub डिफ़ॉल्ट फ़ॉन्ट)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "आपने ईमेल सामग्री में बदलाव किया है। भाषा बदलने पर टेम्प्लेट पुनः लोड होगा और आपके बदलाव अधिलेखित हो जाएंगे। क्या आप जारी रखना चाहते हैं?",
     "template_lang_overwrite_confirm_btn": "भाषा बदलें और अधिलेखित करें",
     "markdown_supported": "Markdown प्रारूप समर्थित",
-    "preview_mode_active": "लाइव पूर्वावलोकन सक्रिय"
+    "preview_mode_active": "लाइव पूर्वावलोकन सक्रिय",
+    "bulk_download_short": "डाउनलोड",
+    "bulk_edit_short": "मेटाडेटा संपादित करें",
+    "live_preview": "पूर्वावलोकन"
   },
   "download_manager": {
     "title": "डाउनलोड",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "समान शीर्षक और लेखक मामूली अंतर के साथ — डुप्लिकेट को एक पुस्तक में मर्ज करें।",
     "rename_smart_collection": "स्मार्ट संग्रह का नाम बदलें",
     "smart_collection_update_failed": "स्मार्ट संग्रह अपडेट नहीं हो सका",
-    "bulk_edit_metadata_title": "थोक मेटाडेटा संपादन",
+    "bulk_edit_metadata_title": "मेटाडेटा संपादन",
     "bulk_edit_metadata_desc": "एक साथ कई पुस्तकों के मेटाडेटा को संपादित और समन्वयित करें",
     "sync_field_to_books": "सिंक करें",
     "sync_field_title": "अन्य पुस्तकों में {{field}} सिंक करें",
@@ -1000,7 +1003,7 @@
     "author_only": "केवल लेखक",
     "both_fields": "दोनों",
     "cleaner_selected_count": "सफाई के लिए {{count}} पुस्तकें सक्रिय हैं",
-    "cleaner_apply_all": "साफ किया गया डेटा लागू करें",
+    "cleaner_apply_all": "लागू करें",
     "original_metadata": "मूल शीर्षक और लेखक",
     "cleaned_metadata": "पूर्वावलोकन (संपादन योग्य)",
     "cleaner_preset_applied": "{{count}} पुस्तकें अपडेट की गईं",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "अमान्य रेगेक्स अभिव्यक्ति",
     "cleaner_applied_success": "{{count}} पुस्तकों पर साफ शीर्षक और लेखक लागू किए गए",
     "items_modified_notice": "{{count}} आइटम सहेजने के लिए तैयार हैं",
-    "bulk_save_failed": "मेटाडेटा अपडेट विफल"
+    "bulk_save_failed": "मेटाडेटा अपडेट विफल",
+    "cleaner_footer_tip": "संपादक में बदलाव लाने के लिए 'लागू करें' पर क्लिक करें",
+    "use_raw_value": "मान का उपयोग करें"
   },
   "user": {
     "profile": "प्रोफ़ाइल",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "डिवाइस की डिफ़ॉल्ट आवाज़ का उपयोग कर रहे हैं",
     "tts_no_voices_alert": "आपके डिवाइस पर कोई टीटीएस आवाज़ नहीं मिली। टेक्स्ट-टू-स्पीच के लिए डिवाइस सेटिंग्स में Google Speech Services इंस्टॉल करें।",
     "tts_no_voices_warning": "डिवाइस पर कोई आवाज़ नहीं मिली। इस सुविधा का उपयोग करने के लिए कृपया डिवाइस सेटिंग्स में 'Google Speech Services' इंस्टॉल करें।",
-    "back_to_book_detail": "पुस्तक विवरण पर वापस जाएं"
+    "back_to_book_detail": "पुस्तक विवरण पर वापस जाएं",
+    "words": "शब्द",
+    "selection_label": "चयनित अंश"
   },
   "analytics": {
     "title": "पठन विश्लेषण और आँकड़े",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "एक अज्ञात त्रुटि हुई",
     "book_not_found": "पुस्तक नहीं मिली",
-    "book_not_found_desc": "यह पुस्तक हटाई जा चुकी हो सकती है या उपलब्ध नहीं है।"
+    "book_not_found_desc": "यह पुस्तक हटाई जा चुकी हो सकती है या उपलब्ध नहीं है।",
+    "page_not_found": "पृष्ठ नहीं मिला",
+    "page_not_found_desc": "आप जो पृष्ठ खोज रहे हैं वह मौजूद नहीं है या हटा दिया गया है।",
+    "go_to_library": "पुस्तकालय पर जाएं",
+    "search_books": "खोजें",
+    "looking_for_other_books": "अन्य पुस्तकें खोज रहे हैं?"
   },
   "book": {
     "bookmark_updated": "बुकमार्क सफलतापूर्वक अद्यतन हुआ",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "कृपया रूपांतरित करने के लिए एक फ़ाइल चुनें",
     "convert_replace_warning": "इस पुस्तक में पहले से ही एक {{format}} फ़ाइल है। आगे बढ़ने पर मौजूदा फ़ाइल बदल दी जाएगी।",
     "convert_confirm_replace": "हाँ, मौजूदा फ़ाइल को बदलें",
-    "bulk_convert_title": "पुस्तकों का थोक रूपांतरण",
+    "bulk_convert_title": "प्रारूप कनवर्ट करें",
     "bulk_convert_global_format": "सभी चयनित पुस्तकों के लिए लक्ष्य प्रारूप सेट करें:",
-    "bulk_convert_start": "थोक रूपांतरण प्रारंभ करें",
+    "bulk_convert_start": "शुरू करें",
     "bulk_convert_success": "{{count}} रूपांतरण कार्य सफलतापूर्वक कतारबद्ध किए गए",
     "bulk_convert_failed": "कुछ रूपांतरण कार्य प्रारंभ करने में विफल रहे",
     "no_files_convert": "रूपांतरित करने के लिए कोई फ़ाइल उपलब्ध नहीं है",
@@ -1395,7 +1407,13 @@
     "merge": "मिलाएँ",
     "unarchive": "अनआर्काइव करें",
     "archive": "आर्काइव करें",
-    "novel_label": "उपन्यास"
+    "novel_label": "उपन्यास",
+    "convert_format_short": "कन्वर्ट",
+    "status_unread": "अपठित",
+    "status_reading": "पढ़ रहे हैं",
+    "status_read": "पढ़ी गई",
+    "status_completed": "पूर्ण",
+    "status_abandoned": "छोड़ दिया"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "रॉ HTTP POST पेलोड (JSON)",
     "webhook_generic_json": "सामान्य JSON",
     "webhook_hmac_enabled": "HMAC हस्ताक्षर सक्षम",
-    "hardcover_client_id_placeholder": "उदा. hc_app_01j7abc123 या क्लाइंट ID"
+    "hardcover_client_id_placeholder": "उदा. hc_app_01j7abc123 या क्लाइंट ID",
+    "event_book_created": "पुस्तक बनाई गई",
+    "event_book_deleted": "पुस्तक हटाई गई",
+    "event_metadata_updated": "मेटाडेटा अपडेट किया गया",
+    "event_reading_completed": "पढ़ना पूरा हुआ",
+    "event_job_failed": "कार्य विफल"
   },
   "email": {
     "invalid": "कृपया एक मान्य ईमेल पता डालें",
@@ -1873,7 +1896,8 @@
     "pause": "रोकें",
     "play": "चलाएँ",
     "calculating_timeline": "टाइमलाइन की गणना की जा रही है...",
-    "calculating": "गणना की जा रही है..."
+    "calculating": "गणना की जा रही है...",
+    "merge_short": "ऑडियो मर्ज करें"
   },
   "podcasts": {
     "title": "पॉडकास्ट",

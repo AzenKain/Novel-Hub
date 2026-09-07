@@ -95,6 +95,7 @@ export function Books() {
       loadingImages: state.loadingImages,
       linkUrl: state.linkUrl,
       coverPreview: state.coverPreview,
+      pendingCover: state.pendingCover,
       searchSource: state.searchSource,
       onlineSearchQuery: state.onlineSearchQuery,
       searching: state.searching,
@@ -172,6 +173,7 @@ export function Books() {
     loadingImages,
     linkUrl,
     coverPreview,
+    pendingCover,
     searchSource,
     onlineSearchQuery,
     searching,
@@ -437,16 +439,17 @@ export function Books() {
           </div>
 
           {selectedBookIds.length > 0 && (
-            <div className="mb-3 px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="mb-3 px-3 py-2 bg-primary/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-sm">
               <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
-                <span className="font-bold text-primary whitespace-nowrap">
+                <span className="font-semibold text-primary whitespace-nowrap">
                   {t("admin.selected_books", "Selected {{count}} books", {
                     count: selectedBookIds.length,
                   })}
                 </span>
                 <button
+                  type="button"
                   onClick={() => setSelectedBookIds([])}
-                  className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1"
+                  className="btn btn-ghost btn-xs text-xs opacity-75 hover:opacity-100 h-6 min-h-0 whitespace-nowrap shrink-0 gap-1 px-1.5"
                 >
                   <X className="w-3 h-3" />
                   <span>{t("common.deselect_all", "Clear selection")}</span>
@@ -455,6 +458,8 @@ export function Books() {
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-1.5 w-full sm:w-auto pt-2 sm:pt-0 border-t border-primary/15 sm:border-t-0 shrink-0">
                 {canBulkMerge && (
                   <button
+                    type="button"
+                    title={t("audiobook.merge", "Merge into audiobook")}
                     onClick={() => {
                       const targetBook = selectedBooks[0];
                       if (targetBook) {
@@ -464,13 +469,15 @@ export function Books() {
                         });
                       }
                     }}
-                    className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                    className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
                   >
                     <AudioLines className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{t("audiobook.merge", "Merge into audiobook")}</span>
+                    <span className="truncate whitespace-nowrap">{t("audiobook.merge_short", "Gộp audiobook")}</span>
                   </button>
                 )}
                 <button
+                  type="button"
+                  title={t("admin.bulk_download", "Bulk Download")}
                   onClick={() => {
                     const booksWithFiles = selectedBooks.filter(
                       (b) => b.files && b.files.length > 0,
@@ -497,40 +504,46 @@ export function Books() {
                       ),
                     );
                   }}
-                  className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                  className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
                   disabled={
                     !selectedBooks.some((b) => b.files && b.files.length > 0)
                   }
                 >
                   <Download className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{t("admin.bulk_download", "Bulk Download")}</span>
+                  <span className="truncate whitespace-nowrap">{t("admin.bulk_download_short", "Tải về")}</span>
                 </button>
                 <button
+                  type="button"
+                  title={t("library.bulk_edit_metadata_title", "Edit Metadata")}
                   onClick={() => setShowBulkEditModal(true)}
-                  className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                  className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
                 >
                   <Layers className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{t("library.bulk_edit_metadata_title", "Edit Metadata")}</span>
+                  <span className="truncate whitespace-nowrap">{t("admin.bulk_edit_short", "Sửa metadata")}</span>
                 </button>
                 {canBulkConvert && (
                   <button
+                    type="button"
+                    title={t("book.convert_format", "Convert format")}
                     onClick={() => setShowBulkConvertModal(true)}
-                    className="btn btn-outline btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center"
+                    className="btn btn-outline btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap"
                   >
                     <FileText className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{t("book.convert_format", "Convert format")}</span>
+                    <span className="truncate whitespace-nowrap">{t("book.convert_format_short", "Đổi định dạng")}</span>
                   </button>
                 )}
                 <button
+                  type="button"
+                  title={t("admin.delete_selected_books", "Delete selected")}
                   onClick={() => setShowBulkDeleteModal(true)}
-                  className={`btn btn-error btn-xs gap-1.5 h-8 min-h-0 text-xs justify-center ${
+                  className={`btn btn-error btn-xs h-8 min-h-8 px-2.5 gap-1.5 rounded-lg text-xs font-medium justify-center items-center whitespace-nowrap text-error-content ${
                     ((canBulkMerge ? 1 : 0) + (canBulkConvert ? 1 : 0)) % 2 === 0
                       ? "col-span-2 sm:col-span-1"
                       : ""
                   }`}
                 >
                   <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{t("admin.delete_selected_books", "Delete selected")}</span>
+                  <span className="truncate whitespace-nowrap">{t("common.delete", "Xóa")}</span>
                 </button>
               </div>
             </div>
@@ -872,9 +885,10 @@ export function Books() {
               </div>
               <button
                 onClick={() => setEditingBook(null)}
-                className="btn btn-sm btn-circle btn-ghost"
+                className="btn btn-sm btn-circle btn-ghost text-base-content/70 hover:text-base-content"
+                aria-label={t("common.close", "Close")}
               >
-                ✕
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               </button>
             </header>
 
@@ -939,9 +953,9 @@ export function Books() {
                   </div>
 
                   {/* Tab Content */}
-                  <div className="flex-1 min-h-0 overflow-y-auto">
+                  <div className="flex-1 min-h-0">
                     {coverTab === "book" && (
-                      <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto">
+                      <div className="flex flex-col gap-1.5 max-h-56 sm:max-h-64 lg:max-h-72 overflow-y-auto overscroll-contain pr-1 rounded-xl">
                         {loadingImages ? (
                           <div className="flex items-center justify-center py-6 opacity-50">
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />{" "}
@@ -950,12 +964,19 @@ export function Books() {
                         ) : epubImages.length > 0 ? (
                           epubImages.map((img) => {
                             const fileName = img.split("/").pop() || img;
+                            const isSelected =
+                              pendingCover?.type === "epub" &&
+                              pendingCover.value === img;
                             return (
                               <button
                                 type="button"
                                 key={img}
                                 onClick={() => handleSelectEpubImage(img)}
-                                className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-primary/10 border border-transparent hover:border-primary/20 cursor-pointer transition-colors text-left"
+                                className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-left border ${
+                                  isSelected
+                                    ? "bg-primary/15 border-primary/40 text-primary font-semibold"
+                                    : "hover:bg-primary/10 border-transparent hover:border-primary/20"
+                                }`}
                               >
                                 <img
                                   src={getImageAssetUrl(img)}
@@ -966,6 +987,11 @@ export function Books() {
                                 <span className="text-xs truncate min-w-0 flex-1">
                                   {fileName}
                                 </span>
+                                {isSelected && (
+                                  <span className="badge badge-primary badge-xs shrink-0">
+                                    ✓
+                                  </span>
+                                )}
                               </button>
                             );
                           })
@@ -1067,7 +1093,7 @@ export function Books() {
                         EPUB, MOBI, AZW, PDF, DOCX, TXT
                       </span>
                     </label>
-                    <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
+                    <div className="flex flex-col gap-1.5">
                       {bookFiles.length > 0 ? (
                         bookFiles.map((file: BookFile) => (
                           <div
@@ -1483,8 +1509,8 @@ export function Books() {
               </button>
             </footer>
           </div>
-          <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setEditingBook(null)}>close</button>
+          <form method="dialog" className="modal-backdrop" onClick={() => setEditingBook(null)}>
+            <button type="button">{t("common.close", "Close")}</button>
           </form>
         </dialog>
       )}

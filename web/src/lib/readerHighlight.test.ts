@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  extractRangeText,
   extractTextFromHtml,
   getCharacterOffsetOfRange,
   getTextNodeIndex,
@@ -181,6 +182,48 @@ describe("saveSelection", () => {
     range.setEnd(node, 3);
 
     expect(saveSelection(container, range)).toBeNull();
+  });
+
+  it("preserves paragraph breaks when selecting across multiple paragraphs", () => {
+    const container = render(
+      "<p>First paragraph text.</p><p>Second paragraph text.</p><p>Third paragraph text.</p>",
+    );
+    const range = document.createRange();
+    range.setStart(container.firstChild!, 0);
+    range.setEnd(container.lastChild!, container.lastChild!.childNodes.length);
+
+    const saved = saveSelection(container, range);
+    expect(saved).not.toBeNull();
+    expect(saved?.selectedText).toBe(
+      "First paragraph text.\n\nSecond paragraph text.\n\nThird paragraph text.",
+    );
+  });
+});
+
+describe("extractRangeText", () => {
+  it("preserves newlines between paragraph tags", () => {
+    const container = render("<p>Paragraph one.</p><p>Paragraph two.</p>");
+    const range = document.createRange();
+    range.setStart(container.firstChild!, 0);
+    range.setEnd(container.lastChild!, container.lastChild!.childNodes.length);
+
+    expect(extractRangeText(range)).toBe("Paragraph one.\n\nParagraph two.");
+  });
+
+  it("handles br tags as line breaks", () => {
+    const container = render("<div>Line one<br>Line two</div>");
+    const range = document.createRange();
+    range.selectNodeContents(container);
+
+    expect(extractRangeText(range)).toBe("Line one\nLine two");
+  });
+
+  it("returns single-line string for inline elements without spurious newlines", () => {
+    const container = render("<p>Hello <strong>bold</strong> world</p>");
+    const range = document.createRange();
+    range.selectNodeContents(container);
+
+    expect(extractRangeText(range)).toBe("Hello bold world");
   });
 });
 

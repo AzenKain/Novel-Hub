@@ -102,7 +102,7 @@ export const ReaderSoundscapePanel: React.FC<ReaderSoundscapePanelProps> = ({
   const activeCount = Object.keys(activeTracks).length;
 
   return (
-    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-80 md:w-96 overflow-y-auto rounded-2xl border p-4 shadow-2xl backdrop-blur-md transition-colors duration-300">
+    <div className="reader-settings-panel absolute right-0 top-full z-50 mt-2 max-h-[80dvh] w-[80vw] max-w-[80vw] sm:w-80 md:w-96 sm:max-w-md overflow-y-auto rounded-2xl border p-3.5 sm:p-4 shadow-2xl backdrop-blur-md transition-colors duration-300">
       <div className="flex items-center justify-between mb-3 border-b border-(--reader-ui-border) pb-2.5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-(--reader-ui-accent-soft) text-(--reader-ui-accent)">

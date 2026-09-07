@@ -279,7 +279,7 @@
     "cover_url_hint": "Prend en charge les formats d'image directs (JPG, PNG, WEBP, GIF)",
     "cover_url_title": "Saisissez le lien de l'image de couverture",
     "create_user_title": "Créer un nouvel utilisateur",
-    "create_webhook": "Configurer un nouveau webhook",
+    "create_webhook": "Nouveau Webhook",
     "danger_warning": "Avertissement de danger :",
     "delete_library_confirm_msg": "Voulez-vous vraiment supprimer la bibliothèque {{name}} ?",
     "delete_library_danger_desc": "Cela supprimera définitivement tous les livres, chapitres, fichiers et données de lecture de cette bibliothèque. Ces données sont IRRÉCUPÉRABLES !",
@@ -287,10 +287,10 @@
     "delete_user_confirm": "Supprimer le compte utilisateur ?",
     "delete_user_desc": "Ce compte utilisateur sera supprimé logiquement. Il perdra immédiatement l'accès à NovelHub.",
     "edit_user_title": "Modifier le profil",
-    "edit_webhook": "Modifier le webhook et le constructeur en direct",
-    "embed_customizer": "Titres, étiquettes et style d'intégration",
+    "edit_webhook": "Modifier Webhook",
+    "embed_customizer": "Personnaliser",
     "fill_required": "Veuillez remplir tous les champs obligatoires",
-    "general_config": "Paramètres généraux",
+    "general_config": "Général",
     "image_url_label": "URL de l'image de couverture en ligne",
     "library_delete_queued": "Demande de suppression de bibliothèque reçue. Le processus s'exécute en arrière-plan.",
     "manage_user_roles": "Gérer les rôles utilisateur",
@@ -310,7 +310,7 @@
     "update_password": "Mettre à jour le mot de passe",
     "user_management": "Gestion des utilisateurs",
     "user_subtitle": "Gérez les comptes, rôles, niveaux d'accès et informations d'identification.",
-    "webhook_desc": "Personnalisez les titres, étiquettes de champs, styles d'intégration et testez l'aperçu de réponse en direct.",
+    "webhook_desc": "Personnaliser les notifications et l'aperçu",
     "webhooks": "Webhooks et intégrations sortantes",
     "webhooks_subtitle": "Configurez des notifications d'événements en temps réel pour Discord, Telegram, Slack et les webhooks d'automatisation.",
     "default_font_note": "(Police par défaut de NovelHub)",
@@ -573,7 +573,10 @@
     "template_lang_overwrite_confirm_desc": "Vous avez modifié le contenu de l'e-mail. Changer la langue rechargera le modèle et écrasera vos modifications. Voulez-vous continuer ?",
     "template_lang_overwrite_confirm_btn": "Changer la langue et écraser",
     "markdown_supported": "Formatage Markdown pris en charge",
-    "preview_mode_active": "Aperçu en direct actif"
+    "preview_mode_active": "Aperçu en direct actif",
+    "bulk_download_short": "Télécharger",
+    "bulk_edit_short": "Modifier métadonnées",
+    "live_preview": "Aperçu"
   },
   "download_manager": {
     "title": "Téléchargements",
@@ -903,7 +906,7 @@
     "potential_matches_desc": "Même titre et même auteur avec de légères différences — fusionnez les doublons en un seul livre.",
     "rename_smart_collection": "Renommer la collection intelligente",
     "smart_collection_update_failed": "Impossible de mettre à jour la collection intelligente",
-    "bulk_edit_metadata_title": "Modifier les métadonnées en masse",
+    "bulk_edit_metadata_title": "Modifier métadonnées",
     "bulk_edit_metadata_desc": "Modifier et synchroniser les champs sur plusieurs livres simultanément",
     "sync_field_to_books": "Synchroniser",
     "sync_field_title": "Synchroniser {{field}} avec d'autres livres",
@@ -973,7 +976,7 @@
     "collection_options": "Options de collection",
     "book_grid": "Grille de livres",
     "tab_batch_fields": "Champs par lot",
-    "tab_title_cleaner": "Nettoyeur de titres",
+    "tab_title_cleaner": "Nettoyer titres",
     "batch_fields_title": "Appliquer en lot à tous les livres sélectionnés",
     "batch_author_applied": "Auteur appliqué à tous les livres",
     "batch_series_applied": "Série appliquée à tous les livres",
@@ -1000,7 +1003,7 @@
     "author_only": "Auteur uniquement",
     "both_fields": "Les deux",
     "cleaner_selected_count": "{{count}} livres activés pour le nettoyage",
-    "cleaner_apply_all": "Appliquer les données nettoyées",
+    "cleaner_apply_all": "Appliquer",
     "original_metadata": "Titre et auteur originaux",
     "cleaned_metadata": "Aperçu nettoyé (Modifiable)",
     "cleaner_preset_applied": "{{count}} livres mis à jour",
@@ -1008,7 +1011,9 @@
     "cleaner_regex_invalid": "Expression régulière invalide",
     "cleaner_applied_success": "Titres et auteurs nettoyés appliqués à {{count}} livres",
     "items_modified_notice": "{{count}} éléments prêts à être enregistrés",
-    "bulk_save_failed": "Échec de la mise à jour des métadonnées"
+    "bulk_save_failed": "Échec de la mise à jour des métadonnées",
+    "cleaner_footer_tip": "Cliquez sur « Appliquer » pour transférer les modifications",
+    "use_raw_value": "Utiliser la valeur"
   },
   "user": {
     "profile": "Profil",
@@ -1224,7 +1229,9 @@
     "system_default_voice_active": "Utilisation de la voix système par défaut",
     "tts_no_voices_alert": "Aucune voix TTS trouvée sur votre appareil. Veuillez installer Google Speech Services dans les paramètres de votre appareil.",
     "tts_no_voices_warning": "Aucune voix trouvée sur votre appareil. Veuillez installer 'Google Speech Services' dans les paramètres de votre appareil pour utiliser cette fonctionnalité.",
-    "back_to_book_detail": "Retour aux détails du livre"
+    "back_to_book_detail": "Retour aux détails du livre",
+    "words": "mots",
+    "selection_label": "Sélection"
   },
   "analytics": {
     "title": "Analyses et statistiques de lecture",
@@ -1329,7 +1336,12 @@
   "error": {
     "unknown": "Une erreur inconnue s'est produite",
     "book_not_found": "Livre introuvable",
-    "book_not_found_desc": "Ce livre a peut-être été supprimé ou n'est pas disponible."
+    "book_not_found_desc": "Ce livre a peut-être été supprimé ou n'est pas disponible.",
+    "page_not_found": "Page introuvable",
+    "page_not_found_desc": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "go_to_library": "Aller à la bibliothèque",
+    "search_books": "Rechercher",
+    "looking_for_other_books": "Vous cherchez d'autres livres ?"
   },
   "book": {
     "bookmark_updated": "Favori mis à jour avec succès",
@@ -1361,9 +1373,9 @@
     "convert_no_file": "Veuillez sélectionner un fichier à convertir",
     "convert_replace_warning": "Ce livre a déjà un fichier {{format}}. Continuer remplacera le fichier existant.",
     "convert_confirm_replace": "Oui, remplacer le fichier existant",
-    "bulk_convert_title": "Convertir les livres en lot",
+    "bulk_convert_title": "Convertir format",
     "bulk_convert_global_format": "Définir le format cible pour tous les livres sélectionnés :",
-    "bulk_convert_start": "Démarrer la conversion en lot",
+    "bulk_convert_start": "Démarrer",
     "bulk_convert_success": "{{count}} tâches de conversion ajoutées à la file d'attente avec succès",
     "bulk_convert_failed": "Certaines tâches de conversion n'ont pas pu démarrer",
     "no_files_convert": "Aucun fichier disponible pour la conversion",
@@ -1395,7 +1407,13 @@
     "merge": "Fusionner",
     "unarchive": "Désarchiver",
     "archive": "Archiver",
-    "novel_label": "ROMAN"
+    "novel_label": "ROMAN",
+    "convert_format_short": "Convertir",
+    "status_unread": "Non lu",
+    "status_reading": "En cours",
+    "status_read": "Lu",
+    "status_completed": "Terminé",
+    "status_abandoned": "Abandonné"
   },
   "settings": {
     "title": "Paramètres",
@@ -1562,7 +1580,12 @@
     "webhook_raw_payload": "Charge utile HTTP POST brute (JSON)",
     "webhook_generic_json": "JSON générique",
     "webhook_hmac_enabled": "Signature HMAC activée",
-    "hardcover_client_id_placeholder": "ex. hc_app_01j7abc123 ou ID client"
+    "hardcover_client_id_placeholder": "ex. hc_app_01j7abc123 ou ID client",
+    "event_book_created": "Livre créé",
+    "event_book_deleted": "Livre supprimé",
+    "event_metadata_updated": "Métadonnées mises à jour",
+    "event_reading_completed": "Lecture terminée",
+    "event_job_failed": "Échec de la tâche"
   },
   "email": {
     "invalid": "Veuillez saisir une adresse e-mail valide",
@@ -1873,7 +1896,8 @@
     "pause": "Pause",
     "play": "Lire",
     "calculating_timeline": "Calcul de la timeline...",
-    "calculating": "Calcul en cours..."
+    "calculating": "Calcul en cours...",
+    "merge_short": "Fusionner audio"
   },
   "podcasts": {
     "title": "Baladodiffusions",

@@ -4,6 +4,7 @@ import {
   Edit2,
   Filter,
   Trash2,
+  X,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -506,50 +507,66 @@ export const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
 
       {/* Edit Collection Modal */}
       {editingCollection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <button
             className="absolute inset-0 bg-black/50"
+            aria-label={t("common.close", "Close")}
             onClick={() => setEditingCollection(null)}
           />
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleEditCollection();
-            }}
-            className="relative z-10 w-full max-w-sm rounded-2xl border border-base-200 bg-base-100 p-6 shadow-2xl space-y-4"
-          >
-            <h3 className="text-lg font-bold text-base-content">
-              {t("library.edit_collection", "Edit collection")}
-            </h3>
-            <div>
-              <label className="text-xs font-medium text-base-content/70 mb-1 block">
-                {t("library.collection_name", "Collection name")}
-              </label>
-              <input
-                type="text"
-                className="input input-bordered w-full rounded-xl"
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="relative z-10 w-full max-w-sm max-h-[80dvh] sm:max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border border-base-200 bg-base-100 p-0 shadow-2xl overflow-hidden">
+            {/* Fixed Header */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-200 flex items-center justify-between gap-3 shrink-0 bg-base-100">
+              <h3 className="text-base sm:text-lg font-bold text-base-content leading-tight truncate">
+                {t("library.edit_collection", "Edit collection")}
+              </h3>
               <button
                 type="button"
-                className="btn btn-ghost rounded-xl"
+                className="btn btn-ghost btn-circle btn-sm -mr-1.5 text-base-content/70 hover:text-base-content shrink-0"
                 onClick={() => setEditingCollection(null)}
+                aria-label={t("common.close", "Close")}
               >
-                {t("common.cancel", "Cancel")}
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary rounded-xl"
-                disabled={!editingName.trim()}
-              >
-                {t("common.save", "Save")}
+                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               </button>
             </div>
-          </form>
+
+            {/* Scrollable Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleEditCollection();
+              }}
+              className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4"
+            >
+              <div>
+                <label className="text-xs font-medium text-base-content/70 mb-1 block">
+                  {t("library.collection_name", "Collection name")}
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full rounded-xl"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="modal-action border-t border-base-200 pt-4 mt-6">
+                <button
+                  type="button"
+                  className="btn btn-ghost rounded-xl"
+                  onClick={() => setEditingCollection(null)}
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary rounded-xl"
+                  disabled={!editingName.trim()}
+                >
+                  {t("common.save", "Save")}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
       {/* Delete Confirmation Modal */}
